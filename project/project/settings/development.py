@@ -54,3 +54,7 @@ FIREBASE_CONFIG = {
 
 
 GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"
+
+
+ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com')]
+

@@ -54,6 +54,8 @@ class Members(models.Model):
     created_at = models.BigIntegerField(default=-9223372036854775808)
     tool_state = models.IntegerField(default=0)
 
+    updated_at = models.BigIntegerField(default=0)
+
     #columns for referal in LG communities
     ask_member_id = models.IntegerField(null=True)
     approved_member_id = models.IntegerField(null=True)

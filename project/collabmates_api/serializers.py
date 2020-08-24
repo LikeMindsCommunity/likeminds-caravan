@@ -675,6 +675,26 @@ def draftPollsSerializers(poll):
     return polls
 
 
+def MembersSerializer(member_instance, community_id, current_user_id=None):
+    member_id = member_instance.member_id.id
+    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id)
+    community_profile['state'] = member_instance.state
+
+    # sending image  url of members
+    if member_instance.image_url:
+        community_profile['image_url'] = member_instance.image_url
+
+    if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER:
+        community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
+            str(community_id), str(member_id))
+
+        community_profile[
+            'member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
+                                                                                                           time.localtime(
+                                                                                                               member_instance.created_at))
+
+    return community_profile
+
 def get_members_profile(member_ids, community_id, current_user_id=None):
     '''function to get member profile from list of members ids'''
     member_profile_list = []
@@ -684,22 +704,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None):
         member_filter = Members.objects.filter(member_id=id, community_id=community_id)
 
         if member_filter.exists():
-            member_id = member_filter[0].member_id.id
-            member_instance = member_filter[0]
-            community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id)
-            community_profile['state'] = member_instance.state
-
-            # sending image  url of members
-            if member_instance.image_url:
-                community_profile['image_url'] = member_instance.image_url
-
-            if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER:
-                community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
-                str(community_id), str(member_id))
-
-            community_profile['member_since'] = "Member of " + member_filter[
-                0].community_id.name + " since " + time.strftime('%b %d %Y',
-                                                                 time.localtime(member_filter[0].created_at))
+            community_profile = MembersSerializer(member_filter[0],community_id,current_user_id=current_user_id)
             member_profile_list.append(community_profile)
 
         else:
@@ -730,6 +735,7 @@ def get_user_profile(user_id,community_id,current_user_id=None):
 
 
     return userinfo_serialized_object
+
 
 
 

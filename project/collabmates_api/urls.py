@@ -16,14 +16,10 @@ urlpatterns = [
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
 
     path('community/<int:community_id>', api_views.community, name="community"),
-    path('v1/community/<int:community_id>', api_views.community_version_1, name="community_version_1"),
-    path('v2/community/<int:community_id>', api_views.community_version_2, name="community_version_2"),
 
     path('similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
 
     path('v1/join_community', views.join_community_responses_version_1, name="join_community_responses_version_1"),
-
-
 
     path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
     path('fetch_community_types', api_views.fetch_community_types, name='fetch_community_types'),
@@ -55,6 +51,7 @@ urlpatterns = [
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
     path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
+    path('fetch_community_chatroom_feed', api_views.fetch_community_chatroom_feed, name="fetch_community_chatroom_feed"),
 
 
     #path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
