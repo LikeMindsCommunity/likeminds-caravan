@@ -71,17 +71,13 @@ def get_all_members(request, req_dict=None):
     if not req_dict:
         community_id = request.GET.get('community_id')
         collabcard_id = request.GET.get('collabcard_id', None)
-
-
     else:
         community_id = req_dict['community_id']
         collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
-
-
-
     current_user_id = get_member_id_from_headers(request)
 
     community_instance = Community.objects.get(id=community_id)
+
 
 
     # functionality for user filteration based on options
@@ -144,6 +140,11 @@ def get_all_members(request, req_dict=None):
     community = CommunitySerializer(community_instance,promoter_id=promoter_instance)
 
     context = {'members': members,'community':community}
+
+    ##sending total members and pending members count
+    context['total_members'] = community['members_count']
+    context['total_pending_members'] = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
+
     return context
 
 def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None,page=1):
