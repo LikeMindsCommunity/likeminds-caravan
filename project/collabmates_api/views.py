@@ -375,6 +375,7 @@ def community(request, community_id,req_dict=None):
     member_list = Members.objects.filter(community_id=community, member_id=member_id)
     promoter_instance = 0
     new_dict = {}
+    menu = ""
     if member_list.exists():
 
         state = member_list[0].state
@@ -383,15 +384,15 @@ def community(request, community_id,req_dict=None):
             is_promoter = True
             promoter_instance = member_list[0].member_id
             block_leave_community = True
-            new_dict['menu'] = MENU['promoter']
+            menu = MENU['promoter']
 
 
         if state == member_states.PENDING_MEMBER:
             block_leave_community = True
-            new_dict['menu'] = MENU['pending_member']
+            menu = MENU['pending_member']
 
         if state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
-            new_dict['menu'] = MENU['member']
+            menu = MENU['member']
     else:
         block_leave_community = True
 
@@ -424,13 +425,18 @@ def community(request, community_id,req_dict=None):
         temp['leave_community_positive_title'] = leave_community[2]
         temp['leave_community_negative_title'] = leave_community[3]
         context = {'community': new_dict,'leave_community':temp}
+        if menu:
+            context['menu']=menu
         if req_dict:
             return context
         return JsonResponse(context)
 
 
+    context = {'community': new_dict}
+    if menu:
+        context['menu'] = menu
 
-    return JsonResponse({'community': new_dict})
+    return JsonResponse(context)
 
 
 
