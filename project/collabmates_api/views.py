@@ -8956,6 +8956,9 @@ def push_report(request):
         collabcard_id = request_body['collabcard_id'] if 'collabcard_id' in request_body else None
         collabcard_instance = Collabcard.objects.get(id=collabcard_id) if collabcard_id else None
 
+        community_id = request_body['community_id'] if 'community_id' in request_body else None
+
+
         tag_id = request_body['tag_id'] if 'tag_id' in request_body else None
 
         report_tags_instance = Report_Tags.objects.get(tag_id=tag_id) if tag_id else None
@@ -8984,6 +8987,10 @@ def push_report(request):
 
         report_instance.link = link
         report_instance.conversation = conversation_instance
+
+        if community_id:
+            community_instance = Community.objects.get(id=community_id)
+            report_instance.community=community_instance
 
         report_instance.save()
 
