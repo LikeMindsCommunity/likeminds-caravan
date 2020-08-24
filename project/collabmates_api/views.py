@@ -3080,6 +3080,14 @@ def remove_promoter(request):
 
     member_id = request.POST.get('member_id')
     community_id = request.POST.get('community_id')
+    # print(member_id)
+    # print(community_id)
+    update_status = Members.objects.filter(member_id=member_id,community_id=community_id).update(
+        state=member_states.MEMBER,updated_at=time.time())
+
+    info_logger.info(community_id)
+    info_logger.info(member_id)
+    info_logger.info(update_status)
 
     return JsonResponse({'success':True})
 
