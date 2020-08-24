@@ -1338,8 +1338,9 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
     members = Members.objects.filter(community_id=community_id, state=1)
     collabcards = Collabcard.objects.filter(community = community_instance)
     message = {}
-    notification_list = []
     for member in members:
+
+        notification_list = []
         notification_details = get_token_for_fcm(member.member_id.id, flag=True)
         temp = {
             'id': member.member_id.id,
