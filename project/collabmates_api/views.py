@@ -6310,6 +6310,7 @@ def fetch_community_chatroom_feed(request):
     context = {}
     member_id = get_member_id_from_headers(request)
     size = request.GET.get('size',3)
+    size = int(size)
     community_id = request.GET.get('community_id')
     if not member_id:
         context = get_error_context(False, "send member id in request header")
