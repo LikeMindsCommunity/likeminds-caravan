@@ -374,6 +374,7 @@ def community(request, community_id,req_dict=None):
     block_leave_community = False
     member_list = Members.objects.filter(community_id=community, member_id=member_id)
     promoter_instance = 0
+    new_dict = {}
     if member_list.exists():
 
         state = member_list[0].state
@@ -382,10 +383,14 @@ def community(request, community_id,req_dict=None):
             is_promoter = True
             promoter_instance = member_list[0].member_id
             block_leave_community = True
+            new_dict['menu'] = MENU['promoter']
 
 
         if state == member_states.PENDING_MEMBER:
             block_leave_community = True
+
+        if state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
+            new_dict['menu'] = MENU['member']
     else:
         block_leave_community = True
 
@@ -394,7 +399,7 @@ def community(request, community_id,req_dict=None):
         serialized_object = CommunitySerializer(community,promoter_id=promoter_instance)
     else:
         serialized_object = CommunitySerializer(community)
-    new_dict = {}
+
 
     community_state = get_state_of_community(community)
 
@@ -407,20 +412,7 @@ def community(request, community_id,req_dict=None):
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
-    # if community:
-    #     community_type = is_IG_community(community)
-    #     if not community_type:
-    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
-    #         new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
-    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
-    #     else:
-    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
-    #         new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
-    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
-    #new_dict['min_referrer_member'] = eligibility_count
 
-    if community.id == feedback_community_id:
-        new_dict['share_url'] = ""
 
     #leave community data
     if not block_leave_community:
@@ -435,8 +427,7 @@ def community(request, community_id,req_dict=None):
             return context
         return JsonResponse(context)
 
-    if req_dict:
-        return new_dict
+
 
     return JsonResponse({'community': new_dict})
 
@@ -507,6 +498,7 @@ def admins(request, community_id,req_dict=None):
         else:
             temp = MembersSerializer(admin,community_id,current_user_id=current_user_id)
             users.append(temp)
+        break
 
 
 
@@ -5222,7 +5214,7 @@ def community_cards_version_1(request,community_id,req_dict=None):
     '''Version 1 community collabcards'''
     context = {}
     member_id = get_member_id_from_headers(request)
-
+    size = request.GET.get('size',3)
     if not member_id:
         context = get_error_context(False, "send member id in request header")
         return JsonResponse(context)
@@ -5233,7 +5225,6 @@ def community_cards_version_1(request,community_id,req_dict=None):
         context = get_error_context(False,"send correct community id")
         return JsonResponse(context)
 
-    size = 5
     chatroom_filter = Collabcard.objects.filter(community=community_instance).order_by('-id')
     total_chatrooms = chatroom_filter.count()
     chatroom_list = []
@@ -5247,7 +5238,7 @@ def community_cards_version_1(request,community_id,req_dict=None):
 
 
     context = {
-        'collabcards':chatroom_list,
+        'chatrooms':chatroom_list,
         'total_chatrooms':total_chatrooms
     }
 
@@ -6312,6 +6303,42 @@ def fetch_chatroom_feed(request):
     context['chatrooms'] = chatrooms
     return JsonResponse(context)
 
+
+def fetch_community_chatroom_feed(request):
+
+    '''Version 1 community collabcards'''
+    context = {}
+    member_id = get_member_id_from_headers(request)
+    size = request.GET.get('size',3)
+    community_id = request.GET.get('community_id')
+    if not member_id:
+        context = get_error_context(False, "send member id in request header")
+        return JsonResponse(context)
+
+    try:
+        community_instance = Community.objects.get(id=community_id)
+    except:
+        context = get_error_context(False,"send correct community id")
+        return JsonResponse(context)
+
+    chatroom_filter = Collabcard.objects.filter(community=community_instance).order_by('-id')
+    total_chatrooms = chatroom_filter.count()
+    chatroom_list = []
+    for chatroom in chatroom_filter:
+
+        chatroom_data = get_chatroom_instance(chatroom,member_id)
+        chatroom_list.append(chatroom_data)
+        size = size - 1
+        if size == 0:
+            break
+
+
+    context = {
+        'chatrooms':chatroom_list,
+        'total_chatrooms':total_chatrooms
+    }
+
+    return JsonResponse(context)
 
 
 
