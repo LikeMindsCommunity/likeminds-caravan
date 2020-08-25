@@ -516,7 +516,7 @@ def get_chatroom_name(user_name,card):
     elif type == card_types.CARD_POLL:
         chatroom_name = """%s's Poll""" % (user_name)
     elif type == card_types.CARD_PURPOSE:
-        chatroom_name = """Resources: %s"""%(card.community.name)
+        chatroom_name = """Announcement Room"""
     elif type == card_types.CARD_INTRO:
         chatroom_name = """%s's Intro"""%(user_name)
     else:
@@ -677,7 +677,7 @@ def draftPollsSerializers(poll):
 
 def MembersSerializer(member_instance, community_id, current_user_id=None):
     member_id = member_instance.member_id.id
-    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id)
+    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id,send_profile=True)
     community_profile['state'] = member_instance.state
 
     # sending image  url of members
@@ -688,8 +688,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
         community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
             str(community_id), str(member_id))
 
-        community_profile[
-            'member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
+        community_profile['member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
                                                                                                            time.localtime(
                                                                                                                member_instance.created_at))
 
@@ -716,7 +715,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None):
 
 
 
-def get_user_profile(user_id,community_id,current_user_id=None):
+def get_user_profile(user_id,community_id,current_user_id=None,send_profile=True):
 
     try:
         user_instance = User.objects.get(id=user_id)
@@ -726,6 +725,8 @@ def get_user_profile(user_id,community_id,current_user_id=None):
     userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
     #userinfo_serialized_object['state'] = 0
 
+    if not send_profile:
+        return userinfo_serialized_object
     form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
                                            current_user_id=current_user_id)
 
