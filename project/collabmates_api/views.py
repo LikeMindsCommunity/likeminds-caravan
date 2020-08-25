@@ -2367,9 +2367,9 @@ def create_chatroom_instance(res,community_instance,user_instance):
         res['title'] = res_text
 
         if len(res['title']) <= 30:
-            card.header = card.title[:30]
+            card.header = res['title'][:30]
         else:
-            card.header = card.title[:27] + "..."
+            card.header = res['title'][:27] + "..."
 
         if card.type == card_types.CARD_PURPOSE:
             card.header = get_chatroom_name(user_instance.userinfo.name, card)
