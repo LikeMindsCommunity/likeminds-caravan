@@ -516,7 +516,7 @@ def get_chatroom_name(user_name,card):
     elif type == card_types.CARD_POLL:
         chatroom_name = """%s's Poll""" % (user_name)
     elif type == card_types.CARD_PURPOSE:
-        chatroom_name = """Resources: %s"""%(card.community.name)
+        chatroom_name = """Announcement Room"""
     elif type == card_types.CARD_INTRO:
         chatroom_name = """%s's Intro"""%(user_name)
     else:
