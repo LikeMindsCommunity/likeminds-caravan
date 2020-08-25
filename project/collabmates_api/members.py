@@ -128,20 +128,24 @@ def get_filtered_member_instances(member_list,current_user_id,community_id,is_fi
     current_user = {}
 
     #fetching the user profile to show his name at top
+
     if int(page) == 1:
+
         current_filter = Members.objects.filter(member_id=current_user_id,community_id=community_id)
+
         if current_filter.exists():
-            if member_set and current_user_id in member_set:
+
+            if member_set and current_user_id and int(current_user_id) in member_set:
                 current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
             elif not member_set:
                 current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
 
 
 
+
     #member_list = pagination(member_list, page, paginate_by=10)
 
     for member in member_list:
-
         member_id = member.member_id.id
         userinfo_serialized_object = MembersSerializer(member,community_id,current_user_id=current_user_id)
 
