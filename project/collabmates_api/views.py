@@ -1703,7 +1703,7 @@ def remove_from_member(request):
         is_pending = Members.objects.filter(state=member_states.PENDING_MEMBER, community_id=community_id, member_id=member_id)
         if is_pending.exists():
             remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
-            toast_filter = communityToast.objects.filter(community_id=community_id,member_id=member_id)
+            toast_filter = communityToast.objects.filter(community_id=community_id,user=member_id)
             toast_filter.update(toast_message = "Your request for joining this community is cancelled")
             return JsonResponse({'success':True})
 
