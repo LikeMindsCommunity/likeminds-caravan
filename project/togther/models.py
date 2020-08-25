@@ -80,9 +80,16 @@ class Members(models.Model):
     #     super(Members, self).save(*args, **kwargs)
 
 
+class communityToast(models.Model):
+
+     '''table to save the toast messages of community'''
+
+     user = models.ForeignKey(User, on_delete=models.CASCADE,null=True)
+     community = models.ForeignKey(Community, on_delete=models.CASCADE,null=True)
+     created_at = models.BigIntegerField(default=0)
+     toast_message = models.TextField(null=True)
 
 
-#
 
 class Userinfo(models.Model):
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -1015,8 +1022,6 @@ class communityField(models.Model):
 
 
 
-
-#
 class memberNotificationFlag(models.Model):
     '''
     Model to store the flag state to send emails/push notifications of a particular user
