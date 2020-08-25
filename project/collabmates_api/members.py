@@ -1,8 +1,8 @@
-from togther.models import Members,collabcardState
+from togther.models import Members,collabcardState,Userinfo
 from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
     card_types, chatroom_states, email_states
 
-from django.db.models import Q
+from django.db.models import Q,Subquery
 
 from .serializers import *
 from .utility import *
@@ -74,66 +74,38 @@ def get_all_members(request, req_dict=None):
     else:
         community_id = req_dict['community_id']
         collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
+
     current_user_id = get_member_id_from_headers(request)
+    is_filter = request.GET.get('is_filter', False)
 
+    filter_list = request.GET.get('filter', None)
     community_instance = Community.objects.get(id=community_id)
-
-
 
     # functionality for user filteration based on options
     context = {}
 
+    #flow for sending members of chatrooms
     if collabcard_id and is_request_web(request):
         members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,page_no=page)
         # print(members)
         context = {'members': members}
         return context
 
-    is_filter = request.GET.get('is_filter', False)
-
-    if is_filter == 'true':
-        is_filter = True
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
+    if collabcard_id:
+        context = send_participants_of_chatroom(collabcard_id, filter_list, community_id, current_user_id, page=page)
+        return context
 
 
-        filter_list = request.GET.get('filter', None)
-
-        if filter_list:
-            filter_list = json.loads(filter_list)
-            #info_logger.info(filter_list)
-            member_set = get_filtered_users(filter_list, member_list)
-
-            if collabcard_id:
-                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page,member_set = member_set)
-            else:
-                members = get_filtered_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
+    member_list = get_member_query_set(current_user_id, community_id)
+    if filter_list:
+        filter_list = json.loads(filter_list)
+        member_set = get_filtered_users(filter_list, member_list)
+        members = get_filtered_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
                                                member_set=member_set,page=page)
-
-
-
-        else:
-
-            if collabcard_id:
-                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-
-            else:
-                member_list = Members.objects.filter(community_id=community_id).filter(
-                        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                            state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
-                        'id')
-
-                members = get_filtered_member_instances(member_list, current_user_id, community_id,page=page)
-
-
     else:
-        # is_filter = False
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
-
         members = get_filtered_member_instances(member_list, current_user_id, community_id,page=page)
+
+
 
     promoter_instance = is_member_promoter(community_instance,current_user_id)
 
@@ -143,7 +115,8 @@ def get_all_members(request, req_dict=None):
 
     ##sending total members and pending members count
     context['total_members'] = community['members_count']
-    context['total_pending_members'] = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
+    if promoter_instance:
+        context['total_pending_members'] = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
 
     return context
 
@@ -268,3 +241,58 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 def intersect_sets(set1,set2):
 
     return set1.intersection(set2)
+
+
+def get_member_query_set(current_user_id,community_id,collabcard_id = None):
+
+    if collabcard_id:
+        member_list = Members.objects.filter(community_id=community_id).filter(
+        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+            state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
+        return member_list
+
+
+    state = 0
+    state_filter = Members.objects.filter(member_id=current_user_id,community_id=community_id)
+    if state_filter.exists():
+        state= state_filter[0].state
+
+    if state == member_states.ADMIN:
+
+        info = Userinfo.objects.all()
+        member_list = Members.objects.filter(community_id=community_id).filter(
+            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+                state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER))
+        print(member_list.query)
+    else:
+        member_list = Members.objects.filter(community_id=community_id).filter(
+            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+                state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
+
+    return member_list
+
+
+
+def send_participants_of_chatroom(chatroom_id,filter_list,community_id,current_user_id,page=1):
+
+
+    community_instance = Community.objects.get(id=community_id)
+    collabcard_id=chatroom_id
+    member_list = get_member_query_set(current_user_id, community_id,collabcard_id)
+
+    if filter_list:
+        filter_list = json.loads(filter_list)
+        member_set = get_filtered_users(filter_list, member_list)
+        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no=page,
+                                                  member_set=member_set)
+    else:
+        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no=page,
+                                                  member_set=None)
+
+    promoter_instance = is_member_promoter(community_instance, current_user_id)
+
+    community = CommunitySerializer(community_instance, promoter_id=promoter_instance)
+
+    context = {'members': members, 'community': community}
+
+    return context
