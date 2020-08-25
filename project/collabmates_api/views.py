@@ -2323,6 +2323,13 @@ def create_card(request,req_dict=None):
 def create_chatroom_instance(res,community_instance,user_instance):
 
     '''function to create chatroom instance'''
+
+    #getting the taaged members in chatroom
+    tagged_members = get_tagged_members_list(res['title'])
+    tagged_member_list = tagged_members[0]
+    res_text = tagged_members[1]
+
+
     card = Collabcard()
     card.title = res['title']
     card.community = community_instance
@@ -2356,6 +2363,8 @@ def create_chatroom_instance(res,community_instance,user_instance):
         has_been_named = True
         card.has_been_named = has_been_named
     else:
+
+        res['title'] = res_text
 
         if len(res['title']) <= 30:
             card.header = card.title[:30]
@@ -2420,9 +2429,7 @@ def create_chatroom_instance(res,community_instance,user_instance):
 
 
     #following the tagged member chatroom
-    tagged_members = get_tagged_members_list(res['title'])
-    tagged_member_list = tagged_members[0]
-    print(tagged_member_list)
+
     for user_id in tagged_member_list:
         req_dict = {
             'member_id': user_id,
