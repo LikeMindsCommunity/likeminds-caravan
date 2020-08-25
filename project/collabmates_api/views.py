@@ -547,7 +547,7 @@ def questions(request):
     #add code to send join dropoff notfication
     print(is_member_verified(community_instance,user_instance))
     if not is_member_verified(community_instance,user_instance):
-        time_in_hrs=2
+        time_in_hrs = 2
         send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,aj,time_in_hrs)
 
     questions = []
@@ -5239,6 +5239,7 @@ def community_cards_version_1(request,community_id,req_dict=None):
     context = {}
     member_id = get_member_id_from_headers(request)
     size = request.GET.get('size',3)
+    size = int(size)
     if not member_id:
         context = get_error_context(False, "send member id in request header")
         return JsonResponse(context)
