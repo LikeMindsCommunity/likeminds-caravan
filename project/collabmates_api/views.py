@@ -2422,12 +2422,14 @@ def create_chatroom_instance(res,community_instance,user_instance):
     #following the tagged member chatroom
     tagged_members = get_tagged_members_list(res['title'])
     tagged_member_list = tagged_members[0]
+    print(tagged_member_list)
     for user_id in tagged_member_list:
         req_dict = {
             'member_id': user_id,
             'collabcard_id': card.id,
             'status': True
         }
+        print(req_dict)
         collabcard_follow_internal(req_dict)
     return card
 
