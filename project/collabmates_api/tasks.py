@@ -379,9 +379,9 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
             has_seen[member_id] = -1
     
     #sleep for n hours
-    # time.sleep(time_in_hrs*60*60)
+    time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
-    time.sleep(2*60)
+    # time.sleep(2*60)
     has_seen_new = {}
     for member_id in tagged_member_list:
         user_name = userinstance.userinfo.name
@@ -437,9 +437,9 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
         last_conversation_id = -1
         message_time = 0
     email = get_user_email(user_id)
-    # time.sleep(time_in_hrs*60*60)
+    time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
-    time.sleep(2*60)
+    # time.sleep(2*60)
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
     if state.exists():
         new_conversation_id = state.first().conversation_id
@@ -513,8 +513,8 @@ def send_community_confirmation_email(user_id, community_id):
         task_name = str(user_id)+"_"+str(community_id) + "_send_community_confirmation_email_2"
         args = [user_id, community_id,task_name]
         task_path = "collabmates_api.tasks.send_community_confirmation_email_2"
-        date_time = time.time() + 60
-        # date_time = time.time() + (3*24*60*60)
+        # date_time = time.time() + 60
+        date_time = time.time() + (3*24*60*60)
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args,kwargs, task_name,task_path,
                                                   date_time=date_time, interval=False, crontab=True)
