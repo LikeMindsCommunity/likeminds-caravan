@@ -3,7 +3,7 @@ from utility.states import collabcard_states, member_states, question_states, co
     card_types, chatroom_states, email_states
 
 from django.db.models import Q,Subquery
-
+from django.db import connection
 from .serializers import *
 from .utility import *
 
@@ -96,7 +96,7 @@ def get_all_members(request, req_dict=None):
         return context
 
 
-    member_list = get_member_query_set(current_user_id, community_id)
+    member_list = get_member_query_set(current_user_id, community_id,page=page)
     if filter_list:
         filter_list = json.loads(filter_list)
         member_set = get_filtered_users(filter_list, member_list)
@@ -138,9 +138,10 @@ def get_filtered_member_instances(member_list,current_user_id,community_id,is_fi
 
 
 
-    member_list = pagination(member_list, page, paginate_by=10)
+    #member_list = pagination(member_list, page, paginate_by=10)
 
     for member in member_list:
+
         member_id = member.member_id.id
         userinfo_serialized_object = MembersSerializer(member,community_id,current_user_id=current_user_id)
 
@@ -243,7 +244,7 @@ def intersect_sets(set1,set2):
     return set1.intersection(set2)
 
 
-def get_member_query_set(current_user_id,community_id,collabcard_id = None):
+def get_member_query_set(current_user_id,community_id,collabcard_id = None,page=1):
 
     if collabcard_id:
         member_list = Members.objects.filter(community_id=community_id).filter(
@@ -258,16 +259,10 @@ def get_member_query_set(current_user_id,community_id,collabcard_id = None):
         state= state_filter[0].state
 
     if state == member_states.ADMIN:
+        member_list = get_paginated_member_queryset(page=page,community_id=community_id,promoter=True)
 
-        info = Userinfo.objects.all()
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER))
-        print(member_list.query)
     else:
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
+        member_list = get_paginated_member_queryset(page=page,community_id=community_id,promoter=False)
 
     return member_list
 
@@ -296,3 +291,29 @@ def send_participants_of_chatroom(chatroom_id,filter_list,community_id,current_u
     context = {'members': members, 'community': community}
 
     return context
+
+
+def get_paginated_member_queryset(page,community_id,promoter=False):
+
+    '''function to get paginated  member ids'''
+
+    cursor = connection.cursor()
+
+    limit = 10
+    offset = (page-1) * 10
+    if promoter:
+        sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9 or togther_members.state = 3) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
+    else:
+        sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9 or togther_members.state = 3) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
+
+    cursor.execute(sql)
+
+    res = cursor.fetchall()
+
+    member_ids=[]
+
+    for id in res:
+        instance =Members.objects.get(id=id[0])
+        member_ids.append(instance)
+
+    return member_ids
