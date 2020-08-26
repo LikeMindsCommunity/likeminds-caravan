@@ -7056,6 +7056,7 @@ def verify_otp(request):
     user_id = request.GET.get('user_id')
     otp = request.GET.get('otp')
 
+
     if mobile_no == "9458668721":
         if otp == "0000":
             context = {}
@@ -7067,9 +7068,8 @@ def verify_otp(request):
                 context['access'] = is_user_community_part(context['user']['id'])
             return JsonResponse(context)
         else:
+
             return JsonResponse({'success':False,'error_message':"Wrong otp"})
-
-
 
 
     #for existing users flow
