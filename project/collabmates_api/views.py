@@ -2053,7 +2053,7 @@ def create_or_update_question_instances(question_instance,question,community_ins
 
     '''function to create or update question instances'''
 
-    question_instance = question_instance
+    #question_instance = question_instance
     question_instance.community = community_instance
     question_instance.question_title = question['question_title']
     question_instance.question_state = question['state']
