@@ -7982,11 +7982,13 @@ def edit_community_version_1(request):
     subtype_id = res['sub_type'] if 'sub_type' in res else None
     purpose = res['purpose'] if 'purpose' in res else None
     name = res['community_name']
+    image_url = res['image_url']
 
     community_instance.type = type_id
     community_instance.sub_type = subtype_id
     community_instance.purpose = purpose
     community_instance.name = name
+    community_instance.image_link = image_url
     community_instance.save()
 
     edit_community_purpose_collabcard(community_instance, user_instance, purpose)
