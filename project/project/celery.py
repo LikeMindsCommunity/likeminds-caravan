@@ -38,3 +38,14 @@ app.conf.beat_schedule = {
 app.conf.timezone = 'Asia/Kolkata'
 
 beat_scheduler = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+app.conf.update(
+    task_routes={
+        'proj.tasks.add': {'queue': 'celery', 'delivery_mode': 'transient'}
+    }
+)
+
+app.conf.update(
+    task_acks_late = True
+)
+
