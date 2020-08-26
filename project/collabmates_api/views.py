@@ -7400,6 +7400,7 @@ def verify_otp(request):
     user_id = request.GET.get('user_id')
     otp = request.GET.get('otp')
 
+    #hardcoding the mobile number for testing purposes
     if mobile_no == "9458668721":
         if otp == "0000":
             context = {}
