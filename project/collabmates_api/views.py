@@ -3080,6 +3080,11 @@ def add_admin(request, community_id):
 
         member_id = res['member_id']
 
+        action_required = False
+        promoter_filter = Members.objects.filter(member_id=member_id, community_id=community_id)
+        if promoter_filter.exists():
+            action_required = promoter_filter[0].actions_required
+
         nominated_admin = res['nominate_member_ids']
 
         if len(nominated_admin) > 0:
@@ -3091,7 +3096,7 @@ def add_admin(request, community_id):
 
         info_logger.info(res)
 
-        update_status_member = member_filter.update(state=member_states.ADMIN,updated_at=time.time())
+        update_status_member = member_filter.update(state=member_states.ADMIN,updated_at=time.time(),actions_required = action_required)
 
         update_status_engage = engage_filter.update(member_state=member_states.ADMIN)
 
@@ -7056,6 +7061,7 @@ def verify_otp(request):
     user_id = request.GET.get('user_id')
     otp = request.GET.get('otp')
 
+
     if mobile_no == "9458668721":
         if otp == "0000":
             context = {}
@@ -7067,9 +7073,8 @@ def verify_otp(request):
                 context['access'] = is_user_community_part(context['user']['id'])
             return JsonResponse(context)
         else:
+
             return JsonResponse({'success':False,'error_message':"Wrong otp"})
-
-
 
 
     #for existing users flow
