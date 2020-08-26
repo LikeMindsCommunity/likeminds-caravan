@@ -2032,31 +2032,14 @@ def create_community_questions(res):
                 question_filter = communityQuestions.objects.filter(question_state=question_states.INTRODUCTION,community=community_instance)
                 if question_filter.exists():
                     question_instance = question_filter[0]
-                    question_instance.community = community_instance
-                    question_instance.question_title = question['question_title']
-                    question_instance.question_state = question['state']
-                    question_instance.value = question['value'] if 'value' in question else None
-                    question_instance.optional = question['optional']
-                    question_instance.help_text = question['help_text'] if 'help_text' in question else None
-                    question_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
-
-                    question_instance.field = question['field'] if 'field' in question else False
-                    question_instance.save()
+                    create_or_update_question_instances(question_instance,question,community_instance)
 
             elif question['state'] == question_states.MOBILE_NO:
                 continue
 
             else:
-                questions_instance = communityQuestions()
-                questions_instance.community = community_instance
-                questions_instance.question_title = question['question_title']
-                questions_instance.question_state = question['state']
-                questions_instance.value = question['value'] if 'value' in question else None
-                questions_instance.optional = question['optional']
-                questions_instance.help_text = question['help_text'] if 'help_text' in question else None
-                questions_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
-                questions_instance.field = question['field'] if 'field' in question else False
-                questions_instance.save()
+                question_instance = communityQuestions()
+                create_or_update_question_instances(question_instance,question,community_instance)
 
 
 
@@ -2065,6 +2048,21 @@ def create_community_questions(res):
     if current_question_count != question_count:
         Members.objects.filter(community_id=community_instance,state=member_states.MEMBER).update(edit_required=True)
 
+
+def create_or_update_question_instances(question_instance,question,community_instance):
+
+    '''function to create or update question instances'''
+
+    #question_instance = question_instance
+    question_instance.community = community_instance
+    question_instance.question_title = question['question_title']
+    question_instance.question_state = question['state']
+    question_instance.value = question['value'] if 'value' in question else None
+    question_instance.optional = question['optional']
+    question_instance.help_text = question['help_text'] if 'help_text' in question else None
+    question_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
+    question_instance.field = question['field'] if 'field' in question else False
+    question_instance.save()
 
 def create_introduction_question_in_community(community_instance):
 
@@ -2100,10 +2098,6 @@ def create_introduction_question_in_community(community_instance):
     questions_instance.is_hidden = True
     questions_instance.field = True
     questions_instance.save()
-
-
-
-
 
 
 def post_member_directly_link(card_instance,user_instance,community_instance):
@@ -7950,8 +7944,8 @@ def edit_community(request):
         context = get_error_context(False,"send correct community id")
         return JsonResponse(context)
 
-    type_id = res['type_id'] if 'type_id' in res else None
-    subtype_id = res['subtype_id'] if 'subtype_id' in res else None
+    type_id = res['type'] if 'type' in res else None
+    subtype_id = res['sub-type'] if 'sub-type' in res else None
     about = res['about'] if 'about' in res else None
     name = res['name']
 
@@ -7961,6 +7955,109 @@ def edit_community(request):
     community_instance.name = name
     community_instance.save()
     return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def edit_community_version_1(request):
+
+    '''function to edit the community'''
+
+    res = json.loads(request.body)
+    community_id = res['community_id']
+    member_id = get_member_id_from_headers(request)
+    try:
+        community_instance = Community.objects.get(id=community_id)
+        user_instance  = User.objects.get(id=member_id)
+    except:
+        context = get_error_context(False,"send correct community id")
+        return JsonResponse(context)
+
+    type_id = res['type'] if 'type' in res else None
+    subtype_id = res['sub_type'] if 'sub_type' in res else None
+    purpose = res['purpose'] if 'purpose' in res else None
+    name = res['community_name']
+    image_url = res['image_url']
+
+    community_instance.type = type_id
+    community_instance.sub_type = subtype_id
+    community_instance.purpose = purpose
+    community_instance.name = name
+    community_instance.image_link = image_url
+    community_instance.save()
+
+    edit_community_purpose_collabcard(community_instance, user_instance, purpose)
+
+
+    return JsonResponse({'success': True})
+
+@csrf_exempt
+def edit_community_questions(request):
+
+    '''function to update community questions'''
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
+
+    user_instance = User.objects.get(pk=member_id)
+    res = json.loads(request.body)
+
+    # error messages
+    if 'community_id' not in res:
+        return JsonResponse({'success': False, 'error_message': "send community id in request body"})
+
+    if 'questions' not in res:
+        return JsonResponse({'success': False, 'error_message': "send questions list"})
+
+    questions_list = res['questions']
+    community_instance = Community.objects.get(id=res['community_id'])
+
+    current_questionId_set = set(communityQuestions.objects.filter(community=community_instance).values_list('id', flat=True))
+    latest_questionId_set = set()
+
+    major_change = False
+    for question in questions_list:
+
+        if 'id' in question:
+            question_instance = communityQuestions.objects.get(pk=question['id'])
+
+            # checking current question for major change
+            # if question_instance.question_state != question['state']:
+            #     major_change = True
+            #
+            # elif question_instance.value != question['value']:
+            #     major_change = True
+
+            # if (question_instance.optional is True and question['optional'] is False):
+            #     major_change = True
+
+            latest_questionId_set.add(question['id'])
+
+            # updating the question instance
+            create_or_update_question_instances(question_instance,question,community_instance)
+
+        else:
+            question_instance = communityQuestions()
+            create_or_update_question_instances(question_instance,question,community_instance)
+
+            major_change = True
+
+    diff = current_questionId_set - latest_questionId_set
+    if len(diff) > 0:
+        delete_status = communityQuestions.objects.filter(pk__in=diff).delete()
+        info_logger.info(delete_status)
+
+
+
+    #updating members state table for editing
+    if major_change:
+        Members.objects.filter(community_id=community_instance).update(edit_required=True)
+        send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
+
+    return JsonResponse({'success':True})
+
+
+
 
 
 def edit_questions(questions, community_id):
