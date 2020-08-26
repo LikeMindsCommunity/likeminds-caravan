@@ -2,6 +2,8 @@ from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
 from celery.schedules import crontab
+# from kombu import Exchange, Queue
+# set the default Django settings module for the 'celery' program.
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.development')
 
@@ -38,3 +40,13 @@ app.conf.beat_schedule = {
 app.conf.timezone = 'Asia/Kolkata'
 
 beat_scheduler = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+app.conf.update(
+    task_routes={
+        'proj.tasks.add': {'queue': 'celery', 'delivery_mode': 'transient'}
+    }
+)
+
+app.conf.update(
+    task_acks_late = True
+)
