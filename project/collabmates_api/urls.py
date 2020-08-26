@@ -111,6 +111,8 @@ urlpatterns = [
 
     path('edit_community', views.edit_community, name='edit_community'),
     path('v1/edit_community', views.edit_community_version_1, name='edit_community_version_1'),
+    path('edit_community_questions', views.edit_community_questions, name='edit_community_questions'),
+
 
     #path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
