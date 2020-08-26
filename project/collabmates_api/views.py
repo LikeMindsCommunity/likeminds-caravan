@@ -7056,7 +7056,7 @@ def verify_otp(request):
     user_id = request.GET.get('user_id')
     otp = request.GET.get('otp')
 
-    if mobile_no == "8218225082":
+    if mobile_no == "9458668721":
         if otp == "0000":
             context = {}
             context['success'] = True
