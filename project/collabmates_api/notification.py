@@ -1066,7 +1066,7 @@ def send_evening_level_notification():
         message['payload']={
                 "title" : 'Level up '+str(community_level.community.name),
                 "sub_title" : str(community_level.title) + ". " +str(community_level.sub_title),
-                'route':'route://community?community_id='+str(community_level.community.id)
+                'route':'route://community?community_id='+str(community_level.community.id) + '&community_name=' + str(community_level.community.name)
             }
 
         notification_meta(notification_list,message)
@@ -1173,6 +1173,8 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                 }
 
                 notification_meta(notification_list,message)
+
+
 @app.task
 @shared_task
 def send_notification_for_directory_creation(community_id,start_time,day=0):
@@ -1192,10 +1194,10 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     if day == 0 and members.exists():
         # get tomorrow 9 am
-        # start_time = datetime.fromtimestamp(start_time)
+        start_time = datetime.fromtimestamp(start_time)
         start_time = datetime.fromtimestamp(start_time+(24*60*60))
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=3)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=3)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         celerybeatask = CeleryBeatTask()
         task_name =  str(community_id) + str(start_time) + "_3_send_notification_for_directory_creation"
@@ -1210,8 +1212,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     elif day == 3 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + str(start_time)  + "_3_send_notification_for_directory_creation"
         celerybeatask = CeleryBeatTask()
@@ -1240,8 +1242,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     elif day == 5 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + str(start_time) + "_5_send_notification_for_directory_creation"
         celerybeatask = CeleryBeatTask()
@@ -1270,8 +1272,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     elif day == 7 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=8)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=8)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + str(start_time) + "_7_send_notification_for_directory_creation"
         celerybeatask = CeleryBeatTask()
@@ -1300,8 +1302,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     elif day == 15 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=15)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=15)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + str(start_time) + "_15_send_notification_for_directory_creation"
         celerybeatask = CeleryBeatTask()
@@ -1374,9 +1376,9 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
     if day == 0 and members.exists():
         # get tomorrow 11 am
         start_time = datetime.fromtimestamp(start_time+30)
-        # start_time = datetime.fromtimestamp(start_time+(24*60*60))
-        # start_time = start_time.replace(hour=11,minute=0)+ timedelta(days=3)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = datetime.fromtimestamp(start_time+(24*60*60))
+        start_time = start_time.replace(hour=11,minute=0)+ timedelta(days=3)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
 
         celerybeatask = CeleryBeatTask()
@@ -1394,8 +1396,8 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
     elif day == 3 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=1)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=1)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
 
         task_name =  str(community_id) + "send_ice_breaker_notification"
@@ -1412,8 +1414,8 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
     elif day == 4 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + "send_ice_breaker_notification"
         celerybeatask = CeleryBeatTask()
@@ -1429,8 +1431,8 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
     elif day == 7 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=8)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=8)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + "send_ice_breaker_notification"
         celerybeatask = CeleryBeatTask()
