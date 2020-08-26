@@ -7979,7 +7979,7 @@ def edit_community_version_1(request):
         return JsonResponse(context)
 
     type_id = res['type'] if 'type' in res else None
-    subtype_id = res['sub-type'] if 'sub-type' in res else None
+    subtype_id = res['sub_type'] if 'sub_type' in res else None
     purpose = res['purpose'] if 'purpose' in res else None
     name = res['community_name']
 
