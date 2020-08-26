@@ -8022,14 +8022,14 @@ def edit_community_questions(request):
             question_instance = communityQuestions.objects.get(pk=question['id'])
 
             # checking current question for major change
-            if question_instance.question_state != question['state']:
-                major_change = True
+            # if question_instance.question_state != question['state']:
+            #     major_change = True
+            #
+            # elif question_instance.value != question['value']:
+            #     major_change = True
 
-            elif question_instance.value != question['value']:
-                major_change = True
-
-            elif (question_instance.optional is True and question['optional'] is False):
-                major_change = True
+            # if (question_instance.optional is True and question['optional'] is False):
+            #     major_change = True
 
             latest_questionId_set.add(question['id'])
 
@@ -8042,18 +8042,12 @@ def edit_community_questions(request):
 
             major_change = True
 
+    diff = current_questionId_set - latest_questionId_set
+    if len(diff) > 0:
+        delete_status = communityQuestions.objects.filter(pk__in=diff).delete()
+        info_logger.info(delete_status)
 
-    if not major_change:
 
-        diff = current_questionId_set - latest_questionId_set
-
-        #set is not an empty set major change
-
-        if len(diff) > 0:
-            major_change = True
-            #updating the removed_state to True if the question is deleted
-            delete_status = communityQuestions.objects.filter(pk__in=diff).delete()
-            info_logger.info(delete_status)
 
     #updating members state table for editing
     if major_change:
