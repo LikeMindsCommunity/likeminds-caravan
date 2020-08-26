@@ -7441,6 +7441,12 @@ def save_user_primary_email(user_instance,email,verified=False,email_state=email
         return
 
     email_filter = userEmails.objects.filter(email=email)
+
+    # if email_filter.exists():
+    #     user_email_instance = email_filter[0]
+    #     if not user_email_instance.verified:
+    #         email_filter.delete()
+
     if not email_filter.exists():
         user_email_instance = userEmails()
         user_email_instance.user = user_instance
@@ -7448,6 +7454,7 @@ def save_user_primary_email(user_instance,email,verified=False,email_state=email
         user_email_instance.email = email
         user_email_instance.verified = verified
         user_email_instance.save()
+
 
 
 def save_user_mobile_number(user_instance,country_code,mobile_no,state=mobile_states.PRIMARY):
