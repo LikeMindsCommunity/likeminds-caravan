@@ -7950,8 +7950,8 @@ def edit_community(request):
         context = get_error_context(False,"send correct community id")
         return JsonResponse(context)
 
-    type_id = res['type_id'] if 'type_id' in res else None
-    subtype_id = res['subtype_id'] if 'subtype_id' in res else None
+    type_id = res['type'] if 'type' in res else None
+    subtype_id = res['sub-type'] if 'sub-type' in res else None
     about = res['about'] if 'about' in res else None
     name = res['name']
 
@@ -7961,6 +7961,39 @@ def edit_community(request):
     community_instance.name = name
     community_instance.save()
     return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def edit_community_version_1(request):
+
+    '''function to edit the community'''
+
+    res = json.loads(request.body)
+    community_id = res['community_id']
+    member_id = get_member_id_from_headers(request)
+    try:
+        community_instance = Community.objects.get(id=community_id)
+        user_instance  = User.objects.get(id=member_id)
+    except:
+        context = get_error_context(False,"send correct community id")
+        return JsonResponse(context)
+
+    type_id = res['type'] if 'type' in res else None
+    subtype_id = res['sub-type'] if 'sub-type' in res else None
+    purpose = res['purpose'] if 'purpose' in res else None
+    name = res['community_name']
+
+    community_instance.type = type_id
+    community_instance.sub_type = subtype_id
+    community_instance.purpose = purpose
+    community_instance.name = name
+    community_instance.save()
+
+    edit_community_purpose_collabcard(community_instance, user_instance, purpose)
+
+
+    return JsonResponse({'success': True})
+
 
 
 def edit_questions(questions, community_id):

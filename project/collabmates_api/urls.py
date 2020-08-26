@@ -108,7 +108,10 @@ urlpatterns = [
     path('push', api_views.push, name='push'),
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
     path('accept_invitation',views.accept_invitation,name='accept_invitation'),
+
     path('edit_community', views.edit_community, name='edit_community'),
+    path('v1/edit_community', views.edit_community_version_1, name='edit_community_version_1'),
+
     #path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
 
