@@ -1125,7 +1125,7 @@ def update_community_actions(community_instance):
     if promoter_filter.exists():
         if not promoter_filter[0].actions_required:
             return
-
+    member_count = get_members_count_in_community(community_instance.id)
     instance_list = communityLevels.objects.filter(community=community_instance).order_by('id')
     community_level_filter = instance_list
     for instance in instance_list:
@@ -1133,7 +1133,7 @@ def update_community_actions(community_instance):
         if instance.level == "Level 2" and instance.state == community_level_states.PENDING:
 
             if instance.joined_members < instance.max_members:
-                instance.joined_members = instance.joined_members + 1
+                instance.joined_members = member_count
                 instance.save()
                 #instance.update(joined_members=F(instance.joined_members)+1)
 
