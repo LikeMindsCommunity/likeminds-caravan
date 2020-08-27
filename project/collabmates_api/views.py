@@ -571,7 +571,6 @@ def questions(request):
     questions = sorted(questions, key=lambda i: i['rank'])
 
     context = {'questions': questions, 'community': community}
-
     if aj:
         context.update(auto_join)
     return JsonResponse(context)
@@ -2264,7 +2263,7 @@ def set_community_actions(community_instance):
         instance.title = "Invite your inner circle"
         instance.sub_title = "Bring 5 trusted people you want to build this community with."
         instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA  else 5
+        instance.max_members = 3 if settings.IS_BETA  else 5
         instance.state = community_level_states.PENDING
         instance.image = IMAGE_LEVEL_2
         instance.save()
@@ -2276,7 +2275,7 @@ def set_community_actions(community_instance):
         instance.title = "Community Directory"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA  else 10
+        instance.max_members = 3 if settings.IS_BETA  else 10
         instance.image = IMAGE_LEVEL_3
         instance.save()
 
@@ -2287,7 +2286,7 @@ def set_community_actions(community_instance):
         instance.title = "Growth"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA  else 10
+        instance.max_members = 3 if settings.IS_BETA  else 10
         instance.image = IMAGE_LEVEL_4
         instance.save()
 
@@ -8031,6 +8030,49 @@ def edit_community_questions(request):
             # if (question_instance.optional is True and question['optional'] is False):
             #     major_change = True
 
+            if question_instance.question_state == question_states.CHOICE_MULTIPLE or question_instance.question_state == question_states.CHOICE_SINGLE  and not question['field']:
+                current_choices = json.loads(question['value'])
+                value_list = []
+                for i in current_choices:
+                    value_list.append(i['value'])
+
+                #print(value_list)
+
+                #taking the user options from filter
+                filter_list = list(questionFilters.objects.filter(question=question['id']).values_list('filter', flat=True).distinct())
+                #print(filter_list)
+
+
+
+                for data in filter_list:
+                    if data not in value_list:
+                        dropdown_list = list(questionFilters.objects.filter(question=question['id'],filter=data).values_list('member_id', flat=True).distinct())
+                        questionFilters.objects.filter(question=question['id'], filter=data)
+
+                        delete_option = questionFilters.objects.filter(question=question['id'], filter=data).delete()
+
+                        for user_id in dropdown_list:
+                            dropdown_option = list(questionFilters.objects.filter(question=question['id'], member_id=user_id).values_list('filter', flat=True).distinct())
+                            print(dropdown_option)
+                            if dropdown_option:
+                                value = ""
+                                for i in dropdown_option:
+                                    value = i + "$#"
+
+                                value = value[:-2]
+                                answer_filter = communityAnswers.objects.filter(question=question['id'],
+                                                                                member_id=user_id)
+                                answer_filter.update(question_answer=value)
+                            else:
+                                info_logger.info("delete case")
+                                answer_filter = communityAnswers.objects.filter(question=question['id'],
+                                                                                member_id=user_id)
+                                answer_filter.delete()
+
+
+
+                major_change = True
+
             latest_questionId_set.add(question['id'])
 
             # updating the question instance
@@ -8042,17 +8084,22 @@ def edit_community_questions(request):
 
             major_change = True
 
+    # print(current_questionId_set)
+    # print(latest_questionId_set)
+
     diff = current_questionId_set - latest_questionId_set
     if len(diff) > 0:
-        delete_status = communityQuestions.objects.filter(pk__in=diff).delete()
-        info_logger.info(delete_status)
+        print(diff)
+        # delete_status = communityQuestions.objects.filter(pk__in=diff).delete()
+        # print(delete_status)
 
 
 
     #updating members state table for editing
     if major_change:
         Members.objects.filter(community_id=community_instance).update(edit_required=True)
-        send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
+        print("Its a major change")
+        #send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
     return JsonResponse({'success':True})
 
