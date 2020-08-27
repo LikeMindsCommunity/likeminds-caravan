@@ -9255,11 +9255,11 @@ def email_verify(request):
             return HttpResponse("Invalid link")
 
 
-        # decoded_token = decrypt(token)
-        # decoded_user = decrypt(user)
+        decoded_token = decrypt(token)
+        decoded_user = decrypt(user)
 
-        decoded_token = token
-        decoded_user = user
+        # decoded_token = token
+        # decoded_user = user
 
         #getting the user instance
         try:
@@ -9293,23 +9293,13 @@ def email_verify(request):
             #if the link is verified
             if (current_time - instance.created_at) <= instance.expire_time:
 
-                email_state = instance.email_state
-
-                if email_state == email_states.PRIMARY:
-                    userEmails.objects.filter(user = user_instance).update(email_state = email_states.NON_PRIMARY)
-
-                user_email_list = userEmails.objects.filter(email=instance.email,user=user_instance)
-
-                if not user_email_list.exists():
-                    user_email_instance = userEmails()
-                    user_email_instance.user = user_instance
-                    user_email_instance.email_state = email_state
-                    user_email_instance.email = instance.email
-                    user_email_instance.save()
+                user_email_list = userEmails.objects.filter(email=instance.email,user=user_instance,verified=False)
+                if user_email_list.exists():
+                    user_email_list.update(user=user_instance,email=instance.email,verified=True)
+                    delete_status = userEmails.objects.filter(email=instance.email).filter(~Q(user=user_instance)).delete()
 
                 else:
-                    user_email_list.update(user=user_instance,email=instance.email,verified=True)
-
+                    return HttpResponse("This email is already verified by another user!!!!!")
 
                 return render(request, 'email_verify_landing.html', context)
 
