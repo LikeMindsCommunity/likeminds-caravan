@@ -1191,7 +1191,7 @@ def update_email(request):
     if typ == 'new':
 
 
-        email_filter = userEmails.objects.filter(email=email)
+        email_filter = userEmails.objects.filter(email=email,verified=True)
         if email_filter.exists():
             return JsonResponse({'error_message':"email already exists in system",'success':False})
 
@@ -1208,7 +1208,7 @@ def update_email(request):
 
     elif typ == 'edit':
 
-        email_filter = userEmails.objects.filter(email=email)
+        email_filter = userEmails.objects.filter(email=email,verified=True)
         if email_filter.exists():
             return JsonResponse({'error_message': "email already exists in system",'success':False})
 
@@ -7454,7 +7454,7 @@ def save_user_primary_email(user_instance,email,verified=False,email_state=email
     if not email:
         return
 
-    email_filter = userEmails.objects.filter(email=email)
+    email_filter = userEmails.objects.filter(email=email,verified=True)
 
     # if email_filter.exists():
     #     user_email_instance = email_filter[0]
