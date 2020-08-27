@@ -224,7 +224,8 @@ def get_user_communities(request):
 def community(request, community_id):
 
 
-    aj = request.GET.get('aj', False)                           #auto join check functionality
+    aj = request.GET.get('aj', False)
+    #auto join check functionality
 
     ios_private_link = ""
 
@@ -416,7 +417,7 @@ def community_questions(request,params):
 
         if mixpanel_event:
             context['mixpanel_event'] = mixpanel_event
-
+        # print(context,"***")
 
         return render(request, 'response_form.html', context)
     else:
@@ -454,6 +455,7 @@ def community_questions(request,params):
 
             # print("params---",params)
             # print("json dict---",json_dict)
+
             rqst.post(join_url, params=params, json=json_dict)
 
         if aj_expired == "" or aj_expired == "True":
@@ -532,7 +534,7 @@ def get_community_context(request,community_instance,user_instance,state,profile
 
     if state == member_states.PENDING_MEMBER:
         context['footer'] = {
-            'toast':"Request to join community is pending"
+            'toast':"Your request to join the community is pending."
         }
 
 
@@ -1670,6 +1672,7 @@ def collabcard(request, card_id):
                'request_user_email': request_user_email,
 
                }
+    print(context)
     return render(request, 'card.html', context)
 
 

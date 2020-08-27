@@ -555,6 +555,12 @@ input:focus, textarea:focus, select:focus{border-color:#99CC33!important;outline
     color:#06c3af;
     cursor: pointer;
 }
+.clickable.grey{
+    color:#999999;
+}
+.cp{
+    cursor:pointer;
+}
 .login-step input[type=number] {
     height: 48px;
     width: 48px;
@@ -802,4 +808,6 @@ span.divider:before{
     position: fixed;
     bottom:0;
     width:100%;
+    left: 50%;
+    transform: translateX(-50%);
 }

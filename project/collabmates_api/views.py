@@ -3687,7 +3687,7 @@ def collabcard(request, card_id):
             card['state'] = collabcard_status['state']
             card['mute_status'] = collabcard_status['mute_status']
             card['follow_status'] = collabcard_status['follow_status']
-
+            # print('-->',collabcard_status)
 
         # get tine stamp for card
         time_text = get_time_text(card_instance.date_epoch)
@@ -3712,7 +3712,7 @@ def collabcard(request, card_id):
 
             context['current_date'] = time.strftime('%d-%m-%Y', time.localtime(time.time()))
 
-
+        # print(context)
 
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
@@ -3744,6 +3744,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         current_user['mute_status'] = collabcard_status['mute_status']
         current_user['follow_status'] = collabcard_status['follow_status']
         is_logged = True
+    else:
+        current_user['collabcard_state'] = -1
 
     if type(answers) is list:
         _answers = answers

@@ -17,6 +17,9 @@
         {% include 'components/header.html' with data=header %}
 
         <div class="pR pb60">
+<!--            &ndash;&gt;{{collabcard.state}}<&#45;&#45;-->
+
+
 
             {% include 'components/chat.html' with answers=answers current_user=current_user collabcard=collabcard request=request user=user community=community %}
         </div>
@@ -65,10 +68,7 @@
                         </div>
                     </div>
                 </div>
-
-
-        {% include 'components/login_popup.html' with popup_text="you must be logged in to participate in this chatroom"  redirect_link=redirect_link %}
-
+        {% include 'components/login_popup.html' with popup_text="chatroom"  redirect_link=redirect_link %}
 
     </div>
 
@@ -107,7 +107,20 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
         </div>
 
 
+        {% if collabcard.state != 0 %}
         {% include 'components/download_app_bar.html' with subtitle="Chat rooms are better on our app"  %}
+        {% else %}
+
+        <style>
+            .b60{
+                bottom:0;
+            }
+            .pb60{
+                padding-bottom:0;
+            }
+
+        </style>
+        {% endif %}
     <script>
 
         $(document.body).on('click','.member_link',function(e){

@@ -76,7 +76,7 @@
 
         <div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;">
 
-            {% include 'components/header.html' with data=header %}
+<!--            {% include 'components/header.html' with data=header %}-->
 
             {% include 'components/community_header_showcase.html' with data=header_showcase %}
 
@@ -188,7 +188,7 @@
                 {% elif Nom_mem_state == 8 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13" id="down_ref">Invite members</button>
                 {% elif Nom_mem_state == 3 %}
-                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
+                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled> Open in LikeMinds</button>
                 {% elif Nom_mem_state == 1%}
                     <!-- {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %} -->
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
@@ -449,12 +449,13 @@
         <div class="ui modal ffR p24 bs w280" id="approval_pending">
                     <p class="c0 fs16 fwM lh24 mb16">Approval pending</p>
                     <p class="c9 fs15 fwR lh22 mb16">
-The admin has received your request and would take a decision on your membership based on your profile. If you wish to edit your profile, download app.
+                        The admin has received your request and would take a decision on your membership based on your profile.
+                        If you wish to edit your profile, download the app.
                     </p>
 
 
                      <div class="taR fs13 ">
-                         <span class="c9 fs13 fwM ls05 pr12  taL dismiss">DISMISS</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM" onclick="window.location.href='{{android_app_link}}';">DOWNLOAD APP</div>
+                         <span class=" clickable grey fs13 fwM ls05 pr12  taL dismiss c9">DISMISS</span ><div class="clickable bs cT dIb fs13 fwM ls05 p120 taC vM" onclick="window.location.href='{% url 'download_the_app' %}';">DOWNLOAD APP</div>
                      </div>
 
                 </div>
