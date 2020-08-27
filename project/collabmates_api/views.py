@@ -996,19 +996,19 @@ def update_community_actions(community_instance):
     if promoter_filter.exists():
         if not promoter_filter[0].actions_required:
             return
-
+    member_count = get_members_count_in_community(community_instance.id)
     instance_list = communityLevels.objects.filter(community=community_instance).order_by('id')
     community_level_filter = instance_list
     for instance in instance_list:
 
         if instance.level == "Level 2" and instance.state == community_level_states.PENDING:
 
-            if instance.joined_members < instance.max_members:
+            if instance.joined_members < member_count:
                 instance.joined_members = instance.joined_members + 1
                 instance.save()
                 #instance.update(joined_members=F(instance.joined_members)+1)
 
-            if instance.joined_members >= instance.max_members:
+            if instance.joined_members >= member_count:
                 instance.state = community_level_states.COMPLETE
                 instance.save()
 
@@ -2263,7 +2263,7 @@ def set_community_actions(community_instance):
         instance.title = "Invite your inner circle"
         instance.sub_title = "Bring 5 trusted people you want to build this community with."
         instance.joined_members = 0
-        instance.max_members = 3 if settings.IS_BETA  else 5
+        instance.max_members = 5 if settings.IS_BETA  else 5
         instance.state = community_level_states.PENDING
         instance.image = IMAGE_LEVEL_2
         instance.save()
@@ -2275,7 +2275,7 @@ def set_community_actions(community_instance):
         instance.title = "Community Directory"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 3 if settings.IS_BETA  else 10
+        instance.max_members = 10 if settings.IS_BETA  else 10
         instance.image = IMAGE_LEVEL_3
         instance.save()
 
@@ -2286,7 +2286,7 @@ def set_community_actions(community_instance):
         instance.title = "Growth"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 3 if settings.IS_BETA  else 10
+        instance.max_members = 10 if settings.IS_BETA  else 10
         instance.image = IMAGE_LEVEL_4
         instance.save()
 
