@@ -7410,6 +7410,9 @@ def snooze_popup(request):
 
     return JsonResponse({'success':True})
 
+# x = User.objects.filter(id=653).delete()
+# print(x)
+
 @csrf_exempt
 def dismiss_popup(request):
 
@@ -7496,14 +7499,14 @@ def get_user_from_email(email):
         return None
 
     user = None
-    user_emails = userEmails.objects.filter(email=email,is_verified=True)
+    user_emails = userEmails.objects.filter(email=email,verified=True)
     if user_emails.exists():
         instance = user_emails[0]
         user = instance.user
-    else:
-        user = User.objects.filter(email=email)
-        if user.exists():
-            user = user[0]
+    # else:
+    #     user = User.objects.filter(email=email)
+    #     if user.exists():
+    #         user = user[0]
 
     return user
 
@@ -9269,6 +9272,9 @@ def email_verify(request):
         info_logger.info(decoded_token)
         info_logger.info(decoded_user)
         info_logger.info("\n")
+
+
+
 
         instance_list = emailTokens.objects.filter(token=decoded_token,user=user_instance)
 
