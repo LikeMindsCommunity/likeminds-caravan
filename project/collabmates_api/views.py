@@ -7496,7 +7496,7 @@ def get_user_from_email(email):
         return None
 
     user = None
-    user_emails = userEmails.objects.filter(email=email)
+    user_emails = userEmails.objects.filter(email=email,is_verified=True)
     if user_emails.exists():
         instance = user_emails[0]
         user = instance.user
