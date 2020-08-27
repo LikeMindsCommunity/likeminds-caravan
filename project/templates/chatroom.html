@@ -12,12 +12,11 @@
     <style>
         #comments{min-height: calc(100vh - 116px);}
     </style>
-    <div class="container mxw960 mA mt56">
+    <div class="container mxw960 mA mt56 ">
             
         {% include 'components/header.html' with data=header %}
 
-        <div class="pR pb60">
-<!--            &ndash;&gt;{{collabcard.state}}<&#45;&#45;-->
+ <div class="pR pb60"><!--            &ndash;&gt;{{collabcard.state}}<&#45;&#45;-->
 
 
 
@@ -109,17 +108,14 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
 
         {% if collabcard.state != 0 %}
         {% include 'components/download_app_bar.html' with subtitle="Chat rooms are better on our app"  %}
+
+
+
         {% else %}
+<style>
+.conversation-compose{bottom:0;}
+</style>
 
-        <style>
-            .b60{
-                bottom:0;
-            }
-            .pb60{
-                padding-bottom:0;
-            }
-
-        </style>
         {% endif %}
     <script>
 
