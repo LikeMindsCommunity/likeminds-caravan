@@ -1191,7 +1191,7 @@ def update_email(request):
     if typ == 'new':
 
 
-        email_filter = userEmails.objects.filter(email=email)
+        email_filter = userEmails.objects.filter(email=email,verified=True)
         if email_filter.exists():
             return JsonResponse({'error_message':"email already exists in system",'success':False})
 
@@ -1208,7 +1208,7 @@ def update_email(request):
 
     elif typ == 'edit':
 
-        email_filter = userEmails.objects.filter(email=email)
+        email_filter = userEmails.objects.filter(email=email,verified=True)
         if email_filter.exists():
             return JsonResponse({'error_message': "email already exists in system",'success':False})
 
@@ -2263,7 +2263,7 @@ def set_community_actions(community_instance):
         instance.title = "Invite your inner circle"
         instance.sub_title = "Bring 5 trusted people you want to build this community with."
         instance.joined_members = 0
-        instance.max_members = 5 if settings.IS_BETA  else 5
+        instance.max_members = 1 if settings.IS_BETA  else 5
         instance.state = community_level_states.PENDING
         instance.image = IMAGE_LEVEL_2
         instance.save()
@@ -2275,7 +2275,7 @@ def set_community_actions(community_instance):
         instance.title = "Community Directory"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 10 if settings.IS_BETA  else 10
+        instance.max_members = 1 if settings.IS_BETA  else 10
         instance.image = IMAGE_LEVEL_3
         instance.save()
 
@@ -2286,7 +2286,7 @@ def set_community_actions(community_instance):
         instance.title = "Growth"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 10 if settings.IS_BETA  else 10
+        instance.max_members = 1 if settings.IS_BETA  else 10
         instance.image = IMAGE_LEVEL_4
         instance.save()
 
@@ -7410,6 +7410,9 @@ def snooze_popup(request):
 
     return JsonResponse({'success':True})
 
+# x = User.objects.filter(id=653).delete()
+# print(x)
+
 @csrf_exempt
 def dismiss_popup(request):
 
@@ -7454,7 +7457,7 @@ def save_user_primary_email(user_instance,email,verified=False,email_state=email
     if not email:
         return
 
-    email_filter = userEmails.objects.filter(email=email)
+    email_filter = userEmails.objects.filter(email=email,verified=True)
 
     # if email_filter.exists():
     #     user_email_instance = email_filter[0]
@@ -7496,14 +7499,14 @@ def get_user_from_email(email):
         return None
 
     user = None
-    user_emails = userEmails.objects.filter(email=email)
+    user_emails = userEmails.objects.filter(email=email,verified=True)
     if user_emails.exists():
         instance = user_emails[0]
         user = instance.user
-    else:
-        user = User.objects.filter(email=email)
-        if user.exists():
-            user = user[0]
+    # else:
+    #     user = User.objects.filter(email=email)
+    #     if user.exists():
+    #         user = user[0]
 
     return user
 
@@ -9252,11 +9255,11 @@ def email_verify(request):
             return HttpResponse("Invalid link")
 
 
-        # decoded_token = decrypt(token)
-        # decoded_user = decrypt(user)
+        decoded_token = decrypt(token)
+        decoded_user = decrypt(user)
 
-        decoded_token = token
-        decoded_user = user
+        # decoded_token = token
+        # decoded_user = user
 
         #getting the user instance
         try:
@@ -9269,6 +9272,9 @@ def email_verify(request):
         info_logger.info(decoded_token)
         info_logger.info(decoded_user)
         info_logger.info("\n")
+
+
+
 
         instance_list = emailTokens.objects.filter(token=decoded_token,user=user_instance)
 
@@ -9287,23 +9293,13 @@ def email_verify(request):
             #if the link is verified
             if (current_time - instance.created_at) <= instance.expire_time:
 
-                email_state = instance.email_state
-
-                if email_state == email_states.PRIMARY:
-                    userEmails.objects.filter(user = user_instance).update(email_state = email_states.NON_PRIMARY)
-
-                user_email_list = userEmails.objects.filter(email=instance.email,user=user_instance)
-
-                if not user_email_list.exists():
-                    user_email_instance = userEmails()
-                    user_email_instance.user = user_instance
-                    user_email_instance.email_state = email_state
-                    user_email_instance.email = instance.email
-                    user_email_instance.save()
+                user_email_list = userEmails.objects.filter(email=instance.email,user=user_instance,verified=False)
+                if user_email_list.exists():
+                    user_email_list.update(user=user_instance,email=instance.email,verified=True)
+                    delete_status = userEmails.objects.filter(email=instance.email).filter(~Q(user=user_instance)).delete()
 
                 else:
-                    user_email_list.update(user=user_instance,email=instance.email,verified=True)
-
+                    return HttpResponse("This email is already verified by another user!!!!!")
 
                 return render(request, 'email_verify_landing.html', context)
 
