@@ -3744,8 +3744,6 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         current_user['mute_status'] = collabcard_status['mute_status']
         current_user['follow_status'] = collabcard_status['follow_status']
         is_logged = True
-    else:
-        current_user['collabcard_state'] = -1
 
     if type(answers) is list:
         _answers = answers
