@@ -3550,11 +3550,9 @@ def send_email_for_collabcard(community, user, card, type):
     '''function to make the format of email to send when a new collabcard is posted'''
 
     members = Members.objects.filter(community_id=community)
-
+    collabcard_card_image=""
     for member in members:
-        if not user.image_link:
-            collabcard_card_image = url + user.image_file.url
-        else:
+        if user.image_link:
             collabcard_card_image = user.image_link
         context = {
             'community_name': community.name,
@@ -6908,9 +6906,9 @@ def custom_login(request,res,login_type="custom"):
         context['email_exists'] = True
 
         return context
-
-    image_url = profile['image_url'] if 'image_url' in profile else PROFILE_DEFAULT
-    print(image_url)
+    image_url = None
+    if 'image_url' in profile:
+        image_url = profile['image_url']
     user_instance = create_custom_user(name,mobile_no,country_code,email,image_url,login_type)
 
     if is_request_web(request):
