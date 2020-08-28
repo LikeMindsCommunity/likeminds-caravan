@@ -2644,8 +2644,9 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
             answer = user_name + " followed this chatroom"
         elif state == chatroom_states.CHATROOM_UNFOLLOW:
             answer = user_name + " unfollwed this chatroom"
-        elif state == chatroom_states.CHATROOM_PURPOSE_EDIT:
+        elif state == chatroom_states.CHATROOM_COMMUNITY_EDIT:
             answer = user_name + " edited community purpose"
+
 
 
     instance = card_answers()
@@ -4273,8 +4274,8 @@ def get_answer_bubble_context_for_web(ans):
         answer_bubble = str(ans.user.userinfo.name) +  " followed this chatroom"
     elif ans.state == chatroom_states.CHATROOM_UNFOLLOW:
         answer_bubble= str(ans.user.userinfo.name) +  " unfollowed this chatroom"
-    elif ans.state == chatroom_states.CHATROOM_PURPOSE_EDIT:
-        answer_bubble= str(ans.user.userinfo.name) +  " edited community purpose"
+    # elif ans.state == chatroom_states.CHATROOM_COMMUNITY_EDIT:
+    #     answer_bubble= str(ans.user.userinfo.name) +  " edited community purpose"
     return answer_bubble
 
 
@@ -7984,26 +7985,40 @@ def edit_community_version_1(request):
     community_id = res['community_id']
     member_id = get_member_id_from_headers(request)
     try:
-        community_instance = Community.objects.get(id=community_id)
         user_instance  = User.objects.get(id=member_id)
     except:
         context = get_error_context(False,"send correct community id")
         return JsonResponse(context)
 
+    community_filter = Community.objects.filter(id=community_id)
+
     type_id = res['type'] if 'type' in res else None
     subtype_id = res['sub_type'] if 'sub_type' in res else None
     purpose = res['purpose'] if 'purpose' in res else None
     name = res['community_name']
-    image_url = res['image_url']
+    image_link = res['image_url']
 
-    community_instance.type = type_id
-    community_instance.sub_type = subtype_id
-    community_instance.purpose = purpose
-    community_instance.name = name
-    community_instance.image_link = image_url
-    community_instance.save()
+    if community_filter.exists():
+        community_instance = community_filter[0]
+        community_instance.type = type_id
+        community_instance.sub_type = subtype_id
 
-    edit_community_purpose_collabcard(community_instance, user_instance, purpose)
+        #checking name change
+        if community_instance.name != name:
+            community_instance.name = name
+            edit_community_data(community_instance,user_instance,edit_field="name")
+
+        if community_instance.purpose != purpose:
+            community_instance.purpose = purpose
+            edit_community_data(community_instance, user_instance, edit_field="purpose")
+
+        if community_instance.image_link != image_link:
+            community_instance.image_link = image_link
+            edit_community_data(community_instance, user_instance, edit_field="image_url")
+
+        community_instance.save()
+
+        #edit_community_data(community_instance, user_instance, edit_field=purpose)
 
 
     return JsonResponse({'success': True})
@@ -8231,21 +8246,41 @@ def edit_questions_version_1(request):
     return JsonResponse({'success':True})
 
 
-def edit_community_purpose_collabcard(community_instance,member_instance,purpose):
+def edit_community_data(community_instance,user_instance,edit_field):
 
     '''function to update the purpose collabcard of community'''
-    user_instance = member_instance
-    collabcard_filter = Collabcard.objects.filter(community=community_instance,type=card_types.CARD_PURPOSE)
 
-    update_status = collabcard_filter.update(title=purpose,updated_member=user_instance,updated_time=time.time())
+    collabcard_filter = Collabcard.objects.filter(community=community_instance, type=card_types.CARD_PURPOSE)
 
     if collabcard_filter.exists():
         card_instance = collabcard_filter[0]
-        create_chatroom(card_instance=card_instance,user_instance=user_instance,
-                        state=chatroom_states.CHATROOM_PURPOSE_EDIT)
-    log="""purpose card updated for community=%s by user=%s"""%(str(community_instance.id),str(member_instance.id))
-    info_logger.info(log)
-    info_logger.info(update_status)
+        user_name = user_instance.userinfo.name
+        community_route = "route://community?community_id=" + str(community_instance.id)
+        if edit_field == "name":
+            bubble_text = "<<" + user_name + " changed the name of this community" +"|" + community_route + ">>"
+            edit_announcement_bubbles(card_instance,user_instance,bubble_text)
+        elif edit_field == "purpose":
+            bubble_text = "<<" + user_name + """ edited "About Community". Tap to view.""" + "|" + community_route + ">>"
+            edit_announcement_bubbles(card_instance, user_instance, bubble_text)
+        elif edit_field == "image_url":
+            bubble_text = "<<" + user_name + """ changed the community icon. Tap to view.""" + "|" + community_route + ">>"
+            edit_announcement_bubbles(card_instance, user_instance, bubble_text)
+
+
+
+def edit_announcement_bubbles(card_instance,user_instance,bubble_text):
+
+    '''function to edit the announcement bubbles text'''
+
+    instance = card_answers()
+    instance.answer = bubble_text
+    instance.card = card_instance
+    instance.user = user_instance
+    instance.state = chatroom_states.CHATROOM_COMMUNITY_EDIT
+    instance.created_at = time.time()
+    instance.save()
+
+
 
 ############# functions to update user location and city    ##########################
 
