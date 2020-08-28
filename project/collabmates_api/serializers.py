@@ -117,9 +117,7 @@ def UserinfoSerializer(user):
         # "linkedin_link": user.linkedin_link,
     }
 
-    if not user.image_link:
-        userinfo['image_url'] = url + user.image_file.url
-    else:
+    if user.image_link:
         userinfo['image_url'] = user.image_link
 
     return userinfo
