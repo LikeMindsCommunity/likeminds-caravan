@@ -68,6 +68,8 @@ ICONS['Highest education degree'] = "https://firebasestorage.googleapis.com/v0/b
 
 ICONS['City'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fcity.png?alt=media&token=b11a7a18-bff3-4f4c-96ef-66873adfe02e"
 
+ICONS['Current City'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fcity.png?alt=media&token=b11a7a18-bff3-4f4c-96ef-66873adfe02e"
+
 ICONS['Parenting skills'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fparenting_skills.png?alt=media&token=51be5f00-a1ef-49bd-b92a-826ac2002780"
 
 ICONS['Programming languages'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fprogramming_languages.png?alt=media&token=e8885bd7-bd52-4271-a9c4-ff099734dcad"
