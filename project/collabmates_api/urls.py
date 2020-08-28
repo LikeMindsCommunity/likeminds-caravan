@@ -91,6 +91,7 @@ urlpatterns = [
     path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
+    path('mark_read', api_views.mark_read, name='mark_read'),
     path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
 
 
