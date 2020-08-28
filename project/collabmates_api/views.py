@@ -4175,6 +4175,24 @@ def conversation_seen(request,req_dict=None):
     update_my_chatrooms_for_users(conversation_instance.card.id,member_id)
     return JsonResponse({'success':True})
 
+@csrf_exempt
+def mark_read(request):
+
+    '''api to mark the conversation read'''
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+    chatroom_id = request.POST.get('chatroom_id')
+    if not chatroom_id:
+        context = get_error_context(False, "send chatroom id in headers")
+        return JsonResponse(context)
+
+    chatroom_instance = Collabcard.objects.get(id=chatroom_id)
+    save_the_latest_conversation(chatroom_instance,member_id)
+
+    return JsonResponse({'success':True})
 
 
 def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
@@ -4431,36 +4449,34 @@ def save_the_latest_conversation(card_instance,user_id):
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
 
     #status = is_member_verified(card_instance.community,user_id)
-    if True:
-        if latest_card:
-            user_instance = User.objects.get(id=user_id)
-            conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
-            conversation_instance = latest_card
-            if not conversation_member_filter.exists():
-                conversation_member_instance = conversationMemberState()
-                conversation_member_instance.card = card_instance
-                conversation_member_instance.conversation = conversation_instance
-                conversation_member_instance.user = user_instance
-                conversation_member_instance.save()
 
-                update_conversation_engage_for_chatrooms(card_id=card_instance.id,user_id=user_instance.id,
+    if latest_card:
+        user_instance = User.objects.get(id=user_id)
+        conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
+        conversation_instance = latest_card
+        if not conversation_member_filter.exists():
+            conversation_member_instance = conversationMemberState()
+            conversation_member_instance.card = card_instance
+            conversation_member_instance.conversation = conversation_instance
+            conversation_member_instance.user = user_instance
+            conversation_member_instance.save()
+
+            update_conversation_engage_for_chatrooms(card_id=card_instance.id,user_id=user_instance.id,
                                                          last_conversation_id=conversation_instance.id,unseen_count=0)
 
-                # conversation_engage_filter.update(
-                #     last_conversation=conversation_instance, unseen_count=0)
 
 
 
-            else:
-                if conversation_instance.id != conversation_member_filter[0].conversation.id:
-                    conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
 
-                    update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
+        else:
+            if conversation_instance.id != conversation_member_filter[0].conversation.id:
+                conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
+
+                update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                              last_conversation_id=conversation_instance.id,
                                                              unseen_count=0)
 
-                    # conversation_engage_filter.update(
-                    #     last_conversation=conversation_instance, unseen_count=0)
+
 
 
 def is_chatroom_join_expired(aj,source_id):
