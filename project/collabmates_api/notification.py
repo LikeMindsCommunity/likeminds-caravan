@@ -633,7 +633,13 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(conversation.card.community.id)
         temp['community_image'] = conversation.card.community.image_link
-        temp['unseen_count'] = conversation.unseen_count
+
+        temp['unseen_conversation_count'] = conversation.unseen_count
+
+        #sending names of unique members who have responded in chatroom
+
+        card_instance  = conversation.card
+        temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance)
 
 
 
@@ -651,9 +657,22 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
 
     return temp
 
+def get_last_conversation_unique_names(card_instance):
 
+    '''function to get last conversation unique names'''
 
+    name_set = set()
+    name_list = []
+    answer_filter = card_answers.objects.filter(card=card_instance,state=0).order_by('-id')
+    for answer in answer_filter:
+        if answer.user not in name_set:
+            name_set.add(answer.user)
+            name_list.append(answer.user.userinfo.name)
 
+        if len(name_list) > 3:
+            break
+
+    return name_list
 
 
 
