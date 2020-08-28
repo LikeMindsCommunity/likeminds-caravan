@@ -3550,11 +3550,9 @@ def send_email_for_collabcard(community, user, card, type):
     '''function to make the format of email to send when a new collabcard is posted'''
 
     members = Members.objects.filter(community_id=community)
-
+    collabcard_card_image=""
     for member in members:
-        if not user.image_link:
-            collabcard_card_image = url + user.image_file.url
-        else:
+        if user.image_link:
             collabcard_card_image = user.image_link
         context = {
             'community_name': community.name,
