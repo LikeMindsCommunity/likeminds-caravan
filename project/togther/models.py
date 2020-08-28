@@ -164,6 +164,10 @@ class Collabcard(models.Model):
     multiple_select_no = models.IntegerField(null=True)
     multiple_select_state = models.IntegerField(default=0)
 
+    poll_type = models.IntegerField(default=0, null=True)
+    is_poll_anonymous = models.BooleanField(default=False, null=True)
+    allow_add_option = models.BooleanField(default=False, null=True)
+
     # for saving chatroom name
     header = models.TextField(null=True)
     has_been_named = models.BooleanField(default=True)      #for notification access
@@ -202,7 +206,9 @@ class draftChatroom(models.Model):
     multiple_select_no = models.IntegerField(null=True)
     multiple_select_state = models.IntegerField(default=0)
 
-
+    poll_type = models.IntegerField(default=0)
+    is_poll_anonymous = models.BooleanField(default=False)
+    allow_add_option = models.BooleanField(default=False)
 
     # for saving chatroom name
     header = models.TextField(null=True)

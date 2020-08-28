@@ -28,6 +28,14 @@ class CollabcardStates:
 collabcard_states = CollabcardStates()
 
 
+class PollTypes:
+
+    POLL_TYPE_INSTANT = 0
+    POLL_TYPE_DEFERRED = 1
+
+
+poll_types = PollTypes()
+
 
 class ChatroomStates:
     ANSWER = 0
