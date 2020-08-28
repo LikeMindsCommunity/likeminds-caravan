@@ -8017,7 +8017,7 @@ def edit_community_questions(request):
     if not member_id:
         return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
 
-    user_instance = User.objects.get(pk=member_id)
+    #user_instance = User.objects.get(pk=member_id)
     res = json.loads(request.body)
 
     # error messages
@@ -8092,7 +8092,7 @@ def edit_community_questions(request):
 
                 major_change = True
 
-            latest_questionId_set.add(question['id'])
+            latest_questionId_set.add(int(question['id']))
 
             # updating the question instance
             create_or_update_question_instances(question_instance,question,community_instance)
@@ -8107,18 +8107,17 @@ def edit_community_questions(request):
     # print(latest_questionId_set)
 
     diff = current_questionId_set - latest_questionId_set
+
     if len(diff) > 0:
-        print(diff)
-        # delete_status = communityQuestions.objects.filter(pk__in=diff).delete()
-        # print(delete_status)
+        delete_status = communityQuestions.objects.filter(pk__in=diff).delete()
+        print(delete_status)
 
 
 
     #updating members state table for editing
     if major_change:
         Members.objects.filter(community_id=community_instance).update(edit_required=True)
-        print("Its a major change")
-        #send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
+        send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
     return JsonResponse({'success':True})
 
