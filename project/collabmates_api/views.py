@@ -6906,9 +6906,9 @@ def custom_login(request,res,login_type="custom"):
         context['email_exists'] = True
 
         return context
-
-    image_url = profile['image_url'] if 'image_url' in profile else PROFILE_DEFAULT
-    print(image_url)
+    image_url = None
+    if 'image_url' in profile:
+        image_url = profile['image_url']
     user_instance = create_custom_user(name,mobile_no,country_code,email,image_url,login_type)
 
     if is_request_web(request):
