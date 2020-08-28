@@ -9303,11 +9303,11 @@ def email_verify(request):
             return HttpResponse("Invalid link")
 
 
-        decoded_token = decrypt(token)
-        decoded_user = decrypt(user)
+        # decoded_token = decrypt(token)
+        # decoded_user = decrypt(user)
 
-        # decoded_token = token
-        # decoded_user = user
+        decoded_token = token
+        decoded_user = user
 
         #getting the user instance
         try:
