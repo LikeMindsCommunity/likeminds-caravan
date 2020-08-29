@@ -4506,7 +4506,7 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
             context['aj_expired'] = aj_expired
             if guest_header:
                 create_guest_header(current_user_id,source_id,card_instance,current_user_id)
-                func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True}
+                func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True,'source_id':source_id}
                 collabcard_follow_internal(func_dict)
 
     elif not status:
@@ -5615,8 +5615,14 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     member_id = func_dict['member_id']
     status = func_dict['status']
     is_guest = False
+    ref_instance = None
     if 'is_guest' in func_dict:
         is_guest = func_dict['is_guest']
+        source_id = func_dict['source_id']
+        ref_filter = User.objects.filter(id=source_id)
+        if ref_filter.exists():
+            ref_instance = ref_filter[0]
+
 
     try:
         card_instance = Collabcard.objects.get(id=card_id)
@@ -5629,7 +5635,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     if collabcard_state_filter.exists():
 
         if is_guest:
-            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time())
+            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance)
         else:
             collabcard_state_filter.update(follow_status=status, state=state,updated_at=time.time())
 
@@ -5643,6 +5649,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
         collabcard_state_instance.is_guest = is_guest
+        collabcard_state_instance.source = ref_instance
         collabcard_state_instance.save()
 
     print("collabcard follow internal hit")

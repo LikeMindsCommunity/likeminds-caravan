@@ -238,6 +238,12 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
         user_context = user_context[0]
         user_context['collabcard_state'] = instance.state
         user_context['is_guest'] = instance.is_guest
+
+        #if the user is the guest in that chatroom
+        if instance.is_guest:
+            user_context['custom_intro_text'] = ""
+            user_context['custom_click_text'] =""
+
         members.append(user_context)
 
 
