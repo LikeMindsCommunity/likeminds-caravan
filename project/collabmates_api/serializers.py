@@ -690,6 +690,9 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
                                                                                                            time.localtime(
                                                                                                                member_instance.created_at))
 
+    if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
+        community_profile['custom_intro_text'] = """Created this community on %s"""%(time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
+
     return community_profile
 
 def get_members_profile(member_ids, community_id, current_user_id=None):
