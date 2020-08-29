@@ -19,7 +19,7 @@ from random import randint
 from django.conf import settings
 from user_agents import parse
 import time
-from datetime import datetime,date
+from datetime import datetime,date,timedelta
 import dateutil.relativedelta
 from .states import *
 # cache details
@@ -1148,3 +1148,16 @@ def create_notification_flag(member_id, notification_list, card_id=None, communi
             community = Community.objects.get(pk=card_id)
             p, created = memberNotificationFlag.objects.get_or_create(code=notification, community=community,
                                                                       member=member,flag=flag)
+
+
+def add_relative_time_to_epoch(epoch_time, minutes=0, hours=0, days=0):
+    epoch_time = datetime.fromtimestamp(epoch_time)
+    epoch_time = epoch_time + timedelta(hours=hours,minutes=minutes,days=days)
+    epoch_time = epoch_time.timestamp()
+    return epoch_time
+
+def get_next_day_time(epoch_time,minutes=0,hours=0):
+    epoch_time = datetime.fromtimestamp(epoch_time + (24 * 60 * 60))
+    epoch_time = epoch_time.replace(hour=hours,minute=minutes)
+    epoch_time = epoch_time.timestamp()
+    return epoch_time

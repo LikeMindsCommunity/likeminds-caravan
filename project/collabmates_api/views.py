@@ -3684,7 +3684,7 @@ def collabcard(request, card_id):
             card['state'] = collabcard_status['state']
             card['mute_status'] = collabcard_status['mute_status']
             card['follow_status'] = collabcard_status['follow_status']
-
+            # print('-->',collabcard_status)
 
         # get tine stamp for card
         time_text = get_time_text(card_instance.date_epoch)
@@ -3709,7 +3709,7 @@ def collabcard(request, card_id):
 
             context['current_date'] = time.strftime('%d-%m-%Y', time.localtime(time.time()))
 
-
+        # print(context)
 
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
@@ -4155,8 +4155,8 @@ def conversation_seen(request,req_dict=None):
         conversation_member_filter = conversationMemberState.objects.filter(user=user_instance,card=card_instance)
 
         #resetting flag when card owner sees the conversation
-        if member_id == card_instance.user.id:
-            notification_flag = memberNotificationFlag.objects.get(code='mail_card_owner_inactivity',card=card_instance,member=user_instance)
+        # if member_id == card_instance.user.id:
+        #     notification_flag = memberNotificationFlag.objects.get(code='mail_card_owner_inactivity',card=card_instance,member=user_instance)
 
         if not conversation_member_filter.exists():
             conversation_member_instance = conversationMemberState()
