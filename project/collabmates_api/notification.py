@@ -634,7 +634,7 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         temp['community_id'] = str(conversation.card.community.id)
         temp['community_image'] = conversation.card.community.image_link
 
-        temp['unseen_conversation_count'] = conversation.unseen_count
+        #temp['unseen_conversation_count'] = conversation.unseen_count
 
         #sending names of unique members who have responded in chatroom
 
@@ -673,7 +673,6 @@ def get_last_conversation_unique_names(card_instance):
             break
 
     return name_list
-
 
 
 @shared_task
