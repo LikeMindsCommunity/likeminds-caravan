@@ -221,7 +221,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
     collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(
-        state__in=state_list).filter(removed_status=None).order_by('-user_id')
+        state__in=state_list).filter(remove=None).order_by('-user_id')
 
 
 
@@ -241,8 +241,8 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
         #if the user is the guest in that chatroom
         if instance.is_guest:
-            user_context['custom_intro_text'] = ""
-            user_context['custom_click_text'] =""
+            user_context['custom_intro_text'] = """Joined as a guest via %s’s invite link on %s"""%(instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+            user_context['custom_click_text'] ="""The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s"""%(instance.user.userinfo.name,instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
 
         members.append(user_context)
 
