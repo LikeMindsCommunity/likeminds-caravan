@@ -820,8 +820,11 @@ def auto_join_community(community_instance,user_instance):
         member_instance.created_at=time.time()
         member_instance.updated_at = time.time()
         member_instance.save()
+
         toast_filter = communityToast.objects.filter(community=community_instance, user=user_instance)
         toast_filter.delete()
+
+        removedMembers.objects.filter(community=community_instance,user=user_instance).delete()
 
     # updating the member engage instance
     if not is_member_engage(community_instance,user_instance):
@@ -3496,12 +3499,18 @@ def approve_or_decline_private_community(req_dict,request):
 
             #removing guest status from all chatrooms after access
             collabcardState.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False)
+            card_answers.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False)
 
             # saving create community action step 4
             update_community_actions(community_instance=community)
 
             #deleting the community toast message when the request is accepted
             communityToast.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).delete()
+
+            #deleting if the user left the community before
+            removedMembers.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).delete()
+
+
 
             #sending mails and notifications
             #send notification
@@ -4205,16 +4214,26 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
 
         usr = get_members_profile([ans.user.id],community_id,current_user_id)
         user_context = usr[0]
-        removed_state = removedMembersSerializer(community_id, user_context['id'])
-
-        if removed_state != False:
-            user_context['remove_state'] = removed_state
+        # removed_state = removedMembersSerializer(community_id, user_context['id'])
+        #
+        # if removed_state != False:
+        #     user_context['remove_state'] = removed_state
 
         # form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
         # if form_response:
         #     #usr['response'] = form_response[0]
         #     usr['question_answers'] = form_response[1]
         # coverting current time into epoch time
+        if ans.remove:
+            user_context['remove_state'] = ans.remove.state
+
+        if ans.is_guest:
+            user_context['is_guest'] = ans.is_guest
+            state_filter = collabcardState.objects.filter(card=ans.card,user=ans.user,is_guest=True)
+            if state_filter.exists():
+                instance = state_filter[0]
+                user_context['custom_intro_text'] = """Joined as a guest via %s’s invite link on %s"""%(instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+                user_context['custom_click_text'] ="""The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s"""%(instance.user.userinfo.name,instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
 
         #time_text = get_time_text(ans.created_at)
         time_text = time.strftime('%H:%M', time.localtime(ans.created_at))
@@ -4319,33 +4338,6 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
     if aj:
         is_guest = True
-
-    # card = CollabcardSerializer(card_instance, user_id, card_instance.community)
-    # card_id = card['id']
-    # user = Userinfo.objects.get(user_id=card_instance.user.id)
-    # usr = UserinfoSerializer(user)
-    # #usr['is_clickable'] = feedback
-    #
-    # # when the member is removed
-    # removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
-    # if removed_state != False:
-    #     usr['remove_state'] = removed_state
-    #
-    # # user form response serialzer
-    # form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id, bl=True,
-    #                                        current_user_id=user_id)
-    # if form_response:
-    #     usr['question_answers'] = form_response[1]
-    #
-    # # get the card image if any
-    # files = get_collabcard_files(card_id)
-    # card['images'] = files[0]
-    # card['member'] = usr
-    # card['pdf'] = files[1]
-    #
-    # card['community_name'] = card_instance.community.name
-
-
 
 
     #if the chatroom is deleted
@@ -5364,14 +5356,20 @@ def create_conversation(request):
         context = {}
         context = adding_guest_in_chatroom(request, context, card_instance, res['aj'], res['source_id'], card_instance.community.id, member_id,guest_header=True)
 
-
+    ##checking weather the conversation creater is a guest or not
+    state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance,is_guest=True)
 
     ans = card_answers()
     ans.answer = res['text']
     ans.card = card_instance
     ans.user = user_instance
+    ans.is_guest = state_filter.exists()
     ans.created_at = time.time()
     ans.save()
+
+
+
+
 
 
     #saving the og tags if present
