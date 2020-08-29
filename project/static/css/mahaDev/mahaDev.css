@@ -822,3 +822,7 @@ span.divider:before{
     max-width:960px;
     top:0;
 }
+
+.static-page a{
+    color:#008a7c;
+}

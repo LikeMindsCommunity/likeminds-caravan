@@ -1,0 +1,49 @@
+
+{% extends 'mails/base.html' %}
+{% block extracss %}
+<style>
+strong{
+    color:#00897b;
+}
+.row{
+    display: flex;
+}
+</style>
+{% endblock %}
+{% block mail %}
+
+    <div style="font-size:20px;color:#666;text-align:left;font-weight:bold;">
+        Hi {{ member_name }}!
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        Now that you have set up <b>{{ community_name }}</b> on LikeMinds, you should invite your inner circle to join it before inviting anyone else!
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        Wondering what is the inner circle?
+        Your inner circle is made up of your most committed and active community members, who believe in your community’s purpose.
+        You should invite them using a private link that allows joining without any approval.
+        Make sure you respond to any feedback they have for you or your community’s new home 😇
+    </div>
+    <div style="text-align:center;">
+        <a href="{{cta_url}}" style="
+    text-decoration: none;
+    background: #00897b;
+    color:#fff;
+    text-transform: uppercase;
+    padding:14px 19px;
+    border-radius:40px;
+    font-size:13px;
+    font-weight: 500;
+    display:inline-block;
+    margin: 30px 0 24px;">
+            Level up Now!
+        </a>
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        PS: This link ☝️ opens in a mobile phone only. You can also go to your community in LikeMinds App and follow the next steps on leveling up.
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        👉 If you are wondering how to go about identifying and developing an inner circle 🧐, <a href="https://www.notion.so/f53c4dee5b15436183ac01fbc0e84063" style="text-decoration:none; color:#00897b;">this worksheet</a>  can help you.
+    </div>
+
+{% endblock %}
