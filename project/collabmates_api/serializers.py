@@ -6,7 +6,7 @@ from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
     generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom,get_date_time_from_timestamp
-from utility.states import card_types,question_states,member_states
+from utility.states import card_types,question_states,member_states,deleted_members
 url = settings.URL
 import ast
 from .static_files import *
@@ -536,9 +536,9 @@ def get_chatroom_instance(card_instance,member_id):
 
 
 
-    removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
-    if removed_state != False:
-        collabcard_serializer['member']['remove_state'] = removed_state
+    # removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
+    # if removed_state != False:
+    #     collabcard_serializer['member']['remove_state'] = removed_state
 
 
     # get chatroom status
@@ -547,6 +547,24 @@ def get_chatroom_instance(card_instance,member_id):
     collabcard_serializer['mute_status'] = status['mute_status']
     collabcard_serializer['follow_status'] = status['follow_status']
     collabcard_serializer['is_guest'] = status['is_guest']
+
+    if status['remove']:
+        instance = status['remove']
+        remove_state = instance.state
+        if remove_state == deleted_members.LEFT:
+            collabcard_serializer['member']['custom_intro_text'] = """Left the community on %s"""%(time.strftime("%d %B %Y",time.localtime(instance.created_at)))
+            collabcard_serializer['member']['custom_click_text'] = """The profile you are trying to access does not exist. %s left the community on %s"""%(instance.member.userinfo.name,time.strftime("%d %B %Y",time.localtime(instance.created_at)))
+
+        elif remove_state == deleted_members.REMOVED:
+            collabcard_serializer['member']['custom_intro_text'] = """Removed from the community on  %s""" % (
+                time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+            collabcard_serializer['member'][
+                'custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
+            instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+
+        collabcard_serializer['member']['remove_state'] = instance.state
+
+
 
 
     # get chatroom files
@@ -592,7 +610,8 @@ def get_status_of_collabcard(member_id,card):
         'state' : 0,
         'mute_status' : False,
         'follow_status' : False,
-        'is_guest' : False
+        'is_guest' : False,
+        'remove':False
     }
 
     if not member_id:
@@ -606,6 +625,7 @@ def get_status_of_collabcard(member_id,card):
         collabcard_status['mute_status'] = collabcard_state[0].mute_status
         collabcard_status['follow_status'] = collabcard_state[0].follow_status
         collabcard_status['is_guest'] = collabcard_state[0].is_guest
+        collabcard_state['remove'] = collabcard_state[0].remove
     return collabcard_status
 
 
