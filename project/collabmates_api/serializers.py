@@ -682,7 +682,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
     if member_instance.image_url:
         community_profile['image_url'] = member_instance.image_url
 
-    if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER:
+    if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
         community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
             str(community_id), str(member_id))
 
@@ -692,6 +692,12 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
 
     if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
         community_profile['custom_intro_text'] = """Created this community on %s"""%(time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
+
+    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
+        community_profile['custom_intro_text'] = """Joined via a private community link on %s"""%(time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
+        community_profile['custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet"""%(member_instance.member_id.userinfo.name,time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
+
+
 
     return community_profile
 

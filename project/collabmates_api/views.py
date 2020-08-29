@@ -600,7 +600,6 @@ def private_link_app_invite(community_instance,unique_code,created_by):
         if not auto_join['aj_expired']:
             auto_join['toast'] = """This private invite link expires in %s"""%(time_left)
 
-
     return auto_join
 
 @csrf_exempt
@@ -1742,8 +1741,9 @@ def remove_members(community_id, member_id,removed_state):
                                   removed_state=removed_state, created_at=time.time())
         instance.save()
         #saving collabcard state in update status
-        update_staus = collabcardState.objects.filter(community=community_id,user=member_id).update(removed_status=instance.id)
-        print(update_staus)
+        update_chatroom= collabcardState.objects.filter(community=community_instance,user=member_id).update(remove=instance)
+        update_conversations = card_answers.objects.filter(user=member_id,community=community_instance).update(remove=instance)
+
 
 
     member_removerd = Members.objects.filter(community_id=community_id, member_id=member_id).delete()
