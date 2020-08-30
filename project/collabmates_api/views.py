@@ -745,8 +745,6 @@ def join_promoter_created_community_version_1(res,request):
                 member_state=member_states.MEMBER,click_state=click_states.DEFAULT)
             post_introduction_card_for_community(community_id, member_id, request)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
-        elif member_state == member_states.MEMBER:
-            pass
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
