@@ -1,0 +1,57 @@
+
+{% extends 'mails/base.html' %}
+{% block extracss %}
+<style>
+strong{
+    color:#00897b;
+}
+.row{
+    display: flex;
+}
+</style>
+{% endblock %}
+{% block mail %}
+
+    <div style="font-size:20px;color:#666;text-align:left;font-weight:bold;">
+        Hi {{ member_name }}!
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        Congratulations on launching your community on LikeMinds!
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        Here are five important steps you should follow to successfully set up your community:
+        <ul>
+            <li>Create a catchy and meaningful community name</li>
+            <li>Build a purpose statement in alignment with founding principles</li>
+            <li>Select community type and sub-type</li>
+            <li>Describe the group and add details of founding members</li>
+            <li>Create community values, as well as rules and guidelines</li>
+        </ul>
+        We have created a comprehensive guide to provide more information about these five crucial steps.
+        It will help you be better prepared to set up your community before your members get in.
+
+    </div>
+    <div style="text-align:center;">
+        <a href="#" style="
+    text-decoration: none;
+    background: #00897b;
+    color:#fff;
+    text-transform: uppercase;
+    padding:14px 19px;
+    border-radius:40px;
+    font-size:13px;
+    font-weight: 500;
+    display:inline-block;
+    margin: 30px 0 24px;">
+            View Guide
+        </a>
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        Lay the groundwork to kick-start great community experiences!
+    </div>
+    <div style="margin-top:38px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+    Regards,<br>
+    Team LikeMinds
+    </div>
+
+{% endblock %}

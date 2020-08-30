@@ -10,20 +10,16 @@ from django.views.generic import TemplateView
 urlpatterns = [
     #for testing email templates only. remove in prod/beta
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
-    path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
+    path('mail/', TemplateView.as_view(template_name='mails/level_4_email.html')),
 
     path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
 
     path('community/<int:community_id>', api_views.community, name="community"),
-    path('v1/community/<int:community_id>', api_views.community_version_1, name="community_version_1"),
-    path('v2/community/<int:community_id>', api_views.community_version_2, name="community_version_2"),
 
     path('similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
 
     path('v1/join_community', views.join_community_responses_version_1, name="join_community_responses_version_1"),
-
-
 
     path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
     path('fetch_community_types', api_views.fetch_community_types, name='fetch_community_types'),
@@ -55,6 +51,7 @@ urlpatterns = [
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
     path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
+    path('fetch_community_chatroom_feed', api_views.fetch_community_chatroom_feed, name="fetch_community_chatroom_feed"),
 
 
     #path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
@@ -81,6 +78,8 @@ urlpatterns = [
 
     #path('image_upload',api_views.image_upload,name = 'image'),
     path('add_admin/<int:community_id>',api_views.add_admin,name = 'add_admin'),
+    path('remove_promoter',api_views.remove_promoter,name = 'remove_promoter'),
+
     path('pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
     path('join',api_views.request_response,name = 'join'),
     path('pending_members_count/<int:community_id>',api_views.pending_request_count,name = 'pending_request_count'),
@@ -92,6 +91,7 @@ urlpatterns = [
     path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
+    path('mark_read', api_views.mark_read, name='mark_read'),
     path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
 
 
@@ -109,7 +109,12 @@ urlpatterns = [
     path('push', api_views.push, name='push'),
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
     path('accept_invitation',views.accept_invitation,name='accept_invitation'),
+
     path('edit_community', views.edit_community, name='edit_community'),
+    path('v1/edit_community', views.edit_community_version_1, name='edit_community_version_1'),
+    path('edit_community_questions', views.edit_community_questions, name='edit_community_questions'),
+
+
     #path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
 

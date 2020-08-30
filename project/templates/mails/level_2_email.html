@@ -1,0 +1,44 @@
+
+{% extends 'mails/base.html' %}
+{% block extracss %}
+<style>
+strong{
+    color:#00897b;
+}
+.row{
+    display: flex;
+}
+</style>
+{% endblock %}
+{% block mail %}
+
+    <div style="font-size:20px;color:#666;text-align:left;font-weight:bold;">
+        Hi {{ member_name }}!
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        You had unlocked directory level  {{date_of_unlock}} days ago for <b>{{community_name}}</b> but you have still not set it up!
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        LikeMinds brings together people and communities around common interests, and directories play a very important role in that.
+        In the absence of a directory, your members have a very poor experience since they see blank profiles of each other.
+
+    </div>
+    <div style="text-align:center;">
+        <a href="{{cta_url}}" style="
+    text-decoration: none;
+    background: #00897b;
+    color:#fff;
+    text-transform: uppercase;
+    padding:14px 19px;
+    border-radius:40px;
+    font-size:13px;
+    font-weight: 500;
+    display:inline-block;
+    margin: 30px 0 24px;">
+            Level up Now!
+        </a>
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        PS: This link ☝️ opens in a mobile phone only. You can also go to your community directory from the settings tab in the LikeMinds App.
+    </div>
+{% endblock %}

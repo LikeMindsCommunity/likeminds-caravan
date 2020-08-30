@@ -312,15 +312,14 @@ def send_notification_for_join_requests(community_id,flag,member_id,promoter_nam
             message['payload']={
                 'title':"Membership approved!",
                 'sub_title':"Congratulations, " + promoter_name + " has accepted your request to join " + community_name,
-
-                'route':'route://member_approved?community_id='+ str(community_id)
+                'route':'//route://community_collabcard?community_id='+ str(community_id) +'&community_name=' + str(community_name)
             }
         else:
             message['payload']={
                 'title':"Membership approved!",
                 'sub_title':"Congratulations, you are now part of the " + community_name + " community",
+                'route':'//route://community_collabcard?community_id='+ str(community_id) +'&community_name=' + str(community_name)
 
-                'route':'route://member_approved?community_id='+ str(community_id)
             }
         notification_meta(notification_list,message)
     # else:
@@ -461,6 +460,8 @@ def get_custom_data_for_new_chatroom_created(card):
     #unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
     unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s&community_name=%s"""%(str(chatroom_instance.community.id),str(chatroom_instance.community.name))
     unread_conversation['route_child']="""route://collabcard?collabcard_id=%s"""%(str(chatroom_instance.id))
+    unread_conversation['chatroom_name_ios'] = get_title_from_collabcard(chatroom_instance)
+
 
     return unread_conversation
 
@@ -583,6 +584,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
 
 
+
         last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
         if last_instance:
@@ -616,8 +618,8 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
 
         chatroom_name = get_title_from_collabcard(conversation.card)
 
-        if conversation.unseen_count > 1:
-            chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
+        # if conversation.unseen_count > 1:
+        #     chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
 
 
         temp['community_name'] = conversation.card.community.name
@@ -631,6 +633,13 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(conversation.card.community.id)
         temp['community_image'] = conversation.card.community.image_link
+
+        #temp['unseen_conversation_count'] = conversation.unseen_count
+
+        #sending names of unique members who have responded in chatroom
+
+        card_instance  = conversation.card
+        temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance)
 
 
 
@@ -648,10 +657,22 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
 
     return temp
 
+def get_last_conversation_unique_names(card_instance):
 
+    '''function to get last conversation unique names'''
 
+    name_set = set()
+    name_list = []
+    answer_filter = card_answers.objects.filter(card=card_instance,state=0).order_by('-id')
+    for answer in answer_filter:
+        if answer.user not in name_set:
+            name_set.add(answer.user)
+            name_list.append(answer.user.userinfo.name)
 
+        if len(name_list) > 3:
+            break
 
+    return name_list
 
 
 @shared_task
@@ -1067,7 +1088,7 @@ def send_evening_level_notification():
         message['payload']={
                 "title" : 'Level up '+str(community_level.community.name),
                 "sub_title" : str(community_level.title) + ". " +str(community_level.sub_title),
-                'route':'route://community?community_id='+str(community_level.community.id)
+                'route':'route://community?community_id='+str(community_level.community.id) + '&community_name=' + str(community_level.community.name)
             }
 
         notification_meta(notification_list,message)
@@ -1174,6 +1195,8 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                 }
 
                 notification_meta(notification_list,message)
+
+
 @app.task
 @shared_task
 def send_notification_for_directory_creation(community_id,start_time,day=0):
@@ -1182,8 +1205,6 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
     community_name = community_instance.name
 
     members = Members.objects.filter(community_id=community_id, state__in=[1,4,9],edit_required=True)
-
-
 
     message = {}
 
@@ -1195,7 +1216,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     if day == 0 and members.exists():
         # get tomorrow 9 am
-        # start_time = datetime.fromtimestamp(start_time)
+        start_time = datetime.fromtimestamp(start_time)
         start_time = datetime.fromtimestamp(start_time+(24*60*60))
         start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=3)
         # start_time = start_time + timedelta(minutes=2)
@@ -1341,8 +1362,9 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
     members = Members.objects.filter(community_id=community_id, state=1)
     collabcards = Collabcard.objects.filter(community = community_instance)
     message = {}
-    notification_list = []
     for member in members:
+
+        notification_list = []
         notification_details = get_token_for_fcm(member.member_id.id, flag=True)
         temp = {
             'id': member.member_id.id,
@@ -1353,14 +1375,14 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
         message['payload'] = {
             "title": "Hey " + str(member.member_id.userinfo.name) + "!",
             "sub_title": "",
-            'route': 'route://community?community_id=' + str(community_id)
+            'route':'//route://community_collabcard?community_id='+ str(community_id) +'&community_name=' + str(community_instance.name)
         }
         if day == 3:
             message['payload']['sub_title'] = "Looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
             notification_meta(notification_list, message)
 
         elif day == 4:
-            message['payload']['sub_title'] = "It has been 4 someone said anything in your community. Don’t let the ball drop, start a conversation now!"
+            message['payload']['sub_title'] = "It has been 4 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
             notification_meta(notification_list, message)
 
         elif day == 7:
@@ -1368,17 +1390,17 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
             notification_meta(notification_list, message)
 
         elif day == 9:
-            message['payload']['sub_title'] = "It has been 9 someone said anything in your community. Don’t let the ball drop, start a conversation now!"
+            message['payload']['sub_title'] = "It has been 9 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
             notification_meta(notification_list, message)
 
 
 
     if day == 0 and members.exists():
         # get tomorrow 11 am
-        start_time = datetime.fromtimestamp(start_time)
-        # start_time = datetime.fromtimestamp(start_time+(24*60*60))
-        # start_time = start_time.replace(hour=11,minute=0)+ timedelta(days=3)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = datetime.fromtimestamp(start_time+30)
+        start_time = datetime.fromtimestamp(start_time+(24*60*60))
+        start_time = start_time.replace(hour=11,minute=0)+ timedelta(days=3)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
 
         celerybeatask = CeleryBeatTask()
@@ -1396,8 +1418,8 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
     elif day == 3 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=1)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=1)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
 
         task_name =  str(community_id) + "send_ice_breaker_notification"
@@ -1414,8 +1436,8 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
     elif day == 4 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + "send_ice_breaker_notification"
         celerybeatask = CeleryBeatTask()
@@ -1431,8 +1453,8 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
     elif day == 7 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=8)
-        start_time = start_time + timedelta(minutes=2)
+        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=8)
+        # start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + "send_ice_breaker_notification"
         celerybeatask = CeleryBeatTask()

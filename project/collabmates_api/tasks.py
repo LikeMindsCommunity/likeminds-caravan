@@ -20,7 +20,7 @@ from django.contrib.auth.models import User
 from togther.models import Collabcard
 from utility.encryption import encrypt,decrypt
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
-# from datetime import datetime, timedelta
+# from datetime import datetime,
 url = settings.URL
 
 from .notification import get_title_from_collabcard 
@@ -310,7 +310,6 @@ def send_pending_members_mail_for_multiple_pending_members(admin, pending_member
 
 @shared_task
 def send_welcome_mail(user_id):
-
     user = User.objects.get(pk = user_id)
     count = 0
     member_communities_list = Members.objects.filter(member_id = user).distinct('community_id')
@@ -369,8 +368,6 @@ def send_verification_mail_for_email_sync(user_name,verification_link,email):
 @shared_task
 def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
     #check last conversation seen
-    userinstance = User.objects.get(pk=user_id)
-    card_instance = Collabcard.objects.get(id=card_id)
     has_seen = {}
     for member_id in tagged_member_list:
         state = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id)
@@ -378,11 +375,28 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
             has_seen[member_id] = state.first().conversation_id
         else:
             has_seen[member_id] = -1
-    
+
+    celerybeatask = CeleryBeatTask()
+    kwargs = {}
+    task_name = str(user_id) + '_' + str(card_id) + '_send_tagged_user_mail'
+    celerybeatask.terminate_task(task_name)
+    task_path = 'collabmates_api.tasks.send_tagged_user_mail_scheduled'
+    args = [user_id,card_id,tagged_member_list,has_seen]
+    date_time = time.time() + (time_in_hrs*60*60)
+    # date_time = time.time() + 60
+    celerybeatask.create_dynamic_clery_task(args,kwargs,task_name,task_path,
+                                            date_time=date_time, interval=False, crontab=True)
+    # print('scheduled')
     #sleep for n hours
     time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
     # time.sleep(2*60)
+
+
+@app.task
+def send_tagged_user_mail_scheduled(user_id,card_id,tagged_member_list,has_seen):
+    userinstance = User.objects.get(pk=user_id)
+    card_instance = Collabcard.objects.get(id=card_id)
     has_seen_new = {}
     for member_id in tagged_member_list:
         user_name = userinstance.userinfo.name
@@ -423,12 +437,10 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
 
                 to = [email]
                 send_email(subject, template, to)
-
+                print(email_context)
 
 @shared_task
 def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
-    user_instance = User.objects.get(pk=user_id)
-    card_instance = Collabcard.objects.get(id=card_id)
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
     
     if state.exists():
@@ -437,10 +449,26 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
     else:
         last_conversation_id = -1
         message_time = 0
+
+    celerybeatask = CeleryBeatTask()
+    kwargs = {}
+    task_name = str(card_id) + '_send_chatroom_owner_mail'
+    celerybeatask.terminate_task(task_name)
+    task_path = 'collabmates_api.tasks.send_chatroom_owner_mail_scheduled'
+    args = [user_id, card_id, last_conversation_id,message_time]
+    date_time = time.time() + (time_in_hrs*60*60)
+    # date_time = time.time() + 60
+    celerybeatask.create_dynamic_clery_task(args,kwargs,task_name,task_path,
+                                            date_time=date_time, interval=False, crontab=True)
+    # print('scheduled')
+
+
+@app.task
+def send_chatroom_owner_mail_scheduled(user_id, card_id, last_conversation_id,message_time ):
+    user_instance = User.objects.get(pk=user_id)
+    card_instance = Collabcard.objects.get(id=card_id)
     email = get_user_email(user_id)
-    time.sleep(time_in_hrs*60*60)
-    #sleeping for 5 mins for testing purposes.
-    # time.sleep(1*60)
+
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
     if state.exists():
         new_conversation_id = state.first().conversation_id
@@ -472,8 +500,8 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
                 }
             template = get_template("mails/owner_inactive_email.html").render(email_context)
             to = [email]
-            send_email(subject, template, to)
-            # print(email_context)
+            # send_email(subject, template, to)
+            print(email_context)
             flag = memberNotificationFlag.objects.get(member_id=user_id,code='mail_card_owner_inactivity',card=card_instance)
             flag.flag = False
             flag.save()
@@ -506,16 +534,16 @@ def send_community_confirmation_email(user_id, community_id):
                 user_id) + '&code=mail_has_installed_app',
         }
         template = get_template("mails/community_confirmation_email.html").render(email_context)
-        # to = [email]
-        to = ['himanshu@likeminds.community']
+        to = [email]
+        # to = ['himanshu@likeminds.community']
         send_email(subject, template, to)
         print(email_context)
         celerybeatask = CeleryBeatTask()
         task_name = str(user_id)+"_"+str(community_id) + "_send_community_confirmation_email_2"
         args = [user_id, community_id,task_name]
         task_path = "collabmates_api.tasks.send_community_confirmation_email_2"
-        date_time = time.time() + 60
-        # date_time = time.time() + (3*24*60*60)
+        # date_time = time.time() + 60
+        date_time = time.time() + (3*24*60*60)
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args,kwargs, task_name,task_path,
                                                   date_time=date_time, interval=False, crontab=True)
@@ -550,7 +578,7 @@ def send_community_confirmation_email_2(user_id, community_id,task_name,*args,**
         }
         template = get_template("mails/community_confirmation_email_2.html").render(email_context)
         to = [email]
-        to = ['himanshu@likeminds.community']
+        # to = ['himanshu@likeminds.community']
         send_email(subject, template, to)
         print(email_context)
     celerybeatask = CeleryBeatTask()

@@ -53,3 +53,5 @@ FCM_SERVER_KEY=os.getenv('PROD_FCM_SERVER_KEY')
 GOOGLE_OAUTH_CLIENT_ID="645716458793-rprdna1adps5s7pigsrjasko3ot3ljfl.apps.googleusercontent.com"
 
 GHUPSHUP_KEY = "45314393fb4505a15ff19d175d0c92f1"
+
+ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com'),('Priyanshu','priyanshu@likeminds.community')]
