@@ -650,9 +650,15 @@ def join_promoter_created_community_version_1(res,request):
 
     user_instance = User.objects.get(id=member_id)
 
-    #deleteing the previos data if exists
-    delete_answers = communityAnswers.objects.filter(community=community_id,member=member_id).delete()
-    delete_filters = questionFilters.objects.filter(community=community_id,member=member_id).delete()
+    member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+
+    is_member = member_list.exists()
+    if is_member:
+        state = member_list[0].state
+        if state == member_states.MEMBER:
+            return
+
+
     if 'questions' in res:
 
         for question in res['questions']:
@@ -712,9 +718,9 @@ def join_promoter_created_community_version_1(res,request):
     #     time_in_hrs=2
         # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
 
-    member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
-    if member_list:
+
+    if is_member:
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
 
