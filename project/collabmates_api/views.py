@@ -650,11 +650,12 @@ def join_promoter_created_community_version_1(res,request):
 
     user_instance = User.objects.get(id=member_id)
 
-
+    #deleteing the previos data if exists
+    delete_answers = communityAnswers.objects.filter(community=community_id,member=member_id).delete()
+    delete_filters = questionFilters.objects.filter(community=community_id,member=member_id).delete()
     if 'questions' in res:
 
         for question in res['questions']:
-
 
             if 'value' not in question or not question['value']:
                 continue
@@ -663,7 +664,7 @@ def join_promoter_created_community_version_1(res,request):
 
             if question_instance.is_hidden:
                 continue
-
+            print(question)
             answer_instance = communityAnswers()
             answer_instance.question = question_instance
             answer_instance.member = user_instance
@@ -738,6 +739,8 @@ def join_promoter_created_community_version_1(res,request):
                 member_state=member_states.MEMBER,click_state=click_states.DEFAULT)
             post_introduction_card_for_community(community_id, member_id, request)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
+        elif member_state == member_states.MEMBER:
+            pass
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -852,8 +855,14 @@ def post_introduction_card_for_community(community_id,member_id,request):
                 'create_intro': 1
             }
             request.method = "POST"
-            create_card(request, req_dict=req_dict)
-            return True
+            intro_filter = Collabcard.objects.filter(community=community_id,user=member_id,type=card_types.CARD_INTRO)
+            if not intro_filter.exists():
+                create_card(request, req_dict=req_dict)
+                print("created")
+                return True
+            else:
+                intro_filter.update(title=introduction_answer)
+
 
     return False
 
