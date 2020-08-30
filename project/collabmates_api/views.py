@@ -2314,9 +2314,9 @@ def create_card(request,req_dict=None):
     return JsonResponse({'success': True, 'collabcard': context['collabcard']})
 
 
-
+@csrf_exempt
 def create_poll(request):
-    '''function to create draft collabcard'''
+    '''function to create poll collabcard'''
 
     member_id = get_member_id_from_headers(request)
     res = json.loads(request.body)
@@ -2365,9 +2365,14 @@ def create_chatroom_instance(res,community_instance,user_instance):
     card.poll_type = res['poll_type'] if ('poll_type' in res) else None
     card.is_poll_anonymous = res['is_anonymous'] if ('is_anonymous' in res) else None
     card.allow_add_option = res['allow_add_option'] if ('allow_add_option' in res) else None
-    card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else None
-    card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else None
-    card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else None
+    if 'multiple_select' in res:
+        card.multiple_select = res['multiple_select']
+    if 'multiple_select_no' in res:
+        card.multiple_select = True
+        card.multiple_select_no = res['multiple_select_no']
+    if 'multiple_select_state' in res:
+        card.multiple_select = True
+        card.multiple_select_state = res['multiple_select_state']
 
     # for chatroom header
     has_been_named = False
@@ -2438,6 +2443,7 @@ def create_chatroom_instance(res,community_instance,user_instance):
         collabcardpolls_instance.card = card
         collabcardpolls_instance.text = poll['text']
         collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
+        collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None
         collabcardpolls_instance.save()
 
 
@@ -2534,10 +2540,13 @@ def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
 
 @csrf_exempt
 def create_poll_draft_collabcard(request):
+    if request.method == 'GET':
+        return JsonResponse({'success': False, "error_message": "change HTTP message to POST"})
+
     res = json.loads(request.body)
     res['type'] = card_types.CARD_POLL
-    create_draft_collabcard(request, res)
-
+    response = create_draft_collabcard(request, res)
+    return response
 
 @csrf_exempt
 def create_draft_collabcard(request, res=None):
@@ -2593,9 +2602,14 @@ def create_draft_collabcard(request, res=None):
     card.poll_type = res['poll_type'] if ('poll_type' in res) else None
     card.is_poll_anonymous = res['is_anonymous'] if ('is_anonymous' in res) else None
     card.allow_add_option = res['allow_add_option'] if ('allow_add_option' in res) else None
-    card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else None
-    card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else None
-    card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else None
+    if 'multiple_select' in res:
+        card.multiple_select = res['multiple_select']
+    if 'multiple_select_no' in res:
+        card.multiple_select = True
+        card.multiple_select_no = res['multiple_select_no']
+    if 'multiple_select_state' in res:
+        card.multiple_select = True
+        card.multiple_select_state = res['multiple_select_state']
 
     # for chatroom header
     card.header = res['header'] if ('header' in res) else card.title[:30]
@@ -9398,10 +9412,12 @@ def unread_conversation_notification(request):
 
     return JsonResponse(temp)
 
-
+@csrf_exempt
 def submit_poll(request):
     if request.method == 'POST':
-        collabcard_id = request.POST.get('chatroom_id', None)
+        res = json.loads(request.body)
+        collabcard_id = res['chatroom_id']
+        # collabcard_id = request.POST.get('chatroom_id', None)
 
         if not collabcard_id:
             context = get_error_context(success=False, error_message="Send the correct chatroom id")
@@ -9414,7 +9430,7 @@ def submit_poll(request):
             context = get_error_context(success=False, error_message="Send member id in headers")
             return JsonResponse(context)
 
-        polls = request.POST.get('poll', None)
+        polls = res['poll']  # request.POST.get('poll', None)
         if not polls:
             context = get_error_context(success=False, error_message="Send array of polls in post params")
             return JsonResponse(context)
@@ -9442,12 +9458,14 @@ def submit_poll(request):
         collabcard_follow_internal(function_dict)
         return JsonResponse({"success": True})
 
-    return JsonResponse({"success": False})
+    context = get_error_context(success=False, error_message="Change HTTP method to POST")
+    return JsonResponse(context)
 
-
+@csrf_exempt
 def add_poll(request):
     if request.method == 'POST':
-        collabcard_id = request.POST.get('chatroom_id', None)
+        res = json.loads(request.body)
+        collabcard_id = res['chatroom_id']
 
         if not collabcard_id:
             context = get_error_context(success=False, error_message="Send the correct chatroom id")
@@ -9458,7 +9476,7 @@ def add_poll(request):
             context = get_error_context(success=False, error_message="Send member id in headers")
             return JsonResponse(context)
 
-        polls = request.POST.get('poll', None)
+        polls = res['poll'] # request.POST.get('poll', None)
         if not polls:
             context = get_error_context(success=False, error_message="Send array of polls in post params")
             return JsonResponse(context)
@@ -9477,12 +9495,10 @@ def add_poll(request):
             collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None
             collabcardpolls_instance.save()
             poll_list.append(CollabcardPollsSerializer(collabcardpolls_instance, user_instance, card_instance))
-
         return JsonResponse({"success": True, "poll":poll_list})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
     return JsonResponse(context)
-
 
 def fetch_poll_users(request):
 
@@ -9512,7 +9528,8 @@ def fetch_poll_users(request):
     members_list = []
 
     for member in option_selected_members:
-        members_list.append(MembersSerializer(member, community_id, current_user_id=member_id))
+        member_instance = Members.objects.filter(community_id=community_id,member_id=member.user)
+        members_list.append(MembersSerializer(member_instance[0], community_id, current_user_id=member_id))
 
     return JsonResponse({"members": members_list})
 
