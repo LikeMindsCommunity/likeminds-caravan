@@ -4371,7 +4371,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
     #user has not done the scrolling
     conversations_filter = card_answers.objects.filter(card=card_instance).order_by('id')
-    total_response_count = conversations_filter.count()
+    total_response_count = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).count()
     if not conversation_id and not scroll_direction:
 
         if is_guest:
