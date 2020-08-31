@@ -6132,7 +6132,7 @@ def get_member_images_of_chatroom(conversation_filter):
     unique_members = set()
     member_images = []
     for conversation in conversation_filter:
-        community_instance = conversation.community
+        community_instance = conversation.card.community
         if conversation.user.id not in unique_members:
             member_filter = Members.objects.filter(member_id=conversation.user,community_id=community_instance)
             image_url = conversation.user.userinfo.image_link
@@ -9392,6 +9392,7 @@ def email_verify(request):
 
 
         instance_list = emailTokens.objects.filter(token=decoded_token,user=user_instance)
+
 
 
         if instance_list.exists():
