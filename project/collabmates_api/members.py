@@ -220,12 +220,12 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
     state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW, collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
-    collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(
-        state__in=state_list).filter(remove=None).order_by('-user_id')
+    collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(remove=None,follow_status=True).order_by('-user_id')
 
-
-
+    show_removed = False
     collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=10)
+    if page_no == collabcard_state_list.num_pages:
+        show_removed = True
     members = []
 
     for instance in collabcard_state_list:
@@ -244,7 +244,34 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
             user_context['custom_intro_text'] = """Joined as a guest via %s’s invite link on %s"""%(instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
             user_context['custom_click_text'] ="""The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s"""%(instance.user.userinfo.name,instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
 
+        # if instance.remove:
+        #     instance = instance.remove
+        #     temp = get_removed_member_custom_text(instance)
+        #     user_context['custom_intro_text'] = temp['custom_intro_text']
+        #     user_context['custom_click_text'] = temp['custom_intro_text']
+        #     user_context['remove_state'] = temp['remove_state']
+
         members.append(user_context)
+
+    #for handling the removed members of community
+    if show_removed:
+        removed_list = collabcardState.objects.filter(card=card_id).filter(follow_status=True).filter(~Q(remove=None)).order_by('-user_id')
+
+        for instance in removed_list:
+            user_instance = instance.user
+            user_context = get_user_profile(user_instance.id,current_user_id)
+            user_context['collabcard_state'] = instance.state
+            user_context['is_guest'] = instance.is_guest
+
+            temp = get_removed_member_custom_text(instance.remove)
+            user_context['custom_intro_text'] = temp['custom_intro_text']
+            user_context['custom_click_text'] = temp['custom_click_text']
+            user_context['remove_state'] = temp['remove_state']
+
+            members.append(user_context)
+
+
+
 
 
     return members

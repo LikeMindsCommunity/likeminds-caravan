@@ -550,19 +550,10 @@ def get_chatroom_instance(card_instance,member_id):
 
     if status['remove']:
         instance = status['remove']
-        remove_state = instance.state
-        if remove_state == deleted_members.LEFT:
-            collabcard_serializer['member']['custom_intro_text'] = """Left the community on %s"""%(time.strftime("%d %B %Y",time.localtime(instance.created_at)))
-            collabcard_serializer['member']['custom_click_text'] = """The profile you are trying to access does not exist. %s left the community on %s"""%(instance.member.userinfo.name,time.strftime("%d %B %Y",time.localtime(instance.created_at)))
-
-        elif remove_state == deleted_members.REMOVED:
-            collabcard_serializer['member']['custom_intro_text'] = """Removed from the community on  %s""" % (
-                time.strftime("%d %B %Y", time.localtime(instance.created_at)))
-            collabcard_serializer['member'][
-                'custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
-            instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
-
-        collabcard_serializer['member']['remove_state'] = instance.state
+        temp = get_removed_member_custom_text(instance)
+        collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+        collabcard_serializer['member']['custom_click_text'] = temp['custom_intro_text']
+        collabcard_serializer['member']['remove_state'] = temp['remove_state']
 
 
 
@@ -580,6 +571,31 @@ def get_chatroom_instance(card_instance,member_id):
 
 
     return collabcard_serializer
+
+
+def get_removed_member_custom_text(instance):
+
+    '''function to check removed member state'''
+    temp = {}
+    #instance = status['remove']
+    remove_state = instance.state
+    if remove_state == deleted_members.LEFT:
+        temp['custom_intro_text'] = """Left the community on %s""" % (
+            time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+        temp['custom_click_text'] = """The profile you are trying to access does not exist. %s left the community on %s""" % (
+        instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+
+    elif remove_state == deleted_members.REMOVED:
+        temp['custom_intro_text'] = """Removed from the community on  %s""" % (
+            time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+        temp['custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
+        instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+
+    temp['remove_state'] = instance.state
+    return temp
+
+
+
 
 def get_draft_chatroom_instance(draft_instance,member_id):
 

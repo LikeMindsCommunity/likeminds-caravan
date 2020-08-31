@@ -4227,18 +4227,6 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
 
         usr = get_members_profile([ans.user.id],community_id,current_user_id)
         user_context = usr[0]
-        # removed_state = removedMembersSerializer(community_id, user_context['id'])
-        #
-        # if removed_state != False:
-        #     user_context['remove_state'] = removed_state
-
-        # form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
-        # if form_response:
-        #     #usr['response'] = form_response[0]
-        #     usr['question_answers'] = form_response[1]
-        # coverting current time into epoch time
-        if ans.remove:
-            user_context['remove_state'] = ans.remove.state
 
         if ans.is_guest:
             user_context['is_guest'] = ans.is_guest
@@ -4247,6 +4235,15 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
                 instance = state_filter[0]
                 user_context['custom_intro_text'] = """Joined as a guest via %s’s invite link on %s"""%(instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
                 user_context['custom_click_text'] ="""The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s"""%(instance.user.userinfo.name,instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+
+
+        #if the member is removed from the community
+        if ans.remove:
+            instance = ans.remove
+            temp = get_removed_member_custom_text(instance)
+            user_context['custom_intro_text'] = temp['custom_intro_text']
+            user_context['custom_click_text'] = temp['custom_intro_text']
+            user_context['remove_state'] = temp['remove_state']
 
         #time_text = get_time_text(ans.created_at)
         time_text = time.strftime('%H:%M', time.localtime(ans.created_at))
