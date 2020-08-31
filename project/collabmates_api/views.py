@@ -649,11 +649,18 @@ def join_promoter_created_community_version_1(res,request):
 
     user_instance = User.objects.get(id=member_id)
 
+    member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+
+    is_member = member_list.exists()
+    if is_member:
+        state = member_list[0].state
+        if state == member_states.MEMBER:
+            return
+
 
     if 'questions' in res:
 
         for question in res['questions']:
-
 
             if 'value' not in question or not question['value']:
                 continue
@@ -662,7 +669,7 @@ def join_promoter_created_community_version_1(res,request):
 
             if question_instance.is_hidden:
                 continue
-
+            print(question)
             answer_instance = communityAnswers()
             answer_instance.question = question_instance
             answer_instance.member = user_instance
@@ -710,9 +717,9 @@ def join_promoter_created_community_version_1(res,request):
     #     time_in_hrs=2
         # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
 
-    member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
-    if member_list:
+
+    if is_member:
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
 
@@ -854,8 +861,14 @@ def post_introduction_card_for_community(community_id,member_id,request):
                 'create_intro': 1
             }
             request.method = "POST"
-            create_card(request, req_dict=req_dict)
-            return True
+            intro_filter = Collabcard.objects.filter(community=community_id,user=member_id,type=card_types.CARD_INTRO)
+            if not intro_filter.exists():
+                create_card(request, req_dict=req_dict)
+                print("created")
+                return True
+            else:
+                intro_filter.update(title=introduction_answer)
+
 
     return False
 
