@@ -4242,8 +4242,9 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
             instance = ans.remove
             temp = get_removed_member_custom_text(instance)
             user_context['custom_intro_text'] = temp['custom_intro_text']
-            user_context['custom_click_text'] = temp['custom_intro_text']
+            user_context['custom_click_text'] = temp['custom_click_text']
             user_context['remove_state'] = temp['remove_state']
+            user_context['image_url'] = temp['removed_user_image_url']
 
         #time_text = get_time_text(ans.created_at)
         time_text = time.strftime('%H:%M', time.localtime(ans.created_at))

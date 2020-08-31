@@ -223,8 +223,10 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
     collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(remove=None,follow_status=True).order_by('-user_id')
 
     show_removed = False
-    collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=10)
-    if page_no == collabcard_state_list.num_pages:
+    paginated_data = get_paginated_queryset_with_maxpages(collabcard_state_list,page_no,paginate_by=10)
+    collabcard_state_list = paginated_data['page_list']
+
+    if int(page_no) == paginated_data['last_page']:
         show_removed = True
     members = []
 
@@ -254,7 +256,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
         members.append(user_context)
 
     #for handling the removed members of community
-    if show_removed:
+    if show_removed and not member_set:
         removed_list = collabcardState.objects.filter(card=card_id).filter(follow_status=True).filter(~Q(remove=None)).order_by('-user_id')
 
         for instance in removed_list:
@@ -267,6 +269,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
             user_context['custom_intro_text'] = temp['custom_intro_text']
             user_context['custom_click_text'] = temp['custom_click_text']
             user_context['remove_state'] = temp['remove_state']
+            user_context['image_url'] = temp['removed_user_image_url']
 
             members.append(user_context)
 

@@ -552,8 +552,9 @@ def get_chatroom_instance(card_instance,member_id):
         instance = status['remove']
         temp = get_removed_member_custom_text(instance)
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-        collabcard_serializer['member']['custom_click_text'] = temp['custom_intro_text']
+        collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
+        collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
 
 
 
@@ -578,7 +579,7 @@ def get_removed_member_custom_text(instance):
     '''function to check removed member state'''
     temp = {}
     #instance = status['remove']
-    remove_state = instance.state
+    remove_state = instance.removed_state
     if remove_state == deleted_members.LEFT:
         temp['custom_intro_text'] = """Left the community on %s""" % (
             time.strftime("%d %B %Y", time.localtime(instance.created_at)))
@@ -591,7 +592,8 @@ def get_removed_member_custom_text(instance):
         temp['custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
         instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
 
-    temp['remove_state'] = instance.state
+    temp['remove_state'] = remove_state
+    temp['removed_user_image_url'] = REMOVED_USER_URL
     return temp
 
 
@@ -641,7 +643,7 @@ def get_status_of_collabcard(member_id,card):
         collabcard_status['mute_status'] = collabcard_state[0].mute_status
         collabcard_status['follow_status'] = collabcard_state[0].follow_status
         collabcard_status['is_guest'] = collabcard_state[0].is_guest
-        collabcard_state['remove'] = collabcard_state[0].remove
+        collabcard_status['remove'] = collabcard_state[0].remove
     return collabcard_status
 
 
