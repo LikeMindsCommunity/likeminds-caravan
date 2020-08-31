@@ -8079,7 +8079,7 @@ def edit_community_questions(request):
     if not member_id:
         return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
 
-    #user_instance = User.objects.get(pk=member_id)
+    user_instance = User.objects.get(pk=member_id)
     res = json.loads(request.body)
 
     # error messages
@@ -8180,6 +8180,8 @@ def edit_community_questions(request):
     if major_change:
         Members.objects.filter(community_id=community_instance).update(edit_required=True)
         send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
+
+    edit_community_data(community_instance, user_instance, edit_field="directory")
 
     return JsonResponse({'success':True})
 
