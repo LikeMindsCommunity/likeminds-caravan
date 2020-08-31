@@ -4233,12 +4233,13 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
             state_filter = collabcardState.objects.filter(card=ans.card,user=ans.user,is_guest=True)
             if state_filter.exists():
                 instance = state_filter[0]
-                user_context['custom_intro_text'] = """Joined as a guest via %s’s invite link on %s"""%(instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
-                user_context['custom_click_text'] ="""The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s"""%(instance.user.userinfo.name,instance.source.userinfo.name,time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+                temp = get_guest_custom_text(instance)
+                user_context['custom_intro_text'] = temp['custom_intro_text']
+                user_context['custom_click_text'] = temp['custom_click_text']
 
 
         #if the member is removed from the community
-        if ans.remove:
+        elif ans.remove:
             instance = ans.remove
             temp = get_removed_member_custom_text(instance)
             user_context['custom_intro_text'] = temp['custom_intro_text']
@@ -7645,6 +7646,7 @@ def skip_community(request):
         member_instance.community_id = community_instance
         member_instance.state = member_states.PROFILE_UNAVAILABLE
         member_instance.created_at=time.time()
+        member_instance.updated_at = time.time()
         member_instance.save()
 
     if not is_member_engage(community_id,member_id):

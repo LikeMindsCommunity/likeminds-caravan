@@ -555,6 +555,10 @@ def get_chatroom_instance(card_instance,member_id):
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
+    elif status['is_guest']:
+        temp = get_guest_custom_text(status['state_instance'])
+        collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+        collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
 
 
 
@@ -576,7 +580,7 @@ def get_chatroom_instance(card_instance,member_id):
 
 def get_removed_member_custom_text(instance):
 
-    '''function to check removed member state'''
+    '''function to check removed member state and sending the custom text'''
     temp = {}
     #instance = status['remove']
     remove_state = instance.removed_state
@@ -596,7 +600,19 @@ def get_removed_member_custom_text(instance):
     temp['removed_user_image_url'] = REMOVED_USER_URL
     return temp
 
+def get_guest_custom_text(instance):
 
+    '''function to check the guest member of the chatroom and sending the custom text'''
+
+    temp = {}
+    temp['custom_intro_text'] = """Joined as a guest via %s’s invite link on %s""" % (
+    instance.source.userinfo.name, time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+    temp[
+        'custom_click_text'] = """The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s""" % (
+    instance.user.userinfo.name, instance.source.userinfo.name,
+    time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+
+    return temp
 
 
 def get_draft_chatroom_instance(draft_instance,member_id):
@@ -629,7 +645,9 @@ def get_status_of_collabcard(member_id,card):
         'mute_status' : False,
         'follow_status' : False,
         'is_guest' : False,
-        'remove':False
+        'remove':False,
+        'state_instance':None
+
     }
 
     if not member_id:
@@ -644,6 +662,7 @@ def get_status_of_collabcard(member_id,card):
         collabcard_status['follow_status'] = collabcard_state[0].follow_status
         collabcard_status['is_guest'] = collabcard_state[0].is_guest
         collabcard_status['remove'] = collabcard_state[0].remove
+        collabcard_status['state_instance'] = collabcard_state[0]
     return collabcard_status
 
 
