@@ -5140,8 +5140,8 @@ def community_cards_version_1(request,community_id,req_dict=None):
 
 
     context = {
-        'chatrooms':chatroom_list,
-        'total_chatrooms':total_chatrooms
+        'collabcards':chatroom_list,
+        'size':total_chatrooms
     }
 
     return JsonResponse(context)
@@ -7967,26 +7967,55 @@ def get_mixpanel_statistics(member_id):
 def edit_community(request):
     '''function to edit the community'''
 
-    res = json.loads(request.body)
-    community_id = res['community_id']
+    community_id = request.GET.get('community_id')
     member_id = get_member_id_from_headers(request)
-    try:
-        community_instance = Community.objects.get(id=community_id)
-    except:
-        context = get_error_context(False,"send correct community id")
-        return JsonResponse(context)
+    community = Community.objects.get(id=community_id)
 
-    type_id = res['type'] if 'type' in res else None
-    subtype_id = res['sub-type'] if 'sub-type' in res else None
-    about = res['about'] if 'about' in res else None
-    name = res['name']
 
-    community_instance.type = type_id
-    community_instance.sub_type = subtype_id
-    community_instance.about = about
-    community_instance.name = name
-    community_instance.save()
-    return JsonResponse({'success': True})
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Send member id in headers"})
+    else:
+        member_instance = User.objects.get(id=member_id)
+
+    json_body = json.loads(request.body)
+
+    key = json_body['key']
+
+    if key == 'purpose':
+        value = json_body['value']
+        Collabcard.objects.filter(community=community,type=card_types.CARD_PURPOSE).update(title=value)
+        community.purpose = value
+        community.save()
+
+
+    elif key == 'questions':
+        questions = json_body['questions']
+        edit_questions(questions, community_id)
+    else:
+        value = json_body['value']
+        Community.objects.filter(id=community_id).update(**{key: value})
+
+        if key == "about":
+            # saving create community action step 5
+            createCommunityAction.objects.filter(community=community_id,
+                                                 step_no="Step 5").update(current_point=15)
+
+
+
+    #saving the updating details for history
+
+    instance = communityUpdate()
+    instance.updated_field = key
+    instance.updated_time = time.time()
+    instance.updated_member = member_instance
+    instance.community = community
+    instance.save()
+
+    serialized_object = CommunitySerializer(community)
+    new_dict = {}
+    new_dict.update(serialized_object)
+
+    return JsonResponse({'success': True, 'community': new_dict})
 
 
 @csrf_exempt
@@ -8256,6 +8285,8 @@ def edit_questions_version_1(request):
         Members.objects.filter(community_id=community_instance).update(edit_required=True)
         send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
+    edit_community_data(community_instance, user_instance, edit_field="directory")
+
     return JsonResponse({'success':True})
 
 
@@ -8273,12 +8304,18 @@ def edit_community_data(community_instance,user_instance,edit_field):
             bubble_text = "<<" + user_name + " changed the name of this community" +"|" + community_route + ">>"
             edit_announcement_bubbles(card_instance,user_instance,bubble_text)
         elif edit_field == "purpose":
+            card_instance.title = community_instance.purpose
+            card_instance.save()
             bubble_text = "<<" + user_name + """ edited "About Community". Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
         elif edit_field == "image_url":
             bubble_text = "<<" + user_name + """ changed the community icon. Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
 
+        elif edit_field == "directory":
+            member_directory_route = community_route
+            bubble_text = "<<" + user_name + """ edited member directory. Tap to view.""" + "|" + member_directory_route + ">>"
+            edit_announcement_bubbles(card_instance, user_instance, bubble_text)
 
 
 def edit_announcement_bubbles(card_instance,user_instance,bubble_text):
