@@ -2452,7 +2452,12 @@ def create_card_internal(user_id,community_id,res):
 
     user_instance = User.objects.get(id=user_id)
     userinfo_instance = user_instance.userinfo
-    community_instance = Community.objects.get(id=community_id)
+
+    try:
+        community_instance = Community.objects.get(id=community_id)
+    except:
+        context = get_error_context(False,"the community id does n't exists")
+        return context
 
 
     card_instance = create_chatroom_instance(res,community_instance,user_instance)
@@ -8303,16 +8308,17 @@ def edit_community_data(community_instance,user_instance,edit_field):
         if edit_field == "name":
             bubble_text = "<<" + user_name + " changed the name of this community" +"|" + community_route + ">>"
             edit_announcement_bubbles(card_instance,user_instance,bubble_text)
-        elif edit_field == "purpose":
+        if edit_field == "purpose":
             card_instance.title = community_instance.purpose
             card_instance.save()
             bubble_text = "<<" + user_name + """ edited "About Community". Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
-        elif edit_field == "image_url":
+        if edit_field == "image_url":
             bubble_text = "<<" + user_name + """ changed the community icon. Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
 
-        elif edit_field == "directory":
+        if edit_field == "directory":
+            print(edit_field)
             member_directory_route = community_route
             bubble_text = "<<" + user_name + """ edited member directory. Tap to view.""" + "|" + member_directory_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
