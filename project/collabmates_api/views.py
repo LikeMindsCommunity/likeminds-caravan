@@ -2081,7 +2081,7 @@ def create_introduction_question_in_community(community_instance):
 
     '''function to create introduction question in community and mobile information'''
 
-    help_text = None
+    help_text = ''
     field_filter = communityField.objects.filter(state=question_states.INTRODUCTION,
                                                  type=community_instance.type,sub_type=community_instance.sub_type)
 
