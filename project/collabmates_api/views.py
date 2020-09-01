@@ -236,14 +236,15 @@ def your_communities(request, user_id):
     member_id = request.GET.get('member_id')
     current_user_id = get_member_id_from_headers(request)
 
-    page_number = request.GET.get('page', '')
+    page_number = request.GET.get('page', 1)
+    page_number = int(page_number)
     if str(member_id) != str(user_id):
         member_id = user_id
 
     my_community = []
     user = User.objects.get(id=member_id)
 
-    # event when user installed athe app
+    #event when user installed athe app
 
     notification_list = [
         'mail_has_installed_app',
@@ -251,8 +252,8 @@ def your_communities(request, user_id):
     create_notification_flag(member_id,notification_list,card_id=None,community_id=None,flag=False)
 
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-    if page_number and not page_number == '0' and not page_number == '':
-        communities = pagination(communities, page_number, paginate_by=10)
+
+    communities = pagination(communities, page_number, paginate_by=10)
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
