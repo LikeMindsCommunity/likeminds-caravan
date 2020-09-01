@@ -231,7 +231,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
     collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(
-        state__in=state_list).filter(removed_status=None).order_by('-user_id')
+        follow_status=True).filter(removed_status=None).order_by('-user_id')
 
 
 
