@@ -4312,12 +4312,12 @@ def get_chatroom_actions(card_status,creator):
         return (chatroom_actions_creator_unmute)
 
 
-    if(card_status['state'] == collabcard_states.COLLABCARD_STATE_FOLLOW or card_status['state'] == collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) and not card_status['mute_status']:
+    if card_status['follow_status'] and not card_status['mute_status']:
 
         return (collabcard_action_user_follow_unmute)
 
 
-    if(card_status['state'] == collabcard_states.COLLABCARD_STATE_FOLLOW or card_status['state'] == collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) and  card_status['mute_status']:
+    if card_status['follow_status']  and  card_status['mute_status']:
 
         return (collabcard_action_user_follow_mute)
 
@@ -5691,7 +5691,8 @@ def set_state_for_event_cards(collabcard,community_instance,user_instance,status
                 collabcard_state_instance.card = collabcard
                 collabcard_state_instance.community = community_instance
                 collabcard_state_instance.user = user_instance
-                collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+                collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+                collabcard_state_instance.follow_status = True
                 collabcard_state_instance.created_at = time.time()
                 collabcard_state_instance.updated_at = time.time()
                 collabcard_state_instance.save()
@@ -5786,10 +5787,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
     else:
         state_instance = is_present[0]
         if state_instance.state == 0:
-            if state_instance.follow_status:
-                state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
-            else:
-                state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+            state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
             state_instance.save()
 
 
@@ -5849,8 +5847,8 @@ def collabcard_attend(request):
             state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
 
             if state_instance.follow_status:
-                state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
-                state = collabcard_states.COLLABCARD_STATE_FOLLOW
+                state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+                state = collabcard_states.COLLABCARD_STATE_SEEN
             else:
                 state_instance.state=collabcard_states.COLLABCARD_STATE_SEEN
                 state = collabcard_states.COLLABCARD_STATE_SEEN
