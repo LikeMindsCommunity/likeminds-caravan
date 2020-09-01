@@ -477,9 +477,9 @@ def pending_members(request, community_id):
 
     ''' function to get members requested to join in a community '''
 
-    member_id = request.GET.get('member_id',None)
-    if not member_id:
-        member_id = get_member_id_from_headers(request)
+    # member_id = request.GET.get('member_id',None)
+    # if not member_id:
+    member_id = get_member_id_from_headers(request)
     pending_requests=get_pending_members_of_community(community_id,requested_member_id=member_id)
     return JsonResponse({'pending_members': pending_requests})
 
