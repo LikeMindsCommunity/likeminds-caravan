@@ -29,6 +29,9 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
 
         tagging_list.append(temp)
 
+    tagging_list = sorted(tagging_list,key=lambda i:i['name'])
+
+    guest_list = []
     if chatroom_id:
         state_filter = collabcardState.objects.filter(card_id=chatroom_id, is_guest=True)
 
@@ -42,8 +45,10 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
             temp['is_guest'] = True
 
             # member_dict = {'member': temp}
-            tagging_list.append(temp)
+            guest_list.append(temp)
+        guest_list = sorted(guest_list,key=lambda i:i['name'])
 
+    tagging_list = tagging_list + guest_list
     return tagging_list
 
 def get_pending_members_of_community(community_id,requested_member_id):
