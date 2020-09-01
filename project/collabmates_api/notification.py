@@ -478,7 +478,7 @@ def send_follow_notification(card_id,user_id,answer):
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and remove is null and mute_status = False"
+        sql="select user_id from togther_collabcardstate where card_id=%s and follow_status = True and removed_status is null and mute_status = False"
         parameter_list=[card_id, collabcard_states.COLLABCARD_STATE_FOLLOW]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
