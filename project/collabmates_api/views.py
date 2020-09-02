@@ -236,14 +236,15 @@ def your_communities(request, user_id):
     member_id = request.GET.get('member_id')
     current_user_id = get_member_id_from_headers(request)
 
-    page_number = request.GET.get('page', '')
+    page_number = request.GET.get('page', 1)
+    page_number = int(page_number)
     if str(member_id) != str(user_id):
         member_id = user_id
 
     my_community = []
     user = User.objects.get(id=member_id)
 
-    # event when user installed athe app
+    #event when user installed athe app
 
     notification_list = [
         'mail_has_installed_app',
@@ -251,8 +252,8 @@ def your_communities(request, user_id):
     create_notification_flag(member_id,notification_list,card_id=None,community_id=None,flag=False)
 
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-    if page_number and not page_number == '0' and not page_number == '':
-        communities = pagination(communities, page_number, paginate_by=10)
+
+    communities = pagination(communities, page_number, paginate_by=10)
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
@@ -531,7 +532,7 @@ def questions(request):
     member_id = get_member_id_from_headers(request)
 
     community_id = request.GET.get('community_id')
-    data = communityQuestions.objects.filter(community=community_id).order_by("id")
+    data = communityQuestions.objects.filter(community=community_id).order_by('-rank','id')
     community_instance = Community.objects.get(id=community_id)
     community = CommunitySerializer(community_instance)
 
@@ -568,7 +569,7 @@ def questions(request):
         # if the question is not deleted
         if not question.remove_state:
             questions.append(serialized_question)
-    questions = sorted(questions, key=lambda i: i['rank'])
+    #questions = sorted(questions, key=lambda i: i['rank'])
 
     context = {'questions': questions, 'community': community}
     if aj:
@@ -2083,7 +2084,7 @@ def create_introduction_question_in_community(community_instance):
 
     '''function to create introduction question in community and mobile information'''
 
-    help_text = None
+    help_text = ''
     field_filter = communityField.objects.filter(state=question_states.INTRODUCTION,
                                                  type=community_instance.type,sub_type=community_instance.sub_type)
 
@@ -8528,7 +8529,9 @@ def get_tagging_list(request):
 
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id')
-    tagging_list = get_tagging_list_internal(community_id,chatroom_id)
+    current_member_id = get_member_id_from_headers(request)
+
+    tagging_list = get_tagging_list_internal(community_id,chatroom_id,current_member_id)
 
     return JsonResponse({'members':tagging_list})
 

@@ -8,7 +8,7 @@ from .serializers import *
 from .utility import *
 
 
-def get_tagging_list_internal(community_id,chatroom_id=None):
+def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=None):
 
     '''function to give tagging list of members in community'''
 
@@ -19,10 +19,15 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
     tagging_list = []
     for member in member_filter:
         temp = {}
+
         user_instance = member.member_id
         temp['id'] = user_instance.id
+
+        if str(temp['id']) == current_member_id:
+            continue
+
         temp['name'] = user_instance.userinfo.name
-        temp['image_url'] = user_instance.userinfo.image_link
+        temp['image_url'] = member.image_url if member.image_url else user_instance.userinfo.image_link
         temp['state'] = member.state
 
         # member_dict = {'member': temp}
@@ -39,6 +44,10 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
             temp = {}
             user_instance = data.user
             temp['id'] = user_instance.id
+
+            if str(temp['id']) == current_member_id:
+                continue
+
             temp['name'] = user_instance.userinfo.name
             temp['image_url'] = user_instance.userinfo.image_link
             temp['state'] = 0
@@ -230,7 +239,9 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
     state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW, collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
+
     collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(remove=None,follow_status=True).order_by('-user_id')
+
 
     show_removed = False
     paginated_data = get_paginated_queryset_with_maxpages(collabcard_state_list,page_no,paginate_by=10)

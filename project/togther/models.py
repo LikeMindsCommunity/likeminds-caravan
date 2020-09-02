@@ -739,6 +739,8 @@ class communityQuestions(models.Model):
 
     field = models.BooleanField(default=False)
 
+    rank = models.IntegerField(default=0)
+
 
 
 
