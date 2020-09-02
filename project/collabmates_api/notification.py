@@ -689,7 +689,6 @@ def get_last_conversation_unique_names(card_instance,user_id):
     return name_list
 
 
-print(get_last_conversation_unique_names(card_instance=2943,user_id=491))
 
 @shared_task
 def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_names,chatroom_created = True):
