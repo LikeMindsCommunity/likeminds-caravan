@@ -1623,9 +1623,7 @@ def collabcard(request, card_id):
                 request_user_email = True
         except:
             user, request_user_email = update_user_info(request)
-        if not user.image_link:
-            user_image = user.image_file.url
-        else:
+        if user.image_link:
             user_image = user.image_link
     else:
         user_image = ''

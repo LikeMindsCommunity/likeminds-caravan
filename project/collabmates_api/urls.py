@@ -91,6 +91,7 @@ urlpatterns = [
     path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
+    path('mark_read', api_views.mark_read, name='mark_read'),
     path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
 
 
@@ -108,7 +109,12 @@ urlpatterns = [
     path('push', api_views.push, name='push'),
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
     path('accept_invitation',views.accept_invitation,name='accept_invitation'),
+
     path('edit_community', views.edit_community, name='edit_community'),
+    path('v1/edit_community', views.edit_community_version_1, name='edit_community_version_1'),
+    path('edit_community_questions', views.edit_community_questions, name='edit_community_questions'),
+
+
     #path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
 
