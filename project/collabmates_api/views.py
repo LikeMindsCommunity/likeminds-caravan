@@ -1323,7 +1323,7 @@ def send_feedback(request):
     instance.images = images
     instance.created_at = time.time()
     instance.save()
-    send_feedback_mail_to_webmaster(instance.id)
+    send_feedback_mail_to_webmaster.delay(instance.id)
     # print(mail_images)
     # print(json.loads(mail_images))
 
