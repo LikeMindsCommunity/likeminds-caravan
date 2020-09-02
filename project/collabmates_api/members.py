@@ -22,7 +22,7 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
         user_instance = member.member_id
         temp['id'] = user_instance.id
         temp['name'] = user_instance.userinfo.name
-        temp['image_url'] = user_instance.userinfo.image_link
+        temp['image_url'] = member.image_url if member.image_url else user_instance.userinfo.image_link
         temp['state'] = member.state
 
         # member_dict = {'member': temp}
