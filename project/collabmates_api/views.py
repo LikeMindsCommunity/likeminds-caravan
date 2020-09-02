@@ -8522,7 +8522,9 @@ def get_tagging_list(request):
 
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id')
-    tagging_list = get_tagging_list_internal(community_id,chatroom_id)
+    current_member_id = get_member_id_from_headers(request)
+
+    tagging_list = get_tagging_list_internal(community_id,chatroom_id,current_member_id)
 
     return JsonResponse({'members':tagging_list})
 
