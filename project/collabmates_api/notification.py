@@ -11,7 +11,7 @@ from django.db.models import Q
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
-                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers
+                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,conversationMemberState
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -478,8 +478,8 @@ def send_follow_notification(card_id,user_id,answer):
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null and mute_status = False"
-        parameter_list=[card_id, collabcard_states.COLLABCARD_STATE_FOLLOW]
+        sql="select user_id from togther_collabcardstate where card_id=%s and follow_status = True and removed_status is null and mute_status = False"
+        parameter_list=[card_id]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
@@ -639,7 +639,7 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         #sending names of unique members who have responded in chatroom
 
         card_instance  = conversation.card
-        temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance)
+        temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance,user_id)
 
 
 
@@ -657,22 +657,37 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
 
     return temp
 
-def get_last_conversation_unique_names(card_instance):
+def get_last_conversation_unique_names(card_instance,user_id):
 
     '''function to get last conversation unique names'''
 
     name_set = set()
     name_list = []
-    answer_filter = card_answers.objects.filter(card=card_instance,state=0).order_by('-id')
-    for answer in answer_filter:
-        if answer.user not in name_set:
-            name_set.add(answer.user)
-            name_list.append(answer.user.userinfo.name)
+    conversation_state_filter = conversationMemberState.objects.filter(card=card_instance,user=user_id)
+    if conversation_state_filter.exists():
+        last_conversation = conversation_state_filter[0].conversation
 
-        if len(name_list) > 3:
-            break
+        answer_filter = card_answers.objects.filter(card=card_instance,state=0,id__gt=last_conversation.id).order_by('-id')
+        for answer in answer_filter:
+            if answer.user not in name_set:
+                name_set.add(answer.user)
+                name_list.append(answer.user.userinfo.name)
+
+            if len(name_list) > 4:
+                break
+    else:
+        answer_filter = card_answers.objects.filter(card=card_instance, state=0).order_by(
+            '-id')
+        for answer in answer_filter:
+            if answer.user not in name_set:
+                name_set.add(answer.user)
+                name_list.append(answer.user.userinfo.name)
+
+            if len(name_list) > 4:
+                break
 
     return name_list
+
 
 
 @shared_task

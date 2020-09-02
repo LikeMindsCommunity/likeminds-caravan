@@ -8,7 +8,7 @@ from .serializers import *
 from .utility import *
 
 
-def get_tagging_list_internal(community_id,chatroom_id=None):
+def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=None):
 
     '''function to give tagging list of members in community'''
 
@@ -19,16 +19,24 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
     tagging_list = []
     for member in member_filter:
         temp = {}
+
         user_instance = member.member_id
         temp['id'] = user_instance.id
+
+        if str(temp['id']) == current_member_id:
+            continue
+
         temp['name'] = user_instance.userinfo.name
-        temp['image_url'] = user_instance.userinfo.image_link
+        temp['image_url'] = member.image_url if member.image_url else user_instance.userinfo.image_link
         temp['state'] = member.state
 
         # member_dict = {'member': temp}
 
         tagging_list.append(temp)
 
+    tagging_list = sorted(tagging_list,key=lambda i:i['name'])
+
+    guest_list = []
     if chatroom_id:
         state_filter = collabcardState.objects.filter(card_id=chatroom_id, is_guest=True)
 
@@ -36,14 +44,20 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
             temp = {}
             user_instance = data.user
             temp['id'] = user_instance.id
+
+            if str(temp['id']) == current_member_id:
+                continue
+
             temp['name'] = user_instance.userinfo.name
             temp['image_url'] = user_instance.userinfo.image_link
             temp['state'] = 0
             temp['is_guest'] = True
 
             # member_dict = {'member': temp}
-            tagging_list.append(temp)
+            guest_list.append(temp)
+        guest_list = sorted(guest_list,key=lambda i:i['name'])
 
+    tagging_list = tagging_list + guest_list
     return tagging_list
 
 def get_pending_members_of_community(community_id,requested_member_id):
@@ -51,6 +65,11 @@ def get_pending_members_of_community(community_id,requested_member_id):
     '''functions to get pending members of the community'''
 
     pending_requests = []
+
+    promoter_filter = Members.objects.filter(community_id=community_id,member_id=requested_member_id,state=member_states.ADMIN)
+
+    if not promoter_filter.exists():
+        return []
 
     member_filter = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER)
 
@@ -221,7 +240,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
     collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(
-        state__in=state_list).filter(removed_status=None).order_by('-user_id')
+        follow_status=True).filter(removed_status=None).order_by('-user_id')
 
 
 
@@ -308,7 +327,7 @@ def get_paginated_member_queryset(page,community_id,promoter=False):
     if promoter:
         sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9 or togther_members.state = 3) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
     else:
-        sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9 or togther_members.state = 3) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
+        sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
 
     cursor.execute(sql)
 
