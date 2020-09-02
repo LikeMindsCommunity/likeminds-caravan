@@ -5439,15 +5439,17 @@ def create_conversation(request):
 
     # # updating the conversationEngage table
     conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
-    update_my_chatrooms_for_users.delay(chatroom_id=card_instance.id)
 
-    send_follow_notification.delay(card_id=card_instance.id, user_id=user_id, answer=res['text'])
+    update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'])
+
+
 
     return JsonResponse({'success': True, 'id': ans.id})
 
-
-
-
+@shared_task
+def update_chatroom_for_users_and_send_follow_notification(card_instance_id,user_id,res_text):
+    update_my_chatrooms_for_users(chatroom_id=card_instance_id)
+    send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
 
 
 def auto_follow_chatrooms_in_case_of_tagging(request,conversation,card_id):

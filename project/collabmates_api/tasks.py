@@ -21,8 +21,8 @@ from togther.models import Collabcard
 from utility.encryption import encrypt,decrypt
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
 # from datetime import datetime,
-url = 'https://beta.likeminds.community'
-# url = settings.URL
+# url = 'https://beta.likeminds.community'
+url = settings.URL
 
 from .notification import get_title_from_collabcard 
 # def send_email(subject,template,to):

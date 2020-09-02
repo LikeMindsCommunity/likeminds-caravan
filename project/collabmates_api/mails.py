@@ -22,6 +22,7 @@ import ast
 from datetime import datetime,timedelta
 
 url = settings.URL
+is_beta = settings.IS_BETA
 # url = 'https://beta.likeminds.community'
 
 import time
@@ -42,8 +43,10 @@ def send_feedback_mail_to_webmaster(feedback_id):
 
     template = get_template("mails/send_feedback_mail_to_webmaster.html").render(context)
 
-    to = ['himanshu@likeminds.community']
-    # to = settings.TEAM
+    if is_beta:
+        to = ['himanshu@likeminds.community']
+    else:
+        to = settings.TEAM
 
     send_email(subject, template, to)
     print(template)
@@ -191,8 +194,10 @@ def send_created_community_email_to_team(context):
     context['url'] = url
     template = get_template("mails/send_community_created_mail_to_webmaster.html").render(context)
 
-    # to = ['himanshu@likeminds.community',]
-    to = settings.TEAM
+    if is_beta:
+        to = ['himanshu@likeminds.community',]
+    else:
+        to = settings.TEAM
 
     print(context,to)
 
@@ -209,8 +214,10 @@ def send_report_mail_to_team(subject, report_instance_id):
 
     template = get_template("mails/send_report_mail_to_team.html").render(context)
 
-    # to = ['himanshu@likeminds.community',]
-    to = settings.TEAM
+    if is_beta:
+        to = ['himanshu@likeminds.community',]
+    else:
+        to = settings.TEAM
 
     print(subject,context,to)
 
