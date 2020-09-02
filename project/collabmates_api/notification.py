@@ -13,9 +13,11 @@ from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
                             Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers
                             )
+from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
 from utility.states import *
+
 import json
 from django.shortcuts import get_object_or_404
 import traceback
@@ -38,9 +40,9 @@ url=settings.URL
 server_key=settings.FCM_SERVER_KEY
 
 #notifications for different mobile os versions
-def send_test_notification(token_list,subtitle):
+def send_test_notification(token_list,message):
     result = ""
-    message = message
+    message = {}
     # message['payload']={
     #     'title': 'title',
     #     'sub_title': 'sub_title',
@@ -930,8 +932,19 @@ def get_referred_members_of_a_member(community_id,member_id):
 @shared_task
 def send_notification_to_incomplete_profile(member_id,community_id,community_state,community_name,time_in_hrs):
     '''function to send notification to users who pressed skip when joining link was sent'''
-    
-    time.sleep(time_in_hrs*60*60)
+    start_time = time.time()
+    start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=time_in_hrs, days=0)
+    task_name = str(community_id) + "_" + str(member_id) +"_send_notification_to_incomplete_profile"
+    args = [member_id, community_id, community_state, community_name, time_in_hrs]
+    task_path = "collabmates_api.notification.send_notification_to_incomplete_profile_scheduled"
+    kwargs = {}
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                            date_time=start_time, interval=False, crontab=True)
+
+@app.task
+def send_notification_to_incomplete_profile_scheduled(member_id, community_id, community_state, community_name, time_in_hrs):
     
 
     #check if they created the profile. 
@@ -965,11 +978,23 @@ def send_notification_to_incomplete_profile(member_id,community_id,community_sta
 
 @shared_task
 def send_login_dropoff_notification(token,platform_code):
-    '''send notification to users who did not login after 1 hour'''
+    '''send notification to users who did not login after 2 hour'''
 
-    #sleep for 2 hours
-    time.sleep(2*60*60)
-    
+
+    start_time = time.time()
+    start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=2, days=0)
+    task_name = str(token) + "_send_login_dropoff_notification"
+    args = [token, platform_code]
+    task_path = "collabmates_api.notification.send_login_dropoff_notification_scheduled"
+    kwargs = {}
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                            date_time=start_time, interval=False, crontab=True)
+
+
+@app.task
+def send_login_dropoff_notification_scheduled(token, platform_code):
     user = Userinfo.objects.filter(fcm_token=token)
 
     if user.exists():
@@ -1066,7 +1091,7 @@ def send_evening_level_notification():
         message['payload']={
                 "title" : 'Level up '+str(community_level.community.name),
                 "sub_title" : str(community_level.title) + ". " +str(community_level.sub_title),
-                'route':'route://community?community_id='+str(community_level.community.id) + '&community_name=' + str(community_level.community.name)
+                'route':'route://chatroom_new_feed?community_id'+str(community_level.community.id) + '&community_name=' + str(community_level.community.name) + '&show_level=true'
             }
 
         notification_meta(notification_list,message)
@@ -1078,9 +1103,20 @@ def send_evening_level_notification():
 def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
 
     '''function to send notification to users who opened the private link but did not joint the community'''
-    
-    time.sleep(time_in_hrs*60*60)
+    start_time = time.time()
+    start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=time_in_hrs, days=0)
+    task_name = str(member_id) + "_" + str(community_id) + "_send_notification_to_join_drop_off"
+    args = [member_id, community_id, aj, time_in_hrs]
+    task_path = "collabmates_api.notification.send_notification_to_join_drop_off_scheduled"
+    kwargs = {}
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                            date_time=start_time, interval=False, crontab=True)
 
+
+@app.task
+def send_notification_to_join_drop_off_scheduled(member_id, community_id, aj, time_in_hrs):
     #check if they created the profile. 
     member = Members.objects.filter(community_id=community_id,member_id=member_id)
     
@@ -1126,53 +1162,90 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
             expiry_instance = communityExpiryCodes.objects.filter(community=community_instance, unique_code=aj)
             
             if expiry_instance.exists():
-                time_to_sleep = expiry_instance[0].created_at+expiry_instance[0].expire_duration - int(time.time()) - 30*60
+                time_to_sleep = expiry_instance[0].created_at + expiry_instance[0].expire_duration - int(time.time()) - 30*60
+                start_time = expiry_instance[0].created_at + expiry_instance[0].expire_duration - 30*60
             else:
                 time_to_sleep = -1
-                
+
             if time_to_sleep > 0:
-                time.sleep(time_to_sleep)
-                
-                member = Members.objects.filter(community_id=community_id,member_id=member_id)
-                if member.exists():
-                    return
-                message['payload']={
-                    "title" : 'Invitation link about to expire!',
-                    "sub_title" : "Don't miss relevant conversations in "+ str(community_name) +". Click here to join and meet like-minded people.",
-                    'route':'route://community?community_id=' + str(community_id)
-                }
-                
-                notification_meta(notification_list,message)
+                task_name = str(member_id) + "_" + str(community_id) + "_send_notification_to_join_drop_off"
+                expiry_time = expiry_instance[0].created_at + expiry_instance[0].expire_duration
+                args = [member_id, community_id, aj, expiry_time,notification_list]
+                task_path = "collabmates_api.notification.send_notification_to_join_drop_off_scheduled_2"
+                kwargs = {}
+                celerybeatask = CeleryBeatTask()
+                celerybeatask.terminate_task(task_name)
+                celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                        date_time=start_time, interval=False, crontab=True)
+                # time.sleep(time_to_sleep)
 
-                # send notification after 6 hours when of expiry
-                time_to_sleep += 30*60+6*60*60 
-                time.sleep(time_to_sleep)
-                
+@app.task
+def send_notification_to_join_drop_off_scheduled_2(member_id, community_id, aj, time_in_hrs,notification_list):
+    member = Members.objects.filter(community_id=community_id,member_id=member_id)
+    message = {}
+    # member_name = user_instance.userinfo.name
+    community_instance = Community.objects.get(id=community_id)
+    community_name = community_instance.name
 
-                member = Members.objects.filter(community_id=community_id,member_id=member_id)
-                if member.exists():
-                    return
+    if member.exists():
+        return
+    message['payload']={
+        "title" : 'Invitation link about to expire!',
+        "sub_title" : "Don't miss relevant conversations in "+ str(community_name) +". Click here to join and meet like-minded people.",
+        'route':'route://community?community_id=' + str(community_id)
+    }
 
-                notification_list=[]
+    notification_meta(notification_list,message)
 
-                notification_details = get_token_for_fcm(expiry_instance[0].promoter.id,flag=True)
+    # send notification after 6 hours when of expiry
+    # time_to_sleep += 30*60 + 6*60*60
+    # time.sleep(time_to_sleep)
+    start_time = time.time()
+    task_name = str(member_id) + "_" + str(community_id) + "_send_notification_to_join_drop_off"
+    args = [member_id, community_id, aj]
+    task_path = "collabmates_api.notification.send_notification_to_join_drop_off_scheduled_3"
+    kwargs = {}
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                            date_time=start_time, interval=False, crontab=True)
+    #
+    #send notification after 6 hours after link expire
+    start_time = add_relative_time_to_epoch(start_time, minutes=30, hours=6, days=0)
 
-                temp = {
-                    'id':expiry_instance[0].promoter.id,
-                    'fcm_token':notification_details[0],
-                    'mobile_os':notification_details[1],
-                }
+@app.task
+def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
+    member = Members.objects.filter(community_id=community_id,member_id=member_id)
 
-                notification_list.append(temp)
+    community_instance = Community.objects.get(id=community_id)
+    community_name = community_instance.name
 
+    expiry_instance = communityExpiryCodes.objects.filter(community=community_instance, unique_code=aj)
+    member_name = expiry_instance.promoter.userinfo.name
+    if member.exists():
+        return
 
-                message['payload']={
-                    "title" : member_name + 'may need new invitation!',
-                    "sub_title" : "Your private invitation for joining "+ str(community_name) +"has expired. Please resend them invite link.",
-                    'route':'route://community?community_id=' + str(community_id)
-                }
+    notification_list=[]
 
-                notification_meta(notification_list,message)
+    notification_details = get_token_for_fcm(expiry_instance[0].promoter.id,flag=True)
+
+    temp = {
+        'id':expiry_instance[0].promoter.id,
+        'fcm_token':notification_details[0],
+        'mobile_os':notification_details[1],
+    }
+
+    notification_list.append(temp)
+
+    message = {}
+
+    message['payload']={
+        "title" : member_name + 'may need new invitation!',
+        "sub_title" : "Your private invitation for joining "+ str(community_name) +"has expired. Please resend them invite link.",
+        'route':'route://community?community_id=' + str(community_id)
+    }
+
+    notification_meta(notification_list,message)
 
 
 @app.task
@@ -1234,6 +1307,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", we are reminding you to complete your directory profile. Without an updated profile, you won’t have seamless access to the community. "
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1264,6 +1338,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", please update your profile now to take full advantage of our networking features. This is mandatory for all the members. "
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1294,6 +1369,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of LikeMinds and connect with others."
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1324,6 +1400,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", it has been over 30 days you joined us. Please update your profile and improve your chances of connecting with like-minded folks."
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1490,384 +1567,3 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
 
 
-
-
-
-
-
-
-#####Discarded Notifications starts########
-
-@shared_task
-def send_notification_to_proposer(proposer_id,community_name,community_id,proposed_name):
-
-    '''function to send notification if the proposed admin accepts invitation'''
-
-    fcm_token=get_token_for_fcm(proposer_id)
-
-    if fcm_token:
-        token_list=[]
-        token_list.append(fcm_token)
-
-        message={}
-        message['payload']={
-            'title':str(community_name),
-            'sub_title':str(proposed_name) + " is now a promoter of the community",
-            'route':'route://community?community_id=' + str(community_id)
-        }
-
-        send_notification_to_multiple_devices(token_list, message)
-    else:
-        print('No FCM token to send message')
-
-
-
-@shared_task
-def ask_approval_notification(community_id,community_name,approver_id,
-                                                  member_name,community_state):
-
-    '''function to send notification for ask approval'''
-
-    notification_list = []
-
-    temp = {}
-    temp['user_id'] = approver_id
-    notification_details = get_token_for_fcm(approver_id, True)
-    temp['fcm_token'] = notification_details[0]
-    temp['mobile_os'] = notification_details[1]
-
-    notification_list.append(temp)
-
-    message = {}
-    message['payload'] = {
-        'title': str(community_name),
-        'sub_title': """%s has requested to join your community."""%(member_name),
-        'route':'route://community?community_id=' + str(community_id)
-    }
-
-    notification_meta(notification_list, message)
-
-
-#LG notifications
-@shared_task
-def send_notification_to_referrer_of_lg_community(community_id,community_name,referrer_id,
-                                                  member_name,community_state,is_verified=False):
-
-    '''function to send notification to the referrer of ig community'''
-
-    notification_list = []
-
-    temp = {}
-    temp['user_id'] = referrer_id
-    notification_details = get_token_for_fcm(referrer_id, True)
-    temp['fcm_token'] = notification_details[0]
-    temp['mobile_os'] = notification_details[1]
-
-    notification_list.append(temp)
-    if not is_verified:
-        sub_title="""%s has shown interest to join."""%(member_name)
-    else:
-        sub_title = """%s has shown interest to join. Please verify""" % (member_name)
-
-    message = {}
-    message['payload'] = {
-        'title': str(community_name),
-        'sub_title': sub_title,
-        'route':'route://community?community_id=' + str(community_id)
-    }
-
-    notification_meta(notification_list, message)
-
-
-
-
-@shared_task
-def send_notification_to_referrer_of_ig_community(community_id,community_name,referrer_id,
-                                                  member_name,community_state):
-
-    '''function to send notification to the referrer of ig community'''
-
-    notification_list = []
-
-    temp = {}
-    temp['user_id'] = referrer_id
-    notification_details = get_token_for_fcm(referrer_id, True)
-    temp['fcm_token'] = notification_details[0]
-    temp['mobile_os'] = notification_details[1]
-
-    notification_list.append(temp)
-
-    message = {}
-    message['payload'] = {
-        'title': str(community_name),
-        'sub_title': """%s just joined this community."""%(member_name),
-        'route':'route://community?community_id=' + str(community_id)
-    }
-
-    notification_meta(notification_list, message)
-
-
-@shared_task
-def send_poll_or_event_notification(card_id, user_id):
-    """ send poll/event notification to poll/event card created person, when some one votes/attending """
-    card = Collabcard.objects.get(pk=card_id)
-    card_creator_fcm_token = card.user.userinfo.fcm_token
-
-    community_name = card.community.name
-    community_id = card.community.id
-
-    member = User.objects.get(pk=user_id)
-    member_name = member.userinfo.name
-
-    if card.type == 2:
-        sub_title = member_name + " is attending your event"
-        time.sleep(60)
-        attending_state = collabcardState.objects.filter(card=card,
-                                                         user=member).filter(Q(state=3) | Q(state=4)).filter(removed_status=None)
-        if not attending_state.exists():
-            return
-    else:
-        sub_title = member_name + " voted on your poll"
-    message = {}
-    message['payload'] = {
-        'title': str(community_name),
-        'sub_title': sub_title,
-        'route': 'route://collabcard?collabcard_id='+str(card_id)
-    }
-
-    token_list = [card_creator_fcm_token]
-
-    send_notification_to_multiple_devices(token_list, message)
-
-
-
-@shared_task
-def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, **kwargs):
-
-    """ function to send notification to all members when event/poll is going to start/end """
-    print("\ntype === ", typ)
-    print(" community-id === ", community_id)
-    print("kwargs === ", kwargs,"\n")
-    try:
-        if typ == 2:
-            token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
-                                 Q(state=3) |
-                                 Q(state=4)).filter(removed_status=None).values_list('user__userinfo__fcm_token', flat=True))
-
-        else:
-            token_list = list(MemberPollVotes.objects.filter(card=kwargs[
-                                                                'card_id']).order_by('-id').values_list(
-                                                                'user__userinfo__fcm_token', flat=True))
-        print("token list ===== ", token_list)
-
-        card_instance = Collabcard.objects.get(pk=kwargs['card_id'])
-
-        user_fcm = card_instance.user.userinfo.fcm_token
-
-        if not user_fcm in token_list:
-            token_list.append(user_fcm)
-
-
-        if typ == 3:
-            sub_title = 'Your poll ended. Tap to see results'
-        else:
-            sub_title = 'Your event is starting in 30 minutes'
-
-        message = {}
-        message['payload'] = {
-            'title': str(community_name),
-            'sub_title': sub_title,
-            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
-        }
-
-        send_notification_to_multiple_devices(token_list, message)
-        # disable the task , to prevent it from trigerring in future
-        beat_task = CeleryBeatTask()
-        beat_task.stop_task(task_name=kwargs['task_name'])
-
-    except:
-        print("Error while connecting to PostgreSQL")
-
-
-def send_poll_notification_manually(request):
-    body = json.loads(request.body)
-
-    community_id = body['community_id']
-    community = Community.objects.get(pk=community_id)
-    community_name = community.name
-    community_state = community.hide_community
-    card_id = body['card_id']
-
-    card = Collabcard.objects.get(pk = card_id)
-    typ = card.type
-
-    poll_expiry_or_event_remainder_notification(community_name, community_id, typ,
-                                                community_state=community_state, card_id=card_id)
-    return JsonResponse({'success':True})
-#toots unlocked
-
-
-@shared_task
-def notification_after_compute_rank(user_id):
-
-    '''function to send notification to referred member(who is referring)'''
-    time.sleep(30)
-    fcm_token=get_token_for_fcm(user_id)
-
-    if fcm_token:
-        token_list=[]
-        token_list.append(fcm_token)
-        #
-        # user = User.objects.get(pk = user_id)
-        # user_name = user.userinfo.name
-
-        sub_title = "Discover and join relevant communities based on your profile"
-
-        message={}
-        message['payload']={
-            'title':'Discover communities',
-            'sub_title':sub_title,
-            'route':'route://main'
-        }
-
-        count = 0
-        while True:
-            communities = Community_Rank.objects.filter(member_id=user_id)
-            if communities.exists():
-                return send_notification_to_multiple_devices(token_list, message)
-            elif count == 30:
-                return
-            else:
-                count += 1
-                time.sleep(60)
-
-    else:
-        print('No FCM token to send message')
-
-@shared_task
-def notification_to_complete_onboarding(user_id):
-
-    '''function to send notification when the user has not completed onboarding in 5 minutes'''
-
-    fcm_token = get_token_for_fcm(user_id)
-
-    if fcm_token:
-        token_list = []
-        token_list.append(fcm_token)
-        message = {}
-        message['payload'] = {
-            'title': 'Complete your registration',
-            'sub_title': """and discover relevant communities""",
-            'route': 'route://main'
-        }
-
-        send_notification_to_multiple_devices(token_list,message)
-        print("notification send when user has not completed onbaording in 5 minutes")
-
-
-@shared_task
-def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_count, community_id, community_name,community_state):
-
-    '''function to send notification for tool unlocked'''
-
-    sub_title = ""
-    route = 'route://community?community_id=' + str(community_id)
-    print("refererid--",referer_id)
-
-    if referal_count == 1:
-        sub_title = "Event tool unlocked. You have successfully referred 1 member"
-        notification_list = []
-        temp = {}
-        temp['user_id'] = referer_id
-        notification_details = get_token_for_fcm(referer_id, True)
-        temp['fcm_token'] = notification_details[0]
-        temp['mobile_os'] = notification_details[1]
-        notification_list.append(temp)
-
-        message = {}
-        message['payload'] = {
-            'title': community_name,
-            'sub_title': sub_title,
-            'route': route
-        }
-
-        notification_meta(notification_list, message)
-
-    elif referal_count == 3:
-        sub_title = "Pool tool unlocked. You have successfully referred 3 member."
-        notification_list = []
-        temp = {}
-        temp['user_id'] = referer_id
-        notification_details = get_token_for_fcm(referer_id, True)
-        temp['fcm_token'] = notification_details[0]
-        temp['mobile_os'] = notification_details[1]
-        notification_list.append(temp)
-
-        message = {}
-        message['payload'] = {
-            'title': community_name,
-            'sub_title': sub_title,
-            'route': route
-        }
-        notification_meta(notification_list, message)
-
-    elif referal_count == 5:
-        sub_title = " Congrats. You are now promoter of this community."
-        notification_list = []
-        temp = {}
-        temp['user_id'] = referer_id
-        notification_details = get_token_for_fcm(referer_id, True)
-        temp['fcm_token'] = notification_details[0]
-        temp['mobile_os'] = notification_details[1]
-        notification_list.append(temp)
-
-        message = {}
-        message['payload'] = {
-            'title': community_name,
-            'sub_title': sub_title,
-            'route': route
-        }
-        notification_meta(notification_list, message)
-
-
-
-
-
-@shared_task
-def send_notification_for_tool_unlocked_for_pilot(community_id):
-    '''function to send notification when the community is pilot and becomes live'''
-
-    members_list=Members.objects.filter(community_id=community_id).filter(Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
-    community_instance=Community.objects.get(id=community_id)
-    print("Send Notification for tool unlocked")
-    for member in members_list:
-
-        referal_count=get_referred_members_of_a_member(community_id,member.member_id.id)
-        referal_count=len(referal_count)
-
-        if referal_count >= 3:
-
-            send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
-                                                               referal_count=1,community_id=community_id,
-                                                               community_name=community_instance.name,
-                                                               community_state=community_instance.hide_community
-                                                               )
-
-            send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
-                                                                   referal_count=3,
-                                                                   community_id=community_id,
-                                                                   community_name=community_instance.name,
-                                                                   community_state=community_instance.hide_community
-                                                                   )
-        elif referal_count >= 1:
-
-
-            send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
-                                                                   referal_count=1, community_id=community_id,
-                                                                   community_name=community_instance.name,
-                                                                   community_state=community_instance.hide_community
-                                                                   )
-
-
-
-#####Discarded Notifications ends########

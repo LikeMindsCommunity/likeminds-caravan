@@ -39,7 +39,7 @@ from utility.tasks import (mail_triger, new_member_request,
                            )
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_referred_members_of_a_member,
-                           eligibility_count, notify_referred_member,
+                           eligibility_count,
                            update_member_count,
                            tutorial_count,
     # custom_cache,cache_timeout,
@@ -1013,8 +1013,8 @@ def update_community_actions(community_instance):
                 instance.state = community_level_states.COMPLETE
                 instance.save()
 
-                community_level_filter.filter(level="Level 3").update(title="Set up community directory",
-                                                                      sub_title="Help members know each other. Give 10 members a community-specific identity.",
+                community_level_filter.filter(level="Level 3").update(title = "Set up community directory",
+                                                                      sub_title = "Help members know each other. Ask members to complete their profile for the directory or add new members.",
                                                                       state = community_level_states.PENDING)
 
                 # community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
@@ -1301,7 +1301,7 @@ def send_feedback(request):
         return JsonResponse({'success':False,"error_message":"user does not exists"})
 
     feedback = res['feedback']
-    mail_images = res['images']
+    mail_images = res['images']  if 'images' in res else None
     images = json.dumps(res['images']) if 'images' in res else None
 
     instance = userFeedback()
@@ -1310,16 +1310,7 @@ def send_feedback(request):
     instance.images = images
     instance.created_at = time.time()
     instance.save()
-    mail_images = ast.literal_eval(mail_images)
-    mail_context = {
-        'feedback': instance.feedback,
-        'images' : mail_images,
-        'user' : {
-            'email': instance.user.userinfo.email,
-            'name': instance.user.userinfo.name
-        }
-    }
-    send_feedback_mail_to_webmaster.delay(mail_context)
+    send_feedback_mail_to_webmaster(instance.id)
     # print(mail_images)
     # print(json.loads(mail_images))
 
@@ -1962,6 +1953,16 @@ def create_community_version_1(request):
         engage.member_referral = "Finish setting up your community"
         engage.click_state = click_states.SET_PURPOSE
         engage.save()
+        
+        #send community created mail to the team
+        email_context = {
+            'member_name': member_instance.member_id.userinfo.name,
+            'community_name': community_instance.name,
+            'member_email': member_instance.member_id.userinfo.email,
+            'community_id': community_instance.id
+        }
+        send_created_community_email_to_team.delay(email_context)
+
 
         community_serializer = CommunitySerializer(community_instance,promoter_id=user_instance)
         return JsonResponse({'success':True,'community':community_serializer})
@@ -8865,6 +8866,22 @@ def push_report(request):
         report_instance.save()
 
         #community_url = url + "/community/" + str(collabcard_instance.community.id)
+        print(reported_member_id,community_id,collabcard_id,conversation_id)
+        if reported_member_id:
+            subject = '[Member reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject,report_instance.id)
+        elif community_id is not None:
+            subject = '[Community reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject,report_instance.id)
+        elif collabcard_id is not None:
+            subject = '[Chatroom reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject,report_instance.id)
+        elif conversation_id:
+            subject = '[Text reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject,report_instance.id)
+
+        print(subject)
+
         try:
             if reported_member_id:
                 reported_user_instance = User.objects.get(pk=reported_member_id)
