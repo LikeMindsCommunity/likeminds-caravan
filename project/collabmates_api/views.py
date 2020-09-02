@@ -532,7 +532,7 @@ def questions(request):
     member_id = get_member_id_from_headers(request)
 
     community_id = request.GET.get('community_id')
-    data = communityQuestions.objects.filter(community=community_id).order_by("id")
+    data = communityQuestions.objects.filter(community=community_id).order_by('-rank','id')
     community_instance = Community.objects.get(id=community_id)
     community = CommunitySerializer(community_instance)
 
