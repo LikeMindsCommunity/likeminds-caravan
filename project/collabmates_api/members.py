@@ -8,7 +8,7 @@ from .serializers import *
 from .utility import *
 
 
-def get_tagging_list_internal(community_id,chatroom_id=None):
+def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=None):
 
     '''function to give tagging list of members in community'''
 
@@ -19,8 +19,13 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
     tagging_list = []
     for member in member_filter:
         temp = {}
+
         user_instance = member.member_id
         temp['id'] = user_instance.id
+
+        if str(temp['id']) == current_member_id:
+            continue
+
         temp['name'] = user_instance.userinfo.name
         temp['image_url'] = member.image_url if member.image_url else user_instance.userinfo.image_link
         temp['state'] = member.state
@@ -39,6 +44,10 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
             temp = {}
             user_instance = data.user
             temp['id'] = user_instance.id
+
+            if str(temp['id']) == current_member_id:
+                continue
+
             temp['name'] = user_instance.userinfo.name
             temp['image_url'] = user_instance.userinfo.image_link
             temp['state'] = 0
