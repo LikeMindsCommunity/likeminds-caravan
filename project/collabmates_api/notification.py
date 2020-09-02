@@ -11,7 +11,7 @@ from django.db.models import Q
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
-                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers
+                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,conversationMemberState
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -639,7 +639,7 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         #sending names of unique members who have responded in chatroom
 
         card_instance  = conversation.card
-        temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance)
+        temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance,user_id)
 
 
 
@@ -657,23 +657,39 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
 
     return temp
 
-def get_last_conversation_unique_names(card_instance):
+def get_last_conversation_unique_names(card_instance,user_id):
 
     '''function to get last conversation unique names'''
 
     name_set = set()
     name_list = []
-    answer_filter = card_answers.objects.filter(card=card_instance,state=0).order_by('-id')
-    for answer in answer_filter:
-        if answer.user not in name_set:
-            name_set.add(answer.user)
-            name_list.append(answer.user.userinfo.name)
+    conversation_state_filter = conversationMemberState.objects.filter(card=card_instance,user=user_id)
+    if conversation_state_filter.exists():
+        last_conversation = conversation_state_filter[0].conversation
 
-        if len(name_list) > 3:
-            break
+        answer_filter = card_answers.objects.filter(card=card_instance,state=0,id__gt=last_conversation.id).order_by('-id')
+        for answer in answer_filter:
+            if answer.user not in name_set:
+                name_set.add(answer.user)
+                name_list.append(answer.user.userinfo.name)
+
+            if len(name_list) > 4:
+                break
+    else:
+        answer_filter = card_answers.objects.filter(card=card_instance, state=0).order_by(
+            '-id')
+        for answer in answer_filter:
+            if answer.user not in name_set:
+                name_set.add(answer.user)
+                name_list.append(answer.user.userinfo.name)
+
+            if len(name_list) > 4:
+                break
 
     return name_list
 
+
+print(get_last_conversation_unique_names(card_instance=2943,user_id=491))
 
 @shared_task
 def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_names,chatroom_created = True):
