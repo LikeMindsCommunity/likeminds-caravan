@@ -569,7 +569,7 @@ def questions(request):
         # if the question is not deleted
         if not question.remove_state:
             questions.append(serialized_question)
-    questions = sorted(questions, key=lambda i: i['rank'])
+    #questions = sorted(questions, key=lambda i: i['rank'])
 
     context = {'questions': questions, 'community': community}
     if aj:
