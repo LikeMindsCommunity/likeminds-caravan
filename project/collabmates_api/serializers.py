@@ -567,7 +567,7 @@ def get_chatroom_instance(card_instance,member_id):
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-    elif status['is_guest']:
+    elif status['is_guest'] and status['state_instance'].source:
         temp = get_guest_custom_text(status['state_instance'])
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']

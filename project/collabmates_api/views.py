@@ -4275,7 +4275,7 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
         if ans.is_guest:
             user_context['is_guest'] = ans.is_guest
             state_filter = collabcardState.objects.filter(card=ans.card,user=ans.user,is_guest=True)
-            if state_filter.exists():
+            if state_filter.exists() and state_filter[0].source:
                 instance = state_filter[0]
                 temp = get_guest_custom_text(instance)
                 user_context['custom_intro_text'] = temp['custom_intro_text']
