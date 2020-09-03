@@ -208,27 +208,29 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
 
 
     conversation_engage_filter = conversationEngage.objects.filter(card_id=chatroom_id)
+
     if not user_id:
         user_list = list(conversation_engage_filter.values_list('user_id',flat=True))
     else:
         user_list = [user_id]
+
     conversations = card_answers.objects.filter(card_id=chatroom_id).filter(state = 0).order_by('id')
     last_conversation = conversations.last()
     length = len(conversations)
-    next_unseen_conversation = {}
-    unseen_count = {}
-    first_conversation = None
-    for i in range(length):
-
-        if i+1 < length:
-            next_unseen_conversation[conversations[i].id] = conversations[i+1]
-        else:
-            next_unseen_conversation[conversations[i].id] = conversations[i]
-
-        unseen_count[conversations[i].id] = length - i - 1
-
-        if not first_conversation:
-            first_conversation = conversations[i].id
+    # next_unseen_conversation = {}
+    # unseen_count = {}
+    # first_conversation = None
+    # for i in range(length):
+    #
+    #     if i+1 < length:
+    #         next_unseen_conversation[conversations[i].id] = conversations[i+1]
+    #     else:
+    #         next_unseen_conversation[conversations[i].id] = conversations[i]
+    #
+    #     unseen_count[conversations[i].id] = length - i - 1
+    #
+    #     if not first_conversation:
+    #         first_conversation = conversations[i].id
 
     # print(next_unseen_conversation)
     # print("\n\n")
@@ -240,10 +242,12 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
 
         if has_seen.exists():
             seen_id = has_seen[0].conversation.id
+            unseen_count = card_answers.objects.filter(card_id=chatroom_id, state=0, id__gt=seen_id).count()
             conversation_engage_filter.filter(user=user).update(
                 last_conversation=last_conversation,
-                updated_at = time.time(),unseen_count = unseen_count[seen_id])
+                updated_at = time.time(),unseen_count = unseen_count)
         else:
+            #print(length)
             conversation_engage_filter.filter(user=user).update(
                 last_conversation = last_conversation,
                 updated_at=time.time(),unseen_count=length)
