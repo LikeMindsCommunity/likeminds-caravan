@@ -18,23 +18,40 @@ from utility.encryption import encrypt,decrypt
 
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
 from celery import shared_task
-
+import ast
 from datetime import datetime,timedelta
 
 url = settings.URL
+is_beta = settings.IS_BETA
+# url = 'https://beta.likeminds.community'
 
 import time
 
 @shared_task
-def send_feedback_mail_to_webmaster(feedback):
-    subject = 'Feedback from user'
+def send_feedback_mail_to_webmaster(feedback_id):
+    subject = '[Feedback] from likeMinds user'
+    feedback_instance = userFeedback.objects.get(id=feedback_id)
+    # mail_images = ast.literal_eval(mail_images)
     context = {
-        'feedback': feedback,
+        'feedback': feedback_instance
     }
+    if feedback_instance.images:
+        print(feedback_instance.images)
+
+        context['images'] = ast.literal_eval(feedback_instance.images)
+        print(context['images'])
+
     template = get_template("mails/send_feedback_mail_to_webmaster.html").render(context)
-    to = settings.TEAM
+
+    if is_beta:
+        to = ['himanshu@likeminds.community']
+    else:
+        to = settings.TEAM
+
     send_email(subject, template, to)
-    # print(template)
+    print(template)
+
+
 
 
 @app.task
@@ -169,3 +186,40 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
             to = [email]
             # to = ['himanshu@likeminds.community']
             send_email(subject, template, to)
+
+
+@shared_task
+def send_created_community_email_to_team(context):
+    subject = '[New Community] on LikeMinds App'
+    context['url'] = url
+    template = get_template("mails/send_community_created_mail_to_webmaster.html").render(context)
+
+    if is_beta:
+        to = ['himanshu@likeminds.community',]
+    else:
+        to = settings.TEAM
+
+    print(context,to)
+
+    send_email(subject, template, to)
+    # print(template)
+
+@shared_task
+def send_report_mail_to_team(subject, report_instance_id):
+    report_instance = Report.objects.get(id=report_instance_id)
+    context = {
+        'report':report_instance,
+        'url':url
+    }
+
+    template = get_template("mails/send_report_mail_to_team.html").render(context)
+
+    if is_beta:
+        to = ['himanshu@likeminds.community',]
+    else:
+        to = settings.TEAM
+
+    print(subject,context,to)
+
+    send_email(subject, template, to)
+    # print(template)

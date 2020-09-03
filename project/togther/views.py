@@ -17,10 +17,10 @@ from collabmates_api.serializers import *
 from collabmates_api.views import *
 import traceback
 from collabmates_api.raw_queries import compute_rank
-from collabmates_api.notification import notification_after_compute_rank
+# from collabmates_api.notification import notification_after_compute_rank
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
-                           referal, insert_user_home_town_tags, user_onbaord,
+                           insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
                            is_request_pc, android_app_download_link, 
                            is_IG_community, ios_app_download_link,is_member_verified,
@@ -2492,9 +2492,10 @@ def onboarding_interest(request):
         print(member_id)
         print(is_request_android(request))
 
-        if is_request_android(request) and member_id and autheticate:
+        # if is_request_android(request) and member_id and autheticate:
             # sending notificaton after rank compuatation
-            notification_after_compute_rank.delay(user_id=member_id)
+            # sending notificaton after rank compuatation
+            # notification_after_compute_rank.delay(user_id=member_id)
 
         return JsonResponse({'user_agent': False})
 
