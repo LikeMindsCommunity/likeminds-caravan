@@ -45,6 +45,13 @@ class Community(models.Model):
         return self.name
 
 
+class communityToast(models.Model):
+    '''table to save the toast messages of community'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
+    created_at = models.BigIntegerField(default=0)
+    toast_message = models.TextField(null=True)
 
 
 class Members(models.Model):
@@ -79,15 +86,16 @@ class Members(models.Model):
     #         self.created_at = time.time()
     #     super(Members, self).save(*args, **kwargs)
 
+class removedMembers(models.Model):
 
-class communityToast(models.Model):
+    '''model for saving removed or members who left the community details'''
 
-     '''table to save the toast messages of community'''
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    removed_state = models.IntegerField(default=0)
+    created_at = models.BigIntegerField(default=0, null=True)
 
-     user = models.ForeignKey(User, on_delete=models.CASCADE,null=True)
-     community = models.ForeignKey(Community, on_delete=models.CASCADE,null=True)
-     created_at = models.BigIntegerField(default=0)
-     toast_message = models.TextField(null=True)
+
 
 
 
@@ -263,7 +271,9 @@ class card_answers(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=-9223372036854775808)
     state = models.IntegerField(default=0)
-
+    remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
+    is_guest = models.BooleanField(default=False)
     og_tags = models.TextField(null=True)
 
 
@@ -646,6 +656,7 @@ class Report(models.Model):
 
 
 
+
 class collabcardState(models.Model):
 
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
@@ -656,12 +667,14 @@ class collabcardState(models.Model):
     updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
 
     #if got removed saving the previous state
-    removed_status = models.IntegerField(null=True)
+    remove = models.ForeignKey(removedMembers,on_delete=models.CASCADE,null=True)
     mute_status = models.BooleanField(default=False)
 
     follow_status = models.BooleanField(default=False)
 
     is_guest = models.BooleanField(default=False)
+
+    source = models.ForeignKey(User,on_delete=models.CASCADE,null=True,related_name='referrer')
 
 
 
@@ -736,6 +749,8 @@ class communityQuestions(models.Model):
     is_hidden = models.BooleanField(default=False)
 
     field = models.BooleanField(default=False)
+
+    rank = models.IntegerField(default=0)
 
 
 
@@ -829,14 +844,7 @@ class chatroomExpiryCodes(models.Model):
     private_link = models.CharField(max_length=2048, null=True)
     expire_duration = models.BigIntegerField(default=0, null=True)
 
-class removedMembers(models.Model):
 
-    '''model for saving removed or members who left the community details'''
-
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
-    member = models.ForeignKey(User, on_delete=models.CASCADE)
-    removed_state = models.IntegerField(default=0)
-    created_at = models.BigIntegerField(default=0, null=True)
 
 
 

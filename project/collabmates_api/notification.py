@@ -11,7 +11,7 @@ from django.db.models import Q
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
-                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers
+                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,conversationMemberState
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -460,6 +460,8 @@ def get_custom_data_for_new_chatroom_created(card):
     #unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
     unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s&community_name=%s"""%(str(chatroom_instance.community.id),str(chatroom_instance.community.name))
     unread_conversation['route_child']="""route://collabcard?collabcard_id=%s"""%(str(chatroom_instance.id))
+    unread_conversation['chatroom_name_ios'] = get_title_from_collabcard(chatroom_instance)
+
 
     return unread_conversation
 
@@ -476,8 +478,8 @@ def send_follow_notification(card_id,user_id,answer):
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null and mute_status = False"
-        parameter_list=[card_id, collabcard_states.COLLABCARD_STATE_FOLLOW]
+        sql="select user_id from togther_collabcardstate where card_id=%s and follow_status = True and removed_status is null and mute_status = False"
+        parameter_list=[card_id]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
@@ -582,6 +584,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
 
 
+
         last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
         if last_instance:
@@ -615,8 +618,8 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
 
         chatroom_name = get_title_from_collabcard(conversation.card)
 
-        if conversation.unseen_count > 1:
-            chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
+        # if conversation.unseen_count > 1:
+        #     chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
 
 
         temp['community_name'] = conversation.card.community.name
@@ -630,6 +633,13 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(conversation.card.community.id)
         temp['community_image'] = conversation.card.community.image_link
+
+        #temp['unseen_conversation_count'] = conversation.unseen_count
+
+        #sending names of unique members who have responded in chatroom
+
+        card_instance  = conversation.card
+        temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance,user_id)
 
 
 
@@ -647,9 +657,36 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
 
     return temp
 
+def get_last_conversation_unique_names(card_instance,user_id):
 
+    '''function to get last conversation unique names'''
 
+    name_set = set()
+    name_list = []
+    conversation_state_filter = conversationMemberState.objects.filter(card=card_instance,user=user_id)
+    if conversation_state_filter.exists():
+        last_conversation = conversation_state_filter[0].conversation
 
+        answer_filter = card_answers.objects.filter(card=card_instance,state=0,id__gt=last_conversation.id).order_by('-id')
+        for answer in answer_filter:
+            if answer.user not in name_set:
+                name_set.add(answer.user)
+                name_list.append(answer.user.userinfo.name)
+
+            if len(name_list) > 4:
+                break
+    else:
+        answer_filter = card_answers.objects.filter(card=card_instance, state=0).order_by(
+            '-id')
+        for answer in answer_filter:
+            if answer.user not in name_set:
+                name_set.add(answer.user)
+                name_list.append(answer.user.userinfo.name)
+
+            if len(name_list) > 4:
+                break
+
+    return name_list
 
 
 
@@ -1623,7 +1660,7 @@ def send_poll_or_event_notification(card_id, user_id):
         sub_title = member_name + " is attending your event"
         time.sleep(60)
         attending_state = collabcardState.objects.filter(card=card,
-                                                         user=member).filter(Q(state=3) | Q(state=4)).filter(removed_status=None)
+                                                         user=member).filter(Q(state=3) | Q(state=4)).filter(remove=None)
         if not attending_state.exists():
             return
     else:
@@ -1652,7 +1689,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         if typ == 2:
             token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
                                  Q(state=3) |
-                                 Q(state=4)).filter(removed_status=None).values_list('user__userinfo__fcm_token', flat=True))
+                                 Q(state=4)).filter(remove=None).values_list('user__userinfo__fcm_token', flat=True))
 
         else:
             token_list = list(MemberPollVotes.objects.filter(card=kwargs[

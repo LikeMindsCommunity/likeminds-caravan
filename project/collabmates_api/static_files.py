@@ -24,6 +24,7 @@ WARNING_IMAGE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.a
 
 PROFILE_DEFAULT = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media"
 
+REMOVED_USER_URL = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fuser.png?alt=media&token=8fd0a21e-6d77-4947-afc7-4d67eaf63b99"
 
 GOOGLE_PLAYSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fgoogle_playstore.png?alt=media&token=8cbff2b1-ef49-4dcf-9fd4-6666855d9b71"
 
@@ -67,6 +68,8 @@ ICONS['Portfolio'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d
 ICONS['Highest education degree'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fhighest_education_degree.png?alt=media&token=23523f84-f739-4394-80d8-6f50a866908b"
 
 ICONS['City'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fcity.png?alt=media&token=b11a7a18-bff3-4f4c-96ef-66873adfe02e"
+
+ICONS['Current City'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fcity.png?alt=media&token=b11a7a18-bff3-4f4c-96ef-66873adfe02e"
 
 ICONS['Parenting skills'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fparenting_skills.png?alt=media&token=51be5f00-a1ef-49bd-b92a-826ac2002780"
 

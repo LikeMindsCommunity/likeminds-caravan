@@ -10,7 +10,7 @@ from django.views.generic import TemplateView
 urlpatterns = [
     #for testing email templates only. remove in prod/beta
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
-    path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
+    path('mail/', TemplateView.as_view(template_name='mails/level_4_email.html')),
 
     path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
@@ -91,6 +91,7 @@ urlpatterns = [
     path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
+    path('mark_read', api_views.mark_read, name='mark_read'),
     path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
 
 
