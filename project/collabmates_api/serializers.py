@@ -6,7 +6,10 @@ from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
     generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom,get_date_time_from_timestamp
-from utility.states import card_types,question_states,member_states,deleted_members
+
+from utility.states import card_types,question_states,member_states, poll_types,deleted_members
+
+
 url = settings.URL
 import ast
 from .static_files import *
@@ -158,7 +161,6 @@ def CollabcardSerializer(card,user,community=None):
         'id': card.id,
         'title': card.title,
         'community_id': card.community_id,
-
         'answer_text': card.answer_text,
         'share_link': card.share_link,
         'image_count': card.image_count,
@@ -184,15 +186,25 @@ def CollabcardSerializer(card,user,community=None):
     #for poll card
     if card.type == card_types.CARD_POLL:
         polls = []
-        cardPolls = CollabcardPolls.objects.filter(card=card).order_by('id')
-        for poll in cardPolls:
+        card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
+        for poll in card_polls:
             polls.append(CollabcardPollsSerializer(poll, user, card))
 
         collabcard['polls'] = polls
 
-        collabcard['multiple_select'] = card.multiple_select
+        if card.multiple_select:
+            collabcard['multiple_select'] = card.multiple_select
+
+        collabcard['expiry_time'] = card.date_time
         collabcard['multiple_select_no'] = card.multiple_select_no
         collabcard['multiple_select_state'] = card.multiple_select_state
+
+        collabcard['is_anonymous'] = card.is_poll_anonymous
+        collabcard['allow_add_option'] = card.allow_add_option
+        collabcard['poll_type'] = card.poll_type
+        collabcard['poll_type_text'] = "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+        collabcard['submit_type_text'] = "Secret voting" if card.is_poll_anonymous else "Public voting"
+
 
     #for event card
     if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT or card.type == card_types.CARD_POLL:

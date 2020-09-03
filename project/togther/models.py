@@ -156,8 +156,8 @@ class Collabcard(models.Model):
     location = models.TextField(null=True)
     location_lat = models.FloatField(null=True)
     location_long = models.FloatField(null=True)
-    start_date = models.BigIntegerField(default=0)
-    end_date = models.BigIntegerField(default=0)
+    start_date = models.BigIntegerField(default=0, null=True)
+    end_date = models.BigIntegerField(default=0, null=True)
     about = models.TextField(null=True)
     co_hosts = models.TextField(null=True)
     online_link = models.TextField(null=True)
@@ -171,6 +171,10 @@ class Collabcard(models.Model):
     multiple_select = models.BooleanField(default=False)
     multiple_select_no = models.IntegerField(null=True)
     multiple_select_state = models.IntegerField(default=0)
+
+    poll_type = models.IntegerField(default=0, null=True)
+    is_poll_anonymous = models.BooleanField(default=False, null=True)
+    allow_add_option = models.BooleanField(default=False, null=True)
 
     # for saving chatroom name
     header = models.TextField(null=True)
@@ -199,8 +203,8 @@ class draftChatroom(models.Model):
     location = models.TextField(null=True)
     location_lat = models.FloatField(null=True)
     location_long = models.FloatField(null=True)
-    start_date = models.BigIntegerField(default=0)
-    end_date = models.BigIntegerField(default=0)
+    start_date = models.BigIntegerField(default=0, null=True)
+    end_date = models.BigIntegerField(default=0, null=True)
     about = models.TextField(null=True)
     co_hosts = models.TextField(null=True)
     online_link = models.TextField(null=True)
@@ -210,7 +214,9 @@ class draftChatroom(models.Model):
     multiple_select_no = models.IntegerField(null=True)
     multiple_select_state = models.IntegerField(default=0)
 
-
+    poll_type = models.IntegerField(default=0, null=True)
+    is_poll_anonymous = models.BooleanField(default=False, null=True)
+    allow_add_option = models.BooleanField(default=False, null=True)
 
     # for saving chatroom name
     header = models.TextField(null=True)
@@ -248,6 +254,11 @@ class deletedChatrooms(models.Model):
     multiple_select = models.BooleanField(default=False)
     multiple_select_no = models.IntegerField(null=True)
     multiple_select_state = models.IntegerField(default=0)
+
+    poll_type = models.IntegerField(default=0, null=True)
+    is_poll_anonymous = models.BooleanField(default=False, null=True)
+    allow_add_option = models.BooleanField(default=False, null=True)
+
     header = models.TextField(null=True)
 
     card_id = models.IntegerField(null=True)
