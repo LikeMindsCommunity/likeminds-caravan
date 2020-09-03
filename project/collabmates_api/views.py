@@ -834,7 +834,7 @@ def auto_join_community(community_instance,user_instance):
         toast_filter = communityToast.objects.filter(community=community_instance, user=user_instance)
         toast_filter.delete()
 
-        removedMembers.objects.filter(community=community_instance,user=user_instance).delete()
+        removedMembers.objects.filter(community=community_instance,member=user_instance).delete()
 
     # updating the member engage instance
     if not is_member_engage(community_instance,user_instance):
