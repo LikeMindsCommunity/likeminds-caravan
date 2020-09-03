@@ -671,6 +671,9 @@ def get_last_conversation_unique_names(card_instance,user_id):
 
         answer_filter = card_answers.objects.filter(card=card_instance,state=0,id__gt=last_conversation.id).order_by('-id')
         for answer in answer_filter:
+
+            if answer.user.id == user_id:
+                continue
             if answer.user not in name_set:
                 name_set.add(answer.user)
                 name_list.append(answer.user.userinfo.name)
