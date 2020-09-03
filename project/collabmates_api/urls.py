@@ -10,7 +10,7 @@ from django.views.generic import TemplateView
 urlpatterns = [
     #for testing email templates only. remove in prod/beta
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
-    path('mail/', TemplateView.as_view(template_name='mails/level_4_email.html')),
+    path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
 
     path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
@@ -156,7 +156,13 @@ urlpatterns = [
     path('sync_email', api_views.sync_email, name='sync_email'),
 
     path('test_notification_api',api_views.test_notification_api,name='test_notification_api'),
-    path('unread_conversation_notification', api_views.unread_conversation_notification, name='unread_conversation_notification')
+    path('unread_conversation_notification', api_views.unread_conversation_notification, name='unread_conversation_notification'),
+
+    path('create_poll', api_views.create_poll, name='create_poll'),
+    path('create_poll_draft', api_views.create_poll_draft_collabcard, name='create_poll_draft'),
+    path('submit_poll', api_views.submit_poll, name='submit_poll'),
+    path('add_poll', api_views.add_poll, name='add_poll'),
+    path('fetch_poll_users', api_views.fetch_poll_users, name='fetch_poll_users'),
 
 ]
 
