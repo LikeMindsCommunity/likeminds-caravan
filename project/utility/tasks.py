@@ -8,9 +8,7 @@ from django.template.loader import get_template
 from togther.models import *
 from togther.models import *
 
-from .utils import (is_request_android, is_request_ios, is_request_pc,
-                    android_app_download_link,ios_app_download_link,
-                    is_IG_community,user_onbaord_new)
+from .utils import *
 url = settings.URL
 
 is_beta = settings.IS_BETA

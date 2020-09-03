@@ -103,19 +103,19 @@ def notification_meta(notification_list,message):
     token_list_ios=[]
 
     for data in notification_list:
-
-        if data['mobile_os'] == "Android":
-            token_list_android.append(data['fcm_token'])
-        else:
-            token_list_ios.append(data['fcm_token'])
-            #functionalities for iOS flow
-            if 'message' in data:
-                send_notification_for_ios(token_list_ios, data['message'])
+        if data['fcm_token']:
+            if data['mobile_os'] == "Android":
+                token_list_android.append(data['fcm_token'])
             else:
-                send_notification_for_ios(token_list_ios,message)
-            token_list_ios = []
+                token_list_ios.append(data['fcm_token'])
+                #functionalities for iOS flow
+                if 'message' in data:
+                    send_notification_for_ios(token_list_ios, data['message'])
+                else:
+                    send_notification_for_ios(token_list_ios,message)
+                token_list_ios = []
 
-        #print(data)
+            #print(data)
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
@@ -1131,10 +1131,10 @@ def send_evening_level_notification():
         message['payload']={
                 "title" : 'Level up '+str(community_level.community.name),
                 "sub_title" : str(community_level.title) + ". " +str(community_level.sub_title),
-                'route':'route://chatroom_new_feed?community_id'+str(community_level.community.id) + '&community_name=' + str(community_level.community.name) + '&show_level=true'
+                'route':'route://chatroom_new_feed?community_id='+str(community_level.community.id) + '&community_name=' + str(community_level.community.name) + '&show_level=true'
             }
-
-        notification_meta(notification_list,message)
+        #todo
+        # notification_meta(notification_list,message)
 
 
 
@@ -1291,6 +1291,10 @@ def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
 @app.task
 @shared_task
 def send_notification_for_directory_creation(community_id,start_time,day=0):
+
+    #todo
+    #add update profile notification as well 
+    return
 
     community_instance = Community.objects.get(id=community_id)
     community_name = community_instance.name
@@ -1492,7 +1496,7 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
     if day == 0 and members.exists():
         # get tomorrow 11 am
-        start_time = datetime.fromtimestamp(start_time+30)
+        # start_time = datetime.fromtimestamp(start_time+30)
         start_time = datetime.fromtimestamp(start_time+(24*60*60))
         start_time = start_time.replace(hour=11,minute=0)+ timedelta(days=3)
         # start_time = start_time + timedelta(minutes=2)
