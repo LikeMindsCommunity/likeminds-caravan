@@ -26,9 +26,9 @@ PROFILE_DEFAULT = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.
 
 REMOVED_USER_URL = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fuser.png?alt=media&token=8fd0a21e-6d77-4947-afc7-4d67eaf63b99"
 
-GOOGLE_PLAYSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fgoogle_playstore.png?alt=media&token=8cbff2b1-ef49-4dcf-9fd4-6666855d9b71"
+GOOGLE_PLAYSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fplaystore.png?alt=media&token=d5886314-99dd-40ca-b354-f6f9bb81d63b"
 
-APPLE_APPSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fapple_store.png?alt=media&token=b1b62dfb-cde0-42c1-b801-5ed7fd0ca90b"
+APPLE_APPSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fappstore.png?alt=media&token=2aca28eb-0c74-41e6-885e-b50f75de74a9"
 
 APP_LOGO = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flogo.png?alt=media&token=2e66c0e5-35ef-4f94-ad2b-356c78eeaaba"
 
