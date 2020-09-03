@@ -601,7 +601,6 @@ def private_link_app_invite(community_instance,unique_code,created_by):
         if not auto_join['aj_expired']:
             auto_join['toast'] = """This private invite link expires in %s"""%(time_left)
 
-
     return auto_join
 
 @csrf_exempt
@@ -829,8 +828,11 @@ def auto_join_community(community_instance,user_instance):
         member_instance.created_at=time.time()
         member_instance.updated_at = time.time()
         member_instance.save()
+
         toast_filter = communityToast.objects.filter(community=community_instance, user=user_instance)
         toast_filter.delete()
+
+        removedMembers.objects.filter(community=community_instance,user=user_instance).delete()
 
     # updating the member engage instance
     if not is_member_engage(community_instance,user_instance):
@@ -1747,8 +1749,9 @@ def remove_members(community_id, member_id,removed_state):
                                   removed_state=removed_state, created_at=time.time())
         instance.save()
         #saving collabcard state in update status
-        update_staus = collabcardState.objects.filter(community=community_id,user=member_id).update(removed_status=instance.id)
-        print(update_staus)
+        update_chatroom= collabcardState.objects.filter(community=community_instance,user=member_id).update(remove=instance)
+        update_conversations = card_answers.objects.filter(user=member_id,community=community_instance).update(remove=instance)
+
 
 
     member_removerd = Members.objects.filter(community_id=community_id, member_id=member_id).delete()
@@ -3516,12 +3519,18 @@ def approve_or_decline_private_community(req_dict,request):
 
             #removing guest status from all chatrooms after access
             collabcardState.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False)
+            card_answers.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False)
 
             # saving create community action step 4
             update_community_actions(community_instance=community)
 
             #deleting the community toast message when the request is accepted
             communityToast.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).delete()
+
+            #deleting if the user left the community before
+            removedMembers.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).delete()
+
+
 
             #sending mails and notifications
             #send notification
@@ -4225,16 +4234,25 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
 
         usr = get_members_profile([ans.user.id],community_id,current_user_id)
         user_context = usr[0]
-        removed_state = removedMembersSerializer(community_id, user_context['id'])
 
-        if removed_state != False:
-            user_context['remove_state'] = removed_state
+        if ans.is_guest:
+            user_context['is_guest'] = ans.is_guest
+            state_filter = collabcardState.objects.filter(card=ans.card,user=ans.user,is_guest=True)
+            if state_filter.exists():
+                instance = state_filter[0]
+                temp = get_guest_custom_text(instance)
+                user_context['custom_intro_text'] = temp['custom_intro_text']
+                user_context['custom_click_text'] = temp['custom_click_text']
 
-        # form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
-        # if form_response:
-        #     #usr['response'] = form_response[0]
-        #     usr['question_answers'] = form_response[1]
-        # coverting current time into epoch time
+
+        #if the member is removed from the community
+        elif ans.remove:
+            instance = ans.remove
+            temp = get_removed_member_custom_text(instance)
+            user_context['custom_intro_text'] = temp['custom_intro_text']
+            user_context['custom_click_text'] = temp['custom_click_text']
+            user_context['remove_state'] = temp['remove_state']
+            user_context['image_url'] = temp['removed_user_image_url']
 
         #time_text = get_time_text(ans.created_at)
         time_text = time.strftime('%H:%M', time.localtime(ans.created_at))
@@ -4339,33 +4357,6 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
     if aj:
         is_guest = True
-
-    # card = CollabcardSerializer(card_instance, user_id, card_instance.community)
-    # card_id = card['id']
-    # user = Userinfo.objects.get(user_id=card_instance.user.id)
-    # usr = UserinfoSerializer(user)
-    # #usr['is_clickable'] = feedback
-    #
-    # # when the member is removed
-    # removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
-    # if removed_state != False:
-    #     usr['remove_state'] = removed_state
-    #
-    # # user form response serialzer
-    # form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id, bl=True,
-    #                                        current_user_id=user_id)
-    # if form_response:
-    #     usr['question_answers'] = form_response[1]
-    #
-    # # get the card image if any
-    # files = get_collabcard_files(card_id)
-    # card['images'] = files[0]
-    # card['member'] = usr
-    # card['pdf'] = files[1]
-    #
-    # card['community_name'] = card_instance.community.name
-
-
 
 
     #if the chatroom is deleted
@@ -4528,8 +4519,10 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
             context['aj_expired'] = aj_expired
             if guest_header:
                 create_guest_header(current_user_id,source_id,card_instance,current_user_id)
+
                 func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True}
                 collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
+
 
     elif not status:
         context['aj_expired'] = aj_expired
@@ -5386,14 +5379,20 @@ def create_conversation(request):
         context = {}
         context = adding_guest_in_chatroom(request, context, card_instance, res['aj'], res['source_id'], card_instance.community.id, member_id,guest_header=True)
 
-
+    ##checking weather the conversation creater is a guest or not
+    state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance,is_guest=True)
 
     ans = card_answers()
     ans.answer = res['text']
     ans.card = card_instance
     ans.user = user_instance
+    ans.is_guest = state_filter.exists()
     ans.created_at = time.time()
     ans.save()
+
+
+
+
 
 
     #saving the og tags if present
@@ -5639,8 +5638,14 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     member_id = func_dict['member_id']
     status = func_dict['status']
     is_guest = False
+    ref_instance = None
     if 'is_guest' in func_dict:
         is_guest = func_dict['is_guest']
+        source_id = func_dict['source_id']
+        ref_filter = User.objects.filter(id=source_id)
+        if ref_filter.exists():
+            ref_instance = ref_filter[0]
+
 
     try:
         card_instance = Collabcard.objects.get(id=card_id)
@@ -5653,7 +5658,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     if collabcard_state_filter.exists():
 
         if is_guest:
-            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time())
+            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance)
         else:
             collabcard_state_filter.update(follow_status=status, state=state,updated_at=time.time())
 
@@ -5667,6 +5672,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
         collabcard_state_instance.is_guest = is_guest
+        collabcard_state_instance.source = ref_instance
         collabcard_state_instance.save()
 
     print("collabcard follow internal hit")
@@ -7656,6 +7662,7 @@ def skip_community(request):
         member_instance.community_id = community_instance
         member_instance.state = member_states.PROFILE_UNAVAILABLE
         member_instance.created_at=time.time()
+        member_instance.updated_at = time.time()
         member_instance.save()
 
     if not is_member_engage(community_id,member_id):

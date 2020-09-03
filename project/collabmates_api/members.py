@@ -239,12 +239,16 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
     state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW, collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
-    collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(
-        follow_status=True).filter(removed_status=None).order_by('-user_id')
+
+    collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(remove=None,follow_status=True).order_by('-user_id')
 
 
+    show_removed = False
+    paginated_data = get_paginated_queryset_with_maxpages(collabcard_state_list,page_no,paginate_by=10)
+    collabcard_state_list = paginated_data['page_list']
 
-    collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=10)
+    if int(page_no) == paginated_data['last_page']:
+        show_removed = True
     members = []
 
     for instance in collabcard_state_list:
@@ -257,7 +261,42 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
         user_context = user_context[0]
         user_context['collabcard_state'] = instance.state
         user_context['is_guest'] = instance.is_guest
+
+        #if the user is the guest in that chatroom
+        if instance.is_guest:
+            guest_text = get_guest_custom_text(instance)
+            user_context['custom_intro_text'] = guest_text['custom_intro_text']
+            user_context['custom_click_text'] = guest_text['custom_click_text']
+
+        # if instance.remove:
+        #     instance = instance.remove
+        #     temp = get_removed_member_custom_text(instance)
+        #     user_context['custom_intro_text'] = temp['custom_intro_text']
+        #     user_context['custom_click_text'] = temp['custom_intro_text']
+        #     user_context['remove_state'] = temp['remove_state']
+
         members.append(user_context)
+
+    #for handling the removed members of community
+    if show_removed and not member_set:
+        removed_list = collabcardState.objects.filter(card=card_id).filter(follow_status=True).filter(~Q(remove=None)).order_by('-user_id')
+
+        for instance in removed_list:
+            user_instance = instance.user
+            user_context = get_user_profile(user_instance.id,current_user_id)
+            user_context['collabcard_state'] = instance.state
+            user_context['is_guest'] = instance.is_guest
+
+            temp = get_removed_member_custom_text(instance.remove)
+            user_context['custom_intro_text'] = temp['custom_intro_text']
+            user_context['custom_click_text'] = temp['custom_click_text']
+            user_context['remove_state'] = temp['remove_state']
+            user_context['image_url'] = temp['removed_user_image_url']
+
+            members.append(user_context)
+
+
+
 
 
     return members
@@ -327,7 +366,7 @@ def get_paginated_member_queryset(page,community_id,promoter=False):
     if promoter:
         sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9 or togther_members.state = 3) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
     else:
-        sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9 or togther_members.state = 3) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
+        sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
 
     cursor.execute(sql)
 
