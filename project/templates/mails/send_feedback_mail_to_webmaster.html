@@ -15,18 +15,20 @@
                 </div>
                 <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
                     <b>User details</b><br>
-                    {{feedback.user.email}}<br>
-                    {{feedback.user.name}}
+                    {{feedback.user.userinfo.email}}<br>
+                    {{feedback.user.userinfo.name}}
                 </div>
                 <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
                     <b>Feedback</b><br>
                     {{feedback.feedback}}
                 </div>
                 <div style="margin:18px 0;font-size:16px;line-height:24px;color:#000;font-weight:bold;text-align:left">
+                    {% if images %}
                     <b>Images</b><br>
-                    {% for i in feedback.images %}
+                    {% for i in images %}
                     <img src="{{i}}" alt="" style="width:500px;max-width:100%;">
                     {% endfor %}
+                    {% endif %}
 
                 </div>
                 <div style="text-align:left;margin-top:20px;">

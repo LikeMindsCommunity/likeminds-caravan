@@ -9,10 +9,10 @@ from django.db.models import Q
 import requests as rqst
 import json
 import ast
-from collabmates_api.notification import (send_notification_to_eligible_member,
-                                          send_notification_to_referred_member,
-                                          send_notification_to_referred_member_in_active_community,
-                                          )
+# from collabmates_api.notification import (send_notification_to_eligible_member,
+#                                           send_notification_to_referred_member,
+#                                           send_notification_to_referred_member_in_active_community,
+#                                           )
 from .tasks import *
 from .firebase import upload_tag_files
 from random import randint
@@ -619,118 +619,118 @@ def update_user_geography_tags(user_id, typ=''):
                 user_geo_tag.save()
                 print('user_geo_tag === ',user_geo_tag)
 
+#
+# def referal(ref_id, community_id, interested_member_id):
+#
+#
+#     community = get_object_or_404(Community, pk=community_id)
+#
+#     # invited member and intrested member are same person
+#     invited_member = User.objects.get(pk=interested_member_id)
+#
+#     interested_member = Members.objects.filter(community_id=community,
+#                                                member_id=invited_member)
+#     if not interested_member.exists():
+#         if community.hide_community == '3':
+#             interested_member = Members(community_id=community,
+#                                         member_id=invited_member,
+#                                         state=8)
+#             interested_member.save()
+#             update_member_count(community_id)
+#             update_community_tags_to_user(community_id=community_id,user_id=invited_member.id)
+#
+#     referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
+#     if referred_member:
+#
+#         refer = Referal.objects.filter(member=referred_member,
+#                                        invited_member=invited_member,
+#                                        community=community)
+#         if not refer.exists():
+#             refer = Referal(member=referred_member
+#                             , invited_member=invited_member
+#                             , community=community)
+#             refer.save()
+#
+#         joined_member_name, community_name = invited_member.userinfo.name, community.name
+#
+#         if community.hide_community == '3':
+#
+#             total_referals = Referal.objects.filter(member=referred_member,
+#                                                     community=community)
+#             if total_referals.count() < eligibility_count:
+#
+#                 notify_referred_member.delay(referred_member_id=ref_id,
+#                                                 joined_member_name=joined_member_name,
+#                                                 community_name=community.name,
+#                                                 community_id=community_id)
+#
+#             if total_referals.count() >= eligibility_count:
+#                 admin = Members.objects.filter(community_id=community, member_id=referred_member)
+#
+#                 if admin.exists():
+#                     Members.objects.filter(community_id=community, member_id=referred_member).update(state=9)
+#
+#                 elif not admin.exists():
+#                     admin = Members(community_id=community, member_id=referred_member, state=9)
+#                     admin.save()
+#
+#                 community_name = community.name
+#
+#                 send_notification_to_eligible_member.delay(eligible_member_id= ref_id,
+#                                                            community_name = community_name,
+#                                                            community_id=community_id,
+#
+#                                                            )
+#
+#             # for interested_member in total_referals:
+#             #     Members.objects.filter(community_id=community,
+#             #                            member_id=interested_member.invited_member).update(state=3)
+#     return
 
-def referal(ref_id, community_id, interested_member_id):
-
-
-    community = get_object_or_404(Community, pk=community_id)
-
-    # invited member and intrested member are same person
-    invited_member = User.objects.get(pk=interested_member_id)
-
-    interested_member = Members.objects.filter(community_id=community,
-                                               member_id=invited_member)
-    if not interested_member.exists():
-        if community.hide_community == '3':
-            interested_member = Members(community_id=community,
-                                        member_id=invited_member,
-                                        state=8)
-            interested_member.save()
-            update_member_count(community_id)
-            update_community_tags_to_user(community_id=community_id,user_id=invited_member.id)
-
-    referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
-    if referred_member:
-
-        refer = Referal.objects.filter(member=referred_member,
-                                       invited_member=invited_member,
-                                       community=community)
-        if not refer.exists():
-            refer = Referal(member=referred_member
-                            , invited_member=invited_member
-                            , community=community)
-            refer.save()
-
-        joined_member_name, community_name = invited_member.userinfo.name, community.name
-
-        if community.hide_community == '3':
-
-            total_referals = Referal.objects.filter(member=referred_member,
-                                                    community=community)
-            if total_referals.count() < eligibility_count:
-
-                notify_referred_member.delay(referred_member_id=ref_id,
-                                                joined_member_name=joined_member_name,
-                                                community_name=community.name,
-                                                community_id=community_id)
-
-            if total_referals.count() >= eligibility_count:
-                admin = Members.objects.filter(community_id=community, member_id=referred_member)
-
-                if admin.exists():
-                    Members.objects.filter(community_id=community, member_id=referred_member).update(state=9)
-
-                elif not admin.exists():
-                    admin = Members(community_id=community, member_id=referred_member, state=9)
-                    admin.save()
-
-                community_name = community.name
-
-                send_notification_to_eligible_member.delay(eligible_member_id= ref_id,
-                                                           community_name = community_name,
-                                                           community_id=community_id,
-
-                                                           )
-
-            # for interested_member in total_referals:
-            #     Members.objects.filter(community_id=community,
-            #                            member_id=interested_member.invited_member).update(state=3)
-    return
-
-
-@shared_task
-def notify_referred_member(referred_member_id,joined_member_name,community_name,community_id):
-
-    community = get_object_or_404(Community, pk=community_id)
-
-    referal_count = get_referred_members_of_a_member(community_id=community_id,member_id=referred_member_id)
-
-    referal_count = len(referal_count)
-
-    if community.hide_community == '3':
-        print('send_notification_to_referred_member')
-        send_notification_to_referred_member(referred_member_id=referred_member_id,
-                                             joined_member_name=joined_member_name,
-                                             community_name=community_name,
-                                             community_id=community_id,
-                                             referal_count=referal_count,
-                                             )
-
-    elif community.hide_community == '0' or community.hide_community == '4':
-        print('send_notification_to_referred_member_in_active community')
-
-        print(">>>>>>>>>>> ", referred_member_id)
-        referals = get_referred_members_of_a_member(community_id=community_id, member_id=referred_member_id)
-        referal_count = len(referals)
-        print(referals)
-        count = 0
-        print("referal count === ", referal_count)
-
-        for mem_id in referals:
-            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
-            if member.exists():
-
-                if member[0].state == 4:
-                    count += 1
-        print('count ==== ',count)
-        if count < eligibility_count:
-            print('semnding notification')
-            send_notification_to_referred_member_in_active_community(referred_member_id=referred_member_id,
-                                                                     joined_member_name=joined_member_name,
-                                                                     community_name=community_name,
-                                                                     community_id=community_id,
-                                                                     referal_count=referal_count,
-                                                                     )
+# 
+# @shared_task
+# def notify_referred_member(referred_member_id,joined_member_name,community_name,community_id):
+# 
+#     community = get_object_or_404(Community, pk=community_id)
+# 
+#     referal_count = get_referred_members_of_a_member(community_id=community_id,member_id=referred_member_id)
+# 
+#     referal_count = len(referal_count)
+# 
+#     if community.hide_community == '3':
+#         print('send_notification_to_referred_member')
+#         send_notification_to_referred_member(referred_member_id=referred_member_id,
+#                                              joined_member_name=joined_member_name,
+#                                              community_name=community_name,
+#                                              community_id=community_id,
+#                                              referal_count=referal_count,
+#                                              )
+# 
+#     elif community.hide_community == '0' or community.hide_community == '4':
+#         print('send_notification_to_referred_member_in_active community')
+# 
+#         print(">>>>>>>>>>> ", referred_member_id)
+#         referals = get_referred_members_of_a_member(community_id=community_id, member_id=referred_member_id)
+#         referal_count = len(referals)
+#         print(referals)
+#         count = 0
+#         print("referal count === ", referal_count)
+# 
+#         for mem_id in referals:
+#             member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+#             if member.exists():
+# 
+#                 if member[0].state == 4:
+#                     count += 1
+#         print('count ==== ',count)
+#         if count < eligibility_count:
+#             print('semnding notification')
+#             send_notification_to_referred_member_in_active_community(referred_member_id=referred_member_id,
+#                                                                      joined_member_name=joined_member_name,
+#                                                                      community_name=community_name,
+#                                                                      community_id=community_id,
+#                                                                      referal_count=referal_count,
+#                                                                      )
 
 
 def get_referred_members_of_a_member(community_id,member_id):
