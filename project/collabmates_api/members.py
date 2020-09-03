@@ -263,7 +263,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
         user_context['is_guest'] = instance.is_guest
 
         #if the user is the guest in that chatroom
-        if instance.is_guest:
+        if instance.is_guest and instance.source:
             guest_text = get_guest_custom_text(instance)
             user_context['custom_intro_text'] = guest_text['custom_intro_text']
             user_context['custom_click_text'] = guest_text['custom_click_text']
