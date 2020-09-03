@@ -1660,7 +1660,7 @@ def send_poll_or_event_notification(card_id, user_id):
         sub_title = member_name + " is attending your event"
         time.sleep(60)
         attending_state = collabcardState.objects.filter(card=card,
-                                                         user=member).filter(Q(state=3) | Q(state=4)).filter(removed_status=None)
+                                                         user=member).filter(Q(state=3) | Q(state=4)).filter(remove=None)
         if not attending_state.exists():
             return
     else:
@@ -1689,7 +1689,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         if typ == 2:
             token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
                                  Q(state=3) |
-                                 Q(state=4)).filter(removed_status=None).values_list('user__userinfo__fcm_token', flat=True))
+                                 Q(state=4)).filter(remove=None).values_list('user__userinfo__fcm_token', flat=True))
 
         else:
             token_list = list(MemberPollVotes.objects.filter(card=kwargs[
