@@ -1719,12 +1719,12 @@ def remove_from_member(request):
     if not is_promoter and member_ids == False:
 
         is_member=Members.objects.filter(community_id=community_id,member_id=member_id).filter(
-            Q(state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.MEMBER))
+            Q(state=member_states.PROFILE_UNAVAILABLE)|Q(state=member_states.MEMBER))
         if is_member.exists():
             remove_members(community_id,member_id,removed_state=deleted_members.LEFT)
             return JsonResponse({'success':True})
         else:
-            return JsonResponse({'success':False,'error_message':"You are not the member of this community"})
+            return JsonResponse({'success':False,'error_message':"You are promoter of this community. You can be removed by other promoter"})
 
 
     return JsonResponse({'success':False})
