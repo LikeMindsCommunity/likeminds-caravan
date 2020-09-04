@@ -2137,6 +2137,7 @@ def post_member_directly_link(card_instance,user_instance,community_instance):
     conversation.answer = """Here is a link to our member directory: %s"""%(member_directory_link)
     conversation.card = card_instance
     conversation.user = user_instance
+    conversation.community = card_instance.community
     conversation.created_at = time.time()
     conversation.save()
 
@@ -2741,6 +2742,7 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
     instance.answer = answer
     instance.card = card_instance
     instance.user = user_instance
+    instance.community= card_instance.community
     instance.state = state
     instance.created_at = time.time()
     instance.save()
@@ -4615,6 +4617,7 @@ def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
         instance.card = card_instance
         instance.user = guest_instance
         instance.state = chatroom_states.CHATROOM_GUEST
+        instance.community = card_instance.community
         instance.created_at = time.time()
         instance.save()
 
@@ -5359,6 +5362,7 @@ def create_answer(request):
     ans.answer = res['title']
     ans.card = card_instance
     ans.user = user_instance
+    ans.community = card_instance.community
     ans.created_at = time.time()
     ans.save()
 
@@ -8365,6 +8369,7 @@ def edit_announcement_bubbles(card_instance,user_instance,bubble_text):
     instance.answer = bubble_text
     instance.card = card_instance
     instance.user = user_instance
+    instance.community = card_instance.community
     instance.state = chatroom_states.CHATROOM_COMMUNITY_EDIT
     instance.created_at = time.time()
     instance.save()
