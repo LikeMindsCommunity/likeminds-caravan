@@ -834,7 +834,16 @@ def auto_join_community(community_instance,user_instance):
         toast_filter = communityToast.objects.filter(community=community_instance, user=user_instance)
         toast_filter.delete()
 
+        #removing its data from removed members in order to consider it a new user
         removedMembers.objects.filter(community=community_instance,user=user_instance).delete()
+
+        
+        # removing guest status from all chatrooms after access
+        collabcardState.objects.filter(community=community_instance, user=user_instance).update(
+            is_guest=False)
+        card_answers.objects.filter(community=community_instance, user=user_instance).update(
+            is_guest=False)
+
 
     # updating the member engage instance
     if not is_member_engage(community_instance,user_instance):
