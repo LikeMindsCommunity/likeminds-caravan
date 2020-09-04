@@ -1766,8 +1766,15 @@ def remove_members(community_id, member_id,removed_state):
     profile_removed = communityAnswers.objects.filter(community=community_id, member=member_id).delete()
     #print(profile_removed)
 
+    #removing the created chatrooms
     chatroom_removed = Collabcard.objects.filter(community=community_id,user=member_id).delete()
-    #print(intro_removed)
+
+    #removing the draft chatrooms
+    draft_removed = draftChatroom.objects.filter(community=community_id,user=member_id).delete()
+
+    #removing the followed chatrooms
+    conversation_engage = conversationEngage.objects.filter(community=community_id,user=member_id).delete()
+
 
 
 
@@ -2670,6 +2677,7 @@ def create_draft_collabcard(request, res=None):
         instance = conversationEngage()
         instance.user = user_instance
         instance.draft = card
+        instance.community = card.community
         instance.created_at = time.time()
         instance.updated_at = time.time()
         instance.save()
@@ -2748,6 +2756,7 @@ def create_chatroom_engagement(card_instance,user_instance,last_conversation=Non
         instance = conversationEngage()
         instance.card = card_instance
         instance.user = user_instance
+        instance.community=card_instance.community
         instance.last_conversation = last_conversation
         instance.unseen_count = unseen_count
         instance.created_at = time.time()
