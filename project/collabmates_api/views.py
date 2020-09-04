@@ -9578,7 +9578,7 @@ def submit_poll(request):
             context = get_error_context(success=False, error_message="Send member id in headers")
             return JsonResponse(context)
 
-        polls = res['poll']  # request.POST.get('poll', None)
+        polls = res['polls']  # request.POST.get('poll', None)
         if not polls:
             context = get_error_context(success=False, error_message="Send array of polls in post params")
             return JsonResponse(context)
@@ -9624,7 +9624,7 @@ def add_poll(request):
             context = get_error_context(success=False, error_message="Send member id in headers")
             return JsonResponse(context)
 
-        polls = res['poll'] # request.POST.get('poll', None)
+        polls = res['polls'] # request.POST.get('poll', None)
         if not polls:
             context = get_error_context(success=False, error_message="Send array of polls in post params")
             return JsonResponse(context)
@@ -9643,7 +9643,7 @@ def add_poll(request):
             collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None
             collabcardpolls_instance.save()
             poll_list.append(CollabcardPollsSerializer(collabcardpolls_instance, user_instance, card_instance))
-        return JsonResponse({"success": True, "poll":poll_list})
+        return JsonResponse({"success": True, "polls": poll_list})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
     return JsonResponse(context)
