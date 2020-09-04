@@ -13,6 +13,7 @@ from utility.states import card_types,question_states,member_states, poll_types,
 url = settings.URL
 import ast
 from .static_files import *
+from datetime import datetime,date
 
 #
 # class CommunitySerializer(serializers.HyperlinkedModelSerializer):
@@ -195,7 +196,7 @@ def CollabcardSerializer(card,user,community=None):
         if card.multiple_select:
             collabcard['multiple_select'] = card.multiple_select
 
-        collabcard['expiry_time'] = card.date_time
+        collabcard['expiry_time'] = card.end_date
         collabcard['multiple_select_no'] = card.multiple_select_no
         collabcard['multiple_select_state'] = card.multiple_select_state
 
@@ -289,12 +290,10 @@ def draftChatroomSerializer(card,user,community=None):
         'type': card.type,
         'date_time': card.date_time,
         'duration': card.duration,
-
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
         'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch))
     }
-
 
     #for poll card
     if card.type == card_types.CARD_POLL:
@@ -305,9 +304,19 @@ def draftChatroomSerializer(card,user,community=None):
 
         chatroom['polls'] = polls
 
-        chatroom['multiple_select'] = card.multiple_select
+        if card.multiple_select:
+            chatroom['multiple_select'] = card.multiple_select
+
+        chatroom['expiry_time'] = card.end_date
         chatroom['multiple_select_no'] = card.multiple_select_no
         chatroom['multiple_select_state'] = card.multiple_select_state
+
+        chatroom['is_anonymous'] = card.is_poll_anonymous
+        chatroom['allow_add_option'] = card.allow_add_option
+        chatroom['poll_type'] = card.poll_type
+        chatroom[
+            'poll_type_text'] = "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+        chatroom['submit_type_text'] = "Secret voting" if card.is_poll_anonymous else "Public voting"
 
     #for event card
     if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT or card.type == card_types.CARD_POLL:
@@ -339,8 +348,6 @@ def draftChatroomSerializer(card,user,community=None):
 
         if card.online_link:
             chatroom['online_link'] = card.online_link
-
-
 
     #for sending header
     if card.header:
@@ -546,11 +553,9 @@ def get_chatroom_instance(card_instance,member_id):
         collabcard_serializer['member'] = UserinfoSerializer(card_instance.user.userinfo)
         collabcard_serializer['state'] = 0
 
-
-
-    # removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
-    # if removed_state != False:
-    #     collabcard_serializer['member']['remove_state'] = removed_state
+    removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
+    if removed_state != False:
+        collabcard_serializer['member']['remove_state'] = removed_state
 
 
     # get chatroom status
@@ -572,15 +577,10 @@ def get_chatroom_instance(card_instance,member_id):
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
 
-
-
-
     # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
     collabcard_serializer['images'] = collabcard_files[0]
     collabcard_serializer['pdf'] = collabcard_files[1]
-
-
 
     # # get time stamp for card
     # time_text = get_time_text(card_instance.date_epoch)
@@ -687,17 +687,30 @@ def CollabcardPollsSerializer(poll, user, card):
         'is_selected': is_poll_selected(poll, user, card) if user else False
     }
 
+    if card.poll_type == poll_types.POLL_TYPE_INSTANT:
+        poll_detail = poll_percentage(card, poll)
+        polls['poll_count'] = poll_detail[0]
+        polls['no_votes'] = poll_detail[0]
+        polls['percentage'] = int(poll_detail[1])
+
+    elif card.poll_type == poll_types.POLL_TYPE_DEFERRED:
+        if card.end_date // 1000 <= time.time():
+            poll_detail = poll_percentage(card, poll)
+            polls['poll_count'] = poll_detail[0]
+            polls['no_votes'] = poll_detail[0]
+            polls['percentage'] = int(poll_detail[1])
+
     if poll.sub_text:
         polls['sub_text'] = poll.sub_text
 
     if poll.image_url:
         polls['image_url'] = poll.image_url
 
-    if card.end_date // 1000 <= time.time():
-        poll_detail = poll_percentage(card, poll)
-
-        polls['poll_count'] = poll_detail[0]
-        polls['percentage'] = int(poll_detail[1])
+    # if card.end_date // 1000 <= time.time():
+    #     poll_detail = poll_percentage(card, poll)
+    #
+    #     polls['poll_count'] = poll_detail[0]
+    #     polls['percentage'] = int(poll_detail[1])
 
     return polls
 
@@ -715,8 +728,8 @@ def poll_percentage(card, poll):
     total_polls = total_polls.count()
 
     if total_polls == 0:
-        return 0,0
-    return selected_polls,selected_polls/total_polls * 100
+        return 0, 0
+    return selected_polls, selected_polls/total_polls * 100
 
 
 def draftPollsSerializers(poll):
@@ -736,8 +749,9 @@ def draftPollsSerializers(poll):
     # if card.end_date // 1000 <= time.time():
     #     poll_detail = poll_percentage(card, poll)
 
-        polls['poll_count'] = 0
-        polls['percentage'] = 0
+    polls['poll_count'] = 0
+    polls['percentage'] = 0
+    polls['no_votes'] = 0
 
     return polls
 
