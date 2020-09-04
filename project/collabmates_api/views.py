@@ -856,7 +856,7 @@ def auto_join_community(community_instance,user_instance):
 
 def post_introduction_card_for_community(community_id,member_id,request):
 
-    '''fucntion to get introduction card of community'''
+    '''function to get introduction card of community'''
 
     check_intro=communityQuestions.objects.filter(community=community_id,question_state=question_states.INTRODUCTION)
     if check_intro.exists():
@@ -911,25 +911,6 @@ def update_hidden_fields_in_questions(user_instance,community_instance):
     question_filter = communityQuestions.objects.filter(community=community_instance,is_hidden=True)
 
     for question_instance in question_filter:
-
-        # if question_instance.question_state == question_states.EMAIL_ID:
-        #
-        #     email_filter = userEmails.objects.filter(user=user_instance)
-        #     emails = ""
-        #     for data in email_filter:
-        #         emails = emails + str(data.email) + ", "
-        #
-        #     emails = emails[:-2]
-        #
-        #
-        #     if emails:
-        #         answer_instance = communityAnswers()
-        #         answer_instance.question = question_instance
-        #         answer_instance.member = user_instance
-        #         answer_instance.community = community_instance
-        #         answer_instance.question_answer = user_instance.userinfo.email
-        #         answer_instance.question_title = question_instance.question_title
-        #         answer_instance.save()
 
         if question_instance.question_state == question_states.MOBILE_NO:
             mobile_filter = userMobiles.objects.filter(user=user_instance,state=mobile_states.PRIMARY)
