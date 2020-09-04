@@ -6,7 +6,10 @@ from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
     generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom,get_date_time_from_timestamp
-from utility.states import card_types,question_states,member_states
+
+from utility.states import card_types,question_states,member_states, poll_types,deleted_members
+
+
 url = settings.URL
 import ast
 from .static_files import *
@@ -158,7 +161,6 @@ def CollabcardSerializer(card,user,community=None):
         'id': card.id,
         'title': card.title,
         'community_id': card.community_id,
-
         'answer_text': card.answer_text,
         'share_link': card.share_link,
         'image_count': card.image_count,
@@ -184,15 +186,25 @@ def CollabcardSerializer(card,user,community=None):
     #for poll card
     if card.type == card_types.CARD_POLL:
         polls = []
-        cardPolls = CollabcardPolls.objects.filter(card=card).order_by('id')
-        for poll in cardPolls:
+        card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
+        for poll in card_polls:
             polls.append(CollabcardPollsSerializer(poll, user, card))
 
         collabcard['polls'] = polls
 
-        collabcard['multiple_select'] = card.multiple_select
+        if card.multiple_select:
+            collabcard['multiple_select'] = card.multiple_select
+
+        collabcard['expiry_time'] = card.date_time
         collabcard['multiple_select_no'] = card.multiple_select_no
         collabcard['multiple_select_state'] = card.multiple_select_state
+
+        collabcard['is_anonymous'] = card.is_poll_anonymous
+        collabcard['allow_add_option'] = card.allow_add_option
+        collabcard['poll_type'] = card.poll_type
+        collabcard['poll_type_text'] = "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+        collabcard['submit_type_text'] = "Secret voting" if card.is_poll_anonymous else "Public voting"
+
 
     #for event card
     if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT or card.type == card_types.CARD_POLL:
@@ -536,9 +548,9 @@ def get_chatroom_instance(card_instance,member_id):
 
 
 
-    removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
-    if removed_state != False:
-        collabcard_serializer['member']['remove_state'] = removed_state
+    # removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
+    # if removed_state != False:
+    #     collabcard_serializer['member']['remove_state'] = removed_state
 
 
     # get chatroom status
@@ -547,6 +559,20 @@ def get_chatroom_instance(card_instance,member_id):
     collabcard_serializer['mute_status'] = status['mute_status']
     collabcard_serializer['follow_status'] = status['follow_status']
     collabcard_serializer['is_guest'] = status['is_guest']
+
+    # if status['remove']:
+    #     instance = status['remove']
+    #     temp = get_removed_member_custom_text(instance)
+    #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+    #     collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
+    #     collabcard_serializer['member']['remove_state'] = temp['remove_state']
+    #     collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
+    # if status['is_guest'] and status['state_instance'].source:
+    #     temp = get_guest_custom_text(status['state_instance'])
+    #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+    #     collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
+
+
 
 
     # get chatroom files
@@ -562,6 +588,44 @@ def get_chatroom_instance(card_instance,member_id):
 
 
     return collabcard_serializer
+
+
+def get_removed_member_custom_text(instance):
+
+    '''function to check removed member state and sending the custom text'''
+    temp = {}
+    #instance = status['remove']
+    remove_state = instance.removed_state
+    if remove_state == deleted_members.LEFT:
+        temp['custom_intro_text'] = """Left the community on %s""" % (
+            time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+        temp['custom_click_text'] = """The profile you are trying to access does not exist. %s left the community on %s""" % (
+        instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+
+    elif remove_state == deleted_members.REMOVED:
+        temp['custom_intro_text'] = """Removed from the community on  %s""" % (
+            time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+        temp['custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
+        instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+
+    temp['remove_state'] = remove_state
+    temp['removed_user_image_url'] = REMOVED_USER_URL
+    return temp
+
+def get_guest_custom_text(instance):
+
+    '''function to check the guest member of the chatroom and sending the custom text'''
+
+    temp = {}
+    temp['custom_intro_text'] = """Joined as a guest via %s’s invite link on %s""" % (
+    instance.source.userinfo.name, time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+    temp[
+        'custom_click_text'] = """The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s""" % (
+    instance.user.userinfo.name, instance.source.userinfo.name,
+    time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+
+    return temp
+
 
 def get_draft_chatroom_instance(draft_instance,member_id):
 
@@ -592,7 +656,10 @@ def get_status_of_collabcard(member_id,card):
         'state' : 0,
         'mute_status' : False,
         'follow_status' : False,
-        'is_guest' : False
+        'is_guest' : False,
+        'remove':False,
+        'state_instance':None
+
     }
 
     if not member_id:
@@ -606,6 +673,8 @@ def get_status_of_collabcard(member_id,card):
         collabcard_status['mute_status'] = collabcard_state[0].mute_status
         collabcard_status['follow_status'] = collabcard_state[0].follow_status
         collabcard_status['is_guest'] = collabcard_state[0].is_guest
+        collabcard_status['remove'] = collabcard_state[0].remove
+        collabcard_status['state_instance'] = collabcard_state[0]
     return collabcard_status
 
 
@@ -682,13 +751,22 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
     if member_instance.image_url:
         community_profile['image_url'] = member_instance.image_url
 
-    if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER:
+    if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
         community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
             str(community_id), str(member_id))
 
         community_profile['member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
                                                                                                            time.localtime(
                                                                                                                member_instance.created_at))
+
+    if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
+        community_profile['custom_intro_text'] = """Created this community on %s"""%(time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
+
+    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
+        community_profile['custom_intro_text'] = """Joined via a private community link on %s"""%(time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
+        community_profile['custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet"""%(member_instance.member_id.userinfo.name,time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
+
+
 
     return community_profile
 
