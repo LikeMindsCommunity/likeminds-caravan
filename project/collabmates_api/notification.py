@@ -1290,7 +1290,7 @@ def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
 def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     #todo
-    #add update profile notification as well 
+    #add update profile notification as well
     return
 
     community_instance = Community.objects.get(id=community_id)
