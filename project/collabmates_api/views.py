@@ -2908,6 +2908,9 @@ def create_chatroom_delete_backup(card_instance):
     card.multiple_select = card_instance.multiple_select
     card.multiple_select_no = card_instance.multiple_select_no
     card.multiple_select_state = card_instance.multiple_select_state
+    card.poll_type = card_instance.poll_type
+    card.is_poll_anonymous = card_instance.is_poll_anonymous
+    card.allow_add_option = card_instance.allow_add_option
 
     # for chatroom header
     card.header = card_instance.header
