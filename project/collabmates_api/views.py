@@ -5427,6 +5427,7 @@ def create_conversation(request):
     ans.answer = res['text']
     ans.card = card_instance
     ans.user = user_instance
+    ans.community=card_instance.community
     ans.is_guest = state_filter.exists()
     ans.created_at = time.time()
     ans.save()
