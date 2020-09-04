@@ -216,7 +216,7 @@ SOCIAL_AUTH_PIPELINE = (
 
 )
 
-TEAM = [('hello', 'hello@likeminds.community')]
+TEAM = [('Team Growth', 'growth@likeminds.community')]
 
 
 

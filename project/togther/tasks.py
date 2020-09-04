@@ -9,7 +9,7 @@ from django.conf import settings
 from togther.models import *
 from utility.tasks import send_email
 url  = settings.URL
-from collabmates_api.notification import notification_after_compute_rank
+# from collabmates_api.notification import notification_after_compute_rank
 from utility.utils import android_app_download_link,ios_app_download_link
 
 # def send_email(subject,template,to):
@@ -76,7 +76,7 @@ def send_mail_after_rank_computation(user_id):
         communities = Community_Rank.objects.filter(member_id = user_id)
         if communities.exists():
             # send_email(subject, template, to)
-            notification_after_compute_rank(user_id=user_id)
+            # notification_after_compute_rank(user_id=user_id)
             return
         elif count == 30:
             return

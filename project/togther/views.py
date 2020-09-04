@@ -17,10 +17,10 @@ from collabmates_api.serializers import *
 from collabmates_api.views import *
 import traceback
 from collabmates_api.raw_queries import compute_rank
-from collabmates_api.notification import notification_after_compute_rank
+# from collabmates_api.notification import notification_after_compute_rank
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
-                           referal, insert_user_home_town_tags, user_onbaord,
+                           insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
                            is_request_pc, android_app_download_link, 
                            is_IG_community, ios_app_download_link,is_member_verified,
@@ -224,7 +224,8 @@ def get_user_communities(request):
 def community(request, community_id):
 
 
-    aj = request.GET.get('aj', False)                           #auto join check functionality
+    aj = request.GET.get('aj', False)
+    #auto join check functionality
 
     ios_private_link = ""
 
@@ -416,7 +417,7 @@ def community_questions(request,params):
 
         if mixpanel_event:
             context['mixpanel_event'] = mixpanel_event
-
+        # print(context,"***")
 
         return render(request, 'response_form.html', context)
     else:
@@ -454,6 +455,7 @@ def community_questions(request,params):
 
             # print("params---",params)
             # print("json dict---",json_dict)
+
             rqst.post(join_url, params=params, json=json_dict)
 
         if aj_expired == "" or aj_expired == "True":
@@ -532,7 +534,7 @@ def get_community_context(request,community_instance,user_instance,state,profile
 
     if state == member_states.PENDING_MEMBER:
         context['footer'] = {
-            'toast':"Request to join community is pending"
+            'toast':"Your request to join the community is pending."
         }
 
 
@@ -1621,9 +1623,7 @@ def collabcard(request, card_id):
                 request_user_email = True
         except:
             user, request_user_email = update_user_info(request)
-        if not user.image_link:
-            user_image = user.image_file.url
-        else:
+        if user.image_link:
             user_image = user.image_link
     else:
         user_image = ''
@@ -1670,6 +1670,7 @@ def collabcard(request, card_id):
                'request_user_email': request_user_email,
 
                }
+    print(context)
     return render(request, 'card.html', context)
 
 
@@ -2491,9 +2492,10 @@ def onboarding_interest(request):
         print(member_id)
         print(is_request_android(request))
 
-        if is_request_android(request) and member_id and autheticate:
+        # if is_request_android(request) and member_id and autheticate:
             # sending notificaton after rank compuatation
-            notification_after_compute_rank.delay(user_id=member_id)
+            # sending notificaton after rank compuatation
+            # notification_after_compute_rank.delay(user_id=member_id)
 
         return JsonResponse({'user_agent': False})
 

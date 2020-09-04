@@ -1,0 +1,44 @@
+
+{% extends 'mails/base.html' %}
+{% block extracss %}
+<style>
+strong{
+    color:#00897b;
+}
+.row{
+    display: flex;
+}
+</style>
+{% endblock %}
+{% block mail %}
+
+    <div style="font-size:20px;color:#666;text-align:left;font-weight:bold;">
+        Hi {{ member_name }}!
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        You set up the directory for <b>{{community_name}}</b>  {{date_of_joining}} days ago. But you don’t yet have many member profiles there right now 😟.
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        A directory with proper member profiles is an important step in creating a vibrant community.
+        And you need at least 10 of them to level up.
+    </div>
+    <div style="text-align:center;">
+        <a href="{{cta_url}}" style="
+    text-decoration: none;
+    background: #00897b;
+    color:#fff;
+    text-transform: uppercase;
+    padding:14px 19px;
+    border-radius:40px;
+    font-size:13px;
+    font-weight: 500;
+    display:inline-block;
+    margin: 30px 0 24px;">
+            Invite at least 10 members & level up!
+        </a>
+    </div>
+    <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+        PS: This link ☝️ opens in a mobile phone only. You can also go to your community in LikeMinds App and follow the next steps on leveling up.
+    </div>
+
+{% endblock %}
