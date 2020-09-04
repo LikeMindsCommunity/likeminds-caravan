@@ -1766,8 +1766,13 @@ def remove_members(community_id, member_id,removed_state):
     profile_removed = communityAnswers.objects.filter(community=community_id, member=member_id).delete()
     #print(profile_removed)
 
+    #removing the created chatrooms
     chatroom_removed = Collabcard.objects.filter(community=community_id,user=member_id).delete()
-    #print(intro_removed)
+
+
+    #removing the draft chatrooms
+    draft_removed = draftChatroom.objects.filter(community=community_id,user=member_id).delete()
+    
 
 
 
