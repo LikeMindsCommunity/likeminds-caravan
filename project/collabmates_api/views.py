@@ -2345,10 +2345,7 @@ def create_chatroom_instance(res,community_instance,user_instance):
     card.type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
-    if res['type'] == card_types.CARD_POLL:
-        card.date_time = res['expiry_time'] if ('expiry_time' in res) else 0
-    else:
-        card.date_time = res['date_time'] if ('date_time' in res) else 0
+    card.date_time = res['date_time'] if ('date_time' in res) else 0
     card.duration = res['duration'] if ('duration' in res) else 0
 
     # for event card
@@ -2356,7 +2353,11 @@ def create_chatroom_instance(res,community_instance,user_instance):
     card.location_lat = res['location_lat'] if ('location_lat' in res) else None
     card.location_long = res['location_long'] if ('location_long' in res) else None
     card.start_date = res['start_date'] if ('start_date' in res) else 0
-    card.end_date = res['end_date'] if ('end_date' in res) else 0
+    if res['type'] == card_types.CARD_POLL:
+        # for saving poll expiry time
+        card.end_date = res['expiry_time'] if ('expiry_time' in res) else 0
+    else:
+        card.end_date = res['end_date'] if ('end_date' in res) else 0
     card.about = res['about'] if ('about' in res) else None
     card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
     card.online_link = res['online_link'] if ('online_link' in res) else None
@@ -2436,7 +2437,7 @@ def create_chatroom_instance(res,community_instance,user_instance):
         send_notification_to_event_co_hosts.delay(co_hosts, card.id, card.title, user_instance.userinfo.name)
 
     # saving poll card details
-    polls = res['polls'] if 'polls' in res else res['poll'] if 'poll' in res else []
+    polls = res['polls'] if 'polls' in res else [] #res['poll'] if 'poll' in res else []
 
     for poll in polls:
         collabcardpolls_instance = CollabcardPolls()
@@ -2582,10 +2583,7 @@ def create_draft_collabcard(request, res=None):
     card.type = typ
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
-    if res['type'] == card_types.CARD_POLL:
-        card.date_time = res['expiry_time'] if ('expiry_time' in res) else 0
-    else:
-        card.date_time = res['date_time'] if ('date_time' in res) else 0
+    card.date_time = res['date_time'] if ('date_time' in res) else 0
     card.duration = res['duration'] if ('duration' in res) else 0
 
     # for event card
@@ -2593,7 +2591,11 @@ def create_draft_collabcard(request, res=None):
     card.location_lat = res['location_lat'] if ('location_lat' in res) else None
     card.location_long = res['location_long'] if ('location_long' in res) else None
     card.start_date = res['start_date'] if ('start_date' in res) else 0
-    card.end_date = res['end_date'] if ('end_date' in res) else 0
+    if res['type'] == card_types.CARD_POLL:
+        # for saving poll expiry time
+        card.end_date = res['expiry_time'] if ('expiry_time' in res) else 0
+    else:
+        card.end_date = res['end_date'] if ('end_date' in res) else 0
     card.about = res['about'] if ('about' in res) else None
     card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
     card.online_link = res['online_link'] if ('online_link' in res) else None
@@ -2625,7 +2627,7 @@ def create_draft_collabcard(request, res=None):
 
     #deleting the existing polls
     draftPolls.objects.filter(draft=card).delete()
-    polls = res['polls'] if 'polls' in res else res['poll'] if 'poll' in res else []
+    polls = res['polls'] if 'polls' in res else [] # res['poll'] if 'poll' in res else []
     for poll in polls:
         poll_instance = draftPolls()
         poll_instance.draft = card
@@ -2633,9 +2635,9 @@ def create_draft_collabcard(request, res=None):
         poll_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
         poll_instance.save()
 
-    chatroom =  draftChatroomSerializer(card, user_instance)
+    chatroom = draftChatroomSerializer(card, user_instance)
 
-    engage_filter = conversationEngage.objects.filter(user=user_instance,draft=card)
+    engage_filter = conversationEngage.objects.filter(user=user_instance, draft=card)
 
     if not engage_filter.exists():
         instance = conversationEngage()
@@ -4108,7 +4110,7 @@ def fetch_chatroom(request):
             context['community_id'] = community_id
         return JsonResponse(context)
 
-    page = request.GET.get('page',1)
+    page = request.GET.get('page',  1)
     current_user_id = get_member_id_from_headers(request)
     current_user = None
     if is_request_web(request) and request.user.is_authenticated:
@@ -4330,7 +4332,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     aj = request.GET.get('aj')
 
     is_guest = False
-    context={}
+    context = {}
 
     if aj:
         is_guest = True
@@ -7695,7 +7697,7 @@ def members_state(request,req_dict=None):
         state = data.state
 
         if data.created_at > 0:
-            created_at =  time.strftime('%A, %b %d', time.localtime(data.created_at))
+            created_at = time.strftime('%A, %b %d', time.localtime(data.created_at))
 
 
         if state == member_states.ADMIN or state == 2 or state == member_states.MEMBER or state == 7:
