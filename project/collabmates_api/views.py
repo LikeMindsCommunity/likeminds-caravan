@@ -1765,7 +1765,8 @@ def remove_members(community_id, member_id,removed_state):
     #removing the followed chatrooms
     conversation_engage = conversationEngage.objects.filter(community=community_id,user=member_id).delete()
 
-
+    #removing the filter data
+    filter_data = questionFilters.objects.filter(community=community_id,member=member_id).delete()
 
 
 
