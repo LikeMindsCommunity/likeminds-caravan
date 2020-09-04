@@ -837,12 +837,12 @@ def auto_join_community(community_instance,user_instance):
         #removing its data from removed members in order to consider it a new user
         removedMembers.objects.filter(community=community_instance,user=user_instance).delete()
 
-        
+
         # removing guest status from all chatrooms after access
         collabcardState.objects.filter(community=community_instance, user=user_instance).update(
-            is_guest=False)
+            is_guest=False,remove=None)
         card_answers.objects.filter(community=community_instance, user=user_instance).update(
-            is_guest=False)
+            is_guest=False,remove=None)
 
 
     # updating the member engage instance
@@ -3579,8 +3579,8 @@ def approve_or_decline_private_community(req_dict,request):
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
             #removing guest status from all chatrooms after access
-            collabcardState.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False)
-            card_answers.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False)
+            collabcardState.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False,remove=None)
+            card_answers.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False,remove=None)
 
             # saving create community action step 4
             update_community_actions(community_instance=community)
