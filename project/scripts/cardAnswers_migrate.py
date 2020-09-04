@@ -40,7 +40,7 @@ def add_community_in_conversationEngage():
 
 
 start_time = time.time()
-#add_community_in_conversations()
+add_community_in_conversations()
 add_community_in_conversationEngage()
 end_time = time.time()
 
