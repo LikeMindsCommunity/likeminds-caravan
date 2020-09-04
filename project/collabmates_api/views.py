@@ -835,7 +835,7 @@ def auto_join_community(community_instance,user_instance):
         toast_filter.delete()
 
         #removing its data from removed members in order to consider it a new user
-        removedMembers.objects.filter(community=community_instance,user=user_instance).delete()
+        removedMembers.objects.filter(community=community_instance,member=user_instance).delete()
 
 
         # removing guest status from all chatrooms after access
