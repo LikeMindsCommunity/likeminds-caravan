@@ -3573,7 +3573,7 @@ def approve_or_decline_private_community(req_dict,request):
             communityToast.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).delete()
 
             #deleting if the user left the community before
-            removedMembers.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).delete()
+            removedMembers.objects.filter(community=req_dict['community_id'],member=req_dict['member_id']).delete()
 
 
 
