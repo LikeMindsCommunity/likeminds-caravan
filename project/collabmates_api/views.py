@@ -1755,18 +1755,22 @@ def remove_members(community_id, member_id,removed_state):
         update_conversations = card_answers.objects.filter(user=member_id,community=community_instance).update(remove=instance)
 
 
-
+    #your chatrooms removed
     member_removerd = Members.objects.filter(community_id=community_id, member_id=member_id).delete()
     #print(member_removerd)
 
+    #your community removed
     engage_removed = Member_Engage.objects.filter(community_id=community_id, member_id=member_id).delete()
     #print(engage_removed)
 
     profile_removed = communityAnswers.objects.filter(community=community_id, member=member_id).delete()
     #print(profile_removed)
 
-    intro_removed = Collabcard.objects.filter(community=community_id,user=member_id,type=card_types.CARD_INTRO).delete()
+    chatroom_removed = Collabcard.objects.filter(community=community_id,user=member_id).delete()
     #print(intro_removed)
+
+
+
 
 
 
