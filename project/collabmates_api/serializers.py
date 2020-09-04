@@ -772,6 +772,9 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
         community_profile['member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
                                                                                                            time.localtime(
                                                                                                                member_instance.created_at))
+    elif member_instance.state == member_states.PENDING_MEMBER:
+        community_profile['member_since'] = "Verification pending for " + member_instance.community_id.name
+
 
     if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
         community_profile['custom_intro_text'] = """Created this community on %s"""%(time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
