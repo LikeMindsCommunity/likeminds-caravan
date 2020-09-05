@@ -835,7 +835,7 @@ def auto_join_community(community_instance,user_instance):
         toast_filter.delete()
 
         #removing its data from removed members in order to consider it a new user
-        removedMembers.objects.filter(community=community_instance,user=user_instance).delete()
+        removedMembers.objects.filter(community=community_instance,member=user_instance).delete()
 
 
         # removing guest status from all chatrooms after access
@@ -1765,7 +1765,8 @@ def remove_members(community_id, member_id,removed_state):
     #removing the followed chatrooms
     conversation_engage = conversationEngage.objects.filter(community=community_id,user=member_id).delete()
 
-
+    #removing the filter data
+    filter_data = questionFilters.objects.filter(community=community_id,member=member_id).delete()
 
 
 
@@ -3570,7 +3571,7 @@ def approve_or_decline_private_community(req_dict,request):
             communityToast.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).delete()
 
             #deleting if the user left the community before
-            removedMembers.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).delete()
+            removedMembers.objects.filter(community=req_dict['community_id'],member=req_dict['member_id']).delete()
 
 
 
