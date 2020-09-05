@@ -5453,7 +5453,8 @@ def create_conversation(request):
         function_dict = {
             'member_id': member_id,
             'collabcard_id': card_instance.id,
-            'status': True
+            'status': True,
+            'source':"create_conversation"
         }
         collabcard_follow_internal(function_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
 
@@ -5670,7 +5671,7 @@ def collabcard_follow(request, function_dict=None):
     return JsonResponse({'success': True})
 
 
-def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_FOLLOW):
+def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_SEEN):
 
     '''folowing collabcard internally'''
 
@@ -5707,7 +5708,14 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.card = card_instance
         collabcard_state_instance.community = card_instance.community
         collabcard_state_instance.user = user_instance
-        collabcard_state_instance.state = state
+
+        #if the user is coming by notification or chatroom link and creates conversation
+        if 'source' in func_dict and func_dict['source'] == "create_conversation":
+
+            collabcard_state_instance.state = 0
+        else:
+            collabcard_state_instance.state = state
+
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
