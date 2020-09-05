@@ -1464,6 +1464,12 @@ def edit_member_profile(request):
     if form_response:
         question_answer = form_response[1]
 
+    #setting the level click state when the promoter set-up directory and update the click state
+    present_level = communityLevels.objects.filter(community=community_instance,level="Level 3",level_click_state=level_click_states.DIRECTORY_CREATED)
+    if present_level.exists():
+        is_promoter = is_member_promoter(community_instance.id,member_id)
+        if is_promoter:
+            communityLevels.objects.filter(community=community_instance, level="Level 3").update(level_click_state=level_click_states.COMMUNITY_JOINED)
 
 
 
