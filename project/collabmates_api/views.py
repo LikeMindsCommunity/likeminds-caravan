@@ -5700,6 +5700,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance)
+        elif 'source' in func_dict and func_dict['source'] == "create_conversation":
+            state=collabcard_state_filter[0].state
+            collabcard_state_filter.update(follow_status=status, state=state, updated_at=time.time())
         else:
             collabcard_state_filter.update(follow_status=status, state=state,updated_at=time.time())
 
