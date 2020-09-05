@@ -1054,9 +1054,12 @@ def update_community_actions(community_instance):
                 instance.save()
 
 
-def set_levels_on_ctc(community_instance,level):
+def set_levels_on_ctc(community_instance,level,promoter=False):
 
     '''updating levels based on different call to actions'''
+
+    if promoter:
+        return
 
     community_level_filter = communityLevels.objects.filter(community=community_instance).order_by('id')
     for instance in community_level_filter:
@@ -1456,7 +1459,7 @@ def edit_member_profile(request):
 
 
     #update level of community
-    set_levels_on_ctc(community_instance,"Level 3")
+    set_levels_on_ctc(community_instance,"Level 3",promoter=is_promoter)
 
 
     question_answer=""
