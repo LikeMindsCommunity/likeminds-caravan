@@ -558,7 +558,7 @@ def get_chatroom_instance(card_instance,member_id):
 
     collabcard_serializer['member'] = collabcard_member[0]
 
-    if str(collabcard_serializer['member']['id']) == str(member_id) and collabcard_serializer['member']['state'] == 0:
+    if status['remove'] and str(collabcard_serializer['member']['id']) == str(member_id) and collabcard_serializer['member']['state'] == 0:
         temp = get_removed_member_custom_text(status['remove'])
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
