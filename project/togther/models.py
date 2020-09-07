@@ -307,6 +307,7 @@ class conversationEngage(models.Model):
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
     draft = models.ForeignKey(draftChatroom,on_delete=models.CASCADE,null=True)
+    in_active_at = models.BigIntegerField(null=True)
 
 
 
@@ -676,6 +677,8 @@ class collabcardState(models.Model):
     is_guest = models.BooleanField(default=False)
 
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
+
+    in_active_at = models.BigIntegerField(null=True)
 
 
 
