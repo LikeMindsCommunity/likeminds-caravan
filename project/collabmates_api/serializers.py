@@ -548,31 +548,40 @@ def get_chatroom_instance(card_instance,member_id):
     collabcard_serializer = CollabcardSerializer(card_instance, member_id)
 
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
-    if collabcard_member:
-        collabcard_serializer['member'] = collabcard_member[0]
-    else:
-        collabcard_serializer['member'] = UserinfoSerializer(card_instance.user.userinfo)
-        collabcard_serializer['state'] = 0
+
+    # get chatroom status
+    status = get_status_of_collabcard(member_id, card_instance)
+    collabcard_serializer['state'] = status['state']
+    collabcard_serializer['mute_status'] = status['mute_status']
+    collabcard_serializer['follow_status'] = status['follow_status']
+    collabcard_serializer['is_guest'] = status['is_guest']
+
+    collabcard_serializer['member'] = collabcard_member[0]
+
+    if str(collabcard_serializer['member']['id']) == str(member_id) and collabcard_serializer['member']['state'] == 0:
+        temp = get_removed_member_custom_text(status['remove'])
+        collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+        collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
+        collabcard_serializer['member']['remove_state'] = temp['remove_state']
+        collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
+
 
     # removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
     # if removed_state != False:
     #     collabcard_serializer['member']['remove_state'] = removed_state
 
 
-    # get chatroom status
-    status = get_status_of_collabcard(member_id,card_instance)
-    collabcard_serializer['state'] = status['state']
-    collabcard_serializer['mute_status'] = status['mute_status']
-    collabcard_serializer['follow_status'] = status['follow_status']
-    collabcard_serializer['is_guest'] = status['is_guest']
 
-    if status['remove']:
-        instance = status['remove']
-        temp = get_removed_member_custom_text(instance)
-        collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-        collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
-        collabcard_serializer['member']['remove_state'] = temp['remove_state']
-        collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
+
+
+
+    # if status['remove']:
+    #     instance = status['remove']
+    #     temp = get_removed_member_custom_text(instance)
+    #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+    #     collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
+    #     collabcard_serializer['member']['remove_state'] = temp['remove_state']
+    #     collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
     # if status['is_guest'] and status['state_instance'].source:
     #     temp = get_guest_custom_text(status['state_instance'])
     #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
