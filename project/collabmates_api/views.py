@@ -5706,8 +5706,13 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
         #if the user is coming by notification or chatroom link and creates conversation
         if 'source' in func_dict and func_dict['source'] == "create_conversation":
-
             collabcard_state_instance.state = 0
+            collabcard_state_filter.in_active_time = time.time() + 86400    #24 hours
+
+        # if the user creates a chatroom then auto-following the chatroom
+        elif 'source' in func_dict and func_dict['source'] == "create_chatroom":
+            collabcard_state_instance.state = state
+            collabcard_state_filter.in_active_time = time.time() + 86400    #24 hours
         else:
             collabcard_state_instance.state = state
 
