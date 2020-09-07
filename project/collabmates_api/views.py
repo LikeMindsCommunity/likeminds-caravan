@@ -2527,7 +2527,8 @@ def create_card_internal(user_id,community_id,res):
     func_dict = {
         'member_id': user_id,
         'collabcard_id': card_instance.id,
-        'status': True
+        'status': True,
+        'source' : "create_chatroom"
     }
     collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
 
@@ -2683,20 +2684,7 @@ def create_draft_collabcard(request, res=None):
 
     return JsonResponse({'success':True,"chatroom":chatroom})
 
-def create_collabcard_state_for_user(card_instance, user_instance, state, community):
-    """ create collabcard state for a member for a card """
 
-    state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
-    if not state_filter.exists():
-        collabcard_state_instance = collabcardState()
-        collabcard_state_instance.card = card_instance
-        collabcard_state_instance.user = user_instance
-        collabcard_state_instance.community = community
-        collabcard_state_instance.state = state  # user has created the card and he is autofollowing
-        collabcard_state_instance.follow_status = True
-        collabcard_state_instance.created_at = time.time()
-        collabcard_state_instance.updated_at = time.time()
-        collabcard_state_instance.save()
 
 def create_chatroom(card_instance,user_instance,state,current_user_id=None,answer=""):
 
@@ -5704,6 +5692,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         elif 'source' in func_dict and func_dict['source'] == "create_conversation":
             state=collabcard_state_filter[0].state
             collabcard_state_filter.update(follow_status=status, state=state, updated_at=time.time())
+        elif 'source' in func_dict and func_dict['source'] == "create_chatroom":
+            inactive_time= time.time() + 86400
+            collabcard_state_filter.update(follow_status=status, state=state, updated_at=time.time(),in_active_at=inactive_time)
         else:
             collabcard_state_filter.update(follow_status=status, state=state,updated_at=time.time())
 
