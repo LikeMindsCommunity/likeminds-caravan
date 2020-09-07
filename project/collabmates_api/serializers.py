@@ -554,9 +554,9 @@ def get_chatroom_instance(card_instance,member_id):
         collabcard_serializer['member'] = UserinfoSerializer(card_instance.user.userinfo)
         collabcard_serializer['state'] = 0
 
-    removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
-    if removed_state != False:
-        collabcard_serializer['member']['remove_state'] = removed_state
+    # removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
+    # if removed_state != False:
+    #     collabcard_serializer['member']['remove_state'] = removed_state
 
 
     # get chatroom status
