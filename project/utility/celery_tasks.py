@@ -217,9 +217,15 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
     conversations = card_answers.objects.filter(card_id=chatroom_id).filter(state = 0).order_by('id')
     last_conversation = conversations.last()
     length = len(conversations)
+
     # next_unseen_conversation = {}
     # unseen_count = {}
     # first_conversation = None
+
+    next_unseen_conversation = {}
+    unseen_count = {}
+    first_conversation = None
+
     # for i in range(length):
     #
     #     if i+1 < length:
