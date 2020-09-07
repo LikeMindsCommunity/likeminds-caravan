@@ -558,8 +558,10 @@ def get_chatroom_instance(card_instance,member_id):
 
     collabcard_serializer['member'] = collabcard_member[0]
 
-    if status['remove'] and str(collabcard_serializer['member']['id']) == str(member_id) and collabcard_serializer['member']['state'] == 0:
-        temp = get_removed_member_custom_text(status['remove'])
+    is_removed = removedMembers.objects.filter(community=card_instance.community,member_id=collabcard_serializer['member']['id'])
+
+    if  collabcard_serializer['member']['state'] == 0 and is_removed.exists():
+        temp = get_removed_member_custom_text(is_removed[0])
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
