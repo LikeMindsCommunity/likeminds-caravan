@@ -38,7 +38,7 @@ def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=No
 
     guest_list = []
     if chatroom_id:
-        state_filter = collabcardState.objects.filter(card_id=chatroom_id, is_guest=True)
+        state_filter = collabcardState.objects.filter(card_id=chatroom_id, is_guest=True,remove=None)
 
         for data in state_filter:
             temp = {}
