@@ -2387,10 +2387,8 @@ def create_chatroom_instance(res,community_instance,user_instance):
     if 'multiple_select' in res:
         card.multiple_select = res['multiple_select']
     if 'multiple_select_no' in res:
-        card.multiple_select = True
         card.multiple_select_no = res['multiple_select_no']
     if 'multiple_select_state' in res:
-        card.multiple_select = True
         card.multiple_select_state = res['multiple_select_state']
 
     # for chatroom header
@@ -2460,11 +2458,11 @@ def create_chatroom_instance(res,community_instance,user_instance):
     for poll in polls:
         collabcardpolls_instance = CollabcardPolls()
         collabcardpolls_instance.card = card
+        collabcardpolls_instance.user = user_instance
         collabcardpolls_instance.text = poll['text']
         collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
         collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None
         collabcardpolls_instance.save()
-
 
     #following the tagged member chatroom
 
@@ -2630,10 +2628,8 @@ def create_draft_collabcard(request, res=None):
     if 'multiple_select' in res:
         card.multiple_select = res['multiple_select']
     if 'multiple_select_no' in res:
-        card.multiple_select = True
         card.multiple_select_no = res['multiple_select_no']
     if 'multiple_select_state' in res:
-        card.multiple_select = True
         card.multiple_select_state = res['multiple_select_state']
 
     # for chatroom header
@@ -9641,6 +9637,7 @@ def add_poll(request):
 
             collabcardpolls_instance = CollabcardPolls()
             collabcardpolls_instance.card = card_instance
+            collabcardpolls_instance.user = user_instance
             collabcardpolls_instance.text = poll['text']
             collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
             collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None

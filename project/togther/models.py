@@ -170,7 +170,7 @@ class Collabcard(models.Model):
     # for poll functionality
     multiple_select = models.BooleanField(default=False)
     multiple_select_no = models.IntegerField(null=True)
-    multiple_select_state = models.IntegerField(default=0)
+    multiple_select_state = models.IntegerField(null=True)
 
     poll_type = models.IntegerField(default=0, null=True)
     is_poll_anonymous = models.BooleanField(default=False, null=True)
@@ -674,12 +674,13 @@ class collabcardState(models.Model):
 
     is_guest = models.BooleanField(default=False)
 
-    source = models.ForeignKey(User,on_delete=models.CASCADE,null=True,related_name='referrer')
+    source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
 
 
 
 class CollabcardPolls(models.Model):
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     text = models.CharField(max_length=2048, null=True)
     created_at = models.BigIntegerField(default=0, null=True)
     updated_at = models.BigIntegerField(default=0, null=True)

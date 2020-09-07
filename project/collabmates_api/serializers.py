@@ -192,13 +192,14 @@ def CollabcardSerializer(card,user,community=None):
             polls.append(CollabcardPollsSerializer(poll, user, card))
 
         collabcard['polls'] = polls
+        collabcard['expiry_time'] = card.end_date
 
         if card.multiple_select:
             collabcard['multiple_select'] = card.multiple_select
-
-        collabcard['expiry_time'] = card.end_date
-        collabcard['multiple_select_no'] = card.multiple_select_no
-        collabcard['multiple_select_state'] = card.multiple_select_state
+        if card.multiple_select_no:
+         collabcard['multiple_select_no'] = card.multiple_select_no
+        if card.multiple_select_state:
+            collabcard['multiple_select_state'] = card.multiple_select_state
 
         collabcard['is_anonymous'] = card.is_poll_anonymous
         collabcard['allow_add_option'] = card.allow_add_option
@@ -653,12 +654,12 @@ def get_status_of_collabcard(member_id,card):
     '''function to get the state of collabcard'''
 
     collabcard_status = {
-        'state' : 0,
-        'mute_status' : False,
-        'follow_status' : False,
-        'is_guest' : False,
-        'remove':False,
-        'state_instance':None
+        'state': 0,
+        'mute_status': False,
+        'follow_status': False,
+        'is_guest': False,
+        'remove': False,
+        'state_instance': None
 
     }
 
@@ -706,6 +707,9 @@ def CollabcardPollsSerializer(poll, user, card):
     if poll.image_url:
         polls['image_url'] = poll.image_url
 
+    if poll.user:
+        member_instance = Members.objects.filter(community_id=card.community.id, member_id=poll.user.id)
+        polls['member'] = MembersSerializer(member_instance[0], community_id=card.community.id, current_user_id=None)
     # if card.end_date // 1000 <= time.time():
     #     poll_detail = poll_percentage(card, poll)
     #
@@ -758,7 +762,7 @@ def draftPollsSerializers(poll):
 
 def MembersSerializer(member_instance, community_id, current_user_id=None):
     member_id = member_instance.member_id.id
-    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id,send_profile=True)
+    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id, send_profile=True)
     community_profile['state'] = member_instance.state
 
     # sending image  url of members
@@ -793,7 +797,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None):
         member_filter = Members.objects.filter(member_id=id, community_id=community_id)
 
         if member_filter.exists():
-            community_profile = MembersSerializer(member_filter[0],community_id,current_user_id=current_user_id)
+            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id)
             member_profile_list.append(community_profile)
 
         else:
@@ -805,7 +809,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None):
 
 
 
-def get_user_profile(user_id,community_id,current_user_id=None,send_profile=True):
+def get_user_profile(user_id,community_id, current_user_id=None, send_profile=True):
 
     try:
         user_instance = User.objects.get(id=user_id)
