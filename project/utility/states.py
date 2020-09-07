@@ -52,7 +52,9 @@ chatroom_states = ChatroomStates()
 class MultipleSelectPoll:
     #class to save states of multiple select poll
     EXACTLY = 0
+    AT_MAX = 1
     AT_MOST = 1
+    AT_LEAST = 2
 
 multiple_select_poll = MultipleSelectPoll()
 
