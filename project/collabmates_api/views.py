@@ -2457,7 +2457,8 @@ def create_chatroom_instance(res,community_instance,user_instance):
             req_dict = {
                 'member_id': host,
                 'collabcard_id': card.id,
-                'status': True
+                'status': True,
+                'source':"create_chatroom"
             }
             collabcard_follow_internal(req_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
 
@@ -2481,9 +2482,9 @@ def create_chatroom_instance(res,community_instance,user_instance):
         req_dict = {
             'member_id': user_id,
             'collabcard_id': card.id,
-            'status': True
+            'status': True,
+            'source':"create_chatroom"
         }
-        print(req_dict)
         collabcard_follow_internal(req_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
     return card
 
@@ -2560,6 +2561,7 @@ def create_card_internal(user_id,community_id,res):
 def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
 
     '''function to send mail and notifications for chatroom creations'''
+
     send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
                                                       type=card_instance.type,
@@ -5180,152 +5182,6 @@ def community_cards_version_1(request,community_id,req_dict=None):
     return JsonResponse(context)
 
 
-def get_cards_for_demo(community_id, member_id):
-    '''function to get demo cards for pilot community'''
-    card_list = []
-    userinfo_objects = Userinfo.objects.get(user_id=member_id)
-    community = Community.objects.get(id=community_id)
-    name = userinfo_objects.name
-    first_name = name.split(' ', 1)[0]
-    community_purpose = community.purpose
-    if community_purpose:
-        community_purpose = community_purpose[0].lower() + community_purpose[1:]
-    # sample card
-    sample_card = {}
-    sample_card['id'] = "first_conversation"
-    sample_card['title'] = """Welcome %s, I'll be initiating this community %s""" % (first_name, community_purpose)
-    sample_card['community_id'] = community_id
-    sample_card['member'] = {
-        'name': "Initial Promoter"
-    }
-    sample_card['created_at'] = get_time_text(time.time())
-    sample_card['answer_text'] = "Second Promoter & 3 others responded"
-    sample_card['type'] = 0
-    answers = []
-
-    temp = {}
-
-    test = str(community.about)
-    x = test.find("Anytime")
-    display_string = ""
-    for index in range(x, len(test)):
-        display_string = display_string + test[index]
-        if test[index] == '.':
-            break
-    temp['id'] = "first_conversation_1"
-    temp['answer'] = display_string
-    temp['created_at'] = get_time_text(time.time())
-    temp['member'] = {
-        'name': "Second Promoter"
-    }
-    answers.append(temp)
-
-    temp = {}
-    temp['id'] = "first_conversation_2"
-    temp[
-        'answer'] = """Interested members can respond by simply chatting with you and each other on your conversation card."""
-    temp['created_at'] = get_time_text(time.time())
-    temp['member'] = {
-        'name': "Third Promoter"
-    }
-    answers.append(temp)
-
-    temp = {}
-    temp['id'] = "first_conversation_3"
-    temp[
-        'answer'] = """Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card."""
-    temp['created_at'] = get_time_text(time.time())
-    temp['member'] = {
-        'name': "Fourth Promoter"
-    }
-    answers.append(temp)
-
-    temp = {}
-    temp['id'] = "first_conversation_4"
-    temp['answer'] = """Others would simply swipe through the conversation card and move to the next conversation"""
-    temp['created_at'] = get_time_text(time.time())
-    temp['member'] = {
-        'name': "Initial Promoter"
-    }
-    answers.append(temp)
-    sample_card['answers'] = answers
-
-    card_list.append(sample_card)
-
-    # purpose info card
-    ###################### sample card end ################
-    purpose_card = {}
-    purpose_card['id'] = "second_conversation"
-    purpose_card[
-        'title'] = """%s, this community is currently a pilot as it doesn't actually have any of us (promoters). Help this community find us and enable interactions between members""" % (
-        first_name)
-    purpose_card['community_id'] = community_id
-    purpose_card['member'] = {
-        'name': "Initial Promoter"
-    }
-    purpose_card['created_at'] = "Just Now"
-    purpose_card['answer_text'] = "Second Promoter & 3 others responded"
-    purpose_card['type'] = 0
-    answers = []
-
-    temp = {}
-    temp['id'] = "second_conversation_1"
-    temp[
-        'answer'] = """Promoters are responsible to approve new member requests in the community and drive conversations between members."""
-    temp['created_at'] = get_time_text(time.time())
-    temp['member'] = {
-        'name': "Second Promoter"
-    }
-    answers.append(temp)
-
-    temp = {}
-    temp['id'] = "second_conversation_2"
-    temp[
-        'answer'] = """Anyone can become a promoter and initiate this community by referring %s new members to the community.""" % (
-        eligibility_count)
-    temp['created_at'] = get_time_text(time.time())
-    temp['member'] = {
-        'name': "Third Promoter"
-    }
-    answers.append(temp)
-
-    temp = {}
-    temp['id'] = "second_conversation_3"
-    temp['answer'] = """%s, please refer someone who you consider fit to become a promoter""" % (str(first_name))
-    temp['created_at'] = get_time_text(time.time())
-    temp['member'] = {
-        'name': "Fourth Promoter"
-    }
-    answers.append(temp)
-
-    temp = {}
-    temp['id'] = "second_conversation_4"
-    refered_members = get_referred_members_of_a_member(community_id, member_id)
-    diff = (eligibility_count - len(refered_members))
-    temp['answer'] = """Alternatively, you can refer %s  members and become promoter of this community.""" % (str(diff))
-    temp['created_at'] = get_time_text(time.time())
-    temp['member'] = {
-        'name': "Initial Promoter"
-    }
-    answers.append(temp)
-    purpose_card['answers'] = answers
-    card_list.append(purpose_card)
-
-    # referal card
-
-    referal_card = {}
-    referal_card['member'] = {
-        'id': member_id,
-        'name': name
-    }
-    referal_card['id'] = "third_conversation"
-    referal_card['title'] = """Just discovered this community which is %s""" % (community_purpose)
-    referal_card['created_at'] = "Just Now"
-    referal_card['type'] = 0
-    referal_card['share_url'] = url + "/community/" + str(community_id) + "?ref_id=" + str(member_id)
-    card_list.append(referal_card)
-    referal_card['answers'] = []
-    return card_list
 
 
 # /api/create_answer?collabcard_id=&member_id=
@@ -5670,6 +5526,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     status = func_dict['status']
     is_guest = False
     ref_instance = None
+
+    print(func_dict)
+
     if 'is_guest' in func_dict:
         is_guest = func_dict['is_guest']
         source_id = func_dict['source_id']
@@ -5695,7 +5554,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
             collabcard_state_filter.update(follow_status=status, state=state, updated_at=time.time())
         elif 'source' in func_dict and func_dict['source'] == "create_chatroom":
             inactive_time= time.time() + 86400
-            collabcard_state_filter.update(follow_status=status, state=state, updated_at=time.time(),in_active_at=inactive_time)
+            collabcard_state_filter.update(follow_status=status, state=state, updated_at=time.time(),expire_at=inactive_time)
         else:
             collabcard_state_filter.update(follow_status=status, state=state,updated_at=time.time())
 
@@ -5704,24 +5563,29 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.card = card_instance
         collabcard_state_instance.community = card_instance.community
         collabcard_state_instance.user = user_instance
-
-        #if the user is coming by notification or chatroom link and creates conversation
-        if 'source' in func_dict and func_dict['source'] == "create_conversation":
-            collabcard_state_instance.state = 0
-            collabcard_state_filter.in_active_time = time.time() + 86400    #24 hours
-
-        # if the user creates a chatroom then auto-following the chatroom
-        elif 'source' in func_dict and func_dict['source'] == "create_chatroom":
-            collabcard_state_instance.state = state
-            collabcard_state_filter.in_active_time = time.time() + 86400    #24 hours
-        else:
-            collabcard_state_instance.state = state
-
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = ref_instance
+
+        # if the user is coming by notification or chatroom link and creates conversation
+        if 'source' in func_dict and func_dict['source'] == "create_conversation":
+            collabcard_state_instance.state = 0
+            inactive_time = time.time() + 86400
+
+            collabcard_state_instance.expire_at = inactive_time  # 24 hours
+
+        # if the user creates a chatroom then auto-following the chatroom
+        elif 'source' in func_dict and func_dict['source'] == "create_chatroom":
+            collabcard_state_instance.state = state
+            inactive_time = time.time() + 86400
+            print(inactive_time)
+            collabcard_state_instance.expire_at = inactive_time  # 24 hours
+        else:
+            collabcard_state_instance.state = state
+
+
         collabcard_state_instance.save()
 
     print("collabcard follow internal hit")
