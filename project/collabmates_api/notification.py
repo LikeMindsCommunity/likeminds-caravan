@@ -1155,6 +1155,10 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                                             date_time=start_time, interval=False, crontab=True)
 
 
+
+
+
+
 @app.task
 def send_notification_to_join_drop_off_scheduled(member_id, community_id, aj, time_in_hrs):
     #check if they created the profile. 
@@ -1226,6 +1230,7 @@ def send_notification_to_join_drop_off_scheduled_2(member_id, community_id, aj, 
     # member_name = user_instance.userinfo.name
     community_instance = Community.objects.get(id=community_id)
     community_name = community_instance.name
+
 
     if member.exists():
         return
@@ -1607,8 +1612,6 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 #         }
 
 #         notification_meta(notification_list,message)
-
-
 
 
 
