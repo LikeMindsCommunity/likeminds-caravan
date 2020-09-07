@@ -2398,10 +2398,8 @@ def create_chatroom_instance(res,community_instance,user_instance):
     if 'multiple_select' in res:
         card.multiple_select = res['multiple_select']
     if 'multiple_select_no' in res:
-        card.multiple_select = True
         card.multiple_select_no = res['multiple_select_no']
     if 'multiple_select_state' in res:
-        card.multiple_select = True
         card.multiple_select_state = res['multiple_select_state']
 
     # for chatroom header
@@ -2471,11 +2469,11 @@ def create_chatroom_instance(res,community_instance,user_instance):
     for poll in polls:
         collabcardpolls_instance = CollabcardPolls()
         collabcardpolls_instance.card = card
+        collabcardpolls_instance.user = user_instance
         collabcardpolls_instance.text = poll['text']
         collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
         collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None
         collabcardpolls_instance.save()
-
 
     #following the tagged member chatroom
 
@@ -2641,10 +2639,8 @@ def create_draft_collabcard(request, res=None):
     if 'multiple_select' in res:
         card.multiple_select = res['multiple_select']
     if 'multiple_select_no' in res:
-        card.multiple_select = True
         card.multiple_select_no = res['multiple_select_no']
     if 'multiple_select_state' in res:
-        card.multiple_select = True
         card.multiple_select_state = res['multiple_select_state']
 
     # for chatroom header
@@ -2922,6 +2918,9 @@ def create_chatroom_delete_backup(card_instance):
     card.multiple_select = card_instance.multiple_select
     card.multiple_select_no = card_instance.multiple_select_no
     card.multiple_select_state = card_instance.multiple_select_state
+    card.poll_type = card_instance.poll_type
+    card.is_poll_anonymous = card_instance.is_poll_anonymous
+    card.allow_add_option = card_instance.allow_add_option
 
     # for chatroom header
     card.header = card_instance.header
@@ -9666,6 +9665,7 @@ def add_poll(request):
 
             collabcardpolls_instance = CollabcardPolls()
             collabcardpolls_instance.card = card_instance
+            collabcardpolls_instance.user = user_instance
             collabcardpolls_instance.text = poll['text']
             collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
             collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None
