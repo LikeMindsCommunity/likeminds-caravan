@@ -3493,7 +3493,8 @@ def set_state_for_onboarding_chatroom(community_instance, user_id, request):
         function_dict = {
             'collabcard_id': instance.id,
             'member_id': user_id,
-            'status': True
+            'status': True,
+            'source':"onboarding room"
         }
         collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
         print("onboarding state set for user")
@@ -4390,7 +4391,7 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
             if guest_header:
                 create_guest_header(current_user_id,source_id,card_instance,current_user_id)
 
-                func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True,'source_id':source_id}
+                func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True,'source_id':source_id,'source':"guest access"}
                 collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
 
 
@@ -5161,7 +5162,8 @@ def auto_follow_chatrooms_in_case_of_tagging(request,conversation,card_id):
         function_dict = {
             'member_id': user_id,
             'collabcard_id': card_id,
-            'status': True
+            'status': True,
+            'source':"auto-following-chatroom"
         }
         print(function_dict)
         collabcard_follow_internal(function_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
@@ -5368,10 +5370,8 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
         if 'source' in func_dict and func_dict['source'] == "create_chatroom":
             collabcard_state_instance.state = state
-            collabcard_state_instance.expire_at = expire_at
-        elif 'source' in func_dict and func_dict['source'] == "create_conversation":
 
-            collabcard_state_instance.expire_at = expire_at
+        collabcard_state_instance.expire_at = expire_at
 
         collabcard_state_instance.save()
 
@@ -5543,7 +5543,7 @@ def collabcard_attend(request):
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
 
-        func_dict = {'member_id': member_id, 'collabcard_id': card_instance.id, 'status': True}
+        func_dict = {'member_id': member_id, 'collabcard_id': card_instance.id, 'status': True,'source':"Event attend"}
         collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_ATTENDING)
 
 
