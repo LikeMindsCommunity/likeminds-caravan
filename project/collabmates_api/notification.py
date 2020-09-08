@@ -424,10 +424,11 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             # 'title': str(card_creater_name) + " @ " + str(community_name),
             'title': title,
             'sub_title': sub_title,
-            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id']),
-            'unread_new_chatroom':custom_payload
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         }
-
+        if typ not in [2, 3]:
+            message['payload']['unread_new_chatroom'] = custom_payload
+            
         notification_meta(notification_list_member, message)
 
         # functionality to send notification to tagged users
