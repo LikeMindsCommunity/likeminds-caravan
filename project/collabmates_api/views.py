@@ -75,6 +75,8 @@ url = settings.URL
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
 
+
+
 # /api/communities?category_id=&member_id=
 
 ############# functions for community api ##########################
@@ -5542,25 +5544,32 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if collabcard_state_filter.exists():
-
+        expire_at = time.time() + HOURS_24
         if is_guest:
-            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance)
+            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expire_at=expire_at)
         else:
-            collabcard_state_filter.update(follow_status=status,updated_at=time.time())
+            collabcard_state_filter.update(follow_status=status,updated_at=time.time(),expire_at=expire_at)
 
     else:
         collabcard_state_instance = collabcardState()
         collabcard_state_instance.card = card_instance
         collabcard_state_instance.community = card_instance.community
         collabcard_state_instance.user = user_instance
-
         collabcard_state_instance.state = 0
-
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = ref_instance
+
+        if 'source' in func_dict and func_dict['source'] == "create_chatroom":
+            expire_at = time.time() + HOURS_24
+            collabcard_state_instance.state = state
+            collabcard_state_instance.expire_at = expire_at
+        elif 'source' in func_dict and func_dict['source'] == "create_conversation":
+            expire_at = time.time() + HOURS_24
+            collabcard_state_instance.expire_at = expire_at
+
         collabcard_state_instance.save()
 
     print("collabcard follow internal hit")
