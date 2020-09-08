@@ -96,7 +96,7 @@ def get_title_from_collabcard(card):
 
 
 def notification_meta(notification_list,message):
-
+    print(notification_list,message)
     '''function to process notification to send'''
 
     token_list_android=[]
@@ -1132,10 +1132,10 @@ def send_evening_level_notification():
         message['payload']={
                 "title" : 'Level up '+str(community_level.community.name),
                 "sub_title" : str(community_level.title) + ". " +str(community_level.sub_title),
-                'route':'route://chatroom_new_feed?community_id='+str(community_level.community.id) + '&community_name=' + str(community_level.community.name) + '&show_level=true'
+                'route':'route://community_collabcard?community_id='+str(community_level.community.id) + '&community_name=' + str(community_level.community.name) + '&show_level=true'
             }
         #todo
-        # notification_meta(notification_list,message)
+        notification_meta(notification_list,message)
 
 
 
@@ -1298,9 +1298,9 @@ def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
 @shared_task
 def send_notification_for_directory_creation(community_id,start_time,day=0):
 
-    #todo
+
     #add update profile notification as well
-    return
+    # return
 
     community_instance = Community.objects.get(id=community_id)
     community_name = community_instance.name
@@ -1357,7 +1357,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", we are reminding you to complete your directory profile. Without an updated profile, you won’t have seamless access to the community. "
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1388,7 +1388,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", please update your profile now to take full advantage of our networking features. This is mandatory for all the members. "
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1419,7 +1419,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of LikeMinds and connect with others."
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1450,7 +1450,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", it has been over 30 days you joined us. Please update your profile and improve your chances of connecting with like-minded folks."
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1620,7 +1620,7 @@ def schedule_poll_end_notification(community_name, community_id, typ, date_time,
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
     celerybeatask = CeleryBeatTask()
-    args = [community_name, community_id, typ,card_id]
+    args = [community_name, community_id, typ,card_id,task_name]
     # date_time = time.time() + 60
     task_path = "collabmates_api.notification.poll_expiry_or_event_remainder_notification"
     kwargs = {}
@@ -1629,7 +1629,7 @@ def schedule_poll_end_notification(community_name, community_id, typ, date_time,
 
 
 @app.task
-def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, card_id,**kwargs):
+def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, card_id,task_name,**kwargs):
 
     """ function to send notification to all members when event/poll is going to start/end """
     print("\ntype === ", typ)
@@ -1700,8 +1700,8 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         # print(message)
         notification_meta(notification_list, message)
         # disable the task , to prevent it from trigerring in future
-        # beat_task = CeleryBeatTask()
-        # beat_task.stop_task(task_name=kwargs['task_name'])
+        beat_task = CeleryBeatTask()
+        beat_task.terminate_task(task_name=task_name)
 
     except:
         print("Error while connecting to PostgreSQL")
