@@ -534,15 +534,6 @@ def get_chatroom_name(user_name, card):
 def get_chatroom_instance(card_instance, member_id, current_user_id=None):
     collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=current_user_id)
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
-    if collabcard_member:
-        collabcard_serializer['member'] = collabcard_member[0]
-    else:
-        collabcard_serializer['member'] = UserinfoSerializer(card_instance.user.userinfo)
-        collabcard_serializer['state'] = 0
-
-    # removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
-    # if removed_state != False:
-    #     collabcard_serializer['member']['remove_state'] = removed_state
 
     # get chatroom status
     status = get_status_of_collabcard(member_id, card_instance)
@@ -551,17 +542,41 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None):
     collabcard_serializer['follow_status'] = status['follow_status']
     collabcard_serializer['is_guest'] = status['is_guest']
 
-    if status['remove']:
-        instance = status['remove']
-        temp = get_removed_member_custom_text(instance)
+    collabcard_serializer['member'] = collabcard_member[0]
+
+    is_removed = removedMembers.objects.filter(community=card_instance.community,member_id=collabcard_serializer['member']['id'])
+
+    if  collabcard_serializer['member']['state'] == 0 and is_removed.exists():
+        temp = get_removed_member_custom_text(is_removed[0])
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-    elif status['is_guest']:
-        temp = get_guest_custom_text(status['state_instance'])
-        collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-        collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
+
+
+    # removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
+    # if removed_state != False:
+    #     collabcard_serializer['member']['remove_state'] = removed_state
+
+
+
+
+
+
+    # if status['remove']:
+    #     instance = status['remove']
+    #     temp = get_removed_member_custom_text(instance)
+    #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+    #     collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
+    #     collabcard_serializer['member']['remove_state'] = temp['remove_state']
+    #     collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
+    # if status['is_guest'] and status['state_instance'].source:
+    #     temp = get_guest_custom_text(status['state_instance'])
+    #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+    #     collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
+
+
+
 
     # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
@@ -791,6 +806,9 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
             'member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
                                                                                                            time.localtime(
                                                                                                                member_instance.created_at))
+    elif member_instance.state == member_states.PENDING_MEMBER:
+        community_profile['member_since'] = "Verification pending for " + member_instance.community_id.name
+
 
     if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
         community_profile['custom_intro_text'] = """Created this community on %s""" % (

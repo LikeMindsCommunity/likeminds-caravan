@@ -301,6 +301,7 @@ class conversationEngage(models.Model):
 
     user = models.ForeignKey(User,on_delete=models.CASCADE)
     card = models.ForeignKey(Collabcard,on_delete=models.CASCADE,null=True)
+    community = models.ForeignKey(Community,on_delete=models.CASCADE,null=True)
     last_conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True)
     unseen_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
