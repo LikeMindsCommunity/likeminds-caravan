@@ -5463,7 +5463,7 @@ def collabcard_follow(request, function_dict=None):
         collabcard_state_instance.card = collabcard
         collabcard_state_instance.community = community_instance
         collabcard_state_instance.user = user_instance
-        collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+        collabcard_state_instance.state = 0
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
@@ -5488,11 +5488,8 @@ def collabcard_follow(request, function_dict=None):
 
         if status:
 
-            state = collabcard_states.COLLABCARD_STATE_SEEN
-            if collabcard_state_filter[0].card.type == card_types.CARD_EVENT or collabcard_state_filter[0].card.type == card_types.CARD_PUBLIC_EVENT:
-                collabcard_state_filter.update(follow_status = status,updated_at=time.time())
-            else:
-                collabcard_state_filter.update(state=state, follow_status = status,updated_at=time.time())
+
+            collabcard_state_filter.update(follow_status = status,updated_at=time.time())
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
@@ -5500,8 +5497,7 @@ def collabcard_follow(request, function_dict=None):
             create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
 
         else:
-            collabcard_state_filter.update(state=collabcard_states.COLLABCARD_STATE_SEEN,follow_status = status,
-                                                                                   updated_at=time.time())
+            collabcard_state_filter.update(follow_status = status, updated_at=time.time())
 
             #deleting the conversation engage
             delete_status = conversationEngage.objects.filter(card=collabcard,user=user_instance).delete()
@@ -5549,43 +5545,22 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance)
-        elif 'source' in func_dict and func_dict['source'] == "create_conversation":
-            state=collabcard_state_filter[0].state
-            collabcard_state_filter.update(follow_status=status, state=state, updated_at=time.time())
-        elif 'source' in func_dict and func_dict['source'] == "create_chatroom":
-            inactive_time= time.time() + 86400
-            collabcard_state_filter.update(follow_status=status, state=state, updated_at=time.time(),expire_at=inactive_time)
         else:
-            collabcard_state_filter.update(follow_status=status, state=state,updated_at=time.time())
+            collabcard_state_filter.update(follow_status=status,updated_at=time.time())
 
     else:
         collabcard_state_instance = collabcardState()
         collabcard_state_instance.card = card_instance
         collabcard_state_instance.community = card_instance.community
         collabcard_state_instance.user = user_instance
+
+        collabcard_state_instance.state = 0
+
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = ref_instance
-
-        # if the user is coming by notification or chatroom link and creates conversation
-        if 'source' in func_dict and func_dict['source'] == "create_conversation":
-            collabcard_state_instance.state = 0
-            inactive_time = time.time() + 86400
-
-            collabcard_state_instance.expire_at = inactive_time  # 24 hours
-
-        # if the user creates a chatroom then auto-following the chatroom
-        elif 'source' in func_dict and func_dict['source'] == "create_chatroom":
-            collabcard_state_instance.state = state
-            inactive_time = time.time() + 86400
-            print(inactive_time)
-            collabcard_state_instance.expire_at = inactive_time  # 24 hours
-        else:
-            collabcard_state_instance.state = state
-
-
         collabcard_state_instance.save()
 
     print("collabcard follow internal hit")
@@ -9489,7 +9464,8 @@ def submit_poll(request):
         function_dict = {
             'member_id': user_instance.id,
             'collabcard_id': card_instance.id,
-            'status': True
+            'status': True,
+            'source' : "submit poll"
         }
         collabcard_follow_internal(function_dict)
         return JsonResponse({"success": True})
