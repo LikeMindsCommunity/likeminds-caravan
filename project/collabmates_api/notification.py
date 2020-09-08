@@ -481,7 +481,7 @@ def send_follow_notification(card_id,user_id,answer):
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select user_id from togther_collabcardstate where card_id=%s and follow_status = True and removed_status is null and mute_status = False"
+        sql="select user_id from togther_collabcardstate where card_id=%s and follow_status = True and remove_id is null and mute_status = False"
         parameter_list=[card_id]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
@@ -672,6 +672,9 @@ def get_last_conversation_unique_names(card_instance,user_id):
 
         answer_filter = card_answers.objects.filter(card=card_instance,state=0,id__gt=last_conversation.id).order_by('-id')
         for answer in answer_filter:
+
+            if answer.user.id == user_id:
+                continue
             if answer.user not in name_set:
                 name_set.add(answer.user)
                 name_list.append(answer.user.userinfo.name)
@@ -1153,6 +1156,10 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                                             date_time=start_time, interval=False, crontab=True)
 
 
+
+
+
+
 @app.task
 def send_notification_to_join_drop_off_scheduled(member_id, community_id, aj, time_in_hrs):
     #check if they created the profile. 
@@ -1224,6 +1231,7 @@ def send_notification_to_join_drop_off_scheduled_2(member_id, community_id, aj, 
     # member_name = user_instance.userinfo.name
     community_instance = Community.objects.get(id=community_id)
     community_name = community_instance.name
+
 
     if member.exists():
         return
@@ -1608,11 +1616,12 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
 @shared_task
 def schedule_poll_end_notification(community_name, community_id, typ, date_time,card_id):
-    task_name = card_id + "_poll_expiry_or_event_remainder_notification"
+    task_name = str(card_id) + "_poll_expiry_or_event_remainder_notification"
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
     celerybeatask = CeleryBeatTask()
-    args = [community_name, community_id, typ]
+    args = [community_name, community_id, typ,card_id]
+    # date_time = time.time() + 60
     task_path = "collabmates_api.notification.poll_expiry_or_event_remainder_notification"
     kwargs = {}
     celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1620,25 +1629,25 @@ def schedule_poll_end_notification(community_name, community_id, typ, date_time,
 
 
 @app.task
-def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, **kwargs):
+def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, card_id,**kwargs):
 
     """ function to send notification to all members when event/poll is going to start/end """
     print("\ntype === ", typ)
     print(" community-id === ", community_id)
     print("kwargs === ", kwargs,"\n")
-    try:
+    # try:
+    if 1:
         if typ == 2:
-            token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
+            token_list = list(collabcardState.objects.filter(card=card_id).filter(
                                  Q(state=3) |
                                  Q(state=4)).filter(removed_status=None).values_list('user__userinfo__fcm_token', flat=True))
 
         else:
-            token_list = list(MemberPollVotes.objects.filter(card=kwargs[
-                                                                'card_id']).order_by('-id').values_list(
+            token_list = list(MemberPollVotes.objects.filter(card=card_id).order_by('-id').values_list(
                                                                 'user__userinfo__fcm_token', flat=True))
         print("token list ===== ", token_list)
 
-        card_instance = Collabcard.objects.get(pk=kwargs['card_id'])
+        card_instance = Collabcard.objects.get(pk=card_id)
 
         user_fcm = card_instance.user.userinfo.fcm_token
 
@@ -1655,17 +1664,15 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         message['payload'] = {
             'title': str(community_name),
             'sub_title': sub_title,
-            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
+            'route': 'route://collabcard?collabcard_id='+str(card_id)
         }
-
+        # print(message)
         send_notification_to_multiple_devices(token_list, message)
         # disable the task , to prevent it from trigerring in future
-        beat_task = CeleryBeatTask()
-        beat_task.stop_task(task_name=kwargs['task_name'])
+        # beat_task = CeleryBeatTask()
+        # beat_task.stop_task(task_name=kwargs['task_name'])
 
-    except:
-        print("Error while connecting to PostgreSQL")
-
-
+    # except:
+    #     print("Error while connecting to PostgreSQL")
 
 

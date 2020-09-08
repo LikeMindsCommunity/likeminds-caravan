@@ -41,7 +41,7 @@ from collabmates_api.views import send_email_for_collabcard
 url = settings.URL
 import logging
 # uncomment to run it in localhost
-# url='http://localhost:8000'
+url='http://likeminds.community'
 error_logger=logging.getLogger("error_logger")
 info_logger=logging.getLogger("info_logger")
 api_url = url + '/api/'
