@@ -1357,7 +1357,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", we are reminding you to complete your directory profile. Without an updated profile, you won’t have seamless access to the community. "
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1388,7 +1388,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", please update your profile now to take full advantage of our networking features. This is mandatory for all the members. "
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1419,7 +1419,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of LikeMinds and connect with others."
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1450,7 +1450,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", it has been over 30 days you joined us. Please update your profile and improve your chances of connecting with like-minded folks."
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id)
+            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
