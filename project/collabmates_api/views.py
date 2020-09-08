@@ -5231,6 +5231,11 @@ def collabcard_follow(request, function_dict=None):
     collabcard_id = request.GET.get('collabcard_id', '')
     member_id = request.GET.get('member_id', '')
     status = request.GET.get('value', 'true')
+    expire_by = time.time() + HOURS_24
+    func_dict = {
+        'expire_by': expire_by,
+        'source': "external collabcard follow"
+    }
 
     if status != 'true':
         status = False              #unfollowed
@@ -5277,6 +5282,7 @@ def collabcard_follow(request, function_dict=None):
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
         collabcard_state_instance.is_guest = is_guest
+        collabcard_state_instance.expire_by = expire_by
         collabcard_state_instance.save()
 
         if status:
@@ -5284,7 +5290,8 @@ def collabcard_follow(request, function_dict=None):
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
 
-            create_chatroom_engagement(card_instance=collabcard,user_instance=user_instance)
+
+            create_chatroom_engagement(card_instance=collabcard,user_instance=user_instance,func_dict=func_dict)
 
     else:
         follow_status = collabcard_state_filter[0].follow_status
@@ -5298,12 +5305,12 @@ def collabcard_follow(request, function_dict=None):
         if status:
 
 
-            collabcard_state_filter.update(follow_status = status,updated_at=time.time())
+            collabcard_state_filter.update(follow_status = status,updated_at=time.time(),expire_by=expire_by)
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
 
-            create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
+            create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance,func_dict=func_dict)
 
         else:
             collabcard_state_filter.update(follow_status = status, updated_at=time.time())
@@ -5332,7 +5339,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     is_guest = False
     ref_instance = None
     expire_at = time.time() + HOURS_24
-    print(func_dict)
+
 
     if 'is_guest' in func_dict:
         is_guest = func_dict['is_guest']
