@@ -5490,10 +5490,10 @@ def collabcards_seen(request):
 
 def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
     '''This internal functions stores the details of members who have seen the card'''
-
-    if str(collabcard_type) == str(5):  # unverifeid collabcard
-        collabcardTemp.objects.filter(id=card_id).update(state=1)
-        return JsonResponse({'success': True})
+    #
+    # if str(collabcard_type) == str(5):  # unverifeid collabcard
+    #     collabcardTemp.objects.filter(id=card_id).update(state=1)
+    #     return JsonResponse({'success': True})
 
     community = Community.objects.get(id=community_id)
     user_instance = User.objects.get(id=user_id)
@@ -5501,6 +5501,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
 
     # saving the state in collabcard state table if it is not present
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
+    expired_at = time.time() + HOURS_24
     if not is_present.exists():
         collabcard_state_instance = collabcardState()
         collabcard_state_instance.card = card_instance
@@ -5509,6 +5510,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
         collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.expire_at = expired_at
         collabcard_state_instance.save()
     else:
         state_instance = is_present[0]
