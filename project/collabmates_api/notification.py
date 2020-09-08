@@ -1635,24 +1635,55 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
     print("\ntype === ", typ)
     print(" community-id === ", community_id)
     print("kwargs === ", kwargs,"\n")
-    # try:
-    if 1:
+    try:
+        card_instance = Collabcard.objects.get(pk=card_id)
+        card_owner = card_instance.user
+        owner_flag = False
+
         if typ == 2:
-            token_list = list(collabcardState.objects.filter(card=card_id).filter(
-                                 Q(state=3) |
-                                 Q(state=4)).filter(removed_status=None).values_list('user__userinfo__fcm_token', flat=True))
+            collabcardstates = collabcardState.objects.filter(card=card_id).filter(Q(state=3) |Q(state=4)).filter(removed_status=None)
+            notification_list = []
+            for ccs in collabcardstates:
+                if card_owner.id == ccs.user.id:
+                    owner_flag = True
+                notification_details = get_token_for_fcm(ccs.user.id, flag=True)
+                temp = {
+                    'id': ccs.user.id,
+                    'fcm_token': notification_details[0],
+                    'mobile_os': notification_details[1],
+                }
+
+                notification_list.append(temp)
+
 
         else:
-            token_list = list(MemberPollVotes.objects.filter(card=card_id).order_by('-id').values_list(
-                                                                'user__userinfo__fcm_token', flat=True))
-        print("token list ===== ", token_list)
+            members = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
+            notification_list = []
+            for member in members:
+                if card_owner.id == member.user.id:
+                    owner_flag = True
+                notification_details = get_token_for_fcm(member.user.id,flag=True)
+                temp = {
+                    'id':member.user.id,
+                    'fcm_token':notification_details[0],
+                    'mobile_os':notification_details[1],
+                }
 
-        card_instance = Collabcard.objects.get(pk=card_id)
+                notification_list.append(temp)
+        # print("token list ===== ", token_list)
 
-        user_fcm = card_instance.user.userinfo.fcm_token
+        #if card owner did not vote, add him to notification list
+        if owner_flag == False:
+            notification_details = get_token_for_fcm(card_owner.id, flag=True)
+            temp = {
+                'id': card_owner.id,
+                'fcm_token': notification_details[0],
+                'mobile_os': notification_details[1],
+            }
+            notification_list.append(temp)
 
-        if not user_fcm in token_list:
-            token_list.append(user_fcm)
+        # if not user_fcm in token_list:
+        #     token_list.append(user_fcm)
 
 
         if typ == 3:
@@ -1667,12 +1698,12 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
             'route': 'route://collabcard?collabcard_id='+str(card_id)
         }
         # print(message)
-        send_notification_to_multiple_devices(token_list, message)
+        notification_meta(notification_list, message)
         # disable the task , to prevent it from trigerring in future
         # beat_task = CeleryBeatTask()
         # beat_task.stop_task(task_name=kwargs['task_name'])
 
-    # except:
-    #     print("Error while connecting to PostgreSQL")
+    except:
+        print("Error while connecting to PostgreSQL")
 
 
