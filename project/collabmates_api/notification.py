@@ -96,7 +96,7 @@ def get_title_from_collabcard(card):
 
 
 def notification_meta(notification_list,message):
-
+    print(notification_list,message)
     '''function to process notification to send'''
 
     token_list_android=[]
@@ -1132,10 +1132,10 @@ def send_evening_level_notification():
         message['payload']={
                 "title" : 'Level up '+str(community_level.community.name),
                 "sub_title" : str(community_level.title) + ". " +str(community_level.sub_title),
-                'route':'route://chatroom_new_feed?community_id='+str(community_level.community.id) + '&community_name=' + str(community_level.community.name) + '&show_level=true'
+                'route':'route://community_collabcard?community_id='+str(community_level.community.id) + '&community_name=' + str(community_level.community.name) + '&show_level=true'
             }
         #todo
-        # notification_meta(notification_list,message)
+        notification_meta(notification_list,message)
 
 
 
@@ -1298,9 +1298,9 @@ def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
 @shared_task
 def send_notification_for_directory_creation(community_id,start_time,day=0):
 
-    #todo
+
     #add update profile notification as well
-    return
+    # return
 
     community_instance = Community.objects.get(id=community_id)
     community_name = community_instance.name
