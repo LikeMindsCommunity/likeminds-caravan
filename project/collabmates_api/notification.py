@@ -428,7 +428,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         }
         if typ not in [2, 3]:
             message['payload']['unread_new_chatroom'] = custom_payload
-            
+
         notification_meta(notification_list_member, message)
 
         # functionality to send notification to tagged users
@@ -1606,6 +1606,65 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
 #         notification_meta(notification_list,message)
 
+@shared_task
+def schedule_poll_end_notification(community_name, community_id, typ, date_time,card_id):
+    task_name = card_id + "_poll_expiry_or_event_remainder_notification"
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+    celerybeatask = CeleryBeatTask()
+    args = [community_name, community_id, typ]
+    task_path = "collabmates_api.notification.poll_expiry_or_event_remainder_notification"
+    kwargs = {}
+    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                            date_time=date_time, interval=False, crontab=True)
+
+
+@app.task
+def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, **kwargs):
+
+    """ function to send notification to all members when event/poll is going to start/end """
+    print("\ntype === ", typ)
+    print(" community-id === ", community_id)
+    print("kwargs === ", kwargs,"\n")
+    try:
+        if typ == 2:
+            token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
+                                 Q(state=3) |
+                                 Q(state=4)).filter(removed_status=None).values_list('user__userinfo__fcm_token', flat=True))
+
+        else:
+            token_list = list(MemberPollVotes.objects.filter(card=kwargs[
+                                                                'card_id']).order_by('-id').values_list(
+                                                                'user__userinfo__fcm_token', flat=True))
+        print("token list ===== ", token_list)
+
+        card_instance = Collabcard.objects.get(pk=kwargs['card_id'])
+
+        user_fcm = card_instance.user.userinfo.fcm_token
+
+        if not user_fcm in token_list:
+            token_list.append(user_fcm)
+
+
+        if typ == 3:
+            sub_title = 'Your poll ended. Tap to see results'
+        else:
+            sub_title = 'Your event is starting in 30 minutes'
+
+        message = {}
+        message['payload'] = {
+            'title': str(community_name),
+            'sub_title': sub_title,
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
+        }
+
+        send_notification_to_multiple_devices(token_list, message)
+        # disable the task , to prevent it from trigerring in future
+        beat_task = CeleryBeatTask()
+        beat_task.stop_task(task_name=kwargs['task_name'])
+
+    except:
+        print("Error while connecting to PostgreSQL")
 
 
 
