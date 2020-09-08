@@ -2651,7 +2651,9 @@ def create_chatroom_engagement(card_instance, user_instance,func_dict=None):
         instance_list.last_conversation = None
         instance_list.unseen_count = 0
         instance.updated_at = time.time()
-        instance.expire_at = expire_at
+
+        if instance.expire_at and expire_at > instance.expire_at:
+            instance.expire_at = expire_at
         instance.save()
 
 
@@ -5231,9 +5233,9 @@ def collabcard_follow(request, function_dict=None):
     collabcard_id = request.GET.get('collabcard_id', '')
     member_id = request.GET.get('member_id', '')
     status = request.GET.get('value', 'true')
-    expire_by = time.time() + HOURS_24
+    expire_at = time.time() + HOURS_24
     func_dict = {
-        'expire_by': expire_by,
+        'expire_by': expire_at,
         'source': "external collabcard follow"
     }
 
@@ -5304,8 +5306,11 @@ def collabcard_follow(request, function_dict=None):
 
         if status:
 
+            current_expire_at = collabcard_state_filter[0].expire_by
+            if current_expire_at and expire_at > current_expire_at:
+                current_expire_at = expire_at
 
-            collabcard_state_filter.update(follow_status = status,updated_at=time.time(),expire_by=expire_by)
+            collabcard_state_filter.update(follow_status = status,updated_at=time.time(),expire_at=current_expire_at)
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
@@ -5358,6 +5363,10 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if collabcard_state_filter.exists():
+
+        if collabcard_state_filter[0].expire_at and expire_at < collabcard_state_filter[0].expire_at:
+            expire_at = collabcard_state_filter[0].expire_at
+
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expire_at=expire_at)
         else:
