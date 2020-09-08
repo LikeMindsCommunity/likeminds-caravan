@@ -265,7 +265,7 @@ def your_communities(request, user_id):
             # collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id, , current_user_id=current_user_id)
             # user = each_community.last_unseen_conversation.user
             # collabcard['member'] = UserinfoSerializer(user.userinfo)
-            collabcard = get_chatroom_instance(each_community.last_unseen_conversation, member_id)
+            collabcard = get_chatroom_instance(each_community.last_unseen_conversation, member_id, current_user_id=current_user_id)
             community['collabcard'] = collabcard
 
         if each_community.member_referral:
@@ -1742,6 +1742,7 @@ def fetch_user_chatrooms(request):
     state = request.GET.get('state', 0)
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
+    current_user_id = get_member_id_from_headers(request)
     chatrooms = []
 
     # chatrooms created by user
@@ -1752,7 +1753,7 @@ def fetch_user_chatrooms(request):
         chatroom_filter = pagination(chatroom_filter, page, paginate_by=10)
 
         for chatroom in chatroom_filter:
-            temp = get_chatroom_instance(chatroom, user_id)
+            temp = get_chatroom_instance(chatroom, user_id, current_user_id=current_user_id)
             chatrooms.append(temp)
 
         return JsonResponse({'chatrooms': chatrooms, 'total_chatrooms_created': created_chatroom_count})
@@ -1769,7 +1770,7 @@ def fetch_user_chatrooms(request):
         followed_chatroom_count = state_filter.count()
         state_filter = pagination(state_filter, page, paginate_by=10)
         for chatroom in state_filter:
-            temp = get_chatroom_instance(chatroom.card, user_id)
+            temp = get_chatroom_instance(chatroom.card, user_id, current_user_id=current_user_id)
             temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
             chatrooms.append(temp)
 
@@ -4246,7 +4247,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     # if the chatroom is deleted
     if card_instance.type == card_types.CARD_HIDDEN:
-        card = get_chatroom_instance(card_instance, user_id, current_user_id=user_id)
+        card = get_chatroom_instance(card_instance, user_id)
         context = {'chatroom': card}
         return context
 
@@ -4298,7 +4299,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
         conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id)
 
-    card = get_chatroom_instance(card_instance, user_id, current_user_id=user_id)
+    card = get_chatroom_instance(card_instance, user_id)
 
     card_status = {
         'state': card['state'],
@@ -5873,7 +5874,7 @@ def get_chatrooms(chatroom_list, member_id):
     chatrooms = []
 
     for card_instance in chatroom_list:
-        chatroom_instance = get_chatroom_instance(card_instance, member_id, current_user_id=member_id)
+        chatroom_instance = get_chatroom_instance(card_instance, member_id)
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
