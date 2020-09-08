@@ -5619,7 +5619,7 @@ def collabcard_follow(request, function_dict=None):
         collabcard_state_instance.card = collabcard
         collabcard_state_instance.community = community_instance
         collabcard_state_instance.user = user_instance
-        collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+        collabcard_state_instance.state = 0
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
@@ -5644,11 +5644,8 @@ def collabcard_follow(request, function_dict=None):
 
         if status:
 
-            state = collabcard_states.COLLABCARD_STATE_SEEN
-            if collabcard_state_filter[0].card.type == card_types.CARD_EVENT or collabcard_state_filter[0].card.type == card_types.CARD_PUBLIC_EVENT:
-                collabcard_state_filter.update(follow_status = status,updated_at=time.time())
-            else:
-                collabcard_state_filter.update(state=state, follow_status = status,updated_at=time.time())
+
+            collabcard_state_filter.update(follow_status = status,updated_at=time.time())
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
@@ -5716,10 +5713,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
         #if the user is coming by notification or chatroom link and creates conversation
         if 'source' in func_dict and func_dict['source'] == "create_conversation":
-
             collabcard_state_instance.state = 0
-        else:
-            collabcard_state_instance.state = state
+        elif 'source' in func_dict and func_dict['source'] == "submit_poll":
+            collabcard_state_instance.state = 0
 
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
@@ -9629,7 +9625,8 @@ def submit_poll(request):
         function_dict = {
             'member_id': user_instance.id,
             'collabcard_id': card_instance.id,
-            'status': True
+            'status': True,
+            'source' : "submit poll"
         }
         collabcard_follow_internal(function_dict)
         return JsonResponse({"success": True})
