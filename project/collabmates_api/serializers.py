@@ -4,16 +4,17 @@ import time
 from django.conf import settings
 from django.db.models import Q
 from togther.models import *
-from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
-    generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom,get_date_time_from_timestamp
+from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_community_id, \
+    generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
+    is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp
 
-from utility.states import card_types,question_states,member_states, poll_types,deleted_members
-
+from utility.states import card_types, question_states, member_states, poll_types, deleted_members
 
 url = settings.URL
 import ast
 from .static_files import *
-from datetime import datetime,date
+from datetime import datetime, date
+
 
 #
 # class CommunitySerializer(serializers.HyperlinkedModelSerializer):
@@ -22,14 +23,9 @@ from datetime import datetime,date
 #         fields = ('id','name', 'purpose', 'image_url' ,'about', 'location')
 
 
-
-
-
-
-
-def CommunitySerializer(community,promoter_id=0):
+def CommunitySerializer(community, promoter_id=0):
     # function to serialize a community object
-    new_dict =  {
+    new_dict = {
         'id': community.id,
         'name': community.name,
         'purpose': community.purpose,
@@ -41,7 +37,7 @@ def CommunitySerializer(community,promoter_id=0):
         new_dict['about'] = community.about
 
     if community.image_link:
-        new_dict['image_url']=community.image_link
+        new_dict['image_url'] = community.image_link
     elif community.image_url:
         new_dict['image_url'] = community.image_url.url
     else:
@@ -50,65 +46,63 @@ def CommunitySerializer(community,promoter_id=0):
     if community.image_link_round:
         new_dict['image_url_round'] = community.image_link_round
 
-
     if new_dict['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
-        new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+        new_dict[
+            'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
     elif not community.image_link:
         new_dict['image_url'] = url + new_dict['image_url']
     new_dict['is_member'] = ''
 
-
-
     new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
-
-
 
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_members_count_in_community(community.id)
-    new_dict['state']=int(community.hide_community)
+    new_dict['state'] = int(community.hide_community)
 
-    #generating private link
+    # generating private link
     if promoter_id:
         private_link = generate_private_link(community_instance=community,
-                                                                  promoter_instance=promoter_id)
+                                             promoter_instance=promoter_id)
         new_dict['private_link'] = private_link
         if new_dict['members_count'] <= 10:
-            new_dict['private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s"""%(community.name,private_link)
+            new_dict[
+                'private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
+            community.name, private_link)
         else:
-            new_dict['private_link_text_admin'] = """Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s"""%(community.name,private_link)
+            new_dict[
+                'private_link_text_admin'] = """Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
+            community.name, private_link)
 
         new_dict['private_link_members_directory'] = private_link + "&source=members_directory"
-        new_dict['private_link_text_members_directory'] = """I have created a community directory for %s on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s"""%(community.name,new_dict['private_link_members_directory'])
-
-
+        new_dict[
+            'private_link_text_members_directory'] = """I have created a community directory for %s on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
+        community.name, new_dict['private_link_members_directory'])
 
     if community.type:
-        new_dict['type']=community.type
+        new_dict['type'] = community.type
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
 
+    new_dict[
+        'share_text_admin'] = """I am building %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
+        new_dict['name'], new_dict['purpose'], new_dict['share_url'])
 
-    new_dict['share_text_admin'] = """I am building %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
-    new_dict['name'],new_dict['purpose'],new_dict['share_url'])
+    new_dict[
+        'share_text_member'] = """I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
+        new_dict['name'], new_dict['purpose'], new_dict['share_url'])
 
-    new_dict['share_text_member'] = """I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
-    new_dict['name'],new_dict['purpose'],new_dict['share_url'])
-
-    new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
-    new_dict['name'])
-
-
+    new_dict[
+        'share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
+        new_dict['name'])
 
     new_dict['min_referrer_member'] = eligibility_count
 
-
-
-
     return new_dict
+
 
 def UserinfoSerializer(user):
     # function to serialize a userinfo object
-            #if the community is not feedback community
+    # if the community is not feedback community
     userinfo = {
         'id': user.user_id.id,
         "name": user.name,
@@ -128,7 +122,6 @@ def UserinfoSerializer(user):
 
 
 def get_logged_in_user(user_instance):
-
     context = UserinfoSerializer(user_instance.userinfo)
 
     email_filter = userEmails.objects.filter(user=user_instance)
@@ -156,9 +149,10 @@ def get_logged_in_user(user_instance):
 
     return context
 
-def CollabcardSerializer(card,user,community=None):
+
+def CollabcardSerializer(card, user, community=None, current_user_id=None):
     # function to serialize a community object
-    collabcard={
+    collabcard = {
         'id': card.id,
         'title': card.title,
         'community_id': card.community_id,
@@ -169,13 +163,13 @@ def CollabcardSerializer(card,user,community=None):
         'type': card.type,
         'date_time': card.date_time,
         'duration': card.duration,
-        'answers_count':card.answers_count,
+        'answers_count': card.answers_count,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
-        'card_creation_time' : time.strftime('%I:%M %p', time.localtime(card.date_epoch)),
-        "community_name" : card.community.name,
-        "date" : time.strftime('%d %b %Y', time.localtime(card.date_epoch)),
-        "created_at":time.strftime('%H:%M', time.localtime(card.date_epoch))
+        'card_creation_time': time.strftime('%I:%M %p', time.localtime(card.date_epoch)),
+        "community_name": card.community.name,
+        "date": time.strftime('%d %b %Y', time.localtime(card.date_epoch)),
+        "created_at": time.strftime('%H:%M', time.localtime(card.date_epoch))
     }
 
     if user and int(user) == card.user.id:
@@ -184,31 +178,32 @@ def CollabcardSerializer(card,user,community=None):
     if card.community.image_link_round:
         collabcard['image_url_round'] = card.community.image_link_round
 
-    #for poll card
+    # for poll card
     if card.type == card_types.CARD_POLL:
         polls = []
         card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
         for poll in card_polls:
             polls.append(CollabcardPollsSerializer(poll, user, card))
 
+        collabcard["answer_text"] = get_answer_text_for_poll(card, current_user_id)
         collabcard['polls'] = polls
         collabcard['expiry_time'] = card.end_date
 
         if card.multiple_select:
             collabcard['multiple_select'] = card.multiple_select
-        if card.multiple_select_no:
-         collabcard['multiple_select_no'] = card.multiple_select_no
-        if card.multiple_select_state:
+        if card.multiple_select_no is not None:
+            collabcard['multiple_select_no'] = card.multiple_select_no
+        if card.multiple_select_state is not None:
             collabcard['multiple_select_state'] = card.multiple_select_state
 
         collabcard['is_anonymous'] = card.is_poll_anonymous
         collabcard['allow_add_option'] = card.allow_add_option
         collabcard['poll_type'] = card.poll_type
-        collabcard['poll_type_text'] = "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+        collabcard[
+            'poll_type_text'] = "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
         collabcard['submit_type_text'] = "Secret voting" if card.is_poll_anonymous else "Public voting"
 
-
-    #for event card
+    # for event card
     if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT or card.type == card_types.CARD_POLL:
         if card.location:
             collabcard['location'] = card.location
@@ -225,26 +220,23 @@ def CollabcardSerializer(card,user,community=None):
         if card.end_date:
             collabcard['end_date'] = card.end_date
 
-
         if card.about:
             collabcard['about'] = card.about
 
         if card.co_hosts:
             co_host_list = json.loads(card.co_hosts)
-            #co_host_list = [36]
-            #print(user)
+            # co_host_list = [36]
+            # print(user)
             if not user:
                 user = None
 
-            collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list,community_id=card.community.id,
+            collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community.id,
                                                          current_user_id=user)
 
         if card.online_link:
             collabcard['online_link'] = card.online_link
 
-
-
-    #for sending header
+    # for sending header
     if card.header:
         collabcard['header'] = card.header
     else:
@@ -258,32 +250,31 @@ def CollabcardSerializer(card,user,community=None):
         og_tags = json.loads(card.og_tags)
         collabcard['og_tags'] = og_tags
 
-    #FOR PURPOSE CARD
+    # FOR PURPOSE CARD
     if card.updated_member:
         member_ids = [card.updated_member]
-        temp=get_members_profile(member_ids=member_ids,community_id=card.community_id,current_user_id=user)
+        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id, current_user_id=user)
         collabcard['updated_member'] = temp[0]
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
 
-    share = get_share_url_text(card,user)
-    collabcard['share_url'] =  share['share_url']
+    share = get_share_url_text(card, user)
+    collabcard['share_url'] = share['share_url']
     collabcard['creator_share_url'] = share['creator_share_url']
     collabcard['link_created_at'] = share['link_created_at']
-
     collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
 
     return collabcard
 
 
-def draftChatroomSerializer(card,user,community=None):
+def draftChatroomSerializer(card, user, community=None):
     # function to serialize a community object
-    chatroom={
+    chatroom = {
         'id': card.id,
         'title': card.title,
         'community_id': card.community_id,
-        #'share_url': url + '/collabcard/' + str(card.id), #+ "?ref_id=" + str(card.user.id),
+        # 'share_url': url + '/collabcard/' + str(card.id), #+ "?ref_id=" + str(card.user.id),
         'answer_text': card.answer_text,
         'share_link': card.share_link,
         'image_count': card.image_count,
@@ -293,10 +284,10 @@ def draftChatroomSerializer(card,user,community=None):
         'duration': card.duration,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
-        'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch))
+        'card_creation_time': time.strftime('%B %d at %H:%M', time.localtime(card.date_epoch))
     }
 
-    #for poll card
+    # for poll card
     if card.type == card_types.CARD_POLL:
         polls = []
         cardPolls = draftPolls.objects.filter(draft=card).order_by('id')
@@ -319,7 +310,7 @@ def draftChatroomSerializer(card,user,community=None):
             'poll_type_text'] = "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
         chatroom['submit_type_text'] = "Secret voting" if card.is_poll_anonymous else "Public voting"
 
-    #for event card
+    # for event card
     if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT or card.type == card_types.CARD_POLL:
         if card.location:
             chatroom['location'] = card.location
@@ -344,13 +335,13 @@ def draftChatroomSerializer(card,user,community=None):
             if not user:
                 user = None
 
-            chatroom['co_hosts'] = get_members_profile(member_ids=co_host_list,community_id=card.community.id,
-                                                         current_user_id=user)
+            chatroom['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community.id,
+                                                       current_user_id=user)
 
         if card.online_link:
             chatroom['online_link'] = card.online_link
 
-    #for sending header
+    # for sending header
     if card.header:
         chatroom['header'] = card.header
     else:
@@ -367,12 +358,10 @@ def draftChatroomSerializer(card,user,community=None):
 
     chatroom['polls'] = polls
 
-
     return chatroom
 
 
-
-def get_collabcard_files(card_id,draft=False):
+def get_collabcard_files(card_id, draft=False):
     '''function to return pdf and image files of a collabcard'''
 
     if not draft:
@@ -397,8 +386,7 @@ def get_collabcard_files(card_id,draft=False):
     return (img_list, pdf)
 
 
-def get_share_url_text(card,user_id):
-
+def get_share_url_text(card, user_id):
     '''function to share url text'''
 
     share = {}
@@ -408,46 +396,54 @@ def get_share_url_text(card,user_id):
 
     else:
         user_instance = User.objects.get(id=user_id)
-        card_temp = generate_private_link_for_chatroom(card,user_instance)
+        card_temp = generate_private_link_for_chatroom(card, user_instance)
         card_url = card_temp['private_link']
         share['link_created_at'] = card_temp['private_link_created_at']
 
     share['share_url'] = card_url
     share['creator_share_url'] = card_url
 
-
     if card.type == card_types.CARD_PUBLIC_EVENT:
 
-        share['share_url']  = """Check out this interesting event on LikeMinds: %s"""%(card_url)
-        share['creator_share_url'] = """Hosting this open event for %s on LikeMinds. RSVP on this link to join us: %s"""%(card.community.name,card_url)
+        share['share_url'] = """Check out this interesting event on LikeMinds: %s""" % (card_url)
+        share[
+            'creator_share_url'] = """Hosting this open event for %s on LikeMinds. RSVP on this link to join us: %s""" % (
+        card.community.name, card_url)
 
     elif card.type == card_types.CARD_EVENT:
 
-        share['share_url'] = """Join us for this event: %s"""%(card_url)
-        share['creator_share_url'] = """Hosting this event for %s. RSVP on this link to join us: %s"""%(card.community.name,card_url)
+        share['share_url'] = """Join us for this event: %s""" % (card_url)
+        share['creator_share_url'] = """Hosting this event for %s. RSVP on this link to join us: %s""" % (
+        card.community.name, card_url)
 
     elif card.type == card_types.CARD_POLL:
 
-        share['share_url'] = """Express your views on this poll. %s"""%(card_url)
-        share['creator_share_url'] = """Conducting this poll for %s. Please express your views: %s"""%(card.community.name,card_url)
+        share['share_url'] = """Express your views on this poll. %s""" % (card_url)
+        share['creator_share_url'] = """Conducting this poll for %s. Please express your views: %s""" % (
+        card.community.name, card_url)
 
     elif card.type == card_types.CARD_NORMAL:
 
-        share['share_url'] = """We are having this conversation on LikeMinds. I have enabled guest access for you for the next 24 hours. Join now with my link %s"""%(card_url)
-        share['creator_share_url'] = """Join my chat room on LikeMinds using this exclusive link. I have enabled guest access for you for the next 24 hours. %s"""%(card_url)
+        share[
+            'share_url'] = """We are having this conversation on LikeMinds. I have enabled guest access for you for the next 24 hours. Join now with my link %s""" % (
+            card_url)
+        share[
+            'creator_share_url'] = """Join my chat room on LikeMinds using this exclusive link. I have enabled guest access for you for the next 24 hours. %s""" % (
+            card_url)
 
     elif card.type == card_types.CARD_INTRO:
 
-        share['share_url'] = """%s joined %s on LikeMinds. Know more about him or join him for a chat on this link: %s"""%(card.user.userinfo.name,card.community.name,card_url)
-        share['creator_share_url'] = """I have joined %s on LikeMinds. Know more about me or join me for a chat on this link: %s"""%(card.community.name,card_url)
-
+        share[
+            'share_url'] = """%s joined %s on LikeMinds. Know more about him or join him for a chat on this link: %s""" % (
+        card.user.userinfo.name, card.community.name, card_url)
+        share[
+            'creator_share_url'] = """I have joined %s on LikeMinds. Know more about me or join me for a chat on this link: %s""" % (
+        card.community.name, card_url)
 
     return share
 
 
 def get_category_of_chatroom(typ):
-
-
     chatroom_type = "Normal Chatroom"
 
     if typ == card_types.CARD_INTRO:
@@ -462,14 +458,12 @@ def get_category_of_chatroom(typ):
     return chatroom_type
 
 
-
 def conversationSerializer(conversation):
-
     temp = {
-        "id":conversation.id,
-        "answer":conversation.answer,
-        "state" : conversation.state,
-        "member" : UserinfoSerializer(conversation.user.userinfo)
+        "id": conversation.id,
+        "answer": conversation.answer,
+        "state": conversation.state,
+        "member": UserinfoSerializer(conversation.user.userinfo)
     }
 
     answer_files = get_answer_files(temp['id'])
@@ -483,11 +477,7 @@ def conversationSerializer(conversation):
     if conversation.og_tags:
         temp['og_tags'] = json.loads(conversation.og_tags)
 
-
-
     return temp
-
-
 
 
 def get_answer_files(answer_id):
@@ -508,45 +498,42 @@ def get_answer_files(answer_id):
                 pdf.append(pdf_url)
         elif file.type == "location":
             location = {
-                'location_name' : file.location_name,
-                'location_lat' : file.location_lat,
-                'location_long' : file.location_long
+                'location_name': file.location_name,
+                'location_lat': file.location_lat,
+                'location_long': file.location_long
 
             }
             files['location'] = location
 
-
     files['image'] = img_list
-    files['pdf'] =pdf
+    files['pdf'] = pdf
     return files
 
 
-def get_chatroom_name(user_name,card):
-
+def get_chatroom_name(user_name, card):
     '''function to create chatroom name'''
 
     # if len(user_name) > 1:
     #     user_name = user_name.split(" ")
     #     user_name = user_name[0]
     type = card.type
-    if type == card_types.CARD_PUBLIC_EVENT  or type == card_types.CARD_EVENT:
-        chatroom_name = """%s's Event"""%(user_name)
+    if type == card_types.CARD_PUBLIC_EVENT or type == card_types.CARD_EVENT:
+        chatroom_name = """%s's Event""" % (user_name)
     elif type == card_types.CARD_POLL:
         chatroom_name = """%s's Poll""" % (user_name)
     elif type == card_types.CARD_PURPOSE:
         chatroom_name = """Announcement Room"""
     elif type == card_types.CARD_INTRO:
-        chatroom_name = """%s's Intro"""%(user_name)
+        chatroom_name = """%s's Intro""" % (user_name)
     else:
-        chatroom_name = """%s's Chat Room"""%(user_name)
-
+        chatroom_name = """%s's Chat Room""" % (user_name)
 
     return chatroom_name
 
-def get_chatroom_instance(card_instance,member_id):
 
-    collabcard_serializer = CollabcardSerializer(card_instance, member_id)
-
+def get_chatroom_instance(card_instance, member_id, current_user_id=None):
+    print("ids ------- ", member_id, current_user_id)
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=current_user_id)
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
     if collabcard_member:
         collabcard_serializer['member'] = collabcard_member[0]
@@ -558,9 +545,8 @@ def get_chatroom_instance(card_instance,member_id):
     # if removed_state != False:
     #     collabcard_serializer['member']['remove_state'] = removed_state
 
-
     # get chatroom status
-    status = get_status_of_collabcard(member_id,card_instance)
+    status = get_status_of_collabcard(member_id, card_instance)
     collabcard_serializer['state'] = status['state']
     collabcard_serializer['mute_status'] = status['mute_status']
     collabcard_serializer['follow_status'] = status['follow_status']
@@ -587,52 +573,51 @@ def get_chatroom_instance(card_instance,member_id):
     # time_text = get_time_text(card_instance.date_epoch)
     # collabcard_serializer['created_at'] = time_text
 
-
     return collabcard_serializer
 
 
 def get_removed_member_custom_text(instance):
-
     '''function to check removed member state and sending the custom text'''
     temp = {}
-    #instance = status['remove']
+    # instance = status['remove']
     remove_state = instance.removed_state
     if remove_state == deleted_members.LEFT:
         temp['custom_intro_text'] = """Left the community on %s""" % (
             time.strftime("%d %B %Y", time.localtime(instance.created_at)))
-        temp['custom_click_text'] = """The profile you are trying to access does not exist. %s left the community on %s""" % (
-        instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+        temp[
+            'custom_click_text'] = """The profile you are trying to access does not exist. %s left the community on %s""" % (
+            instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
 
     elif remove_state == deleted_members.REMOVED:
         temp['custom_intro_text'] = """Removed from the community on  %s""" % (
             time.strftime("%d %B %Y", time.localtime(instance.created_at)))
-        temp['custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
-        instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+        temp[
+            'custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
+            instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
 
     temp['remove_state'] = remove_state
     temp['removed_user_image_url'] = REMOVED_USER_URL
     return temp
 
-def get_guest_custom_text(instance):
 
+def get_guest_custom_text(instance):
     '''function to check the guest member of the chatroom and sending the custom text'''
 
     temp = {}
     temp['custom_intro_text'] = """Joined as a guest via %s’s invite link on %s""" % (
-    instance.source.userinfo.name, time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+        instance.source.userinfo.name, time.strftime('%d %B %Y', time.localtime(instance.created_at)))
     temp[
         'custom_click_text'] = """The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s""" % (
-    instance.user.userinfo.name, instance.source.userinfo.name,
-    time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+        instance.user.userinfo.name, instance.source.userinfo.name,
+        time.strftime('%d %B %Y', time.localtime(instance.created_at)))
 
     return temp
 
 
-def get_draft_chatroom_instance(draft_instance,member_id):
-
+def get_draft_chatroom_instance(draft_instance, member_id):
     '''function to save draft'''
 
-    draft_serializer =  draftChatroomSerializer(draft_instance,member_id)
+    draft_serializer = draftChatroomSerializer(draft_instance, member_id)
 
     draft_member = get_members_profile([draft_instance.user.id], draft_instance.community.id)
     if draft_member:
@@ -643,14 +628,14 @@ def get_draft_chatroom_instance(draft_instance,member_id):
     # collabcard_serializer['mute_status'] = status['mute_status']
     # collabcard_serializer['follow_status'] = status['follow_status']
 
-    draft_files = get_collabcard_files(draft_instance.id,draft=True)
+    draft_files = get_collabcard_files(draft_instance.id, draft=True)
 
     draft_serializer['images'] = draft_files[0]
     draft_serializer['pdf'] = draft_files[1]
     return draft_serializer
 
 
-def get_status_of_collabcard(member_id,card):
+def get_status_of_collabcard(member_id, card):
     '''function to get the state of collabcard'''
 
     collabcard_status = {
@@ -681,7 +666,7 @@ def get_status_of_collabcard(member_id,card):
 
 def CollabcardPollsSerializer(poll, user, card):
     """ Poll serializer """
-    #print("user--",user)
+    # print("user--",user)
     polls = {
         'id': poll.id,
         'text': poll.text,
@@ -725,7 +710,7 @@ def is_poll_selected(poll, user, card):
     return MemberPoll.exists()
 
 
-def poll_percentage(card, poll):
+def poll_percentage(card, poll, current_user_id=None):
     """ function to calculate the percentage of particular poll for a card """
     total_polls = MemberPollVotes.objects.filter(card=card)
     selected_polls = total_polls.filter(poll=poll).count()
@@ -733,11 +718,41 @@ def poll_percentage(card, poll):
 
     if total_polls == 0:
         return 0, 0
-    return selected_polls, selected_polls/total_polls * 100
+    return selected_polls, selected_polls / total_polls * 100
 
+
+def get_answer_text_for_poll(card, current_user_id=None):
+
+    total_users = MemberPollVotes.objects.filter(card=card).distinct("user")
+    first_user = None
+    current_user = None
+    should_add_you = False
+    user_names = []
+    for user in total_users:
+        if not first_user:
+            first_user = user
+        if int(user.user.id) == int(current_user_id):
+            if not current_user:
+                current_user = user
+            should_add_you = True
+        user_names.append(user.user.userinfo.name)
+
+    if should_add_you:
+        if len(user_names) > 2:
+            return f"You and {len(user_names)-1} members voted"
+        elif len(user_names) == 2:
+            if current_user.user.userinfo.name == first_user.user.userinfo.name:
+                name = user_names[1]
+            else:
+                name = user_names[0]
+            return f"You and {name} voted"
+        elif len(user_names) == 1:
+            return f"You voted on this poll"
+    elif len(user_names) > 0:
+        return f"{len(user_names)} members voted"
+    return "Be the first to vote on this poll"
 
 def draftPollsSerializers(poll):
-
     polls = {
         'draft_poll_id': poll.id,
         'text': poll.text,
@@ -773,20 +788,25 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
         community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
             str(community_id), str(member_id))
 
-        community_profile['member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
+        community_profile[
+            'member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
                                                                                                            time.localtime(
                                                                                                                member_instance.created_at))
 
     if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
-        community_profile['custom_intro_text'] = """Created this community on %s"""%(time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
+        community_profile['custom_intro_text'] = """Created this community on %s""" % (
+            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
-    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
-        community_profile['custom_intro_text'] = """Joined via a private community link on %s"""%(time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
-        community_profile['custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet"""%(member_instance.member_id.userinfo.name,time.strftime("%d %B %Y",time.localtime(member_instance.created_at)))
-
-
+    if (
+            member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
+        community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
+            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+        community_profile[
+            'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
+        member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
     return community_profile
+
 
 def get_members_profile(member_ids, community_id, current_user_id=None):
     '''function to get member profile from list of members ids'''
@@ -808,16 +828,14 @@ def get_members_profile(member_ids, community_id, current_user_id=None):
     return member_profile_list
 
 
-
-def get_user_profile(user_id,community_id, current_user_id=None, send_profile=True):
-
+def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True):
     try:
         user_instance = User.objects.get(id=user_id)
     except:
         return {}
 
     userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
-    #userinfo_serialized_object['state'] = 0
+    # userinfo_serialized_object['state'] = 0
 
     if not send_profile:
         return userinfo_serialized_object
@@ -828,15 +846,10 @@ def get_user_profile(user_id,community_id, current_user_id=None, send_profile=Tr
         # userinfo_serialized_object['response'] = form_response[0]
         userinfo_serialized_object['question_answers'] = form_response[1]
 
-
     return userinfo_serialized_object
 
 
-
-
-
-def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
-
+def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False):
     responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
     if not responses.exists():
         return None
@@ -852,11 +865,11 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
         response_object['key'] = response.question_title
         response_object['value'] = response.question_answer
 
-        send_back=False
+        send_back = False
         if str(response.member.id) == str(current_user_id):
             send_back = True
 
-        temp={}
+        temp = {}
         questions = get_question_data(response.question, member_state, send_back=send_back)
         if questions:
             temp['community_id'] = community_id
@@ -864,7 +877,7 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
             temp['question_title'] = response.question_title
             temp['value'] = response.question_answer
             if '$#' in temp['value']:
-                temp['value'] = temp['value'].replace('$#',', ')
+                temp['value'] = temp['value'].replace('$#', ', ')
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']
@@ -882,15 +895,13 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
 
     if not bl:
         return user_response
-    return (user_response,new_response)
-
+    return (user_response, new_response)
 
 
 def get_question_data(question_id, member_state, send_back):
-
     '''function to get question id'''
 
-    question_instance=question_id
+    question_instance = question_id
 
     if member_state == 1 or member_state == 2 or send_back:
         questions = CommunityQuestionsSerializer(question_instance)
@@ -913,41 +924,35 @@ def get_question_data(question_id, member_state, send_back):
 
 
 def CommunityQuestionsSerializer(community_question_instance):
-
-    context =  {
-        'id':community_question_instance.id,
-        'question_title':community_question_instance.question_title,
-        'value':community_question_instance.value,
-        'optional':community_question_instance.optional,
-        'community_id':community_question_instance.community_id,
-        'state':community_question_instance.question_state,
-        'help_text':community_question_instance.help_text if community_question_instance.help_text else '',
+    context = {
+        'id': community_question_instance.id,
+        'question_title': community_question_instance.question_title,
+        'value': community_question_instance.value,
+        'optional': community_question_instance.optional,
+        'community_id': community_question_instance.community_id,
+        'state': community_question_instance.question_state,
+        'help_text': community_question_instance.help_text if community_question_instance.help_text else '',
         'is_hidden': community_question_instance.is_hidden,
-        'field':community_question_instance.field
+        'field': community_question_instance.field
     }
 
-    if context['value'] and (context['state'] == question_states.CHOICE_SINGLE or context['state'] == question_states.CHOICE_MULTIPLE):
+    if context['value'] and (
+            context['state'] == question_states.CHOICE_SINGLE or context['state'] == question_states.CHOICE_MULTIPLE):
+        dropdown_list = json.loads(context['value'])
 
-         dropdown_list = json.loads(context['value'])
+        dropdown_list = sorted(dropdown_list, key=lambda i: i['value'])
 
-         dropdown_list = sorted(dropdown_list,key= lambda i:i['value'])
-
-         context['value'] = json.dumps(dropdown_list)
-
-
-
-
+        context['value'] = json.dumps(dropdown_list)
 
     return context
 
 
 def communityTypeSerializer(communityTypeInstance):
+    context = {
 
-    context ={
-
-        'id':communityTypeInstance.id,
-        'type':communityTypeInstance.typ,
-        'next_input_title':communityTypeInstance.next_input_title
+        'id': communityTypeInstance.id,
+        'type': communityTypeInstance.typ,
+        'next_input_title': communityTypeInstance.next_input_title
     }
 
     if communityTypeInstance.sub_type_placeholder:
@@ -957,23 +962,19 @@ def communityTypeSerializer(communityTypeInstance):
 
 
 def communitySubtypeSerializer(communitySubtypeInstance):
-
     context = {
-        'id':communitySubtypeInstance.id,
-        'sub_type':communitySubtypeInstance.sub_typ
+        'id': communitySubtypeInstance.id,
+        'sub_type': communitySubtypeInstance.sub_typ
     }
 
-    return  context
-
+    return context
 
 
 def masterQuestionSerializer(masterQuestionInstance):
-
-
     json_dict = {
         'type_id': masterQuestionInstance.typ_id,
         'sub_type_id': masterQuestionInstance.sub_type_id,
-        'state' : masterQuestionInstance.state,
+        'state': masterQuestionInstance.state,
         'question_title': masterQuestionInstance.question_title
     }
 
@@ -984,9 +985,9 @@ def masterQuestionSerializer(masterQuestionInstance):
 
     return json_dict
 
-def removedMembersSerializer(community_id,member_id):
 
-    removed_filter = removedMembers.objects.filter(community_id=community_id,member_id=member_id)
+def removedMembersSerializer(community_id, member_id):
+    removed_filter = removedMembers.objects.filter(community_id=community_id, member_id=member_id)
 
     if removed_filter.exists():
         removed_state = removed_filter[0].removed_state
@@ -996,12 +997,11 @@ def removedMembersSerializer(community_id,member_id):
 
 
 def createCommunityActionSerializer(instance):
-
     temp = {
-    'step_no': instance.step_no,
-    'step_title' : instance.step_title,
-    'max_point' : instance.max_point,
-    'current_point' : instance.current_point
+        'step_no': instance.step_no,
+        'step_title': instance.step_title,
+        'max_point': instance.max_point,
+        'current_point': instance.current_point
     }
 
     if instance.step_subtitle:
@@ -1011,22 +1011,18 @@ def createCommunityActionSerializer(instance):
 
 
 def chatroomActionsSerializer(instance):
-
     temp = {
-        'id':instance.id,
-        'title':instance.title
+        'id': instance.id,
+        'title': instance.title
     }
 
     if instance.route:
-        temp['route']  = instance.route
+        temp['route'] = instance.route
 
     return temp
 
 
-
-
 def communityLevelsSerializer(instance):
-
     temp = {}
     temp['level_no'] = instance.level
     temp['title'] = instance.title
@@ -1049,17 +1045,15 @@ def communityLevelsSerializer(instance):
 
 
 def communityFieldTypeSerializer(instance):
-
     return {
-        'id' : instance.id,
-        'type':instance.type,
-        'sub_type_header' : instance.sub_type_header,
-        'sub_type_placeholder' : instance.sub_type_placeholder
+        'id': instance.id,
+        'type': instance.type,
+        'sub_type_header': instance.sub_type_header,
+        'sub_type_placeholder': instance.sub_type_placeholder
     }
 
 
 def communityFieldSubTypesSerializer(instance):
-
     return {
         'id': instance.id,
         'sub_type': instance.sub_type
@@ -1067,7 +1061,6 @@ def communityFieldSubTypesSerializer(instance):
 
 
 def communityFieldSerializer(instance):
-
     return {
         'id': instance.id,
         'question_title': instance.question_title,
@@ -1075,33 +1068,30 @@ def communityFieldSerializer(instance):
         'optional': instance.optional,
         'state': instance.state,
         'help_text': instance.help_text if instance.help_text else '',
-        'type' : instance.type.id,
-        'sub_type':instance.sub_type.id,
-        'field':instance.field,
-        'is_compulsory':instance.is_compulsory
+        'type': instance.type.id,
+        'sub_type': instance.sub_type.id,
+        'field': instance.field,
+        'is_compulsory': instance.is_compulsory
     }
 
 
-
 def userEmailsSerializer(email_instance):
-
     return {
-        'id':email_instance.id,
+        'id': email_instance.id,
         'user_id': email_instance.user.id,
         'email': email_instance.email,
         'state': email_instance.email_state,
-        'verified':email_instance.verified
+        'verified': email_instance.verified
 
     }
 
 
 def userMobilesSerializer(mobile_instance):
-
     return {
 
         'id': mobile_instance.id,
         'user_id': mobile_instance.user.id,
         'mobile_no': mobile_instance.mobile_no,
-        'country_code':mobile_instance.country_code,
+        'country_code': mobile_instance.country_code,
         'state': mobile_instance.state
     }
