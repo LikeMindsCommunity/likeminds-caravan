@@ -2336,7 +2336,10 @@ def create_chatroom_instance(res, community_instance, user_instance):
     card.save()
     # add ownerflag here
 
-    # create relevant flags for first time conversation
+    if card.type == card_types.CARD_POLL:
+        schedule_poll_end_notification.delay(community_instance.name, community_instance.id, card_types.CARD_POLL,card.end_date,card.id)
+
+    #create relevant flags for first time conversation
     notification_list = [
         'mail_card_owner_inactivity'
     ]

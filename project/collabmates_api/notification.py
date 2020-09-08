@@ -424,9 +424,10 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             # 'title': str(card_creater_name) + " @ " + str(community_name),
             'title': title,
             'sub_title': sub_title,
-            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id']),
-            'unread_new_chatroom':custom_payload
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         }
+        if typ not in [2, 3]:
+            message['payload']['unread_new_chatroom'] = custom_payload
 
         notification_meta(notification_list_member, message)
 
@@ -1298,7 +1299,7 @@ def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
 def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     #todo
-    #add update profile notification as well 
+    #add update profile notification as well
     return
 
     community_instance = Community.objects.get(id=community_id)
@@ -1613,5 +1614,96 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 
 #         notification_meta(notification_list,message)
 
+@shared_task
+def schedule_poll_end_notification(community_name, community_id, typ, date_time,card_id):
+    task_name = str(card_id) + "_poll_expiry_or_event_remainder_notification"
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+    celerybeatask = CeleryBeatTask()
+    args = [community_name, community_id, typ,card_id]
+    # date_time = time.time() + 60
+    task_path = "collabmates_api.notification.poll_expiry_or_event_remainder_notification"
+    kwargs = {}
+    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                            date_time=date_time, interval=False, crontab=True)
+
+
+@app.task
+def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, card_id,**kwargs):
+
+    """ function to send notification to all members when event/poll is going to start/end """
+    print("\ntype === ", typ)
+    print(" community-id === ", community_id)
+    print("kwargs === ", kwargs,"\n")
+    try:
+        card_instance = Collabcard.objects.get(pk=card_id)
+        card_owner = card_instance.user
+        owner_flag = False
+
+        if typ == 2:
+            collabcardstates = collabcardState.objects.filter(card=card_id).filter(Q(state=3) |Q(state=4)).filter(removed_status=None)
+            notification_list = []
+            for ccs in collabcardstates:
+                if card_owner.id == ccs.user.id:
+                    owner_flag = True
+                notification_details = get_token_for_fcm(ccs.user.id, flag=True)
+                temp = {
+                    'id': ccs.user.id,
+                    'fcm_token': notification_details[0],
+                    'mobile_os': notification_details[1],
+                }
+
+                notification_list.append(temp)
+
+
+        else:
+            members = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
+            notification_list = []
+            for member in members:
+                if card_owner.id == member.user.id:
+                    owner_flag = True
+                notification_details = get_token_for_fcm(member.user.id,flag=True)
+                temp = {
+                    'id':member.user.id,
+                    'fcm_token':notification_details[0],
+                    'mobile_os':notification_details[1],
+                }
+
+                notification_list.append(temp)
+        # print("token list ===== ", token_list)
+
+        #if card owner did not vote, add him to notification list
+        if owner_flag == False:
+            notification_details = get_token_for_fcm(card_owner.id, flag=True)
+            temp = {
+                'id': card_owner.id,
+                'fcm_token': notification_details[0],
+                'mobile_os': notification_details[1],
+            }
+            notification_list.append(temp)
+
+        # if not user_fcm in token_list:
+        #     token_list.append(user_fcm)
+
+
+        if typ == 3:
+            sub_title = 'Your poll ended. Tap to see results'
+        else:
+            sub_title = 'Your event is starting in 30 minutes'
+
+        message = {}
+        message['payload'] = {
+            'title': str(community_name),
+            'sub_title': sub_title,
+            'route': 'route://collabcard?collabcard_id='+str(card_id)
+        }
+        # print(message)
+        notification_meta(notification_list, message)
+        # disable the task , to prevent it from trigerring in future
+        # beat_task = CeleryBeatTask()
+        # beat_task.stop_task(task_name=kwargs['task_name'])
+
+    except:
+        print("Error while connecting to PostgreSQL")
 
 
