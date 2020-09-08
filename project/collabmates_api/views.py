@@ -2453,7 +2453,7 @@ def create_card_internal(user_id, community_id, res):
 
 def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
     '''function to send mail and notifications for chatroom creations'''
-
+    #pass
     send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
                                                       type=card_instance.type,
@@ -2624,9 +2624,15 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
     instance.save()
 
 
-def create_chatroom_engagement(card_instance, user_instance, last_conversation=None, unseen_count=0):
+def create_chatroom_engagement(card_instance, user_instance,func_dict=None):
     '''function to create and update chatroom engagements '''
-    print("hit")
+    print("creating a chatroom in chatroom engagement")
+    expire_at = None
+    if func_dict:
+        expire_at = func_dict['expire_at']
+
+    print(func_dict)
+
     instance_list = conversationEngage.objects.filter(card=card_instance, user=user_instance)
 
     if not instance_list.exists():
@@ -2634,16 +2640,18 @@ def create_chatroom_engagement(card_instance, user_instance, last_conversation=N
         instance.card = card_instance
         instance.user = user_instance
         instance.community=card_instance.community
-        instance.last_conversation = last_conversation
-        instance.unseen_count = unseen_count
+        instance.last_conversation = None
+        instance.unseen_count = 0
         instance.created_at = time.time()
         instance.updated_at = time.time()
+        instance.expire_at = expire_at
         instance.save()
     else:
         instance = instance_list[0]
-        instance_list.last_conversation = last_conversation
-        instance_list.unseen_count = unseen_count
+        instance_list.last_conversation = None
+        instance_list.unseen_count = 0
         instance.updated_at = time.time()
+        instance.expire_at = expire_at
         instance.save()
 
 
@@ -5321,7 +5329,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     status = func_dict['status']
     is_guest = False
     ref_instance = None
-
+    expire_at = time.time() + HOURS_24
     print(func_dict)
 
     if 'is_guest' in func_dict:
@@ -5341,7 +5349,6 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if collabcard_state_filter.exists():
-        expire_at = time.time() + HOURS_24
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expire_at=expire_at)
         else:
@@ -5360,18 +5367,21 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.source = ref_instance
 
         if 'source' in func_dict and func_dict['source'] == "create_chatroom":
-            expire_at = time.time() + HOURS_24
             collabcard_state_instance.state = state
             collabcard_state_instance.expire_at = expire_at
         elif 'source' in func_dict and func_dict['source'] == "create_conversation":
-            expire_at = time.time() + HOURS_24
+
             collabcard_state_instance.expire_at = expire_at
 
         collabcard_state_instance.save()
 
+    func_dict = {
+        'expire_at':expire_at,
+        'source' : "chatroom_follow_internal"
+    }
     print("collabcard follow internal hit")
     if status:
-        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
+        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,func_dict=func_dict)
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=member_id)
 
