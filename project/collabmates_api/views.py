@@ -1598,7 +1598,7 @@ def ask_approval(request):
 
     return JsonResponse({'success': True})
 
-
+@csrf_exempt
 def remove_from_member(request):
 
     '''function to remove member of community'''
