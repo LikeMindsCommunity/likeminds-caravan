@@ -532,7 +532,7 @@ def get_chatroom_name(user_name, card):
 
 
 def get_chatroom_instance(card_instance, member_id, current_user_id=None):
-    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=current_user_id)
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=member_id)
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
 
     # get chatroom status
@@ -742,9 +742,12 @@ def get_answer_text_for_poll(card, current_user_id=None):
     current_user = None
     should_add_you = False
     user_names = []
+
     for user in total_users:
+        print(user)
         if not first_user:
             first_user = user
+
         if int(user.user.id) == int(current_user_id):
             if not current_user:
                 current_user = user
