@@ -532,7 +532,6 @@ def get_chatroom_name(user_name, card):
 
 
 def get_chatroom_instance(card_instance, member_id, current_user_id=None):
-    print("ids ------- ", member_id, current_user_id)
     collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=current_user_id)
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
     if collabcard_member:

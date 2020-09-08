@@ -5928,7 +5928,7 @@ def get_chatrooms(chatroom_list, member_id):
     chatrooms = []
 
     for card_instance in chatroom_list:
-        chatroom_instance = get_chatroom_instance(card_instance, member_id)
+        chatroom_instance = get_chatroom_instance(card_instance, member_id, current_user_id=member_id)
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
