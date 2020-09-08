@@ -532,6 +532,10 @@ def get_chatroom_name(user_name, card):
 
 
 def get_chatroom_instance(card_instance, member_id, current_user_id=None):
+
+    if not current_user_id:
+        current_user_id = member_id
+
     collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=member_id)
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
 
@@ -744,7 +748,6 @@ def get_answer_text_for_poll(card, current_user_id=None):
     user_names = []
 
     for user in total_users:
-        print(user)
         if not first_user:
             first_user = user
 
@@ -755,17 +758,21 @@ def get_answer_text_for_poll(card, current_user_id=None):
         user_names.append(user.user.userinfo.name)
 
     if should_add_you:
-        if len(user_names) > 2:
-            return f"You and {len(user_names)-1} members voted"
-        elif len(user_names) == 2:
-            if current_user.user.userinfo.name == first_user.user.userinfo.name:
-                name = user_names[1]
-            else:
-                name = user_names[0]
-            return f"You and {name} voted"
+        if len(user_names) > 1:
+            if len(user_names) == 2:
+                return f"You and 1 other voted"
+            return f"You and {len(user_names)-1} others voted"
+        # elif len(user_names) == 2:
+        #     if current_user.user.userinfo.name == first_user.user.userinfo.name:
+        #         name = user_names[1]
+        #     else:
+        #         name = user_names[0]
+        #     return f"You and {name} voted"
         elif len(user_names) == 1:
             return f"You voted on this poll"
     elif len(user_names) > 0:
+        if len(user_names) == 1:
+            return "1 member voted"
         return f"{len(user_names)} members voted"
     return "Be the first to vote on this poll"
 
