@@ -5653,8 +5653,7 @@ def collabcard_follow(request, function_dict=None):
             create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
 
         else:
-            collabcard_state_filter.update(state=collabcard_states.COLLABCARD_STATE_SEEN,follow_status = status,
-                                                                                   updated_at=time.time())
+            collabcard_state_filter.update(follow_status = status, updated_at=time.time())
 
             #deleting the conversation engage
             delete_status = conversationEngage.objects.filter(card=collabcard,user=user_instance).delete()
@@ -5699,24 +5698,15 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance)
-        elif 'source' in func_dict and func_dict['source'] == "create_conversation":
-            state=collabcard_state_filter[0].state
-            collabcard_state_filter.update(follow_status=status, state=state, updated_at=time.time())
         else:
-            collabcard_state_filter.update(follow_status=status, state=state,updated_at=time.time())
+            collabcard_state_filter.update(follow_status=status,updated_at=time.time())
 
     else:
         collabcard_state_instance = collabcardState()
         collabcard_state_instance.card = card_instance
         collabcard_state_instance.community = card_instance.community
         collabcard_state_instance.user = user_instance
-
-        #if the user is coming by notification or chatroom link and creates conversation
-        if 'source' in func_dict and func_dict['source'] == "create_conversation":
-            collabcard_state_instance.state = 0
-        elif 'source' in func_dict and func_dict['source'] == "submit_poll":
-            collabcard_state_instance.state = 0
-
+        collabcard_state_instance.state = 0
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
