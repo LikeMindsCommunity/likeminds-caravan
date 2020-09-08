@@ -1620,7 +1620,7 @@ def schedule_poll_end_notification(community_name, community_id, typ, date_time,
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
     celerybeatask = CeleryBeatTask()
-    args = [community_name, community_id, typ,card_id]
+    args = [community_name, community_id, typ,card_id,task_name]
     # date_time = time.time() + 60
     task_path = "collabmates_api.notification.poll_expiry_or_event_remainder_notification"
     kwargs = {}
@@ -1629,7 +1629,7 @@ def schedule_poll_end_notification(community_name, community_id, typ, date_time,
 
 
 @app.task
-def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, card_id,**kwargs):
+def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, card_id,task_name,**kwargs):
 
     """ function to send notification to all members when event/poll is going to start/end """
     print("\ntype === ", typ)
@@ -1700,8 +1700,8 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         # print(message)
         notification_meta(notification_list, message)
         # disable the task , to prevent it from trigerring in future
-        # beat_task = CeleryBeatTask()
-        # beat_task.stop_task(task_name=kwargs['task_name'])
+        beat_task = CeleryBeatTask()
+        beat_task.terminate_task(task_name=task_name)
 
     except:
         print("Error while connecting to PostgreSQL")
