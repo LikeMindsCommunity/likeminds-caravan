@@ -2629,7 +2629,7 @@ def create_chatroom_state_instance(card_instance,user_instance,state=collabcard_
 
     '''function to create chatroom state instance'''
     if not expire_at:
-        expired_at = time.time() + HOURS_24
+        expire_at = time.time() + HOURS_24
 
     collabcard_state_instance = collabcardState()
     collabcard_state_instance.card = card_instance
