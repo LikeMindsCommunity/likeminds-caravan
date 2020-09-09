@@ -28,6 +28,14 @@ class CollabcardStates:
 collabcard_states = CollabcardStates()
 
 
+class PollTypes:
+
+    POLL_TYPE_INSTANT = 0
+    POLL_TYPE_DEFERRED = 1
+
+
+poll_types = PollTypes()
+
 
 class ChatroomStates:
     ANSWER = 0
@@ -44,7 +52,9 @@ chatroom_states = ChatroomStates()
 class MultipleSelectPoll:
     #class to save states of multiple select poll
     EXACTLY = 0
+    AT_MAX = 1
     AT_MOST = 1
+    AT_LEAST = 2
 
 multiple_select_poll = MultipleSelectPoll()
 

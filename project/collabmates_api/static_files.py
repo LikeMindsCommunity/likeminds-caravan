@@ -24,6 +24,7 @@ WARNING_IMAGE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.a
 
 PROFILE_DEFAULT = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media"
 
+REMOVED_USER_URL = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fuser.png?alt=media&token=8fd0a21e-6d77-4947-afc7-4d67eaf63b99"
 
 GOOGLE_PLAYSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fplaystore.png?alt=media&token=d5886314-99dd-40ca-b354-f6f9bb81d63b"
 
@@ -39,12 +40,19 @@ ICONS['Phone No.'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d
 ICONS['Email'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Femail.png?alt=media&token=580ac8d9-bd05-421b-895f-06dca3bfa268"
 
 ICONS['LinkedIn'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2FlinkedIn.png?alt=media&token=c2482e0d-9be6-474a-923c-d3cae74ed618"
+ICONS['LinkedIn Profile Link'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2FlinkedIn.png?alt=media&token=c2482e0d-9be6-474a-923c-d3cae74ed618"
+
 
 ICONS['Facebook'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Ffb_alt.png?alt=media&token=af20c8c8-d51c-456b-bdab-406058e23990"
+ICONS['Facebook Profile Link'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Ffb_alt.png?alt=media&token=af20c8c8-d51c-456b-bdab-406058e23990"
 
 ICONS['Instagram'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Finstagram.png?alt=media&token=6781087a-63f7-415f-b0ed-dacac43e423e"
+ICONS['Instagram Profile Link'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Finstagram.png?alt=media&token=6781087a-63f7-415f-b0ed-dacac43e423e"
+
 
 ICONS['Github'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fgithub.png?alt=media&token=2cadb428-e289-4cc3-948d-e5228fb47fb8"
+ICONS['Github Profile Link'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fgithub.png?alt=media&token=2cadb428-e289-4cc3-948d-e5228fb47fb8"
+
 
 ICONS['Companies'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fcompany.png?alt=media&token=d9a64933-5d86-4544-94dc-16d410b77e2d"
 
