@@ -58,6 +58,7 @@ def send_test_notification(token_list,message):
 def send_notification_for_android(token_list,message):
     '''function to send notification to android'''
     result=""
+    # print("===== sending for android")
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
@@ -96,7 +97,7 @@ def get_title_from_collabcard(card):
 
 
 def notification_meta(notification_list,message):
-    print(notification_list,message)
+    # print(notification_list,message)
     '''function to process notification to send'''
 
     token_list_android=[]
@@ -386,7 +387,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_list_member = []
 
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
-        
+        print(member_list)
         for member in member_list:
             temp = {}
             temp['user_id'] = member[0]
@@ -414,18 +415,22 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         if typ == 2:
             title = community_name
             sub_title = str(card_creater_name) + " created a new event: " + str(collabcard_title) + ". Join now!"
+            route = 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         elif typ == 3:
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
+            route = 'route://poll_chatroom?collabcard_id='+str(kwargs['card_id'])
         else:
             title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
+            route = 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         message['payload'] = {
             # 'title': str(card_creater_name) + " @ " + str(community_name),
             'title': title,
             'sub_title': sub_title,
-            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
+            'route': route
         }
+        message['payload']['unread_new_chatroom'] = {}
         if typ not in [2, 3]:
             message['payload']['unread_new_chatroom'] = custom_payload
 
@@ -1329,6 +1334,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
         task_path = "collabmates_api.notification.send_notification_for_directory_creation"
         kwargs = {}
 
+
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                         date_time=date_time, interval=False, crontab=True)
         return
@@ -1357,7 +1363,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", we are reminding you to complete your directory profile. Without an updated profile, you won’t have seamless access to the community. "
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
+            message['payload']['route'] = "//route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1388,7 +1394,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", please update your profile now to take full advantage of our networking features. This is mandatory for all the members. "
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
+            message['payload']['route'] = "//route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1419,7 +1425,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of LikeMinds and connect with others."
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
+            message['payload']['route'] = "//route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1450,7 +1456,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(member_name) + ", it has been over 30 days you joined us. Please update your profile and improve your chances of connecting with like-minded folks."
-            message['payload']['route'] = "route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
+            message['payload']['route'] = "//route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
+            message['payload']['route'] = "//route://member_profile?member_id="+ str(member.member_id.id) +"&community_id="+ str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
