@@ -1624,6 +1624,8 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 @shared_task
 def schedule_poll_end_notification(community_name, community_id, typ, date_time,card_id):
     task_name = str(card_id) + "_poll_expiry_or_event_remainder_notification"
+    print("date---time>>>",date_time)
+    date_time = date_time/1000
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
     celerybeatask = CeleryBeatTask()
