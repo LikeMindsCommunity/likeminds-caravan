@@ -549,7 +549,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None):
 
     expiry_time = status['expiry_time']
 
-    if not expiry_time or expiry_time <= time.time():
+    if not expiry_time or expiry_time >= int(time.time()):
         collabcard_serializer['active'] = True
 
 

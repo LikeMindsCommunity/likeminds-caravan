@@ -2420,7 +2420,7 @@ def create_card_internal(user_id, community_id, res):
 
     if create_intro:
         update_seen_status_for_new_user_in_chatroom(community_instance, user_instance)
-        # introcard notification
+        # intro-card notification
         send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
 
     # following the user created chatroom
@@ -2677,7 +2677,7 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
 
         state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
         if not state_filter.exists():
-            last_conversation = card_answers.objects.filter(card=card_instance).last()
+            last_conversation = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
             if last_conversation:
                 expire_at = last_conversation.created_at + HOURS_24
             else:
@@ -2845,9 +2845,9 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance):
     # for users who are following the chatrooms
     #updating the expire time to null for all the users who are following the chatroom in collabcardState
     collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
-
-    #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
-    conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
+    #
+    # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
+    # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
 
     #for users who have seen the chatroom
     collabcardState.objects.filter(card=card_instance, follow_status=False,
@@ -4366,7 +4366,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
 
     # getting the state of chatroom against the user
-    chatroom_state = Collabcard.objects.filter(card=card_instance, user=user_id,remove=None)
+    chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id,remove=None)
     # if the user is seeing this chatroom from external link or notification
     if not chatroom_state.exists() and user_instance:
 
@@ -5179,7 +5179,7 @@ def create_conversation(request):
 
     user_id = str(user_instance.id)
 
-    # send tagged users mail if they didnt check chat in last 24 hours
+    #send tagged users mail if they didnt check chat in last 24 hours
     tagged_members = get_tagged_members_list(res['text'])
 
     tagged_member_list = tagged_members[0]
@@ -5328,7 +5328,7 @@ def collabcard_follow(request, function_dict=None):
 
         return JsonResponse(context)
 
-
+    expiry_time = time.time() + HOURS_24
 
     collabcard_state_filter = collabcardState.objects.filter(card=collabcard, user=user_instance)
     if not collabcard_state_filter.exists():
@@ -5342,6 +5342,7 @@ def collabcard_follow(request, function_dict=None):
         collabcard_state_instance.follow_status = status
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.external_seen = True
+        collabcard_state_instance.expiry_time = expiry_time
         collabcard_state_instance.save()
 
         if status:
@@ -5350,7 +5351,7 @@ def collabcard_follow(request, function_dict=None):
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
 
 
-            create_chatroom_engagement(card_instance=collabcard,user_instance=user_instance,func_dict=func_dict)
+            create_chatroom_engagement(card_instance=collabcard,user_instance=user_instance)
 
     else:
         follow_status = collabcard_state_filter[0].follow_status
@@ -5363,7 +5364,7 @@ def collabcard_follow(request, function_dict=None):
 
         if status:
 
-            collabcard_state_filter.update(follow_status = status,updated_at=time.time())
+            collabcard_state_filter.update(follow_status = status,updated_at=time.time(),expiry_time=expiry_time)
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
@@ -5381,7 +5382,7 @@ def collabcard_follow(request, function_dict=None):
 
     # custom_cache.clear()
     update_my_chatrooms_for_users(chatroom_id=collabcard.id,user_id=current_member_id)
-
+    print("working")
     #updating the activity in chatroom
     update_activity_in_chatroom(card_instance,user_instance)
     return JsonResponse({'success': True})
@@ -5415,10 +5416,13 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
+    expiry_time = time.time() + HOURS_24
     if collabcard_state_filter.exists():
+        if collabcard_state_filter[0].follow_status == status:
+            return
 
         if is_guest:
-            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance)
+            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time)
         else:
             collabcard_state_filter.update(follow_status=status,updated_at=time.time())
 
@@ -5434,10 +5438,11 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = ref_instance
         collabcard_state_instance.external_seen = True
+        collabcard_state_instance.expiry_time = expiry_time
         collabcard_state_instance.save()
 
     if status:
-        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,func_dict=func_dict)
+        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=member_id)
 
