@@ -1697,10 +1697,10 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
         if typ == 3:
             sub_title = 'Your poll ended. Tap to see results'
-            route = 'route://poll_chatroom?chatroom_id='+str(card_id)
+            route = 'route://poll_chatroom?chatroom_id=' + str(card_id) + '&poll_end=true'
         else:
             sub_title = 'Your event is starting in 30 minutes'
-            route = 'route://collabcard?collabcard_id='+str(card_id)
+            route = 'route://collabcard?collabcard_id=' + str(card_id)
 
         message = {}
         message['payload'] = {
