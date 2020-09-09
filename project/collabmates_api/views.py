@@ -2809,6 +2809,19 @@ def create_chatroom_delete_backup(card_instance):
     card.card_id = card_instance.id
     card.save()
 
+def update_activity_in_chatroom(card_instance,user_instance):
+
+    '''function to update activities in chatrooms  in collabcardState table and conversationEngage table'''
+    engage_filter = conversationEngage.objects.filter(card=card_instance,user=user_instance)
+    expiry_time = time.time() + HOURS_24
+    if engage_filter.exists():
+        engage_instance = engage_filter[0]
+        unread_count = engage_instance.unseen_count
+        if unread_count > 0:
+            Collabcard.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
+            conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
+
+
 
 # api to deprecate
 @csrf_exempt
@@ -5241,6 +5254,7 @@ def collabcard_follow(request, function_dict=None):
     collabcard = Collabcard.objects.get(id=collabcard_id)
 
     community_instance = collabcard.community
+    card_instance = collabcard
     user_instance = User.objects.get(id=member_id)
 
     #user cant unfollow hit own collabcard
@@ -5315,6 +5329,9 @@ def collabcard_follow(request, function_dict=None):
 
     # custom_cache.clear()
     update_my_chatrooms_for_users(chatroom_id=collabcard.id,user_id=current_member_id)
+
+    #updating the activity in chatroom
+    update_activity_in_chatroom(card_instance,user_instance)
     return JsonResponse({'success': True})
 
 
@@ -5327,7 +5344,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     status = func_dict['status']
     is_guest = False
     ref_instance = None
-   
+
 
 
     if 'is_guest' in func_dict:
@@ -5371,6 +5388,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,func_dict=func_dict)
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=member_id)
+
+    # function to set activity of chatroom
+    update_activity_in_chatroom(card_instance,user_instance)
 
 
 
