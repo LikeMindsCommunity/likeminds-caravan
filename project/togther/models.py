@@ -680,6 +680,8 @@ class collabcardState(models.Model):
 
     expire_at = models.BigIntegerField(null=True)
 
+    external_seen = models.BooleanField(default=False)
+
 
 
 class CollabcardPolls(models.Model):
