@@ -2625,10 +2625,12 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
     instance.created_at = time.time()
     instance.save()
 
-def create_chatroom_state_instance(card_instance,user_instance,state=collabcard_states.COLLABCARD_STATE_SEEN):
+def create_chatroom_state_instance(card_instance,user_instance,state=collabcard_states.COLLABCARD_STATE_SEEN,expire_at=None):
 
     '''function to create chatroom state instance'''
-    expired_at = time.time() + HOURS_24
+    if not expire_at:
+        expired_at = time.time() + HOURS_24
+
     collabcard_state_instance = collabcardState()
     collabcard_state_instance.card = card_instance
     collabcard_state_instance.community = card_instance.community
@@ -2637,8 +2639,10 @@ def create_chatroom_state_instance(card_instance,user_instance,state=collabcard_
     collabcard_state_instance.created_at = time.time()
     collabcard_state_instance.updated_at = time.time()
     collabcard_state_instance.external_seen = True
-    collabcard_state_instance.expiry_time = expired_at
+    collabcard_state_instance.expiry_time = expire_at
     collabcard_state_instance.save()
+
+
 
 
 def create_chatroom_engagement(card_instance, user_instance,func_dict=None):
@@ -2673,17 +2677,15 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
 
         state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
         if not state_filter.exists():
-            collabcard_state_instance = collabcardState()
-            collabcard_state_instance.card = card_instance
-            collabcard_state_instance.community = community_instance
-            collabcard_state_instance.user = user_instance
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
-            collabcard_state_instance.created_at = time.time()
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.external_seen = True
-            collabcard_state_instance.save()
+            last_conversation = card_answers.objects.filter(card=card_instance).last()
+            if last_conversation:
+                expire_at = last_conversation.created_at + HOURS_24
+            else:
+                expire_at = card_instance.data_epooch + HOURS_24
 
-            update_last_unseen_in_engage(user=user_instance, community=community_instance, is_seen=False)
+            create_chatroom_state_instance(card_instance,user_instance,expire_at=expire_at)
+
+    update_last_unseen_in_engage(user=user_instance, community=community_instance)
 
     print("updating the seen status")
 
