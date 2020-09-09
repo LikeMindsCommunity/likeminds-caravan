@@ -2821,6 +2821,15 @@ def update_activity_in_chatroom(card_instance,user_instance):
             Collabcard.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
             conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
 
+def update_activity_in_chatroom_for_conversation_creation(card_instance,expiry_time=None):
+
+    '''function to update the activity in chatroom for conversation creations'''
+
+    #updating the expire time to null for all the users who are following the chatroom in collabcardState
+    collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
+
+    #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
+    conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
 
 
 # api to deprecate
@@ -4242,7 +4251,8 @@ def get_chatroom_actions(card_status, creator):
 
 
 def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction):
-    '''internal function to get the chatroom can be used to handle web and android '''
+
+    '''internal function to get the chatroom conversation screen functionalities '''
     source_id = request.GET.get('source_id')
     aj = request.GET.get('aj')
 
@@ -4324,6 +4334,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         chatroom_actions = get_chatroom_actions(card_status, creator=False)
 
     save_the_latest_conversation(card_instance, user_id)
+    collabcards_seen_internal(card_instance.community.id,card_instance.id,card_instance.type,user_id)
 
     # sending the follow telescope
     latest_conversation = conversations_filter.last()
@@ -4334,6 +4345,9 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     context['conversations'] = conversations
     context['chatroom_actions'] = chatroom_actions
     context['total_response_count'] = total_response_count
+
+    #updating the activity of chatroom
+    update_activity_in_chatroom(card_instance,user_instance=user_id)
 
     return context
 
@@ -5144,8 +5158,8 @@ def create_conversation(request):
                                community_id=None) and str(member_id) != str(card_instance.user.id):
         send_chatroom_owner_mail.delay(card_instance.user.id, card_instance.id, time_in_hrs=12)
 
-    # # updating the conversationEngage table
-    conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
+    # # # updating the conversationEngage table
+    # conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
 
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'])
 
@@ -5156,6 +5170,7 @@ def create_conversation(request):
 @shared_task
 def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, res_text):
     update_my_chatrooms_for_users(chatroom_id=card_instance_id)
+    update_activity_in_chatroom_for_conversation_creation(card_instance_id)
     send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
 
 
@@ -5474,7 +5489,7 @@ def collabcards_seen(request):
     if 'collabcard_type' in params:
         collabcard_type = params['collabcard_type']
 
-    collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
+    collabcards_seen_internal(community_id, card_id, user_id)
 
     return JsonResponse({'success': True})
 
@@ -5499,6 +5514,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.external_seen = True
+        collabcard_state_instance.expiry_time = expired_at
         collabcard_state_instance.save()
     else:
         state_instance = is_present[0]
@@ -5506,7 +5522,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
             state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
             state_instance.save()
 
-    update_last_unseen_in_engage(user=user_instance, community=community, is_seen=False)
+    update_last_unseen_in_engage(user=user_instance, community=community)
 
 
 @csrf_exempt
