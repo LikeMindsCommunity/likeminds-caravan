@@ -57,6 +57,7 @@ def send_test_notification(token_list,message):
     
 def send_notification_for_android(token_list,message):
     '''function to send notification to android'''
+    # print(token_list,message)
     result=""
     # print("===== sending for android")
     push_service = FCMNotification(api_key=server_key)
@@ -419,7 +420,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         elif typ == 3:
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
-            route = 'route://poll_chatroom?collabcard_id='+str(kwargs['card_id'])
+            route = 'route://poll_chatroom?chatroom_id='+str(kwargs['card_id'])
         else:
             title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
@@ -1694,14 +1695,16 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
         if typ == 3:
             sub_title = 'Your poll ended. Tap to see results'
+            route = 'route://poll_chatroom?collabcard_id='+str(card_id)
         else:
             sub_title = 'Your event is starting in 30 minutes'
+            route = 'route://collabcard?collabcard_id='+str(card_id)
 
         message = {}
         message['payload'] = {
             'title': str(community_name),
             'sub_title': sub_title,
-            'route': 'route://collabcard?collabcard_id='+str(card_id)
+            'route': route
         }
         # print(message)
         notification_meta(notification_list, message)
