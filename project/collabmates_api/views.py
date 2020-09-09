@@ -2625,6 +2625,21 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
     instance.created_at = time.time()
     instance.save()
 
+def create_chatroom_state_instance(card_instance,user_instance,state=collabcard_states.COLLABCARD_STATE_SEEN):
+
+    '''function to create chatroom state instance'''
+    expired_at = time.time() + HOURS_24
+    collabcard_state_instance = collabcardState()
+    collabcard_state_instance.card = card_instance
+    collabcard_state_instance.community = card_instance.community
+    collabcard_state_instance.user = user_instance
+    collabcard_state_instance.state = state
+    collabcard_state_instance.created_at = time.time()
+    collabcard_state_instance.updated_at = time.time()
+    collabcard_state_instance.external_seen = True
+    collabcard_state_instance.expiry_time = expired_at
+    collabcard_state_instance.save()
+
 
 def create_chatroom_engagement(card_instance, user_instance,func_dict=None):
     '''function to create and update chatroom engagements '''
@@ -4268,11 +4283,15 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         context = {'chatroom': card}
         return context
 
-    # conversations  functionality
+    user_instance = None
+    if user_id:
+        user_instance = User.objects.get(id=user_id)
 
     # user has not done the scrolling
     conversations_filter = card_answers.objects.filter(card=card_instance).order_by('id')
     total_response_count = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).count()
+
+
     if not conversation_id and not scroll_direction:
 
         if is_guest:
@@ -4334,7 +4353,15 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         chatroom_actions = get_chatroom_actions(card_status, creator=False)
 
     save_the_latest_conversation(card_instance, user_id)
-    collabcards_seen_internal(card_instance.community.id,card_instance.id,card_instance.type,user_id)
+
+
+    # getting the state of chatroom against the user
+    chatroom_state = Collabcard.objects.filter(card=card_instance, user=user_id,remove=None)
+    # if the user is seeing this chatroom from external link or notification
+    if not chatroom_state.exists() and user_instance:
+
+        create_chatroom_state_instance(card_instance,user_instance,state=0)
+
 
     # sending the follow telescope
     latest_conversation = conversations_filter.last()
@@ -5504,18 +5531,9 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
 
     # saving the state in collabcard state table if it is not present
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
-    expired_at = time.time() + HOURS_24
+
     if not is_present.exists():
-        collabcard_state_instance = collabcardState()
-        collabcard_state_instance.card = card_instance
-        collabcard_state_instance.community = community
-        collabcard_state_instance.user = user_instance
-        collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
-        collabcard_state_instance.created_at = time.time()
-        collabcard_state_instance.updated_at = time.time()
-        collabcard_state_instance.external_seen = True
-        collabcard_state_instance.expiry_time = expired_at
-        collabcard_state_instance.save()
+        create_chatroom_state_instance(card_instance, user_instance)
     else:
         state_instance = is_present[0]
         if state_instance.state == 0:
@@ -5523,6 +5541,8 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
             state_instance.save()
 
     update_last_unseen_in_engage(user=user_instance, community=community)
+
+
 
 
 @csrf_exempt
