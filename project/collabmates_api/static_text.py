@@ -176,9 +176,27 @@ collabcard_action_user_unfollow = [
         'id': 10,
         'title': 'Report'
     }
-
-
 ]
+
+rename_chatroom = {'id': 1, 'title': 'Rename chatroom'}
+
+view_participants = {'id': 2, 'title': 'View participants'}
+
+invite = {'id': 3, 'title': 'Invite'}
+
+follow_chatroom = {'id': 4, 'title': 'Follow chatroom'}
+
+view_community = {'id': 5, 'title': 'View community'}
+
+mute_notifications = {'id': 6, 'title': 'Mute notifications'}
+
+delete_chatroom = {'id': 7, 'title': 'Delete chatroom'}
+
+unMute_notifications = {'id': 8, 'title': 'UnMute notifications'}
+
+unfollow_chatroom = {'id': 9, 'title': 'Unfollow chatroom'}
+
+report = {'id': 10, 'title': 'Report'}
 
 
 

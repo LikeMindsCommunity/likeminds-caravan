@@ -94,7 +94,6 @@ urlpatterns = [
     path('mark_read', api_views.mark_read, name='mark_read'),
     path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
 
-
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
     path('limit_access', api_views.limit_access, name='limit_access'),
     path('skip_community', api_views.skip_community, name='skip_community'),
@@ -163,6 +162,8 @@ urlpatterns = [
     path('submit_poll', api_views.submit_poll, name='submit_poll'),
     path('add_poll', api_views.add_poll, name='add_poll'),
     path('fetch_poll_users', api_views.fetch_poll_users, name='fetch_poll_users'),
+
+    path('fetch_deleted_chatroom', api_views.fetch_deleted_chatroom, name='fetch_deleted_chatroom'),
 
 ]
 
