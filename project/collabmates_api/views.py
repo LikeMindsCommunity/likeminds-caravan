@@ -2836,15 +2836,23 @@ def update_activity_in_chatroom(card_instance,user_instance):
             Collabcard.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
             conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
 
-def update_activity_in_chatroom_for_conversation_creation(card_instance,expiry_time=None):
+def update_activity_in_chatroom_for_conversation_creation(card_instance):
 
     '''function to update the activity in chatroom for conversation creations'''
-
+    expiry_time = time.time() + HOURS_24
+    # for users who are following the chatrooms
     #updating the expire time to null for all the users who are following the chatroom in collabcardState
     collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
 
     #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
+
+    #for users who have seen the chatroom
+    collabcardState.objects.filter(card=card_instance, follow_status=False,
+                                   remove=None).filter(
+        Q(state=collabcard_states.COLLABCARD_STATE_SEEN)|Q(external_seen=True)).update(expiry_time=expiry_time)
+
+
 
 
 # api to deprecate
