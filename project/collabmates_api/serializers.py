@@ -774,7 +774,7 @@ def get_answer_text_for_poll(card, current_user_id=None):
         if len(user_names) == 1:
             return "1 member voted"
         return f"{len(user_names)} members voted"
-    return "Be the first to vote on this poll"
+    return "Be the first one to vote"
 
 def draftPollsSerializers(poll):
     polls = {

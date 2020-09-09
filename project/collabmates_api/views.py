@@ -1598,7 +1598,7 @@ def ask_approval(request):
 
     return JsonResponse({'success': True})
 
-
+@csrf_exempt
 def remove_from_member(request):
 
     '''function to remove member of community'''
@@ -2336,7 +2336,11 @@ def create_chatroom_instance(res, community_instance, user_instance):
     card.save()
     # add ownerflag here
 
-    # create relevant flags for first time conversation
+    if card.type == card_types.CARD_POLL:
+        send_chatroom_creation_notifications_and_mails(card, user_instance)
+        schedule_poll_end_notification.delay(community_instance.name, community_instance.id, card_types.CARD_POLL,card.end_date,card.id)
+
+    #create relevant flags for first time conversation
     notification_list = [
         'mail_card_owner_inactivity'
     ]
