@@ -2835,7 +2835,7 @@ def update_activity_in_chatroom(card_instance,user_instance):
         engage_instance = engage_filter[0]
         unread_count = engage_instance.unseen_count
         if unread_count > 0:
-            Collabcard.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
+            Collabcard.objects.filter(id=card_instance,user=user_instance).update(expiry_time=expiry_time)
             conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
 
 def update_activity_in_chatroom_for_conversation_creation(card_instance):
@@ -4383,7 +4383,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     context['total_response_count'] = total_response_count
 
     #updating the activity of chatroom
-    update_activity_in_chatroom(card_instance,user_instance=user_id)
+    #update_activity_in_chatroom(card_instance,user_instance=user_id)
 
     return context
 
@@ -5203,7 +5203,7 @@ def create_conversation(request):
         send_chatroom_owner_mail.delay(card_instance.user.id, card_instance.id, time_in_hrs=12)
 
     # # # updating the conversationEngage table
-    # conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
+    conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
 
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'])
 
