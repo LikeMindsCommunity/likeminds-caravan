@@ -2564,7 +2564,7 @@ def create_draft_collabcard(request, res=None):
     return JsonResponse({'success': True, "chatroom": chatroom})
 
 
-#chatroom releted functionalities
+#chatroom related functionalities
 
 def create_chatroom(card_instance, user_instance, state, current_user_id=None, answer=""):
     '''function to create chat-room and perform follow unfollow operations'''
@@ -2871,15 +2871,17 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance):
     expiry_time = time.time() + HOURS_24
     # for users who are following the chatrooms
     #updating the expire time to null for all the users who are following the chatroom in collabcardState
-    collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
+    update_status = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
+    print(update_status)
     #
     # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
 
     #for users who have seen the chatroom
-    collabcardState.objects.filter(card=card_instance, follow_status=False,
+    update_status = collabcardState.objects.filter(card=card_instance, follow_status=False,
                                    remove=None).filter(
         Q(state=collabcard_states.COLLABCARD_STATE_SEEN)|Q(external_seen=True)).update(expiry_time=expiry_time)
+    print(update_status)
 
 
 # api to deprecate
@@ -5230,7 +5232,7 @@ def create_conversation(request):
         send_chatroom_owner_mail.delay(card_instance.user.id, card_instance.id, time_in_hrs=12)
 
     # # # updating the conversationEngage table
-    conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
+    save_the_latest_conversation(card_instance,user_id)
 
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'])
 
