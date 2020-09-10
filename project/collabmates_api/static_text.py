@@ -1,5 +1,5 @@
 #variables
-HOURS_24 = 900
+HOURS_24 = 500
 
 
 chatroom_actions_creator_mute = [
@@ -194,7 +194,7 @@ ONBOARDING_EXAMPLES = [
     "header":"Sample community purposes",
     "sub_header" : "Here are few examples of other communities’ purpose.",
     "title" : "IITD Alums in Gurgaon",
-    "sub_title":"""This community is for IITD alumni currently living in Gurgaon and nearby areas. 
+    "sub_title":"""This community is for IITD alumni currently living in Gurgaon and nearby areas.
 Anytime if you are looking to exchange referrals or maybe want to have a small get together just create a chatroom in the community with relevant content and interested community members will participate in it."""
 
     },
