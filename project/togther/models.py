@@ -270,6 +270,8 @@ class deletedChatrooms(models.Model):
     # saving deleted user details
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='deleted_by_user')
     deleted_by_text = models.CharField(max_length=512, null=True)
+    deleted_by_creator = models.BooleanField(default=False, null=True)
+    deleted_by_promoter = models.BooleanField(default=False, null=True)
     reason = models.CharField(max_length=512, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
 
