@@ -4375,7 +4375,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     else:
         chatroom_actions = get_chatroom_actions(card_status, creator=False, promoter=is_promoter)
 
-    save_the_latest_conversation(card_instance, user_id)
+    last_conversation = save_the_latest_conversation(card_instance, user_id)
 
 
     # getting the state of chatroom against the user
@@ -4389,6 +4389,12 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     latest_conversation = conversations_filter.last()
     card['show_follow_telescope'] = show_follow_telescope(card_status, card_instance, user_id, latest_conversation,
                                                           conversations)
+    card['total_response_count'] = total_response_count
+
+    if last_conversation:
+        serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id)
+        if serialized_last:
+            card['last_conversation'] = serialized_last[0]
 
     context['chatroom'] = card
     context['conversations'] = conversations
@@ -4410,11 +4416,12 @@ def save_the_latest_conversation(card_instance, user_id):
     latest_card = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
 
     # status = is_member_verified(card_instance.community,user_id)
-
+    latest_conversation = None
     if latest_card:
         user_instance = User.objects.get(id=user_id)
         conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
         conversation_instance = latest_card
+        latest_conversation = conversation_instance
         expiry_time = time.time()+ HOURS_24
         if not conversation_member_filter.exists():
             conversation_member_instance = conversationMemberState()
@@ -4444,6 +4451,9 @@ def save_the_latest_conversation(card_instance, user_id):
                 update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                          last_conversation_id=conversation_instance.id,
                                                          unseen_count=0)
+
+    return latest_conversation
+
 
 
 def is_chatroom_join_expired(aj, source_id):
