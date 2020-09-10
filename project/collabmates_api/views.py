@@ -5246,15 +5246,13 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id,user_
     expiry_time = time.time() + HOURS_24
     card_creater = card_instance.user
 
-    if card_creater.id == int(user_id):
 
-        update_status = collabcardState.objects.filter(card=card_instance,user=user_id).update(
-            expiry_time=expiry_time)
-        print(update_status)
-    else:
-        update_status = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
-        print(update_status)
-    #
+    update_status = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
+    print(update_status)
+
+    if card_creater.id == int(user_id):
+        collabcardState.objects.filter(card=card_instance,user=user_id).update(expiry_time=expiry_time)
+
     # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
 
