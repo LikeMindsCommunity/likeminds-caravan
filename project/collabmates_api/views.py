@@ -2853,8 +2853,8 @@ def fetch_deleted_chatroom(request):
 
 def update_activity_in_chatroom(card_instance,user_instance):
 
-    '''function to update activities in chatrooms  
-    
+    '''function to update activities in chatrooms
+
     in collabcardState table and conversationEngage table'''
     engage_filter = conversationEngage.objects.filter(card=card_instance,user=user_instance)
     expiry_time = time.time() + HOURS_24
@@ -5562,7 +5562,7 @@ def collabcards_seen(request):
     if 'collabcard_type' in params:
         collabcard_type = params['collabcard_type']
 
-    collabcards_seen_internal(community_id, card_id, user_id)
+    collabcards_seen_internal(community_id, card_id,collabcard_type,user_id)
 
     return JsonResponse({'success': True})
 
