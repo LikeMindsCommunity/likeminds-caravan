@@ -322,6 +322,7 @@ class conversationEngage(models.Model):
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
     draft = models.ForeignKey(draftChatroom,on_delete=models.CASCADE,null=True)
+    expiry_time = models.BigIntegerField(null=True)
 
 
 
@@ -674,6 +675,10 @@ class collabcardState(models.Model):
     follow_status = models.BooleanField(default=False)
     is_guest = models.BooleanField(default=False)
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
+    
+    expiry_time = models.BigIntegerField(null=True)
+
+    external_seen = models.BooleanField(default=False)
 
 class CollabcardStateBackup(models.Model):
 
