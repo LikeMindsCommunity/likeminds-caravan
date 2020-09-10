@@ -1,0 +1,21 @@
+from django.urls import path
+from .views import *
+
+urlpatterns = [
+    path('dashboard', dashboard, name="dashboard"),
+
+    #community_types
+    path('list_community_types', list_community_types, name="list_community_types"),
+    path('add_community_types', add_community_types, name="add_community_types"),
+    path('edit_community_types/<community_type_id>', edit_community_types, name='edit_community_types'),
+
+    #community_sub_types
+    path('list_community_subtypes', list_community_subtypes, name="list_community_subtypes"),
+    path('add_community_subtypes', add_community_subtypes, name="add_community_subtypes"),
+    path('edit_community_subtypes/<community_subtype_id>', edit_community_subtypes, name='edit_community_subtypes'),
+
+    #community_field_type
+    path('list_community_fields', list_community_fields, name="list_community_fields"),
+    path('add_community_fields', add_community_fields, name="add_community_fields"),
+    path('edit_community_fields/<community_field_id>', edit_community_fields, name='edit_community_fields'),
+]

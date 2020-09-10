@@ -1,0 +1,81 @@
+{% extends 'cms/base.html' %}
+{% block content%}
+<div class="card mt-2 mb-2">
+    <div class="card-body">
+        <h2>Directory Fields</h2>
+        <a href="{% url 'add_community_fields' %}" class="btn btn-primary">Add Community field</a>
+    </div>
+</div>
+
+<form class="form-inline" method="GET">
+  <div class="form-group mx-sm-3 mb-2">
+    <label for="inputPassword2" class="sr-only">Password</label>
+    <input type="text" value="{{q}}" class="form-control" id="inputPassword2" name="q" placeholder="type, sub type, question">
+  </div>
+  <button type="submit" class="btn btn-primary mb-2">Search</button>
+</form>
+{% if communityfields.has_other_pages %}
+<nav aria-label="Page navigation example">
+    <ul class="pagination pagination-sm" style="flex-wrap: wrap;">
+        {% if communityfields.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ communityfields.previous_page_number }}">&laquo;</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% for i in communityfields.paginator.page_range %}
+        {% if communityfields.number == i %}
+        <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only page-link">(current)</span></span></li>
+        {% else %}
+        <li class="page-item"><a  class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+        {% endif %}
+        {% endfor %}
+        {% if communityfields.has_next %}
+        <li><a  class="page-link" href="?page={{ communityfields.next_page_number }}">&raquo;</a></li>
+        {% else %}
+        <li class="page-item disabled"><span>&raquo;</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+<table class="table table-bordered table-hover mt-2 mb-2">
+    <tr>
+        <td>ID</td>
+        <td>Type</td>
+        <td>Subtype</td>
+        <td>Question title</td>
+        <td>Option</td>
+    </tr>
+    {% for type in communityfields %}
+    <tr>
+        <td>{{type.id}}</td>
+        <td>{{type.type}}</td>
+        <td>{{type.sub_type}}</td>
+        <td>{{type.question_title}}</td>
+        <td><a href="{% url 'edit_community_fields' community_field_id=type.id%}" class="btn btn-primary">Edit</a> </td>
+    </tr>
+    {% endfor %}
+</table>
+{% if communityfields.has_other_pages %}
+<nav aria-label="Page navigation example">
+    <ul class="pagination pagination-sm" style="flex-wrap: wrap;">
+        {% if communityfields.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ communityfields.previous_page_number }}">&laquo;</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% for i in communityfields.paginator.page_range %}
+        {% if communityfields.number == i %}
+        <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only page-link">(current)</span></span></li>
+        {% else %}
+        <li class="page-item"><a  class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+        {% endif %}
+        {% endfor %}
+        {% if communityfields.has_next %}
+        <li><a  class="page-link" href="?page={{ communityfields.next_page_number }}">&raquo;</a></li>
+        {% else %}
+        <li class="page-item disabled"><span>&raquo;</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

@@ -779,12 +779,17 @@ class communityType(models.Model):
     typ=models.TextField(null=True)
     next_input_title=models.TextField(null=True)
 
+    def __str__(self):
+        return self.typ
+
 
 class communitySubtype(models.Model):
 
     '''model to save subtype of community'''
     sub_typ=models.TextField(null=True)
     typ = models.ForeignKey(communityType, on_delete=models.CASCADE)
+    def __str__(self):
+        return self.sub_typ
 
 
 class masterQuestions(models.Model):
@@ -999,6 +1004,9 @@ class communityFieldTypes(models.Model):
             self.created_at = time.time()
         super(communityFieldTypes, self).save(*args, **kwargs)
 
+    def __str__(self):
+        return self.type
+
 
 
 class communityFieldSubTypes(models.Model):
@@ -1014,6 +1022,9 @@ class communityFieldSubTypes(models.Model):
         if self.created_at == 0:
             self.created_at = time.time()
         super(communityFieldSubTypes, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.sub_type
 
 
 
