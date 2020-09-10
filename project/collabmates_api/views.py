@@ -2682,7 +2682,7 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
             if last_conversation:
                 expire_at = last_conversation.created_at + HOURS_24
             else:
-                expire_at = card_instance.data_epooch + HOURS_24
+                expire_at = card_instance.date_epooch + HOURS_24
 
             create_chatroom_state_instance(card_instance,user_instance,expire_at=expire_at)
 
