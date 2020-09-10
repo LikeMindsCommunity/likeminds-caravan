@@ -4487,7 +4487,7 @@ def adding_guest_in_chatroom(request, context, card_instance, aj, source_id, com
             create_guest_header(current_user_id, source_id, card_instance, current_user_id)
 
             func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True,'source_id':source_id,'source':"guest access"}
-                collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
+            collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
 
 
     elif not status:
