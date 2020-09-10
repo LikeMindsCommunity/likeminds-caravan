@@ -222,6 +222,15 @@ class draftChatroom(models.Model):
     header = models.TextField(null=True)
 
 
+# Collabcard Report Module
+class Report_Tags(models.Model):
+    ''' Table containing the report tags '''
+
+    tag_name = models.CharField(max_length=512)
+    tag_id = models.IntegerField(null=True)
+    type = models.IntegerField(default=0)
+
+
 class deletedChatrooms(models.Model):
 
     title = models.TextField()
@@ -258,9 +267,15 @@ class deletedChatrooms(models.Model):
     poll_type = models.IntegerField(default=0, null=True)
     is_poll_anonymous = models.BooleanField(default=False, null=True)
     allow_add_option = models.BooleanField(default=False, null=True)
+    # saving deleted user details
+    deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='deleted_by_user')
+    deleted_by_text = models.CharField(max_length=512, null=True)
+    deleted_by_creator = models.BooleanField(default=False, null=True)
+    deleted_by_promoter = models.BooleanField(default=False, null=True)
+    reason = models.CharField(max_length=512, null=True)
+    tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
 
     header = models.TextField(null=True)
-
     card_id = models.IntegerField(null=True)
 
 
@@ -629,17 +644,6 @@ class App_Update_Info(models.Model):
     #     super(App_Update_Info, self).save(*args, **kwargs)
 
 
-# Collabcard Report Module
-
-
-class Report_Tags(models.Model):
-    '''Table containing the report tags '''
-
-    tag_name = models.CharField(max_length=512)
-    tag_id = models.IntegerField(null=True)
-    type = models.IntegerField(default=0)
-
-
 class Report(models.Model):
     '''Table containing the report data of user'''
 
@@ -656,9 +660,6 @@ class Report(models.Model):
     community = models.ForeignKey(Community,on_delete=models.CASCADE,null=True)
 
 
-
-
-
 class collabcardState(models.Model):
 
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
@@ -669,19 +670,36 @@ class collabcardState(models.Model):
     updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
 
     #if got removed saving the previous state
-    remove = models.ForeignKey(removedMembers,on_delete=models.CASCADE,null=True)
+    remove = models.ForeignKey(removedMembers,on_delete=models.CASCADE, null=True)
     mute_status = models.BooleanField(default=False)
-
     follow_status = models.BooleanField(default=False)
-
     is_guest = models.BooleanField(default=False)
-
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
-
+    
     expiry_time = models.BigIntegerField(null=True)
 
     external_seen = models.BooleanField(default=False)
 
+class CollabcardStateBackup(models.Model):
+
+    card = models.ForeignKey(deletedChatrooms, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    state = models.IntegerField(null=True)
+    created_at = models.BigIntegerField(default=0, null=True)
+    updated_at = models.BigIntegerField(default=0, null=True)
+    seen_status = models.BooleanField(default=False)
+    remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
+    mute_status = models.BooleanField(default=False)
+    follow_status = models.BooleanField(default=False)
+    is_guest = models.BooleanField(default=False)
+    source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer_backup')
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        self.updated_at = time.time()
+        super(CollabcardStateBackup, self).save(*args, **kwargs)
 
 
 class CollabcardPolls(models.Model):
@@ -702,14 +720,13 @@ class CollabcardPolls(models.Model):
     def get_card_polls(self, card_id):
         pass
 
-class draftPolls(models.Model):
 
+class draftPolls(models.Model):
 
     draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE)
     text = models.CharField(max_length=2048, null=True)
     sub_text = models.TextField(null=True)
     image_url = models.TextField(null=True)
-
 
 
 class MemberPollVotes(models.Model):
