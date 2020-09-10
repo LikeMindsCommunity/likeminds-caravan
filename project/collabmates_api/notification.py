@@ -57,7 +57,9 @@ def send_test_notification(token_list,message):
     
 def send_notification_for_android(token_list,message):
     '''function to send notification to android'''
+    # print(token_list,message)
     result=""
+    # print("===== sending for android")
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
@@ -96,7 +98,7 @@ def get_title_from_collabcard(card):
 
 
 def notification_meta(notification_list,message):
-    print(notification_list,message)
+    # print(notification_list,message)
     '''function to process notification to send'''
 
     token_list_android=[]
@@ -386,7 +388,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_list_member = []
 
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
-        
+        # print(member_list)
         for member in member_list:
             temp = {}
             temp['user_id'] = member[0]
@@ -414,18 +416,22 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         if typ == 2:
             title = community_name
             sub_title = str(card_creater_name) + " created a new event: " + str(collabcard_title) + ". Join now!"
+            route = 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         elif typ == 3:
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
+            route = 'route://poll_chatroom?chatroom_id='+str(kwargs['card_id'])
         else:
             title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
+            route = 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         message['payload'] = {
             # 'title': str(card_creater_name) + " @ " + str(community_name),
             'title': title,
             'sub_title': sub_title,
-            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
+            'route': route
         }
+        # message['payload']['unread_new_chatroom'] = {}
         if typ not in [2, 3]:
             message['payload']['unread_new_chatroom'] = custom_payload
 
@@ -1329,6 +1335,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
         task_path = "collabmates_api.notification.send_notification_for_directory_creation"
         kwargs = {}
 
+
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                         date_time=date_time, interval=False, crontab=True)
         return
@@ -1617,6 +1624,8 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 @shared_task
 def schedule_poll_end_notification(community_name, community_id, typ, date_time,card_id):
     task_name = str(card_id) + "_poll_expiry_or_event_remainder_notification"
+    print("date---time>>>",date_time)
+    date_time = date_time/1000
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
     celerybeatask = CeleryBeatTask()
@@ -1688,14 +1697,16 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
         if typ == 3:
             sub_title = 'Your poll ended. Tap to see results'
+            route = 'route://poll_chatroom?chatroom_id=' + str(card_id) + '&poll_end=true'
         else:
             sub_title = 'Your event is starting in 30 minutes'
+            route = 'route://collabcard?collabcard_id=' + str(card_id)
 
         message = {}
         message['payload'] = {
             'title': str(community_name),
             'sub_title': sub_title,
-            'route': 'route://collabcard?collabcard_id='+str(card_id)
+            'route': route
         }
         # print(message)
         notification_meta(notification_list, message)

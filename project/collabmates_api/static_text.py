@@ -1,3 +1,6 @@
+#variables
+HOURS_24 = 900
+
 
 chatroom_actions_creator_mute = [
 
