@@ -5194,12 +5194,24 @@ def create_conversation(request):
         }
         collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
+    conversation_tagging(request, res, card_instance, user_instance, member_id)
+    # # # updating the conversationEngage table
+    user_id = str(user_instance.id)
+    save_the_latest_conversation(card_instance,user_id)
+
+    update_chatroom_for_users_and_send_follow_notification(card_instance.id, user_id, res['text'])
+
+    return JsonResponse({'success': True, 'id': ans.id})
+
+
+def conversation_tagging(request,res,card_instance,user_instance,member_id):
+
+    '''tagging in conversations and auto-following'''
     # sending the tagged member list
     auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
 
-    user_id = str(user_instance.id)
 
-    #send tagged users mail if they didnt check chat in last 24 hours
+    # send tagged users mail if they didnt check chat in last 24 hours
     tagged_members = get_tagged_members_list(res['text'])
 
     tagged_member_list = tagged_members[0]
@@ -5215,13 +5227,6 @@ def create_conversation(request):
                                community_id=None) and str(member_id) != str(card_instance.user.id):
         send_chatroom_owner_mail.delay(card_instance.user.id, card_instance.id, time_in_hrs=12)
 
-    # # # updating the conversationEngage table
-    save_the_latest_conversation(card_instance,user_id)
-
-    update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'])
-
-    return JsonResponse({'success': True, 'id': ans.id})
-
 
 @shared_task
 def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, res_text):
@@ -5233,18 +5238,21 @@ def update_chatroom_for_users_and_send_follow_notification(card_instance_id, use
 def update_activity_in_chatroom_for_conversation_creation(card_instance_id,user_id):
 
     '''function to update the activity in chatroom for conversation creations'''
-    expiry_time = time.time() + HOURS_24
     # for users who are following the chatrooms
     #updating the expire time to null for all the users who are following the chatroom in collabcardState
-    card_instance = Collabcard.objects.get(id=card_instance_id)
-    if user_id:
 
-        if int(user_id) == card_instance.user.id:
-            expiry_time = time.time() + HOURS_24
-            collabcardState.objects.filter(card=card_instance,user=user_id,remove=None).update(expiry_time=expiry_time)
-            return
-    update_status = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
-    print(update_status)
+    card_instance = Collabcard.objects.get(id=card_instance_id)
+    expiry_time = time.time() + HOURS_24
+    card_creater = card_instance.user
+
+    if card_creater.id == int(user_id):
+
+        update_status = collabcardState.objects.filter(card=card_instance,user=user_id).update(
+            expiry_time=expiry_time)
+        print(update_status)
+    else:
+        update_status = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
+        print(update_status)
     #
     # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
