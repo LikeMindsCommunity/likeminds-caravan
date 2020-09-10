@@ -5199,7 +5199,7 @@ def create_conversation(request):
     user_id = str(user_instance.id)
     save_the_latest_conversation(card_instance,user_id)
 
-    update_chatroom_for_users_and_send_follow_notification(card_instance.id, user_id, res['text'])
+    update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'])
 
     return JsonResponse({'success': True, 'id': ans.id})
 
