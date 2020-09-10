@@ -2736,34 +2736,34 @@ def chatroom_delete(request):
         context = get_error_context(False, "send the chatroom_id in post params")
         return JsonResponse(context)
 
-    # try:
-    collabcard_instance = Collabcard.objects.get(id=chatroom_id)
-    community_id = collabcard_instance.community.id
-    is_promoter = False
-    member_instance = Members.objects.filter(member_id=member_id, community_id=collabcard_instance.community).filter(
-        Q(state=1))
-    if member_instance.exists():
-        is_promoter = True
+    try:
+        collabcard_instance = Collabcard.objects.get(id=chatroom_id)
+        community_id = collabcard_instance.community.id
+        is_promoter = False
+        member_instance = Members.objects.filter(member_id=member_id, community_id=collabcard_instance.community).filter(
+            Q(state=1))
+        if member_instance.exists():
+            is_promoter = True
 
-    is_card_creator = collabcard_instance.user.id == int(member_id)
+        is_card_creator = collabcard_instance.user.id == int(member_id)
 
-    if not is_card_creator and not is_promoter:
-        context = get_error_context(False,
-                                    "You are not the card creator or promoter. you cannot delete this chatroom")
+        if not is_card_creator and not is_promoter:
+            context = get_error_context(False,
+                                        "You are not the card creator or promoter. you cannot delete this chatroom")
+            return JsonResponse(context)
+
+        current_user_instance = User.objects.get(pk=member_id)
+        create_chatroom_delete_backup(collabcard_instance, current_user_instance, tag_id, reason, card_creator=is_card_creator,
+                                        promoter=is_promoter)
+
+        delete_status = Collabcard.objects.filter(id=chatroom_id).delete()
+        info_logger.info(delete_status)
+        update_last_unseen_in_engage_on_card_creation.delay(community_id)
+
+    except Exception as e:
+
+        context = get_error_context(False, str(e))
         return JsonResponse(context)
-
-    current_user_instance = User.objects.get(pk=member_id)
-    create_chatroom_delete_backup(collabcard_instance, current_user_instance, tag_id, reason, card_creator=False,
-                                    promoter=False)
-
-    delete_status = Collabcard.objects.filter(id=chatroom_id).delete()
-    info_logger.info(delete_status)
-    update_last_unseen_in_engage_on_card_creation.delay(community_id)
-
-    # except Exception as e:
-    #
-    #     context = get_error_context(False, str(e))
-    #     return JsonResponse(context)
 
     return JsonResponse({'success': True})
 
@@ -2818,10 +2818,9 @@ def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id, 
     if reason:
         card.reason = reason
     if tag_id:
-        card.tag_id = tag_id
         tag = Report_Tags.objects.filter(tag_id=tag_id)
         if tag.exists():
-            card.tag = tag
+            card.tag = tag[0]
 
     card.date_epoch = time.time()  # card creation time
     card.card_id = card_instance.id
@@ -2856,7 +2855,7 @@ def fetch_deleted_chatroom(request):
         member_id = get_member_id_from_headers(request)
         user_instance = User.objects.get(pk=member_id)
 
-        deleted_chatrooms = CollabcardStateBackup.objects.select_related('card', 'tag').filter(user=user_instance).filter(seen_status=False)
+        deleted_chatrooms = CollabcardStateBackup.objects.select_related('card', 'card__tag').filter(user=user_instance).filter(seen_status=False)
 
         toast_title = ''
         title = ''
@@ -2868,14 +2867,14 @@ def fetch_deleted_chatroom(request):
 
             deleted_by = ''
             if chatroom.card.deleted_by_promoter:
-                deleted_by = f"was deleted by a {chatroom.deleted_by_text}"
+                deleted_by = f"was deleted by a {chatroom.card.deleted_by_text}"
             if chatroom.card.deleted_by_creator:
-                deleted_by = f"was deleted by its {chatroom.deleted_by_text}"
+                deleted_by = f"was deleted by its {chatroom.card.deleted_by_text}"
 
             toast_title = toast_title + deleted_by
             title = 'Chat room deleted'
 
-            sub_title = f"Chat room {chatroom.card.header} {deleted_by} citing following reason:"
+            sub_title = f'Chat room "{chatroom.card.header}" {deleted_by} citing following reason:'
 
         elif deleted_chatrooms_count > 0:
             toast_title = f'{deleted_chatrooms_count} of your followed chatroom were removed'
@@ -2887,17 +2886,17 @@ def fetch_deleted_chatroom(request):
 
             content = {
                 "header": chatroom.card.header,
-                "deleted_by_text": f"Removed by {chatroom.deleted_by_text}",
+                "deleted_by_text": f"Removed by {chatroom.card.deleted_by_text}",
             }
 
-            if chatroom.tag is not None:
+            if chatroom.card.tag is not None:
                 tag_dict = {}
-                tag_dict['id'] = chatroom.tag.tag_id
-                tag_dict['name'] = chatroom.tag.tag_name
+                tag_dict['id'] = chatroom.card.tag.tag_id
+                tag_dict['name'] = chatroom.card.tag.tag_name
                 content["tag"] = tag_dict
 
-            if chatroom.reason is not None:
-                content["reason"] = chatroom.reason
+            if chatroom.card.reason is not None:
+                content["reason"] = chatroom.card.reason
 
             chatrooms_list.append(content)
 
