@@ -2783,7 +2783,7 @@ def chatroom_delete(request):
 
 
 def fetch_deleted_chatroom(request):
-    """ function to update polls of a card for user """
+    """ function to fetch deleted chatrooms of a user"""
     if request.method == 'GET':
         member_id = get_member_id_from_headers(request)
         user_instance = User.objects.get(pk=member_id)
@@ -2864,8 +2864,6 @@ def update_activity_in_chatroom(card_instance,user_instance):
         if unread_count > 0:
             Collabcard.objects.filter(id=card_instance,user=user_instance).update(expiry_time=expiry_time)
             conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
-
-
 
 
 # api to deprecate
@@ -4177,7 +4175,7 @@ def mark_read(request):
     return JsonResponse({'success': True})
 
 
-def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None):
+def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None, fetch_reply=True):
     '''function to get answer for a particular collabcard '''
 
     answers = []
@@ -4223,6 +4221,8 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'pdf': attachements['pdf'],
             'date': date,
             'state': ans.state,
+            'is_deleted': ans.is_deleted,
+            'is_edited': ans.is_edited,
         }
 
         if ans.og_tags:
@@ -4233,6 +4233,10 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
         if 'location' in attachements:
             context['location'] = attachements['location']
+
+        if ans.reply and fetch_reply:
+            context['reply_conversation'] = get_answer_data([ans.reply], community_id,
+                                                            current_user_id, fetch_reply=False)
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
 
@@ -5175,6 +5179,10 @@ def create_conversation(request):
     ##checking weather the conversation creater is a guest or not
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance, is_guest=True)
 
+    replied_conversation = None
+    if 'replied_conversation_id' in res:
+        replied_conversation = card_answers.objects.get(pk=res['replied_conversation_id'])
+
     ans = card_answers()
     ans.answer = res['text']
     ans.card = card_instance
@@ -5182,6 +5190,8 @@ def create_conversation(request):
     ans.community = card_instance.community
     ans.is_guest = state_filter.exists()
     ans.created_at = time.time()
+    if replied_conversation:
+        ans.reply = replied_conversation
     ans.save()
 
     # saving the og tags if present
@@ -9331,3 +9341,65 @@ def fetch_poll_users(request):
         members_list.append(MembersSerializer(member_instance[0], community_id, current_user_id=member_id))
 
     return JsonResponse({"members": members_list})
+
+
+def delete_conversation(request):
+    """ function to delete a conversation """
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    member_id = get_member_id_from_headers(request)
+    conversation_id = request.POST.get('conversation_id', None)
+
+    if not conversation_id:
+        context = get_error_context(False, "send the conversation_id in post params")
+        return JsonResponse(context)
+
+    if not member_id:
+        context = get_error_context(False, "send the member_id in headers")
+        return JsonResponse(context)
+
+    conversation = card_answers.objects.get(pk=conversation_id)
+    if int(conversation.user.id) == int(member_id):
+        conversation.is_deleted = True
+        conversation.save()
+    else:
+        context = get_error_context(False,
+                                    "you are not the conversation creator.Only conversation creator can delete his/her message")
+        return JsonResponse(context)
+
+    return JsonResponse({'success': True})
+
+
+def edit_conversation(request):
+    """ function to delete a conversation """
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    member_id = get_member_id_from_headers(request)
+    conversation_id = request.POST.get('conversation_id', None)
+    edited_answer = request.POST.get('text', None)
+
+    if not conversation_id:
+        context = get_error_context(False, "send the conversation_id in post params")
+        return JsonResponse(context)
+
+    if not member_id:
+        context = get_error_context(False, "send the member_id in headers")
+        return JsonResponse(context)
+
+    conversation = card_answers.objects.get(pk=conversation_id)
+    if int(conversation.user.id) == int(member_id):
+        conversation.answer = edited_answer
+        conversation.is_edited = True
+        conversation.save()
+    else:
+        context = get_error_context(False,
+                                    "you are not the conversation creator.Only conversation creator can edit his/her message")
+        return JsonResponse(context)
+
+    return JsonResponse({'success': True})
+
+

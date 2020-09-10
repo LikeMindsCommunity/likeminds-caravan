@@ -290,6 +290,9 @@ class card_answers(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
     is_guest = models.BooleanField(default=False)
     og_tags = models.TextField(null=True)
+    is_deleted = models.BooleanField(default=False)
+    is_edited = models.BooleanField(default=False)
+    reply = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='replied_conversation')
 
 
 class conversationMemberState(models.Model):
