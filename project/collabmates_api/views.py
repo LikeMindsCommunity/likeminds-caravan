@@ -2865,27 +2865,7 @@ def update_activity_in_chatroom(card_instance,user_instance):
             Collabcard.objects.filter(id=card_instance,user=user_instance).update(expiry_time=expiry_time)
             conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
 
-def update_activity_in_chatroom_for_conversation_creation(card_instance_id,user_id):
 
-    '''function to update the activity in chatroom for conversation creations'''
-    expiry_time = time.time() + HOURS_24
-    # for users who are following the chatrooms
-    #updating the expire time to null for all the users who are following the chatroom in collabcardState
-    if user_id and int(card_instance_id)== int(user_id):
-        expiry_time = time.time() + HOURS_24
-        collabcardState.objects.filter(card=card_instance_id,user=user_id,remove=None).update(expiry_time=expiry_time)
-        return
-    update_status = collabcardState.objects.filter(card=card_instance_id,follow_status=True,remove=None).update(expiry_time=None)
-    print(update_status)
-    #
-    # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
-    # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
-
-    #for users who have seen the chatroom
-    update_status = collabcardState.objects.filter(card=card_instance_id, follow_status=False,
-                                   remove=None).filter(
-        Q(state=collabcard_states.COLLABCARD_STATE_SEEN)|Q(external_seen=True)).update(expiry_time=expiry_time)
-    print(update_status)
 
 
 # api to deprecate
@@ -5248,6 +5228,32 @@ def update_chatroom_for_users_and_send_follow_notification(card_instance_id, use
     update_my_chatrooms_for_users(chatroom_id=card_instance_id)
     update_activity_in_chatroom_for_conversation_creation(card_instance_id,user_id=user_id)
     send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
+
+
+def update_activity_in_chatroom_for_conversation_creation(card_instance_id,user_id):
+
+    '''function to update the activity in chatroom for conversation creations'''
+    expiry_time = time.time() + HOURS_24
+    # for users who are following the chatrooms
+    #updating the expire time to null for all the users who are following the chatroom in collabcardState
+    card_instance = Collabcard.objects.get(id=card_instance_id)
+    if user_id:
+
+        if int(user_id) == card_instance.user.id:
+            expiry_time = time.time() + HOURS_24
+            collabcardState.objects.filter(card=card_instance,user=user_id,remove=None).update(expiry_time=expiry_time)
+            return
+    update_status = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
+    print(update_status)
+    #
+    # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
+    # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
+
+    #for users who have seen the chatroom
+    update_status = collabcardState.objects.filter(card=card_instance, follow_status=False,
+                                   remove=None).filter(
+        Q(state=collabcard_states.COLLABCARD_STATE_SEEN)|Q(external_seen=True)).update(expiry_time=expiry_time)
+    print(update_status)
 
 
 def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id):
