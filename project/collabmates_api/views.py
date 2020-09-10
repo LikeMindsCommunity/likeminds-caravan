@@ -9343,6 +9343,7 @@ def fetch_poll_users(request):
     return JsonResponse({"members": members_list})
 
 
+@csrf_exempt
 def delete_conversation(request):
     """ function to delete a conversation """
 
@@ -9372,6 +9373,7 @@ def delete_conversation(request):
     return JsonResponse({'success': True})
 
 
+@csrf_exempt
 def edit_conversation(request):
     """ function to delete a conversation """
 
