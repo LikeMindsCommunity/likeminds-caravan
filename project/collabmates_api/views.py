@@ -4282,10 +4282,10 @@ def get_chatroom_actions(card_status, creator, promoter=False):
     ''' function to get chatroom actions '''
     final_dict = None
     if creator and card_status['mute_status']:
-        return (chatroom_actions_creator_mute)
+        return chatroom_actions_creator_mute
 
     if creator and not card_status['mute_status']:
-        return (chatroom_actions_creator_unmute)
+        return chatroom_actions_creator_unmute
 
     if card_status['follow_status'] and not card_status['mute_status']:
         final_dict = collabcard_action_user_follow_unmute
@@ -4297,7 +4297,8 @@ def get_chatroom_actions(card_status, creator, promoter=False):
         final_dict = collabcard_action_user_unfollow
     if promoter:
         final_dict.append(delete_chatroom)
-    return collabcard_action_user_unfollow
+
+    return final_dict
 
 
 def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction):
