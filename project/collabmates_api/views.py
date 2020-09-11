@@ -2899,11 +2899,15 @@ def set_chatroom_active(request):
 
     chatroom_id = res['chatroom_id']
     duration = res['duration'] if 'duration' in res else HOURS_24
+    status = res['value']
 
     #card_instance = Collabcard.objects.get(id=chatroom_id)
 
     current_time = time.time()
-    updated_time = current_time + int(duration)
+    if status:
+        updated_time = current_time + int(duration)
+    else:
+        updated_time = current_time
 
     state_filter = collabcardState.objects.filter(card=chatroom_id,user=member_id)
 
