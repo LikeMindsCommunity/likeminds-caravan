@@ -32,7 +32,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail, upload_community_files)
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
-                            poll_types)
+                            poll_types, chatroom_actions)
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -4327,25 +4327,55 @@ def get_answer_bubble_context_for_web(ans):
 
 def get_chatroom_actions(card_status, creator, promoter=False):
     ''' function to get chatroom actions '''
+
+    purpose_card = False
+    intro_card = False
+    if card_status['type'] == card_types.CARD_PURPOSE:
+        purpose_card = True
+    elif card_status['type'] == card_types.CARD_INTRO:
+        intro_card = True
+
     final_dict = None
     if creator and card_status['mute_status']:
-        return chatroom_actions_creator_mute
+        final_dict = chatroom_actions_creator_mute
 
-    if creator and not card_status['mute_status']:
-        return chatroom_actions_creator_unmute
+    elif creator and not card_status['mute_status']:
+        final_dict = chatroom_actions_creator_unmute
 
-    if card_status['follow_status'] and not card_status['mute_status']:
+    elif card_status['follow_status'] and not card_status['mute_status']:
         final_dict = collabcard_action_user_follow_unmute
 
-    if card_status['follow_status'] and card_status['mute_status']:
+    elif card_status['follow_status'] and card_status['mute_status']:
         final_dict = collabcard_action_user_follow_mute
 
     if not final_dict:
         final_dict = collabcard_action_user_unfollow
+
     if promoter:
         final_dict.append(delete_chatroom)
 
-    return final_dict
+    actions = []
+
+    for action in final_dict:
+        if purpose_card:
+            if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+                continue
+
+            if not promoter:
+                if action['id'] == chatroom_actions.ACTION_INVITE:
+                    continue
+
+            if promoter or creator:
+                if action['id'] == chatroom_actions.ACTION_RENAME or action['id'] == chatroom_actions.ACTION_DELETE:
+                    continue
+
+        elif intro_card and creator:
+            if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_MUTE or action['id'] == chatroom_actions.ACTION_DELETE or action['id'] == chatroom_actions.ACTION_UNMUTE or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+                continue
+
+        actions.append(action)
+
+    return actions
 
 
 def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction):
@@ -4424,7 +4454,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'state': card['state'],
         'mute_status': card['mute_status'],
         'follow_status': card['follow_status'],
-        'is_guest': card['is_guest']
+        'is_guest': card['is_guest'],
+        'type': card['type'],
     }
 
     is_promoter = False
