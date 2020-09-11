@@ -2898,19 +2898,16 @@ def set_chatroom_active(request):
 
 
     chatroom_id = res['chatroom_id']
-    duration = res['duration']
+    duration = res['duration'] if 'duration' in res else HOURS_24
+    status = res['value']
 
     #card_instance = Collabcard.objects.get(id=chatroom_id)
 
     current_time = time.time()
-    updated_time= None
-    if duration == "24 Hours":
-        updated_time = current_time + HOURS_24
-        pass
-    elif duration == "1 week":
-        updated_time = current_time + (24*60*60*7)
-    elif duration == "1 month":
-        updated_time = current_time + (24 * 60 * 60 * 30)
+    if status:
+        updated_time = current_time + int(duration)
+    else:
+        updated_time = current_time
 
     state_filter = collabcardState.objects.filter(card=chatroom_id,user=member_id)
 
@@ -5348,7 +5345,6 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id,user_
             data.save()
 
     #print(update_status)
-
 
 
 def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id):
