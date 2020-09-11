@@ -164,6 +164,8 @@ urlpatterns = [
     path('fetch_poll_users', api_views.fetch_poll_users, name='fetch_poll_users'),
 
     path('fetch_deleted_chatroom', api_views.fetch_deleted_chatroom, name='fetch_deleted_chatroom'),
+    path('delete_conversation', api_views.delete_conversation, name='delete_conversation'),
+    path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
 
 ]
 
