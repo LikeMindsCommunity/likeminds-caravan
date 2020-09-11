@@ -2905,7 +2905,7 @@ def set_chatroom_active(request):
     current_time = time.time()
     updated_time= None
     if duration == "24 Hours":
-        updated_time = current_time + (24*60*60)
+        updated_time = current_time + HOURS_24
         pass
     elif duration == "1 week":
         updated_time = current_time + (24*60*60*7)
@@ -5346,7 +5346,7 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id,user_
     seen_filter = collabcardState.objects.filter(card=card_instance, follow_status=False,
                                    remove=None).filter(
         Q(state=collabcard_states.COLLABCARD_STATE_SEEN)|Q(external_seen=True))
-    
+
     if seen_filter.exists():
         for data in seen_filter:
             expiry_time = get_expiry_time_of_chatroom(data)
