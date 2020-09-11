@@ -2621,7 +2621,7 @@ def create_chatroom_state_instance(card_instance,user_instance,state=collabcard_
     collabcard_state_instance.created_at = time.time()
     collabcard_state_instance.updated_at = time.time()
     collabcard_state_instance.external_seen = True
-    collabcard_state_instance.expiry_time = get_expiry_time_of_chatroom()
+    collabcard_state_instance.expiry_time = expire_at
     collabcard_state_instance.save()
 
 
@@ -2860,16 +2860,69 @@ def update_activity_in_chatroom(card_instance,user_instance):
         engage_instance = engage_filter[0]
         unread_count = engage_instance.unseen_count
         if unread_count > 0:
-            Collabcard.objects.filter(id=card_instance,user=user_instance).update(expiry_time=expiry_time)
-            conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
 
-def get_expiry_time_of_chatroom():
+            state_filter = collabcardState.objects.filter(id=card_instance,user=user_instance)
+            if state_filter.exists():
+                expiry_time = get_expiry_time_of_chatroom(card_state_instance=state_filter[0])
+                state_filter[0].expiry_time = expiry_time
+                state_filter[0].save()
+            #conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
+
+def get_expiry_time_of_chatroom(card_state_instance=None):
 
     '''function to get expiry time of chatroom'''
-
     expiry_time = time.time() + HOURS_24
 
+    if  card_state_instance:
+        if not card_state_instance.expiry_time and card_state_instance.expiry_time > expiry_time:
+            expiry_time = card_state_instance.expiry_time
+
+
     return expiry_time
+
+@csrf_exempt
+def set_chatroom_active(request):
+
+    '''api to make chatroom active'''
+    try:
+        res = json.loads(request.body)
+    except:
+        context = get_error_context(False,"Json decode error")
+        return JsonResponse(context)
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+
+    chatroom_id = res['chatroom_id']
+    duration = res['duration']
+
+    #card_instance = Collabcard.objects.get(id=chatroom_id)
+
+    current_time = time.time()
+    updated_time= None
+    if duration == "24 Hours":
+        updated_time = current_time + HOURS_24
+        pass
+    elif duration == "1 week":
+        updated_time = current_time + (24*60*60*7)
+    elif duration == "1 month":
+        updated_time = current_time + (24 * 60 * 60 * 30)
+
+    state_filter = collabcardState.objects.filter(card=chatroom_id,user=member_id)
+
+    if state_filter.exists():
+        instance = state_filter[0]
+        expiry_time = instance.expire_time
+
+        if not expiry_time:
+            instance.expire_time = updated_time
+            instance.save()
+
+    return JsonResponse({"success":True})
 
 
 
@@ -5270,23 +5323,36 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id,user_
     #updating the expire time to null for all the users who are following the chatroom in collabcardState
 
     card_instance = Collabcard.objects.get(id=card_instance_id)
-    expiry_time = get_expiry_time_of_chatroom()
-    card_creater = card_instance.user
+
+
 
 
     update_status = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
     print(update_status)
 
+
+    expiry_time = get_expiry_time_of_chatroom()
+
     #the person who is making the conversation marking his chatroom active for expiry time
-    collabcardState.objects.filter(card=card_instance,user=user_id).update(expiry_time=expiry_time)
+    state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
+    if state_filter.exists():
+        expiry_time = get_expiry_time_of_chatroom(state_filter[0])
+        state_filter.update(expiry_time=expiry_time)
 
     # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
 
     #for users who have seen the chatroom
-    update_status = collabcardState.objects.filter(card=card_instance, follow_status=False,
+    seen_filter = collabcardState.objects.filter(card=card_instance, follow_status=False,
                                    remove=None).filter(
-        Q(state=collabcard_states.COLLABCARD_STATE_SEEN)|Q(external_seen=True)).update(expiry_time=expiry_time)
+        Q(state=collabcard_states.COLLABCARD_STATE_SEEN)|Q(external_seen=True))
+
+    if seen_filter.exists():
+        for data in seen_filter:
+            expiry_time = get_expiry_time_of_chatroom(data)
+            data.expiry_time = expiry_time
+            data.save()
+
     print(update_status)
 
 
@@ -5441,7 +5507,7 @@ def collabcard_follow(request, function_dict=None):
 
 
         if status:
-
+            expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
             collabcard_state_filter.update(follow_status = status,updated_at=time.time(),expiry_time=expiry_time)
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
@@ -5494,11 +5560,11 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
-    expiry_time = get_expiry_time_of_chatroom()
+
     if collabcard_state_filter.exists():
         if collabcard_state_filter[0].follow_status == status:
             return
-
+        expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time)
         else:
@@ -5516,7 +5582,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = ref_instance
         collabcard_state_instance.external_seen = True
-        collabcard_state_instance.expiry_time = expiry_time
+        collabcard_state_instance.expiry_time = get_expiry_time_of_chatroom()
         collabcard_state_instance.save()
 
     if status:
