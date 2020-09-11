@@ -2861,7 +2861,7 @@ def update_activity_in_chatroom(card_instance,user_instance):
         unread_count = engage_instance.unseen_count
         if unread_count > 0:
 
-            state_filter = collabcardState.objects.filter(id=card_instance,user=user_instance)
+            state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
             if state_filter.exists():
                 expiry_time = get_expiry_time_of_chatroom(card_state_instance=state_filter[0])
                 state_filter[0].expiry_time = expiry_time
