@@ -4330,25 +4330,57 @@ def get_answer_bubble_context_for_web(ans):
 
 def get_chatroom_actions(card_status, creator, promoter=False):
     ''' function to get chatroom actions '''
+
+    purpose_card = False
+    intro_card = False
+    if card_status['type'] == card_types.CARD_PURPOSE:
+        purpose_card = True
+    elif card_status['type'] == card_types.CARD_INTRO:
+        intro_card = True
+
     final_dict = None
     if creator and card_status['mute_status']:
-        return chatroom_actions_creator_mute
+        final_dict = chatroom_actions_creator_mute
 
-    if creator and not card_status['mute_status']:
-        return chatroom_actions_creator_unmute
+    elif creator and not card_status['mute_status']:
+        final_dict = chatroom_actions_creator_unmute
 
-    if card_status['follow_status'] and not card_status['mute_status']:
+    elif card_status['follow_status'] and not card_status['mute_status']:
         final_dict = collabcard_action_user_follow_unmute
 
-    if card_status['follow_status'] and card_status['mute_status']:
+    elif card_status['follow_status'] and card_status['mute_status']:
         final_dict = collabcard_action_user_follow_mute
 
     if not final_dict:
         final_dict = collabcard_action_user_unfollow
+
     if promoter:
         final_dict.append(delete_chatroom)
 
-    return final_dict
+    chatroom_actions = []
+
+    for action in final_dict:
+        if purpose_card:
+            if action['id'] == 4 or action['id'] == 9:
+                continue
+
+            if not creator and not promoter:
+                if action['id'] == 3:
+                    continue
+
+            if promoter or creator:
+                if action['id'] == 1 or action['id'] == 7:
+                    continue
+
+            chatroom_actions.append(action)
+
+        elif intro_card and creator:
+            if action['id'] == 4 or action['id'] == 6 or action['id'] == 7 or action['id'] == 8 or action['id'] == 9:
+                continue
+            chatroom_actions.append(action)
+
+
+    return chatroom_actions
 
 
 def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction):
@@ -4427,7 +4459,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'state': card['state'],
         'mute_status': card['mute_status'],
         'follow_status': card['follow_status'],
-        'is_guest': card['is_guest']
+        'is_guest': card['is_guest'],
+        'type': card['type'],
     }
 
     is_promoter = False
