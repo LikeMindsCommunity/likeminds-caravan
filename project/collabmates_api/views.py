@@ -4357,14 +4357,14 @@ def get_chatroom_actions(card_status, creator, promoter=False):
     if promoter:
         final_dict.append(delete_chatroom)
 
-    chatroom_actions = []
+    actions = []
 
     for action in final_dict:
         if purpose_card:
             if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
-            if not creator and not promoter:
+            if not promoter:
                 if action['id'] == chatroom_actions.ACTION_INVITE:
                     continue
 
@@ -4376,10 +4376,9 @@ def get_chatroom_actions(card_status, creator, promoter=False):
             if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_MUTE or action['id'] == chatroom_actions.ACTION_DELETE or action['id'] == chatroom_actions.ACTION_UNMUTE or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
-        chatroom_actions.append(action)
+        actions.append(action)
 
-
-    return chatroom_actions
+    return actions
 
 
 def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction):
