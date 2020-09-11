@@ -5275,7 +5275,7 @@ def create_conversation(request):
         }
         collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
-    #conversation_tagging(request, res, card_instance, user_instance, member_id)
+    conversation_tagging(request, res, card_instance, user_instance, member_id)
     # # # updating the conversationEngage table
     user_id = str(user_instance.id)
     save_the_latest_conversation(card_instance,user_id)
