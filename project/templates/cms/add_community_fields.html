@@ -1,0 +1,18 @@
+{% extends 'cms/base.html' %}
+{% block content%}
+{% load crispy_forms_tags %}
+<div class="card mt-2 mb-2">
+    <div class="card-body">
+        <h2>Add Directory fields</h2>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12">
+        <form method="post" >
+            {% csrf_token %}
+            {{ form|crispy }}
+            <button type="submit" class="btn btn-success">Save Type</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
