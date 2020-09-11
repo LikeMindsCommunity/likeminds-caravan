@@ -32,7 +32,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail, upload_community_files)
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
-                            poll_types)
+                            poll_types, chatroom_actions)
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -4361,23 +4361,22 @@ def get_chatroom_actions(card_status, creator, promoter=False):
 
     for action in final_dict:
         if purpose_card:
-            if action['id'] == 4 or action['id'] == 9:
+            if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
             if not creator and not promoter:
-                if action['id'] == 3:
+                if action['id'] == chatroom_actions.ACTION_INVITE:
                     continue
 
             if promoter or creator:
-                if action['id'] == 1 or action['id'] == 7:
+                if action['id'] == chatroom_actions.ACTION_RENAME or action['id'] == chatroom_actions.ACTION_DELETE:
                     continue
 
-            chatroom_actions.append(action)
-
         elif intro_card and creator:
-            if action['id'] == 4 or action['id'] == 6 or action['id'] == 7 or action['id'] == 8 or action['id'] == 9:
+            if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_MUTE or action['id'] == chatroom_actions.ACTION_DELETE or action['id'] == chatroom_actions.ACTION_UNMUTE or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
-            chatroom_actions.append(action)
+
+        chatroom_actions.append(action)
 
 
     return chatroom_actions
