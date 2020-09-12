@@ -169,6 +169,13 @@ urlpatterns = [
     path('delete_conversation', api_views.delete_conversation, name='delete_conversation'),
     path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
 
+
+    ############################ static apis #####################################
+
+    path('fetch_intro_examples', api_views.fetch_intro_examples, name='fetch_intro_examples'),
+
+    ##############################################################################
+
 ]
 
 app_name = 'collabmates_api'

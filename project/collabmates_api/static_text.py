@@ -209,24 +209,24 @@ INTRODUCTION_EXAMPLES = [
 
 
     {
-    "header":"Sample community purposes",
-    "sub_header" : "Here are few examples of other communities’ purpose.",
+    "header":"Sample member introductions",
+    "sub_header" : "Here are a few example of how members customize their profile depending on the community",
     "title" : "IITD Entrepreneurs in Gurgaon",
     "sub_title":"""Hello everyone, I am a 2012 graduate from electrical engineering. I am running a social media venture based out of Gurgaon. Looking forward to connecting with you all and contribute to this community however I can."""
 
     },
 
     {
-    "header":"Sample community purposes",
-    "sub_header" : "Here are few examples of other communities’ purpose.",
+    "header":"Sample member introductions",
+    "sub_header" : "Here are a few example of how members customize their profile depending on the community",
     "title" : "Musicians in Gurgaon",
     "sub_title":"A musician from the Himalayas! Looking for paid opportunities to play percussion (Djembe & Cajon)! I bet your feet won’t stay on the ground for long!  "
 
     },
 
     {
-    "header":"Sample community purpose",
-    "sub_header" : "Here are few examples of other communities’ purpose.",
+    "header":"Sample member introductions",
+    "sub_header" : "Here are a few example of how members customize their profile depending on the community",
     "title" : "COVID Hackers",
     "sub_title":"""Hey all, I am a tech entrepreneur from Gurgaon. Looking forward to hacking the COVID times with this tribe and discover fun new "At Home" hobbies 🤟"""
 

@@ -2082,36 +2082,6 @@ def post_member_directly_link(card_instance, user_instance, community_instance):
     conversation.save()
 
 
-def fetch_community_types(request):
-    '''api to get type and sub-type of community'''
-
-    type_filter = communityFieldTypes.objects.all().order_by('rank')
-
-    types = []
-    other_subtype = {}
-    for instance in type_filter:
-        temp = communityFieldTypeSerializer(instance)
-        sub_type_list = []
-        subtype_queryset = communityFieldSubTypes.objects.filter(type=instance.id).order_by('sub_type')
-        if subtype_queryset.exists():
-            other_subtype = {}
-            for subtype_instance in subtype_queryset:
-                subtype_temp = communityFieldSubTypesSerializer(subtype_instance)
-                if subtype_temp['sub_type'] == 'Other':
-                    other_subtype = subtype_temp
-                    continue
-                sub_type_list.append(subtype_temp)
-
-        if other_subtype:
-            sub_type_list.append(other_subtype)
-        if sub_type_list:
-            temp['sub_types'] = sub_type_list
-
-        types.append(temp)
-
-    context = {'types': types}
-    context['onboarding_examples'] = ONBOARDING_EXAMPLES
-    return JsonResponse(context)
 
 
 def get_basic_directory_options(request):
@@ -9557,3 +9527,46 @@ def edit_conversation(request):
     return JsonResponse({'success': True})
 
 
+############################## static apis for sending text ##############################################
+
+
+def fetch_community_types(request):
+    '''api to get type and sub-type of community'''
+
+    type_filter = communityFieldTypes.objects.all().order_by('rank')
+
+    types = []
+    other_subtype = {}
+    for instance in type_filter:
+        temp = communityFieldTypeSerializer(instance)
+        sub_type_list = []
+        subtype_queryset = communityFieldSubTypes.objects.filter(type=instance.id).order_by('sub_type')
+        if subtype_queryset.exists():
+            other_subtype = {}
+            for subtype_instance in subtype_queryset:
+                subtype_temp = communityFieldSubTypesSerializer(subtype_instance)
+                if subtype_temp['sub_type'] == 'Other':
+                    other_subtype = subtype_temp
+                    continue
+                sub_type_list.append(subtype_temp)
+
+        if other_subtype:
+            sub_type_list.append(other_subtype)
+        if sub_type_list:
+            temp['sub_types'] = sub_type_list
+
+        types.append(temp)
+
+    context = {'types': types}
+    context['onboarding_examples'] = ONBOARDING_EXAMPLES
+    return JsonResponse(context)
+
+def fetch_intro_examples(request):
+
+    '''api to send introduction questions examples'''
+
+    intro_examples = INTRODUCTION_EXAMPLES
+
+    return JsonResponse({'intro_examples':intro_examples})
+
+############################################################################################################
