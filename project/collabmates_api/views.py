@@ -4696,22 +4696,41 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
 
     if not card_status['follow_status']:
         temp['show_follow_telescope'] = True
+        show = True
 
     if card_instance.user.id == user_id:
         temp['show_follow_telescope'] = False
-        return  temp
+        show = True
 
     if card_status['active'] and card_status['is_tagged']:
         temp['show_follow_telescope'] = False
         temp['show_active'] = False
         temp['show_follow_auto_tag'] = True
+        show = True
 
     if card_status['active'] == False and card_status["follow_status"] == False:
         temp['show_follow_telescope'] = False
         temp['show_active'] = True
         temp['show_follow_auto_tag'] = False
+        show = True
 
-    return temp
+    if show:
+        last = False
+        if latest_conversation:
+            for conversation in conversations:
+                if latest_conversation.id == conversation['id']:
+                    last = True
+        else:
+            last = True
+
+        if last:
+            show = True
+        else:
+            show = False
+
+    if show:
+        return temp
+    return  { 'show_follow_telescope' : False, 'show_follow_auto_tag':False, 'show_active':False }
 
 
 
