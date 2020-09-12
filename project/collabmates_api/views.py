@@ -262,19 +262,6 @@ def your_communities(request, user_id):
         community = CommunitySerializer(each_community.community_id)
         community['pending_members_count'] = each_community.pending_members
 
-        #community['updated_at'] = get_time_text(each_community.updated_at)
-        # if each_community.last_unseen_conversation:
-        #     # collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id, , current_user_id=current_user_id)
-        #     # user = each_community.last_unseen_conversation.user
-        #     # collabcard['member'] = UserinfoSerializer(user.userinfo)
-        #     collabcard = get_chatroom_instance(each_community.last_unseen_conversation, member_id,
-        #                                        current_user_id=current_user_id)
-        #     community['collabcard'] = collabcard
-        #
-        # if each_community.member_referral:
-        #     community['member_referral'] = each_community.member_referral
-        # if each_community.member_state:
-        #     community['member_state'] = each_community.member_state
 
         actions = get_home_screen_community_actions(each_community.community_id)
         #member_state = members_state(request,{'community_id':each_community.community_id.id,'member_id':member_id})
@@ -283,6 +270,7 @@ def your_communities(request, user_id):
 
 
         if each_community.member_state == member_states.ADMIN:
+
             community['collabcard_unseen'] = each_community.last_unseen_count
 
             if each_community.pending_members > 0:
@@ -295,10 +283,9 @@ def your_communities(request, user_id):
         else:
             community['collabcard_unseen'] = 0
 
-        if community['state'] != community_states.DELETED:
-            my_community.append(community)
-
+        # if community['state'] != community_states.DELETED:
         community['click_state'] = each_community.click_state
+
         community['actions'] = actions
 
         #active count of chatrooms in communities
@@ -308,6 +295,8 @@ def your_communities(request, user_id):
         active_chatroom_count = count
 
         community['active_chatroom_count'] = active_chatroom_count
+        my_community.append(community)
+
 
     return JsonResponse({'your_communities': my_community})
 
@@ -1977,7 +1966,10 @@ def create_community_version_1(request):
         try:
             community_instance = Community.objects.get(id=community_id)
 
-            create_community_questions(res)
+            status = create_community_questions(res)
+            if not status['success']:
+                return JsonResponse(status)
+
 
             # updating the community level click state
             communityLevels.objects.filter(community=community_instance, level="Level 3").update(
@@ -2009,6 +2001,16 @@ def create_community_questions(res):
     question_count = 0
     current_question_count = communityQuestions.objects.filter(community=community_instance).count()
 
+    #validating process
+    for question in res['questions']:
+
+        if question['state'] == question_states.CHOICE_SINGLE or question['state'] == question_states.CHOICE_MULTIPLE:
+            if not question['value']:
+                context = get_error_context(False,"The value data you are sending is wrong!!!")
+                return context
+
+
+
     if 'questions' in res:
         for question in res['questions']:
 
@@ -2032,6 +2034,8 @@ def create_community_questions(res):
     # setting the state of community in order to make it editable and saving only those questions which are changed
     if current_question_count != question_count:
         Members.objects.filter(community_id=community_instance, state=member_states.MEMBER).update(edit_required=True)
+
+    return {'success':True}
 
 
 def create_or_update_question_instances(question_instance, question, community_instance):
@@ -2207,7 +2211,7 @@ def set_community_actions(community_instance):
         instance.title = "Invite your inner circle"
         instance.sub_title = "Bring 5 trusted people you want to build this community with."
         instance.joined_members = 0
-        instance.max_members = 2 if settings.IS_BETA else 5
+        instance.max_members = 1 if settings.IS_BETA else 5
         instance.state = community_level_states.PENDING
         instance.image = IMAGE_LEVEL_2
         instance.save()
@@ -2219,7 +2223,7 @@ def set_community_actions(community_instance):
         instance.title = "Community Directory"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 2 if settings.IS_BETA else 10
+        instance.max_members = 1 if settings.IS_BETA else 10
         instance.image = IMAGE_LEVEL_3
         instance.save()
 
@@ -2230,7 +2234,7 @@ def set_community_actions(community_instance):
         instance.title = "Growth"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 2 if settings.IS_BETA else 10
+        instance.max_members = 1 if settings.IS_BETA else 10
         instance.image = IMAGE_LEVEL_4
         instance.save()
 
