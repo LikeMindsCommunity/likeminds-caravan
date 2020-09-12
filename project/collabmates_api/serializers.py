@@ -458,12 +458,14 @@ def get_category_of_chatroom(typ):
     return chatroom_type
 
 
-def conversationSerializer(conversation):
+def conversationSerializer(conversation, fetch_reply=True):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
         "state": conversation.state,
-        "member": UserinfoSerializer(conversation.user.userinfo)
+        "member": UserinfoSerializer(conversation.user.userinfo),
+        'is_deleted': conversation.is_deleted,
+        'is_edited': conversation.is_edited,
     }
 
     answer_files = get_answer_files(temp['id'])
@@ -476,6 +478,9 @@ def conversationSerializer(conversation):
 
     if conversation.og_tags:
         temp['og_tags'] = json.loads(conversation.og_tags)
+
+    if conversation.reply and fetch_reply:
+        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
 
     return temp
 

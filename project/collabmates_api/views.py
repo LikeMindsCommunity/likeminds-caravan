@@ -32,7 +32,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail, upload_community_files)
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
-                            poll_types)
+                            poll_types, chatroom_actions)
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -2611,7 +2611,7 @@ def create_chatroom_state_instance(card_instance,user_instance,state=collabcard_
 
     '''function to create chatroom state instance'''
     if not expire_at:
-        expire_at = time.time() + HOURS_24
+        expire_at = get_expiry_time_of_chatroom()
 
     collabcard_state_instance = collabcardState()
     collabcard_state_instance.card = card_instance
@@ -2623,8 +2623,6 @@ def create_chatroom_state_instance(card_instance,user_instance,state=collabcard_
     collabcard_state_instance.external_seen = True
     collabcard_state_instance.expiry_time = expire_at
     collabcard_state_instance.save()
-
-
 
 
 def create_chatroom_engagement(card_instance, user_instance,func_dict=None):
@@ -2663,7 +2661,7 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
             if last_conversation:
                 expire_at = last_conversation.created_at + HOURS_24
             else:
-                expire_at = card_instance.date_epooch + HOURS_24
+                expire_at = card_instance.date_epoch + HOURS_24
 
             create_chatroom_state_instance(card_instance,user_instance,expire_at=expire_at)
 
@@ -2783,7 +2781,7 @@ def chatroom_delete(request):
 
 
 def fetch_deleted_chatroom(request):
-    """ function to update polls of a card for user """
+    """ function to fetch deleted chatrooms of a user"""
     if request.method == 'GET':
         member_id = get_member_id_from_headers(request)
         user_instance = User.objects.get(pk=member_id)
@@ -2857,14 +2855,71 @@ def update_activity_in_chatroom(card_instance,user_instance):
 
     in collabcardState table and conversationEngage table'''
     engage_filter = conversationEngage.objects.filter(card=card_instance,user=user_instance)
-    expiry_time = time.time() + HOURS_24
+    #expiry_time = get_expiry_time_of_chatroom()
     if engage_filter.exists():
         engage_instance = engage_filter[0]
         unread_count = engage_instance.unseen_count
         if unread_count > 0:
-            Collabcard.objects.filter(id=card_instance,user=user_instance).update(expiry_time=expiry_time)
-            conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
 
+            state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
+            if state_filter.exists():
+                expiry_time = get_expiry_time_of_chatroom(card_state_instance=state_filter[0])
+                state_filter[0].expiry_time = expiry_time
+                state_filter[0].save()
+            #conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
+
+def get_expiry_time_of_chatroom(card_state_instance=None):
+
+    '''function to get expiry time of chatroom'''
+    expiry_time = time.time() + HOURS_24
+
+    if  card_state_instance:
+        if  card_state_instance.expiry_time and card_state_instance.expiry_time > expiry_time:
+            expiry_time = card_state_instance.expiry_time
+
+
+    return expiry_time
+
+@csrf_exempt
+def set_chatroom_active(request):
+
+    '''api to make chatroom active'''
+    try:
+        res = json.loads(request.body)
+    except:
+        context = get_error_context(False,"Json decode error")
+        return JsonResponse(context)
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+
+    chatroom_id = res['chatroom_id']
+    duration = res['duration'] if 'duration' in res else HOURS_24
+    status = res['value']
+
+    #card_instance = Collabcard.objects.get(id=chatroom_id)
+
+    current_time = time.time()
+    if status:
+        updated_time = current_time + int(duration)
+    else:
+        updated_time = current_time
+
+    state_filter = collabcardState.objects.filter(card=chatroom_id,user=member_id)
+
+    if state_filter.exists():
+        instance = state_filter[0]
+        expiry_time = instance.expire_time
+
+        if not expiry_time:
+            instance.expire_time = updated_time
+            instance.save()
+
+    return JsonResponse({"success":True})
 
 
 
@@ -4177,7 +4232,7 @@ def mark_read(request):
     return JsonResponse({'success': True})
 
 
-def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None):
+def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None, fetch_reply=True):
     '''function to get answer for a particular collabcard '''
 
     answers = []
@@ -4223,6 +4278,8 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'pdf': attachements['pdf'],
             'date': date,
             'state': ans.state,
+            'is_deleted': ans.is_deleted,
+            'is_edited': ans.is_edited,
         }
 
         if ans.og_tags:
@@ -4233,6 +4290,10 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
         if 'location' in attachements:
             context['location'] = attachements['location']
+
+        if ans.reply and fetch_reply:
+            context['reply_conversation'] = get_answer_data([ans.reply], community_id,
+                                                            current_user_id, fetch_reply=False)
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
 
@@ -4266,25 +4327,55 @@ def get_answer_bubble_context_for_web(ans):
 
 def get_chatroom_actions(card_status, creator, promoter=False):
     ''' function to get chatroom actions '''
+
+    purpose_card = False
+    intro_card = False
+    if card_status['type'] == card_types.CARD_PURPOSE:
+        purpose_card = True
+    elif card_status['type'] == card_types.CARD_INTRO:
+        intro_card = True
+
     final_dict = None
     if creator and card_status['mute_status']:
-        return chatroom_actions_creator_mute
+        final_dict = chatroom_actions_creator_mute
 
-    if creator and not card_status['mute_status']:
-        return chatroom_actions_creator_unmute
+    elif creator and not card_status['mute_status']:
+        final_dict = chatroom_actions_creator_unmute
 
-    if card_status['follow_status'] and not card_status['mute_status']:
+    elif card_status['follow_status'] and not card_status['mute_status']:
         final_dict = collabcard_action_user_follow_unmute
 
-    if card_status['follow_status'] and card_status['mute_status']:
+    elif card_status['follow_status'] and card_status['mute_status']:
         final_dict = collabcard_action_user_follow_mute
 
     if not final_dict:
         final_dict = collabcard_action_user_unfollow
+
     if promoter:
         final_dict.append(delete_chatroom)
 
-    return final_dict
+    actions = []
+
+    for action in final_dict:
+        if purpose_card:
+            if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+                continue
+
+            if not promoter:
+                if action['id'] == chatroom_actions.ACTION_INVITE:
+                    continue
+
+            if promoter or creator:
+                if action['id'] == chatroom_actions.ACTION_RENAME or action['id'] == chatroom_actions.ACTION_DELETE:
+                    continue
+
+        elif intro_card and creator:
+            if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_MUTE or action['id'] == chatroom_actions.ACTION_DELETE or action['id'] == chatroom_actions.ACTION_UNMUTE or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+                continue
+
+        actions.append(action)
+
+    return actions
 
 
 def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction):
@@ -4363,7 +4454,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'state': card['state'],
         'mute_status': card['mute_status'],
         'follow_status': card['follow_status'],
-        'is_guest': card['is_guest']
+        'is_guest': card['is_guest'],
+        'type': card['type'],
     }
 
     is_promoter = False
@@ -4423,7 +4515,7 @@ def save_the_latest_conversation(card_instance, user_id):
         conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
         conversation_instance = latest_card
         latest_conversation = conversation_instance
-        expiry_time = time.time()+ HOURS_24
+        expiry_time = get_expiry_time_of_chatroom()
         if not conversation_member_filter.exists():
             conversation_member_instance = conversationMemberState()
             conversation_member_instance.card = card_instance
@@ -5175,6 +5267,10 @@ def create_conversation(request):
     ##checking weather the conversation creater is a guest or not
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance, is_guest=True)
 
+    replied_conversation = None
+    if 'replied_conversation_id' in res:
+        replied_conversation = card_answers.objects.get(pk=res['replied_conversation_id'])
+
     ans = card_answers()
     ans.answer = res['text']
     ans.card = card_instance
@@ -5182,6 +5278,8 @@ def create_conversation(request):
     ans.community = card_instance.community
     ans.is_guest = state_filter.exists()
     ans.created_at = time.time()
+    if replied_conversation:
+        ans.reply = replied_conversation
     ans.save()
 
     # saving the og tags if present
@@ -5253,24 +5351,31 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id,user_
     #updating the expire time to null for all the users who are following the chatroom in collabcardState
 
     card_instance = Collabcard.objects.get(id=card_instance_id)
-    expiry_time = time.time() + HOURS_24
-    card_creater = card_instance.user
-
 
     update_status = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).update(expiry_time=None)
-    print(update_status)
+    #print(update_status)
 
-    if card_creater.id == int(user_id):
-        collabcardState.objects.filter(card=card_instance,user=user_id).update(expiry_time=expiry_time)
+    #the person who is making the conversation marking his chatroom active for expiry time
+    state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
+    if state_filter.exists():
+        expiry_time = get_expiry_time_of_chatroom(state_filter[0])
+        state_filter.update(expiry_time=expiry_time)
 
     # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
 
     #for users who have seen the chatroom
-    update_status = collabcardState.objects.filter(card=card_instance, follow_status=False,
+    seen_filter = collabcardState.objects.filter(card=card_instance, follow_status=False,
                                    remove=None).filter(
-        Q(state=collabcard_states.COLLABCARD_STATE_SEEN)|Q(external_seen=True)).update(expiry_time=expiry_time)
-    print(update_status)
+        Q(state=collabcard_states.COLLABCARD_STATE_SEEN)|Q(external_seen=True))
+
+    if seen_filter.exists():
+        for data in seen_filter:
+            expiry_time = get_expiry_time_of_chatroom(data)
+            data.expiry_time = expiry_time
+            data.save()
+
+    #print(update_status)
 
 
 def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id):
@@ -5389,7 +5494,7 @@ def collabcard_follow(request, function_dict=None):
 
         return JsonResponse(context)
 
-    expiry_time = time.time() + HOURS_24
+    expiry_time = get_expiry_time_of_chatroom()
 
     collabcard_state_filter = collabcardState.objects.filter(card=collabcard, user=user_instance)
     if not collabcard_state_filter.exists():
@@ -5424,7 +5529,7 @@ def collabcard_follow(request, function_dict=None):
 
 
         if status:
-
+            expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
             collabcard_state_filter.update(follow_status = status,updated_at=time.time(),expiry_time=expiry_time)
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
@@ -5477,11 +5582,11 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
-    expiry_time = time.time() + HOURS_24
+
     if collabcard_state_filter.exists():
         if collabcard_state_filter[0].follow_status == status:
             return
-
+        expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time)
         else:
@@ -5499,7 +5604,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = ref_instance
         collabcard_state_instance.external_seen = True
-        collabcard_state_instance.expiry_time = expiry_time
+        collabcard_state_instance.expiry_time = get_expiry_time_of_chatroom()
         collabcard_state_instance.save()
 
     if status:
@@ -9331,3 +9436,67 @@ def fetch_poll_users(request):
         members_list.append(MembersSerializer(member_instance[0], community_id, current_user_id=member_id))
 
     return JsonResponse({"members": members_list})
+
+
+@csrf_exempt
+def delete_conversation(request):
+    """ function to delete a conversation """
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    member_id = get_member_id_from_headers(request)
+    conversation_id = request.POST.get('conversation_id', None)
+
+    if not conversation_id:
+        context = get_error_context(False, "send the conversation_id in post params")
+        return JsonResponse(context)
+
+    if not member_id:
+        context = get_error_context(False, "send the member_id in headers")
+        return JsonResponse(context)
+
+    conversation = card_answers.objects.get(pk=conversation_id)
+    if int(conversation.user.id) == int(member_id):
+        conversation.is_deleted = True
+        conversation.save()
+    else:
+        context = get_error_context(False,
+                                    "you are not the conversation creator.Only conversation creator can delete his/her message")
+        return JsonResponse(context)
+
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def edit_conversation(request):
+    """ function to delete a conversation """
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    member_id = get_member_id_from_headers(request)
+    conversation_id = request.POST.get('conversation_id', None)
+    edited_answer = request.POST.get('text', None)
+
+    if not conversation_id:
+        context = get_error_context(False, "send the conversation_id in post params")
+        return JsonResponse(context)
+
+    if not member_id:
+        context = get_error_context(False, "send the member_id in headers")
+        return JsonResponse(context)
+
+    conversation = card_answers.objects.get(pk=conversation_id)
+    if int(conversation.user.id) == int(member_id):
+        conversation.answer = edited_answer
+        conversation.is_edited = True
+        conversation.save()
+    else:
+        context = get_error_context(False,
+                                    "you are not the conversation creator.Only conversation creator can edit his/her message")
+        return JsonResponse(context)
+
+    return JsonResponse({'success': True})
+
+

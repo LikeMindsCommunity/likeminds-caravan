@@ -1,0 +1,25 @@
+{% extends 'cms/base.html' %}
+{% block content%}
+<div class="card mt-2 mb-2">
+    <div class="card-body">
+       <h2>Community Subypes</h2>
+        <a href="{% url 'add_community_subtypes' %}" class="btn btn-primary">Add Community Subype</a>
+    </div>
+</div>
+<table class="table table-bordered table-hover mt-2 mb-2">
+    <tr>
+        <td>ID</td>
+        <td>Type</td>
+        <td>Next input title</td>
+        <td>Option</td>
+    </tr>
+    {% for type in communitysubtypes %}
+    <tr>
+        <td>{{type.id}}</td>
+        <td>{{type.sub_typ}}</td>
+        <td>{{type.typ.typ}}</td>
+        <td><a href="{% url 'edit_community_subtypes' community_subtype_id=type.id%}" class="btn btn-primary">Edit</a> </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

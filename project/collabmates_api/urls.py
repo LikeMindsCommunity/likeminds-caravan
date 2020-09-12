@@ -89,6 +89,8 @@ urlpatterns = [
     path('chatroom_mute', api_views.chatroom_mute, name='chatroom_mute'),
     path('chatroom_rename', api_views.chatroom_rename, name='chatroom_rename'),
     path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
+    path('set_chatroom_active', api_views.set_chatroom_active, name='set_chatroom_active'),
+
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
     path('mark_read', api_views.mark_read, name='mark_read'),
@@ -164,6 +166,8 @@ urlpatterns = [
     path('fetch_poll_users', api_views.fetch_poll_users, name='fetch_poll_users'),
 
     path('fetch_deleted_chatroom', api_views.fetch_deleted_chatroom, name='fetch_deleted_chatroom'),
+    path('delete_conversation', api_views.delete_conversation, name='delete_conversation'),
+    path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
 
 ]
 
