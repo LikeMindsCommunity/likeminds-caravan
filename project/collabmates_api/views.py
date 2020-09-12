@@ -243,7 +243,6 @@ def your_communities(request, user_id):
     page_number = int(page_number)
     if str(member_id) != str(user_id):
         member_id = user_id
-
     my_community = []
     user = User.objects.get(id=member_id)
 
@@ -255,12 +254,12 @@ def your_communities(request, user_id):
     create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-
     communities = pagination(communities, page_number, paginate_by=10)
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
         community['pending_members_count'] = each_community.pending_members
+
         #community['updated_at'] = get_time_text(each_community.updated_at)
         # if each_community.last_unseen_conversation:
         #     # collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id, , current_user_id=current_user_id)
@@ -2416,10 +2415,12 @@ def create_chatroom_instance(res, community_instance, user_instance):
             'member_id': user_id,
             'collabcard_id': card.id,
             'status': True,
-            'source':"create_chatroom"
+            'source':"create_chatroom",
+            'is_tagged':True
         }
-
         collabcard_follow_internal(req_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
+        #setting is_tag as true
+        collabcardState.objects.filter(card=card,user=user_id).update(is_tagged=True)
 
     return card
 
@@ -2679,6 +2680,9 @@ def create_chatroom_engagement(card_instance, user_instance,func_dict=None):
 
 
     instance_list = conversationEngage.objects.filter(card=card_instance, user=user_instance)
+
+    if func_dict:
+        expire_time = func_dict['expiry_time']
 
     if not instance_list.exists():
         instance = conversationEngage()
@@ -5443,6 +5447,7 @@ def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id):
         }
         print(function_dict)
         collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+        collabcardState.objects.filter(card=card_id,user=user_id).update(is_tagged=True)
 
 
 def _send_notification_to_tagged_users(card_id, answerer_name, answer, user_id):
@@ -5611,6 +5616,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     member_id = func_dict['member_id']
     status = func_dict['status']
     is_guest = False
+    is_tagged = False
     ref_instance = None
 
 
@@ -5621,6 +5627,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         ref_filter = User.objects.filter(id=source_id)
         if ref_filter.exists():
             ref_instance = ref_filter[0]
+
 
 
     try:
@@ -5639,7 +5646,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time)
         else:
-            collabcard_state_filter.update(follow_status=status,updated_at=time.time())
+            collabcard_state_filter.update(follow_status=status,updated_at=time.time(),expiry_time=expiry_time)
 
     else:
         collabcard_state_instance = collabcardState()
@@ -5653,6 +5660,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = ref_instance
         collabcard_state_instance.external_seen = True
+        collabcard_state_instance.is_tagged = is_tagged
         collabcard_state_instance.expiry_time = get_expiry_time_of_chatroom()
         collabcard_state_instance.save()
 
