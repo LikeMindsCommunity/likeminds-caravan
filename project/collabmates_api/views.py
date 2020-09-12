@@ -5613,9 +5613,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
             return
         expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
         if is_guest:
-            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time)
+            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time,is_tagged=is_tagged)
         else:
-            collabcard_state_filter.update(follow_status=status,updated_at=time.time(),expiry_time=expiry_time)
+            collabcard_state_filter.update(follow_status=status,updated_at=time.time(),expiry_time=expiry_time,is_tagged=is_tagged)
 
     else:
         collabcard_state_instance = collabcardState()
