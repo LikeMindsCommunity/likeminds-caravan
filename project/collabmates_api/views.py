@@ -261,26 +261,26 @@ def your_communities(request, user_id):
 
         community = CommunitySerializer(each_community.community_id)
         community['pending_members_count'] = each_community.pending_members
-        community['updated_at'] = get_time_text(each_community.updated_at)
-        if each_community.last_unseen_conversation:
-            # collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id, , current_user_id=current_user_id)
-            # user = each_community.last_unseen_conversation.user
-            # collabcard['member'] = UserinfoSerializer(user.userinfo)
-            collabcard = get_chatroom_instance(each_community.last_unseen_conversation, member_id,
-                                               current_user_id=current_user_id)
-            community['collabcard'] = collabcard
-
-        if each_community.member_referral:
-            community['member_referral'] = each_community.member_referral
-        if each_community.member_state:
-            community['member_state'] = each_community.member_state
+        # #community['updated_at'] = get_time_text(each_community.updated_at)
+        # if each_community.last_unseen_conversation:
+        #     # collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id, , current_user_id=current_user_id)
+        #     # user = each_community.last_unseen_conversation.user
+        #     # collabcard['member'] = UserinfoSerializer(user.userinfo)
+        #     collabcard = get_chatroom_instance(each_community.last_unseen_conversation, member_id,
+        #                                        current_user_id=current_user_id)
+        #     community['collabcard'] = collabcard
+        #
+        # # if each_community.member_referral:
+        # #     community['member_referral'] = each_community.member_referral
+        # # if each_community.member_state:
+        # #     community['member_state'] = each_community.member_state
         if each_community.member_state == member_states.ADMIN or each_community.member_state == member_states.TEMP_ADMIN or each_community.member_state == member_states.MEMBER or each_community.member_state == member_states.KNOWN_NOMINATED_PROMOTER:
             community['collabcard_unseen'] = each_community.last_unseen_count
         else:
             community['collabcard_unseen'] = 0
 
-        if community['state'] != community_states.DELETED:
-            my_community.append(community)
+        # if community['state'] != community_states.DELETED:
+        #     my_community.append(community)
 
         community['click_state'] = each_community.click_state
 
