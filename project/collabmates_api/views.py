@@ -238,12 +238,13 @@ def your_communities(request, user_id):
 
     member_id = request.GET.get('member_id')
     current_user_id = get_member_id_from_headers(request)
-
+    member_id=current_user_id
     page_number = request.GET.get('page', 1)
     page_number = int(page_number)
-    if str(member_id) != str(user_id):
-        member_id = user_id
+    # if str(member_id) != str(user_id):
+    #     member_id = user_id
     my_community = []
+
     user = User.objects.get(id=member_id)
 
     # event when user installed athe app
@@ -255,6 +256,7 @@ def your_communities(request, user_id):
 
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
     communities = pagination(communities, page_number, paginate_by=10)
+    current_time = time.time()
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
@@ -298,6 +300,13 @@ def your_communities(request, user_id):
 
         community['click_state'] = each_community.click_state
         community['actions'] = actions
+
+        #active count of chatrooms in communities
+        active_chatroom_count = collabcardState.objects.filter(community=each_community.community_id,user=member_id,follow_status=True).filter(
+            Q(expiry_time=None)|Q(expiry_time__lt=current_time)
+        ).count()
+
+        community['active_chatroom_count'] = active_chatroom_count
 
     return JsonResponse({'your_communities': my_community})
 
