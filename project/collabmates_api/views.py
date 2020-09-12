@@ -4376,6 +4376,11 @@ def get_chatroom_actions(card_status, creator, promoter=False):
             if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_MUTE or action['id'] == chatroom_actions.ACTION_DELETE or action['id'] == chatroom_actions.ACTION_UNMUTE or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
+        if action['id'] == chatroom_actions.ACTION_FOLLOW:
+            actions.append(mark_inactive)
+        elif action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+            actions.append(mark_active)
+
         actions.append(action)
 
     return actions

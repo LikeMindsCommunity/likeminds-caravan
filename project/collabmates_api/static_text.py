@@ -201,6 +201,10 @@ unfollow_chatroom = {'id': 9, 'title': 'Unfollow chatroom'}
 
 report = {'id': 10, 'title': 'Report'}
 
+mark_active = {'id': 11, 'title': 'Mark active'}
+
+mark_inactive = {'id': 12, 'title': 'Mark inactive'}
+
 
 
 
