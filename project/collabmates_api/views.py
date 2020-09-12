@@ -4478,6 +4478,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'follow_status': card['follow_status'],
         'is_guest': card['is_guest'],
         'type': card['type'],
+        'is_tagged':card['is_tagged'],
+        'active':card['active']
     }
 
     is_promoter = False
@@ -4502,8 +4504,16 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     # sending the follow telescope
     latest_conversation = conversations_filter.last()
-    card['show_follow_telescope'] = show_follow_telescope(card_status, card_instance, user_id, latest_conversation,
+
+    #icons states for sending following, tagging
+    icon_states =  get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_conversation,
                                                           conversations)
+    card['show_follow_telescope'] = icon_states['show_follow_telescope']
+    card['show_follow_auto_tag'] = icon_states['show_follow_auto_tag']
+    card['show_active'] = icon_states['show_active']
+
+
+
     card['total_response_count'] = total_response_count
 
     if last_conversation:
@@ -4672,31 +4682,56 @@ def reverse_conversations_for_upward_pagination(upward_list):
     return conversations
 
 
-def show_follow_telescope(card_status, card_instance, user_id, latest_conversation, conversations):
+def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_conversation, conversations):
     '''function to show follow telescope of user'''
 
     show = False
+
+    temp = {
+        'show_follow_telescope' : False,
+        'show_follow_auto_tag':False,
+        'show_active':False
+    }
+
+
     if not card_status['follow_status']:
-        show = True
+        temp['show_follow_telescope'] = True
 
     if card_instance.user.id == user_id:
-        show = False
+        temp['show_follow_telescope'] = False
+        return  temp
 
-    if show:
-        last = False
-        if latest_conversation:
-            for conversation in conversations:
-                if latest_conversation.id == conversation['id']:
-                    last = True
-        else:
-            last = True
+    if card_status['active'] and card_status['is_tagged']:
+        temp['show_follow_telescope'] = False
+        temp['show_active'] = False
+        temp['show_follow_auto_tag'] = True
 
-        if last:
-            show = True
-        else:
-            show = False
+    if card_status['active'] == False and card_status["follow_status"] == False:
+        temp['show_follow_telescope'] = False
+        temp['show_active'] = True
+        temp['show_follow_auto_tag'] = False
 
-    return show
+    return temp
+
+
+
+
+
+    # if show:
+    #     last = False
+    #     if latest_conversation:
+    #         for conversation in conversations:
+    #             if latest_conversation.id == conversation['id']:
+    #                 last = True
+    #     else:
+    #         last = True
+    #
+    #     if last:
+    #         show = True
+    #     else:
+    #         show = False
+
+    #return show
 
 
 def create_introduction_card_placeholder(card_instance, user_id):
