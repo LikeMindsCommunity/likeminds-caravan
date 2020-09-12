@@ -2420,7 +2420,7 @@ def create_chatroom_instance(res, community_instance, user_instance):
         }
         collabcard_follow_internal(req_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
         #setting is_tag as true
-        collabcardState.objects.filter(card=card,user=user_id).update(is_tagged=True)
+        collabcardState.objects.filter(card=card,user=user_id).update(is_tagged=True,mute_status=True)
 
     return card
 
@@ -5447,7 +5447,7 @@ def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id):
         }
         print(function_dict)
         collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
-        collabcardState.objects.filter(card=card_id,user=user_id).update(is_tagged=True)
+        collabcardState.objects.filter(card=card_id,user=user_id).update(is_tagged=True,mute_status=True)
 
 
 def _send_notification_to_tagged_users(card_id, answerer_name, answer, user_id):
