@@ -256,7 +256,7 @@ def your_communities(request, user_id):
 
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
 
-    communities = pagination(communities, page_number, paginate_by=10)
+    #communities = pagination(communities, page_number, paginate_by=10)
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
@@ -274,8 +274,23 @@ def your_communities(request, user_id):
         #     community['member_referral'] = each_community.member_referral
         # if each_community.member_state:
         #     community['member_state'] = each_community.member_state
+
+        actions = get_home_screen_community_actions(each_community.community_id)
+        #member_state = members_state(request,{'community_id':each_community.community_id.id,'member_id':member_id})
+
+
+
+
         if each_community.member_state == member_states.ADMIN:
             community['collabcard_unseen'] = each_community.last_unseen_count
+
+            if each_community.pending_members > 0:
+                pending_members ={
+                    'title' : """Pending Members""",
+                    'route' : """route://member_approve?community_id=%s&community_name=%s"""%(str(community['id']),community['name'])
+                }
+                actions.append(pending_members)
+
         else:
             community['collabcard_unseen'] = 0
 
@@ -283,6 +298,7 @@ def your_communities(request, user_id):
             my_community.append(community)
 
         community['click_state'] = each_community.click_state
+        community['actions'] = actions
 
     return JsonResponse({'your_communities': my_community})
 
@@ -361,6 +377,39 @@ def get_leave_community_text():
     # "leave_community_negative_action"
 
     return leave_community
+
+def get_home_screen_community_actions(community_instance):
+
+    actions = []
+
+    community_details = {
+        'title':"View community details",
+        'route':"""route://community?community_id=%s"""%(str(community_instance.id))
+    }
+
+    actions.append(community_details)
+
+    member_directory = {
+        'title': "View member directory",
+        'route': """route://members_directory?community_id=%s&community_name=%s""" % (str(community_instance.id),community_instance.name)
+    }
+
+    actions.append(member_directory)
+
+    invite_members = {
+        'title': "Invite members to this community",
+        'route': """route://community?community_id=%s&share=true""" % (
+        str(community_instance.id))
+    }
+
+    actions.append(invite_members)
+
+    return actions
+
+
+
+
+
 
 
 def community(request, community_id, req_dict=None):
