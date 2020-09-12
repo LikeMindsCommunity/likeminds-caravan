@@ -56,7 +56,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            )
 
 from .notification import *
-from .raw_queries import compute_rank, update_conversation_engage_for_chatrooms,get_active_chatrooms_count
+from .raw_queries import compute_rank, update_conversation_engage_for_chatrooms,get_active_chatrooms_count,get_inactive_chatrooms_count
 from .serializers import *
 from .static_files import *
 from .static_text import *
@@ -338,7 +338,7 @@ def my_chatrooms(request):
 
         my_chatrooms.append(chatroom)
 
-    in_active_chatroom = collabcardState.objects.filter(user_id=member_id,follow_status=True,remove=None).count()
+    in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
 
     return JsonResponse({"my_chatrooms": my_chatrooms,'inactive_chatrooms_count':in_active_chatroom})
 

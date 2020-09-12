@@ -57,6 +57,26 @@ def get_active_chatrooms_count(community_id,user_id,current_time):
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
+def get_inactive_chatrooms_count(user_id,current_time):
+
+    '''function to get active chatrooms based on community and user'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""select count(*) from togther_collabcardState where  user_id=%s and follow_status=True and remove_id is null 
+        and (expiry_time is not null or expiry_time < %s)"""%(str(user_id),str(current_time))
+
+        curr.execute(sql)
+        count = curr.fetchone()
+        curr.close()
+        conn.close()
+
+        return count[0]
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
 
 
 
