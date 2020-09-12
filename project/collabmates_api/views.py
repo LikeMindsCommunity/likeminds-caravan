@@ -2389,8 +2389,7 @@ def create_chatroom_instance(res, community_instance, user_instance):
             'is_tagged':True
         }
         collabcard_follow_internal(req_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
-        #setting is_tag as true
-        collabcardState.objects.filter(card=card,user=user_id).update(is_tagged=True,mute_status=True)
+
 
     return card
 
@@ -2712,7 +2711,7 @@ def chatroom_mute(request):
     if value == "true":
         collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=True)
     else:
-        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=False)
+        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=False,is_tagged=False)
 
     return JsonResponse({'success': True})
 
@@ -5413,11 +5412,10 @@ def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id):
             'member_id': user_id,
             'collabcard_id': card_id,
             'status': True,
-            'source':"auto-following-chatroom"
+            'source':"auto-following-chatroom",
+            'is_tagged':True
         }
-        print(function_dict)
         collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
-        collabcardState.objects.filter(card=card_id,user=user_id).update(is_tagged=True,mute_status=True)
 
 
 def _send_notification_to_tagged_users(card_id, answerer_name, answer, user_id):
@@ -5472,7 +5470,7 @@ def update_answer_text(card_id):
 @csrf_exempt
 def collabcard_follow(request, function_dict=None):
     '''Api to follow collabcard by members Post API'''
-    explicit_call = False                       #variable to distinguish whether the collabcard is followed by external call or internal call
+
 
     current_member_id = get_member_id_from_headers(request)
 
@@ -5545,10 +5543,10 @@ def collabcard_follow(request, function_dict=None):
 
     else:
         follow_status = collabcard_state_filter[0].follow_status
-        if status and collabcard_state_filter[0].follow_status:
+        if status and follow_status:
             return JsonResponse({'success': True})
 
-        if not status and not collabcard_state_filter[0].follow_status:
+        if not status and not follow_status:
             return JsonResponse({'success': True})
 
 
@@ -5561,7 +5559,7 @@ def collabcard_follow(request, function_dict=None):
             create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
 
         else:
-            collabcard_state_filter.update(follow_status = status, updated_at=time.time())
+            collabcard_state_filter.update(follow_status = status, updated_at=time.time(),is_tagged=False)
 
             #deleting the conversation engage
             delete_status = conversationEngage.objects.filter(card=collabcard,user=user_instance).delete()
@@ -5597,7 +5595,8 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         ref_filter = User.objects.filter(id=source_id)
         if ref_filter.exists():
             ref_instance = ref_filter[0]
-
+    elif 'is_tagged' in func_dict:
+        is_tagged = True
 
 
     try:
@@ -5630,7 +5629,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = ref_instance
         collabcard_state_instance.external_seen = True
+
         collabcard_state_instance.is_tagged = is_tagged
+        collabcard_state_instance.mute_status = True if is_tagged else False
         collabcard_state_instance.expiry_time = get_expiry_time_of_chatroom()
         collabcard_state_instance.save()
 
