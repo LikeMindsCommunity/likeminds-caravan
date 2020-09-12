@@ -267,9 +267,8 @@ def your_communities(request, user_id):
             community['collabcard_unseen'] = 0
 
         # if community['state'] != community_states.DELETED:
-        #     my_community.append(community)
-
         community['click_state'] = each_community.click_state
+        my_community.append(community)
 
     return JsonResponse({'your_communities': my_community})
 
