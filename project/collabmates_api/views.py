@@ -56,7 +56,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            )
 
 from .notification import *
-from .raw_queries import compute_rank, update_conversation_engage_for_chatrooms
+from .raw_queries import compute_rank, update_conversation_engage_for_chatrooms,get_active_chatrooms_count
 from .serializers import *
 from .static_files import *
 from .static_text import *
@@ -302,9 +302,10 @@ def your_communities(request, user_id):
         community['actions'] = actions
 
         #active count of chatrooms in communities
-        active_chatroom_count = collabcardState.objects.filter(community=each_community.community_id,user=member_id,follow_status=True).filter(
-            Q(expiry_time=None)|Q(expiry_time__lt=current_time)
-        ).count()
+
+        count = get_active_chatrooms_count(each_community.community_id.id,member_id,current_time)
+
+        active_chatroom_count = count
 
         community['active_chatroom_count'] = active_chatroom_count
 
@@ -323,6 +324,7 @@ def my_chatrooms(request):
     instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
     instance_list = pagination(instance_list, page, paginate_by=10)
     my_chatrooms = []
+    current_time = time.time()
     for instance in instance_list:
 
         chatroom = {}
@@ -347,7 +349,9 @@ def my_chatrooms(request):
 
         my_chatrooms.append(chatroom)
 
-    return JsonResponse({"my_chatrooms": my_chatrooms})
+    in_active_chatroom = collabcardState.objects.filter(user_id=member_id,follow_status=True,remove=None).count()
+
+    return JsonResponse({"my_chatrooms": my_chatrooms,'inactive_chatrooms_count':in_active_chatroom})
 
 
 ######################function for api utility#################################
