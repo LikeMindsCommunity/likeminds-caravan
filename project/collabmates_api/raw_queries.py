@@ -45,7 +45,7 @@ def get_second_last_conversation_of_chatroom(card_id,user_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql="""select id from togther_card_answers where state=0 and card_id=%sand user_id !=%s order by id desc limit 1"""%(card_id,user_id)
+        sql="""select id from togther_card_answers where state=0 and card_id=%s and user_id !=%s order by id desc limit 1"""%(card_id,user_id)
         curr.execute(sql)
         data = curr.fetchone()
         second_last_conversation = None

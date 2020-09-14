@@ -181,6 +181,8 @@ class Collabcard(models.Model):
     has_been_named = models.BooleanField(default=True)      #for notification access
 
 
+
+
 class draftChatroom(models.Model):
 
     title = models.TextField()
@@ -220,6 +222,16 @@ class draftChatroom(models.Model):
 
     # for saving chatroom name
     header = models.TextField(null=True)
+
+
+class inActiveChatroomsCount(models.Model):
+
+    '''models to save the count of in-active chatrooms for user'''
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    last_inactive_card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    inactive_count = models.IntegerField(default=0)
+    created_at = models.BigIntegerField(null=True)
+    updated_at = models.BigIntegerField(null=True)
 
 
 # Collabcard Report Module

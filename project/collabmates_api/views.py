@@ -232,7 +232,8 @@ def update_pending_member_count_in_engage(community):
     info_logger.info("Member Engage Pending Count Updated")
 
 
-# /api/your_communities/member_id?member_id=
+#home screen apis
+
 def your_communities(request, user_id):
     '''This function is used to see your communities based on user id'''
 
@@ -341,6 +342,62 @@ def my_chatrooms(request):
     in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
 
     return JsonResponse({"my_chatrooms": my_chatrooms,'inactive_chatrooms_count':in_active_chatroom})
+
+def fetch_chatroom_inactive(request):
+
+    '''api to return the in-active chatrooms snack-bar'''
+
+    member_id = get_member_id_from_headers(request)
+    context = {}
+    if not member_id:
+        context = get_error_context(False,"send x-member-id in headers")
+        return JsonResponse(context)
+
+    current_time = time.time()
+    inactive_chatrooms = collabcardState.objects.filter(user=member_id,follow_status=True,
+                                   remove=None).filter(~Q(expiry_time=None)|Q(expiry_time__lt=current_time)).order_by('-expiry_time')
+
+    inactive_count = inactive_chatrooms.count()
+
+    if inactive_count:
+        instance = inactive_chatrooms[0]
+        count_status = create_or_update_inActiveChatroomsCount_instance(instance.user,instance.card,inactive_count)
+        if count_status['status'] and 'inactive_count' in count_status:
+            context['title'] = """%s chatrooms moved to inactive""" % (str(count_status['inactive_count']))
+
+    return JsonResponse(context)
+
+def create_or_update_inActiveChatroomsCount_instance(user_instance,card_instance,inactive_count):
+
+    '''function to create inActiveChatroomcount instance'''
+
+    in_active_filter = inActiveChatroomsCount.objects.filter(user=user_instance)
+    temp = {"status":False}
+    if not in_active_filter.exists():
+        instance = inActiveChatroomsCount()
+        instance.user = user_instance
+        instance.last_inactive_card = card_instance
+        instance.inactive_count = inactive_count
+        instance.created_at = time.time()
+        instance.updated_at = time.time()
+        instance.save()
+        temp['status'] =  True
+        temp['inactive_count'] = inactive_count
+    else:
+        instance = in_active_filter[0]
+        if card_instance.id != instance.last_inactive_card.id:
+            instance.last_inactive_card = card_instance
+            instance.inactive_count = inactive_count
+            instance.updated_at = time.time()
+            instance.save()
+            temp['status'] = True
+            temp['inactive_count'] = inactive_count
+
+    return temp
+
+
+
+
 
 
 ######################function for api utility#################################
