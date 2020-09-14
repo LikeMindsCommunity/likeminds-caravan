@@ -261,6 +261,7 @@ def your_communities(request, user_id):
 
         community = CommunitySerializer(each_community.community_id)
         community['pending_members_count'] = each_community.pending_members
+        community['member_state'] = each_community.member_state
         if each_community.member_state == member_states.ADMIN or each_community.member_state == member_states.TEMP_ADMIN or each_community.member_state == member_states.MEMBER or each_community.member_state == member_states.KNOWN_NOMINATED_PROMOTER:
             community['collabcard_unseen'] = each_community.last_unseen_count
         else:
@@ -4373,6 +4374,11 @@ def get_chatroom_actions(card_status, creator, promoter=False):
         elif intro_card and creator:
             if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_MUTE or action['id'] == chatroom_actions.ACTION_DELETE or action['id'] == chatroom_actions.ACTION_UNMUTE or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
+
+        if action['id'] == chatroom_actions.ACTION_FOLLOW:
+            actions.append(mark_inactive)
+        elif action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+            actions.append(mark_active)
 
         actions.append(action)
 
