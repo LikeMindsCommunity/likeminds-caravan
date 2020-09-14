@@ -14,6 +14,8 @@ class ChatroomActions:
     ACTION_UNMUTE = 8
     ACTION_UNFOLLOW = 9
     ACTION_REPORT = 10
+    ACTION_MARK_ACTIVE = 11
+    ACTION_MARK_INACTIVE = 12
 
 
 chatroom_actions = ChatroomActions()

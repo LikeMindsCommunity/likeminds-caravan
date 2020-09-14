@@ -266,21 +266,21 @@ def your_communities(request, user_id):
 
         actions = get_home_screen_community_actions(each_community.community_id)
         #member_state = members_state(request,{'community_id':each_community.community_id.id,'member_id':member_id})
+        community['member_state'] = each_community.member_state
+
+
+        if each_community.pending_members > 0 and each_community.member_state == member_states.ADMIN:
+            pending_members = {
+                'title': """Pending Members""",
+                'route': """route://member_approve?community_id=%s&community_name=%s""" % (
+                str(community['id']), community['name'])
+            }
+            actions.append(pending_members)
 
 
 
-
-        if each_community.member_state == member_states.ADMIN:
-
+        if each_community.member_state == member_states.ADMIN or each_community.member_state == member_states.MEMBER or each_community.member_state == member_states.PROFILE_UNAVAILABLE:
             community['collabcard_unseen'] = each_community.last_unseen_count
-
-            if each_community.pending_members > 0:
-                pending_members ={
-                    'title' : """Pending Members""",
-                    'route' : """route://member_approve?community_id=%s&community_name=%s"""%(str(community['id']),community['name'])
-                }
-                actions.append(pending_members)
-
         else:
             community['collabcard_unseen'] = 0
 
@@ -300,7 +300,6 @@ def your_communities(request, user_id):
 
 
     return JsonResponse({'your_communities': my_community})
-
 
 def my_chatrooms(request):
     '''functions to get chatrooms for users'''
@@ -4468,6 +4467,11 @@ def get_chatroom_actions(card_status, creator, promoter=False):
         elif intro_card and creator:
             if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_MUTE or action['id'] == chatroom_actions.ACTION_DELETE or action['id'] == chatroom_actions.ACTION_UNMUTE or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
+
+        if action['id'] == chatroom_actions.ACTION_FOLLOW:
+            actions.append(mark_inactive)
+        elif action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+            actions.append(mark_active)
 
         actions.append(action)
 
