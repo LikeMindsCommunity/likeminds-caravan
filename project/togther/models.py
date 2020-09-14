@@ -181,6 +181,8 @@ class Collabcard(models.Model):
     has_been_named = models.BooleanField(default=True)      #for notification access
 
 
+
+
 class draftChatroom(models.Model):
 
     title = models.TextField()
@@ -220,6 +222,16 @@ class draftChatroom(models.Model):
 
     # for saving chatroom name
     header = models.TextField(null=True)
+
+
+class inActiveChatroomsCount(models.Model):
+
+    '''models to save the count of in-active chatrooms for user'''
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    last_inactive_card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    inactive_count = models.IntegerField(default=0)
+    created_at = models.BigIntegerField(null=True)
+    updated_at = models.BigIntegerField(null=True)
 
 
 # Collabcard Report Module
@@ -321,11 +333,12 @@ class conversationEngage(models.Model):
     card = models.ForeignKey(Collabcard,on_delete=models.CASCADE,null=True)
     community = models.ForeignKey(Community,on_delete=models.CASCADE,null=True)
     last_conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True)
+    second_last_conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True,related_name='second_last_conversation')
     unseen_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
     draft = models.ForeignKey(draftChatroom,on_delete=models.CASCADE,null=True)
-    expiry_time = models.BigIntegerField(null=True)
+
 
 
 
@@ -674,14 +687,18 @@ class collabcardState(models.Model):
 
     #if got removed saving the previous state
     remove = models.ForeignKey(removedMembers,on_delete=models.CASCADE, null=True)
+
     mute_status = models.BooleanField(default=False)
     follow_status = models.BooleanField(default=False)
     is_guest = models.BooleanField(default=False)
+    is_tagged = models.BooleanField(default=False)
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
     
     expiry_time = models.BigIntegerField(null=True)
 
     external_seen = models.BooleanField(default=False)
+
+
 
 class CollabcardStateBackup(models.Model):
 

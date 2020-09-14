@@ -95,6 +95,7 @@ urlpatterns = [
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
     path('mark_read', api_views.mark_read, name='mark_read'),
     path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
+    path('fetch_chatroom_inactive', api_views.fetch_chatroom_inactive, name='fetch_chatroom_inactive'),
 
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
     path('limit_access', api_views.limit_access, name='limit_access'),
@@ -168,6 +169,13 @@ urlpatterns = [
     path('fetch_deleted_chatroom', api_views.fetch_deleted_chatroom, name='fetch_deleted_chatroom'),
     path('delete_conversation', api_views.delete_conversation, name='delete_conversation'),
     path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
+
+
+    ############################ static apis #####################################
+
+    path('fetch_intro_examples', api_views.fetch_intro_examples, name='fetch_intro_examples'),
+
+    ##############################################################################
 
 ]
 
