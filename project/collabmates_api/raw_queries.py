@@ -24,13 +24,37 @@ def update_conversation_engage_for_chatrooms(card_id,user_id,last_conversation_i
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql="""update togther_conversationengage set last_conversation_id = %s ,unseen_count = %s where card_id=%s and user_id = %s"""
-        paramter_list = [last_conversation_id,unseen_count,card_id,user_id]
+
+        second_last_conversation = get_second_last_conversation_of_chatroom(card_id,user_id)
+
+        sql="""update togther_conversationengage set last_conversation_id = %s ,unseen_count = %s, second_last_conversation=%s where card_id=%s and user_id = %s"""
+        paramter_list = [last_conversation_id,unseen_count,second_last_conversation,card_id,user_id]
         curr.execute(sql,paramter_list)
         conn.commit()
         print("conversation engage updated successfully")
         curr.close()
         conn.close()
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+
+def get_second_last_conversation_of_chatroom(card_id,user_id):
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""select id from togther_card_answers where state=0 and card_id=%sand user_id !=%s order by id desc limit 1"""%(card_id,user_id)
+        curr.execute(sql)
+        data = curr.fetchone()
+        second_last_conversation = None
+        if data:
+            second_last_conversation = data[0]
+        curr.close()
+        conn.close()
+
+        return second_last_conversation
 
 
     except (Exception, psycopg2.Error) as error:

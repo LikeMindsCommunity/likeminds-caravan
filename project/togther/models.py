@@ -321,11 +321,12 @@ class conversationEngage(models.Model):
     card = models.ForeignKey(Collabcard,on_delete=models.CASCADE,null=True)
     community = models.ForeignKey(Community,on_delete=models.CASCADE,null=True)
     last_conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True)
+    second_last_conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True,related_name='second_last_conversation')
     unseen_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
     draft = models.ForeignKey(draftChatroom,on_delete=models.CASCADE,null=True)
-    expiry_time = models.BigIntegerField(null=True)
+
 
 
 
