@@ -2576,7 +2576,7 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
         member_ids = [user_instance.id]
         community_profile = get_user_profile(user_instance.id, card_instance.community.id, current_user_id,send_profile=False)
         if community_profile:
-            community_profile = community_profile[0]
+            community_profile = community_profile
             user_route = "route://member_profile/" + str(user_instance.id) + "?member=" + quote(str(community_profile))
         else:
             user_route = "route://member_profile/" + str(user_instance.id)
