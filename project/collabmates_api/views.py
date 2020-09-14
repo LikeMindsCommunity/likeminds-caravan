@@ -4474,8 +4474,13 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     else:
 
-        scroll_direction = int(scroll_direction)
-        conversation_id = int(conversation_id)
+        try:
+            scroll_direction = int(scroll_direction)
+            conversation_id = int(conversation_id)
+        except Exception as e:
+            context = get_error_context(False,"conversation id is a nullable field.Don't send the key")
+            return context
+
         if scroll_direction == 0:  # upward scroll
             upward_list = conversations_filter.filter(id__lt=conversation_id).order_by('-id')[:20]
             conversations = reverse_conversations_for_upward_pagination(upward_list)
