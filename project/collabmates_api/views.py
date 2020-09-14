@@ -385,12 +385,13 @@ def create_or_update_inActiveChatroomsCount_instance(user_instance,card_instance
     else:
         instance = in_active_filter[0]
         if card_instance.id != instance.last_inactive_card.id:
+            previous_count = instance.inactive_count
             instance.last_inactive_card = card_instance
             instance.inactive_count = inactive_count
             instance.updated_at = time.time()
             instance.save()
             temp['status'] = True
-            temp['inactive_count'] = inactive_count
+            temp['inactive_count'] = inactive_count-previous_count
 
     return temp
 
