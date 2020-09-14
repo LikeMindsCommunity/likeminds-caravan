@@ -391,7 +391,8 @@ def create_or_update_inActiveChatroomsCount_instance(user_instance,card_instance
             instance.updated_at = time.time()
             instance.save()
             temp['status'] = True
-            temp['inactive_count'] = inactive_count-previous_count
+            diff =  (inactive_count-previous_count)
+            temp['inactive_count'] = diff if diff > 0 else (-1)*(diff)
 
     return temp
 
