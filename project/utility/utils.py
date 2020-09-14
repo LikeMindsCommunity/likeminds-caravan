@@ -213,7 +213,7 @@ def generate_private_link_for_chatroom(card_instance,user_instance):
         current_time = int(time.time())
         last_created_time = chatroom_expire_filter[0].created_at
 
-        if current_time - last_created_time > 3600*3:
+        if current_time - last_created_time > (3600*3):
             unique_code = generate_random(unique_code_list)
             expireInstance = chatroomExpiryCodes()
             expireInstance.card = card_instance
