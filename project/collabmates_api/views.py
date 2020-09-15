@@ -311,6 +311,8 @@ def my_chatrooms(request):
         active = True
     elif active == "false":
         active = False
+    else:
+        active = None
 
 
     if not member_id:
@@ -6272,7 +6274,7 @@ def get_member_images_of_chatroom(conversation_filter):
     return member_images[:6]
 
 
-def get_chatrooms(chatroom_list, member_id):
+def get_chatrooms(chatroom_list, member_id,active = None):
     '''function to get chatrooms'''
 
     chatrooms = []
@@ -6283,7 +6285,16 @@ def get_chatrooms(chatroom_list, member_id):
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
         chatroom_instance['members_images'] = get_member_images_of_chatroom(conversation_filter)
-        chatrooms.append(chatroom_instance)
+
+        if active is True and chatroom_instance['active']:
+            chatrooms.append(chatroom_instance)
+        if active is False and chatroom_instance['active']:
+            chatrooms.append(chatroom_instance)
+
+        if active == None:
+            chatrooms.append(chatroom_instance)
+
+        
 
     return chatrooms
 
@@ -6296,6 +6307,15 @@ def fetch_chatroom_feed(request):
 
     chatroom_id = request.GET.get('chatroom_id')
     scroll_direction = request.GET.get('scroll_direction')
+
+    active = request.GET.get('active',None)
+
+    if active == "true":
+        active = True
+    elif active == "false":
+        active = False
+    else:
+        active = None
 
     member_id = get_member_id_from_headers(request)
 
@@ -6319,7 +6339,7 @@ def fetch_chatroom_feed(request):
             # downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:3]
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('id')
-            chatrooms = get_chatrooms(chatroom_list, member_id)
+            chatrooms = get_chatrooms(chatroom_list, member_id,active)
 
         context['header'] = chatroom_feed_header(community_id, member_id)
 
@@ -6330,12 +6350,12 @@ def fetch_chatroom_feed(request):
             upward = chatroom_filter.filter(id__lt=chatroom_id).order_by('-id')[:5]
             upward = reverse_conversations_for_upward_pagination(upward)
             # print(upward)
-            chatrooms = get_chatrooms(upward, member_id)
+            chatrooms = get_chatrooms(upward, member_id,active)
 
         elif scroll_direction == 1:  # downward scroll
 
             downward = chatroom_filter.filter(id__gt=chatroom_id).order_by('id')[:5]
-            chatrooms = get_chatrooms(downward, member_id)
+            chatrooms = get_chatrooms(downward, member_id,active)
 
     context['chatrooms'] = chatrooms
     return JsonResponse(context)
