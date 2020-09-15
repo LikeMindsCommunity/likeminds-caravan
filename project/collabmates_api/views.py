@@ -70,6 +70,8 @@ from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard
 from .mails import *
 from .chatroom_backup import create_chatroom_delete_backup
 
+from cms.models import NewAnswer
+
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -1168,7 +1170,12 @@ def save_user_selected_options(question_instance, user_instance, community_insta
         option = choice.strip()
         if not is_option_present(option, dropdown_list):
             #Save answer for review
-
+            new_answer_instance = NewAnswer()
+            new_answer_instance.option = option
+            new_answer_instance.question = question_instance
+            new_answer_instance.user = user_instance
+            new_answer_instance.community = community_instance
+            new_answer_instance.save()
 
             dropdown_list.append(option)
         filter_instance = questionFilters(question=question_instance, filter=option,
@@ -7171,7 +7178,7 @@ def verify_otp(request):
         elif user_id:
             mobile_filter = userMobiles.objects.filter(user = user_id)
         verified = {'success': False}
-        
+
         if mobile_filter.exists():
             for instance in mobile_filter:
                 phone_no = str(instance.country_code) + str(instance.mobile_no)

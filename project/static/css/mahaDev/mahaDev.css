@@ -861,3 +861,6 @@ span.divider:before{
     top: 50%;
     transform: translateY(-50%);
 }
+.community_manager_tag.error{
+    color:#d0021b;
+}
