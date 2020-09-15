@@ -228,7 +228,7 @@ class inActiveChatroomsCount(models.Model):
 
     '''models to save the count of in-active chatrooms for user'''
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    last_inactive_card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    last_inactive_card = models.ForeignKey(Collabcard, on_delete=models.CASCADE,null=True)
     inactive_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(null=True)
     updated_at = models.BigIntegerField(null=True)
