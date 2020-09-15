@@ -354,10 +354,9 @@ def fetch_chatroom_inactive(request):
 
     current_time = time.time()
     inactive_chatrooms = collabcardState.objects.filter(user=member_id,follow_status=True,
-                                   remove=None).filter(~Q(expiry_time=None)|Q(expiry_time__lt=current_time)).order_by('-expiry_time')
+                                   remove=None).filter(~Q(expiry_time=None)&Q(expiry_time__lt=current_time)).order_by('-expiry_time')
 
     inactive_count = inactive_chatrooms.count()
-
     if inactive_count:
         instance = inactive_chatrooms[0]
         count_status = create_or_update_inActiveChatroomsCount_instance(instance.user,instance.card,inactive_count)
