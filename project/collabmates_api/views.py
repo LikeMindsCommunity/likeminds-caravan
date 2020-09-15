@@ -332,6 +332,9 @@ def my_chatrooms(request):
 
         if last_conversation:
             chatroom['last_conversation'] = conversationSerializer(last_conversation)
+            second_last_conversation = instance.second_last_conversation
+            if second_last_conversation:
+                chatroom['second_last_conversation'] = conversationSerializer(second_last_conversation)
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
@@ -340,7 +343,7 @@ def my_chatrooms(request):
 
     in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
 
-    return JsonResponse({"my_chatrooms": my_chatrooms,'inactive_chatrooms_count':in_active_chatroom})
+    return JsonResponse({"my_chatrooms": my_chatrooms,'inactive_chatroom_count':in_active_chatroom})
 
 def fetch_chatroom_inactive(request):
 
