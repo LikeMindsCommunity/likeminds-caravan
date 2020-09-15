@@ -4700,7 +4700,7 @@ def adding_guest_in_chatroom(request, context, card_instance, aj, source_id, com
             collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
 
 
-    elif not status:
+    elif not status and not state_filter.exists():
         context['aj_expired'] = aj_expired
         aj_expired_disclaimer = {}
         aj_expired_disclaimer['image_url'] = WARNING_IMAGE
