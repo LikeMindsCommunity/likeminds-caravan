@@ -1167,6 +1167,9 @@ def save_user_selected_options(question_instance, user_instance, community_insta
 
         option = choice.strip()
         if not is_option_present(option, dropdown_list):
+            #Save answer for review
+
+
             dropdown_list.append(option)
         filter_instance = questionFilters(question=question_instance, filter=option,
                                           member=user_instance, community=community_instance)
@@ -7165,9 +7168,10 @@ def verify_otp(request):
     if is_request_web(request):
         if mobile_no:
             mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
-        else:
+        elif user_id:
             mobile_filter = userMobiles.objects.filter(user = user_id)
         verified = {'success': False}
+        
         if mobile_filter.exists():
             for instance in mobile_filter:
                 phone_no = str(instance.country_code) + str(instance.mobile_no)
