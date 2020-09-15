@@ -363,7 +363,7 @@ def fetch_chatroom_inactive(request):
     if inactive_count:
         instance = inactive_chatrooms[0]
         count_status = create_or_update_inActiveChatroomsCount_instance(instance.user,instance.card,inactive_count)
-        if count_status['status'] and 'inactive_count' in count_status:
+        if count_status['status'] and 'inactive_count' in count_status and count_status['inactive_count'] > 0 :
             context['title'] = """%s chatrooms moved to inactive""" % (str(count_status['inactive_count']))
 
     return JsonResponse(context)
