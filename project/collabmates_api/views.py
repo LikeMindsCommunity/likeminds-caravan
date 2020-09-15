@@ -369,17 +369,32 @@ def fetch_chatroom_inactive(request):
         return JsonResponse(context)
 
     current_time = time.time()
-    inactive_chatrooms = collabcardState.objects.filter(user=member_id,follow_status=True,
-                                   remove=None).filter(~Q(expiry_time=None)&Q(expiry_time__lt=current_time)).order_by('-expiry_time')
 
-    inactive_count = inactive_chatrooms.count()
-    if inactive_count:
-        instance = inactive_chatrooms[0]
-        print(instance)
-        print(inactive_count)
-        count_status = create_or_update_inActiveChatroomsCount_instance(instance.user,instance.card,inactive_count)
-        if count_status['status'] and 'inactive_count' in count_status and count_status['inactive_count'] > 0 :
-            context['title'] = """%s chatrooms moved to inactive""" % (str(count_status['inactive_count']))
+    in_active_filter = inActiveChatroomsCount.objects.filter(user=member_id)
+
+    if in_active_filter.exists():
+        last_session = in_active_filter[0].updated_at
+
+        inactive_chatrooms = collabcardState.objects.filter(user=member_id,follow_status=True,
+                                       remove=None).filter(~Q(expiry_time=None)&Q(
+            expiry_time__lt=current_time)&Q(expiry_time__gt=last_session)).order_by('-expiry_time')
+
+        inactive_chatroom_count = inactive_chatrooms.count()
+        if inactive_chatroom_count:
+            context['title'] = """%s chatrooms moved to inactive""" % (str(inactive_chatroom_count))
+            in_active_filter.update(updated_at=current_time)
+
+
+    else:
+        inactive_chatrooms = collabcardState.objects.filter(user=member_id, follow_status=True,
+                                                            remove=None).filter(
+            ~Q(expiry_time=None) & Q(expiry_time__lt=current_time)).order_by('-expiry_time')
+
+        user_instance = User.objects.get(id=member_id)
+        inactive_count = inactive_chatrooms.count()
+        create_or_update_inActiveChatroomsCount_instance(user_instance, None, inactive_count)
+        if inactive_count:
+            context['title'] = """%s chatrooms moved to inactive""" % (str(inactive_count))
 
     return JsonResponse(context)
 
@@ -399,17 +414,17 @@ def create_or_update_inActiveChatroomsCount_instance(user_instance,card_instance
         instance.save()
         temp['status'] =  True
         temp['inactive_count'] = inactive_count
-    else:
-        instance = in_active_filter[0]
-        if card_instance.id != instance.last_inactive_card.id:
-            previous_count = instance.inactive_count
-            instance.last_inactive_card = card_instance
-            instance.inactive_count = inactive_count
-            instance.updated_at = time.time()
-            instance.save()
-            temp['status'] = True
-            diff =  (inactive_count-previous_count)
-            temp['inactive_count'] = diff if diff > 0 else (-1)*(diff)
+    # else:
+    #     instance = in_active_filter[0]
+    #     if True:
+    #         previous_count = instance.inactive_count
+    #         instance.last_inactive_card = card_instance
+    #         instance.inactive_count = inactive_count
+    #         instance.updated_at = time.time()
+    #         #instance.save()
+    #         temp['status'] = True
+    #         diff =  (inactive_count-previous_count)
+    #         temp['inactive_count'] = diff if diff > 0 else (-1)*(diff)
 
     return temp
 
