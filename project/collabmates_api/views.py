@@ -306,15 +306,11 @@ def my_chatrooms(request):
 
     member_id = get_member_id_from_headers(request)
     page = request.GET.get('page', 1)
-    active = request.GET.get('active',False)
+    active = request.GET.get('active',None)
     if active == "true":
         active = True
-    else:
+    elif active == "false":
         active = False
-
-
-
-
 
 
     if not member_id:
@@ -350,9 +346,12 @@ def my_chatrooms(request):
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
 
-        if active and chatroom['chatroom']['active']:
+        if active == True and chatroom['chatroom']['active']:
             my_chatrooms.append(chatroom)
-        if not active and not chatroom['chatroom']['active']:
+        if active == False and not chatroom['chatroom']['active']:
+            my_chatrooms.append(chatroom)
+
+        if active == None:
             my_chatrooms.append(chatroom)
 
     in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
