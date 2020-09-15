@@ -306,6 +306,17 @@ def my_chatrooms(request):
 
     member_id = get_member_id_from_headers(request)
     page = request.GET.get('page', 1)
+    active = request.GET.get('active',False)
+    if active == "true":
+        active = True
+    else:
+        active = False
+
+
+
+
+
+
     if not member_id:
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
@@ -339,7 +350,10 @@ def my_chatrooms(request):
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
 
-        my_chatrooms.append(chatroom)
+        if active and chatroom['chatroom']['active']:
+            my_chatrooms.append(chatroom)
+        if not active and not chatroom['chatroom']['active']:
+            my_chatrooms.append(chatroom)
 
     in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
 
@@ -362,6 +376,8 @@ def fetch_chatroom_inactive(request):
     inactive_count = inactive_chatrooms.count()
     if inactive_count:
         instance = inactive_chatrooms[0]
+        print(instance)
+        print(inactive_count)
         count_status = create_or_update_inActiveChatroomsCount_instance(instance.user,instance.card,inactive_count)
         if count_status['status'] and 'inactive_count' in count_status and count_status['inactive_count'] > 0 :
             context['title'] = """%s chatrooms moved to inactive""" % (str(count_status['inactive_count']))
