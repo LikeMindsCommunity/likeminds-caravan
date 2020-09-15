@@ -31,7 +31,11 @@
                 <div class="p1624 bdbE bs dT wp100 fwR">
                     <div class="dT wp100 bs">
                         <div class="bs dTc h64 w64">
+                        {% if current_user.image_url %}
                             <img src="{{current_user.image_url}}" class="bd2F brp50 bxs dB h64 w64">
+                        {% else %}
+                        <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media" class="bd2F brp50 bxs dB h64 w64" />
+                        {% endif %}
                         </div>
                         <div class="dTc vM pl16 bs fs15">
                             <div class="c0 fwM">State</div>
@@ -46,7 +50,12 @@
                 <div class="p1624 bdbE bs dT wp100 fwR">
                     <div class="dT wp100 bs">
                         <div class="bs dTc h64 w64 member_link" member_id="{{current_user.id}}">
+
+                        {% if current_user.image_url %}
                             <img src="{{current_user.image_url}}" class="bd2F brp50 bxs dB h64 w64">
+                        {% else %}
+                        <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media" class="bd2F brp50 bxs dB h64 w64" />
+                        {% endif %}
                         </div>
                         <div class="dTc vM pl16 bs fs15">
                             <div class="lh20 c9 fwR pt4 bs">
@@ -132,7 +141,12 @@
             <div class="pt16 bs">
                 <div class="dT wp100 bs member_link" member_id="{{collabcard.member.id}}">
                     <div class="bs dTc h64 w64">
+
+                        {% if collabcard.member.image_url %}
                         <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bxs dB h64 w64">
+                        {% else %}
+                        <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media" class="bd2F brp50 bxs dB h64 w64" />
+                        {% endif %}
                     </div>
                     <div class="dTc vM pl16 bs fs15">
                         <div class="c0 fwM">{{ collabcard.member.name }}</div>
@@ -164,7 +178,11 @@
                 <div class="h86">
                     <div class="dT wp100 bs member_link" member_id="{{host.id}}">
                     <div class="bs dTc h64 w64">
+                        {% if host.image_url %}
                         <img src="{{ host.image_url }}" class="bd2F brp50 bxs dB h64 w64">
+                        {% else %}
+                        <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media" class="bd2F brp50 bxs dB h64 w64" />
+                        {% endif %}
                     </div>
                     <div class="dTc vM pl16 bs fs15">
                         <div class="c0 fwM">{{ host.name }}</div>
@@ -196,7 +214,11 @@
                     {% for member in members %}
                         {% if member.collabcard_state == 3 or member.collabcard_state == 4 %}
                             <div class="m8 dIb vM w64 h64 member_link" member_id="{{member.id}}">
+                                {% if member.image_url %}
                                 <img src="{{ member.image_url }}" class="dB w64 h64 brp50" />
+                                {% else %}
+                                <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media" class="dB w64 h64 brp50" />
+                                {% endif %}
                             </div>
                         {% endif %}
                         {% if forloop.counter == 8 %}

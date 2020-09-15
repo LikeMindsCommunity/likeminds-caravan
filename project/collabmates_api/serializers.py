@@ -803,8 +803,6 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
     # sending image  url of members
     if member_instance.image_url:
         community_profile['image_url'] = member_instance.image_url
-    else:
-        community_profile['image_url'] = PROFILE_DEFAULT
 
     if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
         community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
