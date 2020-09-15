@@ -1,3 +1,6 @@
+#variables
+HOURS_24 = 500
+
 
 chatroom_actions_creator_mute = [
 
@@ -176,14 +179,66 @@ collabcard_action_user_unfollow = [
         'id': 10,
         'title': 'Report'
     }
-
-
 ]
+
+rename_chatroom = {'id': 1, 'title': 'Rename chatroom'}
+
+view_participants = {'id': 2, 'title': 'View participants'}
+
+invite = {'id': 3, 'title': 'Invite'}
+
+follow_chatroom = {'id': 4, 'title': 'Follow chatroom'}
+
+view_community = {'id': 5, 'title': 'View community'}
+
+mute_notifications = {'id': 6, 'title': 'Mute notifications'}
+
+delete_chatroom = {'id': 7, 'title': 'Delete chatroom'}
+
+unMute_notifications = {'id': 8, 'title': 'UnMute notifications'}
+
+unfollow_chatroom = {'id': 9, 'title': 'Unfollow chatroom'}
+
+report = {'id': 10, 'title': 'Report'}
+
+mark_active = {'id': 11, 'title': 'Mark active'}
+
+mark_inactive = {'id': 12, 'title': 'Mark inactive'}
 
 
 
 
 #get onboarding examples
+INTRODUCTION_EXAMPLES = [
+
+
+    {
+    "header":"Sample member introductions",
+    "sub_header" : "Here are a few example of how members customize their profile depending on the community",
+    "title" : "IITD Entrepreneurs in Gurgaon",
+    "sub_title":"""Hello everyone, I am a 2012 graduate from electrical engineering. I am running a social media venture based out of Gurgaon. Looking forward to connecting with you all and contribute to this community however I can."""
+
+    },
+
+    {
+    "header":"Sample member introductions",
+    "sub_header" : "Here are a few example of how members customize their profile depending on the community",
+    "title" : "Musicians in Gurgaon",
+    "sub_title":"A musician from the Himalayas! Looking for paid opportunities to play percussion (Djembe & Cajon)! I bet your feet won’t stay on the ground for long!  "
+
+    },
+
+    {
+    "header":"Sample member introductions",
+    "sub_header" : "Here are a few example of how members customize their profile depending on the community",
+    "title" : "COVID Hackers",
+    "sub_title":"""Hey all, I am a tech entrepreneur from Gurgaon. Looking forward to hacking the COVID times with this tribe and discover fun new "At Home" hobbies 🤟"""
+
+    }
+
+]
+
+
 ONBOARDING_EXAMPLES = [
 
 
@@ -213,6 +268,7 @@ Anytime if you are looking to exchange referrals or maybe want to have a small g
     }
 
 ]
+
 
 
 

@@ -458,12 +458,14 @@ def get_category_of_chatroom(typ):
     return chatroom_type
 
 
-def conversationSerializer(conversation):
+def conversationSerializer(conversation, fetch_reply=True):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
         "state": conversation.state,
-        "member": UserinfoSerializer(conversation.user.userinfo)
+        "member": UserinfoSerializer(conversation.user.userinfo),
+        'is_deleted': conversation.is_deleted,
+        'is_edited': conversation.is_edited,
     }
 
     answer_files = get_answer_files(temp['id'])
@@ -476,6 +478,9 @@ def conversationSerializer(conversation):
 
     if conversation.og_tags:
         temp['og_tags'] = json.loads(conversation.og_tags)
+
+    if conversation.reply and fetch_reply:
+        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
 
     return temp
 
@@ -545,6 +550,14 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None):
     collabcard_serializer['mute_status'] = status['mute_status']
     collabcard_serializer['follow_status'] = status['follow_status']
     collabcard_serializer['is_guest'] = status['is_guest']
+    collabcard_serializer['active'] = False
+    collabcard_serializer['is_tagged'] = status['is_tagged']
+
+    expiry_time = status['expiry_time']
+
+    if not expiry_time or expiry_time >= int(time.time()):
+        collabcard_serializer['active'] = True
+
 
     collabcard_serializer['member'] = collabcard_member[0]
 
@@ -557,27 +570,6 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None):
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
 
-
-    # removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
-    # if removed_state != False:
-    #     collabcard_serializer['member']['remove_state'] = removed_state
-
-
-
-
-
-
-    # if status['remove']:
-    #     instance = status['remove']
-    #     temp = get_removed_member_custom_text(instance)
-    #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-    #     collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
-    #     collabcard_serializer['member']['remove_state'] = temp['remove_state']
-    #     collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-    # if status['is_guest'] and status['state_instance'].source:
-    #     temp = get_guest_custom_text(status['state_instance'])
-    #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-    #     collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
 
 
 
@@ -662,14 +654,16 @@ def get_status_of_collabcard(member_id, card):
         'follow_status': False,
         'is_guest': False,
         'remove': False,
-        'state_instance': None
+        'state_instance': None,
+        'expiry_time':None,
+        'is_tagged':False
 
     }
 
     if not member_id:
         return collabcard_status
 
-    member_id = User.objects.get(id=member_id)
+    #member_id = User.objects.get(id=member_id)
     collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
 
     if collabcard_state.exists():
@@ -679,6 +673,8 @@ def get_status_of_collabcard(member_id, card):
         collabcard_status['is_guest'] = collabcard_state[0].is_guest
         collabcard_status['remove'] = collabcard_state[0].remove
         collabcard_status['state_instance'] = collabcard_state[0]
+        collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
+        collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
     return collabcard_status
 
 
@@ -903,8 +899,8 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
             temp['value'] = response.question_answer
-            if '$#' in temp['value']:
-                temp['value'] = temp['value'].replace('$#', ', ')
+            # if '$#' in temp['value']:
+            #     temp['value'] = temp['value'].replace('$#', ', ')
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']

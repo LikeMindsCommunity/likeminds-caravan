@@ -1,5 +1,25 @@
 import enum
 
+
+# member state
+class ChatroomActions:
+
+    ACTION_RENAME = 1
+    ACTION_VIEW_PARTICIPANTS = 2
+    ACTION_INVITE = 3
+    ACTION_FOLLOW = 4
+    ACTION_VIEW_COMMUNITY = 5
+    ACTION_MUTE = 6
+    ACTION_DELETE = 7
+    ACTION_UNMUTE = 8
+    ACTION_UNFOLLOW = 9
+    ACTION_REPORT = 10
+    ACTION_MARK_ACTIVE = 11
+    ACTION_MARK_INACTIVE = 12
+
+
+chatroom_actions = ChatroomActions()
+
 # collabcard stats
 class CollabcardTypes:
     CARD_NORMAL = 0
