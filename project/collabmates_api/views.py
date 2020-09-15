@@ -6747,8 +6747,9 @@ def custom_login(request, res, login_type="custom"):
 
     if is_request_web(request):
         phone_no = str(country_code) + str(mobile_no)
-        if phone_no == request.session['verified_mobile_no']:
-            login(request, user=user_instance, backend="django.contrib.auth.backends.ModelBackend")
+        if 'verified_mobile_no' in request.session:
+            if phone_no == request.session['verified_mobile_no']:
+                login(request, user=user_instance, backend="django.contrib.auth.backends.ModelBackend")
     # usr = UserinfoSerializer(user_instance.userinfo)
     usr = get_logged_in_user(user_instance)
     # see if user has tags or not
@@ -6906,7 +6907,10 @@ def verify_otp(request):
     context = {}
 
     if is_request_web(request):
-        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        if mobile_no:
+            mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        else:
+            mobile_filter = userMobiles.objects.filter(user = user_id)
         verified = {'success': False}
         if mobile_filter.exists():
             for instance in mobile_filter:

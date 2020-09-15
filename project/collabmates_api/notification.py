@@ -1490,19 +1490,19 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
             'route':'//route://community_collabcard?community_id='+ str(community_id) +'&community_name=' + str(community_instance.name)
         }
         if day == 3:
-            message['payload']['sub_title'] = "Hey " + str(member.member_id.userinfo.name) + ", looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
+            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(member.member_id.userinfo.name) + ", looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
             notification_meta(notification_list, message)
 
         elif day == 4:
-            message['payload']['sub_title'] = "Hey " + str(member.member_id.userinfo.name) + ", it has been 4 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
+            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(member.member_id.userinfo.name) + ", it has been 4 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
             notification_meta(notification_list, message)
 
         elif day == 7:
-            message['payload']['sub_title'] = "Hey " + str(member.member_id.userinfo.name) + ",looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
+            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(member.member_id.userinfo.name) + ",looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
             notification_meta(notification_list, message)
 
         elif day == 9:
-            message['payload']['sub_title'] = "Hey " + str(member.member_id.userinfo.name) + ", it has been 9 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
+            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(member.member_id.userinfo.name) + ", it has been 9 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
             notification_meta(notification_list, message)
 
 
