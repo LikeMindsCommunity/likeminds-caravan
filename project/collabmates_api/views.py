@@ -4353,6 +4353,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
     answers = []
     for ans in answer_filter:
+        # print("--->",ans)
         # user = Userinfo.objects.filter(user_id=ans.user.id)
         # usr = UserinfoSerializer(user[0])
         # #usr['is_clickable']=feedback
@@ -4619,12 +4620,15 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
 
     card['total_response_count'] = total_response_count
+    # print(latest_conversations)
 
-    last_conversation = latest_conversations['last_conversation']
-    if last_conversation:
-        serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id)
-        if serialized_last:
-            card['last_conversation'] = serialized_last[0]
+    if latest_conversations:
+        last_conversation = latest_conversations['last_conversation']
+        # print("***",latest_conversations)
+        if last_conversation:
+            serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id)
+            if serialized_last:
+                card['last_conversation'] = serialized_last[0]
 
     context['chatroom'] = card
     context['conversations'] = conversations
