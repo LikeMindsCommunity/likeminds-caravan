@@ -300,7 +300,7 @@ class card_answers(models.Model):
     preview_type = models.TextField(null=True)
     preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
                                           related_name='conversation_preview_community')
-    preview_chatroom = models.ForeignKey('self', on_delete=models.PROTECT, null=True,
+    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
                                          related_name='conversation_preview_chatroom')
 
 

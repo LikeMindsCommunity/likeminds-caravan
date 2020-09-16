@@ -9691,21 +9691,21 @@ def get_community_members_count(community_instance, user_instance):
     return final_dict
 
 
-def get_previews_for_card_and_answers(card_instance, member_id):
+def get_previews_for_card_and_answers(instance, member_id):
     chatroom_instance = {}
-    if card_instance.internal_link:
-        chatroom_instance['internal_link'] = card_instance.internal_link
+    if instance.internal_link:
+        chatroom_instance['internal_link'] = instance.internal_link
 
-    if card_instance.preview_type:
-        chatroom_instance['preview_type'] = card_instance.preview_type
+    if instance.preview_type:
+        chatroom_instance['preview_type'] = instance.preview_type
 
-    if card_instance.preview_community:
+    if instance.preview_community:
         user_instance = User.objects.get(pk=member_id)
-        community = get_community_preview(card_instance.preview_community, user_instance)
+        community = get_community_preview(instance.preview_community, user_instance)
         chatroom_instance['preview_community'] = community
 
-    if card_instance.preview_chatroom:
-        chatroom = get_chatrooms([card_instance.preview_chatroom], member_id)
+    if instance.preview_chatroom:
+        chatroom = get_chatrooms([instance.preview_chatroom], member_id)
         chatroom_instance['preview_chatroom'] = chatroom[0]
 
     return chatroom_instance
