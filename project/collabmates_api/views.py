@@ -330,10 +330,12 @@ def your_communities(request, user_id):
 
         active_chatroom_count = count
         community['active_chatroom_count'] = active_chatroom_count
-        my_community.append(community)
+
         header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         if header_images:
-            my_community.append(header_images)
+            community['header_images'] = header_images
+
+        my_community.append(community)
 
 
     return JsonResponse({'your_communities': my_community})
