@@ -3883,7 +3883,7 @@ def collabcard(request, card_id):
             context['current_date'] = time.strftime('%d-%m-%Y', time.localtime(time.time()))
 
         # print(context)
-        print(context)
+        # print(context)
         # print (render(request, 'chatroom.html', context))
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
@@ -3917,6 +3917,7 @@ def get_collabcard_details_for_web(request, card_instance, card, current_user_id
     if type(answers) is list:
         _answers = answers
         answers = {}
+        #size_reduction
         # answers['conversations'] = _answers
         answers['conversations'] = []
 
