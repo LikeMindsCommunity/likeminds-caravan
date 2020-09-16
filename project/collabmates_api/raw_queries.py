@@ -165,6 +165,36 @@ def get_inactive_followed_chatrooms(user_id,current_time,page,limit=10):
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
+def get_draft_chatrooms_on_home_screen(user_id,page,limit=10):
+
+    '''api to get draft chatroom home-screen'''
+
+    try:
+        page_number = int(page)
+        limit = 10
+        offset = (page_number - 1) * 10
+
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """select id,card_id,draft_id from togther_conversationEngage where user_id=%s order by updated_at desc,id desc limit %s offset %s""" % (
+        str(user_id), str(limit), str(offset))
+
+        curr.execute(sql)
+        res = curr.fetchall()
+
+        draft_list = []
+
+        for data in res:
+            if data[2]:
+                draft_list.append(data[0])
+        curr.close()
+        conn.close()
+
+        return draft_list
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
 
 
 @shared_task

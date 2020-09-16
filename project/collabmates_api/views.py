@@ -369,6 +369,12 @@ def my_chatrooms(request):
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
 
+        draft_list = get_draft_chatrooms_on_home_screen(member_id, page, limit=10)
+
+        for id in draft_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+
     elif active is False:
 
         engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
