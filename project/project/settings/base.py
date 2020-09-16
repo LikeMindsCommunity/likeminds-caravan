@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'utility',
     'django_celery_beat',
+    'cms',
 ]
 
 MIDDLEWARE = [
@@ -60,6 +61,9 @@ MIDDLEWARE = [
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'utility.slash_middleware.AppendOrRemoveSlashMiddleware',
 ]
+
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 ROOT_URLCONF = 'project.urls'
 
