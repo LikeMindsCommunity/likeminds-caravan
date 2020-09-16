@@ -808,8 +808,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
         community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
             str(community_id), str(member_id))
 
-        community_profile[
-            'member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
+        community_profile['member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
                                                                                                            time.localtime(
                                                                                                                member_instance.created_at))
     elif member_instance.state == member_states.PENDING_MEMBER:

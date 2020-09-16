@@ -56,7 +56,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            )
 
 from .notification import *
-from .raw_queries import compute_rank, update_conversation_engage_for_chatrooms,get_active_chatrooms_count,get_inactive_chatrooms_count,get_second_last_conversation_of_chatroom
+from .raw_queries import *
 from .serializers import *
 from .static_files import *
 from .static_text import *
@@ -348,6 +348,7 @@ def my_chatrooms(request):
 
     member_id = get_member_id_from_headers(request)
     page = request.GET.get('page', 1)
+
     active = request.GET.get('active',None)
     if active == "true":
         active = True
@@ -356,17 +357,39 @@ def my_chatrooms(request):
     else:
         active = None
 
+    current_time = time.time()
+    my_chatrooms = []
+    instance_list = []
 
     if not member_id:
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
-    instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
-    #instance_list = pagination(instance_list, page, paginate_by=10)
-    instance_list = get_paginated_queryset_with_maxpages(instance_list,page,paginate_by=10)
-    my_chatrooms = []
-    current_time = time.time()
-    instance_list = instance_list['page_list']
+    if active is True:
+        engage_list = get_active_followed_chatrooms(member_id,current_time,page,limit=10)
+        for id in engage_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+
+        draft_list = get_draft_chatrooms_on_home_screen(member_id, page, limit=10)
+
+        for id in draft_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+
+    elif active is False:
+
+        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
+        for id in engage_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+
+    else:
+        instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
+        #instance_list = pagination(instance_list, page, paginate_by=10)
+        instance_list = get_paginated_queryset_with_maxpages(instance_list,page,paginate_by=10)
+        instance_list = instance_list['page_list']
+
     for instance in instance_list:
 
         chatroom = {}
@@ -392,9 +415,13 @@ def my_chatrooms(request):
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
 
-        if active == True and card_instance and chatroom['chatroom']['active']:
-            my_chatrooms.append(chatroom)
-        if active == False and card_instance and not chatroom['chatroom']['active']:
+        if active == True:
+            if card_instance  and chatroom['chatroom']['active']:
+                my_chatrooms.append(chatroom)
+            elif draft_instance:
+                my_chatrooms.append(chatroom)
+
+        if active == False  and not chatroom['chatroom']['active'] and card_instance:
             my_chatrooms.append(chatroom)
 
         if active == None:
@@ -3968,6 +3995,7 @@ def collabcard(request, card_id):
     # request is made from web
     if request.accepted_renderer.format == 'html':
 
+        # web_data = get_collabcard_details_for_web(request, card_instance, card, current_user_id, answers)
         web_data = get_collabcard_details_for_web(request, card_instance, card, current_user_id, answers)
 
         context = web_data[0]
@@ -3983,7 +4011,8 @@ def collabcard(request, card_id):
             context['current_date'] = time.strftime('%d-%m-%Y', time.localtime(time.time()))
 
         # print(context)
-
+        # print(context)
+        # print (render(request, 'chatroom.html', context))
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
 
@@ -4016,7 +4045,9 @@ def get_collabcard_details_for_web(request, card_instance, card, current_user_id
     if type(answers) is list:
         _answers = answers
         answers = {}
-        answers['conversations'] = _answers
+        #size_reduction
+        # answers['conversations'] = _answers
+        answers['conversations'] = []
 
     # print('in html')
     # check for event card
@@ -4155,6 +4186,9 @@ def get_collabcard_details_for_web(request, card_instance, card, current_user_id
         print('collab card')
 
         context = get_normal_chatroom_context(request, card_instance)
+        #size_reduction
+        context['answers']['conversations'] = []
+
         return context, "SIMPLE_CARD"
         # return render(request, 'collabcard.html', context)
 
@@ -4227,7 +4261,8 @@ def get_normal_chatroom_context(request, card_instance):
         'source_id': source_id,
         'has_conversation': has_conversation
     }
-
+    # size_reduction
+    context['answers']['chatroom'] = {}
     if aj and source_id:
         context['redirect_link'] = "/collabcard/" + str(card_instance.id) + "?aj=" + str(aj) + "&source_id=" + str(
             source_id)
@@ -4337,7 +4372,8 @@ def fetch_chatroom(request):
             flag.flag = True
             flag.save()
 
-    if request.accepted_renderer.format == 'html' and conversation_id:
+    if request.accepted_renderer.format == 'html':
+        # if conversation_id:
         context['conversations'] = context['conversations']
         context = {
             'answers': context,
@@ -4699,6 +4735,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         chatroom_actions = get_chatroom_actions(card_status, creator=False, promoter=is_promoter)
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
+    print("latest_conversations--",latest_conversations)
 
     # getting the state of chatroom against the user
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id, remove=None)
@@ -4741,7 +4778,7 @@ def save_the_latest_conversation(card_instance, user_id):
     '''function to save the latest seen conversation'''
 
     if not user_id:
-        return
+        return {'last_conversation': None}
 
     latest_card = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
 
@@ -6394,7 +6431,7 @@ def get_chatrooms(chatroom_list, member_id,active = None):
 
         if active is True and chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
-        if active is False and chatroom_instance['active']:
+        if active is False and not chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
 
         if active == None:
