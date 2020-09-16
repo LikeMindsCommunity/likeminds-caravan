@@ -3867,6 +3867,7 @@ def collabcard(request, card_id):
     # request is made from web
     if request.accepted_renderer.format == 'html':
 
+        # web_data = get_collabcard_details_for_web(request, card_instance, card, current_user_id, answers)
         web_data = get_collabcard_details_for_web(request, card_instance, card, current_user_id, answers)
 
         context = web_data[0]
@@ -3882,7 +3883,8 @@ def collabcard(request, card_id):
             context['current_date'] = time.strftime('%d-%m-%Y', time.localtime(time.time()))
 
         # print(context)
-
+        print(context)
+        # print (render(request, 'chatroom.html', context))
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
 
@@ -3915,7 +3917,8 @@ def get_collabcard_details_for_web(request, card_instance, card, current_user_id
     if type(answers) is list:
         _answers = answers
         answers = {}
-        answers['conversations'] = _answers
+        # answers['conversations'] = _answers
+        answers['conversations'] = []
 
     # print('in html')
     # check for event card
@@ -4054,6 +4057,9 @@ def get_collabcard_details_for_web(request, card_instance, card, current_user_id
         print('collab card')
 
         context = get_normal_chatroom_context(request, card_instance)
+        #size_reduction
+        context['answers']['conversations'] = []
+
         return context, "SIMPLE_CARD"
         # return render(request, 'collabcard.html', context)
 
@@ -4126,7 +4132,8 @@ def get_normal_chatroom_context(request, card_instance):
         'source_id': source_id,
         'has_conversation': has_conversation
     }
-
+    # size_reduction
+    context['answers']['chatroom'] = {}
     if aj and source_id:
         context['redirect_link'] = "/collabcard/" + str(card_instance.id) + "?aj=" + str(aj) + "&source_id=" + str(
             source_id)
@@ -4236,7 +4243,8 @@ def fetch_chatroom(request):
             flag.flag = True
             flag.save()
 
-    if request.accepted_renderer.format == 'html' and conversation_id:
+    if request.accepted_renderer.format == 'html':
+        # if conversation_id:
         context['conversations'] = context['conversations']
         context = {
             'answers': context,
