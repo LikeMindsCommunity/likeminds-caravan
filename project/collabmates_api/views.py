@@ -363,13 +363,13 @@ def my_chatrooms(request):
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
-    if active:
+    if active is True:
         engage_list = get_active_followed_chatrooms(member_id,current_time,page,limit=10)
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
 
-    elif active == False:
+    elif active is False:
 
         engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
         for id in engage_list:
