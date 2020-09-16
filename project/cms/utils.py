@@ -58,8 +58,8 @@ def get_general_records(date_time):
     day_2 = midnight - timedelta(days=1)
     print(day_1, day_2)
 
-    day_1 = day_1.timestamp() - 5*60*60 - 30*60
-    day_2 = day_2.timestamp() - 5*60*60 - 30*60
+    day_1 = day_1.timestamp() + 5*60*60 + 30*60
+    day_2 = day_2.timestamp() + 5*60*60 + 30*60
 
 
 

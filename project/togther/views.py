@@ -365,7 +365,8 @@ def community_questions(request,params):
             'color': 'F'
         }
         header_showcase = {
-            'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
+            # 'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
+            'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fapp_bar_status_bar.png?alt=media',
             'header': 'You are interested in joining this community:',
             'subHeader': community_instance.name,
             'userImage': request.user.userinfo.image_link if user_instance else PROFILE_DEFAULT
