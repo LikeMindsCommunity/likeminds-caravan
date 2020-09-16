@@ -2502,6 +2502,9 @@ def create_chatroom_instance(res, community_instance, user_instance):
 
     if 'internal_link' in res:
         card.internal_link = res['internal_link']
+        if 'preview' not in res:
+            preview = get_preview_for_url(user_instance.id, res['internal_link'])
+            res['preview'] = preview
 
     if 'preview' in res:
         preview = res['preview']
@@ -2600,8 +2603,14 @@ def create_card_internal(user_id, community_id, res):
         create_intro = True
 
     collabcard = CollabcardSerializer(card_instance, user_id, community_instance, current_user_id=user_id)
-    preview_dict = get_previews_for_card_and_answers(card_instance, user_id)
-    collabcard.update(**preview_dict)
+
+    if card_instance.internal_link:
+        collabcard['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
+                                              community_instance=card_instance.preview_community,
+                                              chatroom_instance=card_instance.preview_chatroom)
+
+    # preview_dict = get_previews_for_card_and_answers(card_instance, user_id)
+    # collabcard.update(**preview_dict)
     collabcard['date'] = datetime.today().strftime('%d-%m-%Y')
 
     # get user object's serialized json
@@ -4675,8 +4684,12 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id)
 
     card = get_chatroom_instance(card_instance, user_id)
-    preview_dict = get_previews_for_card_and_answers(card_instance, user_id)
-    card.update(**preview_dict)
+    if card_instance.internal_link:
+        card['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
+                                              community_instance=card_instance.preview_community,
+                                              chatroom_instance=card_instance.preview_chatroom)
+    # preview_dict = get_previews_for_card_and_answers(card_instance, user_id)
+    # card.update(**preview_dict)
 
     card_status = {
         'state': card['state'],
@@ -6414,7 +6427,7 @@ def fetch_chatroom_feed(request):
     chatroom_id = request.GET.get('chatroom_id')
     scroll_direction = request.GET.get('scroll_direction')
 
-    active = request.GET.get('active',None)
+    active = request.GET.get('active', None)
 
     if active == "true":
         active = True
