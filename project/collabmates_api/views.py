@@ -352,9 +352,9 @@ def my_chatrooms(request):
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
 
-        if active == True and chatroom['chatroom']['active']:
+        if active == True and card_instance and chatroom['chatroom']['active']:
             my_chatrooms.append(chatroom)
-        if active == False and not chatroom['chatroom']['active']:
+        if active == False and card_instance and not chatroom['chatroom']['active']:
             my_chatrooms.append(chatroom)
 
         if active == None:
