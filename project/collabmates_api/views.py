@@ -6369,7 +6369,7 @@ def get_chatrooms(chatroom_list, member_id,active = None):
 
         if active is True and chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
-        if active is False and chatroom_instance['active']:
+        if active is False and not chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
 
         if active == None:
