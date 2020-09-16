@@ -37,6 +37,7 @@ urlpatterns = [
     path('api/', include('collabmates_api.urls'),name= 'api'),
     path('admin_dashboard/',include('dashboard.urls'),name='admin_dashboard'),
     path('utils/', include('utility.urls'), name='utils'),
+    path('cms/', include('cms.urls'), name='cms'),
     path('admin_login', admin_login, name="admin_login"),
 ]
 

@@ -36,6 +36,12 @@ app.conf.beat_schedule = {
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose
     },
+    'update_dashboard_daily': {
+        'task': 'cms.utils.run_daily_tasks',
+        'schedule': crontab(hour=6, minute=0),
+        # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
+        # 'schedule':120.0, #for testing purpose
+    },
 }
 app.conf.timezone = 'Asia/Kolkata'
 
