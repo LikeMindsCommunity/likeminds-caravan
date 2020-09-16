@@ -234,6 +234,41 @@ def update_pending_member_count_in_engage(community):
 
 #home screen apis
 
+def get_new_chatroom_member_images(member_id,community_id):
+
+    last_instance = collabcardState.objects.filter(user=member_id,community=community_id).last()
+
+
+    if last_instance:
+        last_card = last_instance.card
+        unseen_chatrooms = Collabcard.objects.filter(community=community_id,id__gt=last_card.id).distinct('user_id')
+    else:
+        unseen_chatrooms = Collabcard.objects.filter(community=community_id).distinct('user_id')
+
+
+
+    member_list = []
+    for card in unseen_chatrooms:
+
+        member_filter = Members.objects.filter(member_id=card.user, community_id=community_id)
+        image_url = card.user.userinfo.image_link if card.user.userinfo.image_link  else ''
+        if member_filter.exists():
+            member_instance = member_filter[0]
+            if member_instance.image_url:
+                image_url = member_instance.image_url
+
+
+        member = get_user_profile(card.user.id,community_id,send_profile=False)
+        member['image_url'] = image_url
+        member_list.append(member)
+
+        if len(member_list) > 3:
+            break
+
+    return member_list
+
+
+
 def your_communities(request, user_id):
     '''This function is used to see your communities based on user id'''
 
@@ -294,9 +329,11 @@ def your_communities(request, user_id):
         count = get_active_chatrooms_count(each_community.community_id.id,member_id,current_time)
 
         active_chatroom_count = count
-
         community['active_chatroom_count'] = active_chatroom_count
         my_community.append(community)
+        header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+        if header_images:
+            my_community.append(header_images)
 
 
     return JsonResponse({'your_communities': my_community})
@@ -6281,8 +6318,8 @@ def get_member_images_of_chatroom(conversation_filter):
                 member_instance = member_filter[0]
                 if member_instance.image_url:
                     image_url = member_instance.image_url
-
-            member_images.append(image_url)
+            if image_url:
+                member_images.append(image_url)
             unique_members.add(conversation.user.id)
 
     return member_images[:6]
@@ -9778,3 +9815,9 @@ def fetch_intro_examples(request):
     return JsonResponse({'intro_examples':intro_examples})
 
 ############################################################################################################
+
+
+
+
+
+
