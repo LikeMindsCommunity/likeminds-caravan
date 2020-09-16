@@ -1,6 +1,7 @@
 from django.db import models
 import time
 from datetime import datetime
+from togther.models import *
 
 class NewCommunities(models.Model):
     community_id = models.IntegerField(default=0)
@@ -123,3 +124,13 @@ class PerDayRecordOverview(models.Model):
 
         super(PerDayRecordOverview, self).save(*args, **kwargs)
 
+
+
+class NewAnswer(models.Model):
+    option = models.TextField(null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return str(self.option)

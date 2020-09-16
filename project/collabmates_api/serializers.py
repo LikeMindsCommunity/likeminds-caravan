@@ -551,6 +551,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None):
     collabcard_serializer['follow_status'] = status['follow_status']
     collabcard_serializer['is_guest'] = status['is_guest']
     collabcard_serializer['active'] = False
+    collabcard_serializer['is_tagged'] = status['is_tagged']
 
     expiry_time = status['expiry_time']
 
@@ -654,7 +655,8 @@ def get_status_of_collabcard(member_id, card):
         'is_guest': False,
         'remove': False,
         'state_instance': None,
-        'expiry_time':None
+        'expiry_time':None,
+        'is_tagged':False
 
     }
 
@@ -672,6 +674,7 @@ def get_status_of_collabcard(member_id, card):
         collabcard_status['remove'] = collabcard_state[0].remove
         collabcard_status['state_instance'] = collabcard_state[0]
         collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
+        collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
     return collabcard_status
 
 

@@ -213,7 +213,7 @@ def generate_private_link_for_chatroom(card_instance,user_instance):
         current_time = int(time.time())
         last_created_time = chatroom_expire_filter[0].created_at
 
-        if current_time - last_created_time > 3600:
+        if current_time - last_created_time > (3600*3):
             unique_code = generate_random(unique_code_list)
             expireInstance = chatroomExpiryCodes()
             expireInstance.card = card_instance
@@ -1161,3 +1161,7 @@ def get_next_day_time(epoch_time,minutes=0,hours=0):
     epoch_time = epoch_time.replace(hour=hours,minute=minutes)
     epoch_time = epoch_time.timestamp()
     return epoch_time
+
+def get_first_name_from_name(name):
+    name = name.strip(' ')
+    return name.split(' ')[0]

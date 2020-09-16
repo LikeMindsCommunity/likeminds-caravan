@@ -153,3 +153,64 @@ def edit_community_fields(request,community_field_id):
         'form':form,
     }
     return render(request, 'cms/add_community_fields.html', context)
+
+
+
+def list_new_answers(request):
+    new_answers = NewAnswer.objects.all().order_by('-id')
+    page = request.GET.get('page', 1)
+    # print(communityfields.count())
+    query = request.GET.get('q')
+    if query:
+        # print('in here')
+        new_answers = new_answers.filter(
+            Q(question_title__icontains=query) |
+            Q(type__type__icontains=query) |
+            Q(sub_type__sub_type__icontains=query)
+        )
+    # print(communityfields.count())
+    paginator = Paginator(new_answers, 100)
+    try:
+        new_answers = paginator.page(page)
+    except PageNotAnInteger:
+        new_answers = paginator.page(1)
+    except EmptyPage:
+        new_answers = paginator.page(paginator.num_pages)
+
+    # print(communityfields.count())
+    context = {
+        'new_answers':new_answers,
+    }
+    return render(request, 'cms/list_new_answers.html', context)
+
+
+
+
+def list_all_answers(request):
+    all_answers = communityAnswers.objects.all().filter(question__question_state__in=[1,2]).order_by('-id')
+    page = request.GET.get('page', 1)
+    # print(communityfields.count())
+    query = request.GET.get('q')
+    if query:
+        # print('in here')
+        new_answers = all_answers.filter(
+            Q(question_title__icontains=query) |
+            Q(type__type__icontains=query) |
+            Q(sub_type__sub_type__icontains=query)
+        )
+    # print(communityfields.count())
+    paginator = Paginator(all_answers, 100)
+    try:
+        all_answers = paginator.page(page)
+    except PageNotAnInteger:
+        all_answers = paginator.page(1)
+    except EmptyPage:
+        all_answers = paginator.page(paginator.num_pages)
+
+    # print(communityfields.count())
+    context = {
+        'all_answers':all_answers,
+    }
+    return render(request, 'cms/list_all_answers.html', context)
+
+
