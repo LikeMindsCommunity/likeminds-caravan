@@ -4693,7 +4693,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         chatroom_actions = get_chatroom_actions(card_status, creator=False, promoter=is_promoter)
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
-
+    print("latest_conversations--",latest_conversations)
 
     # getting the state of chatroom against the user
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id,remove=None)
@@ -4737,7 +4737,7 @@ def save_the_latest_conversation(card_instance, user_id):
     '''function to save the latest seen conversation'''
 
     if not user_id:
-        return
+        return {'last_conversation': None}
 
     latest_card = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
 
