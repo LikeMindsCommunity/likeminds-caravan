@@ -333,7 +333,7 @@ def your_communities(request, user_id):
 
         header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         if header_images:
-            community['header_images'] = header_images
+            community['new_chatroom_user_images'] = header_images
 
         my_community.append(community)
 
