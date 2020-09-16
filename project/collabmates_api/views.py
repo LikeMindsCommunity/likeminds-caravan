@@ -331,9 +331,10 @@ def your_communities(request, user_id):
         active_chatroom_count = count
         community['active_chatroom_count'] = active_chatroom_count
 
-        header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
-        if header_images:
-            community['new_chatroom_user_images'] = header_images
+        if community['collabcard_unseen'] :
+            header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+            if header_images:
+                community['new_chatroom_user_images'] = header_images
 
         my_community.append(community)
 
