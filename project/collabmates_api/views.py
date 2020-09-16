@@ -56,7 +56,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            )
 
 from .notification import *
-from .raw_queries import compute_rank, update_conversation_engage_for_chatrooms,get_active_chatrooms_count,get_inactive_chatrooms_count,get_second_last_conversation_of_chatroom
+from .raw_queries import *
 from .serializers import *
 from .static_files import *
 from .static_text import *
@@ -348,6 +348,7 @@ def my_chatrooms(request):
 
     member_id = get_member_id_from_headers(request)
     page = request.GET.get('page', 1)
+
     active = request.GET.get('active',None)
     if active == "true":
         active = True
@@ -356,17 +357,39 @@ def my_chatrooms(request):
     else:
         active = None
 
+    current_time = time.time()
+    my_chatrooms = []
+    instance_list = []
 
     if not member_id:
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
-    instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
-    #instance_list = pagination(instance_list, page, paginate_by=10)
-    instance_list = get_paginated_queryset_with_maxpages(instance_list,page,paginate_by=10)
-    my_chatrooms = []
-    current_time = time.time()
-    instance_list = instance_list['page_list']
+    if active is True:
+        engage_list = get_active_followed_chatrooms(member_id,current_time,page,limit=10)
+        for id in engage_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+
+        draft_list = get_draft_chatrooms_on_home_screen(member_id, page, limit=10)
+
+        for id in draft_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+
+    elif active is False:
+
+        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
+        for id in engage_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+
+    else:
+        instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
+        #instance_list = pagination(instance_list, page, paginate_by=10)
+        instance_list = get_paginated_queryset_with_maxpages(instance_list,page,paginate_by=10)
+        instance_list = instance_list['page_list']
+
     for instance in instance_list:
 
         chatroom = {}
@@ -392,9 +415,13 @@ def my_chatrooms(request):
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
 
-        if active == True and card_instance and chatroom['chatroom']['active']:
-            my_chatrooms.append(chatroom)
-        if active == False and card_instance and not chatroom['chatroom']['active']:
+        if active == True:
+            if card_instance  and chatroom['chatroom']['active']:
+                my_chatrooms.append(chatroom)
+            elif draft_instance:
+                my_chatrooms.append(chatroom)
+
+        if active == False  and not chatroom['chatroom']['active'] and card_instance:
             my_chatrooms.append(chatroom)
 
         if active == None:
