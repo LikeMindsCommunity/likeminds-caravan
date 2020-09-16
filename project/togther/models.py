@@ -796,6 +796,9 @@ class communityQuestions(models.Model):
 
     rank = models.IntegerField(default=0)
 
+    def __str__(self):
+        return str(self.question_title)
+
 
 
 

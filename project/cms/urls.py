@@ -18,4 +18,8 @@ urlpatterns = [
     path('list_community_fields', list_community_fields, name="list_community_fields"),
     path('add_community_fields', add_community_fields, name="add_community_fields"),
     path('edit_community_fields/<community_field_id>', edit_community_fields, name='edit_community_fields'),
+
+    #answers
+    path('list_new_answers', list_new_answers, name="list_new_answers"),
+    path('list_all_answers', list_all_answers, name="list_all_answers"),
 ]

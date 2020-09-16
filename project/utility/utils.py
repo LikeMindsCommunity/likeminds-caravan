@@ -1161,3 +1161,7 @@ def get_next_day_time(epoch_time,minutes=0,hours=0):
     epoch_time = epoch_time.replace(hour=hours,minute=minutes)
     epoch_time = epoch_time.timestamp()
     return epoch_time
+
+def get_first_name_from_name(name):
+    name = name.strip(' ')
+    return name.split(' ')[0]
