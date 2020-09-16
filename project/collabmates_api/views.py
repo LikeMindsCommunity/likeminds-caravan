@@ -4503,8 +4503,12 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             context['reply_conversation'] = get_answer_data([ans.reply], community_id,
                                                             current_user_id, fetch_reply=False)
 
-        preview_dict = get_previews_for_card_and_answers(ans, current_user_id)
-        context.update(**preview_dict)
+        if ans.internal_link:
+            context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
+                                           community_instance=ans.preview_community,
+                                           chatroom_instance=ans.preview_chatroom)
+        # preview_dict = get_previews_for_card_and_answers(ans, current_user_id)
+        # context.update(**preview_dict)
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
 
@@ -6378,8 +6382,13 @@ def get_chatrooms(chatroom_list, member_id,active = None):
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
 
-        preview_dict = get_previews_for_card_and_answers(card_instance, member_id)
-        chatroom_instance.update(**preview_dict)
+        if card_instance.internal_link:
+            chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
+                                           community_instance=card_instance.preview_community,
+                                           chatroom_instance=card_instance.preview_chatroom)
+
+        # preview_dict = get_previews_for_card_and_answers(card_instance, member_id)
+        # chatroom_instance.update(**preview_dict)
 
         chatroom_instance['members_images'] = get_member_images_of_chatroom(conversation_filter)
 
@@ -9835,25 +9844,25 @@ def fetch_preview(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context)
 
-    context = get_preview_for_url(request, member_id, preview_url)
-    return JsonResponse(context)
+    context = get_preview_for_url(member_id, preview_url)
+    return JsonResponse({"preview": context})
 
 
-def get_preview_for_url(request, member_id, preview_url,
-                community_id=None, chatroom_id=None, community_instance=None, chatroom_instance=None):
+def get_preview_for_url(member_id=None, preview_url=None,
+                community_instance=None, chatroom_instance=None):
     """ function to get preview of community or chatroom """
 
     user_instance = User.objects.get(pk=member_id)
 
-    is_community = False
     is_member_directory = False
-    is_chatroom = False
-    is_event_card = False
-    is_poll_card = False
     preview_type = None
     preview_text = None
     title = None
     route = None
+    aj = None
+    source_id = None
+    chatroom_id = None
+    community_id = None
 
     if preview_url:
         parsed_url = urlsplit(preview_url)
@@ -9878,8 +9887,18 @@ def get_preview_for_url(request, member_id, preview_url,
             preview_text = "Preview of chat room will be added later"
             chatroom_id = parsed_url.path.split("/")[-1]
 
+        if 'aj' in query_items:
+            aj = query_items['aj']
+        if 'source_id' in query_items:
+            source_id = query_items['source_id']
+
     context = {"intenal_link": preview_url, "preview_type": preview_type,
                "preview_text": preview_text, "title": title}
+    if aj:
+        context["aj"] = aj
+
+    if source_id:
+        context["source_id"] = source_id
 
     if chatroom_id:
         if not chatroom_instance:
@@ -9904,7 +9923,7 @@ def get_preview_for_url(request, member_id, preview_url,
         context["community"] = community
         is_member = community["member_state"] in [1, 2, 3, 4, 7, 9]
 
-        if is_member_directory:
+        if is_member_directory and is_member:
             context["action"] = "VIEW DIRECTORY"
             route = f"route://members_directory?community_id={community_id}&community_name={community_instance.name}"
         elif is_member and not chatroom_id:
