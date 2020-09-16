@@ -320,9 +320,11 @@ def my_chatrooms(request):
         return JsonResponse(context)
 
     instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
-    instance_list = pagination(instance_list, page, paginate_by=10)
+    #instance_list = pagination(instance_list, page, paginate_by=10)
+    instance_list = get_paginated_queryset_with_maxpages(instance_list,page,paginate_by=10)
     my_chatrooms = []
     current_time = time.time()
+    instance_list = instance_list['page_list']
     for instance in instance_list:
 
         chatroom = {}
@@ -663,6 +665,15 @@ def questions(request):
 
     community['created_by'] = created_by
 
+    managers = get_community_managers(community_instance)
+
+    if managers['count'] > 1 :
+        managed_by = managers['manager_name']+ ".."+"+"+str(managers['count'] - 1)
+    else:
+        managed_by = managers['manager_name']
+
+    community['managed_by'] = managed_by
+
     ##private link share flow
     aj = request.GET.get('aj')
     user_instance = User.objects.get(id=member_id)
@@ -698,6 +709,9 @@ def questions(request):
     if aj:
         context.update(auto_join)
     return JsonResponse(context)
+
+
+
 
 
 def private_link_app_invite(community_instance, unique_code, created_by):
@@ -6294,7 +6308,7 @@ def get_chatrooms(chatroom_list, member_id,active = None):
         if active == None:
             chatrooms.append(chatroom_instance)
 
-        
+
 
     return chatrooms
 

@@ -139,6 +139,21 @@ def get_all_members(request, req_dict=None):
 
     return context
 
+def get_community_managers(community_instance):
+
+    '''function to get count of community managers'''
+
+    manager_filter = Members.objects.filter(community_id=community_instance,state=member_states.ADMIN).order_by('created_at')
+    temp = {}
+    manager_name = ""
+    for manager in manager_filter:
+        manager_name = manager.member_id.userinfo.name
+        break
+    temp['manager_name'] = manager_name
+    temp['count'] = manager_filter.count()
+
+    return temp
+
 def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None,page=1):
 
     '''function to get members instances from members table'''
