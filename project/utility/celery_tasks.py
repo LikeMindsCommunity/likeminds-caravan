@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
+from collabmates_api.serializers import get_user_profile
 from togther.models import *
 import time
 from django.db.models import Q
@@ -221,6 +222,5 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
             conversation_engage_filter.filter(user=user).update(
                 last_conversation = last_conversation,
                 updated_at=time.time(),unseen_count=length)
-
 
 
