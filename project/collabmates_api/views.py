@@ -6362,20 +6362,38 @@ def get_member_images_of_chatroom(conversation_filter):
     '''function to give member images of chatrooms'''
     unique_members = set()
     member_images = []
+
+    last_conversations_member = []
+    count = 0
     for conversation in conversation_filter:
         community_instance = conversation.card.community
         if conversation.user.id not in unique_members:
             member_filter = Members.objects.filter(member_id=conversation.user, community_id=community_instance)
-            image_url = conversation.user.userinfo.image_link
+            image_link = conversation.user.userinfo.image_link
+            image_url = image_link if image_link  else ""
             if member_filter.exists():
                 member_instance = member_filter[0]
                 if member_instance.image_url:
                     image_url = member_instance.image_url
-            if image_url:
-                member_images.append(image_url)
-            unique_members.add(conversation.user.id)
 
-    return member_images[:6]
+            member_images.append(image_url)
+
+            member_data = get_user_profile(conversation.user,community_instance,send_profile=False)
+            last_conversations_member.append(member_data)
+            unique_members.add(conversation.user.id)
+            count = count + 1
+
+        if count > 5:
+            break
+
+
+    temp={
+        'member_images':member_images,
+        'last_conversations_member':last_conversations_member
+    }
+
+
+    return temp
 
 
 def get_chatrooms(chatroom_list, member_id,active = None):
@@ -6388,7 +6406,12 @@ def get_chatrooms(chatroom_list, member_id,active = None):
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
-        chatroom_instance['members_images'] = get_member_images_of_chatroom(conversation_filter)
+
+        last_response_members = get_member_images_of_chatroom(conversation_filter)
+        chatroom_instance['members_images'] = last_response_members['members_images']
+        chatroom_instance['last_response_members'] = last_response_members['last_response_members']
+
+
 
         if active is True and chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
