@@ -3245,9 +3245,9 @@ def set_chatroom_active(request):
         instance = state_filter[0]
         expiry_time = instance.expiry_time
 
-        if not expiry_time:
-            instance.expiry_time = updated_time
-            instance.save()
+        instance.expiry_time = updated_time
+        instance.save()
+
 
     return JsonResponse({"success": True})
 
