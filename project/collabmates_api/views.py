@@ -6388,8 +6388,8 @@ def get_member_images_of_chatroom(conversation_filter):
 
 
     temp={
-        'member_images':member_images,
-        'last_conversations_member':last_conversations_member
+        'members_images':member_images,
+        'last_response_members':last_conversations_member
     }
 
 
