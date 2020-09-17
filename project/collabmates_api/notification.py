@@ -29,7 +29,7 @@ from datetime import datetime,timedelta
 # database details
 db_user=settings.DATABASES['default']['USER']
 db_password=settings.DATABASES['default']['PASSWORD']
-db_host=settings.DB_HOST
+db_host=settings.DATABASES['default']['HOST']
 db_port=settings.DATABASES['default']['PORT']
 db_database=settings.DATABASES['default']['NAME']
 

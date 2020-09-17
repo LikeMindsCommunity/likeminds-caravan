@@ -60,7 +60,7 @@ def get_second_last_conversation_of_chatroom(card_id,user_id):
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
-def get_active_chatrooms_count(community_id,user_id,current_time):
+def get_active_chatrooms_count_in_community(community_id,user_id,current_time):
 
     '''function to get active chatrooms based on community and user'''
 
@@ -74,6 +74,28 @@ def get_active_chatrooms_count(community_id,user_id,current_time):
         count = curr.fetchone()
         curr.close()
         conn.close()
+
+        return count[0]
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+def get_active_chatrooms_count(user_id,current_time):
+
+    '''function to get active chatrooms based on community and user'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""select count(*) from togther_collabcardState where  user_id=%s and follow_status=True and remove_id is null 
+        and (expiry_time is null or expiry_time > %s)"""%(str(user_id),str(current_time))
+
+        curr.execute(sql)
+        count = curr.fetchone()
+        curr.close()
+        conn.close()
+
 
         return count[0]
 
@@ -96,6 +118,7 @@ def get_inactive_chatrooms_count(user_id,current_time):
         curr.close()
         conn.close()
 
+
         return count[0]
 
 
@@ -108,8 +131,7 @@ def get_active_followed_chatrooms(user_id,current_time,page,limit=10):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
-        limit = 10
-        offset = (page_number - 1) * 10
+        offset = (page_number - 1) * limit
 
         conn = get_connection()
         curr = conn.cursor()
@@ -139,8 +161,7 @@ def get_inactive_followed_chatrooms(user_id,current_time,page,limit=10):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
-        limit = 10
-        offset = (page_number - 1) * 10
+        offset = (page_number - 1) * limit
 
         conn = get_connection()
         curr = conn.cursor()

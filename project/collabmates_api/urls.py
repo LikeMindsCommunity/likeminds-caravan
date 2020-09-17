@@ -94,7 +94,10 @@ urlpatterns = [
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
     path('mark_read', api_views.mark_read, name='mark_read'),
+
     path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
+    path('v1/my_chatrooms', api_views.my_chatrooms_version_1, name='my_chatrooms_version_1'),
+
     path('fetch_chatroom_inactive', api_views.fetch_chatroom_inactive, name='fetch_chatroom_inactive'),
 
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
