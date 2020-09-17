@@ -3220,10 +3220,10 @@ def set_chatroom_active(request):
 
     if state_filter.exists():
         instance = state_filter[0]
-        expiry_time = instance.expire_time
+        expiry_time = instance.expiry_time
 
         if not expiry_time:
-            instance.expire_time = updated_time
+            instance.expiry_time = updated_time
             instance.save()
 
     return JsonResponse({"success":True})
@@ -6485,7 +6485,6 @@ def get_chatrooms(chatroom_list, member_id,active = None):
     '''function to get chatrooms'''
 
     chatrooms = []
-
     for card_instance in chatroom_list:
         chatroom_instance = get_chatroom_instance(card_instance, member_id)
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
