@@ -169,6 +169,7 @@ urlpatterns = [
     path('fetch_deleted_chatroom', api_views.fetch_deleted_chatroom, name='fetch_deleted_chatroom'),
     path('delete_conversation', api_views.delete_conversation, name='delete_conversation'),
     path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
+    path('fetch_preview', api_views.fetch_preview, name='fetch_preview'),
 
 
     ############################ static apis #####################################
