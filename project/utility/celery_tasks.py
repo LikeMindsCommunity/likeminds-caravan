@@ -153,8 +153,9 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
     if unseen_count > 0:
         member_instances = get_new_chatroom_members(user, community)
-        Member_Engage.objects.filter(community_id=community, member_id=user).update(
-            new_chatroom_users=json.dumps(member_instances))
+        if len(member_instances) > 0:
+            Member_Engage.objects.filter(community_id=community, member_id=user).update(
+                new_chatroom_users=json.dumps(member_instances))
 
 
 def get_new_chatroom_members(member_id, community_id):
