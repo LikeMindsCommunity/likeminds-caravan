@@ -3224,6 +3224,12 @@ def set_chatroom_active(request):
 
         instance.expiry_time = updated_time
         instance.save()
+    else:
+        error = "Error is comming when you making it active" + str(chatroom_id) + str(member_id)
+
+        context = get_error_context(False,error)
+
+        return JsonResponse(context)
 
 
     return JsonResponse({"success":True})
