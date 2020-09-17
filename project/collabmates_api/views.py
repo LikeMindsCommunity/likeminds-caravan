@@ -328,7 +328,7 @@ def your_communities(request, user_id):
 
         #active count of chatrooms in communities
 
-        count = get_active_chatrooms_count(each_community.community_id.id,member_id,current_time)
+        count = get_active_chatrooms_count_in_community(each_community.community_id.id,member_id,current_time)
 
         active_chatroom_count = count
         community['active_chatroom_count'] = active_chatroom_count
@@ -430,6 +430,91 @@ def my_chatrooms(request):
     in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
 
     return JsonResponse({"my_chatrooms": my_chatrooms,'inactive_chatroom_count':in_active_chatroom})
+
+def my_chatrooms_version_1(request):
+    '''functions to get chatrooms for users'''
+
+    member_id = get_member_id_from_headers(request)
+    page = request.GET.get('page', 1)
+
+    try:
+        page = int(page)
+    except:
+        context = get_error_context(False,"send page number correctly")
+        return JsonResponse(context)
+
+    current_time = time.time()
+    my_chatrooms = []
+    instance_list = []
+
+    if not member_id:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
+
+    in_active_chatroom_count = get_inactive_chatrooms_count(member_id, current_time)
+
+    active_chatroom_count = get_active_chatrooms_count(member_id,current_time=1600257733)
+
+    page_count = get_total_pages(active_chatroom_count,limit=10)
+    send_active = True
+
+    if page > page_count:
+        send_active = False
+
+    if send_active:
+        engage_list = get_active_followed_chatrooms(member_id, current_time, page, limit=10)
+        for id in engage_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+
+        draft_list = get_draft_chatrooms_on_home_screen(member_id, page, limit=10)
+
+        for id in draft_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+
+    else:
+        page = page - page_count
+        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
+        for id in engage_list:
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
+    # instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
+    # instance_list = pagination(instance_list, page, paginate_by=10)
+
+    for instance in instance_list:
+
+        chatroom = {}
+        card_instance = instance.card
+        draft_instance = instance.draft
+        if card_instance:
+            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id)
+            chatroom['community'] = CommunitySerializer(card_instance.community)
+            chatroom['is_draft'] = False
+        elif draft_instance:
+            chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance, member_id)
+            chatroom['community'] = CommunitySerializer(draft_instance.community)
+            chatroom['is_draft'] = True
+
+        last_conversation = instance.last_conversation
+
+        if last_conversation:
+            chatroom['last_conversation'] = conversationSerializer(last_conversation)
+            second_last_conversation = instance.second_last_conversation
+            if second_last_conversation:
+                chatroom['second_last_conversation'] = conversationSerializer(second_last_conversation)
+
+        chatroom['unseen_conversation_count'] = instance.unseen_count
+        chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
+
+        my_chatrooms.append(chatroom)
+
+
+
+
+    return JsonResponse({"my_chatrooms": my_chatrooms,'inactive_chatroom_count':in_active_chatroom_count})
+
+
 
 def fetch_chatroom_inactive(request):
 
