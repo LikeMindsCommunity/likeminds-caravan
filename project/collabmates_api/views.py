@@ -4681,23 +4681,40 @@ def get_chatroom_actions(card_status, creator, promoter=False):
     elif card_status['type'] == card_types.CARD_INTRO:
         intro_card = True
 
+    print(">>>>>>   promoter",promoter)
+    print(">>>>>>   creator",creator)
+    print(">>>>>>   purpose_card",purpose_card)
+    print(">>>>>>   intro_card",intro_card)
+
+
     final_dict = None
     if creator and card_status['mute_status']:
+        print(">>>>>>   here  1")
         final_dict = chatroom_actions_creator_mute
+        print(">>>>>>   1", final_dict)
 
     elif creator and not card_status['mute_status']:
+        print(">>>>>>   here  2")
         final_dict = chatroom_actions_creator_unmute
+        print(">>>>>>  2 ", final_dict)
 
     elif card_status['follow_status'] and not card_status['mute_status']:
+        print(">>>>>>   here  3")
         final_dict = collabcard_action_user_follow_unmute
+        print(">>>>>>   3", final_dict)
 
     elif card_status['follow_status'] and card_status['mute_status']:
+        print(">>>>>>   here  4")
         final_dict = collabcard_action_user_follow_mute
+        print(">>>>>>  4", final_dict)
 
     if not final_dict:
         final_dict = collabcard_action_user_unfollow
-
-    if promoter:
+        print(">>>>>>   here  5")
+        print(">>>>>>  5 ", final_dict)
+    print(">>>>>>  final ", final_dict)
+    if promoter and not creator:
+        print(">>>>>>   here  6")
         final_dict.append(delete_chatroom)
 
     actions = []
@@ -4721,12 +4738,14 @@ def get_chatroom_actions(card_status, creator, promoter=False):
                 'id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
-        if action['id'] == chatroom_actions.ACTION_FOLLOW:
-            actions.append(mark_inactive)
-        elif action['id'] == chatroom_actions.ACTION_UNFOLLOW:
-            actions.append(mark_active)
-
         actions.append(action)
+
+    if card_status['follow_status']:
+        if card_status["active"]:
+            actions.append(mark_inactive)
+        else:
+            actions.append(mark_active)
+    print(">>>>>>   ", actions)
 
     return actions
 
@@ -4820,7 +4839,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'is_guest': card['is_guest'],
         'type': card['type'],
         'is_tagged':card['is_tagged'],
-        'active':card['active']
+        'active': card['active']
     }
 
     is_promoter = False
@@ -10183,7 +10202,7 @@ def get_previews_for_card_and_answers(instance, member_id):
 
     return chatroom_instance
 
-  
+
 ############################## static apis for sending text ##############################################
 
 
