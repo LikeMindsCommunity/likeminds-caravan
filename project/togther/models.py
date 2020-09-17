@@ -178,8 +178,11 @@ class Collabcard(models.Model):
 
     # for saving chatroom name
     header = models.TextField(null=True)
-    has_been_named = models.BooleanField(default=True)      #for notification access
-
+    has_been_named = models.BooleanField(default=True) #for notification access
+    internal_link = models.TextField(null=True)
+    preview_type = models.TextField(null=True)
+    preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True, related_name='chatroom_preview_community')
+    preview_chatroom = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='chatroom_preview_chatroom')
 
 
 
@@ -305,6 +308,12 @@ class card_answers(models.Model):
     is_deleted = models.BooleanField(default=False)
     is_edited = models.BooleanField(default=False)
     reply = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='replied_conversation')
+    internal_link = models.TextField(null=True)
+    preview_type = models.TextField(null=True)
+    preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
+                                          related_name='conversation_preview_community')
+    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
+                                         related_name='conversation_preview_chatroom')
 
 
 class conversationMemberState(models.Model):
