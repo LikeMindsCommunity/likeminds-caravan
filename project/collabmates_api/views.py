@@ -333,10 +333,10 @@ def your_communities(request, user_id):
         active_chatroom_count = count
         community['active_chatroom_count'] = active_chatroom_count
 
-        if community['collabcard_unseen'] :
-            header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
-            if header_images:
-                community['new_chatroom_users'] = header_images
+        # if community['collabcard_unseen'] > 0:
+            # header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+        if each_community.new_chatroom_users:
+            community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
 
         my_community.append(community)
 
@@ -4681,45 +4681,30 @@ def get_chatroom_actions(card_status, creator, promoter=False):
     elif card_status['type'] == card_types.CARD_INTRO:
         intro_card = True
 
-    print(">>>>>>   promoter",promoter)
-    print(">>>>>>   creator",creator)
-    print(">>>>>>   purpose_card",purpose_card)
-    print(">>>>>>   intro_card",intro_card)
-
-
     final_dict = None
     if creator and card_status['mute_status']:
-        print(">>>>>>   here  1")
         final_dict = chatroom_actions_creator_mute
-        print(">>>>>>   1", final_dict)
 
     elif creator and not card_status['mute_status']:
-        print(">>>>>>   here  2")
         final_dict = chatroom_actions_creator_unmute
-        print(">>>>>>  2 ", final_dict)
 
     elif card_status['follow_status'] and not card_status['mute_status']:
-        print(">>>>>>   here  3")
         final_dict = collabcard_action_user_follow_unmute
-        print(">>>>>>   3", final_dict)
 
     elif card_status['follow_status'] and card_status['mute_status']:
-        print(">>>>>>   here  4")
         final_dict = collabcard_action_user_follow_mute
-        print(">>>>>>  4", final_dict)
 
     if not final_dict:
         final_dict = collabcard_action_user_unfollow
-        print(">>>>>>   here  5")
-        print(">>>>>>  5 ", final_dict)
-    print(">>>>>>  final ", final_dict)
+
+    final = final_dict.copy()
+
     if promoter and not creator:
-        print(">>>>>>   here  6")
-        final_dict.append(delete_chatroom)
+        final.append(delete_chatroom)
 
     actions = []
 
-    for action in final_dict:
+    for action in final:
         if purpose_card:
             if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
@@ -4745,7 +4730,6 @@ def get_chatroom_actions(card_status, creator, promoter=False):
             actions.append(mark_inactive)
         else:
             actions.append(mark_active)
-    print(">>>>>>   ", actions)
 
     return actions
 

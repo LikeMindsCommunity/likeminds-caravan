@@ -506,8 +506,8 @@ class Member_Engage(models.Model):
     updated_at = models.BigIntegerField(default=0, null=True)
     member_referral = models.CharField(default='', max_length=1024)
     member_state = models.IntegerField(null=True)
-
     click_state = models.IntegerField(default=0)
+    new_chatroom_users = models.TextField(null=True)
 
 
 # community lpig
