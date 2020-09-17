@@ -453,7 +453,7 @@ def my_chatrooms_version_1(request):
 
     in_active_chatroom_count = get_inactive_chatrooms_count(member_id, current_time)
 
-    active_chatroom_count = get_active_chatrooms_count(member_id,current_time=1600257733)
+    active_chatroom_count = get_active_chatrooms_count(member_id,current_time)
 
     page_count = get_total_pages(active_chatroom_count,limit=10)
     send_active = True
