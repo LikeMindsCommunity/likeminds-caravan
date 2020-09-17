@@ -58,14 +58,14 @@ class PerDayRecordOverview(models.Model):
         if self.cumulative_communities == 0:
             return "-"
         else:
-            return (self.new_chatrooms - self.new_intro_rooms) / self.cumulative_communities
+            return ("%.2f" %((self.new_chatrooms - self.new_intro_rooms) / self.cumulative_communities))
 
 
     def messages_per_community(self):
         if self.cumulative_communities == 0:
             return "-"
         else:
-            return self.new_messages / self.cumulative_communities
+            return ("%.2f" %(self.new_messages / self.cumulative_communities))
 
 
 
@@ -73,19 +73,19 @@ class PerDayRecordOverview(models.Model):
         if self.cumulative_communities == 0:
             return "-"
         else:
-            return (self.new_messages - self.new_intro_room_messages) / self.cumulative_communities
+            return ("%.2f" %((self.new_messages - self.new_intro_room_messages) / self.cumulative_communities))
 
 
     def non_intro_room_message_ratio(self):
         if self.new_messages !=0:
-            return (self.new_messages - self.new_intro_room_messages) / self.new_messages
+            return ("%.2f" %((self.new_messages - self.new_intro_room_messages) / self.new_messages))
         else:
             return "-"
 
 
     def non_intro_room_message_per_user(self):
         if self.new_messages !=0:
-            return (self.new_messages - self.new_intro_room_messages) / self.new_messages
+            return ("%.2f" %((self.new_messages - self.new_intro_room_messages) / self.new_messages))
         else:
             return "-"
 
@@ -93,21 +93,21 @@ class PerDayRecordOverview(models.Model):
         if self.new_users_cumulative == 0:
             return '-'
         else:
-            return self.active_users / self.new_users_cumulative
+            return ("%.2f" %(self.active_users / self.new_users_cumulative))
 
 
     def non_intro_message_per_unique_user(self):
         if self.active_users == 0:
             return '-'
         else:
-            return (self.new_chatrooms - self.new_intro_rooms) / self.active_users
+            return ("%.2f" %((self.new_chatrooms - self.new_intro_rooms) / self.active_users))
 
 
     def non_intro_room_per_unique_user(self):
         if self.active_users == 0:
             return '-'
         else:
-            return (self.new_chatrooms - self.new_intro_rooms) / self.active_users
+            return ("%.2f" %((self.new_chatrooms - self.new_intro_rooms) / self.active_users))
 
     def chatroom_by_members_only(self):
         return self.new_chatrooms - self.new_intro_rooms - self.new_cm_chatrooms

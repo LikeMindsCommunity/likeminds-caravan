@@ -117,7 +117,7 @@
             url: '/api/fetch_chatroom?chatroom_id={{collabcard.id}}&conversation_id='+ conversation_id +'&scroll_direction=' + scroll_state,
             dataType : 'html',
             success: function(data){
-                console.log(data);
+                //console.log(data);
                 // if(typeof data.success != 'undefined'){
                     if(scroll_state == 1){
                         $('#commentsCon').append(data);
@@ -154,7 +154,7 @@
             {% if request.user.is_authenticated %}
                     var status = true;//$(this).attr('data-status');
                     var temp = {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status,aj:'{{aj}}',source_id:'{{source_id}}',member_state:'{{member_state.state}}'}
-                    console.log(temp)
+                    //console.log(temp)
 
                     // console.log(status)
                     $(".ldrT", $('#loader')[0]).text(`Requesting to follow chatroom...`);
@@ -204,7 +204,7 @@
     
     $(window).on('resize scroll', function() {
         $('#attach').addClass('dN');
-        console.log('scroll');
+        //console.log('scroll');
         if ($('#comments').isInViewport()) {
             $('#bottomButton').hide();
             $('.chatInput').show();
@@ -526,7 +526,7 @@
                 //console.log(data);
                 // if(typeof data.success != 'undefined'){
                         $('#commentsCon').prepend(data);
-                        console.log(data);
+                        //console.log(data);
                         makeTags();
                         $('.answerText').removeClass('answerText');
                         $('#scroll_state_0 .ldr').addClass('dN');
