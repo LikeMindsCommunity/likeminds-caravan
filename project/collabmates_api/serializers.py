@@ -850,11 +850,22 @@ def get_members_profile(member_ids, community_id, current_user_id=None):
     return member_profile_list
 
 
+
+
+
 def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True):
-    try:
-        user_instance = User.objects.get(id=user_id)
-    except:
-        return {}
+
+
+    if isinstance(user_id,User):
+        user_instance = user_id
+
+        if not user_instance:
+            return {}
+    else:
+        try:
+            user_instance = User.objects.get(id=user_id)
+        except:
+            return {}
 
     userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
     # userinfo_serialized_object['state'] = 0
@@ -918,6 +929,7 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
     if not bl:
         return user_response
     return (user_response, new_response)
+
 
 
 def get_question_data(question_id, member_state, send_back):

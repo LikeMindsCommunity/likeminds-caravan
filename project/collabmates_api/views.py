@@ -336,7 +336,7 @@ def your_communities(request, user_id):
         if community['collabcard_unseen'] :
             header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
             if header_images:
-                community['new_chatroom_user_images'] = header_images
+                community['new_chatroom_users'] = header_images
 
         my_community.append(community)
 
@@ -4490,6 +4490,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
     answers = []
     for ans in answer_filter:
+        # print("--->",ans)
         # user = Userinfo.objects.filter(user_id=ans.user.id)
         # usr = UserinfoSerializer(user[0])
         # #usr['is_clickable']=feedback
@@ -4769,12 +4770,15 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
 
     card['total_response_count'] = total_response_count
+    # print(latest_conversations)
 
-    last_conversation = latest_conversations['last_conversation']
-    if last_conversation:
-        serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id)
-        if serialized_last:
-            card['last_conversation'] = serialized_last[0]
+    if latest_conversations:
+        last_conversation = latest_conversations['last_conversation']
+        # print("***",latest_conversations)
+        if last_conversation:
+            serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id)
+            if serialized_last:
+                card['last_conversation'] = serialized_last[0]
 
     context['chatroom'] = card
     context['conversations'] = conversations
@@ -6405,20 +6409,38 @@ def get_member_images_of_chatroom(conversation_filter):
     '''function to give member images of chatrooms'''
     unique_members = set()
     member_images = []
+
+    last_conversations_member = []
+    count = 0
     for conversation in conversation_filter:
         community_instance = conversation.card.community
         if conversation.user.id not in unique_members:
             member_filter = Members.objects.filter(member_id=conversation.user, community_id=community_instance)
-            image_url = conversation.user.userinfo.image_link
+            image_link = conversation.user.userinfo.image_link
+            image_url = image_link if image_link  else ""
             if member_filter.exists():
                 member_instance = member_filter[0]
                 if member_instance.image_url:
                     image_url = member_instance.image_url
-            if image_url:
-                member_images.append(image_url)
-            unique_members.add(conversation.user.id)
 
-    return member_images[:6]
+            member_images.append(image_url)
+
+            member_data = get_user_profile(conversation.user,community_instance,send_profile=False)
+            last_conversations_member.append(member_data)
+            unique_members.add(conversation.user.id)
+            count = count + 1
+
+        if count > 5:
+            break
+
+
+    temp={
+        'members_images':member_images,
+        'last_response_members':last_conversations_member
+    }
+
+
+    return temp
 
 
 def get_chatrooms(chatroom_list, member_id,active = None):
@@ -6440,7 +6462,10 @@ def get_chatrooms(chatroom_list, member_id,active = None):
         # preview_dict = get_previews_for_card_and_answers(card_instance, member_id)
         # chatroom_instance.update(**preview_dict)
 
-        chatroom_instance['members_images'] = get_member_images_of_chatroom(conversation_filter)
+        last_response_members = get_member_images_of_chatroom(conversation_filter)
+        chatroom_instance['members_images'] = last_response_members['members_images']
+        chatroom_instance['last_response_members'] = last_response_members['last_response_members']
+
 
         if active is True and chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
