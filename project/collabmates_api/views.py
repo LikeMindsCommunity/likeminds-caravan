@@ -3209,7 +3209,7 @@ def set_chatroom_active(request):
     status = res['value']
 
     #card_instance = Collabcard.objects.get(id=chatroom_id)
-
+    info_logger.info(res)
     current_time = time.time()
     if status:
         updated_time = current_time + int(duration)
@@ -3219,12 +3219,14 @@ def set_chatroom_active(request):
     state_filter = collabcardState.objects.filter(card=chatroom_id,user=member_id)
 
     if state_filter.exists():
+        info_logger.info("state of data exists")
         instance = state_filter[0]
         expiry_time = instance.expiry_time
 
         instance.expiry_time = updated_time
         instance.save()
     else:
+        info_logger.info("data does not exists")
         error = "Error is comming when you making it active" + str(chatroom_id) + str(member_id)
 
         context = get_error_context(False,error)
