@@ -5053,7 +5053,7 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
         temp['show_follow_auto_tag'] = True
         show = True
 
-    if card_status['active'] == False and card_status["follow_status"] == False:
+    if card_status['active'] == False and card_status["follow_status"] == True:
         temp['show_follow_telescope'] = False
         temp['show_active'] = True
         temp['show_follow_auto_tag'] = False
