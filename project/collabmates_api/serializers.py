@@ -536,7 +536,7 @@ def get_chatroom_name(user_name, card):
     return chatroom_name
 
 
-def get_chatroom_instance(card_instance, member_id, current_user_id=None):
+def get_chatroom_instance(card_instance, member_id, current_user_id=None,state_instance=None):
 
     if not current_user_id:
         current_user_id = member_id
@@ -545,7 +545,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None):
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
 
     # get chatroom status
-    status = get_status_of_collabcard(member_id, card_instance)
+    status = get_status_of_collabcard(member_id, card_instance,state_instance)
     collabcard_serializer['state'] = status['state']
     collabcard_serializer['mute_status'] = status['mute_status']
     collabcard_serializer['follow_status'] = status['follow_status']
@@ -645,7 +645,7 @@ def get_draft_chatroom_instance(draft_instance, member_id):
     return draft_serializer
 
 
-def get_status_of_collabcard(member_id, card):
+def get_status_of_collabcard(member_id, card,state_instance=None):
     '''function to get the state of collabcard'''
 
     collabcard_status = {
@@ -664,17 +664,26 @@ def get_status_of_collabcard(member_id, card):
         return collabcard_status
 
     #member_id = User.objects.get(id=member_id)
-    collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
-
-    if collabcard_state.exists():
-        collabcard_status['state'] = collabcard_state[0].state
-        collabcard_status['mute_status'] = collabcard_state[0].mute_status
-        collabcard_status['follow_status'] = collabcard_state[0].follow_status
-        collabcard_status['is_guest'] = collabcard_state[0].is_guest
-        collabcard_status['remove'] = collabcard_state[0].remove
-        collabcard_status['state_instance'] = collabcard_state[0]
-        collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
-        collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
+    if not state_instance:
+        collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
+        if collabcard_state.exists():
+            collabcard_status['state'] = collabcard_state[0].state
+            collabcard_status['mute_status'] = collabcard_state[0].mute_status
+            collabcard_status['follow_status'] = collabcard_state[0].follow_status
+            collabcard_status['is_guest'] = collabcard_state[0].is_guest
+            collabcard_status['remove'] = collabcard_state[0].remove
+            collabcard_status['state_instance'] = collabcard_state[0]
+            collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
+            collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
+    else:
+        collabcard_status['state'] = state_instance.state
+        collabcard_status['mute_status'] = state_instance.mute_status
+        collabcard_status['follow_status'] = state_instance.follow_status
+        collabcard_status['is_guest'] = state_instance.is_guest
+        collabcard_status['remove'] = state_instance.remove
+        collabcard_status['state_instance'] = state_instance
+        collabcard_status['expiry_time'] = state_instance.expiry_time
+        collabcard_status['is_tagged'] = state_instance.is_tagged
     return collabcard_status
 
 
