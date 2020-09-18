@@ -6197,6 +6197,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
 
     if not is_present.exists():
         create_chatroom_state_instance(card_instance, user_instance,expire_at=time.time())
+        update_last_unseen_in_engage(user=user_instance, community=community)
     else:
         state_instance = is_present[0]
         if state_instance.state == 0:
@@ -6206,7 +6207,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
                 state_instance.expiry_time = expiry_time
             state_instance.save()
 
-    update_last_unseen_in_engage(user=user_instance, community=community)
+            update_last_unseen_in_engage(user=user_instance, community=community)
 
 
 @csrf_exempt
