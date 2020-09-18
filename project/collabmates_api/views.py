@@ -6187,6 +6187,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
     card_instance = Collabcard.objects.get(id=card_id)
 
     # saving the state in collabcard state table if it is not present
+    expiry_time = get_expiry_time_of_chatroom()
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if not is_present.exists():
@@ -6196,6 +6197,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
         if state_instance.state == 0:
             state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
             state_instance.external_seen = True
+            state_instance.expiry_time = expiry_time
             state_instance.save()
 
     update_last_unseen_in_engage(user=user_instance, community=community)
