@@ -7,13 +7,37 @@
         var answerTexts = document.getElementsByClassName('answerText');
         for(var i = 0; i < answerTexts.length; i++){
             var answerText = answerTexts[i].textContent;
-            if(answerText.indexOf('<<') > -1 && answerText.indexOf('>>') > 3){
-                var arrStr = answerText.split('<<');
-                answerText = arrStr[0] + `<a href="${arrStr[1].split('|')[1].split('route:/')[1].split('>>')[0] }">${arrStr[1].split('|')[0]}</a> `;
-                //fwefwefgw <<Natesh Relhan|route://member/456>> afqefweqfqw
-                answerText = answerText + arrStr[1].split('>>')[1];
-                answerTexts[i].innerHTML = answerText;
+            //console.log(answerText);
+            const regex = /<<[A-Za-z0-9_ ]*\|route:\/\/member\/[0-9]*>>/g;
+            const name_regex = /<<[a-zA-Z0-9 _]*\|/g;
+            const id_regex = /member\/[0-9]+/g;
+            const found = answerText.match(regex);
+
+
+            //console.log(found);
+            if (found != null){
+                var j;
+
+                for (j=0; j<found.length;j++){
+                    var name = found[j].match(name_regex);
+                    text_name = name[0].split('');
+                    text_name = text_name.splice(2,text_name.length-3);
+                    text_name = text_name.join('');
+                    var text_id = found[j].match(id_regex);
+                    //console.log(text_id);
+                    text_id = text_id[0].split('');
+                    //console.log(text_id);
+                    text_id = text_id.splice(7);
+                    text_id = text_id.join('');
+                    //console.log(text_name);
+                    //console.log(text_id);
+                    var tag = '<a href="/member/'+text_id+'">'+text_name+'</a>';
+                    answerText = answerText.replace(found[j],tag);
+                    //console.log(answerText);
+                }
             }
+            answerTexts[i].innerHTML = answerText;
+
         }
     }
     makeTags();
