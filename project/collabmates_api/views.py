@@ -6737,8 +6737,7 @@ def fetch_chatroom_feed_version_1(request):
                 upward = state_filter.filter(card__lte=last_seen.card.id).filter(
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:3]
 
-                downward = state_filter.filter(card__gt=last_seen.card.id).filter(
-                    ~Q(expiry_time=None) & Q(expiry_time__lte=current_time))[:3]
+                downward = state_filter.filter(card__gt=last_seen.card.id).filter((~Q(expiry_time=None)) & Q(expiry_time__lte = current_time))[:3]
 
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('card_id')
@@ -6752,12 +6751,12 @@ def fetch_chatroom_feed_version_1(request):
         if scroll_direction == 0:  # upward scroll
 
             if active:
-                upward = state_filter.filter(card__lt=chatroom_id).filter(
+                upward = state_filter.filter(card__lt=chatroom_id,user=member_id).filter(
                     Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-card')[:5]
-            else:
-                upward = state_filter.filter(card__lt=chatroom_id).filter(
-                    ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:5]
 
+            else:
+                upward = state_filter.filter(card__lt=chatroom_id,user=member_id).filter(~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:5]
+                print(upward.query)
 
             upward = reverse_conversations_for_upward_pagination(upward)
             # print(upward)
