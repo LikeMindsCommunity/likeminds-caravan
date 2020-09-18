@@ -2759,10 +2759,14 @@ def create_card_internal(user_id, community_id, res):
         draftChatroom.objects.filter(id=res['draft_id']).delete()
         draftPolls.objects.filter(draft=res['draft_id']).delete()
 
+
+    set_chatroom_state_for_all_members_on_card_creation(community_id, card_instance)
+
     context = {
         'collabcard': collabcard,
         'card_instance': card_instance
     }
+
 
 
 
