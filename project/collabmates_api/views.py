@@ -6752,10 +6752,10 @@ def fetch_chatroom_feed_version_1(request):
         if scroll_direction == 0:  # upward scroll
 
             if active:
-                upward = state_filter.filter(card__lte=chatroom_id).filter(
+                upward = state_filter.filter(card__lt=chatroom_id).filter(
                     Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-card')[:5]
             else:
-                upward = state_filter.filter(card__lte=chatroom_id).filter(
+                upward = state_filter.filter(card__lt=chatroom_id).filter(
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:5]
 
 
