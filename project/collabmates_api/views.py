@@ -3195,8 +3195,8 @@ def update_activity_in_chatroom(card_instance, user_instance):
 
             state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
             if state_filter.exists():
-                expiry_time = get_expiry_time_of_chatroom(card_state_instance=state_filter[0])
-                state_filter[0].expiry_time = expiry_time
+                #expiry_time = get_expiry_time_of_chatroom(card_state_instance=state_filter[0])
+                state_filter[0].expiry_time = None
                 state_filter[0].save()
             # conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
 
@@ -6638,8 +6638,8 @@ def fetch_chatroom_feed(request):
 
 
     current_time = time.time()
-    context['active_chatroom_count'] = get_active_chatrooms_count(member_id,current_time)
-    context['inactive_chatroom_count'] = get_inactive_chatrooms_count(member_id,current_time)
+    context['active_chatroom_count'] = get_active_chatrooms_count_in_community(community_id,member_id,current_time)
+    context['inactive_chatroom_count'] = get_inactive_chatrooms_count_in_community(community_id,member_id,current_time)
     return JsonResponse(context)
 
 
