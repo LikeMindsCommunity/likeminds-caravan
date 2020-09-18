@@ -6585,6 +6585,10 @@ def fetch_chatroom_feed(request):
     chatroom_id = request.GET.get('chatroom_id')
     scroll_direction = request.GET.get('scroll_direction')
 
+    if scroll_direction and not chatroom_id:
+        context = get_error_context(False,"send chatroom id with scroll direction")
+        return JsonResponse(context)
+
     active = request.GET.get('active', None)
 
     if active == "true":
@@ -6610,6 +6614,7 @@ def fetch_chatroom_feed(request):
             chatrooms = get_chatrooms(chatroom_list, member_id)
         else:
             last_seen = last_seen[0]
+            print(last_seen)
             upward = chatroom_filter.filter(id__lte=last_seen.card.id).order_by('-id')[:3]
             downward = chatroom_filter.filter(id__gt=last_seen.card.id)[:3]
             # upward = Collabcard.objects.filter(id__lt=last_seen.card.id,community=community_id).order_by('id')[:3]
