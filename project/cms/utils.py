@@ -95,7 +95,7 @@ def get_general_records(community,day=0):
 
     # members added
     members = Members.objects.filter(created_at__lte=day_1,created_at__gte=day_2).filter(community_id=community_id)
-    all_members = Members.objects.filter.filter(community_id=community_id)
+    all_members = Members.objects.filter(community_id=community_id)
 
 
 
