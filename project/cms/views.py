@@ -24,7 +24,7 @@ def dashboard(request):
     query = request.GET.get('q')
     date_1 = request.GET.get('date_1')
     date_2 = request.GET.get('date_2')
-    if 1:
+    if query and date_1 and date_2:
         community_ids = query.split(',')
         community_ids_int = []
         for c_id in community_ids:
@@ -38,118 +38,138 @@ def dashboard(request):
         date_2_epoch = date_2.timestamp()
         # print(community_ids)
 
-    records = PerDayRecordOverview.objects.filter(updated_at__gte=date_1_epoch,
-                                                  updated_at__lte=date_2_epoch,
-                                                  community__id__in=community_ids_int)
-    communities = records.values('community__id','community__name').distinct()
-    # print(communities)
-    result = {}
-    new_date = date_1
-    while date_1 != date_2:
-        rows = ['-']
-        result[date_1] = {}
+        records = PerDayRecordOverview.objects.filter(updated_at__gte=date_1_epoch,
+                                                      updated_at__lte=date_2_epoch,
+                                                      community__id__in=community_ids_int)
+        communities = records.values('community__id','community__name').distinct()
         # print(communities)
-        for community in communities:
-            r = records.filter(updated_at__gte=date_1.timestamp(),
-                            updated_at__lte=date_1.timestamp()+24*60*60,
-                            community__id=community['community__id'])
-            rows.append((community['community__name']+'-'+str(community['community__id'])))
-            rows.append('New Members')
-            rows.append('Cumulative members')
-            rows.append('All Chatroom ')
-            rows.append('Admin Chatroom')
-            rows.append('Intro Chatroom ')
-            rows.append('Chatrooms by members only [- intro rooms] ')
-            rows.append('All Messages')
-            rows.append('Intro Room Messages')
-            if r.exists():
-                r = r[0]
-                list =[
-                    r.members_added,
-                    r.cummulative_members,
-                    r.new_chatrooms,
-                    r.new_cm_chatrooms,
-                    r.new_intro_rooms,
-                    r.new_chatrooms-r.new_cm_chatrooms-r.new_intro_rooms,
-                    r.new_messages,
-                    r.new_intro_room_messages,
-                ]
+        result = {}
+        new_date = date_1
+        while date_1 != date_2:
+            rows = ['-']
+            result[date_1 - timedelta(days=1)] = {}
+            # print(communities)
+            for community in communities:
+                r = records.filter(updated_at__gte=date_1.timestamp(),
+                                updated_at__lte=date_1.timestamp()+24*60*60,
+                                community__id=community['community__id'])
+                rows.append((community['community__name']+'-'+str(community['community__id'])))
+                rows.append('New Members')
+                rows.append('Cumulative members')
+                rows.append('All Chatroom ')
+                rows.append('Admin Chatroom')
+                rows.append('Intro Chatroom ')
+                rows.append('Chatrooms by members only [- intro rooms] ')
+                rows.append('All Messages')
+                rows.append('Intro Room Messages')
+                if r.exists():
+                    r = r[0]
+                    list =[
+                        r.members_added,
+                        r.cummulative_members,
+                        r.new_chatrooms,
+                        r.new_cm_chatrooms,
+                        r.new_intro_rooms,
+                        r.new_chatrooms-r.new_cm_chatrooms-r.new_intro_rooms,
+                        r.new_messages,
+                        r.new_intro_room_messages,
+                    ]
 
-                # print(date_1,community['community__id'],list)
-                result[date_1][community['community__id']] = list
-            # print(date_1)
-        date_1 = date_1 + timedelta(days=1)
+                    # print(date_1,community['community__id'],list)
+                    result[date_1 - timedelta(days=1)][community['community__id']] = list
+                else:
+                    list = [0,0,0,0,0,0,0,0]
+                    result[date_1 - timedelta(days=1)][community['community__id']] = list
+                # print(date_1)
+            date_1 = date_1 + timedelta(days=1)
 
 
-    result_2 = {}
-    rows_2 = []
-    rows_2.append('New Members')
-    rows_2.append('Cumulative members')
-    rows_2.append('All Chatroom ')
-    rows_2.append('Admin Chatroom')
-    rows_2.append('Intro Chatroom ')
-    rows_2.append('Chatrooms by members only [- intro rooms] ')
-    rows_2.append('All Messages')
-    rows_2.append('Intro Room Messages')
-    # table_2
-    # result_2[' = rows_2
-    while new_date != date_2:
-        # rows_2 = ['-']
+        result_2 = {}
+        rows_2 = []
+        rows_2.append('New Members')
+        rows_2.append('Cumulative members')
+        rows_2.append('All Chatroom ')
+        rows_2.append('Admin Chatroom')
+        rows_2.append('Intro Chatroom ')
+        rows_2.append('Chatrooms by members only [- intro rooms] ')
+        rows_2.append('All Messages')
+        rows_2.append('Intro Room Messages')
+        # table_2
+        # result_2[' = rows_2
+        while new_date != date_2:
+            # rows_2 = ['-']
 
-        # print(communities)
-        member_added_total = 0
-        cummulative_members_total = 0
-        new_chatroom_total = 0
-        new_cm_chatrooms_total = 0
-        intro_chatroom_total = 0
-        unique_chatroom_total = 0
-        new_messages_total = 0
-        new_intro_room_messages_total = 0
+            # print(communities)
+            member_added_total = 0
+            cummulative_members_total = 0
+            new_chatroom_total = 0
+            new_cm_chatrooms_total = 0
+            intro_chatroom_total = 0
+            unique_chatroom_total = 0
+            new_messages_total = 0
+            new_intro_room_messages_total = 0
+            # print(communities)
+            for community in communities:
+                r = records.filter(updated_at__gte=new_date.timestamp(),
+                                updated_at__lte=new_date.timestamp()+24*60*60,
+                                community__id=community['community__id'])
+                # rows.append((community['community__name']+'-'+str(community['community__id'])))
+                # print(r)
+                if r.exists():
+                    r = r[0]
 
-        for community in communities:
-            r = records.filter(updated_at__gte=date_1.timestamp(),
-                            updated_at__lte=date_1.timestamp()+24*60*60,
-                            community__id=community['community__id'])
-            # rows.append((community['community__name']+'-'+str(community['community__id'])))
-            if r.exists():
-                r = r[0]
+                    member_added_total += r.members_added
+                    cummulative_members_total += r.cummulative_members
+                    new_chatroom_total += r.new_chatrooms
+                    # new_chatroom_total += r.new_chatrooms
+                    new_cm_chatrooms_total += r.new_cm_chatrooms
+                    intro_chatroom_total += r.new_intro_rooms
+                    # unique_chatroom_total = r.new_chatrooms-r.new_cm_chatrooms-r.new_intro_rooms
+                    new_messages_total += r.new_messages
+                    new_intro_room_messages_total += r.new_intro_room_messages
+                    list = [
+                        member_added_total,
+                        cummulative_members_total,
+                        new_chatroom_total,
+                        new_cm_chatrooms_total,
+                        intro_chatroom_total,
+                        unique_chatroom_total,
+                        new_messages_total,
+                        new_intro_room_messages_total
+                    ]
+                    # print('---->',list)
+                    # print(date_1,community['community__id'],list)
+                    # result[date_1][community['community__id']] = list
+                # print(date_1)
+            unique_chatroom_total = new_chatroom_total - intro_chatroom_total - new_cm_chatrooms_total
 
-                member_added_total += r.members_added
-                cummulative_members_total += r.cummulative_members
-                new_chatroom_total += r.new_chatrooms
-                # new_chatroom_total += r.new_chatrooms
-                new_cm_chatrooms_total += r.new_cm_chatrooms
-                intro_chatroom_total += r.new_intro_rooms
-                # unique_chatroom_total = r.new_chatrooms-r.new_cm_chatrooms-r.new_intro_rooms
-                new_messages_total += r.new_messages
-                new_intro_room_messages_total += r.new_intro_room_messages
+            list = [
+                member_added_total,
+                cummulative_members_total,
+                new_chatroom_total,
+                new_cm_chatrooms_total,
+                intro_chatroom_total,
+                unique_chatroom_total,
+                new_messages_total,
+                new_intro_room_messages_total
+            ]
+            # print(list)
+            result_2[new_date - timedelta(days=1)] = list
+            # print(result_2)
+            new_date = new_date + timedelta(days=1)
 
-                # print(date_1,community['community__id'],list)
-                # result[date_1][community['community__id']] = list
-            # print(date_1)
-        unique_chatroom_total = unique_chatroom_total - intro_chatroom_total - new_cm_chatrooms_total
-        list = [
-            member_added_total,
-            cummulative_members_total,
-            new_chatroom_total,
-            new_cm_chatrooms_total,
-            intro_chatroom_total,
-            unique_chatroom_total,
-            new_messages_total,
-            new_intro_room_messages_total
-        ]
-        result_2[new_date] = list
-        new_date = new_date + timedelta(days=1)
+        # print(result)
 
-    # print(result)
-
-    context = {
-        'records':records,
-        'rows':rows,
-        'rows_2':rows_2,
-        'result':result,
-        'result_2':result_2,
-    }
+        context = {
+            'records':records,
+            'rows':rows,
+            'rows_2':rows_2,
+            'result':result,
+            'result_2':result_2,
+            'q':query,
+        }
+    else:
+        context = {}
     return render(request, 'cms/dashboard.html', context)
 
 
