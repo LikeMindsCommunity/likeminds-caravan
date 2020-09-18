@@ -24,7 +24,7 @@ class NewCommunities(models.Model):
 
 
 class PerDayRecordOverview(models.Model):
-    new_communities = models.IntegerField(default=0)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE,null=True)
     cumulative_communities = models.IntegerField(default=0)
     new_chatrooms = models.IntegerField(default=0)
     new_cm_chatrooms = models.IntegerField(default=0)
@@ -38,12 +38,17 @@ class PerDayRecordOverview(models.Model):
     new_users_cumulative = models.IntegerField(default=0)
     active_users = models.IntegerField(default=0)
     members_added = models.IntegerField(default=0)
+    cummulative_members = models.IntegerField(default=0)
 
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
     def get_created_time(self):
         return datetime.fromtimestamp(self.created_at)
+
+
+    def get_updated_time(self):
+        return datetime.fromtimestamp(self.updated_at)
 
 
 
@@ -116,11 +121,11 @@ class PerDayRecordOverview(models.Model):
     def save(self, *args, **kwargs):
         if self.created_at == 0:
             self.created_at = time.time()
-        else:
-            self.updated_at = time.time()
-
-        if self.updated_at == 0 :
-            self.updated_at = self.created_at
+        # else:
+        #     self.updated_at = time.time()
+        #
+        # if self.updated_at == 0 :
+        #     self.updated_at = self.created_at
 
         super(PerDayRecordOverview, self).save(*args, **kwargs)
 
