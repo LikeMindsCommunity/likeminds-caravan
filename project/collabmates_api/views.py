@@ -6635,6 +6635,11 @@ def fetch_chatroom_feed(request):
             chatrooms = get_chatrooms(downward, member_id,active)
 
     context['chatrooms'] = chatrooms
+
+
+    current_time = time.time()
+    context['active_chatroom_count'] = get_active_chatrooms_count(member_id,current_time)
+    context['inactive_chatroom_count'] = get_inactive_chatrooms_count(member_id,current_time)
     return JsonResponse(context)
 
 
