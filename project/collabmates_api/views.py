@@ -4912,6 +4912,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     context['chatroom_actions'] = chatroom_actions
     context['total_response_count'] = total_response_count
 
+    context['community'] = CommunitySerializer(card_instance.community)
+
     # updating the activity of chatroom
     # update_activity_in_chatroom(card_instance,user_instance=user_id)
 
