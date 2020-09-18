@@ -451,9 +451,9 @@ def my_chatrooms_version_1(request):
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
-    in_active_chatroom_count = get_inactive_chatrooms_count(member_id, current_time)
+    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time)
 
-    active_chatroom_count = get_active_chatrooms_count(member_id,current_time)
+    active_chatroom_count = get_active_followed_chatrooms_count(member_id,current_time)
 
     page_count = get_total_pages(active_chatroom_count,limit=10)
     send_active = True
@@ -6635,6 +6635,11 @@ def fetch_chatroom_feed(request):
             chatrooms = get_chatrooms(downward, member_id,active)
 
     context['chatrooms'] = chatrooms
+
+
+    current_time = time.time()
+    context['active_chatroom_count'] = get_active_chatrooms_count(member_id,current_time)
+    context['inactive_chatroom_count'] = get_inactive_chatrooms_count(member_id,current_time)
     return JsonResponse(context)
 
 
