@@ -4879,6 +4879,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         instance = chatroom_state[0]
         if not instance.external_seen:
             instance.external_seen = True
+            instance.expiry_time = get_expiry_time_of_chatroom()
             instance.save()
 
 
