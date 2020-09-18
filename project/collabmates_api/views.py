@@ -365,30 +365,30 @@ def my_chatrooms(request):
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
-    if active is True:
-        engage_list = get_active_followed_chatrooms(member_id,current_time,page,limit=10)
-        for id in engage_list:
-            instance = conversationEngage.objects.get(pk=id)
-            instance_list.append(instance)
-
-        draft_list = get_draft_chatrooms_on_home_screen(member_id, page, limit=10)
-
-        for id in draft_list:
-            instance = conversationEngage.objects.get(pk=id)
-            instance_list.append(instance)
-
-    elif active is False:
-
-        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
-        for id in engage_list:
-            instance = conversationEngage.objects.get(pk=id)
-            instance_list.append(instance)
-
-    else:
-        instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
-        #instance_list = pagination(instance_list, page, paginate_by=10)
-        instance_list = get_paginated_queryset_with_maxpages(instance_list,page,paginate_by=10)
-        instance_list = instance_list['page_list']
+    # if active is True:
+    #     engage_list = get_active_followed_chatrooms(member_id,current_time,page,limit=10)
+    #     for id in engage_list:
+    #         instance = conversationEngage.objects.get(pk=id)
+    #         instance_list.append(instance)
+    #
+    #     draft_list = get_draft_chatrooms_on_home_screen(member_id, page, limit=10)
+    #
+    #     for id in draft_list:
+    #         instance = conversationEngage.objects.get(pk=id)
+    #         instance_list.append(instance)
+    #
+    # elif active is False:
+    #
+    #     engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
+    #     for id in engage_list:
+    #         instance = conversationEngage.objects.get(pk=id)
+    #         instance_list.append(instance)
+    #
+    # else:
+    instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
+    instance_list = pagination(instance_list, page, paginate_by=10)
+    # instance_list = get_paginated_queryset_with_maxpages(instance_list,page,paginate_by=10)
+    # instance_list = instance_list['page_list']
 
     for instance in instance_list:
 
@@ -415,21 +415,21 @@ def my_chatrooms(request):
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
 
-        if active == True:
-            if card_instance  and chatroom['chatroom']['active']:
-                my_chatrooms.append(chatroom)
-            elif draft_instance:
-                my_chatrooms.append(chatroom)
+        # if active == True:
+        #     if card_instance  and chatroom['chatroom']['active']:
+        #         my_chatrooms.append(chatroom)
+        #     elif draft_instance:
+        #         my_chatrooms.append(chatroom)
+        #
+        # if active == False  and not chatroom['chatroom']['active'] and card_instance:
+        #     my_chatrooms.append(chatroom)
+        #
+        # if active == None:
+        my_chatrooms.append(chatroom)
 
-        if active == False  and not chatroom['chatroom']['active'] and card_instance:
-            my_chatrooms.append(chatroom)
+    #in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
 
-        if active == None:
-            my_chatrooms.append(chatroom)
-
-    in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
-
-    return JsonResponse({"my_chatrooms": my_chatrooms,'inactive_chatroom_count':in_active_chatroom})
+    return JsonResponse({"my_chatrooms": my_chatrooms})
 
 def my_chatrooms_version_1(request):
     '''functions to get chatrooms for users'''
@@ -6614,7 +6614,6 @@ def fetch_chatroom_feed(request):
             chatrooms = get_chatrooms(chatroom_list, member_id)
         else:
             last_seen = last_seen[0]
-            print(last_seen)
             upward = chatroom_filter.filter(id__lte=last_seen.card.id).order_by('-id')[:3]
             downward = chatroom_filter.filter(id__gt=last_seen.card.id)[:3]
             # upward = Collabcard.objects.filter(id__lt=last_seen.card.id,community=community_id).order_by('id')[:3]
