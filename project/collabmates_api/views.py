@@ -6562,7 +6562,6 @@ def get_chatrooms(chatroom_list, member_id,active = None):
         chatroom_instance['members_images'] = last_response_members['members_images']
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
-
         if active is True and chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
         if active is False and not chatroom_instance['active']:
@@ -6600,15 +6599,16 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None):
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
         # chatroom_instance = {
-        #     'id':chatroom_instance['id']
+        #     'id' : chatroom_instance['id'],
+        #     'active': chatroom_instance['active']
         # }
-        if active is True and chatroom_instance['active']:
-            chatrooms.append(chatroom_instance)
-        if active is False and not chatroom_instance['active']:
-            chatrooms.append(chatroom_instance)
-
-        if active == None:
-            chatrooms.append(chatroom_instance)
+        # if active is True and chatroom_instance['active']:
+        #     chatrooms.append(chatroom_instance)
+        # if active is False and not chatroom_instance['active']:
+        #     chatrooms.append(chatroom_instance)
+        #
+        # if active == None:
+        chatrooms.append(chatroom_instance)
 
 
 
@@ -6701,6 +6701,7 @@ def fetch_chatroom_feed_version_1(request):
 
     active = request.GET.get('active', None)
 
+    current_time = time.time()
     if active == "true":
         active = True
     elif active == "false":
@@ -6712,11 +6713,11 @@ def fetch_chatroom_feed_version_1(request):
 
     chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
 
+
     state_filter = collabcardState.objects.filter(community=community_id).distinct('card_id').order_by('-card_id')
 
     chatrooms = []
     context = {}
-
     if not chatroom_id and not scroll_direction:
 
         last_seen = state_filter.filter(user=member_id).filter(~Q(state=0)).order_by('-card_id')
@@ -6727,11 +6728,18 @@ def fetch_chatroom_feed_version_1(request):
             chatrooms = get_chatrooms_version_1(chatroom_list, member_id)
         else:
             last_seen = last_seen[0]
+            if active:
+                upward = state_filter.filter(card__lte=last_seen.card.id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-card')[:3]
+                downward = state_filter.filter(card__gt=last_seen.card.id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time))[:3]
 
-            upward = state_filter.filter(card__lte=last_seen.card.id).order_by('-card')[:3]
-            downward = state_filter.filter(card__gt=last_seen.card.id)[:3]
-            # upward = Collabcard.objects.filter(id__lt=last_seen.card.id,community=community_id).order_by('id')[:3]
-            # downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:3]
+            else:
+
+                upward = state_filter.filter(card__lte=last_seen.card.id).filter(
+                    ~Q(expiry_time=None) | Q(expiry_time__lte=current_time)).order_by('-card')[:3]
+
+                downward = state_filter.filter(card__gt=last_seen.card.id).filter(
+                    ~Q(expiry_time=None) | Q(expiry_time__lte=current_time))[:3]
+
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('card_id')
 
@@ -6743,14 +6751,27 @@ def fetch_chatroom_feed_version_1(request):
         scroll_direction = int(scroll_direction)
         if scroll_direction == 0:  # upward scroll
 
-            upward = state_filter.filter(card__lt=chatroom_id).order_by('-card')[:5]
+            if active:
+                upward = state_filter.filter(card__lte=chatroom_id).filter(
+                    Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-card')[:5]
+            else:
+                upward = state_filter.filter(card__lte=chatroom_id).filter(
+                    ~Q(expiry_time=None) | Q(expiry_time__lte=current_time)).order_by('-card')[:5]
+
+
             upward = reverse_conversations_for_upward_pagination(upward)
             # print(upward)
             chatrooms = get_chatrooms_version_1(upward, member_id,active)
 
         elif scroll_direction == 1:  # downward scroll
 
-            downward = state_filter.filter(card__gt=chatroom_id).order_by('card')[:5]
+            if active:
+                downward = state_filter.filter(card__gt=chatroom_id).filter(
+                    Q(expiry_time=None) | Q(expiry_time__gt=current_time))[:5]
+            else:
+                downward = state_filter.filter(card__gt=chatroom_id).filter(
+                    ~Q(expiry_time=None) | Q(expiry_time__lte=current_time))[:5]
+
             chatrooms = get_chatrooms_version_1(downward, member_id,active)
 
     context['chatrooms'] = chatrooms
