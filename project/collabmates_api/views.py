@@ -2761,7 +2761,8 @@ def create_card_internal(user_id, community_id, res):
         draftPolls.objects.filter(draft=res['draft_id']).delete()
 
 
-    set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_instance)
+    #batch update for already existing users
+    set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id)
 
     context = {
         'collabcard': collabcard,
@@ -2769,7 +2770,6 @@ def create_card_internal(user_id, community_id, res):
     }
 
     return context
-
 
 
 
