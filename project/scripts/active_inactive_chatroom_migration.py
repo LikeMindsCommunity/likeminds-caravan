@@ -1,4 +1,4 @@
-from togther.models import Collabcard, card_answers, conversationEngage, collabcardState
+from togther.models import Collabcard, card_answers, conversationEngage, collabcardState,Userinfo
 import time
 
 HOURS_24 = 86400
@@ -71,7 +71,8 @@ def get_all_chatroom_states():
                 data.save()
 
         print(card_instance)
-        print(user_instance)
+        print(user_instance.userinfo.name)
+        print("\n")
 
 
 
