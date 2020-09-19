@@ -2750,7 +2750,6 @@ def create_card_internal(user_id, community_id, res):
     create_chatroom(card_instance=card_instance, user_instance=user_instance
                     , state=chatroom_states.CHATROOM_HEADER, current_user_id=user_id)
 
-    update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
     send_ice_breaker_notification.delay(community_id, time.time(), day=0)
 
@@ -2763,6 +2762,7 @@ def create_card_internal(user_id, community_id, res):
 
     #batch update for already existing users
     set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id)
+    update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
     context = {
         'collabcard': collabcard,
