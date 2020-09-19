@@ -551,13 +551,13 @@ def fetch_chatroom_inactive(request):
 
         user_instance = User.objects.get(id=member_id)
         inactive_count = inactive_chatrooms.count()
-        create_or_update_inActiveChatroomsCount_instance(user_instance, None, inactive_count)
+        create_or_update_inActiveChatroomsCount_instance(user_instance,inactive_count)
         if inactive_count:
             context['title'] = """%s chatrooms moved to inactive""" % (str(inactive_count))
 
     return JsonResponse(context)
 
-def create_or_update_inActiveChatroomsCount_instance(user_instance,card_instance,inactive_count):
+def create_or_update_inActiveChatroomsCount_instance(user_instance,inactive_count):
 
     '''function to create inActiveChatroomcount instance'''
 
@@ -566,7 +566,7 @@ def create_or_update_inActiveChatroomsCount_instance(user_instance,card_instance
     if not in_active_filter.exists():
         instance = inActiveChatroomsCount()
         instance.user = user_instance
-        instance.last_inactive_card = card_instance
+        #instance.last_inactive_card = card_instance
         instance.inactive_count = inactive_count
         instance.created_at = time.time()
         instance.updated_at = time.time()
