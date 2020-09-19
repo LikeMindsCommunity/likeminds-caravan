@@ -114,6 +114,10 @@ def update_communities_in_member_engage_table(member_id):
     info_logger.info(c)
 
 
+
+
+
+
 @shared_task
 def set_chatroom_state_for_all_members_on_card_creation(community_id,card_id):
 
@@ -134,6 +138,8 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id,card_id):
             collabcard_state_instance.external_seen = False
             collabcard_state_instance.expiry_time = None
             collabcard_state_instance.save()
+
+        update_last_unseen_in_engage(user=data.member_id.id, community=community_id, is_seen=True)
 
 
 
