@@ -6759,10 +6759,10 @@ def fetch_chatroom_feed_version_1(request):
 
             else:
 
-                upward = state_filter.filter(card__lte=last_seen.card.id).filter(
+                upward = state_filter.filter(card__lte=last_seen.card.id,user=member_id).filter(
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:3]
 
-                downward = state_filter.filter(card__gt=last_seen.card.id).filter((~Q(expiry_time=None)) & Q(expiry_time__lte = current_time))[:3]
+                downward = state_filter.filter(card__gt=last_seen.card.id,user=member_id).filter((~Q(expiry_time=None)) & Q(expiry_time__lte = current_time))[:3]
 
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('card_id')
