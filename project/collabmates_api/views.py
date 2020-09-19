@@ -6734,6 +6734,7 @@ def fetch_chatroom_feed_version_1(request):
         active = None
 
     member_id = get_member_id_from_headers(request)
+    print(member_id)
 
     chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
 
@@ -6753,8 +6754,8 @@ def fetch_chatroom_feed_version_1(request):
         else:
             last_seen = last_seen[0]
             if active:
-                upward = state_filter.filter(card__lte=last_seen.card.id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-card')[:3]
-                downward = state_filter.filter(card__gt=last_seen.card.id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time))[:3]
+                upward = state_filter.filter(card__lte=last_seen.card.id,user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-card')[:3]
+                downward = state_filter.filter(card__gt=last_seen.card.id,user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time))[:3]
 
             else:
 
