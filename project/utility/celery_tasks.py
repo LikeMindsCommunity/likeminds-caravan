@@ -113,18 +113,31 @@ def update_communities_in_member_engage_table(member_id):
             update_referral_text_in_engage_table(community.id)
     info_logger.info(c)
 
-@shared_task
-def set_chatroom_state_for_all_members_on_card_creation(community_id,card_instance):
 
-    all_members = Members.objects.filter(community_id=community_id).filter(Q(state=member_states.MEMBER)|Q(state=member_states.ADMIN)|Q(state=member_states.PROFILE_UNAVAILABLE))
+@shared_task
+def set_chatroom_state_for_all_members_on_card_creation(community_id,card_id):
+
+    card_instance = Collabcard.objects.get(id=card_id)
+    all_members = Members.objects.filter(community_id=community_id).filter(Q(state=4)|Q(state=1)|Q(state=9))
     for data in all_members:
 
         state_filter = collabcardState.objects.filter(user=data.member_id,card=card_instance)
         if not state_filter.exists():
-
             user_instance = data.member_id
-            create_chatroom_state_instance(card_instance, user_instance, state=0,
-                                           expire_at=None, external_seen=False)
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = card_instance
+            collabcard_state_instance.community = card_instance.community
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = 0
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.external_seen = False
+            collabcard_state_instance.expiry_time = None
+            collabcard_state_instance.save()
+
+
+
+
 
 
 @shared_task
