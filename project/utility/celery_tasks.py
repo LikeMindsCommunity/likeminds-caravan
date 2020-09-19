@@ -113,6 +113,19 @@ def update_communities_in_member_engage_table(member_id):
             update_referral_text_in_engage_table(community.id)
     info_logger.info(c)
 
+@shared_task
+def set_chatroom_state_for_all_members_on_card_creation(community_id,card_instance):
+
+    all_members = Members.objects.filter(community_id=community_id).filter(Q(state=member_states.MEMBER)|Q(state=member_states.ADMIN)|Q(state=member_states.PROFILE_UNAVAILABLE))
+    for data in all_members:
+
+        state_filter = collabcardState.objects.filter(user=data.member_id,card=card_instance)
+        if not state_filter.exists():
+
+            user_instance = data.member_id
+            create_chatroom_state_instance(card_instance, user_instance, state=0,
+                                           expire_at=None, external_seen=False)
+
 
 @shared_task
 def update_last_unseen_in_engage_on_card_creation(community_id):
@@ -157,6 +170,8 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         if len(member_instances) > 0:
             Member_Engage.objects.filter(community_id=community, member_id=user).update(
                 new_chatroom_users=json.dumps(member_instances))
+
+
 
 
 def get_new_chatroom_members(member_id, community_id):

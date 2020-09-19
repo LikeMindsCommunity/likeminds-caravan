@@ -25,7 +25,8 @@ from random import randint
 # utility functions
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
-                                  update_last_unseen_in_engage, update_my_chatrooms_for_users
+                                  update_last_unseen_in_engage, update_my_chatrooms_for_users,
+                                  set_chatroom_state_for_all_members_on_card_creation
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -2760,30 +2761,16 @@ def create_card_internal(user_id, community_id, res):
         draftPolls.objects.filter(draft=res['draft_id']).delete()
 
 
-    set_chatroom_state_for_all_members_on_card_creation(community_id, card_instance)
+    set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_instance)
 
     context = {
         'collabcard': collabcard,
         'card_instance': card_instance
     }
 
-
-
-
     return context
 
 
-def set_chatroom_state_for_all_members_on_card_creation(community_id,card_instance):
-
-    all_members = Members.objects.filter(community_id=community_id).filter(Q(state=member_states.MEMBER)|Q(state=member_states.ADMIN)|Q(state=member_states.PROFILE_UNAVAILABLE))
-    for data in all_members:
-
-        state_filter = collabcardState.objects.filter(user=data.member_id,card=card_instance)
-        if not state_filter.exists():
-
-            user_instance = data.member_id
-            create_chatroom_state_instance(card_instance, user_instance, state=0,
-                                           expire_at=None, external_seen=False)
 
 
 def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
