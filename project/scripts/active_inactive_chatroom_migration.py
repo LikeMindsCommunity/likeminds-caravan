@@ -1,6 +1,8 @@
-from togther.models import Collabcard, card_answers, conversationEngage, collabcardState,Member_Engage,Members
+from togther.models import Collabcard, card_answers, conversationEngage, collabcardState,\
+    Member_Engage,Members,Userinfo,User
 import time
 from django.db.models import Q
+import json
 
 
 HOURS_24 = 86400
@@ -41,7 +43,76 @@ def update_activity_in_chatroom(card_instance, user_instance):
             state_filter.update(expiry_time=expire_at)
 
 
+def get_new_chatroom_members(member_id, community_id):
+    """ to get the member objects for new chatrooms created """
+    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).last()
 
+
+    if last_instance:
+        last_card = last_instance.card
+        unseen_chatrooms = Collabcard.objects.filter(community=community_id,id__gt=last_card.id).distinct('user_id')
+    else:
+        unseen_chatrooms = Collabcard.objects.filter(community=community_id).distinct('user_id')
+
+
+
+    member_list = []
+    for card in unseen_chatrooms:
+
+        member_filter = Members.objects.filter(member_id=card.user, community_id=community_id)
+        image_url = card.user.userinfo.image_link if card.user.userinfo.image_link  else ''
+        if member_filter.exists():
+            member_instance = member_filter[0]
+            if member_instance.image_url:
+                image_url = member_instance.image_url
+
+
+        member = get_user_profile(card.user.id,community_id,send_profile=False)
+        member['image_url'] = image_url
+        member_list.append(member)
+
+        if len(member_list) > 3:
+            break
+
+    return member_list
+
+
+def UserinfoSerializer(user):
+    # function to serialize a userinfo object
+    # if the community is not feedback community
+    userinfo = {
+        'id': user.user_id.id,
+        "name": user.name,
+
+    }
+
+    if user.image_link:
+        userinfo['image_url'] = user.image_link
+
+    return userinfo
+
+def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True):
+
+
+    if isinstance(user_id,User):
+        user_instance = user_id
+
+        if not user_instance:
+            return {}
+    else:
+        try:
+            user_instance = User.objects.get(id=user_id)
+        except:
+            return {}
+
+    userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
+    # userinfo_serialized_object['state'] = 0
+
+    if not send_profile:
+        return userinfo_serialized_object
+
+
+    return userinfo_serialized_object
 
 
 def get_expire_at(card_instance):
@@ -129,11 +200,11 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
             updated_at=time.time()
         )
 
-    # if unseen_count > 0:
-    #     member_instances = get_new_chatroom_members(user, community)
-    #     if len(member_instances) > 0:
-    #         Member_Engage.objects.filter(community_id=community, member_id=user).update(
-    #             new_chatroom_users=json.dumps(member_instances))
+    if unseen_count > 0:
+        member_instances = get_new_chatroom_members(user, community)
+        if len(member_instances) > 0:
+            Member_Engage.objects.filter(community_id=community, member_id=user).update(
+                new_chatroom_users=json.dumps(member_instances))
 
 
 def migrate_members_in_chatrooms():
@@ -155,7 +226,7 @@ def migrate_members_in_chatrooms():
 
 
 start_time = time.time()
-get_all_chatroom_states()
+#get_all_chatroom_states()
 migrate_members_in_chatrooms()
 end_time = time.time()
 
