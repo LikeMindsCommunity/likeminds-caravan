@@ -5,105 +5,198 @@
        <h2>Daily report</h2>
     </div>
 </div>
-<table class="table table-bordered table-hover mt-2 mb-2">
-    <tr>
-        <th></th>
-        {% for record in records %}<th>{{record.get_created_time | date:'d-M'}}</th>{% endfor %}
-    </tr>
-    <tr>
-        <th>Cumulative Communities</th>
-        {% for record in records %}<td>{{record.cumulative_communities}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>New Chatroom</th>
-        {% for record in records %}<td>{{record.new_chatrooms}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Chatrooms by CM</th>
-        {% for record in records %}<td>{{record.new_cm_chatrooms}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Intro Chatrooms</th>
-        {% for record in records %}<td>{{record.new_intro_rooms}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>New Messages</th>
-        {% for record in records %}<td>{{record.new_messages}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Intro room Messages</th>
-        {% for record in records %}<td>{{record.new_intro_room_messages}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Poll Rooms</th>
-        {% for record in records %}<td>{{record.new_intro_poll_messages}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Event Rooms</th>
-        {% for record in records %}<td>{{record.new_intro_event_messages}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Messages by CM</th>
-        {% for record in records %}<td>{{record.new_messages_by_cm}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Accquired Users</th>
-        {% for record in records %}<td>{{record.new_users}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Cumulative users</th>
-        {% for record in records %}<td>{{record.new_users_cumulative}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Active Users</th>
-        {% for record in records %}<td>{{record.active_users}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Memebers added in community</th>
-        {% for record in records %}<td>{{record.members_added}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>&nbsp;</th>
-    </tr>
-    <tr>
-        <th>All chatroom per Community</th>
-        {% for record in records %}<td>{{record.chatroom_per_community}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Non intro room chatroom per community</th>
-        {% for record in records %}<td>{{record.non_intro_room_per_community}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Messages per community</th>
-        {% for record in records %}<td>{{record.messages_per_community}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Non intro room messages per community</th>
-        {% for record in records %}<td>{{record.non_intro_messages_per_community}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Non intro room message ratio</th>
-        {% for record in records %}<td>{{record.non_intro_room_message_ratio}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Non intro message per user</th>
-        {% for record in records %}<td>{{record.non_intro_room_message_per_user}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Active user percent</th>
-        {% for record in records %}<td>{{record.active_user_percent}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Non intro message per unique user</th>
-        {% for record in records %}<td>{{record.non_intro_message_per_unique_user}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Non intro chatroom per unique user</th>
-        {% for record in records %}<td>{{record.non_intro_room_per_unique_user}}</td>{% endfor %}
-    </tr>
-    <tr>
-        <th>Chatroom by members only</th>
-        {% for record in records %}<td>{{record.chatroom_by_members_only}}</td>{% endfor %}
-    </tr>
-</table>
+
+<form class="form-inline" method="GET">
+  <div class="form-group mx-sm-3 mb-2">
+    <label for="inputPassword2" class="sr-only">Password</label>
+    <input type="text" value="{{q}}" class="form-control" id="inputPassword2" name="q" placeholder="ids separated by comma">
+    <input type="date" value="" class="form-control" id="inputPassword2" name="date_1" placeholder="start date">
+    <input type="date" value="" class="form-control" id="inputPassword2" name="date_2" placeholder="end date">
+  </div>
+  <button type="submit" class="btn btn-primary mb-2">Search</button>
+</form>
+<!--{{rows}}-->
+<h3>Cumulative</h3>
+<table id="data_table_2" border="1" class="table table-hover"></table>
+<br><br><br>
+<h3>Community wise</h3>
+<table id="data_table" border="1" class="table table-hover"></table>
+
+<!--<table class="table table-bordered table-hover mt-2 mb-2">-->
+<!--    <tr>-->
+<!--        <th></th>-->
+<!--        {% for record in records %}<th>{{record.get_created_time | date:'d-M'}}</th>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Cumulative Communities</th>-->
+<!--        {% for record in records %}<td>{{record.cumulative_communities}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>New Chatroom</th>-->
+<!--        {% for record in records %}<td>{{record.new_chatrooms}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Chatrooms by CM</th>-->
+<!--        {% for record in records %}<td>{{record.new_cm_chatrooms}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Intro Chatrooms</th>-->
+<!--        {% for record in records %}<td>{{record.new_intro_rooms}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>New Messages</th>-->
+<!--        {% for record in records %}<td>{{record.new_messages}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Intro room Messages</th>-->
+<!--        {% for record in records %}<td>{{record.new_intro_room_messages}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Poll Rooms</th>-->
+<!--        {% for record in records %}<td>{{record.new_intro_poll_messages}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Event Rooms</th>-->
+<!--        {% for record in records %}<td>{{record.new_intro_event_messages}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Messages by CM</th>-->
+<!--        {% for record in records %}<td>{{record.new_messages_by_cm}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Accquired Users</th>-->
+<!--        {% for record in records %}<td>{{record.new_users}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Cumulative users</th>-->
+<!--        {% for record in records %}<td>{{record.new_users_cumulative}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Active Users</th>-->
+<!--        {% for record in records %}<td>{{record.active_users}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Memebers added in community</th>-->
+<!--        {% for record in records %}<td>{{record.members_added}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>&nbsp;</th>-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>All chatroom per Community</th>-->
+<!--        {% for record in records %}<td>{{record.chatroom_per_community}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Non intro room chatroom per community</th>-->
+<!--        {% for record in records %}<td>{{record.non_intro_room_per_community}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Messages per community</th>-->
+<!--        {% for record in records %}<td>{{record.messages_per_community}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Non intro room messages per community</th>-->
+<!--        {% for record in records %}<td>{{record.non_intro_messages_per_community}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Non intro room message ratio</th>-->
+<!--        {% for record in records %}<td>{{record.non_intro_room_message_ratio}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Non intro message per user</th>-->
+<!--        {% for record in records %}<td>{{record.non_intro_room_message_per_user}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Active user percent</th>-->
+<!--        {% for record in records %}<td>{{record.active_user_percent}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Non intro message per unique user</th>-->
+<!--        {% for record in records %}<td>{{record.non_intro_message_per_unique_user}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Non intro chatroom per unique user</th>-->
+<!--        {% for record in records %}<td>{{record.non_intro_room_per_unique_user}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <th>Chatroom by members only</th>-->
+<!--        {% for record in records %}<td>{{record.chatroom_by_members_only}}</td>{% endfor %}-->
+<!--    </tr>-->
+<!--</table>-->
+<script>
+var day;
+{% for row in rows %}
+insert_Row('{{row}}');
+{% endfor %}
+
+var counter;
+var trow = $('#data_table').find('tr');
+{% for date,communities in result.items %}
+    counter = 0;
+
+    day = '{{date | date:'d-M'}}';
+    console.log(trow[0]);
+    if(counter == 0){
+     console.log(counter);
+    var a = trow[counter].insertCell(-1);
+    a.innerHTML = '<td>{{date | date:'d-M'}}</td>';
+    }
+
+    {% for community_id,data in communities.items %}
+             counter++;
+        var a = trow[counter].insertCell(-1);
+        a.innerHTML = ' ';
+        {%for x in data%}
+             counter++;
+            var a = trow[counter].insertCell(-1);
+            a.innerHTML = '{{x}}';
+
+        {%endfor%}
+    {% endfor %}
+
+{% endfor %}
+function insert_Row(data){
+    var x=document.getElementById('data_table').insertRow(-1);
+    var y = x.insertCell(0);
+    y.innerHTML=data;
+}
+</script>
+<script>
+function insert_Row_2(data){
+    var x=document.getElementById('data_table_2').insertRow(-1);
+    var y = x.insertCell(0);
+    y.innerHTML=data;
+}
+{% for row in rows_2 %}
+insert_Row_2('{{row}}');
+var trow = $('#data_table_2').find('tr');
+{% endfor %}
+
+    {% for key,value in result_2.items %}
+    counter = 0;
+        {% for v in value %}
+            var a = trow[counter].insertCell(-1);
+            a.innerHTML = '{{v}}';
+            counter++;
+        {% endfor %}
+    {% endfor %}
+
+    var x=document.getElementById('data_table_2').insertRow(0);
+    y = x.insertCell(0);
+    y.innerHTML = '-';
+    {% for x in result_2 %}
+        var y = x.insertCell(-1);
+        y.innerHTML = '{{x | date:'d-M'}}'
+    {% endfor %}
+</script>
+<style>
+    #data_table tr:nth-child(9n+2){
+        background:#338DFF;
+        color:#fff;
+    }
+    #data_table_2 {
+        background:#338DFF;
+        color:#fff;
+    }
+</style>
 {% endblock %}

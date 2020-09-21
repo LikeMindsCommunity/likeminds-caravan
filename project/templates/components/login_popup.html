@@ -9,8 +9,11 @@
                 <div class="p24 bs taC ffR login-step" id="step-1">
                     <p class="p0 fs15 lh22 c6 mb16" id="login_text">
                         {% if popup_text == 'community_question' %}
-                            Login to register yourself to access community details.
-                            You can also apply to join the community.
+                            {% if not footer.aj_expired or footer.aj_expired == "True" %}
+                                Login to register yourself to access community details.
+                            {% else %}
+                                Login to register yourself to access community details. You can also apply to join the community.
+                            {% endif %}
                         {% elif popup_text == 'chatroom' %}
                             Please login to participate in the conversation.
                             You can reply and tag others once you are logged in.

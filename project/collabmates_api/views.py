@@ -4038,9 +4038,10 @@ def collabcard(request, card_id):
         answer_id = request.GET.get('answer_id', '')
         user_id = request.GET.get('member_id', '')
 
+
         if is_request_web(request) and request.user.is_authenticated:
             current_user_id = request.user.id
-
+            #todo: check_authenticated
             answers = get_chatroom_internal(request, card_instance, current_user_id, page, '', '')
         else:
             # get all the answers of the card
@@ -4060,6 +4061,7 @@ def collabcard(request, card_id):
 
         if not user_id:
             # handling the web case
+            #todo: check_auth
             if request.user.is_authenticated and is_request_web(request):
                 user_id = request.user.id
                 user_instance = User.objects.get(id=user_id)
@@ -4143,11 +4145,13 @@ def get_collabcard_details_for_web(request, card_instance, card, current_user_id
 
     if request.user.is_authenticated and is_request_web(request):
         # user id from request if user in logged in
+
         current_user_id = request.user.id
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
         current_user = UserinfoSerializer(user=current_user_instance)
 
         collabcard_status = get_status_of_collabcard(member_id=current_user_id, card=card_instance)
+        # print(collabcard_status)
         current_user['collabcard_state'] = collabcard_status['state']
         current_user['mute_status'] = collabcard_status['mute_status']
         current_user['follow_status'] = collabcard_status['follow_status']
@@ -4320,6 +4324,7 @@ def get_normal_chatroom_context(request, card_instance):
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
         current_user = UserinfoSerializer(user=current_user_instance)
         collabcard_status = get_status_of_collabcard(member_id=current_user_id, card=card_instance)
+        # print(collabcard_status)
         current_user['collabcard_state'] = collabcard_status['state']
         current_user['mute_status'] = collabcard_status['mute_status']
         current_user['follow_status'] = collabcard_status['follow_status']
