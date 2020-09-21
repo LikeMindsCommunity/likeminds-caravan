@@ -457,6 +457,9 @@ def my_chatrooms_version_1(request):
     active_chatroom_count = get_active_followed_chatrooms_count(member_id,current_time)
 
     page_count = get_total_pages(active_chatroom_count,limit=10)
+    page_count_inactive = get_total_pages(in_active_chatroom_count,limit=10)
+
+    total_pages = page_count + page_count_inactive
     send_active = True
 
     if page > page_count:
@@ -473,6 +476,7 @@ def my_chatrooms_version_1(request):
         for id in draft_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
+
 
     else:
         page = page - page_count
@@ -511,9 +515,12 @@ def my_chatrooms_version_1(request):
         my_chatrooms.append(chatroom)
 
 
+    context = {'my_chatrooms': my_chatrooms,
+               'inactive_chatroom_count':in_active_chatroom_count,
+               'total_pages':total_pages
+               }
 
-
-    return JsonResponse({"my_chatrooms": my_chatrooms,'inactive_chatroom_count':in_active_chatroom_count})
+    return JsonResponse(context)
 
 
 
