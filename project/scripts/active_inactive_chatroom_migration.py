@@ -226,7 +226,7 @@ def migrate_members_in_chatrooms():
 
 
 start_time = time.time()
-#get_all_chatroom_states()
+get_all_chatroom_states()
 migrate_members_in_chatrooms()
 end_time = time.time()
 
