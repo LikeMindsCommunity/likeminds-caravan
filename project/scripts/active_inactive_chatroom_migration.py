@@ -45,7 +45,7 @@ def update_activity_in_chatroom(card_instance, user_instance):
 
 def get_new_chatroom_members(member_id, community_id):
     """ to get the member objects for new chatrooms created """
-    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).last()
+    last_instance = collabcardState.objects.filter(user=member_id, community=community_id,external_seen=True).last()
 
 
     if last_instance:
@@ -226,7 +226,7 @@ def migrate_members_in_chatrooms():
 
 
 start_time = time.time()
-#get_all_chatroom_states()
+###get_all_chatroom_states()
 migrate_members_in_chatrooms()
 end_time = time.time()
 
