@@ -64,6 +64,9 @@ MIDDLEWARE = [
     'utility.slash_middleware.AppendOrRemoveSlashMiddleware',
 ]
 
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
 ROOT_URLCONF = 'project.urls'
 
 TEMPLATES = [
