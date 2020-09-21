@@ -45,7 +45,7 @@ def update_activity_in_chatroom(card_instance, user_instance):
 
 def get_new_chatroom_members(member_id, community_id):
     """ to get the member objects for new chatrooms created """
-    last_instance = collabcardState.objects.filter(user=member_id, community=community_id,external_seen=True).last()
+    last_instance = collabcardState.objects.filter(user=member_id, community=community_id,state=1).last()
 
 
     if last_instance:
