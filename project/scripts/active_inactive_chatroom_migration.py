@@ -1,5 +1,7 @@
-from togther.models import Collabcard, card_answers, conversationEngage, collabcardState,Userinfo
+from togther.models import Collabcard, card_answers, conversationEngage, collabcardState,Member_Engage,Members
 import time
+from django.db.models import Q
+
 
 HOURS_24 = 86400
 
@@ -75,10 +77,86 @@ def get_all_chatroom_states():
         print("\n")
 
 
+def set_chatroom_state_for_all_members_on_card_creation(community_id,card_id):
+
+    card_instance = Collabcard.objects.get(id=card_id)
+    all_members = Members.objects.filter(community_id=community_id).filter(Q(state=4)|Q(state=1)|Q(state=9))
+    for data in all_members:
+
+        state_filter = collabcardState.objects.filter(user=data.member_id,card=card_instance)
+        if not state_filter.exists():
+            user_instance = data.member_id
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = card_instance
+            collabcard_state_instance.community = card_instance.community
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = 0
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.external_seen = False
+            collabcard_state_instance.expiry_time = None
+
+            # print(data.member_id)
+            # print(card_instance.id)
+            collabcard_state_instance.save()
+
+        update_last_unseen_in_engage(user=data.member_id.id, community=community_id, is_seen=False)
+
+
+def update_last_unseen_in_engage(user='',community='',is_seen=False):
+
+    '''function to update the unseen  collabcard in engage'''
+
+    total_chatrooms = Collabcard.objects.filter(community=community).distinct('id').count()
+    #print("total_chatrooms--",total_chatrooms)
+    seen_chatrooms = collabcardState.objects.filter(community=community,user=user,external_seen=True).distinct('card').count()
+    #print("seen_chatrooms--", seen_chatrooms)
+    diff = total_chatrooms - seen_chatrooms
+
+    unseen_count = 0
+    if diff <= 0:
+        unseen_count = 0
+    else:
+        unseen_count = diff
+
+
+
+    if not is_seen:
+        Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=unseen_count)
+    else:
+        Member_Engage.objects.filter(community_id=community, member_id=user).update(
+            last_unseen_count=unseen_count,
+            updated_at=time.time()
+        )
+
+    # if unseen_count > 0:
+    #     member_instances = get_new_chatroom_members(user, community)
+    #     if len(member_instances) > 0:
+    #         Member_Engage.objects.filter(community_id=community, member_id=user).update(
+    #             new_chatroom_users=json.dumps(member_instances))
+
+
+def migrate_members_in_chatrooms():
+
+    '''function to migrate the data in chatrooms'''
+   # community_id = 49231
+
+    all_chatrooms = Collabcard.objects.all()
+
+    for data in all_chatrooms:
+        set_chatroom_state_for_all_members_on_card_creation(data.community.id, data.id)
+
+        print("card_id",data.id)
+        print("community_id",data.community.id)
+
+
+
+
 
 
 start_time = time.time()
-get_all_chatroom_states()
+#get_all_chatroom_states()
+migrate_members_in_chatrooms()
 end_time = time.time()
 
 diff = end_time - start_time
