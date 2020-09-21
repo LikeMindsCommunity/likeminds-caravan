@@ -705,7 +705,7 @@ class collabcardState(models.Model):
     
     expiry_time = models.BigIntegerField(null=True)
 
-    external_seen = models.BooleanField(default=False)
+    external_seen = models.BooleanField(default=True)
 
 
 
