@@ -6055,6 +6055,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     is_guest = False
     is_tagged = False
     ref_instance = None
+    mute_status = False
 
 
 
@@ -6066,6 +6067,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
             ref_instance = ref_filter[0]
     elif 'is_tagged' in func_dict and func_dict['is_tagged']:
         is_tagged = True
+        mute_status = True
 
 
     try:
@@ -6082,9 +6084,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
             return
         expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
         if is_guest:
-            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time,is_tagged=is_tagged,external_seen=True)
+            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time,is_tagged=is_tagged,external_seen=True,mute_status=mute_status)
         else:
-            collabcard_state_filter.update(follow_status=status,updated_at=time.time(),expiry_time=expiry_time,is_tagged=is_tagged,external_seen=True)
+            collabcard_state_filter.update(follow_status=status,updated_at=time.time(),expiry_time=expiry_time,is_tagged=is_tagged,external_seen=True,mute_status=mute_status)
 
     else:
         collabcard_state_instance = collabcardState()
