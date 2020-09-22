@@ -5802,7 +5802,7 @@ def create_conversation(request):
 def conversation_tagging(request, res, card_instance, user_instance, member_id):
     '''tagging in conversations and auto-following'''
     # sending the tagged member list
-    auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
+    auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id,card_instance)
 
     # send tagged users mail if they didnt check chat in last 24 hours
     tagged_members = get_tagged_members_list(res['text'])
@@ -5862,12 +5862,18 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
     # print(update_status)
 
 
-def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id):
+def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id,card_instance=None):
     '''function to follow tagged chatrooms'''
 
     tagged_members = get_tagged_members_list(conversation)
 
     tagged_member_list = tagged_members[0]
+
+    is_tagged=True
+
+    if card_instance:
+        if card_instance.type == card_types.CARD_PURPOSE:
+            is_tagged=False
 
     for user_id in tagged_member_list:
         function_dict = {
@@ -5875,7 +5881,7 @@ def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id):
             'collabcard_id': card_id,
             'status': True,
             'source':"auto-following-chatroom",
-            'is_tagged':True
+            'is_tagged': is_tagged
         }
         collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
@@ -6057,7 +6063,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         ref_filter = User.objects.filter(id=source_id)
         if ref_filter.exists():
             ref_instance = ref_filter[0]
-    elif 'is_tagged' in func_dict:
+    elif 'is_tagged' in func_dict and func_dict['is_tagged']:
         is_tagged = True
 
 
