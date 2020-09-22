@@ -217,7 +217,7 @@ class draftChatroom(models.Model):
     # for poll functionality
     multiple_select = models.BooleanField(default=False)
     multiple_select_no = models.IntegerField(null=True)
-    multiple_select_state = models.IntegerField(default=0)
+    multiple_select_state = models.IntegerField(null=True)
 
     poll_type = models.IntegerField(default=0, null=True)
     is_poll_anonymous = models.BooleanField(default=False, null=True)
@@ -277,7 +277,7 @@ class deletedChatrooms(models.Model):
     # for poll functionality
     multiple_select = models.BooleanField(default=False)
     multiple_select_no = models.IntegerField(null=True)
-    multiple_select_state = models.IntegerField(default=0)
+    multiple_select_state = models.IntegerField(null=True)
 
     poll_type = models.IntegerField(default=0, null=True)
     is_poll_anonymous = models.BooleanField(default=False, null=True)
