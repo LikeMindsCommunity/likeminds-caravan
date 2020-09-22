@@ -51,7 +51,7 @@ def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id=N
         card.deleted_by_promoter = promoter
         text = "community manager"
         card.deleted_by_text = text
-g
+
     if reason:
         card.reason = reason
     if tag_id:
