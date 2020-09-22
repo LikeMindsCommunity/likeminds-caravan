@@ -2010,6 +2010,7 @@ def remove_members(community_id, member_id, removed_state):
                                                  type=card_types.CARD_INTRO)
     if intro_chatroom.exists():
         create_chatroom_delete_backup(intro_chatroom[0], user_instance, removing_member=True)
+        intro_chatroom.delete()
     # removing the draft chatrooms
     draft_removed = draftChatroom.objects.filter(community=community_id, user=member_id).delete()
 
