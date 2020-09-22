@@ -1,8 +1,9 @@
 import time
 from togther.models import (deletedChatrooms, Report_Tags, collabcardState, CollabcardStateBackup)
 
-def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id, reason, card_creator=False,
-                                        promoter=False):
+
+def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id=None, reason=None, card_creator=False,
+                                        promoter=False, removing_member=False):
     deleted_filter = deletedChatrooms.objects.filter(card_id=card_instance.id)
 
     if deleted_filter.exists():
@@ -45,11 +46,12 @@ def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id, 
     if card_creator:
         card.deleted_by_creator = card_creator
         text = "creator"
+        card.deleted_by_text = text
     elif promoter:
         card.deleted_by_promoter = promoter
         text = "community manager"
+        card.deleted_by_text = text
 
-    card.deleted_by_text = text
     if reason:
         card.reason = reason
     if tag_id:
@@ -60,8 +62,8 @@ def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id, 
     card.date_epoch = time.time()  # card creation time
     card.card_id = card_instance.id
     card.save()
-
-    create_chatroom_participants_backup(card_instance=card_instance, deleted_card_instance=card)
+    if not removing_member:
+        create_chatroom_participants_backup(card_instance=card_instance, deleted_card_instance=card)
 
 
 def create_chatroom_participants_backup(card_instance, deleted_card_instance):
