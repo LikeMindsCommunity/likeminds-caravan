@@ -62,6 +62,7 @@ def get_general_records(community,day=0):
 
     day_1 = day_1.timestamp() + 5*60*60 + 30*60
     day_2 = day_2.timestamp() + 5*60*60 + 30*60
+
     test_day = day_1 + 60*60
 
 
@@ -122,6 +123,9 @@ def get_general_records(community,day=0):
 
     # per_day_record.cumulative_communities = community_count
     per_day_record.new_chatrooms = all_rooms.count()
+
+    per_day_record.community = community
+
     per_day_record.new_cm_chatrooms = room_by_cm
     per_day_record.new_intro_rooms = intro_room.count()
     per_day_record.new_messages = all_messages.count()
@@ -139,6 +143,7 @@ def get_general_records(community,day=0):
 
 
 @app.task
+@shared_task
 def run_daily_tasks(day=0):
     communities = Community.objects.filter(created_at__gte=1596157200)
     for community in communities:

@@ -69,6 +69,7 @@ from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard
                     send_community_confirmation_email)
 
 from .mails import *
+
 from .chatroom_backup import create_chatroom_delete_backup
 
 from cms.models import NewAnswer
@@ -1377,6 +1378,7 @@ def save_user_selected_options(question_instance, user_instance, community_insta
 
         option = choice.strip()
         if not is_option_present(option, dropdown_list):
+
             #Save answer for review
             new_answer_instance = NewAnswer()
             new_answer_instance.option = option
