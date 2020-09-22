@@ -2,7 +2,7 @@
 {% block content%}
 <div class="card mt-2 mb-2">
     <div class="card-body">
-       <h2>Daily report</h2>
+       <h2>Weekly  report</h2>
     </div>
 </div>
 
@@ -16,12 +16,9 @@
   <button type="submit" class="btn btn-primary mb-2">Search</button>
 </form>
 <!--{{rows}}-->
-<h3>Cumulative</h3>
+<h3>From {{date_1}} to {{date_2}}</h3>
 <table id="data_table_2" border="1" class="table table-hover"></table>
 <br><br><br>
-<h3>Community wise</h3>
-<table id="data_table" border="1" class="table table-hover"></table>
-
 <!--<table class="table table-bordered table-hover mt-2 mb-2">-->
 <!--    <tr>-->
 <!--        <th></th>-->
@@ -161,36 +158,8 @@ function insert_Row(data){
     y.innerHTML=data;
 }
 </script>
-<script>
-function insert_Row_2(data){
-    var x=document.getElementById('data_table_2').insertRow(-1);
-    var y = x.insertCell(0);
-    y.innerHTML=data;
-}
-{% for row in rows_2 %}
-insert_Row_2('{{row}}');
-var trow = $('#data_table_2').find('tr');
-{% endfor %}
-
-    {% for key,value in result_2.items %}
-    counter = 0;
-        {% for v in value %}
-            var a = trow[counter].insertCell(-1);
-            a.innerHTML = '{{v}}';
-            counter++;
-        {% endfor %}
-    {% endfor %}
-
-    var x=document.getElementById('data_table_2').insertRow(0);
-    y = x.insertCell(0);
-    y.innerHTML = '-';
-    {% for x in result_2 %}
-        var y = x.insertCell(-1);
-        y.innerHTML = '{{x | date:'d-M'}}'
-    {% endfor %}
-</script>
 <style>
-    #data_table tr:nth-child(10n+2){
+    #data_table tr:nth-child(9n+2){
         background:#338DFF;
         color:#fff;
     }

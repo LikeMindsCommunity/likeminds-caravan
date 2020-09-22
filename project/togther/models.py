@@ -999,6 +999,9 @@ class communityFieldTypes(models.Model):
             self.created_at = time.time()
         super(communityFieldTypes, self).save(*args, **kwargs)
 
+    def __str__(self):
+        return self.type
+
 
 
 class communityFieldSubTypes(models.Model):
@@ -1014,6 +1017,9 @@ class communityFieldSubTypes(models.Model):
         if self.created_at == 0:
             self.created_at = time.time()
         super(communityFieldSubTypes, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.sub_type
 
 
 

@@ -126,8 +126,11 @@ def get_general_records(community,day=0):
     per_day_record.community = community
     per_day_record.new_cm_chatrooms = room_by_cm
     per_day_record.new_intro_rooms = intro_room.count()
-    per_day_record.new_messages = all_messages.count()
-    per_day_record.new_intro_room_messages = intro_room_messages.count()
+
+    #subtracting to remove the first message in chatroom
+    per_day_record.new_messages = all_messages.count() - all_rooms.count()
+    per_day_record.new_intro_room_messages = intro_room_messages.count() - intro_room.count()
+
     per_day_record.new_intro_poll_messages = poll_room_messages.count()
     per_day_record.new_intro_event_messages = event_room_messages.count()
     per_day_record.new_messages_by_cm = 0
