@@ -2016,7 +2016,8 @@ def remove_members(community_id, member_id, removed_state):
     # removing the filter data
     filter_data = questionFilters.objects.filter(community=community_id, member=member_id).delete()
 
-    update_last_unseen_in_engage(user=member_id,community=community_id)
+    update_last_unseen_in_engage_on_card_creation.delay(community=community_id,is_seen=False)
+
 
 
 def fetch_community_profile(request):

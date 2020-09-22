@@ -147,7 +147,7 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id,card_id):
 
 
 @shared_task
-def update_last_unseen_in_engage_on_card_creation(community_id):
+def update_last_unseen_in_engage_on_card_creation(community_id,is_seen=True):
     '''function to update the unseen  collabcard in engage when a new collabcard is posted in community
        for all members in the community'''
     community_members = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2)|
@@ -155,7 +155,7 @@ def update_last_unseen_in_engage_on_card_creation(community_id):
 
     for member in community_members:
         print("member >>>>>    ",member.member_id.id)
-        update_last_unseen_in_engage(user=member.member_id.id, community=community_id,is_seen=True)
+        update_last_unseen_in_engage(user=member.member_id.id, community=community_id,is_seen=is_seen)
 
 
 def update_last_unseen_in_engage(user='',community='',is_seen=False):
@@ -164,7 +164,7 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
     total_chatrooms = Collabcard.objects.filter(community=community).distinct('id').count()
     print("total_chatrooms--",total_chatrooms)
-    seen_chatrooms = collabcardState.objects.filter(community=community,user=user,external_seen=True,remove=None).distinct('card').count()
+    seen_chatrooms = collabcardState.objects.filter(community=community,user=user,external_seen=True).distinct('card').count()
     print("seen_chatrooms--", seen_chatrooms)
     diff = total_chatrooms - seen_chatrooms
 
