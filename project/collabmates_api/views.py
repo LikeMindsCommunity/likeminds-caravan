@@ -8419,6 +8419,10 @@ def config(request):
     context['success'] = True
     context['mobile_no_exists'] = mobile_no_exists
 
+
+    access = is_user_community_part(member_id)
+    context['access'] = access
+
     ##mixpanel changes
     user_detail = get_mixpanel_statistics(member_id)
     context['user_detail'] = user_detail
