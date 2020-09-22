@@ -2,7 +2,9 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
+    #data_dashboard
     path('dashboard', dashboard, name="dashboard"),
+    path('dashboard_weekly', dashboard_weekly, name="dashboard_weekly"),
 
     #community_types
     path('list_community_types', list_community_types, name="list_community_types"),
