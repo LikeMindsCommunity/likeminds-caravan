@@ -12,6 +12,11 @@ def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=No
 
     '''function to give tagging list of members in community'''
 
+    #handing empty community id check
+    if chatroom_id and not community_id:
+        card_instance = Collabcard.objects.get(id=chatroom_id)
+        community_id = card_instance.community.id
+
     member_filter = Members.objects.filter(community_id=community_id).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
             state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
