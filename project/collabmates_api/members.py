@@ -1,4 +1,4 @@
-from togther.models import Members,collabcardState,Userinfo
+from togther.models import Members,collabcardState,Userinfo,Collabcard
 from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
     card_types, chatroom_states, email_states
 
