@@ -572,11 +572,19 @@ def get_custom_data_for_new_conversation_created(user_id):
 
         if not conversation.unseen_count:
             continue
+       
+        state_filter = collabcardState.objects.filter(user=user_id,card=conversation.card)
+        if state_filter.exists():
+            mute_status = state_filter[0].mute_status
+            if mute_status:
+                continue
 
         chatroom_name = get_title_from_collabcard(conversation.card)
 
         if conversation.unseen_count > 1:
             chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
+
+
 
 
         temp['community_name'] = conversation.card.community.name
