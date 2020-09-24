@@ -10263,7 +10263,7 @@ def get_preview_for_url(member_id=None, preview_url=None,
         if 'source_id' in query_items:
             source_id = query_items['source_id']
 
-    context = {"intenal_link": preview_url, "preview_type": preview_type,
+    context = {"internal_link": preview_url, "preview_type": preview_type,
                "preview_text": preview_text, "title": title}
     if aj:
         context["aj"] = aj
