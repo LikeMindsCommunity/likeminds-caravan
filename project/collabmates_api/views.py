@@ -6630,6 +6630,7 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None):
     chatrooms = []
     for data in chatroom_list:
         card_instance = data.card
+
         chatroom_instance = get_chatroom_instance(card_instance, member_id,state_instance=data)
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER).order_by('id')
