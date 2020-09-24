@@ -135,6 +135,8 @@ class CeleryBeatTask:
             if(created):
                 print("succesfully created dynamic celery beat task")
 
+
+
 # uncomment to test
 
 

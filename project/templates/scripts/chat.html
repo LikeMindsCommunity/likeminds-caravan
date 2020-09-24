@@ -7,16 +7,41 @@
         var answerTexts = document.getElementsByClassName('answerText');
         for(var i = 0; i < answerTexts.length; i++){
             var answerText = answerTexts[i].textContent;
-            if(answerText.indexOf('<<') > -1 && answerText.indexOf('>>') > 3){
-                var arrStr = answerText.split('<<');
-                answerText = arrStr[0] + `<a href="${arrStr[1].split('|')[1].split('route:/')[1].split('>>')[0] }">${arrStr[1].split('|')[0]}</a> `;
-                //fwefwefgw <<Natesh Relhan|route://member/456>> afqefweqfqw
-                answerText = answerText + arrStr[1].split('>>')[1];
-                answerTexts[i].innerHTML = answerText;
+            //console.log(answerText);
+            const regex = /<<[A-Za-z0-9_ ]*\|route:\/\/member\/[0-9]*>>/g;
+            const name_regex = /<<[a-zA-Z0-9 _]*\|/g;
+            const id_regex = /member\/[0-9]+/g;
+            const found = answerText.match(regex);
+
+
+            //console.log(found);
+            if (found != null){
+                var j;
+
+                for (j=0; j<found.length;j++){
+                    var name = found[j].match(name_regex);
+                    text_name = name[0].split('');
+                    text_name = text_name.splice(2,text_name.length-3);
+                    text_name = text_name.join('');
+                    var text_id = found[j].match(id_regex);
+                    //console.log(text_id);
+                    text_id = text_id[0].split('');
+                    //console.log(text_id);
+                    text_id = text_id.splice(7);
+                    text_id = text_id.join('');
+                    //console.log(text_name);
+                    //console.log(text_id);
+                    var tag = '<a href="/member/'+text_id+'">'+text_name+'</a>';
+                    answerText = answerText.replace(found[j],tag);
+                    //console.log(answerText);
+                }
             }
+            answerTexts[i].innerHTML = answerText;
+
         }
     }
     makeTags();
+    /*
     function textareaInput(ele, eve){
 
         ele.style.height = "auto";
@@ -26,15 +51,15 @@
         }
         if(scl < 48){
             // ele.style.lineHeight = "48px";
-            $('#bottomFiller')[0].style.height = "60px";
+            $('#bottomFiller').style.height = "60px";
         }else{
             // ele.style.lineHeight = "normal";
-            $('#bottomFiller')[0].style.height = (scl)+"px";
+            $('#bottomFiller').style.height = (scl)+"px";
         }
         ele.style.height = (scl - 32)+"px";
         $('#attach').addClass('dN');
     }
-
+*/
     function readURL(input) {
         // debugger;
         if (input.files) {
@@ -116,7 +141,7 @@
             url: '/api/fetch_chatroom?chatroom_id={{collabcard.id}}&conversation_id='+ conversation_id +'&scroll_direction=' + scroll_state,
             dataType : 'html',
             success: function(data){
-                console.log(data);
+                //console.log(data);
                 // if(typeof data.success != 'undefined'){
                     if(scroll_state == 1){
                         $('#commentsCon').append(data);
@@ -153,7 +178,7 @@
             {% if request.user.is_authenticated %}
                     var status = true;//$(this).attr('data-status');
                     var temp = {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status,aj:'{{aj}}',source_id:'{{source_id}}',member_state:'{{member_state.state}}'}
-                    console.log(temp)
+                    //console.log(temp)
 
                     // console.log(status)
                     $(".ldrT", $('#loader')[0]).text(`Requesting to follow chatroom...`);
@@ -203,7 +228,7 @@
     
     $(window).on('resize scroll', function() {
         $('#attach').addClass('dN');
-        console.log('scroll');
+        //console.log('scroll');
         if ($('#comments').isInViewport()) {
             $('#bottomButton').hide();
             $('.chatInput').show();
@@ -508,5 +533,37 @@
 
 
    })
+    $(document).ready(function(){
+        get_first_conversation();
+    });
+    function get_first_conversation(){
+    console.log('/api/fetch_chatroom?chatroom_id={{collabcard.id}}&conversation_id='+ {{collabcard.last_conversation.id}} +'&scroll_direction=' + 0);
+    var scroll_state = 0;
+        $.ajax({
+        {% if collabcard.last_conversation %}
+            url: '/api/fetch_chatroom?chatroom_id={{collabcard.id}}&conversation_id='+ {{collabcard.last_conversation.id}} +'&scroll_direction=' + 0,
+        {% else %}
+            url: '/api/fetch_chatroom?chatroom_id={{collabcard.id}}',
+        {% endif %}
+            dataType : 'html',
+            success: function(data){
+                //console.log(data);
+                // if(typeof data.success != 'undefined'){
+                        $('#commentsCon').prepend(data);
+                        //console.log(data);
+                        makeTags();
+                        $('.answerText').removeClass('answerText');
+                        $('#scroll_state_0 .ldr').addClass('dN');
+                        $('#scroll_state_0 .ldrText').html('Load older chats ');
+                        window.scrollTo(0,document.body.scrollHeight);
+                // }else{
 
+                // }
+                window.fetching_chatroom = null;
+            },
+            error: function(data){
+                window.fetching_chatroom = null;
+            }
+        });
+    }
 </script>

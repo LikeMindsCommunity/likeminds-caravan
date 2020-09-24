@@ -1,4 +1,4 @@
-from togther.models import Members,collabcardState,Userinfo
+from togther.models import Members,collabcardState,Userinfo,Collabcard
 from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
     card_types, chatroom_states, email_states
 
@@ -11,6 +11,11 @@ from .utility import *
 def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=None):
 
     '''function to give tagging list of members in community'''
+
+    #handing empty community id check
+    if chatroom_id and not community_id:
+        card_instance = Collabcard.objects.get(id=chatroom_id)
+        community_id = card_instance.community.id
 
     member_filter = Members.objects.filter(community_id=community_id).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
@@ -138,6 +143,21 @@ def get_all_members(request, req_dict=None):
         context['total_pending_members'] = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
 
     return context
+
+def get_community_managers(community_instance):
+
+    '''function to get count of community managers'''
+
+    manager_filter = Members.objects.filter(community_id=community_instance,state=member_states.ADMIN).order_by('created_at')
+    temp = {}
+    manager_name = ""
+    for manager in manager_filter:
+        manager_name = manager.member_id.userinfo.name
+        break
+    temp['manager_name'] = manager_name
+    temp['count'] = manager_filter.count()
+
+    return temp
 
 def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None,page=1):
 

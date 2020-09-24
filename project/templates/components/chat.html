@@ -175,7 +175,7 @@
 
 <form class="bs conversation-compose chatInput pF b60 l0 r0 z2" id="submit_commit">
     {% if user.is_authenticated %}
-    <div id="attach" class="mxw960 mA p12 pb0 bs dN bgd0d8e2">
+    <div id="attach" class="mxw960 mA p12 pb0 bs dN bgd0d8e2" style="max-width:786px;">
         <div class="bgF br10 bs p12 taC">
             <div class="dIb m16 vM">
                 <div class="bgE brp50 dIb h48 vM w48" style="background:#eee url(https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fgallery.png?alt=media&token=21371dca-1e32-40b5-bd6a-8fb0dbe6acd1);background-size: contain;">
@@ -204,7 +204,7 @@
         </div>
     </div>
     {% endif %}
-    <div class="dT h60 wp100 p612 mxw960 mA bgd0d8e2" id="type_response">
+    <div class="dT h60 wp100 p612 mxw960 mA bgd0d8e2" id="type_response" style="max-width:786px;">
         <div class="dTc vM">
             <div class="dT wp100 bgF br24 h48 oH">
                 <!-- <div class="emoji dTc vM taC">
@@ -214,7 +214,8 @@
                         </svg>
                     </div>
                 </div> -->
-                <textarea oninput="textareaInput(this, event)" class="input-msg dTc vM wp100 p16 h48" name="input" placeholder="Type a response" autocomplete="off" id="comment_inp"></textarea>
+                <textarea oninput="" class="input-msg dTc vM wp100 p16 h48" name="input" placeholder="Type a response" autocomplete="off" id="comment_inp"></textarea>
+<!--                <textarea oninput="textareaInput(this, event)" class="input-msg dTc vM wp100 p16 h48" name="input" placeholder="Type a response" autocomplete="off" id="comment_inp"></textarea>-->
                 <div class="photo dTc vM taC" onclick="$('#attach').toggleClass('dN');//$('html, body').animate({ scrollTop: $(document).height() }, 100);">
                     <div class="dIb h24 vM w24">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
@@ -255,7 +256,7 @@
     </div>
     <div class="pA b0 l0 r0">
         <form id="submit_media">
-            <div class="dT h60 wp100 p12 mxw960 mA">
+            <div class="dT h60 wp100 p12 mxw960 mA" style="max-width:786px;">
                 <div class="dTc vM">
                     <div class="dT wp100 bgF br24 h48 oH">
                         <!-- <div class="emoji dTc vM taC">
@@ -281,7 +282,7 @@
             </div>
             <div id="filesType" class="dN"></div>
 
-            <div id="allMedia" class="h56 mA mxw960"></div>
+            <div id="allMedia" class="h56 mA mxw960" style="max-width:786px;"></div>
         </form>
     </div>
 </div>

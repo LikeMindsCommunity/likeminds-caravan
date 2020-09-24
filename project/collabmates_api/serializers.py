@@ -458,12 +458,14 @@ def get_category_of_chatroom(typ):
     return chatroom_type
 
 
-def conversationSerializer(conversation):
+def conversationSerializer(conversation, fetch_reply=True):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
         "state": conversation.state,
-        "member": UserinfoSerializer(conversation.user.userinfo)
+        "member": UserinfoSerializer(conversation.user.userinfo),
+        'is_deleted': conversation.is_deleted,
+        'is_edited': conversation.is_edited,
     }
 
     answer_files = get_answer_files(temp['id'])
@@ -476,6 +478,9 @@ def conversationSerializer(conversation):
 
     if conversation.og_tags:
         temp['og_tags'] = json.loads(conversation.og_tags)
+
+    if conversation.reply and fetch_reply:
+        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
 
     return temp
 
@@ -531,7 +536,7 @@ def get_chatroom_name(user_name, card):
     return chatroom_name
 
 
-def get_chatroom_instance(card_instance, member_id, current_user_id=None):
+def get_chatroom_instance(card_instance, member_id, current_user_id=None,state_instance=None):
 
     if not current_user_id:
         current_user_id = member_id
@@ -540,44 +545,31 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None):
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
 
     # get chatroom status
-    status = get_status_of_collabcard(member_id, card_instance)
+    status = get_status_of_collabcard(member_id, card_instance,state_instance)
     collabcard_serializer['state'] = status['state']
     collabcard_serializer['mute_status'] = status['mute_status']
     collabcard_serializer['follow_status'] = status['follow_status']
     collabcard_serializer['is_guest'] = status['is_guest']
+    collabcard_serializer['active'] = False
+    collabcard_serializer['is_tagged'] = status['is_tagged']
+
+    expiry_time = status['expiry_time']
+
+    if not expiry_time or expiry_time >= int(time.time()):
+        collabcard_serializer['active'] = True
+
 
     collabcard_serializer['member'] = collabcard_member[0]
 
     is_removed = removedMembers.objects.filter(community=card_instance.community,member_id=collabcard_serializer['member']['id'])
 
-    if  collabcard_serializer['member']['state'] == 0 and is_removed.exists():
+    if collabcard_serializer['member']['state'] == 0 and is_removed.exists():
         temp = get_removed_member_custom_text(is_removed[0])
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
 
-
-    # removed_state = removedMembersSerializer(card_instance.community.id, collabcard_serializer['member']['id'])
-    # if removed_state != False:
-    #     collabcard_serializer['member']['remove_state'] = removed_state
-
-
-
-
-
-
-    # if status['remove']:
-    #     instance = status['remove']
-    #     temp = get_removed_member_custom_text(instance)
-    #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-    #     collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
-    #     collabcard_serializer['member']['remove_state'] = temp['remove_state']
-    #     collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-    # if status['is_guest'] and status['state_instance'].source:
-    #     temp = get_guest_custom_text(status['state_instance'])
-    #     collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-    #     collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
 
 
 
@@ -653,7 +645,7 @@ def get_draft_chatroom_instance(draft_instance, member_id):
     return draft_serializer
 
 
-def get_status_of_collabcard(member_id, card):
+def get_status_of_collabcard(member_id, card,state_instance=None):
     '''function to get the state of collabcard'''
 
     collabcard_status = {
@@ -662,29 +654,43 @@ def get_status_of_collabcard(member_id, card):
         'follow_status': False,
         'is_guest': False,
         'remove': False,
-        'state_instance': None
+        'state_instance': None,
+        'expiry_time':None,
+        'is_tagged':False
 
     }
 
     if not member_id:
         return collabcard_status
 
-    member_id = User.objects.get(id=member_id)
-    collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
-
-    if collabcard_state.exists():
-        collabcard_status['state'] = collabcard_state[0].state
-        collabcard_status['mute_status'] = collabcard_state[0].mute_status
-        collabcard_status['follow_status'] = collabcard_state[0].follow_status
-        collabcard_status['is_guest'] = collabcard_state[0].is_guest
-        collabcard_status['remove'] = collabcard_state[0].remove
-        collabcard_status['state_instance'] = collabcard_state[0]
+    #member_id = User.objects.get(id=member_id)
+    if not state_instance:
+        collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
+        if collabcard_state.exists():
+            collabcard_status['state'] = collabcard_state[0].state
+            collabcard_status['mute_status'] = collabcard_state[0].mute_status
+            collabcard_status['follow_status'] = collabcard_state[0].follow_status
+            collabcard_status['is_guest'] = collabcard_state[0].is_guest
+            collabcard_status['remove'] = collabcard_state[0].remove
+            collabcard_status['state_instance'] = collabcard_state[0]
+            collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
+            collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
+    else:
+        collabcard_status['state'] = state_instance.state
+        collabcard_status['mute_status'] = state_instance.mute_status
+        collabcard_status['follow_status'] = state_instance.follow_status
+        collabcard_status['is_guest'] = state_instance.is_guest
+        collabcard_status['remove'] = state_instance.remove
+        collabcard_status['state_instance'] = state_instance
+        collabcard_status['expiry_time'] = state_instance.expiry_time
+        collabcard_status['is_tagged'] = state_instance.is_tagged
     return collabcard_status
 
 
 def CollabcardPollsSerializer(poll, user, card):
     """ Poll serializer """
     # print("user--",user)
+    card_instance = card
     polls = {
         'id': poll.id,
         'text': poll.text,
@@ -711,8 +717,9 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['image_url'] = poll.image_url
 
     if poll.user:
-        member_instance = Members.objects.filter(community_id=card.community.id, member_id=poll.user.id)
-        polls['member'] = MembersSerializer(member_instance[0], community_id=card.community.id, current_user_id=None)
+        member_profile = get_members_profile([poll.user.id],card_instance.community.id)
+        polls['member'] = member_profile[0]
+
     # if card.end_date // 1000 <= time.time():
     #     poll_detail = poll_percentage(card, poll)
     #
@@ -751,7 +758,7 @@ def get_answer_text_for_poll(card, current_user_id=None):
         if not first_user:
             first_user = user
 
-        if int(user.user.id) == int(current_user_id):
+        if current_user_id and int(user.user.id) == int(current_user_id):
             if not current_user:
                 current_user = user
             should_add_you = True
@@ -812,8 +819,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
         community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
             str(community_id), str(member_id))
 
-        community_profile[
-            'member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
+        community_profile['member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
                                                                                                            time.localtime(
                                                                                                                member_instance.created_at))
     elif member_instance.state == member_states.PENDING_MEMBER:
@@ -855,11 +861,22 @@ def get_members_profile(member_ids, community_id, current_user_id=None):
     return member_profile_list
 
 
+
+
+
 def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True):
-    try:
-        user_instance = User.objects.get(id=user_id)
-    except:
-        return {}
+
+
+    if isinstance(user_id,User):
+        user_instance = user_id
+
+        if not user_instance:
+            return {}
+    else:
+        try:
+            user_instance = User.objects.get(id=user_id)
+        except:
+            return {}
 
     userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
     # userinfo_serialized_object['state'] = 0
@@ -923,6 +940,7 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
     if not bl:
         return user_response
     return (user_response, new_response)
+
 
 
 def get_question_data(question_id, member_state, send_back):

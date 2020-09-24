@@ -16,7 +16,7 @@
             
         {% include 'components/header.html' with data=header %}
 
- <div class="pR pb60"><!--            &ndash;&gt;{{collabcard.state}}<&#45;&#45;-->
+ <div class="pR pb60" style="max-width:786px;margin:0 auto; max-width:786px;background-color:#f0f5f5;"><!--            &ndash;&gt;{{collabcard.state}}<&#45;&#45;-->
 
 
 
@@ -105,16 +105,16 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
                      </div>
         </div>
 
+        {% include 'components/download_app_bar.html' with subtitle="Chat rooms are better on our app"  %}
 
         {% if collabcard.state != 0 %}
-        {% include 'components/download_app_bar.html' with subtitle="Chat rooms are better on our app"  %}
 
 
 
         {% else %}
-<style>
-.conversation-compose,.chatInput{bottom:0;}
-</style>
+<!--<style>-->
+<!--.conversation-compose,.chatInput{bottom:0px;}-->
+<!--</style>-->
 
         {% endif %}
     <script>
@@ -350,7 +350,7 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
 
 
     {% if user.is_authenticated  and aj_expired == True and member_state.state == 0 %}
-        $('#attend_overlay').show();
+       // $('#attend_overlay').show();
     {% endif %}
 
 

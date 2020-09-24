@@ -9,8 +9,11 @@
                 <div class="p24 bs taC ffR login-step" id="step-1">
                     <p class="p0 fs15 lh22 c6 mb16" id="login_text">
                         {% if popup_text == 'community_question' %}
-                            Login to register yourself to access community details.
-                            You can also apply to join the community.
+                            {% if not footer.aj_expired or footer.aj_expired == "True" %}
+                                Login to register yourself to access community details.
+                            {% else %}
+                                Login to register yourself to access community details. You can also apply to join the community.
+                            {% endif %}
                         {% elif popup_text == 'chatroom' %}
                             Please login to participate in the conversation.
                             You can reply and tag others once you are logged in.
@@ -31,7 +34,7 @@
                                     <i class="dIb fa fa-caret-down fs15 lh16 vM"></i>
                                 </div>
                                 <div class="input-wrapper">
-                                    <input autocomplete="off" type="text" class=" df bn on p10 fs15 c4 ls1" placeholder="Mobile no." id="phone_number">
+                                    <input autocomplete="off" type="number" class=" df bn on p10 fs15 c4 ls1" maxlength="10" placeholder="Mobile no." id="phone_number">
                                 </div>
                             </div>
                         </div>
@@ -51,10 +54,10 @@
                     <p class="small">We have sent you a 4 digit verification code on</p>
                     <p class="phone"><span id="step-2-phone"></span> (<span class="clickable" onclick="editPhone()">Edit</span>)</p>
                     <form action="" class="" id="otp_form" autocomplete="off" >
-                        <input id="otp_from_user1" type="number" maxlength="1" onkeyup="onKeyUpEvent(1, event)" onfocus="onFocusEvent(1)"/>
-                        <input id="otp_from_user2" type="number" maxlength="1" onkeyup="onKeyUpEvent(2, event)" onfocus="onFocusEvent(2)"/>
-                        <input id="otp_from_user3" type="number" maxlength="1" onkeyup="onKeyUpEvent(3, event)" onfocus="onFocusEvent(3)"/>
-                        <input id="otp_from_user4" type="number" maxlength="1" onkeyup="onKeyUpEvent(4, event)" onfocus="onFocusEvent(4)"/>
+                        <input id="otp_from_user1" type="number" maxlength="1" onkeyup="onKeyUpEvent(1, event)" onfocus="onFocusEvent(1)" class="otp-1"/>
+                        <input id="otp_from_user2" type="number" maxlength="1" onkeyup="onKeyUpEvent(2, event)" onfocus="onFocusEvent(2)" class="otp-1"/>
+                        <input id="otp_from_user3" type="number" maxlength="1" onkeyup="onKeyUpEvent(3, event)" onfocus="onFocusEvent(3)" class="otp-1"/>
+                        <input id="otp_from_user4" type="number" maxlength="1" onkeyup="onKeyUpEvent(4, event)" onfocus="onFocusEvent(4)" class="otp-1"/>
                   
                     </form>
                     <p id="otp_error_message" class="error_message">
@@ -65,11 +68,12 @@
                     </div>
 
                     <div class=" bs taC   mt20 z1" id="timer-wrapper">
-                        00:<span id="timer-2">30</span>
-                        <p id="resend-code">
-                            <a class="clickable" onclick="sendVerificationCode()">Resend Verification Code</a>
-                        </p>
+                        <span id="clock-2">00:<span id="timer-2">30</span></span>
+
                     </div>
+                    <p id="resend-2">
+                        <a class="clickable" onclick="sendVerificationCode()">Resend Verification Code</a>
+                    </p>
                 </div>
             </div>
 
@@ -162,10 +166,10 @@
                         A 4-digit verification OTP (one time password) has been sent to mobile number <span id="merge_phone"></span> and email id <span id="merge_mail"></span>.
                     </p>
                     <form action="" class="" id="otp_form" autocomplete="off" >
-                        <input id="otp_from_merge1" type="number" maxlength="1" onkeyup="onKeyUpEvent1(1, event)" onfocus="onFocusEvent1(1)"/>
-                        <input id="otp_from_merge2" type="number" maxlength="1" onkeyup="onKeyUpEvent1(2, event)" onfocus="onFocusEvent1(2)"/>
-                        <input id="otp_from_merge3" type="number" maxlength="1" onkeyup="onKeyUpEvent1(3, event)" onfocus="onFocusEvent1(3)"/>
-                        <input id="otp_from_merge4" type="number" maxlength="1" onkeyup="onKeyUpEvent1(4, event)" onfocus="onFocusEvent1(4)"/>
+                        <input id="otp_from_merge1" type="number" maxlength="1" onkeyup="onKeyUpEvent1(1, event)" onfocus="onFocusEvent1(1)" class="otp-1"/>
+                        <input id="otp_from_merge2" type="number" maxlength="1" onkeyup="onKeyUpEvent1(2, event)" onfocus="onFocusEvent1(2)" class="otp-1"/>
+                        <input id="otp_from_merge3" type="number" maxlength="1" onkeyup="onKeyUpEvent1(3, event)" onfocus="onFocusEvent1(3)" class="otp-1"/>
+                        <input id="otp_from_merge4" type="number" maxlength="1" onkeyup="onKeyUpEvent1(4, event)" onfocus="onFocusEvent1(4)" class="otp-1"/>
                     
                     </form>
                     <p id="otp_error_message" class="error_message">
@@ -177,9 +181,9 @@
                         </button>
                     </div>
 
-                    <div class=" bs taC   mt20 z1" id="timer-wrapper">
-                        <span id="timer-1">30</span>
-                        <p id="resend-code">
+                    <div class=" bs taC   mt20 z1" id="timer-wrapper-1">
+                        <span id="clock-1   ">00:<span id="timer-1">30</span></span>
+                        <p id="resend-1">
                             <a href="#">Resend Verification Code</a>
                         </p>
                     </div>

@@ -123,7 +123,9 @@ def get_general_records(community,day=0):
 
     # per_day_record.cumulative_communities = community_count
     per_day_record.new_chatrooms = all_rooms.count()
+
     per_day_record.community = community
+
     per_day_record.new_cm_chatrooms = room_by_cm
     per_day_record.new_intro_rooms = intro_room.count()
 

@@ -15,6 +15,7 @@ from .tasks import send_mail_after_rank_computation, send_email_to_proposed_admi
 from django.core.mail import EmailMultiAlternatives
 from collabmates_api.serializers import *
 from collabmates_api.views import *
+from collabmates_api.static_files import *
 import traceback
 from collabmates_api.raw_queries import compute_rank
 # from collabmates_api.notification import notification_after_compute_rank
@@ -364,10 +365,11 @@ def community_questions(request,params):
             'color': 'F'
         }
         header_showcase = {
-            'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
+            # 'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
+            'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fapp_bar_status_bar.png?alt=media',
             'header': 'You are interested in joining this community:',
             'subHeader': community_instance.name,
-            'userImage': request.user.userinfo.image_link if user_instance else ""
+            'userImage': request.user.userinfo.image_link if user_instance else PROFILE_DEFAULT
         }
 
 
@@ -390,7 +392,7 @@ def community_questions(request,params):
             'title': community_instance.name,
             'creator': "Created by " + admin,
             'members':  str(members_count) + " members",
-            'imgURL': community_instance.thumbnail
+            'imgURL': community_instance.image_link
         }
         if user_directory:
             footer = private_link_app_invite(community_instance, url_details['aj'], admin)
@@ -1495,7 +1497,7 @@ def get_community_questions(community_id):
                 for option in dropdown_options:
                     dropdown_list.append((option['value']))
 
-                dropdown_list.sort()
+                # dropdown_list.sort()
 
 
                 if 'Other' not in dropdown_list:

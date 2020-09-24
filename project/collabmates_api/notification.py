@@ -29,7 +29,7 @@ from datetime import datetime,timedelta
 # database details
 db_user=settings.DATABASES['default']['USER']
 db_password=settings.DATABASES['default']['PASSWORD']
-db_host=settings.DB_HOST
+db_host=settings.DATABASES['default']['HOST']
 db_port=settings.DATABASES['default']['PORT']
 db_database=settings.DATABASES['default']['NAME']
 
@@ -572,11 +572,19 @@ def get_custom_data_for_new_conversation_created(user_id):
 
         if not conversation.unseen_count:
             continue
+       
+        state_filter = collabcardState.objects.filter(user=user_id,card=conversation.card)
+        if state_filter.exists():
+            mute_status = state_filter[0].mute_status
+            if mute_status:
+                continue
 
         chatroom_name = get_title_from_collabcard(conversation.card)
 
         if conversation.unseen_count > 1:
             chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
+
+
 
 
         temp['community_name'] = conversation.card.community.name
@@ -1485,24 +1493,24 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
         }
         notification_list.append(temp)
         message['payload'] = {
-            "title": "Hey " + str(member.member_id.userinfo.name) + "!",
+            "title": str(community_instance.name),
             "sub_title": "",
             'route':'//route://community_collabcard?community_id='+ str(community_id) +'&community_name=' + str(community_instance.name)
         }
         if day == 3:
-            message['payload']['sub_title'] = "Looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
+            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(member.member_id.userinfo.name) + ", looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
             notification_meta(notification_list, message)
 
         elif day == 4:
-            message['payload']['sub_title'] = "It has been 4 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
+            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(member.member_id.userinfo.name) + ", it has been 4 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
             notification_meta(notification_list, message)
 
         elif day == 7:
-            message['payload']['sub_title'] = "Looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
+            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(member.member_id.userinfo.name) + ",looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
             notification_meta(notification_list, message)
 
         elif day == 9:
-            message['payload']['sub_title'] = "It has been 9 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
+            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(member.member_id.userinfo.name) + ", it has been 9 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
             notification_meta(notification_list, message)
 
 
@@ -1648,7 +1656,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         card_instance = Collabcard.objects.get(pk=card_id)
         card_owner = card_instance.user
         owner_flag = False
-
+        card_title = get_title_from_collabcard(card_instance)
         if typ == 2:
             collabcardstates = collabcardState.objects.filter(card=card_id).filter(Q(state=3) |Q(state=4)).filter(removed_status=None)
             notification_list = []
@@ -1704,7 +1712,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
         message = {}
         message['payload'] = {
-            'title': str(community_name),
+            'title': str(card_title),
             'sub_title': sub_title,
             'route': route
         }
