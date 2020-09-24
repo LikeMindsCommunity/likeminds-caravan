@@ -690,6 +690,7 @@ def get_status_of_collabcard(member_id, card,state_instance=None):
 def CollabcardPollsSerializer(poll, user, card):
     """ Poll serializer """
     # print("user--",user)
+    card_instance = card
     polls = {
         'id': poll.id,
         'text': poll.text,
@@ -716,8 +717,8 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['image_url'] = poll.image_url
 
     if poll.user:
-        member_instance = Members.objects.filter(community_id=card.community.id, member_id=poll.user.id)
-        polls['member'] = MembersSerializer(member_instance[0], community_id=card.community.id, current_user_id=None)
+        polls['member'] = get_members_profile([poll.user.id],card_instance.community.id)
+
     # if card.end_date // 1000 <= time.time():
     #     poll_detail = poll_percentage(card, poll)
     #
@@ -756,7 +757,7 @@ def get_answer_text_for_poll(card, current_user_id=None):
         if not first_user:
             first_user = user
 
-        if int(user.user.id) == int(current_user_id):
+        if current_user_id and int(user.user.id) == int(current_user_id):
             if not current_user:
                 current_user = user
             should_add_you = True
