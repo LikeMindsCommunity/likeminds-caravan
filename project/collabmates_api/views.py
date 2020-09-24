@@ -664,10 +664,6 @@ def get_home_screen_community_actions(community_instance):
 
 
 
-
-
-
-
 def community(request, community_id, req_dict=None):
     ''' Community detail page '''
 
@@ -8242,6 +8238,10 @@ def members_state(request, req_dict=None):
         if collabcard_id and not community_id:
             card = Collabcard.objects.get(pk=collabcard_id)
             community_id = card.community.id
+
+        if not community_id:
+            context = get_error_context(False,"send a valid community id or collabcard id")
+            return JsonResponse(context)
 
     else:
         member_id = req_dict['member_id']
