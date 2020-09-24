@@ -20,7 +20,7 @@
             <style>
                 /* create header selector partial */
                 #header .dTc {color: #fff!important; text-align: center; font-weight: bold;}
-                #header {background: #3bc19f}
+                /*#header {background: #3bc19f}*/
 
                 .ui.attached.negative.message, .ui.negative.message {
                     border: 0!important;
@@ -62,7 +62,7 @@
                             {% if question.question_state == 7 %}
                                 <div class="ffR fR dIb bg06C3AF cF wsN p48 lh17 fs12 ls05 chatBubble_{{question.id}} pR rn16 br8 chatBubbleDown">Minimum characters: {{question.min_chars}}</div>
                                 <div class="dT wp100">
-                                    <label class="dTc vT c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                                    <label class="dTc vT c4a fs15 fwR lh22 p10 m0">{{question.data}} <span style="color:#db2828"> *</span> </label>
                                     <div class="dTc vT w16 pR p10 bs">
                                         {% include 'components/counter_progress_ring.html' with data=question  %}
                                     </div>

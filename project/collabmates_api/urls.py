@@ -51,6 +51,7 @@ urlpatterns = [
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
     path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
+    path('v1/fetch_chatroom_feed', api_views.fetch_chatroom_feed_version_1, name="fetch_chatroom_feed_version_1"),
     path('fetch_community_chatroom_feed', api_views.fetch_community_chatroom_feed, name="fetch_community_chatroom_feed"),
 
 
@@ -89,11 +90,16 @@ urlpatterns = [
     path('chatroom_mute', api_views.chatroom_mute, name='chatroom_mute'),
     path('chatroom_rename', api_views.chatroom_rename, name='chatroom_rename'),
     path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
+    path('set_chatroom_active', api_views.set_chatroom_active, name='set_chatroom_active'),
+
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
     path('mark_read', api_views.mark_read, name='mark_read'),
-    path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
 
+    path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
+    path('v1/my_chatrooms', api_views.my_chatrooms_version_1, name='my_chatrooms_version_1'),
+
+    path('fetch_chatroom_inactive', api_views.fetch_chatroom_inactive, name='fetch_chatroom_inactive'),
 
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
     path('limit_access', api_views.limit_access, name='limit_access'),
@@ -163,6 +169,18 @@ urlpatterns = [
     path('submit_poll', api_views.submit_poll, name='submit_poll'),
     path('add_poll', api_views.add_poll, name='add_poll'),
     path('fetch_poll_users', api_views.fetch_poll_users, name='fetch_poll_users'),
+
+    path('fetch_deleted_chatroom', api_views.fetch_deleted_chatroom, name='fetch_deleted_chatroom'),
+    path('delete_conversation', api_views.delete_conversation, name='delete_conversation'),
+    path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
+    path('fetch_preview', api_views.fetch_preview, name='fetch_preview'),
+
+
+    ############################ static apis #####################################
+
+    path('fetch_intro_examples', api_views.fetch_intro_examples, name='fetch_intro_examples'),
+
+    ##############################################################################
 
 ]
 

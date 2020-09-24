@@ -82,38 +82,38 @@
 
             <div class="bgE h2"></div>
 
-            <div class="oA ffR fwM taC fs13 bgF">
-                <div class="dT tlF mnwp100">
-                    <a class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs" id="purpose_header">PURPOSE</a>
-                    {% if community.about %}
-                        <a href="#about" class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs">ABOUT</a>
-                    {% endif %}
-                    {% if members_length > 0 %}
-                        {% if community.hide_community == '3' %}
-                        <a class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs">WAIT LIST</a>
-                        {% else %}
-                        <a  class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs" id="member_header">MEMBERS</a>
-                        {% endif %}
-                    {% endif %}
-                    <div id="conv" class="dTc vM p16 bs mnwp20 c0">CONVERSATIONS</div>
-                </div>
-            </div>
+<!--            <div class="oA ffR fwM taC fs13 bgF">-->
+<!--                <div class="dT tlF mnwp100">-->
+<!--&lt;!&ndash;                    <a class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs" id="purpose_header">PURPOSE</a>&ndash;&gt;-->
+<!--                    {% if community.about %}-->
+<!--&lt;!&ndash;                        <a href="#about" class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs">ABOUT</a>&ndash;&gt;-->
+<!--                    {% endif %}-->
+<!--                    {% if members_length > 0 %}-->
+<!--                        {% if community.hide_community == '3' %}-->
+<!--                        <a class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs">WAIT LIST</a>-->
+<!--                        {% else %}-->
+<!--                        <a  class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs" id="member_header">MEMBERS</a>-->
+<!--                        {% endif %}-->
+<!--                    {% endif %}-->
+<!--                    <div id="conv" class="dTc vM p16 bs mnwp20 c0">CONVERSATIONS</div>-->
+<!--                </div>-->
+<!--            </div>-->
 
             <div class="bgE h10"></div>
 
-            <div class="bgF p16 bs mb10" id="purpose">
-                <h5 class="fwB fs16 c0 m0 p0 lh20 ffR mb8">Purpose</h5>
-                <p class="fs15 m0 c6 lh24">{{community.purpose}}</p>
-            </div>
+<!--            <div class="bgF p16 bs mb10" id="purpose">-->
+<!--                <h5 class="fwB fs16 c0 m0 p0 lh20 ffR mb8">Purpose</h5>-->
+<!--                <p class="fs15 m0 c6 lh24">{{community.purpose}}</p>-->
+<!--            </div>-->
 
             <!-- rendering multiple admins -->
             {% if admin_length > 0 %}
-                <div class="bs mb10 p160" id="promter_card">
-                    <h4 class="c0 ffR fs16 fwB lh20 m0 p0 p016">Promoter</h4>
+                <div class="bs  p160 bgf" id="promter_card">
+                    <h4 class="c0 ffR fs16 fwB lh20 m0 p0 p016">Community Managers</h4>
                     <div class="oA">
                         <div class="bs dT p8 mnwp100">
                             {% for admin in admins %}
-                                <div class="bs dTc mnw296 mxwp100 p8 vT">
+                                <div class="bs  mnw296 mxwp100 p8 vT community_manager_card">
                                     <div class="h96 mt12 taC pR z1">
                                         <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
                                             <img class="w96 h96 ofC" src="{{admin.image_link}}">
@@ -162,8 +162,7 @@
                 </div>
             {% endif %}
 
-            <div class="h60"></div>
-            
+
             {% if footer %}
                 <div class="h60"></div>
                 <div class="taC pF b60 l0 r0 bg0 z1 p8 bs">
@@ -180,7 +179,6 @@
                 </div>
             {% endif %}
             <!-- Displaying Buttons -->
-            <div class="taC pF b0 l0 r0 h60 bdtE bgBg z1">
                 {% if Nom_mem_state == 6 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');">Respond to invitation</button>
                 {% elif Nom_mem_state == 7 %}
@@ -190,14 +188,26 @@
                 {% elif Nom_mem_state == 3 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled> Open in LikeMinds</button>
                 {% elif Nom_mem_state == 1%}
+                <div class="h60"></div>
+
+                <div class="taC pF b0 l0 r0 h60 bdtE bgBg z1">
+                    {% include 'components/download_app_bar.html' with  subtitle='Manage the community using various tools' auto_join=footer %}
+                    <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App Already a Member</button> -->
+
+                </div>
                     <!-- {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %} -->
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 2 %}
                     <!-- {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %} -->
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 4 %}
-                    {% include 'components/download_app_bar.html' with  subtitle='To edit the information provided by you in membership request' auto_join=footer %}
+                <div class="h60"></div>
+
+                <div class="taC pF b0 l0 r0 h60 bdtE bgBg z1">
+                    {% include 'components/download_app_bar.html' with  subtitle='Edit your profile info for the community' auto_join=footer %}
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App Already a Member</button> -->
+
+                </div>
                 {% elif Nom_mem_state == 5 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community (Declined)</button>
                 {% elif source == 'email' %}
@@ -205,7 +215,6 @@
                 {% elif Nom_mem_state == 0 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community</button>
                 {% endif %}
-            </div>
         </div>
 
         <!-- download the app pop-up -->

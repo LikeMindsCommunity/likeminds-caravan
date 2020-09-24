@@ -121,6 +121,7 @@ class PerDayRecordOverview(models.Model):
     def save(self, *args, **kwargs):
         if self.created_at == 0:
             self.created_at = time.time()
+
         # else:
         #     self.updated_at = time.time()
         #

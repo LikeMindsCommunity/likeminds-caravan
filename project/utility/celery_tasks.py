@@ -1,9 +1,10 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
+from collabmates_api.serializers import get_user_profile
 from togther.models import *
 import time
 from django.db.models import Q
-
+import json
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_referred_members_of_a_member,
                            eligibility_count,
@@ -113,8 +114,40 @@ def update_communities_in_member_engage_table(member_id):
     info_logger.info(c)
 
 
+
+
+
+
 @shared_task
-def update_last_unseen_in_engage_on_card_creation(community_id):
+def set_chatroom_state_for_all_members_on_card_creation(community_id,card_id):
+
+    card_instance = Collabcard.objects.get(id=card_id)
+    all_members = Members.objects.filter(community_id=community_id).filter(Q(state=4)|Q(state=1)|Q(state=9))
+    for data in all_members:
+
+        state_filter = collabcardState.objects.filter(user=data.member_id,card=card_instance)
+        if not state_filter.exists():
+            user_instance = data.member_id
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = card_instance
+            collabcard_state_instance.community = card_instance.community
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = 0
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.external_seen = False
+            collabcard_state_instance.expiry_time = None
+            collabcard_state_instance.save()
+
+        update_last_unseen_in_engage(user=data.member_id.id, community=community_id, is_seen=True)
+
+
+
+
+
+
+@shared_task
+def update_last_unseen_in_engage_on_card_creation(community_id,is_seen=True):
     '''function to update the unseen  collabcard in engage when a new collabcard is posted in community
        for all members in the community'''
     community_members = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2)|
@@ -122,7 +155,7 @@ def update_last_unseen_in_engage_on_card_creation(community_id):
 
     for member in community_members:
         print("member >>>>>    ",member.member_id.id)
-        update_last_unseen_in_engage(user=member.member_id.id, community=community_id,is_seen=True)
+        update_last_unseen_in_engage(user=member.member_id.id, community=community_id,is_seen=is_seen)
 
 
 def update_last_unseen_in_engage(user='',community='',is_seen=False):
@@ -131,7 +164,7 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
     total_chatrooms = Collabcard.objects.filter(community=community).distinct('id').count()
     print("total_chatrooms--",total_chatrooms)
-    seen_chatrooms = collabcardState.objects.filter(community=community,user=user).distinct('card').count()
+    seen_chatrooms = collabcardState.objects.filter(community=community,user=user,external_seen=True).distinct('card').count()
     print("seen_chatrooms--", seen_chatrooms)
     diff = total_chatrooms - seen_chatrooms
 
@@ -141,66 +174,57 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
     else:
         unseen_count = diff
     print(unseen_count)
+
+
     if not is_seen:
-        Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=unseen_count
-                                                                                    )
+        Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=unseen_count)
     else:
         Member_Engage.objects.filter(community_id=community, member_id=user).update(
             last_unseen_count=unseen_count,
             updated_at=time.time()
         )
 
-    # total_collabcards = Collabcard.objects.filter(community=community).filter(~Q(type=4)).values('id').order_by('-id').distinct('id')
-    # seen_collabcard = collabcardState.objects.filter(community=community,
-    #                                                  user=user).values('card').distinct('card')
-    # # print("total_collabcards                >>>>>>>    ", total_collabcards)
-    # # print("seen_collabcard                >>>>>>>    ", seen_collabcard)
-    #
-    # unseen_count=total_collabcards.count() - seen_collabcard.count()
-    # if unseen_count<= 0:
-    #     # if zero or less than zero , unseen card count = 0
-    #     collabcard_unseen = 0
-    # else:
-    #     collabcard_unseen = (total_collabcards.count() - seen_collabcard.count())
-    #
-    # unseen_list = total_collabcards.difference(seen_collabcard).values('id').order_by('id')
-    # # print("unseen_list                >>>>>>>    ", unseen_list)
-    #
-    # if total_collabcards.count() > 0:
-    #     # if community has atleast one card
-    #     if unseen_list.count() != 0:
-    #         # if the unseen cards are present
-    #         # show the latest unseen cards text
-    #         card = Collabcard.objects.get(id=unseen_list.values('id')[0]['id'])
-    #
-    #     else:
-    #         # if no unseen cards , show latest card text
-    #         card = Collabcard.objects.get(id=total_collabcards.values('id')[0]['id'])
-    #     # print("card                >>>>>>>    ",card)
-    #     current_time=time.time()
-    #     # print("current_time        >>>>>>>    ",current_time)
-    #     # print("collabcard_unseen   >>>>>>>    ",collabcard_unseen)
-    #
-    #     # member = Member_Engage.objects.get(community_id=community,member_id=user)
-    #     # member.last_unseen_count=collabcard_unseen
-    #     # member.last_unseen_conversation=card
-    #     # member.updated_at=current_time
-    #     # member.save()
-    #
-    #     #when a new card is created updating time for all members
-    #     if not is_seen:
-    #         Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=collabcard_unseen,
-    #                                                                                 last_unseen_conversation=card,
-    #                                                                                 )
-    #     else:
-    #         Member_Engage.objects.filter(community_id=community, member_id=user).update(
-    #             last_unseen_count=collabcard_unseen,
-    #             last_unseen_conversation=card,updated_at=current_time
-    #             )
+    if unseen_count > 0:
+        member_instances = get_new_chatroom_members(user, community)
+        if len(member_instances) > 0:
+            Member_Engage.objects.filter(community_id=community, member_id=user).update(
+                new_chatroom_users=json.dumps(member_instances))
 
-    # # if is_seen == False:
-    # #     Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
 
+
+
+def get_new_chatroom_members(member_id, community_id):
+    """ to get the member objects for new chatrooms created """
+    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
+
+
+    if last_instance:
+        last_card = last_instance.card
+        unseen_chatrooms = Collabcard.objects.filter(community=community_id,id__gt=last_card.id).distinct('user_id')
+    else:
+        unseen_chatrooms = Collabcard.objects.filter(community=community_id).distinct('user_id')
+
+
+
+    member_list = []
+    for card in unseen_chatrooms:
+
+        member_filter = Members.objects.filter(member_id=card.user, community_id=community_id)
+        image_url = card.user.userinfo.image_link if card.user.userinfo.image_link  else ''
+        if member_filter.exists():
+            member_instance = member_filter[0]
+            if member_instance.image_url:
+                image_url = member_instance.image_url
+
+
+        member = get_user_profile(card.user.id,community_id,send_profile=False)
+        member['image_url'] = image_url
+        member_list.append(member)
+
+        if len(member_list) > 3:
+            break
+
+    return member_list
 
 
 @shared_task
@@ -232,6 +256,5 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
             conversation_engage_filter.filter(user=user).update(
                 last_conversation = last_conversation,
                 updated_at=time.time(),unseen_count=length)
-
 
 

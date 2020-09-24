@@ -562,7 +562,7 @@ input:focus, textarea:focus, select:focus{border-color:#99CC33!important;outline
 .cp{
     cursor:pointer;
 }
-.login-step input[type=number] {
+.login-step .otp-1 {
     height: 48px;
     width: 48px;
     font-size: 20px;
@@ -745,7 +745,7 @@ span.divider:before{
       background-color: #00897b;
   }
   #snackbar.error{
-      background-color: #d0021b;
+      background-color: #DB7093;
   }
   /* Show the snackbar when clicking on a button (class added with JavaScript) */
   #snackbar.show {
@@ -802,7 +802,7 @@ span.divider:before{
     background-size: cover;
     background-position: center center;
 }
-#resend-code{
+#resend-1,#resend-2{
     display: none;
 }
 .download_bar{
@@ -825,4 +825,46 @@ span.divider:before{
 
 .static-page a{
     color:#008a7c;
+}
+.card-answer{
+    display: table-cell;
+    word-break: break-all;
+}
+
+.mxw786{
+    max-width:786px;
+}
+#promter_card{
+    background-color:#fff;
+    border-bottom:10px #eee solid;
+}
+.community_manager_card{
+    width:296px;
+    max-width:33%;
+    display:table-cell;
+}
+.community_manager_tag{
+    color:teal;
+    position:relative;
+    padding-left:15px;
+    font-size:12px;
+}
+.community_manager_tag:before{
+    background: #ddd;
+    content: ' ';
+    width: 2px;
+    border-radius: 5px;
+    height: 2px;
+    box-shadow: #ddd 0 0 0px 2px;
+    position: absolute;
+    left:7px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.community_manager_tag.error{
+    color:#d0021b;
+}
+
+.mxw786{
+    max-width:786px;
 }

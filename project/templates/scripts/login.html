@@ -66,12 +66,20 @@
                 url: url, 
                 success: function(result){
                     console.log(result['success']);
-                    if (result['success'] == true){
-                        $('#step-1').hide();
-                        $('#step-2').show();
-                        $('#step-2-phone').html('+'+country_code + ' ' + phone_number);
-                        startTimer(30,'timer-2');
-                    }
+                    $('#step-1').hide();
+                    $('#step-2').show();
+                    $('#step-2-phone').html('+'+country_code + ' ' + phone_number);
+                    startTimer(30,'timer-2','#clock-2','#resend-2');
+                    $('#login_with_phone').prop('disabled', false);
+                    //if (result['success'] == true){
+                    //    $('#step-1').hide();
+                    //    $('#step-2').show();
+                    //    $('#step-2-phone').html('+'+country_code + ' ' + phone_number);
+                    //    startTimer(30,'timer-2');
+                    //}
+                    //else{
+                    //showSnackbar("Phone number incorrect","error");
+                    //}
                 },
                 error: function (result) { // error callback 
                     console.log("Error:"+result)
@@ -79,16 +87,20 @@
             }
         );
     }
-    let startTimer = function(x,id) {
+    let startTimer = function(x,id,clock_id,resend_id) {
+        console.log(x)
         if(x === 0) {
-            $('#resend-code').show();
-            $(id).hide();
+        console.log(resend_id,clock_id);
+            $(resend_id).show();
+            $(clock_id).hide();
             return;
         }
 
         document.getElementById(id).innerHTML = x;
         console.log()
-        return setTimeout(() => {startTimer(--x,id)}, 1000)
+        $(resend_id).hide();
+        $(clock_id).show();
+        return setTimeout(() => {startTimer(--x,id,clock_id,resend_id)}, 1000)
     }
 
     // function startTimer(timeLeft){
@@ -127,7 +139,7 @@
                     }
                     $('.merge_verification').show();
                     $('.merge_pop_up').modal('hide');
-                    startTimer(30,'timer-1');
+                    startTimer(30,'timer-1','#clock-1','#resend-1');
                 },
                 error: function (result) { // error callback 
                     console.log("Error:"+result)

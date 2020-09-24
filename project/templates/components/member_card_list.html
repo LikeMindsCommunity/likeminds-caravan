@@ -1,20 +1,28 @@
 {% for i in data %}
     <div class="dT wp100 bgF members member_link" member_id={{i.id}}>
         <div class="dTc vM w70 p16 pr0">
-            <img class="w54 h54 oH bd2F bs brp50 bxs" src="{{i.image_link}}"/>
+                        {% if i.image_link %}
+                            <img class="w54 h54 oH bd2F bs brp50 bxs" src="{{i.image_link}}"/>
+                        {% else %}
+                        <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media" class="bd2F brp50 bxs dB h64 w64" />
+                        {% endif %}
+
         </div>
         <div class="dTc vM p16 bs pl12 bdbE">
-            <div class="ffR lh20 fs16 c0">{{i.name}}</div>
+            <div class="ffR lh20 fs16 c0">{{i.name}}
+                {% if i.state == 1 %}
+                    <span class="community_manager_tag"> Community manager</span>
+                {% elif i.state == 3 %}
+                    <span class="community_manager_tag error">Verification Pending</span>
+                {% endif %}
+            </div>
             {% if not is_member %}
-                <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH flrB3 c9 wp100 wbBa">{{i.answer}}</p>
+                <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH flrB3 c9 wp100 wbBa card-answer">{{i.answer}}</p>
                 {% if i.state == 3 %}
                     <p class="ffR p0 m0 fs13 lh17 cd0021b ls025 flrB3">Verification Pending</p>
                 {% endif %}
             {% else %}
-                <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH c9 wp100 wbBa">{{i.answer}}</p>
-                {% if i.state == 3 %}
-                    <p class="ffR p0 m0 fs13 lh17 cd0021b ls025">Verification Pending</p>
-                {% endif %}
+                <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH c9 wp100 wbBa card-answer">{{i.answer}}</p>
             {% endif %}
         </div>
     </div>
