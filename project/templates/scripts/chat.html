@@ -36,12 +36,36 @@
                     //console.log(answerText);
                 }
             }
+            answerText = linkify(answerText);
             answerTexts[i].innerHTML = answerText;
 
         }
     }
+    function linkify(){
+        //your code here
+    }
+
+    function linkify(inputText) {
+        let result, pattern1, pattern2;
+
+        pattern1 = /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/|http:|https:|ftp:)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.(com|in|io|community|org|gov|net|)$/gim;
+
+        result = inputText.replace(pattern1, function (url) {
+            if (url.includes(':')) url = (url.includes('://')) ? url.split('://')[1] : url.split(':')[1];
+            else if (url.includes('/')) url = url.split('/')[1];
+            let link = `<a href="http://${url}" target="_blank">${url}</a>`
+            return link;
+        })
+
+        //Change email addresses to mailto:: links.
+        //pattern2 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim;
+        //result = result.replace(pattern2, '<a href="mailto:$1">$1</a>');
+
+        return result;
+    }
     makeTags();
     /*
+
     function textareaInput(ele, eve){
 
         ele.style.height = "auto";
