@@ -242,7 +242,7 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
     last_conversation = conversations.last()
     second_last=None
     if last_conversation:
-        second_last = card_answers.objects.filter(card_id=chatroom_id,state=0).filter(~Q(user=last_conversation.user)).order_by('id')
+        second_last = card_answers.objects.filter(card_id=chatroom_id,state=0).filter(~Q(user=last_conversation.user)).last()
 
 
     length = len(conversations)
