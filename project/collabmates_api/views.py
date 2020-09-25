@@ -6215,6 +6215,8 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
             if not state_instance.external_seen:
                 state_instance.external_seen = True
                 state_instance.expiry_time = expiry_time
+                state_instance.updated_at = time.time()
+
             state_instance.save()
 
             update_last_unseen_in_engage(user=user_instance, community=community)
