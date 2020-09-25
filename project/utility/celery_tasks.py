@@ -240,6 +240,11 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
 
     conversations = card_answers.objects.filter(card_id=chatroom_id).filter(state = 0).order_by('id')
     last_conversation = conversations.last()
+    second_last=None
+    if last_conversation:
+        second_last = card_answers.objects.filter(card_id=chatroom_id,state=0).filter(~Q(user=last_conversation.user)).order_by('id')
+
+
     length = len(conversations)
     for user in user_list:
 
@@ -250,11 +255,13 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
             unseen_count = card_answers.objects.filter(card_id=chatroom_id, state=0, id__gt=seen_id).count()
             conversation_engage_filter.filter(user=user).update(
                 last_conversation=last_conversation,
+                second_last_conversation=second_last,
                 updated_at = time.time(),unseen_count = unseen_count)
         else:
             #print(length)
             conversation_engage_filter.filter(user=user).update(
                 last_conversation = last_conversation,
+                second_last_conversation=second_last,
                 updated_at=time.time(),unseen_count=length)
 
 
