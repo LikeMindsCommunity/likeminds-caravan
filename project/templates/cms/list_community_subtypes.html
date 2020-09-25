@@ -16,8 +16,8 @@
     {% for type in communitysubtypes %}
     <tr>
         <td>{{type.id}}</td>
-        <td>{{type.sub_typ}}</td>
-        <td>{{type.typ.typ}}</td>
+        <td>{{type.type}}</td>
+        <td>{{type.sub_type}}</td>
         <td><a href="{% url 'edit_community_subtypes' community_subtype_id=type.id%}" class="btn btn-primary">Edit</a> </td>
     </tr>
     {% endfor %}
