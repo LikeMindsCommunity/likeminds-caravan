@@ -664,10 +664,6 @@ def get_home_screen_community_actions(community_instance):
 
 
 
-
-
-
-
 def community(request, community_id, req_dict=None):
     ''' Community detail page '''
 
@@ -6219,6 +6215,8 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
             if not state_instance.external_seen:
                 state_instance.external_seen = True
                 state_instance.expiry_time = expiry_time
+                state_instance.updated_at = time.time()
+
             state_instance.save()
 
             update_last_unseen_in_engage(user=user_instance, community=community)
@@ -8243,6 +8241,10 @@ def members_state(request, req_dict=None):
             card = Collabcard.objects.get(pk=collabcard_id)
             community_id = card.community.id
 
+        if not community_id:
+            context = get_error_context(False,"send a valid community id or collabcard id")
+            return JsonResponse(context)
+
     else:
         member_id = req_dict['member_id']
         community_id = req_dict['community_id']
@@ -10263,7 +10265,7 @@ def get_preview_for_url(member_id=None, preview_url=None,
         if 'source_id' in query_items:
             source_id = query_items['source_id']
 
-    context = {"intenal_link": preview_url, "preview_type": preview_type,
+    context = {"internal_link": preview_url, "preview_type": preview_type,
                "preview_text": preview_text, "title": title}
     if aj:
         context["aj"] = aj
@@ -10439,4 +10441,5 @@ def fetch_intro_examples(request):
     return JsonResponse({'intro_examples':intro_examples})
 
 ############################################################################################################
+
 
