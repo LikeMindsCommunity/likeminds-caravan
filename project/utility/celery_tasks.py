@@ -220,7 +220,7 @@ def get_new_chatroom_members(member_id, community_id):
 
         member = get_user_profile(card.user.id,community_id,send_profile=False)
         member['image_url'] = image_url
-        member['removed'] = exists
+        #member['removed'] = exists
         member_list.append(member)
 
         if len(member_list) > 3:

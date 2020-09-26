@@ -338,13 +338,7 @@ def your_communities(request, user_id):
         # if community['collabcard_unseen'] > 0:
             # header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         if each_community.new_chatroom_users:
-            temp_list = json.loads(each_community.new_chatroom_users)
-            new_chatroom_users = []
-            for data in temp_list:
-                if not data['removed']:
-                    data['image_url'] = REMOVED_USER_URL
-                new_chatroom_users.append(data)
-            community['new_chatroom_users'] = new_chatroom_users
+            community['new_chatroom_users'] = []
 
         my_community.append(community)
 
