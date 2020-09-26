@@ -6562,14 +6562,18 @@ def get_member_images_of_chatroom(conversation_filter):
             member_filter = Members.objects.filter(member_id=conversation.user, community_id=community_instance)
             image_link = conversation.user.userinfo.image_link
             image_url = image_link if image_link  else ""
+
             if member_filter.exists():
                 member_instance = member_filter[0]
                 if member_instance.image_url:
                     image_url = member_instance.image_url
 
+            remove=False
+            if conversation.remove:
+                remove=True
             member_images.append(image_url)
 
-            member_data = get_user_profile(conversation.user,community_instance,send_profile=False)
+            member_data = get_user_profile(conversation.user,community_instance,send_profile=False,remove=remove)
             last_conversations_member.append(member_data)
             unique_members.add(conversation.user.id)
             count = count + 1
