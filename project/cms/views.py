@@ -429,7 +429,7 @@ def add_community_subtypes(request):
 
 
 def edit_community_subtypes(request,community_subtype_id):
-    communitysubtype_instance = communitySubtype.objects.get(id = community_subtype_id)
+    communitysubtype_instance = communityFieldSubTypes.objects.get(id = community_subtype_id)
     form = communityFieldSubTypesForm(request.POST or None, instance=communitysubtype_instance)
     if request.method == 'POST':
         if form.is_valid():
