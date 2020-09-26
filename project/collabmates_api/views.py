@@ -6562,11 +6562,15 @@ def get_member_images_of_chatroom(conversation_filter):
             member_filter = Members.objects.filter(member_id=conversation.user, community_id=community_instance)
             image_link = conversation.user.userinfo.image_link
             image_url = image_link if image_link  else ""
+
             if member_filter.exists():
                 member_instance = member_filter[0]
                 if member_instance.image_url:
                     image_url = member_instance.image_url
 
+
+            if conversation.remove:
+                image_url = REMOVED_USER_URL
             member_images.append(image_url)
 
             member_data = get_user_profile(conversation.user,community_instance,send_profile=False)
