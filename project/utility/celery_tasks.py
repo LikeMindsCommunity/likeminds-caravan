@@ -210,18 +210,17 @@ def get_new_chatroom_members(member_id, community_id):
     for card in unseen_chatrooms:
 
         member_filter = Members.objects.filter(member_id=card.user, community_id=community_id)
-        if member_filter.exists():
-            image_url = card.user.userinfo.image_link if card.user.userinfo.image_link else ''
+        image_url = card.user.userinfo.image_link if card.user.userinfo.image_link else ''
+        exists = member_filter.exists()
+        if exists:
             member_instance = member_filter[0]
             if member_instance.image_url:
                 image_url = member_instance.image_url
-        else:
-            image_url ="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fuser.png?alt=media&token=8fd0a21e-6d77-4947-afc7-4d67eaf63b99"
-
 
 
         member = get_user_profile(card.user.id,community_id,send_profile=False)
         member['image_url'] = image_url
+        #member['removed'] = exists
         member_list.append(member)
 
         if len(member_list) > 3:
