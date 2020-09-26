@@ -240,8 +240,7 @@ def update_pending_member_count_in_engage(community):
 
 def get_new_chatroom_member_images(member_id,community_id):
 
-    last_instance = collabcardState.objects.filter(user=member_id,community=community_id).last()
-
+    last_instance = collabcardState.objects.filter(user=member_id,community=community_id).filter(~Q(state=0)).last()
 
     if last_instance:
         last_card = last_instance.card
@@ -255,11 +254,13 @@ def get_new_chatroom_member_images(member_id,community_id):
     for card in unseen_chatrooms:
 
         member_filter = Members.objects.filter(member_id=card.user, community_id=community_id)
-        image_url = card.user.userinfo.image_link if card.user.userinfo.image_link  else ''
         if member_filter.exists():
+            image_url = card.user.userinfo.image_link if card.user.userinfo.image_link else ''
             member_instance = member_filter[0]
             if member_instance.image_url:
                 image_url = member_instance.image_url
+        else:
+            image_url = REMOVED_USER_URL
 
 
         member = get_user_profile(card.user.id,community_id,send_profile=False)
@@ -338,7 +339,7 @@ def your_communities(request, user_id):
         # if community['collabcard_unseen'] > 0:
             # header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         if each_community.new_chatroom_users:
-            community['new_chatroom_users'] = []
+            community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
 
         my_community.append(community)
 
