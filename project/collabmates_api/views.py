@@ -6568,12 +6568,12 @@ def get_member_images_of_chatroom(conversation_filter):
                 if member_instance.image_url:
                     image_url = member_instance.image_url
 
-
+            remove=False
             if conversation.remove:
-                image_url = REMOVED_USER_URL
+                remove=True
             member_images.append(image_url)
 
-            member_data = get_user_profile(conversation.user,community_instance,send_profile=False)
+            member_data = get_user_profile(conversation.user,community_instance,send_profile=False,remove=remove)
             last_conversations_member.append(member_data)
             unique_members.add(conversation.user.id)
             count = count + 1
