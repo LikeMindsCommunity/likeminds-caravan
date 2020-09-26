@@ -212,7 +212,7 @@ def get_new_chatroom_members(member_id, community_id):
         member_filter = Members.objects.filter(member_id=card.user, community_id=community_id)
         image_url = card.user.userinfo.image_link if card.user.userinfo.image_link else ''
         exists = member_filter.exists()
-        if member_filter.exists():
+        if exists:
             member_instance = member_filter[0]
             if member_instance.image_url:
                 image_url = member_instance.image_url
