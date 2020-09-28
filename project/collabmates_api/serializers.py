@@ -904,8 +904,7 @@ def CommunityQuestionsSerializer(community_question_instance):
         'field': community_question_instance.field
     }
 
-    if context['value'] and (
-            context['state'] == question_states.CHOICE_SINGLE or context['state'] == question_states.CHOICE_MULTIPLE):
+    if context['value'] and (context['state'] == question_states.CHOICE_SINGLE or context['state'] == question_states.CHOICE_MULTIPLE) and context['field']:
         dropdown_list = json.loads(context['value'])
 
         dropdown_list = sorted(dropdown_list, key=lambda i: i['value'])
