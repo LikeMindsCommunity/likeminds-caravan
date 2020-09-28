@@ -272,7 +272,29 @@ def get_new_chatroom_member_images(member_id,community_id):
 
     return member_list
 
+def get_active_chatroom_member_images(community_instance,member_id):
 
+    current_time = time.time()
+    state_filter = collabcardState.objects.filter(community=community_instance,
+                                                  user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-expiry_time','-card')
+
+    member_list = []
+    user_set = set()
+
+    for data in state_filter:
+        card_instance = data.card
+        user_id = card_instance.user.id
+        user_instance = card_instance.user
+
+        if user_id not in user_set:
+            user_ser = get_user_profile(user_instance,community_instance.id,send_profile=False)
+            member_list.append(user_ser)
+            user_set.add(user_id)
+
+        if len(member_list) > 3:
+            break
+
+    return member_list
 
 def your_communities(request, user_id):
     '''This function is used to see your communities based on user id'''
@@ -341,6 +363,9 @@ def your_communities(request, user_id):
         if community['collabcard_unseen'] > 0:
             #community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
             community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+        else:
+            active_chatroom_users = get_active_chatroom_member_images(community_instance=each_community.community_id,member_id=member_id)
+            community['active_chatroom_users'] = active_chatroom_users
 
         my_community.append(community)
 
