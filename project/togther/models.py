@@ -1061,6 +1061,9 @@ class communityFieldTypes(models.Model):
     def __str__(self):
         return self.type
 
+    class Meta:
+        ordering = ["type"]
+
 
 
 class communityFieldSubTypes(models.Model):
@@ -1080,6 +1083,9 @@ class communityFieldSubTypes(models.Model):
     def __str__(self):
         return self.sub_type
 
+
+    class Meta:
+        ordering = ["sub_type"]
 
 
 
