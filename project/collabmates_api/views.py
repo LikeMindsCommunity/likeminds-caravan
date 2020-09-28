@@ -287,9 +287,21 @@ def get_active_chatroom_member_images(community_instance,member_id):
         user_instance = card_instance.user
 
         if user_id not in user_set:
-            user_ser = get_user_profile(user_instance,community_instance.id,send_profile=False)
-            member_list.append(user_ser)
+            member_filter = Members.objects.filter(member_id=user_instance, community_id=data.community)
+            if member_filter.exists():
+                image_url = user_instance.userinfo.image_link if user_instance.userinfo.image_link else ''
+                member_instance = member_filter[0]
+                if member_instance.image_url:
+                    image_url = member_instance.image_url
+            else:
+                image_url = REMOVED_USER_URL
+
+            member = get_user_profile(user_instance, community_instance, send_profile=False)
+            member['image_url'] = image_url
+            member_list.append(member)
+
             user_set.add(user_id)
+
 
         if len(member_list) > 3:
             break
