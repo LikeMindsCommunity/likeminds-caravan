@@ -377,7 +377,8 @@ def your_communities(request, user_id):
             community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         else:
             active_chatroom_users = get_active_chatroom_member_images(community_instance=each_community.community_id,member_id=member_id)
-            community['active_chatroom_users'] = active_chatroom_users
+            if active_chatroom_users:
+                community['active_chatroom_users'] = active_chatroom_users
 
         my_community.append(community)
 
