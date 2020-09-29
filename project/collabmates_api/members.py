@@ -216,22 +216,27 @@ def get_member_instances_with_filter(member_set,current_user_id,community_id,pag
     current_user=None
     members = []
 
+
+
     if int(page) == 1:
 
         current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
         if current_filter.exists():
             if member_set and current_user_id and int(current_user_id) in member_set:
-                current_user = MembersSerializer(current_filter[0], community_id, current_user_id=current_user_id)
-                member_set.remove(int(current_user_id))
+                current_user = MembersSerializer(current_filter[0], community_id, current_user_id=current_user_id,send_profile=False)
 
-    member_instances_list = get_members_profile(list(member_set), community_id, current_user_id=current_user_id,send_profile=False)
+
+    #logic for pagination of members for filters
+    member_set.remove(int(current_user_id))
+    member_ids = list(member_set)
+    member_ids = paginate_list(member_ids,page,paginate_by=10)
+
+    member_instances_list = get_members_profile(list(member_ids), community_id, current_user_id=current_user_id,send_profile=False)
     if current_user:
         members.insert(0, current_user)
 
     members = members + member_instances_list
 
-    if int(page) > 1:
-        return []
     return members
 
 
