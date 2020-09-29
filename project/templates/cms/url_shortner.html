@@ -1,0 +1,119 @@
+{% extends 'cms/base.html' %}
+{% block content%}
+<div class="card mt-2 mb-2">
+    <div class="card-body">
+        <h2>URL shortner</h2>
+<!--        <a href="{% url 'add_community_fields' %}" class="btn btn-primary">Add Community field</a>-->
+    </div>
+</div>
+<textarea id="text" rows="20" cols="60"></textarea><br>
+<input type="text" id="name" placeholder="name" style="width:100%"><br>
+<input type="text" id="url_1" placeholder="url1" style="width:100%"><br>
+<input type="text" id="url_2" placeholder="url2" style="width:100%"><br>
+<input type="text" id="url_3" placeholder="url3" style="width:100%"><br>
+<input type="text" id="platform" placeholder="source"><br>
+<input type="text" id="content" placeholder="content"><br>
+<input type="text" id="campaign" placeholder="campaign"><br>
+<button type="button" onclick="generate_links()">Generate Links</button><br>
+<textarea id="generate_text" rows="20" cols="60"></textarea>
+<script>
+let name = $('#name').val();
+let url_1 = $('#url').val();
+let url_2 = $('#url_2').val();
+let url_3 = $('#url_3').val();
+let platform = $('#platform').val();
+let content = $('#content').val();
+let campaign = $('#campaign').val();
+let text = $('#text').val();
+
+let requestHeaders = {
+  "Content-Type": "application/json",
+  "apikey": "b5b98f19724b425f9bd7c0df5e466af9",
+}
+function add_parameters(url){
+    console.log('-->'+url);
+    if(url.indexOf('?') != -1) {
+       url= url+"&utm_source="+platform;
+    }else{
+       url= url+"?utm_source="+platform;
+    }
+    url= url+"&utm_campaign="+campaign;
+    url= url+"&utm_content="+content;
+    url= url+"&name="+name;
+    return url
+}
+function get_short_link(url,tag){
+    let linkRequest = {
+      destination: url,
+    }
+    var post_request = $.ajax({
+      url: "https://api.rebrandly.com/v1/links",
+      type: "post",
+      data: JSON.stringify(linkRequest),
+      headers: requestHeaders,
+      dataType: "json",
+      success: (link) => {
+      console.log(tag,link.shortUrl);
+        text = text.replace(tag,link.shortUrl);
+        $('#generate_text').val(text);
+      }
+    });
+}
+function generate_links(){
+    text = $('#text').val()
+    name = $('#name').val();
+    url_1 = $('#url_1').val();
+    url_2 = $('#url_2').val();
+    url_3 = $('#url_3').val();
+    platform = $('#platform').val();
+    content = $('#content').val();
+    campaign = $('#campaign').val();
+    if (url_1){
+       url_1 = add_parameters(url_1);
+       url_1 = get_short_link(url_1,'_url_1_');
+    }
+    if (url_2){
+       url_2 = add_parameters(url_2);
+       url_2 = get_short_link(url_2,'_url_2_');
+    }
+    if (url_3){
+       url_3 = add_parameters(url_3);
+       url_3 = get_short_link(url_3,'_url_3_');
+    }
+    text = text.replace('_name_',name);
+    console.log(text);
+    $('#generate_text').val(text);
+}
+window.onbeforeunload = function() {
+    localStorage.setItem("name", $('#name').val());
+    localStorage.setItem("text", $('#text').val());
+    localStorage.setItem("url_1", $('#url_1').val());
+    localStorage.setItem("url_2", $('#url_2').val());
+    localStorage.setItem("url_3", $('#url_3').val());
+    localStorage.setItem("platform", $('#platform').val());
+    localStorage.setItem("content", $('#content').val());
+    localStorage.setItem("campaign", $('#campaign').val());
+
+}
+window.onload = function() {
+    var text = localStorage.getItem("text");
+        if (text !== null) $('#text').val(text);
+    var name = localStorage.getItem("name");
+        if (name !== null) $('#name').val(name);
+    var url_1 = localStorage.getItem("url_1");
+        if (url_1 !== null) $('#url_1').val(url_1);
+    var url_2 = localStorage.getItem("url_2");
+        if (url_2 !== null) $('#url_2').val(url_2);
+    var url_3 = localStorage.getItem("url_3");
+        if (url_3 !== null) $('#url_3').val(url_3);
+    var platform = localStorage.getItem("platform");
+        if (platform !== null) $('#platform').val(platform);
+    var content = localStorage.getItem("content");
+        if (content !== null) $('#content').val(content);
+    var campaign = localStorage.getItem("campaign");
+        if (campaign !== null) $('#campaign').val(campaign);
+}
+
+
+</script>
+{% endblock %}
