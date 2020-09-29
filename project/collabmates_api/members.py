@@ -120,25 +120,29 @@ def get_all_members(request, req_dict=None):
         return context
 
 
-    member_list = get_member_query_set(current_user_id, community_id,page=page)
-    if filter_list:
-        filter_list = json.loads(filter_list)
-        member_set = get_filtered_users(filter_list, member_list)
-        members = get_filtered_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
-                                               member_set=member_set,page=page)
-    else:
-        members = get_filtered_member_instances(member_list, current_user_id, community_id,page=page)
-
-
-
     promoter_instance = is_member_promoter(community_instance,current_user_id)
 
     community = CommunitySerializer(community_instance,promoter_id=promoter_instance)
+
+    if filter_list:
+        member_list = get_member_query_set(current_user_id, community_id,send_all=True)
+        filter_list = json.loads(filter_list)
+        member_set = get_filtered_users(filter_list, member_list)
+        members = get_member_instances_with_filter(member_set,current_user_id,community_id,page=page)
+        total_filtered_members = len(member_set)
+
+
+    else:
+        member_list = get_member_query_set(current_user_id, community_id, page=page)
+        members = get_member_instances_without_filter(member_list, current_user_id, community_id,page=page)
+        total_filtered_members = community['members_count']
+
 
     context = {'members': members,'community':community}
 
     ##sending total members and pending members count
     context['total_members'] = community['members_count']
+    context['total_filtered_members'] = total_filtered_members
     if promoter_instance:
         context['total_pending_members'] = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
 
@@ -159,7 +163,7 @@ def get_community_managers(community_instance):
 
     return temp
 
-def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None,page=1):
+def get_member_instances_without_filter(member_list,current_user_id,community_id,is_filter=False,member_set=None,page=1):
 
     '''function to get members instances from members table'''
 
@@ -178,9 +182,6 @@ def get_filtered_member_instances(member_list,current_user_id,community_id,is_fi
                 current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
             elif not member_set:
                 current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
-
-
-
 
     #member_list = pagination(member_list, page, paginate_by=10)
 
@@ -207,12 +208,35 @@ def get_filtered_member_instances(member_list,current_user_id,community_id,is_fi
         members.insert(0,current_user)
     return members
 
+
+def get_member_instances_with_filter(member_set,current_user_id,community_id,page=1):
+
+
+    #sending first user if he is the part of list
+    current_user=None
+    members = []
+
+    if int(page) == 1:
+
+        current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
+        if current_filter.exists():
+            if member_set and current_user_id and int(current_user_id) in member_set:
+                current_user = MembersSerializer(current_filter[0], community_id, current_user_id=current_user_id)
+                member_set.remove(int(current_user_id))
+
+    member_instances_list = get_members_profile(list(member_set), community_id, current_user_id=current_user_id,send_profile=False)
+    if current_user:
+        members.insert(0, current_user)
+
+    members = members + member_instances_list
+    return members
+
+
 def get_filtered_users(filter_list,member_list):
 
     '''function to get filtered users'''
 
     member_set = set()
-
     for data in member_list:
         member_set.add(data.member_id.id)
 
@@ -326,9 +350,9 @@ def intersect_sets(set1,set2):
     return set1.intersection(set2)
 
 
-def get_member_query_set(current_user_id,community_id,collabcard_id = None,page=1):
+def get_member_query_set(current_user_id,community_id,send_all = False,page=1):
 
-    if collabcard_id:
+    if send_all:
         member_list = Members.objects.filter(community_id=community_id).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
             state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
@@ -355,7 +379,7 @@ def send_participants_of_chatroom(chatroom_id,filter_list,community_id,current_u
 
     community_instance = Community.objects.get(id=community_id)
     collabcard_id=chatroom_id
-    member_list = get_member_query_set(current_user_id, community_id,collabcard_id)
+    member_list = get_member_query_set(current_user_id, community_id,send_all=True)
 
     if filter_list:
         filter_list = json.loads(filter_list)
