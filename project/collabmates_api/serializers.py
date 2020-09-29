@@ -1068,9 +1068,9 @@ def userMobilesSerializer(mobile_instance):
 
 #member comunity profiles
 
-def MembersSerializer(member_instance, community_id, current_user_id=None):
+def MembersSerializer(member_instance, community_id, current_user_id=None,send_profile=True):
     member_id = member_instance.member_id.id
-    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id, send_profile=True)
+    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
     community_profile['state'] = member_instance.state
 
     # sending image  url of members
@@ -1101,26 +1101,6 @@ def MembersSerializer(member_instance, community_id, current_user_id=None):
         member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
     return community_profile
-
-
-def get_members_profile(member_ids, community_id, current_user_id=None):
-    '''function to get member profile from list of members ids'''
-    member_profile_list = []
-
-    for id in member_ids:
-
-        member_filter = Members.objects.filter(member_id=id, community_id=community_id)
-
-        if member_filter.exists():
-            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id)
-            member_profile_list.append(community_profile)
-
-        else:
-            temp = get_user_profile(id, community_id, current_user_id=current_user_id)
-            temp['state'] = 0
-            member_profile_list.append(temp)
-
-    return member_profile_list
 
 
 def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True,remove=False):
@@ -1154,6 +1134,26 @@ def get_user_profile(user_id, community_id, current_user_id=None, send_profile=T
         userinfo_serialized_object['question_answers'] = form_response[1]
 
     return userinfo_serialized_object
+
+def get_members_profile(member_ids, community_id, current_user_id=None,send_profile=True,remove=False):
+    '''function to get member profile from list of members ids'''
+    member_profile_list = []
+
+    for id in member_ids:
+
+        member_filter = Members.objects.filter(member_id=id, community_id=community_id)
+
+        if member_filter.exists():
+            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id,send_profile=send_profile)
+            member_profile_list.append(community_profile)
+
+        else:
+            temp = get_user_profile(id, community_id, current_user_id=current_user_id,send_profile=send_profile,remove=remove)
+            temp['state'] = 0
+            member_profile_list.append(temp)
+
+    return member_profile_list
+
 
 
 
