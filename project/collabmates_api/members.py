@@ -181,13 +181,13 @@ def get_member_instances_without_filter(member_list,current_user_id,community_id
             # if member_set and current_user_id and int(current_user_id) in member_set:
             #     current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
             # elif not member_set:
-            current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
+            current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id,send_profile=False)
 
     #member_list = pagination(member_list, page, paginate_by=10)
 
     for member in member_list:
         member_id = member.member_id.id
-        userinfo_serialized_object = MembersSerializer(member,community_id,current_user_id=current_user_id)
+        userinfo_serialized_object = MembersSerializer(member,community_id,current_user_id=current_user_id,send_profile=False)
         if member_id == int(current_user_id):
             pass
         else:

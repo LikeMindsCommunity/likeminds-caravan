@@ -854,6 +854,10 @@ def questions(request):
     member_id = get_member_id_from_headers(request)
 
     community_id = request.GET.get('community_id')
+    if not community_id:
+        context = get_error_context(False,"send community id in get params")
+        return JsonResponse(context)
+
     data = communityQuestions.objects.filter(community=community_id).order_by('-rank', 'id')
     community_instance = Community.objects.get(id=community_id)
     community = CommunitySerializer(community_instance)
@@ -877,7 +881,6 @@ def questions(request):
 
     auto_join = private_link_app_invite(community_instance, aj, created_by)
     # add code to send join dropoff notfication
-    print(is_member_verified(community_instance, user_instance))
     if not is_member_verified(community_instance, user_instance):
         time_in_hrs = 2
         send_notification_to_join_drop_off.delay(user_instance.id, community_instance.id, aj, time_in_hrs)
