@@ -230,7 +230,7 @@ def get_member_instances_with_filter(member_set,current_user_id,community_id,pag
 
     members = members + member_instances_list
 
-    if page > 1:
+    if int(page) > 1:
         return []
     return members
 
