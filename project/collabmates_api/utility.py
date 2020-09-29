@@ -65,3 +65,15 @@ def get_paginated_queryset_with_maxpages(queryset,page_number,paginate_by=10):
     temp['last_page'] = paginator.num_pages
     return temp
 
+
+def get_total_pages(count,limit=10):
+
+
+    last_digit = count % limit
+    if last_digit == 0:
+        page_count = int(count / limit)
+    else:
+        page_count = int(count / limit) + 1
+
+    return page_count
+

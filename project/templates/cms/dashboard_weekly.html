@@ -2,7 +2,7 @@
 {% block content%}
 <div class="card mt-2 mb-2">
     <div class="card-body">
-       <h2>Daily report</h2>
+       <h2>Weekly  report</h2>
     </div>
 </div>
 
@@ -16,11 +16,13 @@
   <button type="submit" class="btn btn-primary mb-2">Search</button>
 </form>
 <!--{{rows}}-->
+<h3>From {{date_1}} to {{date_2}}</h3>
+
 <h3>Cumulative</h3>
 <table id="data_table_2" border="1" class="table table-hover"></table>
 <br><br><br>
-<h3>Community wise</h3>
-<table id="data_table" border="1" class="table table-hover"></table>
+<!--<h3>Community wise</h3>-->
+<!--<table id="data_table" border="1" class="table table-hover"></table>-->
 
 <!--<table class="table table-bordered table-hover mt-2 mb-2">-->
 <!--    <tr>-->
@@ -190,7 +192,7 @@ var trow = $('#data_table_2').find('tr');
     {% endfor %}
 </script>
 <style>
-    #data_table tr:nth-child(10n+2){
+    #data_table tr:nth-child(9n+2){
         background:#338DFF;
         color:#fff;
     }
@@ -198,6 +200,7 @@ var trow = $('#data_table_2').find('tr');
         background:#338DFF;
         color:#fff;
     }
+
     #data_table_2 tr:nth-child(n+11){
         background:cadetblue;
         color:#fff;

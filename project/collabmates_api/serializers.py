@@ -463,7 +463,6 @@ def conversationSerializer(conversation, fetch_reply=True):
         "id": conversation.id,
         "answer": conversation.answer,
         "state": conversation.state,
-        "member": UserinfoSerializer(conversation.user.userinfo),
         'is_deleted': conversation.is_deleted,
         'is_edited': conversation.is_edited,
     }
@@ -482,7 +481,15 @@ def conversationSerializer(conversation, fetch_reply=True):
     if conversation.reply and fetch_reply:
         temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
 
+    #if member is removed from community
+    remove = False
+    if conversation.remove:
+        remove = True
+    temp['member'] =  get_user_profile(conversation.user,conversation.community.id,send_profile=False,remove=remove)
+
     return temp
+
+
 
 
 def get_answer_files(answer_id):
@@ -536,7 +543,7 @@ def get_chatroom_name(user_name, card):
     return chatroom_name
 
 
-def get_chatroom_instance(card_instance, member_id, current_user_id=None):
+def get_chatroom_instance(card_instance, member_id, current_user_id=None,state_instance=None):
 
     if not current_user_id:
         current_user_id = member_id
@@ -545,7 +552,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None):
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
 
     # get chatroom status
-    status = get_status_of_collabcard(member_id, card_instance)
+    status = get_status_of_collabcard(member_id, card_instance,state_instance)
     collabcard_serializer['state'] = status['state']
     collabcard_serializer['mute_status'] = status['mute_status']
     collabcard_serializer['follow_status'] = status['follow_status']
@@ -563,7 +570,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None):
 
     is_removed = removedMembers.objects.filter(community=card_instance.community,member_id=collabcard_serializer['member']['id'])
 
-    if  collabcard_serializer['member']['state'] == 0 and is_removed.exists():
+    if collabcard_serializer['member']['state'] == 0 and is_removed.exists():
         temp = get_removed_member_custom_text(is_removed[0])
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
@@ -645,7 +652,7 @@ def get_draft_chatroom_instance(draft_instance, member_id):
     return draft_serializer
 
 
-def get_status_of_collabcard(member_id, card):
+def get_status_of_collabcard(member_id, card,state_instance=None):
     '''function to get the state of collabcard'''
 
     collabcard_status = {
@@ -664,23 +671,33 @@ def get_status_of_collabcard(member_id, card):
         return collabcard_status
 
     #member_id = User.objects.get(id=member_id)
-    collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
-
-    if collabcard_state.exists():
-        collabcard_status['state'] = collabcard_state[0].state
-        collabcard_status['mute_status'] = collabcard_state[0].mute_status
-        collabcard_status['follow_status'] = collabcard_state[0].follow_status
-        collabcard_status['is_guest'] = collabcard_state[0].is_guest
-        collabcard_status['remove'] = collabcard_state[0].remove
-        collabcard_status['state_instance'] = collabcard_state[0]
-        collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
-        collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
+    if not state_instance:
+        collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
+        if collabcard_state.exists():
+            collabcard_status['state'] = collabcard_state[0].state
+            collabcard_status['mute_status'] = collabcard_state[0].mute_status
+            collabcard_status['follow_status'] = collabcard_state[0].follow_status
+            collabcard_status['is_guest'] = collabcard_state[0].is_guest
+            collabcard_status['remove'] = collabcard_state[0].remove
+            collabcard_status['state_instance'] = collabcard_state[0]
+            collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
+            collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
+    else:
+        collabcard_status['state'] = state_instance.state
+        collabcard_status['mute_status'] = state_instance.mute_status
+        collabcard_status['follow_status'] = state_instance.follow_status
+        collabcard_status['is_guest'] = state_instance.is_guest
+        collabcard_status['remove'] = state_instance.remove
+        collabcard_status['state_instance'] = state_instance
+        collabcard_status['expiry_time'] = state_instance.expiry_time
+        collabcard_status['is_tagged'] = state_instance.is_tagged
     return collabcard_status
 
 
 def CollabcardPollsSerializer(poll, user, card):
     """ Poll serializer """
     # print("user--",user)
+    card_instance = card
     polls = {
         'id': poll.id,
         'text': poll.text,
@@ -707,8 +724,9 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['image_url'] = poll.image_url
 
     if poll.user:
-        member_instance = Members.objects.filter(community_id=card.community.id, member_id=poll.user.id)
-        polls['member'] = MembersSerializer(member_instance[0], community_id=card.community.id, current_user_id=None)
+        member_profile = get_members_profile([poll.user.id],card_instance.community.id)
+        polls['member'] = member_profile[0]
+
     # if card.end_date // 1000 <= time.time():
     #     poll_detail = poll_percentage(card, poll)
     #
@@ -747,7 +765,7 @@ def get_answer_text_for_poll(card, current_user_id=None):
         if not first_user:
             first_user = user
 
-        if int(user.user.id) == int(current_user_id):
+        if current_user_id and int(user.user.id) == int(current_user_id):
             if not current_user:
                 current_user = user
             should_add_you = True
@@ -795,81 +813,7 @@ def draftPollsSerializers(poll):
     return polls
 
 
-def MembersSerializer(member_instance, community_id, current_user_id=None):
-    member_id = member_instance.member_id.id
-    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id, send_profile=True)
-    community_profile['state'] = member_instance.state
 
-    # sending image  url of members
-    if member_instance.image_url:
-        community_profile['image_url'] = member_instance.image_url
-
-    if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
-        community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
-            str(community_id), str(member_id))
-
-        community_profile[
-            'member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
-                                                                                                           time.localtime(
-                                                                                                               member_instance.created_at))
-    elif member_instance.state == member_states.PENDING_MEMBER:
-        community_profile['member_since'] = "Verification pending for " + member_instance.community_id.name
-
-
-    if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
-        community_profile['custom_intro_text'] = """Created this community on %s""" % (
-            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
-
-    if (
-            member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
-        community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
-            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
-        community_profile[
-            'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
-        member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
-
-    return community_profile
-
-
-def get_members_profile(member_ids, community_id, current_user_id=None):
-    '''function to get member profile from list of members ids'''
-    member_profile_list = []
-
-    for id in member_ids:
-
-        member_filter = Members.objects.filter(member_id=id, community_id=community_id)
-
-        if member_filter.exists():
-            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id)
-            member_profile_list.append(community_profile)
-
-        else:
-            temp = get_user_profile(id, community_id, current_user_id=current_user_id)
-            temp['state'] = 0
-            member_profile_list.append(temp)
-
-    return member_profile_list
-
-
-def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True):
-    try:
-        user_instance = User.objects.get(id=user_id)
-    except:
-        return {}
-
-    userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
-    # userinfo_serialized_object['state'] = 0
-
-    if not send_profile:
-        return userinfo_serialized_object
-    form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
-                                           current_user_id=current_user_id)
-
-    if form_response:
-        # userinfo_serialized_object['response'] = form_response[0]
-        userinfo_serialized_object['question_answers'] = form_response[1]
-
-    return userinfo_serialized_object
 
 
 def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False):
@@ -921,6 +865,7 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
     return (user_response, new_response)
 
 
+
 def get_question_data(question_id, member_state, send_back):
     '''function to get question id'''
 
@@ -959,8 +904,7 @@ def CommunityQuestionsSerializer(community_question_instance):
         'field': community_question_instance.field
     }
 
-    if context['value'] and (
-            context['state'] == question_states.CHOICE_SINGLE or context['state'] == question_states.CHOICE_MULTIPLE):
+    if context['value'] and (context['state'] == question_states.CHOICE_SINGLE or context['state'] == question_states.CHOICE_MULTIPLE) and context['field']:
         dropdown_list = json.loads(context['value'])
 
         dropdown_list = sorted(dropdown_list, key=lambda i: i['value'])
@@ -1118,3 +1062,98 @@ def userMobilesSerializer(mobile_instance):
         'country_code': mobile_instance.country_code,
         'state': mobile_instance.state
     }
+
+
+
+
+#member comunity profiles
+
+def MembersSerializer(member_instance, community_id, current_user_id=None):
+    member_id = member_instance.member_id.id
+    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id, send_profile=True)
+    community_profile['state'] = member_instance.state
+
+    # sending image  url of members
+    if member_instance.image_url:
+        community_profile['image_url'] = member_instance.image_url
+
+    if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
+        community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
+            str(community_id), str(member_id))
+
+        community_profile['member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
+                                                                                                           time.localtime(
+                                                                                                               member_instance.created_at))
+    elif member_instance.state == member_states.PENDING_MEMBER:
+        community_profile['member_since'] = "Verification pending for " + member_instance.community_id.name
+
+
+    if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
+        community_profile['custom_intro_text'] = """Created this community on %s""" % (
+            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+
+    if (
+            member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
+        community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
+            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+        community_profile[
+            'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
+        member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+
+    return community_profile
+
+
+def get_members_profile(member_ids, community_id, current_user_id=None):
+    '''function to get member profile from list of members ids'''
+    member_profile_list = []
+
+    for id in member_ids:
+
+        member_filter = Members.objects.filter(member_id=id, community_id=community_id)
+
+        if member_filter.exists():
+            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id)
+            member_profile_list.append(community_profile)
+
+        else:
+            temp = get_user_profile(id, community_id, current_user_id=current_user_id)
+            temp['state'] = 0
+            member_profile_list.append(temp)
+
+    return member_profile_list
+
+
+def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True,remove=False):
+
+
+    if isinstance(user_id,User):
+        user_instance = user_id
+
+        if not user_instance:
+            return {}
+    else:
+        try:
+            user_instance = User.objects.get(id=user_id)
+        except:
+            return {}
+
+    userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
+
+    #if member is not a part of community
+    if remove:
+        userinfo_serialized_object['image_url'] = REMOVED_USER_URL
+    # userinfo_serialized_object['state'] = 0
+
+    if not send_profile:
+        return userinfo_serialized_object
+    form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
+                                           current_user_id=current_user_id)
+
+    if form_response:
+        # userinfo_serialized_object['response'] = form_response[0]
+        userinfo_serialized_object['question_answers'] = form_response[1]
+
+    return userinfo_serialized_object
+
+
+

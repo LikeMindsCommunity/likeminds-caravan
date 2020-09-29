@@ -25,10 +25,10 @@ def update_conversation_engage_for_chatrooms(card_id,user_id,last_conversation_i
         conn = get_connection()
         curr = conn.cursor()
 
-        second_last_conversation = get_second_last_conversation_of_chatroom(card_id,user_id)
-
-        sql="""update togther_conversationengage set last_conversation_id = %s ,unseen_count = %s, second_last_conversation=%s where card_id=%s and user_id = %s"""
-        paramter_list = [last_conversation_id,unseen_count,second_last_conversation,card_id,user_id]
+        # second_last_conversation = get_second_last_conversation_of_chatroom(card_id,user_id)
+        # print(second_last_conversation)
+        sql="""update togther_conversationengage set last_conversation_id = %s ,unseen_count = %s where card_id=%s and user_id = %s"""
+        paramter_list = [last_conversation_id,unseen_count,card_id,user_id]
         curr.execute(sql,paramter_list)
         conn.commit()
         print("conversation engage updated successfully")
@@ -60,20 +60,68 @@ def get_second_last_conversation_of_chatroom(card_id,user_id):
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
-def get_active_chatrooms_count(community_id,user_id,current_time):
+
+
+def get_active_chatrooms_count_in_community(community_id,user_id,current_time):
 
     '''function to get active chatrooms based on community and user'''
+
 
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql="""select count(*) from togther_collabcardState where community_id=%s and user_id=%s and follow_status=True and remove_id is null 
+        sql="""select count(*) from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
         and (expiry_time is null or expiry_time > %s)"""%(str(community_id),str(user_id),str(current_time))
 
         curr.execute(sql)
         count = curr.fetchone()
         curr.close()
         conn.close()
+
+        return count[0]
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+def get_inactive_chatrooms_count_in_community(community_id,user_id,current_time):
+
+    '''function to get in-active chatrooms based on community and user'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""select count(*) from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
+        and (expiry_time is not null and expiry_time < %s)"""%(str(community_id),str(user_id),str(current_time))
+
+        curr.execute(sql)
+        count = curr.fetchone()
+        curr.close()
+        conn.close()
+
+        return count[0]
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+
+
+def get_active_chatrooms_count(user_id,current_time):
+
+    '''function to get active chatrooms based on community and user'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""select count(*) from togther_collabcardState where  user_id=%s and remove_id is null 
+        and (expiry_time is null or expiry_time > %s)"""%(str(user_id),str(current_time))
+
+        curr.execute(sql)
+        count = curr.fetchone()
+        curr.close()
+        conn.close()
+
 
         return count[0]
 
@@ -88,8 +136,83 @@ def get_inactive_chatrooms_count(user_id,current_time):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql="""select count(*) from togther_collabcardState where  user_id=%s and follow_status=True and remove_id is null 
+        sql="""select count(*) from togther_collabcardState where  user_id=%s  and remove_id is null 
         and (expiry_time is not null or expiry_time < %s)"""%(str(user_id),str(current_time))
+
+        curr.execute(sql)
+        count = curr.fetchone()
+        curr.close()
+        conn.close()
+
+
+        return count[0]
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+
+def get_active_followed_chatrooms_count(user_id,current_time):
+
+    '''function to get active chatrooms based on community and user'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""select count(*) from togther_collabcardState where  user_id=%s and follow_status=True and remove_id is null 
+        and (expiry_time is null or expiry_time > %s)"""%(str(user_id),str(current_time))
+
+        curr.execute(sql)
+        count = curr.fetchone()
+        curr.close()
+        conn.close()
+
+
+        return count[0]
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+def get_inactive_followed_chatrooms_count(user_id,current_time):
+
+    '''function to get active chatrooms based on community and user'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""select count(*) from togther_collabcardState where  user_id=%s and follow_status=True and remove_id is null 
+        and (expiry_time is not null and expiry_time < %s)"""%(str(user_id),str(current_time))
+
+        curr.execute(sql)
+        count = curr.fetchone()
+        curr.close()
+        conn.close()
+
+
+        return count[0]
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+
+
+
+def get_active_my_chatrooms_count(user_id,current_time):
+
+    '''function to give the count of active my chatrooms'''
+
+    try:
+
+
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """select count(id) from togther_conversationEngage where user_id=%s and card_id  in
+                     (select card_id from togther_collabcardState where user_id = %s and follow_status = True and (remove_id is null)
+                    and (expiry_time is null or expiry_time > %s) 
+                   )""" % (
+        str(user_id), str(user_id), str(current_time))
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -104,7 +227,96 @@ def get_inactive_chatrooms_count(user_id,current_time):
 
 
 
+def get_active_followed_chatrooms(user_id,current_time,page,limit=10):
 
+    '''function to get the active followed chatroom count'''
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""select id from togther_conversationEngage where user_id=%s and card_id  in
+                  (select card_id from togther_collabcardState where user_id = %s and follow_status = True and (remove_id is null)
+                 and (expiry_time is null or expiry_time > %s) 
+                ) order by updated_at desc,id desc limit %s offset %s"""%(str(user_id),str(user_id),str(current_time),str(limit),str(offset))
+
+        curr.execute(sql)
+        res = curr.fetchall()
+
+        engage_list = []
+
+        for id in res:
+            engage_list.append(id[0])
+        curr.close()
+        conn.close()
+
+        return engage_list
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+def get_inactive_followed_chatrooms(user_id,current_time,page,limit=10):
+
+    '''function to get the active followed chatroom count'''
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""select id from togther_conversationEngage where user_id=%s and card_id  in
+                  (select card_id from togther_collabcardState where user_id = %s and follow_status = True and (remove_id is null)
+                 and (expiry_time is not null and expiry_time <= %s) 
+                ) order by updated_at desc,id desc limit %s offset %s"""%(str(user_id),str(user_id),str(current_time),str(limit),str(offset))
+
+        curr.execute(sql)
+        res = curr.fetchall()
+
+        engage_list = []
+
+        for id in res:
+            engage_list.append(id[0])
+        curr.close()
+        conn.close()
+
+        return engage_list
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+def get_draft_chatrooms_on_home_screen(user_id,page,limit=10):
+
+    '''api to get draft chatroom home-screen'''
+
+    try:
+        page_number = int(page)
+        limit = 10
+        offset = (page_number - 1) * 10
+
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """select id,card_id,draft_id from togther_conversationEngage where user_id=%s order by updated_at desc,id desc limit %s offset %s""" % (
+        str(user_id), str(limit), str(offset))
+
+        curr.execute(sql)
+        res = curr.fetchall()
+
+        draft_list = []
+
+        for data in res:
+            if data[2]:
+                draft_list.append(data[0])
+        curr.close()
+        conn.close()
+
+        return draft_list
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
 
 
 @shared_task

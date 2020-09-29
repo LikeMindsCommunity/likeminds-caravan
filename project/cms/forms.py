@@ -1,16 +1,25 @@
 from django.forms import ModelForm
 
-from togther.models import communityType,communitySubtype,communityField
+from togther.models import communityFieldTypes,communityFieldSubTypes,communityField
 
-class communityTypeForm(ModelForm):
+class communityFieldTypesForm(ModelForm):
     class Meta:
-        model = communityType
-        fields = '__all__'
+        model = communityFieldTypes
+        fields = [
+            'type',
+            'sub_type_header',
+            'sub_type_placeholder',
+            'rank',
+        ]
 
-class communitySubtypeForm(ModelForm):
+class communityFieldSubTypesForm(ModelForm):
     class Meta:
-        model = communitySubtype
-        fields = '__all__'
+        model = communityFieldSubTypes
+        fields = [
+            'type',
+            'sub_type',
+            'rank',
+        ]
 
 class communityFieldForm(ModelForm):
     class Meta:

@@ -12,7 +12,7 @@ urlpatterns = [
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
     path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
 
-    path('communities', api_views.communities, name="communities"),
+    #path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
 
     path('community/<int:community_id>', api_views.community, name="community"),
@@ -51,6 +51,7 @@ urlpatterns = [
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
     path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
+    path('v1/fetch_chatroom_feed', api_views.fetch_chatroom_feed_version_1, name="fetch_chatroom_feed_version_1"),
     path('fetch_community_chatroom_feed', api_views.fetch_community_chatroom_feed, name="fetch_community_chatroom_feed"),
 
 
@@ -94,7 +95,10 @@ urlpatterns = [
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
     path('mark_read', api_views.mark_read, name='mark_read'),
+
     path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
+    path('v1/my_chatrooms', api_views.my_chatrooms_version_1, name='my_chatrooms_version_1'),
+
     path('fetch_chatroom_inactive', api_views.fetch_chatroom_inactive, name='fetch_chatroom_inactive'),
 
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
@@ -169,6 +173,7 @@ urlpatterns = [
     path('fetch_deleted_chatroom', api_views.fetch_deleted_chatroom, name='fetch_deleted_chatroom'),
     path('delete_conversation', api_views.delete_conversation, name='delete_conversation'),
     path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
+    path('fetch_preview', api_views.fetch_preview, name='fetch_preview'),
 
 
     ############################ static apis #####################################

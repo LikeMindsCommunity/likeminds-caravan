@@ -37,7 +37,8 @@ def show_community_wise_details(community_id,day_a):
 
 
 
-def get_general_records(date_time):
+def get_general_records(community,day=0):
+    community_id = community.id
 
     last_record = PerDayRecordOverview.objects.all().order_by('id')
     if last_record.exists():
@@ -47,13 +48,14 @@ def get_general_records(date_time):
         total_users = 0
 
     per_day_record = PerDayRecordOverview()
-    communities = NewCommunities.objects.all()
-    community_count = communities.count()
-    community_id = []
-    for community in communities:
-        community_id.append(community.community_id)
+    # communities = NewCommunities.objects.all()
+    # community_count = communities.count()
+    # community_id = []
+    # for community in communities:
+    #     community_id.append(community.community_id)
 
     midnight = datetime.combine(datetime.today(), datetime.min.time())
+    midnight = midnight - timedelta(days=day)
     day_1 = midnight
     day_2 = midnight - timedelta(days=1)
     print(day_1, day_2)
@@ -61,28 +63,30 @@ def get_general_records(date_time):
     day_1 = day_1.timestamp() + 5*60*60 + 30*60
     day_2 = day_2.timestamp() + 5*60*60 + 30*60
 
+    test_day = day_1 + 60*60
+
 
 
     #get chatroomn data
-    intro_room = Collabcard.objects.filter(date_epoch__lte=day_1,date_epoch__gte=day_2).filter(community__id__in=community_id).filter(type=1)
-    all_rooms = Collabcard.objects.filter(date_epoch__lte=day_1,date_epoch__gte=day_2).filter(community__id__in=community_id)
+    intro_room = Collabcard.objects.filter(date_epoch__lte=day_1,date_epoch__gte=day_2).filter(community__id=community_id).filter(type=1)
+    all_rooms = Collabcard.objects.filter(date_epoch__lte=day_1,date_epoch__gte=day_2).filter(community__id=community_id)
     room_by_cm = 0
-    for c_id in community_id:
-        admins = Members.objects.filter(community_id=c_id, state=1)
-        for admin in admins:
-            admin_chatroom = all_rooms.filter(user=admin.member_id).filter(community_id=c_id)
-            room_by_cm += admin_chatroom.count()
+    # for c_id in community_id:
+    admins = Members.objects.filter(community_id=community_id, state=1)
+    for admin in admins:
+        admin_chatroom = all_rooms.filter(user=admin.member_id).filter(community_id=community_id)
+        room_by_cm += admin_chatroom.count()
 
 
     #get message data
     all_messages = card_answers.objects.filter(created_at__lte=day_1, created_at__gte=day_2).filter(
-        card__community__id__in=community_id)
+        card__community__id=community_id)
     intro_room_messages = card_answers.objects.filter(created_at__lte=day_1, created_at__gte=day_2).filter(
-        card__community__id__in=community_id).filter(card__type=1)
+        card__community__id=community_id).filter(card__type=1)
     poll_room_messages = card_answers.objects.filter(created_at__lte=day_1, created_at__gte=day_2).filter(
-        card__community__id__in=community_id).filter(card__type=3)
+        card__community__id=community_id).filter(card__type=3)
     event_room_messages = card_answers.objects.filter(created_at__lte=day_1, created_at__gte=day_2).filter(
-        card__community__id__in=community_id).filter(card__type=2)
+        card__community__id=community_id).filter(card__type=2)
 
 
     #acquired users data
@@ -90,37 +94,45 @@ def get_general_records(date_time):
 
 
     # members added
-    members = Members.objects.filter(created_at__lte=day_1,created_at__gte=day_2).filter(community_id__in=community_id)
+    members = Members.objects.filter(created_at__lte=day_1,created_at__gte=day_2).filter(community_id=community_id)
+    all_members = Members.objects.filter(community_id=community_id)
+
 
 
     #active members
-    all_members = Members.objects.filter(community_id__in=community_id).values('member_id').distinct()
+    all_members = Members.objects.filter(community_id=community_id).values('member_id').distinct()
     active_counter = 0
     for m in all_members:
         user_id = m['member_id']
-        chatroomdstates = collabcardState.objects.filter(user=user_id).filter(created_at__lte=day_1,
-                                                                              created_at__gte=day_2).filter(
-            follow_status=True)
+        # chatroomdstates = collabcardState.objects.filter(user=user_id).filter(created_at__lte=day_1,
+        #                                                                       created_at__gte=day_2).filter(
+        #     follow_status=True)
         collabcardstates = collabcardState.objects.filter(user=user_id).filter(created_at__lte=day_1,
                                                                                created_at__gte=day_2).filter(
-            follow_status=True).filter(card__community__id__in=community_id)
+            follow_status=True).filter(card__community__id=community_id)
         conversations = card_answers.objects.filter(user=user_id).filter(created_at__lte=day_1,
                                                                          created_at__gte=day_2).filter(
-            card__community__id__in=community_id)
+            card__community__id=community_id)
         chatroom = Collabcard.objects.filter(user=user_id).filter(date_epoch__lte=day_1, date_epoch__gte=day_2).filter(
-            community__id__in=community_id)
+            community__id=community_id)
         # votes = MemberPollVotes.objects.filter(user=user_id).filter(created_at__lte=day_1,
         #                                                             created_at__gte=day_2).filter(
-        #     card__community__id__in=community_id)
-        if collabcardstates.exists() or conversations.exists() or chatroom.exists() or chatroomdstates.exists():
+        #     card__community__id=community_id)
+        if collabcardstates.exists() or conversations.exists() or chatroom.exists():
             active_counter += 1
 
-    per_day_record.cumulative_communities = community_count
+    # per_day_record.cumulative_communities = community_count
     per_day_record.new_chatrooms = all_rooms.count()
+
+    per_day_record.community = community
+
     per_day_record.new_cm_chatrooms = room_by_cm
     per_day_record.new_intro_rooms = intro_room.count()
-    per_day_record.new_messages = all_messages.count()
-    per_day_record.new_intro_room_messages = intro_room_messages.count()
+
+    #subtracting to remove the first message in chatroom
+    per_day_record.new_messages = all_messages.count() - all_rooms.count()
+    per_day_record.new_intro_room_messages = intro_room_messages.count() - intro_room.count()
+
     per_day_record.new_intro_poll_messages = poll_room_messages.count()
     per_day_record.new_intro_event_messages = event_room_messages.count()
     per_day_record.new_messages_by_cm = 0
@@ -128,10 +140,154 @@ def get_general_records(date_time):
     per_day_record.new_users_cumulative = new_users.count() + total_users
     per_day_record.active_users = active_counter
     per_day_record.members_added = members.count()
+    per_day_record.cummulative_members = all_members.count()
+    per_day_record.updated_at = test_day
     per_day_record.save()
+
+
+
+def get_weekly_records(community,day=1):
+    community_id = community.id
+
+    # last_record = PerWeekRecordOverview.objects.all().order_by('id')
+    # if last_record.exists():
+    #     record = last_record.last()
+    #     total_users = record.new_users_cumulative
+    # else:
+    #     total_users = 0
+
+    per_day_record = PerWeekRecordOverview()
+    communities = NewCommunities.objects.all()
+    community_count = communities.count()
+    community_id = []
+    for community in communities:
+        community_id.append(community.community_id)
+
+    midnight = datetime.combine(datetime.today(), datetime.min.time())
+    # print('^^^',midnight,day*7)
+    midnight = midnight - timedelta(days=day*7)
+    # print('^^^',midnight)
+    day_1 = midnight
+    # day_2 = midnight - timedelta(days=day*7)
+    day_2 = midnight
+    # print('==>',day_1, day_2)
+
+    day_of_week = day_1.weekday()
+
+    day_2 = day_2 + timedelta(days=6-day_of_week+1)
+
+    # day_of_week = day_2.weekday()
+    print(day_2)
+    day_1 = day_1 - timedelta(days=day_of_week)
+    print(day_1, day_2)
+    return
+    day_1 = day_1.timestamp() + 5*60*60 + 30*60
+    day_2 = day_2.timestamp() + 5*60*60 + 30*60
+
+    test_day = day_1 + 60*60
+
+
+
+    #get chatroomn data
+    intro_room = Collabcard.objects.filter(date_epoch__lte=day_2,date_epoch__gte=day_1).filter(community__id=community_id).filter(type=1)
+    all_rooms = Collabcard.objects.filter(date_epoch__lte=day_2,date_epoch__gte=day_1).filter(community__id=community_id)
+    room_by_cm = 0
+    # for c_id in community_id:
+    admins = Members.objects.filter(community_id=community_id, state=1)
+    for admin in admins:
+        admin_chatroom = all_rooms.filter(user=admin.member_id).filter(community_id=community_id)
+        room_by_cm += admin_chatroom.count()
+
+
+    #get message data
+    all_messages = card_answers.objects.filter(created_at__lte=day_2, created_at__gte=day_1).filter(
+        card__community__id=community_id)
+    intro_room_messages = card_answers.objects.filter(created_at__lte=day_2, created_at__gte=day_1).filter(
+        card__community__id=community_id).filter(card__type=1)
+    poll_room_messages = card_answers.objects.filter(created_at__lte=day_2, created_at__gte=day_1).filter(
+        card__community__id=community_id).filter(card__type=3)
+    event_room_messages = card_answers.objects.filter(created_at__lte=day_2, created_at__gte=day_1).filter(
+        card__community__id=community_id).filter(card__type=2)
+
+
+    #acquired users data
+    new_users = Userinfo.objects.filter(created_at__lte=day_2,created_at__gte=day_1)
+
+
+    # members added
+    members = Members.objects.filter(created_at__lte=day_2,created_at__gte=day_1).filter(community_id=community_id)
+    all_members = Members.objects.filter(community_id=community_id)
+
+
+
+    #active members
+    all_members = Members.objects.filter(community_id=community_id).values('member_id').distinct()
+    active_counter = 0
+    for m in all_members:
+        user_id = m['member_id']
+        # chatroomdstates = collabcardState.objects.filter(user=user_id).filter(created_at__lte=day_1,
+        #                                                                       created_at__gte=day_2).filter(
+        #     follow_status=True)
+        collabcardstates = collabcardState.objects.filter(user=user_id).filter(created_at__lte=day_2,
+                                                                               created_at__gte=day_1).filter(
+            follow_status=True).filter(card__community__id=community_id)
+        conversations = card_answers.objects.filter(user=user_id).filter(created_at__lte=day_2,
+                                                                         created_at__gte=day_1).filter(
+            card__community__id=community_id)
+        chatroom = Collabcard.objects.filter(user=user_id).filter(date_epoch__lte=day_2, date_epoch__gte=day_1).filter(
+            community__id=community_id)
+        # votes = MemberPollVotes.objects.filter(user=user_id).filter(created_at__lte=day_1,
+        #                                                             created_at__gte=day_2).filter(
+        #     card__community__id=community_id)
+        if collabcardstates.exists() or conversations.exists() or chatroom.exists():
+            active_counter += 1
+
+    # per_day_record.cumulative_communities = community_count
+    per_day_record.new_chatrooms = all_rooms.count()
+    per_day_record.community = community
+    per_day_record.new_cm_chatrooms = room_by_cm
+    per_day_record.new_intro_rooms = intro_room.count()
+
+    #subtracting to remove the first message in chatroom
+    per_day_record.new_messages = all_messages.count() - all_rooms.count()
+    per_day_record.new_intro_room_messages = intro_room_messages.count() - intro_room.count()
+
+    per_day_record.new_intro_poll_messages = poll_room_messages.count()
+    per_day_record.new_intro_event_messages = event_room_messages.count()
+    per_day_record.new_messages_by_cm = 0
+    per_day_record.new_users = new_users.count()
+    per_day_record.new_users_cumulative = new_users.count() + total_users
+    per_day_record.active_users = active_counter
+    per_day_record.members_added = members.count()
+    per_day_record.cummulative_members = all_members.count()
+    per_day_record.updated_at = test_day
+    # per_day_record.save()
+
+
 
 
 @app.task
 @shared_task
-def run_daily_tasks():
-    get_general_records(1)
+def run_daily_tasks(day=0):
+    communities = Community.objects.filter(created_at__gte=1596157200)
+    for community in communities:
+        get_general_records(community,day)
+
+
+def run_weekly_tasks(day=1):
+    communities = Community.objects.filter(created_at__gte=1596157200)
+    for community in communities:
+        get_weekly_records(community,day)
+
+
+def sanitize_division(a,b):
+    if b == 0:
+        return '-'
+    else:
+        return ("%.2f" % (a/b))
+
+def get_percent(a,b):
+    if b == 0:
+        return '-'
+    else:
+        return ("%.0f" % (a/b*100) + ' %')

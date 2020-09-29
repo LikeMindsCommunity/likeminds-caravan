@@ -178,8 +178,11 @@ class Collabcard(models.Model):
 
     # for saving chatroom name
     header = models.TextField(null=True)
-    has_been_named = models.BooleanField(default=True)      #for notification access
-
+    has_been_named = models.BooleanField(default=True) #for notification access
+    internal_link = models.TextField(null=True)
+    preview_type = models.TextField(null=True)
+    preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True, related_name='chatroom_preview_community')
+    preview_chatroom = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='chatroom_preview_chatroom')
 
 
 
@@ -214,7 +217,7 @@ class draftChatroom(models.Model):
     # for poll functionality
     multiple_select = models.BooleanField(default=False)
     multiple_select_no = models.IntegerField(null=True)
-    multiple_select_state = models.IntegerField(default=0)
+    multiple_select_state = models.IntegerField(null=True)
 
     poll_type = models.IntegerField(default=0, null=True)
     is_poll_anonymous = models.BooleanField(default=False, null=True)
@@ -228,7 +231,7 @@ class inActiveChatroomsCount(models.Model):
 
     '''models to save the count of in-active chatrooms for user'''
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    last_inactive_card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    #last_inactive_card = models.ForeignKey(Collabcard, on_delete=models.CASCADE,null=True)
     inactive_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(null=True)
     updated_at = models.BigIntegerField(null=True)
@@ -274,7 +277,7 @@ class deletedChatrooms(models.Model):
     # for poll functionality
     multiple_select = models.BooleanField(default=False)
     multiple_select_no = models.IntegerField(null=True)
-    multiple_select_state = models.IntegerField(default=0)
+    multiple_select_state = models.IntegerField(null=True)
 
     poll_type = models.IntegerField(default=0, null=True)
     is_poll_anonymous = models.BooleanField(default=False, null=True)
@@ -305,6 +308,12 @@ class card_answers(models.Model):
     is_deleted = models.BooleanField(default=False)
     is_edited = models.BooleanField(default=False)
     reply = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='replied_conversation')
+    internal_link = models.TextField(null=True)
+    preview_type = models.TextField(null=True)
+    preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
+                                          related_name='conversation_preview_community')
+    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
+                                         related_name='conversation_preview_chatroom')
 
 
 class conversationMemberState(models.Model):
@@ -497,8 +506,8 @@ class Member_Engage(models.Model):
     updated_at = models.BigIntegerField(default=0, null=True)
     member_referral = models.CharField(default='', max_length=1024)
     member_state = models.IntegerField(null=True)
-
     click_state = models.IntegerField(default=0)
+    new_chatroom_users = models.TextField(null=True)
 
 
 # community lpig
@@ -696,7 +705,7 @@ class collabcardState(models.Model):
     
     expiry_time = models.BigIntegerField(null=True)
 
-    external_seen = models.BooleanField(default=False)
+    external_seen = models.BooleanField(default=True)
 
 
 

@@ -1,5 +1,5 @@
 #variables
-HOURS_24 = 500
+HOURS_24 = 86400
 
 
 chatroom_actions_creator_mute = [
@@ -214,7 +214,7 @@ INTRODUCTION_EXAMPLES = [
 
     {
     "header":"Sample member introductions",
-    "sub_header" : "Here are a few example of how members customize their profile depending on the community",
+    "sub_header" : "Here are a few examples",
     "title" : "IITD Entrepreneurs in Gurgaon",
     "sub_title":"""Hello everyone, I am a 2012 graduate from electrical engineering. I am running a social media venture based out of Gurgaon. Looking forward to connecting with you all and contribute to this community however I can."""
 
@@ -222,7 +222,7 @@ INTRODUCTION_EXAMPLES = [
 
     {
     "header":"Sample member introductions",
-    "sub_header" : "Here are a few example of how members customize their profile depending on the community",
+    "sub_header" : "Here are a few examples",
     "title" : "Musicians in Gurgaon",
     "sub_title":"A musician from the Himalayas! Looking for paid opportunities to play percussion (Djembe & Cajon)! I bet your feet won’t stay on the ground for long!  "
 
@@ -230,7 +230,7 @@ INTRODUCTION_EXAMPLES = [
 
     {
     "header":"Sample member introductions",
-    "sub_header" : "Here are a few example of how members customize their profile depending on the community",
+    "sub_header" : "Here are a few examples",
     "title" : "COVID Hackers",
     "sub_title":"""Hey all, I am a tech entrepreneur from Gurgaon. Looking forward to hacking the COVID times with this tribe and discover fun new "At Home" hobbies 🤟"""
 
