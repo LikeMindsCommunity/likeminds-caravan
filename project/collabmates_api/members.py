@@ -128,8 +128,8 @@ def get_all_members(request, req_dict=None):
         member_list = get_member_query_set(current_user_id, community_id,send_all=True)
         filter_list = json.loads(filter_list)
         member_set = get_filtered_users(filter_list, member_list)
-        members = get_member_instances_with_filter(member_set,current_user_id,community_id,page=page)
         total_filtered_members = len(member_set)
+        members = get_member_instances_with_filter(member_set,current_user_id,community_id,page=page)
 
 
     else:
