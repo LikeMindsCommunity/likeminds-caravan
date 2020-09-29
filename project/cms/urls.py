@@ -22,4 +22,7 @@ urlpatterns = [
     #answers
     path('list_new_answers', list_new_answers, name="list_new_answers"),
     path('list_all_answers', list_all_answers, name="list_all_answers"),
+
+    #tools
+    path('url_shortner', url_shortner, name="url_shortner"),
 ]
