@@ -227,7 +227,8 @@ def get_member_instances_with_filter(member_set,current_user_id,community_id,pag
 
 
     #logic for pagination of members for filters
-    member_set.remove(int(current_user_id))
+    if current_user_id and int(current_user_id) in member_set:
+        member_set.remove(int(current_user_id))
     member_ids = list(member_set)
     member_ids = paginate_list(member_ids,page,paginate_by=10)
 
