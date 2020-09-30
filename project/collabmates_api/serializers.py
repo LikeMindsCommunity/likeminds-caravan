@@ -1161,56 +1161,59 @@ def get_conversation_instance(conversation_instance,community_instance,current_u
     '''function to get conversation data'''
     ans = conversation_instance
     community_id=community_instance.id
-    usr = get_members_profile([ans.user.id], community_id, current_user_id)
-    user_context = usr[0]
 
-    if ans.is_guest:
-        user_context['is_guest'] = ans.is_guest
-        state_filter = collabcardState.objects.filter(card=ans.card, user=ans.user, is_guest=True)
-        if state_filter.exists() and state_filter[0].source:
-            instance = state_filter[0]
-            temp = get_guest_custom_text(instance)
-            user_context['custom_intro_text'] = temp['custom_intro_text']
-            user_context['custom_click_text'] = temp['custom_click_text']
+    context = {}
 
+    # usr = get_members_profile([ans.user.id], community_id, current_user_id)
+    # user_context = usr[0]
 
-    # if the member is removed from the community
-    elif ans.remove:
-        instance = ans.remove
-        temp = get_removed_member_custom_text(instance)
-        user_context['custom_intro_text'] = temp['custom_intro_text']
-        user_context['custom_click_text'] = temp['custom_click_text']
-        user_context['remove_state'] = temp['remove_state']
-        user_context['image_url'] = temp['removed_user_image_url']
+    # if ans.is_guest:
+    #     user_context['is_guest'] = ans.is_guest
+    #     state_filter = collabcardState.objects.filter(card=ans.card, user=ans.user, is_guest=True)
+    #     if state_filter.exists() and state_filter[0].source:
+    #         instance = state_filter[0]
+    #         temp = get_guest_custom_text(instance)
+    #         user_context['custom_intro_text'] = temp['custom_intro_text']
+    #         user_context['custom_click_text'] = temp['custom_click_text']
+    # elif ans.remove:
+    #     instance = ans.remove
+    #     temp = get_removed_member_custom_text(instance)
+    #     user_context['custom_intro_text'] = temp['custom_intro_text']
+    #     user_context['custom_click_text'] = temp['custom_click_text']
+    #     user_context['remove_state'] = temp['remove_state']
+    #     user_context['image_url'] = temp['removed_user_image_url']
 
     # time_text = get_time_text(ans.created_at)
     time_text = time.strftime('%H:%M', time.localtime(ans.created_at))
 
     date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
+
+
     attachements = get_answer_files(ans.id)
 
     context = {
         'id': ans.id,
         'answer': ans.answer,
         'created_at': time_text,
-        'member': user_context,
+        #'member': user_context,
         'images': attachements['image'],
         'pdf': attachements['pdf'],
         'date': date,
         'state': ans.state,
         'is_deleted': ans.is_deleted,
         'is_edited': ans.is_edited,
+        'user_id': ans.user.id
     }
 
     if ans.og_tags:
         context['og_tags'] = json.loads(ans.og_tags)
 
     # if last_seen and last_seen.id == ans.id:
-    #     context['last_seen'] = True
-
-    if 'location' in attachements:
-        context['location'] = attachements['location']
-
+        context['last_seen'] = True
+    #
+    # if 'location' in attachements:
+    #     context['location'] = attachements['location']
+    #
     if ans.reply and fetch_reply:
         context['reply_conversation'] = get_conversation_instance([ans.reply], community_id,
                                                         current_user_id, fetch_reply=False)
