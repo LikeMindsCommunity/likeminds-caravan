@@ -458,70 +458,6 @@ def get_category_of_chatroom(typ):
     return chatroom_type
 
 
-def conversationSerializer(conversation, fetch_reply=True):
-    temp = {
-        "id": conversation.id,
-        "answer": conversation.answer,
-        "state": conversation.state,
-        'is_deleted': conversation.is_deleted,
-        'is_edited': conversation.is_edited,
-    }
-
-    answer_files = get_answer_files(temp['id'])
-
-    temp['images'] = answer_files['image']
-    temp['pdf'] = answer_files['pdf']
-
-    if 'location' in answer_files:
-        temp['location'] = answer_files['location']
-
-    if conversation.og_tags:
-        temp['og_tags'] = json.loads(conversation.og_tags)
-
-    if conversation.reply and fetch_reply:
-        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
-
-    #if member is removed from community
-    remove = False
-    if conversation.remove:
-        remove = True
-    temp['member'] =  get_user_profile(conversation.user,conversation.community.id,send_profile=False,remove=remove)
-
-    return temp
-
-
-
-
-def get_answer_files(answer_id):
-    '''function to return pdf and image files of a collabcard'''
-
-    attachments = answerAttachment.objects.filter(answer=answer_id)
-    img_list = []
-    pdf = []
-    files = {}
-    for file in attachments:
-        if file.type == 'image':
-            if file.file_url:
-                img = {'image_url': file.file_url}
-                img_list.append(img)
-        elif file.type == 'pdf':
-            if file.file_url:
-                pdf_url = {'pdf_file': file.file_url}
-                pdf.append(pdf_url)
-        elif file.type == "location":
-            location = {
-                'location_name': file.location_name,
-                'location_lat': file.location_lat,
-                'location_long': file.location_long
-
-            }
-            files['location'] = location
-
-    files['image'] = img_list
-    files['pdf'] = pdf
-    return files
-
-
 def get_chatroom_name(user_name, card):
     '''function to create chatroom name'''
 
@@ -1155,5 +1091,135 @@ def get_members_profile(member_ids, community_id, current_user_id=None,send_prof
     return member_profile_list
 
 
+
+
+## chatroom conversation data
+
+def conversationSerializer(conversation, fetch_reply=True):
+    temp = {
+        "id": conversation.id,
+        "answer": conversation.answer,
+        "state": conversation.state,
+        'is_deleted': conversation.is_deleted,
+        'is_edited': conversation.is_edited,
+    }
+
+    answer_files = get_answer_files(temp['id'])
+
+    temp['images'] = answer_files['image']
+    temp['pdf'] = answer_files['pdf']
+
+    if 'location' in answer_files:
+        temp['location'] = answer_files['location']
+
+    if conversation.og_tags:
+        temp['og_tags'] = json.loads(conversation.og_tags)
+
+    if conversation.reply and fetch_reply:
+        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
+
+    #if member is removed from community
+    remove = False
+    if conversation.remove:
+        remove = True
+    temp['member'] =  get_user_profile(conversation.user,conversation.community.id,send_profile=False,remove=remove)
+
+    return temp
+
+def get_answer_files(answer_id):
+    '''function to return pdf and image files of a collabcard'''
+
+    attachments = answerAttachment.objects.filter(answer=answer_id)
+    img_list = []
+    pdf = []
+    files = {}
+    for file in attachments:
+        if file.type == 'image':
+            if file.file_url:
+                img = {'image_url': file.file_url}
+                img_list.append(img)
+        elif file.type == 'pdf':
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+                pdf.append(pdf_url)
+        elif file.type == "location":
+            location = {
+                'location_name': file.location_name,
+                'location_lat': file.location_lat,
+                'location_long': file.location_long
+
+            }
+            files['location'] = location
+
+    files['image'] = img_list
+    files['pdf'] = pdf
+    return files
+
+
+def get_conversation_instance(conversation_instance,community_instance,current_user_id=None,fetch_reply=True):
+
+    '''function to get conversation data'''
+    ans = conversation_instance
+    community_id=community_instance.id
+    usr = get_members_profile([ans.user.id], community_id, current_user_id)
+    user_context = usr[0]
+
+    if ans.is_guest:
+        user_context['is_guest'] = ans.is_guest
+        state_filter = collabcardState.objects.filter(card=ans.card, user=ans.user, is_guest=True)
+        if state_filter.exists() and state_filter[0].source:
+            instance = state_filter[0]
+            temp = get_guest_custom_text(instance)
+            user_context['custom_intro_text'] = temp['custom_intro_text']
+            user_context['custom_click_text'] = temp['custom_click_text']
+
+
+    # if the member is removed from the community
+    elif ans.remove:
+        instance = ans.remove
+        temp = get_removed_member_custom_text(instance)
+        user_context['custom_intro_text'] = temp['custom_intro_text']
+        user_context['custom_click_text'] = temp['custom_click_text']
+        user_context['remove_state'] = temp['remove_state']
+        user_context['image_url'] = temp['removed_user_image_url']
+
+    # time_text = get_time_text(ans.created_at)
+    time_text = time.strftime('%H:%M', time.localtime(ans.created_at))
+
+    date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
+    attachements = get_answer_files(ans.id)
+
+    context = {
+        'id': ans.id,
+        'answer': ans.answer,
+        'created_at': time_text,
+        'member': user_context,
+        'images': attachements['image'],
+        'pdf': attachements['pdf'],
+        'date': date,
+        'state': ans.state,
+        'is_deleted': ans.is_deleted,
+        'is_edited': ans.is_edited,
+    }
+
+    if ans.og_tags:
+        context['og_tags'] = json.loads(ans.og_tags)
+
+    # if last_seen and last_seen.id == ans.id:
+    #     context['last_seen'] = True
+
+    if 'location' in attachements:
+        context['location'] = attachements['location']
+
+    if ans.reply and fetch_reply:
+        context['reply_conversation'] = get_conversation_instance([ans.reply], community_id,
+                                                        current_user_id, fetch_reply=False)
+
+    # if ans.internal_link:
+    #     context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
+    #                                              community_instance=ans.preview_community,
+    #                                              chatroom_instance=ans.preview_chatroom)
+
+    return context
 
 
