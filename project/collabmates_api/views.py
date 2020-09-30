@@ -2683,7 +2683,7 @@ def create_chatroom_instance(res, community_instance, user_instance):
         if 'internal_link' not in res:
             card.internal_link = preview['internal_link']
 
-        card.internal_link = res['internal_link']
+        # card.internal_link = res['internal_link']
 
     card.date_epoch = time.time()  # card creation time
     card.save()
@@ -2768,10 +2768,11 @@ def create_card_internal(user_id, community_id, res):
 
     collabcard = CollabcardSerializer(card_instance, user_id, community_instance, current_user_id=user_id)
 
-    if card_instance.internal_link:
-        collabcard['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
-                                              community_instance=card_instance.preview_community,
-                                              chatroom_instance=card_instance.preview_chatroom)
+    # if card_instance.internal_link:
+    #     collabcard['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
+    #                                                 community_instance=card_instance.preview_community,
+    #                                                 chatroom_instance=card_instance.preview_chatroom,
+    #                                                 send_preview_text=False)
 
     # preview_dict = get_previews_for_card_and_answers(card_instance, user_id)
     # collabcard.update(**preview_dict)
@@ -4709,8 +4710,9 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
         if ans.internal_link:
             context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
-                                           community_instance=ans.preview_community,
-                                           chatroom_instance=ans.preview_chatroom)
+                                                     community_instance=ans.preview_community,
+                                                     chatroom_instance=ans.preview_chatroom,
+                                                     send_preview_text=False)
         # preview_dict = get_previews_for_card_and_answers(ans, current_user_id)
         # context.update(**preview_dict)
 
@@ -4885,7 +4887,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if card_instance.internal_link:
         card['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
                                               community_instance=card_instance.preview_community,
-                                              chatroom_instance=card_instance.preview_chatroom)
+                                              chatroom_instance=card_instance.preview_chatroom,
+                                              send_preview_text=False)
     # preview_dict = get_previews_for_card_and_answers(card_instance, user_id)
     # card.update(**preview_dict)
 
@@ -6646,7 +6649,7 @@ def get_chatrooms(chatroom_list, member_id,active = None):
         if card_instance.internal_link:
             chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
                                            community_instance=card_instance.preview_community,
-                                           chatroom_instance=card_instance.preview_chatroom)
+                                           chatroom_instance=card_instance.preview_chatroom, send_preview_text=False)
 
         # preview_dict = get_previews_for_card_and_answers(card_instance, member_id)
         # chatroom_instance.update(**preview_dict)
@@ -6681,9 +6684,11 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None):
         chatroom_instance['total_response_count'] = conversation_filter.count()
 
         if card_instance.internal_link:
-            chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
+            chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
+                                           preview_url=card_instance.internal_link,
                                            community_instance=card_instance.preview_community,
-                                           chatroom_instance=card_instance.preview_chatroom)
+                                           chatroom_instance=card_instance.preview_chatroom,
+                                           send_preview_text=False)
 
         # preview_dict = get_previews_for_card_and_answers(card_instance, member_id)
         # chatroom_instance.update(**preview_dict)
@@ -10268,7 +10273,7 @@ def fetch_preview(request):
 
 
 def get_preview_for_url(member_id=None, preview_url=None,
-                community_instance=None, chatroom_instance=None):
+                community_instance=None, chatroom_instance=None, send_preview_text=True):
     """ function to get preview of community or chatroom """
 
     user_instance = User.objects.get(pk=member_id)
@@ -10311,13 +10316,10 @@ def get_preview_for_url(member_id=None, preview_url=None,
         if 'source_id' in query_items:
             source_id = query_items['source_id']
 
-    context = {"internal_link": preview_url, "preview_type": preview_type,
-               "preview_text": preview_text, "title": title}
-    if aj:
-        context["aj"] = aj
-
-    if source_id:
-        context["source_id"] = source_id
+    context = {"preview_type": preview_type}
+    if send_preview_text:
+        context = {"internal_link": preview_url, "preview_type": preview_type,
+                   "preview_text": preview_text, "title": title}
 
     if chatroom_id:
         if not chatroom_instance:
@@ -10332,7 +10334,8 @@ def get_preview_for_url(member_id=None, preview_url=None,
         title = f'Participate in this LikeMinds chat room in community. "{community_instance.name}"'
         route = f"route://collabcard?collabcard_id={chatroom_id}"
 
-    context["title"] = title
+    if send_preview_text:
+        context["title"] = title
 
     if community_id:
         if not community_instance:
@@ -10357,12 +10360,20 @@ def get_preview_for_url(member_id=None, preview_url=None,
     if chatroom_id:
         if chatroom_instance.type == card_types.CARD_EVENT or chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
             context["action"] = "VIEW EVENT"
-            context["preview_text"] = "Preview of the event will be added later"
+            if send_preview_text:
+                context["preview_text"] = "Preview of the event will be added later"
         elif chatroom_instance.type == card_types.CARD_POLL:
             context["action"] = "VIEW POLL"
-            context["preview_text"] = "Preview of the poll will be added later"
+            if send_preview_text:
+                context["preview_text"] = "Preview of the poll will be added later"
         else:
             context["action"] = "VIEW CHAT ROOM"
+
+    if aj:
+        route = route + f"&aj={aj}"
+
+    if source_id:
+        route = route + f"&source_id={source_id}"
 
     context["action_route"] = route
 
@@ -10372,6 +10383,7 @@ def get_preview_for_url(member_id=None, preview_url=None,
 def get_community_preview(community_instance, user_instance):
     community = {"id": community_instance.id,
                  "name": community_instance.name,
+                 "purpose": community_instance.purpose,
                  }
 
     if community_instance.image_link:
@@ -10417,7 +10429,7 @@ def get_community_members_count(community_instance, user_instance):
 
     final_dict = {"created_by": created_by,
                   "promoters_count": promoters.count(),
-                  "member_count": community_members.count(),
+                  "members_count": community_members.count(),
                   "member_state": member_state
                   }
 
