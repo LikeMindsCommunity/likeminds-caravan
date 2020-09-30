@@ -122,7 +122,7 @@ def get_all_members(request, req_dict=None):
 
     promoter_instance = is_member_promoter(community_instance,current_user_id)
 
-    community = CommunitySerializer(community_instance,promoter_id=promoter_instance)
+    community = CommunitySerializer(community_instance, promoter_id=promoter_instance)
 
     if filter_list:
         member_list = get_member_query_set(current_user_id, community_id,send_all=True)
@@ -429,3 +429,5 @@ def get_paginated_member_queryset(page,community_id,promoter=False):
         member_ids.append(instance)
 
     return member_ids
+
+

@@ -8,7 +8,8 @@ from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_commu
     generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
     is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp
 
-from utility.states import card_types, question_states, member_states, poll_types, deleted_members
+from utility.states import (card_types, question_states, member_states, poll_types,
+                            deleted_members, manager_rights, member_rights)
 
 url = settings.URL
 import ast
@@ -486,6 +487,9 @@ def conversationSerializer(conversation, fetch_reply=True):
     if conversation.remove:
         remove = True
     temp['member'] =  get_user_profile(conversation.user,conversation.community.id,send_profile=False,remove=remove)
+    if conversation.is_deleted:
+        temp['deleted_by'] = get_members_profile([conversation.user.id], conversation.community.id)
+        temp['deleted_by_member_state'] = conversation.deleted_by_user_state
 
     return temp
 
@@ -790,6 +794,7 @@ def get_answer_text_for_poll(card, current_user_id=None):
         return f"{len(user_names)} members voted"
     return "Be the first one to vote"
 
+
 def draftPollsSerializers(poll):
     polls = {
         'draft_poll_id': poll.id,
@@ -813,9 +818,6 @@ def draftPollsSerializers(poll):
     return polls
 
 
-
-
-
 def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False):
     responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
     if not responses.exists():
@@ -837,7 +839,8 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
             send_back = True
 
         temp = {}
-        questions = get_question_data(response.question, member_state, send_back=send_back)
+        questions = get_question_data(response.question, member_state, send_back=send_back,
+                                      user_id=current_user_id, community_id=community_id)
         if questions:
             temp['community_id'] = community_id
             temp['member_id'] = user_id
@@ -865,30 +868,52 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
     return (user_response, new_response)
 
 
-
-def get_question_data(question_id, member_state, send_back):
-    '''function to get question id'''
+def get_question_data(question_id, member_state, send_back, user_id=None, community_id = None):
+    ''' function to get question id '''
 
     question_instance = question_id
 
-    if member_state == 1 or member_state == 2 or send_back:
+    if member_state == 1 or member_state == 2:
+        if user_id and community_id:
+            has_right = check_admin_view_contact_right(user_id, community_id)
+            if not has_right:
+                questions = get_question_instance(question_instance)
+                return questions
+
+        questions = CommunityQuestionsSerializer(question_instance)
+    elif send_back:
         questions = CommunityQuestionsSerializer(question_instance)
     else:
-        if question_instance.value and question_instance.value != '':
-            value_list = ast.literal_eval(question_instance.value)
-            privacy = "Public"
-            for value in value_list:
-                if 'answer_privacy' in value:
-                    privacy = value['answer_privacy']
-
-            if privacy == "Public":
-                questions = CommunityQuestionsSerializer(question_instance)
-            else:
-                return False
-        else:
-            questions = CommunityQuestionsSerializer(question_instance)
+        questions = get_question_instance(question_instance)
 
     return questions
+
+
+def get_question_instance(question_instance):
+    if question_instance.value and question_instance.value != '':
+        value_list = ast.literal_eval(question_instance.value)
+        privacy = "Public"
+        for value in value_list:
+            if 'answer_privacy' in value:
+                privacy = value['answer_privacy']
+
+        if privacy == "Public":
+            questions = CommunityQuestionsSerializer(question_instance)
+        else:
+            return False
+    else:
+        questions = CommunityQuestionsSerializer(question_instance)
+
+    return questions
+
+def check_admin_view_contact_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
+
+    if user_rights.exists():
+        return True
+    return False
 
 
 def CommunityQuestionsSerializer(community_question_instance):

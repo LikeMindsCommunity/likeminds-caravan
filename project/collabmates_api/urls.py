@@ -175,6 +175,8 @@ urlpatterns = [
     path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
     path('fetch_preview', api_views.fetch_preview, name='fetch_preview'),
 
+    path('fetch_community_manager_rights', api_views.fetch_community_manager_rights, name='fetch_community_manager_rights'),
+
 
     ############################ static apis #####################################
 

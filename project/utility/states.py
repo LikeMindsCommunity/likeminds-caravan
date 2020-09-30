@@ -1,7 +1,42 @@
 import enum
 
+#  these rights can be treated as right_id mapping to enums
+class ManagerRights:
 
-# member state
+    MANAGER_RIGHT_DELETE_ROOMS = 0
+    MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS = 1
+    MANAGER_RIGHT_EDIT_COMMUNITY = 2
+    MANAGER_RIGHT_VIEW_CONTACT_INFO = 3
+    MANAGER_RIGHT_ADD_MANAGERS = 4
+    MANAGER_RIGHT_DELETE_ROOMS_TITLE = "Delete chat rooms/messages"
+    MANAGER_RIGHT_APPROVE_MEMBERS_TITLE = "Approve/remove members"
+    MANAGER_RIGHT_REMOVE_MEMBERS_TITLE = "Approve/remove members"
+    MANAGER_RIGHT_EDIT_COMMUNITY_TITLE = "Edit community details"
+    MANAGER_RIGHT_VIEW_CONTACT_INFO_TITLE = "View member contact info"
+    MANAGER_RIGHT_ADD_MANAGERS_TITLE = "Add community managers"
+
+
+manager_rights = ManagerRights()
+
+
+class MemberRights:
+
+    MEMBER_RIGHT_CREATE_ROOMS = 0
+    MEMBER_RIGHT_CREATE_POLL = 1
+    MEMBER_RIGHT_CREATE_EVENT = 2
+    MEMBER_RIGHT_RESPOND_IN_ROOM = 3
+    MEMBER_RIGHT_INVITE_PRIVATE_LINK = 4
+    MEMBER_RIGHT_CREATE_ROOMS_TITLE = "Create chat rooms"
+    MEMBER_RIGHT_CREATE_POLL_TITLE = "Create polls"
+    MEMBER_RIGHT_CREATE_EVENT_TITLE = "Create events"
+    MEMBER_RIGHT_RESPOND_IN_ROOM_TITLE = "Respond in chat rooms"
+    MEMBER_RIGHT_INVITE_PRIVATE_LINK_TITLE = "Invite members via private link"
+
+
+member_rights = MemberRights()
+
+
+# chatroom actions
 class ChatroomActions:
 
     ACTION_RENAME = 1

@@ -1,0 +1,1111 @@
+2020-09-08 07:56:50,400  ERROR Internal Server Error: /api/fetch_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 3968, in fetch_chatroom
+    context = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id, scroll_direction)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 4252, in get_chatroom_internal
+    card = get_chatroom_instance(card_instance, user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 535, in get_chatroom_instance
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=current_user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 188, in CollabcardSerializer
+    collabcard["answer_text"] = get_answer_text_for_poll(card, current_user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 733, in get_answer_text_for_poll
+    user_names.append(user.user.name)
+AttributeError: 'User' object has no attribute 'name'
+2020-09-08 07:56:50,474  ERROR "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 500 21600  
+2020-09-08 07:57:30,194  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 07:57:34,632  INFO Watching for file changes with StatReloader  
+2020-09-08 07:58:07,053  INFO Watching for file changes with StatReloader  
+2020-09-08 07:58:15,718  ERROR Internal Server Error: /api/fetch_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 3968, in fetch_chatroom
+    context = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id, scroll_direction)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 4252, in get_chatroom_internal
+    card = get_chatroom_instance(card_instance, user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 535, in get_chatroom_instance
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=current_user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 188, in CollabcardSerializer
+    collabcard["answer_text"] = get_answer_text_for_poll(card, current_user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 734, in get_answer_text_for_poll
+    user_names.append(user.user.name)
+AttributeError: 'User' object has no attribute 'name'
+2020-09-08 07:58:15,833  ERROR "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 500 21600  
+2020-09-08 07:58:19,481  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 07:58:23,999  INFO Watching for file changes with StatReloader  
+2020-09-08 07:58:30,568  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:00:53,439  INFO Watching for file changes with StatReloader  
+2020-09-08 08:01:00,793  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:01:55,476  INFO Watching for file changes with StatReloader  
+2020-09-08 08:02:00,567  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:05:11,487  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:05:12,975  INFO Watching for file changes with StatReloader  
+2020-09-08 08:05:23,886  INFO Watching for file changes with StatReloader  
+2020-09-08 08:05:27,288  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:07:23,076  INFO Watching for file changes with StatReloader  
+2020-09-08 08:07:38,496  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:07:51,818  INFO Watching for file changes with StatReloader  
+2020-09-08 08:07:55,448  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:08:48,171  INFO Watching for file changes with StatReloader  
+2020-09-08 08:09:02,491  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:10:02,628  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 08:10:06,187  INFO Watching for file changes with StatReloader  
+2020-09-08 08:10:09,662  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:10:23,548  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 08:10:26,718  INFO Watching for file changes with StatReloader  
+2020-09-08 08:10:30,250  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:11:38,019  INFO Watching for file changes with StatReloader  
+2020-09-08 08:11:41,524  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:13:56,111  INFO Watching for file changes with StatReloader  
+2020-09-08 08:13:59,304  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:14:05,564  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:15:19,180  INFO Watching for file changes with StatReloader  
+2020-09-08 08:15:22,890  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:15:59,383  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:16:04,192  INFO Watching for file changes with StatReloader  
+2020-09-08 08:16:49,697  INFO Watching for file changes with StatReloader  
+2020-09-08 08:17:16,897  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:18:01,268  INFO Watching for file changes with StatReloader  
+2020-09-08 08:18:08,253  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:18:30,847  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:18:35,082  INFO Watching for file changes with StatReloader  
+2020-09-08 08:18:38,644  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:19:29,061  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:19:34,473  INFO Watching for file changes with StatReloader  
+2020-09-08 08:19:37,840  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8686  
+2020-09-08 08:20:02,218  INFO Watching for file changes with StatReloader  
+2020-09-08 08:21:13,179  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8693  
+2020-09-08 08:21:31,513  INFO "POST /api/submit_poll HTTP/1.1" 200 17  
+2020-09-08 08:21:45,128  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8716  
+2020-09-08 08:22:07,110  INFO Watching for file changes with StatReloader  
+2020-09-08 08:22:10,917  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8699  
+2020-09-08 08:23:07,768  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:23:11,455  INFO Watching for file changes with StatReloader  
+2020-09-08 08:23:14,629  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8699  
+2020-09-08 08:25:32,650  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:25:34,985  INFO Watching for file changes with StatReloader  
+2020-09-08 08:25:49,717  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8687  
+2020-09-08 08:25:58,394  INFO "POST /api/submit_poll HTTP/1.1" 200 17  
+2020-09-08 08:26:03,959  INFO "POST /api/submit_poll HTTP/1.1" 200 17  
+2020-09-08 08:26:18,384  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8698  
+2020-09-08 08:27:09,484  INFO Watching for file changes with StatReloader  
+2020-09-08 08:27:15,603  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8698  
+2020-09-08 08:28:09,380  INFO Watching for file changes with StatReloader  
+2020-09-08 08:28:12,014  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8698  
+2020-09-08 08:29:49,468  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:29:52,679  INFO Watching for file changes with StatReloader  
+2020-09-08 08:30:02,110  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8698  
+2020-09-08 08:30:41,826  INFO Watching for file changes with StatReloader  
+2020-09-08 08:30:49,032  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8698  
+2020-09-08 08:32:56,807  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:33:00,560  INFO Watching for file changes with StatReloader  
+2020-09-08 08:33:03,743  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8699  
+2020-09-08 08:33:11,397  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 9443  
+2020-09-08 08:33:37,307  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:33:39,361  INFO Watching for file changes with StatReloader  
+2020-09-08 08:33:42,085  INFO "GET /admin_dashboard/all_members/49169 HTTP/1.1" 200 7511  
+2020-09-08 08:33:42,137  WARNING "GET /static/notes/main.css HTTP/1.1" 404 1769  
+2020-09-08 08:33:43,428  INFO "GET /admin_dashboard/update_user/36 HTTP/1.1" 200 6504  
+2020-09-08 08:33:43,461  WARNING "GET /static/notes/main.css HTTP/1.1" 404 1769  
+2020-09-08 08:33:53,081  INFO "POST /api/submit_poll HTTP/1.1" 200 17  
+2020-09-08 08:34:09,086  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 9439  
+2020-09-08 08:34:15,254  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8694  
+2020-09-08 08:34:21,057  ERROR Internal Server Error: /api/fetch_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 3968, in fetch_chatroom
+    context = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id, scroll_direction)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 4251, in get_chatroom_internal
+    card = get_chatroom_instance(card_instance, user_id, current_user_id=user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 536, in get_chatroom_instance
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=current_user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 262, in CollabcardSerializer
+    share = get_share_url_text(card, user)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 398, in get_share_url_text
+    user_instance = User.objects.get(id=user_id)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/manager.py", line 82, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/query.py", line 417, in get
+    self.model._meta.object_name
+django.contrib.auth.models.User.DoesNotExist: User matching query does not exist.
+2020-09-08 08:34:21,137  ERROR "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 500 21933  
+2020-09-08 08:34:26,749  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8690  
+2020-09-08 08:38:53,824  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 08:38:56,632  INFO Watching for file changes with StatReloader  
+2020-09-08 08:39:19,471  ERROR Internal Server Error: /api/fetch_chatroom_feed  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 5972, in fetch_chatroom_feed
+    chatrooms = get_chatrooms(chatroom_list, member_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 5931, in get_chatrooms
+    chatroom_instance = get_chatroom_instance(card_instance, member_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 535, in get_chatroom_instance
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=current_user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 188, in CollabcardSerializer
+    collabcard["answer_text"] = get_answer_text_for_poll(card, current_user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py", line 733, in get_answer_text_for_poll
+    if int(user.user.id) == int(current_user_id):
+TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
+2020-09-08 08:39:19,552  ERROR "GET /api/fetch_chatroom_feed?community_id=49169 HTTP/1.1" 500 116691  
+2020-09-08 08:40:33,032  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 08:40:35,196  INFO Watching for file changes with StatReloader  
+2020-09-08 08:40:40,665  INFO "GET /api/fetch_chatroom_feed?community_id=49169 HTTP/1.1" 200 14251  
+2020-09-08 10:29:27,532  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 10:29:29,072  INFO Watching for file changes with StatReloader  
+2020-09-08 11:20:35,621  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 11:20:37,087  INFO Watching for file changes with StatReloader  
+2020-09-08 11:20:49,244  INFO Watching for file changes with StatReloader  
+2020-09-08 11:21:06,833  INFO "GET /api/fetch_chatroom_feed?community_id=49169 HTTP/1.1" 200 14251  
+2020-09-08 11:24:27,367  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8692  
+2020-09-08 12:57:12,640  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 12:57:14,820  INFO Watching for file changes with StatReloader  
+2020-09-08 13:05:16,715  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 13:05:18,528  INFO Watching for file changes with StatReloader  
+2020-09-08 13:08:10,988  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 13:08:12,409  INFO Watching for file changes with StatReloader  
+2020-09-08 13:22:19,404  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 13:22:22,264  INFO Watching for file changes with StatReloader  
+2020-09-08 13:24:38,404  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 13:24:40,063  INFO Watching for file changes with StatReloader  
+2020-09-08 13:28:11,635  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-09-08 13:28:13,540  INFO Watching for file changes with StatReloader  
+2020-09-08 13:28:53,127  INFO /Users/maheshroyal/collabmates/Togther/project/dashboard/views.py changed, reloading.  
+2020-09-08 13:28:54,702  INFO Watching for file changes with StatReloader  
+2020-09-08 13:30:20,426  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 13:30:21,972  INFO Watching for file changes with StatReloader  
+2020-09-08 13:45:44,519  WARNING Not Found: /api//my_chatrooms  
+2020-09-08 13:45:44,523  WARNING "GET /api//my_chatrooms?page=1 HTTP/1.1" 404 50028  
+2020-09-08 13:45:52,546  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 60335  
+2020-09-08 13:49:27,696  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 13:49:29,513  INFO Watching for file changes with StatReloader  
+2020-09-08 13:49:57,791  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 60335  
+2020-09-08 13:51:43,507  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 13:51:45,092  INFO Watching for file changes with StatReloader  
+2020-09-08 13:52:41,906  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 13:52:43,453  INFO Watching for file changes with StatReloader  
+2020-09-08 14:01:41,284  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 14:01:44,424  INFO Watching for file changes with StatReloader  
+2020-09-08 14:08:31,693  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 60334  
+2020-09-08 14:08:38,838  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8691  
+2020-09-08 14:08:54,472  INFO "GET /api/fetch_chatroom_feed?community_id=49169 HTTP/1.1" 200 14250  
+2020-09-08 14:09:23,731  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 60334  
+2020-09-08 14:09:44,508  WARNING Not Found: //api/your_communities/458  
+2020-09-08 14:09:44,508  WARNING "GET //api/your_communities/458?member_id=458&page=1 HTTP/1.1" 404 31134  
+2020-09-08 14:09:52,568  INFO "GET /api/your_communities/458?member_id=458&page=1 HTTP/1.1" 200 25253  
+2020-09-08 14:50:57,545  INFO Watching for file changes with StatReloader  
+2020-09-08 14:55:44,850  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-09-08 14:55:48,670  INFO Watching for file changes with StatReloader  
+2020-09-08 14:55:56,168  INFO "GET /api/fetch_chatroom?chatroom_id=3235 HTTP/1.1" 200 8691  
+2020-09-08 14:56:04,177  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 60334  
+2020-09-08 14:56:09,781  INFO "GET /api/your_communities/458?member_id=458&page=1 HTTP/1.1" 200 25253  
+2020-09-08 14:56:13,369  INFO "GET /api/fetch_chatroom_feed?community_id=49169 HTTP/1.1" 200 14250  
+2020-09-08 15:33:00,615  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-08 15:33:02,605  INFO Watching for file changes with StatReloader  
+2020-09-08 16:31:21,382  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-09-08 16:31:23,117  INFO Watching for file changes with StatReloader  
+2020-09-08 16:53:01,920  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/static_text.py changed, reloading.  
+2020-09-08 16:53:03,563  INFO Watching for file changes with StatReloader  
+2020-09-08 16:55:07,305  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/static_text.py changed, reloading.  
+2020-09-08 16:55:08,711  INFO Watching for file changes with StatReloader  
+2020-09-08 17:00:05,424  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/static_text.py changed, reloading.  
+2020-09-08 17:00:07,079  INFO Watching for file changes with StatReloader  
+2020-09-08 17:06:27,042  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 17:06:28,525  INFO Watching for file changes with StatReloader  
+2020-09-08 17:57:25,188  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/notification.py changed, reloading.  
+2020-09-08 17:57:26,567  INFO Watching for file changes with StatReloader  
+2020-09-08 18:01:11,684  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/notification.py changed, reloading.  
+2020-09-08 18:01:13,166  INFO Watching for file changes with StatReloader  
+2020-09-08 18:02:12,250  INFO /Users/maheshroyal/collabmates/Togther/project/utility/celery_beat_tasks.py changed, reloading.  
+2020-09-08 18:02:13,253  INFO Watching for file changes with StatReloader  
+2020-09-08 18:19:07,541  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/notification.py changed, reloading.  
+2020-09-08 18:19:09,068  INFO Watching for file changes with StatReloader  
+2020-09-08 22:26:01,539  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/notification.py changed, reloading.  
+2020-09-08 22:26:03,361  INFO Watching for file changes with StatReloader  
+2020-09-08 22:38:51,460  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/notification.py changed, reloading.  
+2020-09-08 22:38:53,262  INFO Watching for file changes with StatReloader  
+2020-09-08 22:39:07,666  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-08 22:39:09,290  INFO Watching for file changes with StatReloader  
+2020-09-08 22:41:44,970  INFO /Users/maheshroyal/collabmates/Togther/project/utility/celery_beat_tasks.py changed, reloading.  
+2020-09-08 22:41:45,908  INFO Watching for file changes with StatReloader  
+2020-09-08 22:42:38,645  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/notification.py changed, reloading.  
+2020-09-08 22:42:39,565  INFO Watching for file changes with StatReloader  
+2020-09-08 22:53:31,313  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/notification.py changed, reloading.  
+2020-09-08 22:53:32,784  INFO Watching for file changes with StatReloader  
+2020-09-08 23:05:12,297  INFO Watching for file changes with StatReloader  
+2020-09-08 23:08:41,018  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/notification.py changed, reloading.  
+2020-09-08 23:08:42,326  INFO Watching for file changes with StatReloader  
+2020-09-08 23:09:33,539  INFO Watching for file changes with StatReloader  
+2020-09-08 23:09:44,395  ERROR Internal Server Error: /api/create_poll  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2257, in create_poll
+    context = create_card_internal(member_id, community_id, res)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2402, in create_card_internal
+    card_instance = create_chatroom_instance(res, community_instance, user_instance)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2350, in create_chatroom_instance
+    send_chatroom_creation_notifications_and_mails(card, user_instance)
+NameError: name 'send_chatroom_creation_notifications_and_mails' is not defined
+2020-09-08 23:10:01,320  ERROR "POST /api/create_poll HTTP/1.1" 500 4314  
+2020-09-08 23:10:20,040  ERROR Internal Server Error: /api/create_poll  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2257, in create_poll
+    context = create_card_internal(member_id, community_id, res)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2402, in create_card_internal
+    card_instance = create_chatroom_instance(res, community_instance, user_instance)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2350, in create_chatroom_instance
+    send_chatroom_creation_notifications_and_mails(card, user_instance)
+NameError: name 'send_chatroom_creation_notifications_and_mails' is not defined
+2020-09-08 23:10:23,565  ERROR "POST /api/create_poll HTTP/1.1" 500 4314  
+2020-09-08 23:12:42,062  ERROR Internal Server Error: /api/create_poll  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2257, in create_poll
+    context = create_card_internal(member_id, community_id, res)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2402, in create_card_internal
+    card_instance = create_chatroom_instance(res, community_instance, user_instance)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2350, in create_chatroom_instance
+    send_chatroom_creation_notifications_and_mails(card, user_instance)
+NameError: name 'send_chatroom_creation_notifications_and_mails' is not defined
+2020-09-08 23:12:47,762  ERROR "POST /api/create_poll HTTP/1.1" 500 4314  
+2020-09-09 09:02:55,086  INFO /Users/maheshroyal/collabmates/Togther/project/utility/celery_beat_tasks.py changed, reloading.  
+2020-09-09 09:02:56,726  INFO Watching for file changes with StatReloader  
+2020-09-09 09:03:13,287  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/notification.py changed, reloading.  
+2020-09-09 09:03:14,764  INFO Watching for file changes with StatReloader  
+2020-09-09 09:19:45,271  INFO Watching for file changes with StatReloader  
+2020-09-09 09:28:32,029  INFO Watching for file changes with StatReloader  
+2020-09-09 13:57:22,283  INFO Watching for file changes with StatReloader  
+2020-09-09 13:59:38,924  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 13:59:40,231  INFO Watching for file changes with StatReloader  
+2020-09-09 13:59:46,375  INFO Watching for file changes with StatReloader  
+2020-09-09 14:00:47,071  INFO "GET /api/fetch_chatroom?chatroom_id=3187 HTTP/1.1" 200 6031  
+2020-09-09 14:01:46,502  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-09-09 14:01:48,164  INFO Watching for file changes with StatReloader  
+2020-09-09 14:02:02,446  INFO Watching for file changes with StatReloader  
+2020-09-09 14:02:06,921  INFO "GET /api/fetch_chatroom?chatroom_id=3187 HTTP/1.1" 200 6009  
+2020-09-09 14:03:10,021  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 14:03:13,936  INFO Watching for file changes with StatReloader  
+2020-09-09 14:03:45,902  INFO "GET /api/fetch_chatroom?chatroom_id=3187 HTTP/1.1" 200 6009  
+2020-09-09 14:04:06,790  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 14:04:10,045  INFO Watching for file changes with StatReloader  
+2020-09-09 14:04:14,119  INFO "GET /api/fetch_chatroom?chatroom_id=3187 HTTP/1.1" 200 6009  
+2020-09-09 14:04:39,420  INFO Watching for file changes with StatReloader  
+2020-09-09 14:04:48,123  INFO "GET /api/fetch_chatroom?chatroom_id=3187 HTTP/1.1" 200 6009  
+2020-09-09 14:05:08,241  INFO Watching for file changes with StatReloader  
+2020-09-09 14:05:11,789  INFO "GET /api/fetch_chatroom?chatroom_id=3187 HTTP/1.1" 200 6009  
+2020-09-09 14:05:48,988  INFO Watching for file changes with StatReloader  
+2020-09-09 14:05:52,657  INFO "GET /api/fetch_chatroom?chatroom_id=3187 HTTP/1.1" 200 6009  
+2020-09-09 14:06:27,874  INFO Watching for file changes with StatReloader  
+2020-09-09 14:07:07,644  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 14:07:09,009  INFO Watching for file changes with StatReloader  
+2020-09-09 14:07:27,783  INFO "GET /api/fetch_chatroom?chatroom_id=3187 HTTP/1.1" 200 6048  
+2020-09-09 14:08:41,602  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 14:08:44,894  INFO Watching for file changes with StatReloader  
+2020-09-09 14:08:48,904  INFO "GET /api/fetch_chatroom?chatroom_id=3187 HTTP/1.1" 200 6048  
+2020-09-09 14:22:31,445  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 14:22:32,872  INFO Watching for file changes with StatReloader  
+2020-09-09 14:24:46,491  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 14:24:48,494  INFO Watching for file changes with StatReloader  
+2020-09-09 14:25:56,512  INFO Watching for file changes with StatReloader  
+2020-09-09 23:00:56,005  INFO Watching for file changes with StatReloader  
+2020-09-09 23:03:13,615  INFO Watching for file changes with StatReloader  
+2020-09-09 23:03:49,269  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-09 23:03:50,510  INFO Watching for file changes with StatReloader  
+2020-09-09 23:04:29,268  INFO Watching for file changes with StatReloader  
+2020-09-09 23:04:50,342  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:04:53,831  INFO Watching for file changes with StatReloader  
+2020-09-09 23:11:00,784  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-09 23:11:04,367  INFO Watching for file changes with StatReloader  
+2020-09-09 23:12:26,742  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-09 23:12:29,469  INFO Watching for file changes with StatReloader  
+2020-09-09 23:12:49,919  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-09 23:12:50,551  INFO Watching for file changes with StatReloader  
+2020-09-09 23:12:53,518  INFO Watching for file changes with StatReloader  
+2020-09-09 23:14:44,215  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-09 23:14:45,451  INFO Watching for file changes with StatReloader  
+2020-09-09 23:16:11,561  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:16:13,675  INFO Watching for file changes with StatReloader  
+2020-09-09 23:17:04,976  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:17:06,546  INFO Watching for file changes with StatReloader  
+2020-09-09 23:17:55,473  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:17:57,136  INFO Watching for file changes with StatReloader  
+2020-09-09 23:21:24,961  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:21:26,489  INFO Watching for file changes with StatReloader  
+2020-09-09 23:22:19,309  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:22:20,384  INFO Watching for file changes with StatReloader  
+2020-09-09 23:22:49,138  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:22:51,049  INFO Watching for file changes with StatReloader  
+2020-09-09 23:23:17,369  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:23:19,009  INFO Watching for file changes with StatReloader  
+2020-09-09 23:24:30,380  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:24:32,378  INFO Watching for file changes with StatReloader  
+2020-09-09 23:24:41,247  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:24:42,921  INFO Watching for file changes with StatReloader  
+2020-09-09 23:24:57,123  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:24:58,577  INFO Watching for file changes with StatReloader  
+2020-09-09 23:25:21,431  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:25:24,068  INFO Watching for file changes with StatReloader  
+2020-09-09 23:25:58,309  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:25:59,890  INFO Watching for file changes with StatReloader  
+2020-09-09 23:26:04,470  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:26:06,043  INFO Watching for file changes with StatReloader  
+2020-09-09 23:26:21,905  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:26:23,752  INFO Watching for file changes with StatReloader  
+2020-09-09 23:27:48,306  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:27:50,251  INFO Watching for file changes with StatReloader  
+2020-09-09 23:28:37,265  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:28:39,123  INFO Watching for file changes with StatReloader  
+2020-09-09 23:28:49,639  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:28:50,809  INFO Watching for file changes with StatReloader  
+2020-09-09 23:29:09,560  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:29:11,453  INFO Watching for file changes with StatReloader  
+2020-09-09 23:29:23,213  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:29:24,659  INFO Watching for file changes with StatReloader  
+2020-09-09 23:29:33,769  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:29:35,526  INFO Watching for file changes with StatReloader  
+2020-09-09 23:29:54,453  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:29:56,181  INFO Watching for file changes with StatReloader  
+2020-09-09 23:30:38,789  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:30:40,639  INFO Watching for file changes with StatReloader  
+2020-09-09 23:30:54,376  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:30:56,194  INFO Watching for file changes with StatReloader  
+2020-09-09 23:31:12,042  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:31:13,938  INFO Watching for file changes with StatReloader  
+2020-09-09 23:31:27,576  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:31:29,199  INFO Watching for file changes with StatReloader  
+2020-09-09 23:33:05,698  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:33:07,624  INFO Watching for file changes with StatReloader  
+2020-09-09 23:34:46,658  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:34:47,964  INFO Watching for file changes with StatReloader  
+2020-09-09 23:35:19,128  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:35:21,001  INFO Watching for file changes with StatReloader  
+2020-09-09 23:35:43,800  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:35:45,605  INFO Watching for file changes with StatReloader  
+2020-09-09 23:36:18,102  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:36:19,033  INFO Watching for file changes with StatReloader  
+2020-09-09 23:36:49,868  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:36:51,099  INFO Watching for file changes with StatReloader  
+2020-09-09 23:42:35,750  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-09 23:42:37,367  INFO Watching for file changes with StatReloader  
+2020-09-10 08:23:30,460  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:23:32,226  INFO Watching for file changes with StatReloader  
+2020-09-10 08:30:58,944  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:31:00,763  INFO Watching for file changes with StatReloader  
+2020-09-10 08:32:45,568  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-10 08:32:47,077  INFO Watching for file changes with StatReloader  
+2020-09-10 08:37:14,778  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:37:16,292  INFO Watching for file changes with StatReloader  
+2020-09-10 08:40:04,682  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:40:07,740  INFO Watching for file changes with StatReloader  
+2020-09-10 08:41:13,510  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:41:15,730  INFO Watching for file changes with StatReloader  
+2020-09-10 08:41:19,662  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:41:21,255  INFO Watching for file changes with StatReloader  
+2020-09-10 08:41:34,928  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:41:36,481  INFO Watching for file changes with StatReloader  
+2020-09-10 08:41:49,031  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:41:50,086  INFO Watching for file changes with StatReloader  
+2020-09-10 08:43:12,346  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:43:14,395  INFO Watching for file changes with StatReloader  
+2020-09-10 08:43:26,310  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:43:28,209  INFO Watching for file changes with StatReloader  
+2020-09-10 08:44:42,751  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 08:44:45,085  INFO Watching for file changes with StatReloader  
+2020-09-10 08:52:22,254  INFO "GET /api/fetch_chatroom?chatroom_id=1898 HTTP/1.1" 200 38164  
+2020-09-10 08:52:41,555  INFO "GET /api/fetch_chatroom?chatroom_id=1898 HTTP/1.1" 200 17983  
+2020-09-10 08:55:26,781  WARNING Not Found: /api/  
+2020-09-10 08:55:26,781  WARNING "GET /api/ HTTP/1.1" 404 50433  
+2020-09-10 08:57:08,828  INFO "POST /api/chatroom_delete HTTP/1.1" 200 119  
+2020-09-10 08:58:03,903  INFO "POST /api/chatroom_delete HTTP/1.1" 200 119  
+2020-09-10 08:59:21,874  INFO Watching for file changes with StatReloader  
+2020-09-10 08:59:28,493  INFO "POST /api/chatroom_delete HTTP/1.1" 200 119  
+2020-09-10 09:00:01,738  INFO "POST /api/chatroom_delete HTTP/1.1" 200 119  
+2020-09-10 09:00:34,742  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 09:00:36,815  INFO Watching for file changes with StatReloader  
+2020-09-10 09:00:40,656  INFO Watching for file changes with StatReloader  
+2020-09-10 09:00:45,236  ERROR Internal Server Error: /api/chatroom_delete  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2748, in chatroom_delete
+    is_card_creator = collabcard_instance.user.id == int(member_id)
+TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
+2020-09-10 09:00:45,418  ERROR "POST /api/chatroom_delete HTTP/1.1" 500 83315  
+2020-09-10 09:01:10,881  ERROR Internal Server Error: /api/chatroom_delete  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column "deleted_by_user_id" of relation "togther_deletedchatrooms" does not exist
+LINE 1: ...l_type", "is_poll_anonymous", "allow_add_option", "deleted_b...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2757, in chatroom_delete
+    promoter=False)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2828, in create_chatroom_delete_backup
+    card.save()
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/base.py", line 746, in save
+    force_update=force_update, update_fields=update_fields)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/base.py", line 784, in save_base
+    force_update, using, update_fields,
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/base.py", line 887, in _save_table
+    results = self._do_insert(cls._base_manager, using, fields, returning_fields, raw)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/base.py", line 926, in _do_insert
+    using=using, raw=raw,
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/manager.py", line 82, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/query.py", line 1204, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/sql/compiler.py", line 1384, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column "deleted_by_user_id" of relation "togther_deletedchatrooms" does not exist
+LINE 1: ...l_type", "is_poll_anonymous", "allow_add_option", "deleted_b...
+                                                             ^
+
+2020-09-10 09:01:10,951  ERROR "POST /api/chatroom_delete HTTP/1.1" 500 180819  
+2020-09-10 09:48:14,610  INFO Watching for file changes with StatReloader  
+2020-09-10 09:49:06,777  INFO Watching for file changes with StatReloader  
+2020-09-10 09:49:48,757  INFO Watching for file changes with StatReloader  
+2020-09-10 09:50:35,099  INFO Watching for file changes with StatReloader  
+2020-09-10 09:50:39,014  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-09-10 09:56:15,257  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 09:56:16,729  INFO Watching for file changes with StatReloader  
+2020-09-10 10:00:28,564  ERROR Internal Server Error: /api/fetch_deleted_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2866, in fetch_deleted_chatroom
+    chatroom = deleted_chatrooms[0]
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/query.py", line 313, in __getitem__
+    qs._fetch_all()
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/sql/compiler.py", line 1131, in execute_sql
+    sql, params = self.as_sql()
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/sql/compiler.py", line 490, in as_sql
+    extra_select, order_by, group_by = self.pre_sql_setup()
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/sql/compiler.py", line 51, in pre_sql_setup
+    self.setup_query()
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/sql/compiler.py", line 42, in setup_query
+    self.select, self.klass_info, self.annotation_col_map = self.get_select()
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/sql/compiler.py", line 243, in get_select
+    related_klass_infos = self.get_related_selections(select)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/sql/compiler.py", line 964, in get_related_selections
+    ', '.join(_get_field_choices()) or '(none)',
+django.core.exceptions.FieldError: Invalid field name(s) given in select_related: 'tag'. Choices are: card, community, user, remove, source
+2020-09-10 10:00:28,640  ERROR "GET /api/fetch_deleted_chatroom HTTP/1.1" 500 137241  
+2020-09-10 10:00:53,436  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:00:57,467  INFO Watching for file changes with StatReloader  
+2020-09-10 10:01:01,302  ERROR Internal Server Error: /api/fetch_deleted_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2890, in fetch_deleted_chatroom
+    "deleted_by_text": f"Removed by {chatroom.deleted_by_text}",
+AttributeError: 'CollabcardStateBackup' object has no attribute 'deleted_by_text'
+2020-09-10 10:01:01,624  ERROR "GET /api/fetch_deleted_chatroom HTTP/1.1" 500 80229  
+2020-09-10 10:01:25,874  INFO Watching for file changes with StatReloader  
+2020-09-10 10:01:29,112  ERROR Internal Server Error: /api/fetch_deleted_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2890, in fetch_deleted_chatroom
+    "deleted_by_text": f"Removed by {chatroom.deleted_by_text}",
+AttributeError: 'CollabcardStateBackup' object has no attribute 'deleted_by_text'
+2020-09-10 10:01:29,372  ERROR "GET /api/fetch_deleted_chatroom HTTP/1.1" 500 80229  
+2020-09-10 10:01:50,737  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:01:54,408  INFO Watching for file changes with StatReloader  
+2020-09-10 10:01:58,883  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:02:03,292  INFO Watching for file changes with StatReloader  
+2020-09-10 10:02:28,254  ERROR Internal Server Error: /api/fetch_deleted_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2893, in fetch_deleted_chatroom
+    if chatroom.tag is not None:
+AttributeError: 'CollabcardStateBackup' object has no attribute 'tag'
+2020-09-10 10:02:28,306  ERROR "GET /api/fetch_deleted_chatroom HTTP/1.1" 500 80438  
+2020-09-10 10:02:53,401  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:02:59,433  INFO Watching for file changes with StatReloader  
+2020-09-10 10:03:02,563  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:04:06,041  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:04:08,670  INFO Watching for file changes with StatReloader  
+2020-09-10 10:04:10,494  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:05:09,937  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:05:12,197  INFO Watching for file changes with StatReloader  
+2020-09-10 10:05:14,038  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 332  
+2020-09-10 10:07:13,444  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:07:17,298  INFO Watching for file changes with StatReloader  
+2020-09-10 10:07:20,841  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:07:47,636  INFO Watching for file changes with StatReloader  
+2020-09-10 10:07:50,549  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:08:03,160  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:08:05,349  INFO Watching for file changes with StatReloader  
+2020-09-10 10:08:07,365  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:08:39,004  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:08:41,665  INFO Watching for file changes with StatReloader  
+2020-09-10 10:10:02,215  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:10:07,588  INFO Watching for file changes with StatReloader  
+2020-09-10 10:10:11,743  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 340  
+2020-09-10 10:10:21,715  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:10:23,889  INFO Watching for file changes with StatReloader  
+2020-09-10 10:18:16,664  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:18:18,197  INFO Watching for file changes with StatReloader  
+2020-09-10 10:18:22,461  INFO Watching for file changes with StatReloader  
+2020-09-10 10:18:26,155  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:22:10,415  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:22:12,488  INFO Watching for file changes with StatReloader  
+2020-09-10 10:22:16,911  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:22:24,465  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:22:33,036  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:22:35,800  INFO Watching for file changes with StatReloader  
+2020-09-10 10:22:37,460  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:23:56,313  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:23:58,934  INFO Watching for file changes with StatReloader  
+2020-09-10 10:24:03,172  ERROR Internal Server Error: /api/fetch_deleted_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2875, in fetch_deleted_chatroom
+    toast_title = toast_title + deleted_by
+TypeError: can only concatenate tuple (not "str") to tuple
+2020-09-10 10:24:03,258  ERROR "GET /api/fetch_deleted_chatroom HTTP/1.1" 500 80003  
+2020-09-10 10:24:27,993  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:24:30,271  INFO Watching for file changes with StatReloader  
+2020-09-10 10:24:42,252  INFO Watching for file changes with StatReloader  
+2020-09-10 10:24:48,277  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:25:08,328  INFO Watching for file changes with StatReloader  
+2020-09-10 10:25:11,473  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:25:53,996  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:25:56,904  INFO Watching for file changes with StatReloader  
+2020-09-10 10:27:12,454  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:27:32,746  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:27:37,598  INFO Watching for file changes with StatReloader  
+2020-09-10 10:27:41,061  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:28:17,996  INFO Watching for file changes with StatReloader  
+2020-09-10 10:28:21,203  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 336  
+2020-09-10 10:29:12,382  INFO Watching for file changes with StatReloader  
+2020-09-10 10:29:16,250  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-09-10 10:32:42,327  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 417  
+2020-09-10 10:33:12,681  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 453  
+2020-09-10 10:33:30,112  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 453  
+2020-09-10 10:35:08,062  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:35:09,881  INFO Watching for file changes with StatReloader  
+2020-09-10 10:35:11,539  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 457  
+2020-09-10 10:36:45,818  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:36:47,200  INFO Watching for file changes with StatReloader  
+2020-09-10 10:38:33,665  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:38:37,632  INFO Watching for file changes with StatReloader  
+2020-09-10 10:39:28,549  INFO Watching for file changes with StatReloader  
+2020-09-10 10:39:31,612  INFO "POST /api/chatroom_delete HTTP/1.1" 200 74  
+2020-09-10 10:40:47,933  INFO Watching for file changes with StatReloader  
+2020-09-10 10:40:51,737  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-09-10 10:41:42,929  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:41:45,174  INFO Watching for file changes with StatReloader  
+2020-09-10 10:41:49,078  INFO Watching for file changes with StatReloader  
+2020-09-10 10:41:56,616  ERROR Internal Server Error: /api/chatroom_delete  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2757, in chatroom_delete
+    promoter=is_promoter)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2829, in create_chatroom_delete_backup
+    card.tag = tag
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/db/models/fields/related_descriptors.py", line 219, in __set__
+    self.field.remote_field.model._meta.object_name,
+ValueError: Cannot assign "<QuerySet [<Report_Tags: Report_Tags object (1)>]>": "deletedChatrooms.tag" must be a "Report_Tags" instance.
+2020-09-10 10:41:56,800  ERROR "POST /api/chatroom_delete HTTP/1.1" 500 94123  
+2020-09-10 10:42:31,682  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:42:36,778  INFO Watching for file changes with StatReloader  
+2020-09-10 10:42:40,359  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-09-10 10:43:22,257  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:43:23,235  INFO Watching for file changes with StatReloader  
+2020-09-10 10:43:28,482  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-09-10 10:44:56,002  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 491  
+2020-09-10 10:46:19,711  INFO "GET /api/fetch_deleted_chatroom HTTP/1.1" 200 487  
+2020-09-10 10:47:11,506  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:47:14,013  INFO Watching for file changes with StatReloader  
+2020-09-10 10:56:23,529  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 10:56:25,200  INFO Watching for file changes with StatReloader  
+2020-09-10 11:07:36,793  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 11:07:38,499  INFO Watching for file changes with StatReloader  
+2020-09-10 11:09:18,281  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-10 11:09:19,949  INFO Watching for file changes with StatReloader  
+2020-09-10 11:10:05,825  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 11:10:07,365  INFO Watching for file changes with StatReloader  
+2020-09-10 11:13:31,688  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 11:13:35,077  INFO Watching for file changes with StatReloader  
+2020-09-10 11:13:42,650  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 11:13:43,769  INFO Watching for file changes with StatReloader  
+2020-09-10 11:13:53,726  INFO Watching for file changes with StatReloader  
+2020-09-10 11:14:11,999  INFO Watching for file changes with StatReloader  
+2020-09-10 11:18:20,660  INFO "POST /api/chatroom_delete HTTP/1.1" 200 244  
+2020-09-10 11:20:07,528  INFO Watching for file changes with StatReloader  
+2020-09-10 11:20:10,469  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-09-10 11:22:12,938  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-09-10 11:22:56,658  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-09-10 11:23:59,772  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/chatroom_backup.py changed, reloading.  
+2020-09-10 11:24:03,411  INFO Watching for file changes with StatReloader  
+2020-09-10 11:24:18,656  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-09-10 11:35:36,370  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-09-10 11:35:38,119  INFO Watching for file changes with StatReloader  
+2020-09-10 11:35:41,624  INFO Watching for file changes with StatReloader  
+2020-09-10 11:38:12,495  INFO "GET /api/fetch_chatroom?chatroom_id=3379 HTTP/1.1" 200 9587  
+2020-09-10 11:41:04,113  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 11:41:07,201  INFO Watching for file changes with StatReloader  
+2020-09-10 11:41:57,873  INFO "GET /api/fetch_chatroom?chatroom_id=3379 HTTP/1.1" 200 9587  
+2020-09-10 11:43:07,251  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 11:43:11,141  INFO Watching for file changes with StatReloader  
+2020-09-10 11:44:14,167  INFO "GET /api/fetch_chatroom?chatroom_id=3379 HTTP/1.1" 200 9670  
+2020-09-10 11:45:08,236  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 11:45:09,525  INFO Watching for file changes with StatReloader  
+2020-09-10 13:30:13,433  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/static_text.py changed, reloading.  
+2020-09-10 13:30:15,353  INFO Watching for file changes with StatReloader  
+2020-09-10 13:30:39,601  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/urls.py changed, reloading.  
+2020-09-10 13:30:40,489  INFO Watching for file changes with StatReloader  
+2020-09-10 22:18:28,323  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:18:30,016  INFO Watching for file changes with StatReloader  
+2020-09-10 22:21:42,761  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:21:44,949  INFO Watching for file changes with StatReloader  
+2020-09-10 22:22:11,660  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:22:14,291  INFO Watching for file changes with StatReloader  
+2020-09-10 22:23:09,451  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:23:10,982  INFO Watching for file changes with StatReloader  
+2020-09-10 22:25:46,724  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:25:48,280  INFO Watching for file changes with StatReloader  
+2020-09-10 22:27:44,883  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:27:47,732  INFO Watching for file changes with StatReloader  
+2020-09-10 22:30:25,197  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:30:26,709  INFO Watching for file changes with StatReloader  
+2020-09-10 22:34:06,492  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:34:09,483  INFO Watching for file changes with StatReloader  
+2020-09-10 22:36:26,032  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/urls.py changed, reloading.  
+2020-09-10 22:36:27,544  INFO Watching for file changes with StatReloader  
+2020-09-10 22:37:03,032  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/urls.py changed, reloading.  
+2020-09-10 22:37:05,353  INFO Watching for file changes with StatReloader  
+2020-09-10 22:37:24,782  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/urls.py changed, reloading.  
+2020-09-10 22:37:25,980  INFO Watching for file changes with StatReloader  
+2020-09-10 22:40:41,321  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:40:43,076  INFO Watching for file changes with StatReloader  
+2020-09-10 22:42:30,379  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:42:31,960  INFO Watching for file changes with StatReloader  
+2020-09-10 22:43:03,717  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 22:43:05,065  INFO Watching for file changes with StatReloader  
+2020-09-10 22:47:36,623  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-10 22:47:38,225  INFO Watching for file changes with StatReloader  
+2020-09-10 22:52:09,953  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-10 22:52:11,403  INFO Watching for file changes with StatReloader  
+2020-09-10 22:52:52,897  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-10 22:52:53,875  INFO Watching for file changes with StatReloader  
+2020-09-10 22:54:43,992  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-10 22:54:44,974  INFO Watching for file changes with StatReloader  
+2020-09-10 22:55:18,878  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-10 22:55:19,636  INFO Watching for file changes with StatReloader  
+2020-09-10 22:57:46,792  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-10 22:57:47,741  INFO Watching for file changes with StatReloader  
+2020-09-10 23:03:51,247  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 23:03:52,722  INFO Watching for file changes with StatReloader  
+2020-09-10 23:09:43,541  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 23:09:46,817  INFO Watching for file changes with StatReloader  
+2020-09-10 23:10:48,912  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 23:10:50,353  INFO Watching for file changes with StatReloader  
+2020-09-10 23:15:17,939  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 23:15:19,456  INFO Watching for file changes with StatReloader  
+2020-09-10 23:16:53,542  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 23:16:55,087  INFO Watching for file changes with StatReloader  
+2020-09-10 23:20:11,706  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-10 23:20:13,462  INFO Watching for file changes with StatReloader  
+2020-09-10 23:21:35,176  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-09-10 23:21:36,758  INFO Watching for file changes with StatReloader  
+2020-09-10 23:23:12,073  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-10 23:23:13,932  INFO Watching for file changes with StatReloader  
+2020-09-10 23:30:56,958  INFO /Users/maheshroyal/collabmates/Togther/project/togther/migrations/0003_auto_20200910_1118.py changed, reloading.  
+2020-09-10 23:30:58,600  INFO Watching for file changes with StatReloader  
+2020-09-10 23:31:20,850  INFO /Users/maheshroyal/collabmates/Togther/project/togther/migrations/0003_auto_20200910_1118.py changed, reloading.  
+2020-09-10 23:31:21,909  INFO Watching for file changes with StatReloader  
+2020-09-10 23:45:13,086  INFO Watching for file changes with StatReloader  
+2020-09-10 23:45:16,884  INFO "GET /api/create_conversation HTTP/1.1" 200 64  
+2020-09-10 23:45:41,188  INFO "GET /api/create_conversation HTTP/1.1" 200 29  
+2020-09-10 23:46:05,979  INFO "GET /api/fetch_chatroom?chatroom_id=3355 HTTP/1.1" 200 10697  
+2020-09-10 23:48:08,713  WARNING Forbidden (CSRF cookie not set.): /api/edit_conversation  
+2020-09-10 23:48:08,713  WARNING "POST /api/edit_conversation HTTP/1.1" 403 2864  
+2020-09-10 23:48:29,428  INFO Watching for file changes with StatReloader  
+2020-09-10 23:48:33,102  INFO "POST /api/edit_conversation HTTP/1.1" 200 17  
+2020-09-10 23:48:37,542  INFO "GET /api/fetch_chatroom?chatroom_id=3355 HTTP/1.1" 200 10720  
+2020-09-10 23:49:44,325  INFO "POST /api/delete_conversation HTTP/1.1" 200 128  
+2020-09-10 23:49:53,349  INFO "POST /api/delete_conversation HTTP/1.1" 200 17  
+2020-09-10 23:49:58,230  INFO "GET /api/fetch_chatroom?chatroom_id=3355 HTTP/1.1" 200 10718  
+2020-09-10 23:51:58,537  INFO "GET /api/create_conversation HTTP/1.1" 200 29  
+2020-09-10 23:52:02,752  INFO "GET /api/fetch_chatroom?chatroom_id=3355 HTTP/1.1" 200 12203  
+2020-09-11 10:58:51,439  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-11 10:58:52,722  INFO Watching for file changes with StatReloader  
+2020-09-11 11:21:24,187  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-09-11 11:21:25,902  INFO Watching for file changes with StatReloader  
+2020-09-11 11:35:06,793  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 11:35:08,789  INFO Watching for file changes with StatReloader  
+2020-09-11 11:35:28,730  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 11:35:30,845  INFO Watching for file changes with StatReloader  
+2020-09-11 14:51:23,028  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-09-11 14:51:24,865  INFO Watching for file changes with StatReloader  
+2020-09-11 14:52:06,272  INFO /Users/maheshroyal/collabmates/Togther/project/project/urls.py changed, reloading.  
+2020-09-11 14:52:07,791  INFO Watching for file changes with StatReloader  
+2020-09-11 15:18:30,659  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:18:32,436  INFO Watching for file changes with StatReloader  
+2020-09-11 15:20:55,191  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:20:56,709  INFO Watching for file changes with StatReloader  
+2020-09-11 15:22:33,465  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:22:36,574  INFO Watching for file changes with StatReloader  
+2020-09-11 15:23:06,364  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:23:09,293  INFO Watching for file changes with StatReloader  
+2020-09-11 15:35:53,085  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:35:55,975  INFO Watching for file changes with StatReloader  
+2020-09-11 15:38:38,619  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:38:40,201  INFO Watching for file changes with StatReloader  
+2020-09-11 15:40:41,143  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:40:42,585  INFO Watching for file changes with StatReloader  
+2020-09-11 15:43:12,748  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:43:13,679  INFO Watching for file changes with StatReloader  
+2020-09-11 15:44:46,053  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:44:47,342  INFO Watching for file changes with StatReloader  
+2020-09-11 15:45:35,100  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:45:38,351  INFO Watching for file changes with StatReloader  
+2020-09-11 15:49:25,344  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:49:26,878  INFO Watching for file changes with StatReloader  
+2020-09-11 15:50:43,430  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:50:44,502  INFO Watching for file changes with StatReloader  
+2020-09-11 15:52:47,062  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:52:50,002  INFO Watching for file changes with StatReloader  
+2020-09-11 15:55:09,929  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:55:11,238  INFO Watching for file changes with StatReloader  
+2020-09-11 15:57:03,257  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:57:04,610  INFO Watching for file changes with StatReloader  
+2020-09-11 15:58:34,399  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/static_text.py changed, reloading.  
+2020-09-11 15:58:36,058  INFO Watching for file changes with StatReloader  
+2020-09-11 15:59:03,474  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:59:04,706  INFO Watching for file changes with StatReloader  
+2020-09-11 15:59:38,671  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 15:59:39,629  INFO Watching for file changes with StatReloader  
+2020-09-11 16:00:45,954  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:00:46,868  INFO Watching for file changes with StatReloader  
+2020-09-11 16:02:19,141  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:02:21,963  INFO Watching for file changes with StatReloader  
+2020-09-11 16:06:41,459  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:06:43,210  INFO Watching for file changes with StatReloader  
+2020-09-11 16:08:43,912  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:08:45,509  INFO Watching for file changes with StatReloader  
+2020-09-11 16:11:11,930  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:11:13,433  INFO Watching for file changes with StatReloader  
+2020-09-11 16:12:09,099  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:12:10,607  INFO Watching for file changes with StatReloader  
+2020-09-11 16:12:26,226  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:12:27,841  INFO Watching for file changes with StatReloader  
+2020-09-11 16:12:55,827  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:12:57,061  INFO Watching for file changes with StatReloader  
+2020-09-11 16:13:21,673  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:13:23,494  INFO Watching for file changes with StatReloader  
+2020-09-11 16:14:02,783  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:14:04,614  INFO Watching for file changes with StatReloader  
+2020-09-11 16:14:33,328  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:14:34,758  INFO Watching for file changes with StatReloader  
+2020-09-11 16:15:25,510  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:15:26,591  INFO Watching for file changes with StatReloader  
+2020-09-11 16:15:39,308  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:15:40,811  INFO Watching for file changes with StatReloader  
+2020-09-11 16:18:05,687  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:18:06,670  INFO Watching for file changes with StatReloader  
+2020-09-11 16:19:02,992  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:19:04,478  INFO Watching for file changes with StatReloader  
+2020-09-11 16:19:14,186  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:19:15,556  INFO Watching for file changes with StatReloader  
+2020-09-11 16:19:37,176  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:19:38,606  INFO Watching for file changes with StatReloader  
+2020-09-11 16:20:03,164  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:20:04,213  INFO Watching for file changes with StatReloader  
+2020-09-11 16:20:14,123  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:20:16,608  INFO Watching for file changes with StatReloader  
+2020-09-11 16:21:39,250  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:21:40,723  INFO Watching for file changes with StatReloader  
+2020-09-11 16:22:11,887  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:22:13,439  INFO Watching for file changes with StatReloader  
+2020-09-11 16:24:11,308  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:24:12,940  INFO Watching for file changes with StatReloader  
+2020-09-11 16:24:27,565  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:24:29,961  INFO Watching for file changes with StatReloader  
+2020-09-11 16:35:25,582  INFO /Users/maheshroyal/collabmates/Togther/project/utility/states.py changed, reloading.  
+2020-09-11 16:35:27,100  INFO Watching for file changes with StatReloader  
+2020-09-11 16:35:31,346  INFO Watching for file changes with StatReloader  
+2020-09-11 16:35:45,077  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-09-11 16:35:46,109  INFO Watching for file changes with StatReloader  
+2020-09-11 16:35:48,482  INFO Watching for file changes with StatReloader  
+2020-09-11 16:36:01,516  INFO Watching for file changes with StatReloader  
+2020-09-11 16:36:24,942  INFO "GET /api/fetch_chatroom?chatroom_id=3355 HTTP/1.1" 200 12027  
+2020-09-11 16:37:40,173  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 16:37:41,787  INFO Watching for file changes with StatReloader  
+2020-09-11 16:37:45,726  INFO Watching for file changes with StatReloader  
+2020-09-11 16:37:50,535  INFO "GET /api/fetch_chatroom?chatroom_id=3355 HTTP/1.1" 200 12204  
+2020-09-11 18:40:37,212  ERROR Internal Server Error: /api/fetch_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 4125, in fetch_chatroom
+    context = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id, scroll_direction)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 4471, in get_chatroom_internal
+    chatroom_actions = get_chatroom_actions(card_status, creator=True, promoter=is_promoter)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 4364, in get_chatroom_actions
+    if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+AttributeError: 'list' object has no attribute 'ACTION_FOLLOW'
+2020-09-11 18:40:37,351  ERROR "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 500 21336  
+2020-09-11 18:43:18,786  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 18:43:20,333  INFO Watching for file changes with StatReloader  
+2020-09-11 18:43:40,727  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7672  
+2020-09-11 18:46:13,859  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7632  
+2020-09-11 18:52:30,415  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 18:52:32,494  INFO Watching for file changes with StatReloader  
+2020-09-11 18:52:44,990  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 18:52:48,351  INFO Watching for file changes with StatReloader  
+2020-09-11 18:52:54,880  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7651  
+2020-09-11 18:54:41,222  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 18:54:48,151  INFO Watching for file changes with StatReloader  
+2020-09-11 18:55:55,900  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7652  
+2020-09-11 18:57:01,640  INFO "GET /api/fetch_chatroom?chatroom_id=2261 HTTP/1.1" 200 4033  
+2020-09-11 18:59:15,894  INFO "GET /api/fetch_chatroom?chatroom_id=2261 HTTP/1.1" 200 4174  
+2020-09-11 19:00:16,691  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7672  
+2020-09-11 19:00:46,300  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7652  
+2020-09-11 19:03:36,854  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7672  
+2020-09-11 19:04:00,725  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7652  
+2020-09-11 19:05:32,457  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7651  
+2020-09-11 19:05:49,998  INFO "GET /api/fetch_chatroom?chatroom_id=2703 HTTP/1.1" 200 4610  
+2020-09-11 19:06:29,953  INFO "GET /api/fetch_chatroom?chatroom_id=2703 HTTP/1.1" 200 4610  
+2020-09-11 19:06:55,226  INFO "GET /api/fetch_chatroom?chatroom_id=2703 HTTP/1.1" 200 4782  
+2020-09-11 19:08:34,444  INFO Watching for file changes with StatReloader  
+2020-09-11 19:08:38,795  INFO "GET /api/fetch_chatroom?chatroom_id=2703 HTTP/1.1" 200 4743  
+2020-09-11 19:10:06,664  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 19:10:07,692  INFO Watching for file changes with StatReloader  
+2020-09-11 19:11:02,324  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7672  
+2020-09-11 19:12:19,950  INFO Watching for file changes with StatReloader  
+2020-09-11 19:12:33,489  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7651  
+2020-09-11 19:13:19,614  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7651  
+2020-09-11 19:14:02,600  INFO "GET /api/fetch_chatroom?chatroom_id=2703 HTTP/1.1" 200 4610  
+2020-09-11 19:14:26,119  INFO "GET /api/fetch_chatroom?chatroom_id=2703 HTTP/1.1" 200 4743  
+2020-09-11 19:15:30,870  INFO "GET /api/fetch_chatroom?chatroom_id=3162 HTTP/1.1" 200 4667  
+2020-09-11 19:15:40,807  INFO "GET /api/fetch_chatroom?chatroom_id=3162 HTTP/1.1" 200 4706  
+2020-09-11 19:16:22,595  INFO Watching for file changes with StatReloader  
+2020-09-11 19:16:36,857  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 19:16:38,282  INFO Watching for file changes with StatReloader  
+2020-09-11 19:16:41,165  INFO Watching for file changes with StatReloader  
+2020-09-11 19:16:45,740  INFO "GET /api/fetch_chatroom?chatroom_id=3162 HTTP/1.1" 200 4628  
+2020-09-11 19:17:24,080  INFO Watching for file changes with StatReloader  
+2020-09-11 19:17:28,435  INFO "GET /api/fetch_chatroom?chatroom_id=3162 HTTP/1.1" 200 4628  
+2020-09-11 19:18:55,177  INFO "GET /api/fetch_chatroom?chatroom_id=3162 HTTP/1.1" 200 4663  
+2020-09-11 19:31:21,451  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 19:31:23,356  INFO Watching for file changes with StatReloader  
+2020-09-11 19:38:06,751  INFO "GET /api/fetch_chatroom?chatroom_id=3162 HTTP/1.1" 200 4589  
+2020-09-11 19:38:30,276  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7652  
+2020-09-11 19:39:34,508  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7652  
+2020-09-11 19:41:11,527  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-09-11 19:41:13,307  INFO Watching for file changes with StatReloader  
+2020-09-11 19:41:20,150  INFO Watching for file changes with StatReloader  
+2020-09-11 19:41:34,356  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7672  
+2020-09-11 19:42:05,909  INFO "GET /api/fetch_chatroom?chatroom_id=1923 HTTP/1.1" 200 7672  
+2020-09-11 19:42:31,251  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-11 19:42:33,297  INFO Watching for file changes with StatReloader  
+2020-09-12 22:32:19,675  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-12 22:32:21,452  INFO Watching for file changes with StatReloader  
+2020-09-12 22:33:54,783  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-12 22:33:56,457  INFO Watching for file changes with StatReloader  
+2020-09-12 22:35:02,419  INFO /Users/maheshroyal/collabmates/Togther/project/utility/states.py changed, reloading.  
+2020-09-12 22:35:05,026  INFO Watching for file changes with StatReloader  
+2020-09-12 22:35:21,421  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-12 22:35:22,517  INFO Watching for file changes with StatReloader  
+2020-09-12 22:36:16,114  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-12 22:36:19,020  INFO Watching for file changes with StatReloader  
+2020-09-12 22:41:32,559  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-12 22:41:34,634  INFO Watching for file changes with StatReloader  
+2020-09-12 22:53:14,126  INFO Watching for file changes with StatReloader  
+2020-09-12 23:01:56,957  INFO Watching for file changes with StatReloader  
+2020-09-12 23:02:12,436  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-12 23:02:15,454  INFO Watching for file changes with StatReloader  
+2020-09-13 16:58:49,391  INFO "GET / HTTP/1.1" 200 75796  
+2020-09-13 17:00:05,596  INFO "GET / HTTP/1.1" 200 75796  
+2020-09-13 17:00:12,025  INFO "GET / HTTP/1.1" 200 75796  
+2020-09-13 17:00:41,690  ERROR Invalid HTTP_HOST header: 'localhost:8000'. You may need to add 'localhost' to ALLOWED_HOSTS.  
+2020-09-13 17:00:47,371  WARNING Bad Request: /  
+2020-09-13 17:00:47,372  WARNING "GET / HTTP/1.1" 400 143  
+2020-09-13 17:00:47,573  ERROR Invalid HTTP_HOST header: 'localhost:8000'. You may need to add 'localhost' to ALLOWED_HOSTS.  
+2020-09-13 17:01:08,422  WARNING Bad Request: /favicon.ico  
+2020-09-13 17:01:08,422  WARNING "GET /favicon.ico HTTP/1.1" 400 143  
+2020-09-13 21:18:40,128  ERROR Invalid HTTP_HOST header: 'localhost:8000'. You may need to add 'localhost' to ALLOWED_HOSTS.  
+2020-09-13 21:18:43,306  WARNING Bad Request: /  
+2020-09-13 21:18:43,306  WARNING "GET / HTTP/1.1" 400 143  
+2020-09-14 08:48:08,561  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-14 08:48:10,417  INFO Watching for file changes with StatReloader  
+2020-09-14 09:05:07,374  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-14 09:05:09,105  INFO Watching for file changes with StatReloader  
+2020-09-14 09:17:31,665  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-14 09:17:33,264  INFO Watching for file changes with StatReloader  
+2020-09-14 09:20:15,251  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/urls.py changed, reloading.  
+2020-09-14 09:20:17,106  INFO Watching for file changes with StatReloader  
+2020-09-14 09:21:18,891  INFO Watching for file changes with StatReloader  
+2020-09-14 09:21:31,780  INFO "GET /api/fetch_preview?url=https://beta.likeminds.community/community/49052 HTTP/1.1" 200 17  
+2020-09-14 09:22:08,432  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-09-14 09:22:11,916  INFO Watching for file changes with StatReloader  
+2020-09-14 09:22:14,665  INFO "GET /api/fetch_preview?url=https://beta.likeminds.community/community/49052 HTTP/1.1" 200 17  
+2020-09-14 09:22:55,741  INFO Watching for file changes with StatReloader  

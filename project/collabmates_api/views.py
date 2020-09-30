@@ -33,7 +33,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail, upload_community_files)
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
-                            poll_types, chatroom_actions)
+                            poll_types, chatroom_actions, member_rights, manager_rights)
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -70,7 +70,7 @@ from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard
 
 from .mails import *
 
-from .chatroom_backup import create_chatroom_delete_backup
+from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
 from cms.models import NewAnswer
 
@@ -335,7 +335,14 @@ def your_communities(request, user_id):
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
-        community['pending_members_count'] = each_community.pending_members
+
+        if each_community.member_state == member_states.ADMIN:
+            has_approve_right = check_admin_approve_right(user, each_community.community_id)
+            if has_approve_right:
+                community['pending_members_count'] = each_community.pending_members
+            else:
+                community['pending_members_count'] = 0
+        # community['pending_members_count'] = each_community.pending_members
 
 
         actions = get_home_screen_community_actions(each_community.community_id)
@@ -723,14 +730,18 @@ def community(request, community_id, req_dict=None):
             is_promoter = True
             promoter_instance = member_list[0].member_id
             block_leave_community = True
-            menu = MENU['promoter']
+            menu = MENU['promoter'].copy()
+
+            has_right = check_admin_edit_community_right(promoter_instance, community)
+            if not has_right:
+                del menu[3]
 
         if state == member_states.PENDING_MEMBER:
             block_leave_community = True
-            menu = MENU['pending_member']
+            menu = MENU['pending_member'].copy()
 
         if state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
-            menu = MENU['member']
+            menu = MENU['member'].copy()
     else:
         block_leave_community = True
 
@@ -766,6 +777,7 @@ def community(request, community_id, req_dict=None):
         return JsonResponse(context)
 
     context = {'community': new_dict}
+
     if menu:
         context['menu'] = menu
 
@@ -3130,6 +3142,7 @@ def chatroom_delete(request):
     draft_id = request.POST.get('draft_id')
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', None)
+    disallow_create_chatroom = request.POST.get('disallow_create_chatroom', None)
 
     if draft_id:
         draftChatroom.objects.filter(id=draft_id).delete()
@@ -3142,26 +3155,33 @@ def chatroom_delete(request):
     try:
         collabcard_instance = Collabcard.objects.get(id=chatroom_id)
         community_id = collabcard_instance.community.id
+        community_instance = collabcard_instance.community
+        card_creator = collabcard_instance.user
+        current_user_instance = User.objects.get(pk=member_id)
+
+        if not check_admin_delete_right(user=current_user_instance, community=community_instance):
+            context = get_error_context(False, "You do not have right to delete this chatroom")
+            return JsonResponse(context)
+
         is_promoter = False
         member_instance = Members.objects.filter(member_id=member_id,
-                                                 community_id=collabcard_instance.community).filter(
-            Q(state=1))
+                                                 community_id=community_instance).filter(Q(state=1))
         if member_instance.exists():
             is_promoter = True
 
-        is_card_creator = collabcard_instance.user.id == int(member_id)
+        is_card_creator = card_creator.id == int(member_id)
 
         if not is_card_creator and not is_promoter:
             context = get_error_context(False,
                                         "You are not the card creator or promoter. you cannot delete this chatroom")
             return JsonResponse(context)
 
-        current_user_instance = User.objects.get(pk=member_id)
-        create_chatroom_delete_backup(collabcard_instance, current_user_instance, tag_id, reason,
-                                      card_creator=is_card_creator, promoter=is_promoter)
-
-        delete_status = Collabcard.objects.filter(id=chatroom_id).delete()
-        info_logger.info(delete_status)
+        # updating collabcard delete status
+        update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
+                                        card_creator, reason, tag_id)
+        create_chatroom_participants_backup(card_instance=collabcard_instance)
+        if disallow_create_chatroom or disallow_create_chatroom == "true":
+            remove_creation_rights_for_user(card_creator, community_instance)
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
     except Exception as e:
@@ -3172,6 +3192,38 @@ def chatroom_delete(request):
     return JsonResponse({'success': True})
 
 
+def update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
+                                    card_creator, reason, tag_id=None):
+
+    deleted_by_user_state = 1 if is_promoter else 4
+    deleted_by_text = ""
+    if card_creator:
+        deleted_by_text = "creator"
+    elif is_promoter:
+        deleted_by_text = "community manager"
+
+    tag_instance = None
+    if tag_id:
+        tag = Report_Tags.objects.filter(tag_id=tag_id)
+        if tag.exists():
+            tag_instance = tag[0]
+
+    # delete_card = Collabcard.objects.filter(pk=chatroom_id)
+    # delete_status = delete_card.update(is_deleted=True, deleted_by_user=current_user_instance,
+    #                                    deleted_by_user_state=deleted_by_user_state, deleted_by_text=deleted_by_text,
+    #                                    tag=tag_instance, reason=reason)
+
+    collabcard_instance.is_deleted = True
+    collabcard_instance.deleted_by_user = current_user_instance
+    collabcard_instance.deleted_by_user_state = deleted_by_user_state
+    collabcard_instance.deleted_by_text = deleted_by_text
+    collabcard_instance.tag = tag_instance
+    collabcard_instance.reason = reason
+    collabcard_instance.save()
+
+    info_logger.info("successfully updated chatroom delete status")
+
+
 def fetch_deleted_chatroom(request):
     """ function to fetch deleted chatrooms of a user"""
     if request.method == 'GET':
@@ -3179,7 +3231,7 @@ def fetch_deleted_chatroom(request):
         user_instance = User.objects.get(pk=member_id)
 
         deleted_chatrooms = CollabcardStateBackup.objects.select_related('card', 'card__tag').filter(
-            user=user_instance).filter(seen_status=False)
+                            user=user_instance, seen_status=False)
 
         toast_title = ''
         title = ''
@@ -3212,6 +3264,10 @@ def fetch_deleted_chatroom(request):
                 "header": chatroom.card.header,
                 "deleted_by_text": f"Removed by {chatroom.card.deleted_by_text}",
             }
+
+            member_ids = [chatroom.card.deleted_by_user]
+            content["deleted_by"] = get_members_profile(member_ids=member_ids, community_id=chatroom.card.community,
+                                                        current_user_id=user_instance)
 
             if chatroom.card.tag is not None:
                 tag_dict = {}
@@ -4744,7 +4800,8 @@ def get_answer_bubble_context_for_web(ans):
     return answer_bubble
 
 
-def get_chatroom_actions(card_status, creator, promoter=False):
+def get_chatroom_actions(card_status, creator, promoter=False, current_user_instance=None,
+                         community_instance=None):
     ''' function to get chatroom actions '''
 
     purpose_card = False
@@ -4773,7 +4830,8 @@ def get_chatroom_actions(card_status, creator, promoter=False):
     final = final_dict.copy()
 
     if promoter and not creator:
-        final.append(delete_chatroom)
+        if check_admin_delete_right(user=current_user_instance, community=community_instance):
+            final.append(delete_chatroom)
 
     actions = []
 
@@ -4791,9 +4849,11 @@ def get_chatroom_actions(card_status, creator, promoter=False):
                     continue
 
         elif intro_card and creator:
-            if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_MUTE or action[
-                'id'] == chatroom_actions.ACTION_DELETE or action['id'] == chatroom_actions.ACTION_UNMUTE or action[
-                'id'] == chatroom_actions.ACTION_UNFOLLOW:
+            if action['id'] == chatroom_actions.ACTION_FOLLOW or \
+                                action['id'] == chatroom_actions.ACTION_MUTE or \
+                                action['id'] == chatroom_actions.ACTION_DELETE or \
+                                action['id'] == chatroom_actions.ACTION_UNMUTE or \
+                                action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
         actions.append(action)
@@ -8299,6 +8359,7 @@ def members_state(request, req_dict=None):
 
     state = 0
     tool_state = 0
+    custom_title = "Member"
     query_set = Members.objects.filter(member_id=member_id, community_id=community_id)
     community_instance = Community.objects.get(id=community_id)
 
@@ -8320,6 +8381,8 @@ def members_state(request, req_dict=None):
         is_member = False
         tool_state = 0
         state = data.state
+
+        custom_title = data.custom_title
 
         if data.created_at > 0:
             created_at = time.strftime('%A, %b %d', time.localtime(data.created_at))
@@ -8360,6 +8423,14 @@ def members_state(request, req_dict=None):
 
     json_response['member'] = get_user_profile(member_id, community_id)
     json_response['member']['state'] = state
+    json_response['member']['custom_title'] = custom_title
+
+    if state == member_states.ADMIN:
+        admin_rights = check_all_manager_rights(query_set[0].member_id, community)
+        json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
+
+    user_rights = check_all_member_rights(query_set[0].member_id, community)
+    json_response['member_rights'] = get_saved_member_rights_list(user_rights)
 
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
     if toast_filter.exists():
@@ -10207,12 +10278,26 @@ def delete_conversation(request):
         return JsonResponse(context)
 
     conversation = card_answers.objects.get(pk=conversation_id)
-    if int(conversation.user.id) == int(member_id):
+    community_id = conversation.community.id
+    current_member = Members.objects.filter(member_id=member_id, community_id=community_id,
+                                            state=member_states.ADMIN)  # who is viewing
+    is_promoter = False
+    if current_member.exists():
+        is_promoter = True
+
+    if (int(conversation.user.id) == int(member_id)) or is_promoter:
+
+        if is_promoter:
+            # calling inside to avoid a query hit in non manager case
+            if not check_admin_delete_right(user=member_id, community=community_id):
+                context = get_error_context(False, "You do not have right to delete messages")
+                return JsonResponse(context)
+
         conversation.is_deleted = True
         conversation.save()
+
     else:
-        context = get_error_context(False,
-                                    "you are not the conversation creator.Only conversation creator can delete his/her message")
+        context = get_error_context(False, "Only conversation creator or community manager can delete messages")
         return JsonResponse(context)
 
     return JsonResponse({'success': True})
@@ -10478,6 +10563,7 @@ def fetch_community_types(request):
     context['onboarding_examples'] = ONBOARDING_EXAMPLES
     return JsonResponse(context)
 
+
 def fetch_intro_examples(request):
 
     '''api to send introduction questions examples'''
@@ -10487,13 +10573,553 @@ def fetch_intro_examples(request):
     return JsonResponse({'intro_examples':intro_examples})
 
 
-
-############################################################################################################
-
+################################# moderation rights ###############################################
 
 
+def fetch_community_manager_rights(request):
+    """ function to fetch manager rights """
 
-################################### client db synching apis #################################################
+    if request.method == 'POST':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'})
+
+    current_user_id = get_member_id_from_headers(request)
+    community_id = request.GET.get('community_id', None)
+    user_id = request.GET.get('user_id', None)
+
+    context = None
+    if not current_user_id:
+        context = get_error_context(False, "send member_id in headers")
+        return JsonResponse(context)
+    if not user_id:
+        context = get_error_context(False, "send user_id in params")
+        return JsonResponse(context)
+    if not community_id:
+        context = get_error_context(False, "send community_id in params")
+        return JsonResponse(context)
+
+    community_instance = Community.objects.get(pk=community_id)
+    current_user_instance = User.objects.get(pk=current_user_id)
+    user_instance = User.objects.get(pk=user_id)
+
+    admin = Members.objects.filter(member_id=current_user_instance,
+                                   community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+
+    rights_context = []
+
+    if admin.exists():
+        admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance)
+        user_rights = list(userAdminRights.objects.filter(community=community_instance,
+                                                          user=user_instance).values_list('right__id',
+                                                                                          flat=True).distinct())
+
+        if admin_rights.exists():
+            for right in admin_rights:
+                right_dict = get_right_dict(right)
+                right_dict["is_selected"] = True if right.id in user_rights else False  # add check for int or string
+                rights_context.append(right_dict)
+        else:
+            context = get_error_context(False, "user does not have any manager rights")
+            return JsonResponse(context)
+
+    else:
+        context = get_error_context(False, "user is not a admin")
+        return JsonResponse(context)
+    member_profile = get_members_profile([user_instance], community_instance)
+
+    return JsonResponse({"member": member_profile, "rights": rights_context})
+
+
+def get_right_dict(right):
+
+    right_dict = {"id": right.id, "state": right.state, "title": right.title}
+
+    if right.sub_title:
+        right_dict["sub_title"] = right.sub_title
+
+    return right_dict
+
+
+def update_community_manager_rights(request):
+    """ function to remove a communtiy manager as manager """
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    current_user_id = get_member_id_from_headers(request)
+    req_body = json.loads(request.body)
+    user_id = req_body['user_id'] if "user_id" in req_body else None
+    community_id = req_body['community_id'] if "community_id" in req_body else None
+    selected_rights = req_body['rights'] if "rights" in req_body else None
+    custom_title = req_body['custom_title'] if "custom_title" in req_body else None
+
+    if not current_user_id:
+        context = get_error_context(False, "send member_id in headers")
+        return JsonResponse(context)
+    if not user_id:
+        context = get_error_context(False, "send user_id in body")
+        return JsonResponse(context)
+    if not community_id:
+        context = get_error_context(False, "send community_id in body")
+        return JsonResponse(context)
+    if not selected_rights:
+        context = get_error_context(False, "send rights in body")
+        return JsonResponse(context)
+
+    community_instance = Community.objects.get(pk=community_id)
+    current_user_instance = User.objects.get(pk=current_user_id)
+    user_instance = User.objects.get(pk=user_id)
+
+    admin = Members.objects.filter(member_id=current_user_instance,
+                                   community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+    if admin.exists():
+        # deleting all manager rights
+        userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
+
+        for right in selected_rights:
+            if right["is_selected"]:
+                right = adminRights.objects.get(pk=right["id"])
+                userAdminRights(user=user_instance, community=community_instance, right=right).save()
+
+        is_owner = False
+        if int(user_id) == int(current_user_id):
+            is_owner = admin[0].is_owner
+            if not custom_title:
+                custom_title = admin[0].custom_title
+
+        Members.objects.filter(community_id=community_instance,
+                               memberid=user_instance).update(state=member_states.ADMIN, is_owner=is_owner,
+                                                              custom_title=custom_title)
+        return JsonResponse({'success': True})
+    else:
+        context = get_error_context(False, "user is not a admin")
+        return JsonResponse(context)
+
+
+def give_all_member_rights(user, community):
+    """function to give a member all the rights """
+    userMemberRights.objects.filter(user=user, community=community).delete()
+
+    member_rights = memberRights.objects.all().order_by("state")
+    fill_member_rights(user, community, member_rights)
+
+
+def give_all_manager_rights(user, community):
+    """function to give a manager all the rights """
+    userAdminRights.objects.filter(user=user, community=community).delete()
+
+    admin_rights = adminRights.objects.all().order_by("state")
+    fill_admin_rights(user, community, admin_rights)
+
+
+def fill_admin_rights(user, community, rights_list):
+    for right in rights_list:
+        userAdminRights(user=user, community=community, right=right).save()
+
+
+def fill_member_rights(user, community, rights_list):
+    for right in rights_list:
+        userMemberRights(user=user, community=community, right=right).save()
+
+
+def remove_community_manager(request):
+    """ function to remove a communtiy manager as manager """
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    current_user_id = get_member_id_from_headers(request)
+    community_id = request.GET.get('community_id', None)
+    user_id = request.GET.get('user_id', None)
+
+    if not current_user_id:
+        context = get_error_context(False, "send member_id in headers")
+        return JsonResponse(context)
+    if not user_id:
+        context = get_error_context(False, "send user_id in params")
+        return JsonResponse(context)
+    if not community_id:
+        context = get_error_context(False, "send community_id in params")
+        return JsonResponse(context)
+
+    community_instance = Community.objects.get(pk=community_id)
+    current_user_instance = User.objects.get(pk=current_user_id)
+    user_instance = User.objects.get(pk=user_id)
+
+    admin = Members.objects.filter(member_id=current_user_instance,
+                                   community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+    if admin.exists():
+        admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance,
+                                                      right__id=manager_rights.MANAGER_RIGHT_APPROVE_MEMBERS)
+        if admin_rights.exists():
+            # deleting all menager rights
+            userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
+            # updating member state of manager to member
+            Members.objects.filter(community_id=community_instance,
+                                   memberid=user_instance).update(state=member_states.MEMBER)
+
+            return JsonResponse({'success': True})
+        else:
+            context = get_error_context(False, "user does not have right to remove members")
+            return JsonResponse(context)
+
+    else:
+        context = get_error_context(False, "user is not a admin")
+        return JsonResponse(context)
+
+
+def transfer_community_ownership(request):
+    """ function to transfer community ownership as manager """
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    current_user_id = get_member_id_from_headers(request)
+    community_id = request.POST.get('community_id', None)
+    user_id = request.POST.get('user_id', None)
+    otp = request.POST.get('otp', None)
+    mobile_no = request.POST.get('mobile_no', None)
+
+    if not current_user_id:
+        context = get_error_context(False, "send member_id in headers")
+        return JsonResponse(context)
+    if not user_id:
+        context = get_error_context(False, "send user_id in POST params")
+        return JsonResponse(context)
+    if not community_id:
+        context = get_error_context(False, "send community_id in POST params")
+        return JsonResponse(context)
+    if not otp:
+        context = get_error_context(False, "send otp in POST params")
+        return JsonResponse(context)
+    # if not mobile_no:
+    #     context = get_error_context(False, "send mobile_no in POST params")
+    #     return JsonResponse(context)
+
+    if user_id:
+        mobile_filter = userMobiles.objects.filter(user_id=user_id)
+
+        context = {'success': False}
+        for instance in mobile_filter:
+            phone_no = str(instance.country_code) + str(instance.mobile_no)
+            context = verify_otp_on_mobile(phone_no, otp)
+
+            if context['success']:
+                break
+        if not context['success']:
+            context = get_error_context(False, "Incorrect OTP")
+            return JsonResponse(context)
+
+    # verified = verify_otp_on_mobile(mobile_no, otp)
+    # if not verified['success']:
+    #     context = get_error_context(False, "Incorrect OTP")
+    #     return JsonResponse(context)
+
+    community_instance = Community.objects.get(pk=community_id)
+    current_user_instance = User.objects.get(pk=current_user_id)
+    user_instance = User.objects.get(pk=user_id)
+
+    admin = Members.objects.filter(member_id=current_user_instance,
+                                   community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+    if admin.exists():
+
+        if not admin[0].is_owner:
+            context = get_error_context(False, "user is not the owner of the community")
+            return JsonResponse(context)
+
+        previous_owner_title = "Owner"
+        if admin[0].custom_title:
+            previous_owner_title = admin[0].custom_title
+
+        # admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance)
+        # if admin_rights.exists():
+            # deleting all menager rights
+        # userAdminRights.objects.filter(community=community_instance, user=user_instance)
+
+        # transfering ownership member state of manager to member
+        # new owner
+        Members.objects.filter(community_id=community_instance,
+                               memberid=user_instance).update(state=member_states.ADMIN, is_owner=True,
+                                                              custom_title=previous_owner_title)
+        give_all_manager_rights(user_instance, community_instance)  # for new owner
+        # current owner
+        admin.update(is_owner=False, custom_title="Community Manager")
+
+        return JsonResponse({'success': True})
+        # else:
+        #     context = get_error_context(False, "user does not have right to remove members")
+        #     return JsonResponse(context)
+
+    else:
+        context = get_error_context(False, "user is not a admin")
+        return JsonResponse(context)
+
+
+def fetch_community_member_rights(request):
+    """ function to fetch member rights """
+
+    if request.method == 'POST':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'})
+
+    current_user_id = get_member_id_from_headers(request)
+    community_id = request.GET.get('community_id', None)
+    user_id = request.GET.get('user_id', None)
+
+    if not current_user_id:
+        context = get_error_context(False, "send member_id in headers")
+        return JsonResponse(context)
+    if not user_id:
+        context = get_error_context(False, "send user_id in params")
+        return JsonResponse(context)
+    if not community_id:
+        context = get_error_context(False, "send community_id in params")
+        return JsonResponse(context)
+
+    community_instance = Community.objects.get(pk=community_id)
+    current_user_instance = User.objects.get(pk=current_user_id)
+    user_instance = User.objects.get(pk=user_id)
+
+    admin = Members.objects.filter(member_id=current_user_instance,
+                                   community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+
+    rights_context = []
+
+    if admin.exists():
+        admin_rights = check_all_manager_rights(current_user_instance, community)
+        user_rights = check_all_member_rights(user_instance, community)
+
+        rights_context = get_saved_member_rights_list(user_rights, admin_rights)
+
+    else:
+        context = get_error_context(False, "user is not a admin")
+        return JsonResponse(context)
+
+    member_profile = get_members_profile([user_instance], community_instance)
+
+    return JsonResponse({"member": member_profile, "rights": rights_context})
+
+
+def get_saved_member_rights_list(user_rights, admin_rights=None):
+
+    all_member_rights = memberRights.objects.all().order_by("state")
+    rights_list = []
+    for right in all_member_rights:
+        right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
+                      "is_selected": False, "is_locked": False}
+
+        if right.state == create_room_member_right['state']:
+            right_dict["is_selected"] = user_rights["create_room"]
+            if admin_rights:
+                right_dict["is_locked"] = not admin_rights["delete_room"]
+
+        elif right.state == create_poll_member_right['state']:
+            right_dict["is_selected"] = user_rights["create_poll"]
+            if admin_rights:
+                right_dict["is_locked"] = not admin_rights["delete_room"]
+
+        elif right.state == create_event_member_right['state']:
+            right_dict["is_selected"] = user_rights["create_event"]
+            if admin_rights:
+                right_dict["is_locked"] = not admin_rights["delete_room"]
+
+        elif right.state == respond_in_rooms_member_right['state']:
+            right_dict["is_selected"] = user_rights["respond_in_rooms"]
+            if admin_rights:
+                right_dict["is_locked"] = not admin_rights["delete_room"]
+
+        elif right.state == invite_private_member_right['state']:
+            right_dict["is_selected"] = user_rights["invite_private"]
+            if admin_rights:
+                right_dict["is_locked"] = not admin_rights["approve"]
+
+        rights_list.append(right_dict)
+
+    return rights_list
+
+
+def get_saved_manager_rights_list(admin_rights):
+
+    all_manager_rights = adminRights.objects.all().order_by("state")
+    rights_list = []
+    for right in all_manager_rights:
+        right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
+                      "is_selected": False}
+
+        if right.state == delete_room_manager_right['state']:
+            right_dict["is_selected"] = admin_rights["delete_room"]
+
+        elif right.state == approve_manager_right['state']:
+            right_dict["is_selected"] = admin_rights["approve"]
+
+        elif right.state == edit_community_manager_right['state']:
+            right_dict["is_selected"] = admin_rights["edit_community"]
+
+        elif right.state == view_contact_manager_right['state']:
+            right_dict["is_selected"] = admin_rights["view_contact"]
+
+        elif right.state == add_manager_manager_right['state']:
+            right_dict["is_selected"] = admin_rights["add_manager"]
+
+        rights_list.append(right_dict)
+
+    return rights_list
+
+
+def check_all_manager_rights(user, community):
+    """function to give a manager all the rights """
+
+    admin_rights = userAdminRights.objects.select_related('right').filter(user=user,
+                                                                          community=community).order_by("right__state")
+    delete_room = False
+    approve = False
+    edit_community = False
+    view_contact = False
+    add_manager = False
+
+    rights_list = {"delete_room": delete_room, "approve": approve, "edit_community": edit_community,
+                  "view_contact": view_contact, "add_manager": add_manager}
+
+    for right in admin_rights:
+        if right.state == delete_room_manager_right['state']:
+            rights_list["delete_room"] = True
+        elif right.state == approve_manager_right['state']:
+            rights_list["approve"] = True
+        elif right.state == edit_community_manager_right['state']:
+            rights_list["edit_community"] = True
+        elif right.state == view_contact_manager_right['state']:
+            rights_list["view_contact"] = True
+        elif right.state == add_manager_manager_right['state']:
+            rights_list["add_manager"] = True
+
+    return rights_list
+
+
+def check_all_member_rights(user, community):
+    """function to give a manager all the rights """
+
+    admin_rights = userMemberRights.objects.select_related('right').filter(user=user,
+                                                                           community=community).order_by("right__state")
+    create_room = False
+    create_poll = False
+    create_event = False
+    respond_in_rooms = False
+    invite_private = False
+
+    for right in admin_rights:
+        if right.state == create_room_member_right['state']:
+            create_room = True
+        elif right.state == create_poll_member_right['state']:
+            create_poll = True
+        elif right.state == create_event_member_right['state']:
+            create_event = True
+        elif right.state == respond_in_rooms_member_right['state']:
+            respond_in_rooms = True
+        elif right.state == invite_private_member_right['state']:
+            invite_private = True
+
+    rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
+              "respond_in_rooms": respond_in_rooms, "invite_private": invite_private}
+
+    return rights
+
+
+
+def update_community_member_rights(request):
+    """ function to remove a communtiy manager as manager """
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    current_user_id = get_member_id_from_headers(request)
+    req_body = json.loads(request.body)
+    user_id = req_body['user_id'] if "user_id" in req_body else None
+    community_id = req_body['community_id'] if "community_id" in req_body else None
+    selected_rights = req_body['rights'] if "rights" in req_body else None
+
+    if not current_user_id:
+        context = get_error_context(False, "send member_id in headers")
+        return JsonResponse(context)
+    if not user_id:
+        context = get_error_context(False, "send user_id in body")
+        return JsonResponse(context)
+    if not community_id:
+        context = get_error_context(False, "send community_id in body")
+        return JsonResponse(context)
+    if not selected_rights:
+        context = get_error_context(False, "send rights in body")
+        return JsonResponse(context)
+
+    community_instance = Community.objects.get(pk=community_id)
+    current_user_instance = User.objects.get(pk=current_user_id)
+    user_instance = User.objects.get(pk=user_id)
+
+    admin = Members.objects.filter(member_id=current_user_instance,
+                                   community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+
+    if admin.exists():
+        # deleting all member rights
+        userMemberRights.objects.filter(community=community_instance, user=user_instance).delete()
+
+        for right in selected_rights:
+            if right["is_selected"]:
+                right = memberRights.objects.get(pk=right["id"])
+                userMemberRights(user=user_instance, community=community_instance, right=right).save()
+
+        return JsonResponse({'success': True})
+    else:
+        context = get_error_context(False, "user is not a admin")
+        return JsonResponse(context)
+
+
+def remove_creation_rights_for_user(user, community):
+    user_rights = userMemberRights.objects.filter(user=user,
+                                community=community).filter(Q(right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS) |
+                                Q(right__state=member_rights.MEMBER_RIGHT_CREATE_POLL) |
+                                Q(right__state=member_rights.MEMBER_RIGHT_CREATE_EVENT))
+    user_rights.delete()
+
+
+def check_admin_delete_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
+def check_admin_approve_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
+def check_admin_view_contact_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
+def check_admin_edit_community_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY)
+
+    if user_rights.exists():
+        return True
+    return Fals
+
+
+################################ client db synching apis #################################################
+
 
 def sync_client_db(request):
 

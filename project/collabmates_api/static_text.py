@@ -1,40 +1,37 @@
-#variables
+# variables
 HOURS_24 = 86400
-
 
 chatroom_actions_creator_mute = [
 
     {
-    'id': 1,
-    'title': 'Rename chatroom'
+        'id': 1,
+        'title': 'Rename chatroom'
     },
 
-   {
-    'id': 2,
-    'title': 'View participants'
-   },
+    {
+        'id': 2,
+        'title': 'View participants'
+    },
 
-  {
-    'id': 3,
-    'title': 'Invite'
-  },
+    {
+        'id': 3,
+        'title': 'Invite'
+    },
 
-  {
-    'id': 5,
-    'title': 'View community'
-  },
+    {
+        'id': 5,
+        'title': 'View community'
+    },
 
+    {
+        'id': 7,
+        'title': 'Delete chatroom'
+    },
 
-  {
-    'id': 7,
-    'title': 'Delete chatroom'
-  },
-
-  {
-    'id': 8,
-    'title': 'Unmute notifications'
-  },
-
+    {
+        'id': 8,
+        'title': 'Unmute notifications'
+    },
 
 ]
 
@@ -70,13 +67,9 @@ chatroom_actions_creator_unmute = [
         'title': 'Delete chatroom'
     },
 
-
-
 ]
 
 collabcard_action_user_follow_unmute = [
-
-
 
     {
         'id': 2,
@@ -108,14 +101,9 @@ collabcard_action_user_follow_unmute = [
         'title': 'Report'
     }
 
-
 ]
 
-
-
 collabcard_action_user_follow_mute = [
-
-
 
     {
         'id': 2,
@@ -147,13 +135,9 @@ collabcard_action_user_follow_mute = [
         'title': 'Report'
     }
 
-
 ]
 
-
 collabcard_action_user_unfollow = [
-
-
 
     {
         'id': 2,
@@ -205,75 +189,95 @@ mark_active = {'id': 11, 'title': 'Mark active'}
 
 mark_inactive = {'id': 12, 'title': 'Mark inactive'}
 
-
-
-
-#get onboarding examples
+# get onboarding examples
 INTRODUCTION_EXAMPLES = [
 
-
     {
-    "header":"Sample member introductions",
-    "sub_header" : "Here are a few examples",
-    "title" : "IITD Entrepreneurs in Gurgaon",
-    "sub_title":"""Hello everyone, I am a 2012 graduate from electrical engineering. I am running a social media venture based out of Gurgaon. Looking forward to connecting with you all and contribute to this community however I can."""
+        "header": "Sample member introductions",
+        "sub_header": "Here are a few examples",
+        "title": "IITD Entrepreneurs in Gurgaon",
+        "sub_title": """Hello everyone, I am a 2012 graduate from electrical engineering. I am running a social media venture based out of Gurgaon. Looking forward to connecting with you all and contribute to this community however I can."""
 
     },
 
     {
-    "header":"Sample member introductions",
-    "sub_header" : "Here are a few examples",
-    "title" : "Musicians in Gurgaon",
-    "sub_title":"A musician from the Himalayas! Looking for paid opportunities to play percussion (Djembe & Cajon)! I bet your feet won’t stay on the ground for long!  "
+        "header": "Sample member introductions",
+        "sub_header": "Here are a few examples",
+        "title": "Musicians in Gurgaon",
+        "sub_title": "A musician from the Himalayas! Looking for paid opportunities to play percussion (Djembe & Cajon)! I bet your feet won’t stay on the ground for long!  "
 
     },
 
     {
-    "header":"Sample member introductions",
-    "sub_header" : "Here are a few examples",
-    "title" : "COVID Hackers",
-    "sub_title":"""Hey all, I am a tech entrepreneur from Gurgaon. Looking forward to hacking the COVID times with this tribe and discover fun new "At Home" hobbies 🤟"""
+        "header": "Sample member introductions",
+        "sub_header": "Here are a few examples",
+        "title": "COVID Hackers",
+        "sub_title": """Hey all, I am a tech entrepreneur from Gurgaon. Looking forward to hacking the COVID times with this tribe and discover fun new "At Home" hobbies 🤟"""
 
     }
 
 ]
 
-
 ONBOARDING_EXAMPLES = [
 
-
     {
-    "header":"Sample community purposes",
-    "sub_header" : "Here are few examples of other communities’ purpose.",
-    "title" : "IITD Alums in Gurgaon",
-    "sub_title":"""This community is for IITD alumni currently living in Gurgaon and nearby areas. 
+        "header": "Sample community purposes",
+        "sub_header": "Here are few examples of other communities’ purpose.",
+        "title": "IITD Alums in Gurgaon",
+        "sub_title": """This community is for IITD alumni currently living in Gurgaon and nearby areas. 
 Anytime if you are looking to exchange referrals or maybe want to have a small get together just create a chatroom in the community with relevant content and interested community members will participate in it."""
 
     },
 
     {
-    "header":"Sample community purposes",
-    "sub_header" : "Here are few examples of other communities’ purpose.",
-    "title" : "Python Developers in Mumbai",
-    "sub_title":"Welcome tech lovers far and wide! We’re an online and in-person python-enthusiast group hosting live speaking events on a range of tech topics. You can join us in person if possible or on one of our live streams. Look out for our virtual happy hours and other networking events."
+        "header": "Sample community purposes",
+        "sub_header": "Here are few examples of other communities’ purpose.",
+        "title": "Python Developers in Mumbai",
+        "sub_title": "Welcome tech lovers far and wide! We’re an online and in-person python-enthusiast group hosting live speaking events on a range of tech topics. You can join us in person if possible or on one of our live streams. Look out for our virtual happy hours and other networking events."
 
     },
 
     {
-    "header":"Sample community purpose",
-    "sub_header" : "Here are few examples of other communities’ purpose.",
-    "title" : "Adventure Sports Enthusiasts",
-    "sub_title":"This is a group for anyone interested in adventure sports like hiking, rock climbing, camping, kayaking, bouldering, etc. All skill levels are welcome. We started this group to meet other outdoor enthusiasts. Looking forward to exploring the outdoors with everybody."
+        "header": "Sample community purpose",
+        "sub_header": "Here are few examples of other communities’ purpose.",
+        "title": "Adventure Sports Enthusiasts",
+        "sub_title": "This is a group for anyone interested in adventure sports like hiking, rock climbing, camping, kayaking, bouldering, etc. All skill levels are welcome. We started this group to meet other outdoor enthusiasts. Looking forward to exploring the outdoors with everybody."
 
     }
 
 ]
 
-
-
-
 MENU = {
-    'member' : ['Invite members','View all chat rooms','Member directory','Leave community','Report'],
-    'promoter': ['Invite members','View all chat rooms','Member directory','Edit community','Report'],
-    'pending_member':['Cancel joining request']
+    'member': ['Invite members', 'View all chat rooms', 'Member directory', 'Leave community', 'Report'],
+    'promoter': ['Invite members', 'View all chat rooms', 'Member directory', 'Edit community', 'Report'],
+    'pending_member': ['Cancel joining request']
 }
+
+delete_room_manager_right = {'id': 1, 'title': 'Delete chat rooms/messages', 'sub_title': None, "state": 0}
+
+approve_manager_right = {'id': 2, 'title': 'Approve/remove members', 'sub_title': None, "state": 1}
+
+edit_community_manager_right = {'id': 3, 'title': "Edit community details", 'sub_title': None, "state": 2}
+
+view_contact_manager_right = {'id': 4, 'title': 'View member contact info', 'sub_title': None, "state": 3}
+
+add_manager_manager_right = {'id': 5, 'title': "Add community managers", 'sub_title': None, "state": 4}
+
+manager_rights_list = [delete_room_manager_right, edit_community_manager_right, approve_manager_right,
+                       view_contact_manager_right, add_manager_manager_right]
+
+create_room_member_right = {'id': 1, 'title': "Create chat rooms", 'sub_title': None, "state": 0}
+
+create_poll_member_right = {'id': 2, 'title': "Create polls", 'sub_title': None, "state": 1}
+
+create_event_member_right = {'id': 3, 'title': "Create events", 'sub_title': None, "state": 2}
+
+respond_in_rooms_member_right = {'id': 4, 'title': "Respond in chat rooms", 'sub_title': None, "state": 3}
+
+invite_private_member_right = {'id': 5, 'title': "Invite members via private link",
+                               'sub_title': "Private links remain valid for 24 hours and. the user joining via them a re auto verified",
+                               "state": 4
+                               }
+
+member_rights_list = [create_room_member_right, create_poll_member_right,
+                      create_event_member_right, respond_in_rooms_member_right, invite_private_member_right]
