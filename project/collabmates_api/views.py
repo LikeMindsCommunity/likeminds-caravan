@@ -5764,7 +5764,6 @@ def create_conversation(request):
         if 'internal_link' not in res:
             ans.internal_link = preview['internal_link']
 
-        ans.internal_link = res['internal_link']
     ans.save()
 
     # saving the og tags if present
