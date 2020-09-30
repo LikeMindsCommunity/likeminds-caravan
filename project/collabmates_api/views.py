@@ -10486,6 +10486,42 @@ def fetch_intro_examples(request):
 
     return JsonResponse({'intro_examples':intro_examples})
 
+
+
 ############################################################################################################
 
+
+
+
+################################### client db synching apis #################################################
+
+def sync_client_db(request):
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+    page = request.GET.get('page',1)
+
+    paginate_by = request.GET.get('paginate_by',500)
+
+    paginate_by = int(paginate_by)
+    conversation_filter = card_answers.objects.filter(user=member_id).order_by('id')
+
+    conversation_list = pagination(conversation_filter,page,paginate_by=paginate_by)
+    conversations = []
+
+    for conversation in conversation_list:
+
+        temp = conversationSerializer(conversation)
+        conversations.append(temp)
+
+
+    return JsonResponse({'conversations':conversations})
+
+
+
+##############################################################################################################
 
