@@ -9836,6 +9836,61 @@ def push_report(request):
             info_logger.info(e)
         info_logger.info("push report api successfull")
         return JsonResponse({'success': True})
+
+    return JsonResponse({'success': False})
+
+
+@csrf_exempt
+def push_report_v1(request):
+    """ Fucntion to report a user or a collabcard """
+    if request.method == 'POST':
+
+        member_id = get_member_id_from_headers(request)
+        user_instance = User.objects.get(id=member_id)
+
+        request_body = json.loads(request.body)
+        collabcard_id = request_body['collabcard_id'] if 'collabcard_id' in request_body else None
+        community_id = request_body['community_id'] if 'community_id' in request_body else None
+        tag_id = request_body['tag_id'] if 'tag_id' in request_body else None
+        reason = request_body['reason'] if 'reason' in request_body else None
+        reported_member_id = int(request_body['reported_member_id']) if 'reported_member_id' in request_body else None
+        link = request_body['link'] if 'link' in request_body else None
+        conversation_id = request_body['conversation_id'] if 'conversation_id' in request_body else None
+
+        collabcard_instance = Collabcard.objects.get(id=collabcard_id) if collabcard_id else None
+        report_tags_instance = Report_Tags.objects.get(tag_id=tag_id) if tag_id else None
+        conversation_instance = card_answers.objects.get(id=conversation_id) if conversation_id else None
+        community_instance = Community.objects.get(id=community_id) if community_id else None
+
+        report_instance = Report()
+        report_instance.tag = report_tags_instance
+        report_instance.collabcard = collabcard_instance
+        report_instance.reason = reason
+        report_instance.member = user_instance
+        report_instance.reported_member_id = reported_member_id
+        report_instance.date_epoch = time.time()
+        report_instance.link = link
+        report_instance.conversation = conversation_instance
+        report_instance.community = community_instance
+        report_instance.save()
+
+        # community_url = url + "/community/" + str(collabcard_instance.community.id)
+        # print(reported_member_id, community_id, collabcard_id, conversation_id)
+        if reported_member_id:
+            subject = '[Member reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject, report_instance.id)
+        elif community_id is not None:
+            subject = '[Community reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject, report_instance.id)
+        elif collabcard_id is not None:
+            subject = '[Chatroom reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject, report_instance.id)
+        elif conversation_id:
+            subject = '[Text reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject, report_instance.id)
+
+        return JsonResponse({'success': True})
+
     return JsonResponse({'success': False})
 
 

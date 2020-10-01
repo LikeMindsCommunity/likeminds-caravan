@@ -670,18 +670,26 @@ class Report(models.Model):
     collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
     conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE, null=True)
 
-    reported_member_id = models.IntegerField(default=0)
-    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    reported_member_id = models.IntegerField(default=0)  # can be removed
+    member = models.ForeignKey(User, on_delete=models.CASCADE)  # can be removed
 
     reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_by_user')
     user_reported = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_who_is_reported')
     reason = models.CharField(max_length=2048, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
     type = models.IntegerField(default=0)
+    action_taken_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='action_taken_by_promoter')
+    action_taken_reason = models.CharField(max_length=2048, null=True)
+    action_taken_tag_id = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, related_name='action_taken_tag')
+    rights_added = models.TextField(null=True)
+    rights_removed = models.TextField(null=True)
+    action_taken = models.IntegerField(default=0)
 
     date_epoch = models.BigIntegerField(default=-9223372036854775808, null=True)
 
     link = models.TextField(null=True)
+
+
 
 class collabcardState(models.Model):
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
