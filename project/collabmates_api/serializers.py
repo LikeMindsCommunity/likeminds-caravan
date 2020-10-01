@@ -342,6 +342,9 @@ def draftChatroomSerializer(card, user, community=None):
         if card.online_link:
             chatroom['online_link'] = card.online_link
 
+        if card.internal_link:
+            chatroom['internal_link'] = card.internal_link
+
     # for sending header
     if card.header:
         chatroom['header'] = card.header
@@ -576,6 +579,13 @@ def get_draft_chatroom_instance(draft_instance, member_id):
     draft_member = get_members_profile([draft_instance.user.id], draft_instance.community.id)
     if draft_member:
         draft_serializer['member'] = draft_member[0]
+
+    if draft_instance.internal_link:
+        draft_serializer['preview'] = get_preview_for_url(member_id=member_id,
+                                                          preview_url=draft_instance.internal_link,
+                                                          community_instance=draft_instance.preview_community,
+                                                          chatroom_instance=draft_instance.preview_chatroom,
+                                                          send_preview_text=True)
 
     # status = get_status_of_collabcard(member_id, card_instance)
     # collabcard_serializer['state'] = status['state']

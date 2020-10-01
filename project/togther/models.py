@@ -226,6 +226,13 @@ class draftChatroom(models.Model):
     # for saving chatroom name
     header = models.TextField(null=True)
 
+    internal_link = models.TextField(null=True)
+    preview_type = models.TextField(null=True)
+    preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
+                                          related_name='draft_chatroom_preview_community')
+    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
+                                         related_name='draft_chatroom_preview_chatroom')
+
 
 class inActiveChatroomsCount(models.Model):
 

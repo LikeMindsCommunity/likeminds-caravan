@@ -555,8 +555,8 @@ def my_chatrooms_version_1(request):
 
 
     context = {'my_chatrooms': my_chatrooms,
-               'inactive_chatroom_count':in_active_chatroom_count,
-               'total_pages':total_pages
+               'inactive_chatroom_count': in_active_chatroom_count,
+               'total_pages': total_pages
                }
 
     return JsonResponse(context)
@@ -2911,6 +2911,25 @@ def create_draft_collabcard(request, res=None):
         card.share_link = res['share_link']
         og_tags = decode_meta_from_url(res['share_link'])
         card.og_tags = json.dumps(og_tags)
+
+    if 'internal_link' in res:
+        card.internal_link = res['internal_link']
+        if 'preview' not in res:
+            preview = get_preview_for_url(user_instance.id, res['internal_link'])
+            res['preview'] = preview
+
+    if 'preview' in res:
+        preview = res['preview']
+        card.preview_type = preview['preview_type']
+        preview_community = Community.objects.get(pk=preview['community']["id"])
+        card.preview_community = preview_community
+
+        if 'chatroom' in preview:
+            preview_chatroom = Collabcard.objects.get(pk=preview['chatroom']["id"])
+            card.preview_chatroom = preview_chatroom
+
+        if 'internal_link' not in res:
+            card.internal_link = preview['internal_link']
 
     card.date_epoch = time.time()  # card creation time
     card.save()
@@ -6629,10 +6648,10 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None):
 
         if card_instance.internal_link:
             chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
-                                           preview_url=card_instance.internal_link,
-                                           community_instance=card_instance.preview_community,
-                                           chatroom_instance=card_instance.preview_chatroom,
-                                           send_preview_text=False)
+                                                               preview_url=card_instance.internal_link,
+                                                               community_instance=card_instance.preview_community,
+                                                               chatroom_instance=card_instance.preview_chatroom,
+                                                               send_preview_text=False)
 
         last_response_members = get_member_images_of_chatroom(conversation_filter)
         chatroom_instance['members_images'] = last_response_members['members_images']
@@ -6736,7 +6755,7 @@ def fetch_chatroom_feed_version_1(request):
     scroll_direction = request.GET.get('scroll_direction')
 
     if scroll_direction and not chatroom_id:
-        context = get_error_context(False,"send chatroom id with scroll direction")
+        context = get_error_context(False, "send chatroom id with scroll direction")
         return JsonResponse(context)
 
     active = request.GET.get('active', None)
