@@ -73,7 +73,6 @@ from .mails import *
 from .chatroom_backup import create_chatroom_delete_backup
 
 from cms.models import NewAnswer
-from .internal_link_preview import get_preview_for_url
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -5776,6 +5775,7 @@ def create_conversation(request):
     ans.community = card_instance.community
     ans.is_guest = state_filter.exists()
     ans.created_at = time.time()
+    ans.has_files = True if ('has_files' in res and res['has_files']) else False
     if replied_conversation:
         ans.reply = replied_conversation
 
@@ -10270,10 +10270,14 @@ def sync_client_db(request):
 
     page = request.GET.get('page',1)
 
-    paginate_by = request.GET.get('paginate_by',100)
+    paginate_by = request.GET.get('paginate_by',200)
 
+    timestamp = request.GET.get('timestamp')
     paginate_by = int(paginate_by)
-    conversation_filter = card_answers.objects.filter(user=member_id).order_by('id')
+    if not timestamp:
+        conversation_filter = card_answers.objects.filter(user=member_id).order_by('id')
+    else:
+        conversation_filter = card_answers.objects.filter(user=member_id,created_at__gt=timestamp).order_by('id')
 
     conversation_list = pagination(conversation_filter,page,paginate_by=paginate_by)
     conversations = []
@@ -10281,7 +10285,7 @@ def sync_client_db(request):
     for conversation in conversation_list:
 
         #temp = conversationSerializer(conversation)
-        temp = get_conversation_instance(conversation,conversation.community,current_user_id=member_id)
+        temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
         conversations.append(temp)
 
 
