@@ -73,6 +73,7 @@ from .mails import *
 from .chatroom_backup import create_chatroom_delete_backup
 
 from cms.models import NewAnswer
+from .internal_link_preview import get_preview_for_url
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -2768,14 +2769,6 @@ def create_card_internal(user_id, community_id, res):
 
     collabcard = CollabcardSerializer(card_instance, user_id, community_instance, current_user_id=user_id)
 
-    # if card_instance.internal_link:
-    #     collabcard['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
-    #                                                 community_instance=card_instance.preview_community,
-    #                                                 chatroom_instance=card_instance.preview_chatroom,
-    #                                                 send_preview_text=False)
-
-    # preview_dict = get_previews_for_card_and_answers(card_instance, user_id)
-    # collabcard.update(**preview_dict)
     collabcard['date'] = datetime.today().strftime('%d-%m-%Y')
 
     # get user object's serialized json
@@ -4713,8 +4706,6 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
                                                      community_instance=ans.preview_community,
                                                      chatroom_instance=ans.preview_chatroom,
                                                      send_preview_text=False)
-        # preview_dict = get_previews_for_card_and_answers(ans, current_user_id)
-        # context.update(**preview_dict)
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
 
@@ -4889,8 +4880,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                               community_instance=card_instance.preview_community,
                                               chatroom_instance=card_instance.preview_chatroom,
                                               send_preview_text=False)
-    # preview_dict = get_previews_for_card_and_answers(card_instance, user_id)
-    # card.update(**preview_dict)
 
     card_status = {
         'state': card['state'],
@@ -6594,48 +6583,6 @@ def get_last_conversation(conversation_filter, member_id, chatroom_id):
         return (None, 0)
 
 
-def get_member_images_of_chatroom(conversation_filter):
-    '''function to give member images of chatrooms'''
-    unique_members = set()
-    member_images = []
-
-    last_conversations_member = []
-    count = 0
-    for conversation in conversation_filter:
-        community_instance = conversation.card.community
-        if conversation.user.id not in unique_members:
-            member_filter = Members.objects.filter(member_id=conversation.user, community_id=community_instance)
-            image_link = conversation.user.userinfo.image_link
-            image_url = image_link if image_link  else ""
-
-            if member_filter.exists():
-                member_instance = member_filter[0]
-                if member_instance.image_url:
-                    image_url = member_instance.image_url
-
-            remove=False
-            if conversation.remove:
-                remove=True
-            member_images.append(image_url)
-
-            member_data = get_user_profile(conversation.user,community_instance,send_profile=False,remove=remove)
-            last_conversations_member.append(member_data)
-            unique_members.add(conversation.user.id)
-            count = count + 1
-
-        if count > 5:
-            break
-
-
-    temp={
-        'members_images':member_images,
-        'last_response_members':last_conversations_member
-    }
-
-
-    return temp
-
-
 def get_chatrooms(chatroom_list, member_id,active = None):
     '''function to get chatrooms'''
 
@@ -6650,9 +6597,6 @@ def get_chatrooms(chatroom_list, member_id,active = None):
             chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
                                            community_instance=card_instance.preview_community,
                                            chatroom_instance=card_instance.preview_chatroom, send_preview_text=False)
-
-        # preview_dict = get_previews_for_card_and_answers(card_instance, member_id)
-        # chatroom_instance.update(**preview_dict)
 
         last_response_members = get_member_images_of_chatroom(conversation_filter)
         chatroom_instance['members_images'] = last_response_members['members_images']
@@ -6689,9 +6633,6 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None):
                                            community_instance=card_instance.preview_community,
                                            chatroom_instance=card_instance.preview_chatroom,
                                            send_preview_text=False)
-
-        # preview_dict = get_previews_for_card_and_answers(card_instance, member_id)
-        # chatroom_instance.update(**preview_dict)
 
         last_response_members = get_member_images_of_chatroom(conversation_filter)
         chatroom_instance['members_images'] = last_response_members['members_images']
@@ -10272,190 +10213,6 @@ def fetch_preview(request):
     return JsonResponse({"preview": context})
 
 
-def get_preview_for_url(member_id=None, preview_url=None,
-                community_instance=None, chatroom_instance=None, send_preview_text=True):
-    """ function to get preview of community or chatroom """
-
-    user_instance = User.objects.get(pk=member_id)
-
-    is_member_directory = False
-    preview_type = None
-    preview_text = None
-    title = None
-    route = None
-    aj = None
-    source_id = None
-    chatroom_id = None
-    community_id = None
-
-    if preview_url:
-        parsed_url = urlsplit(preview_url)
-        query_items = dict(parse_qsl(parsed_url.query))
-
-        if "community" in parsed_url.path:
-            if 'source' in query_items and query_items['source'] == 'members_directory':
-                is_member_directory = True
-                preview_type = "directory"
-                title = "Follow the link to join this LikeMinds community and view its member's profiles"
-                preview_text = "Preview of directory will be added later"
-            else:
-                is_community = True
-                preview_type = "community"
-                title = "Follow the link to join this LikeMinds community."
-                preview_text = "Preview of community will be added later"
-            community_id = parsed_url.path.split("/")[-1]
-
-        elif "collabcard" in parsed_url.path:
-            is_chatroom = True
-            preview_type = "chatroom"
-            preview_text = "Preview of chat room will be added later"
-            chatroom_id = parsed_url.path.split("/")[-1]
-
-        if 'aj' in query_items:
-            aj = query_items['aj']
-        if 'source_id' in query_items:
-            source_id = query_items['source_id']
-
-    context = {"preview_type": preview_type}
-    if send_preview_text:
-        context = {"internal_link": preview_url, "preview_type": preview_type,
-                   "preview_text": preview_text, "title": title}
-
-    if chatroom_id:
-        if not chatroom_instance:
-            chatroom_instance = Collabcard.objects.get(pk=chatroom_id)
-
-        community_instance = chatroom_instance.community
-        community_id = community_instance.id
-
-        chatroom = get_chatrooms([chatroom_instance], member_id)
-        context["chatroom"] = chatroom[0]
-
-        title = f'Participate in this LikeMinds chat room in community. "{community_instance.name}"'
-        route = f"route://collabcard?collabcard_id={chatroom_id}"
-
-    if send_preview_text:
-        context["title"] = title
-
-    if community_id:
-        if not community_instance:
-            community_instance = Community.objects.get(pk=community_id)
-
-        community = get_community_preview(community_instance, user_instance)
-        context["community"] = community
-        is_member = community["member_state"] in [1, 2, 3, 4, 7, 9]
-
-        if is_member_directory and is_member:
-            context["action"] = "VIEW DIRECTORY"
-            route = f"route://members_directory?community_id={community_id}&community_name={community_instance.name}"
-        elif is_member and not chatroom_id:
-            route = f"route://community?community_id={community_id}"
-            context["action"] = "VIEW COMMUNITY"
-        elif not chatroom_id:
-            route = f"route://community?community_id={community_id}"
-            context["action"] = "JOIN COMMUNITY"
-        else:
-            context["action"] = "JOIN COMMUNITY"
-
-    if chatroom_id:
-        if chatroom_instance.type == card_types.CARD_EVENT or chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
-            context["action"] = "VIEW EVENT"
-            if send_preview_text:
-                context["preview_text"] = "Preview of the event will be added later"
-        elif chatroom_instance.type == card_types.CARD_POLL:
-            context["action"] = "VIEW POLL"
-            if send_preview_text:
-                context["preview_text"] = "Preview of the poll will be added later"
-        else:
-            context["action"] = "VIEW CHAT ROOM"
-
-    if aj:
-        route = route + f"&aj={aj}"
-
-    if source_id:
-        route = route + f"&source_id={source_id}"
-
-    context["action_route"] = route
-
-    return context
-
-
-def get_community_preview(community_instance, user_instance):
-    community = {"id": community_instance.id,
-                 "name": community_instance.name,
-                 "purpose": community_instance.purpose,
-                 }
-
-    if community_instance.image_link:
-        community['image_url'] = community_instance.image_link
-    elif community_instance.image_url:
-        community['image_url'] = community_instance.image_url.url
-    else:
-        community['image_url'] = '/media/media/community/default.jpeg'
-
-    if community_instance.image_link_round:
-        community['image_url_round'] = community_instance.image_link_round
-
-    if community['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
-        community[
-            'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-    elif not community_instance.image_link:
-        community['image_url'] = url + community['image_url']
-
-    community_members = get_community_members_count(community_instance, user_instance)
-
-    community.update(**community_members)
-
-    return community
-
-
-def get_community_members_count(community_instance, user_instance):
-    '''function to get the creator of community'''
-    community_members = Members.objects.filter(community_id=community_instance).filter(
-        Q(state=member_states.MEMBER) | Q(state=member_states.ADMIN) | Q(
-            state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
-
-    promoters = community_members.filter(state=member_states.ADMIN).order_by('id')
-    current_user = community_members.filter(member_id=user_instance)
-
-    created_by = ""
-    if promoters.exists():
-        promoter_instance = promoters[0].member_id
-        created_by = promoter_instance.userinfo.name
-
-    member_state = 0
-    if current_user.exists():
-        member_state = current_user[0].state
-
-    final_dict = {"created_by": created_by,
-                  "promoters_count": promoters.count(),
-                  "members_count": community_members.count(),
-                  "member_state": member_state
-                  }
-
-    return final_dict
-
-
-def get_previews_for_card_and_answers(instance, member_id):
-    chatroom_instance = {}
-    if instance.internal_link:
-        chatroom_instance['internal_link'] = instance.internal_link
-
-    if instance.preview_type:
-        chatroom_instance['preview_type'] = instance.preview_type
-
-    if instance.preview_community:
-        user_instance = User.objects.get(pk=member_id)
-        community = get_community_preview(instance.preview_community, user_instance)
-        chatroom_instance['preview_community'] = community
-
-    if instance.preview_chatroom:
-        chatroom = get_chatrooms([instance.preview_chatroom], member_id)
-        chatroom_instance['preview_chatroom'] = chatroom[0]
-
-    return chatroom_instance
-
-
 ############################## static apis for sending text ##############################################
 
 
@@ -10490,6 +10247,7 @@ def fetch_community_types(request):
     context['onboarding_examples'] = ONBOARDING_EXAMPLES
     return JsonResponse(context)
 
+
 def fetch_intro_examples(request):
 
     '''api to send introduction questions examples'''
@@ -10499,13 +10257,8 @@ def fetch_intro_examples(request):
     return JsonResponse({'intro_examples':intro_examples})
 
 
+# ====================== client db synching apis ==============================================================
 
-############################################################################################################
-
-
-
-
-################################### client db synching apis #################################################
 
 def sync_client_db(request):
 
@@ -10536,5 +10289,5 @@ def sync_client_db(request):
 
 
 
-##############################################################################################################
+# ==============================================================================================================
 
