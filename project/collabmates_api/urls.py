@@ -185,7 +185,7 @@ urlpatterns = [
 
     ############################ synching client db apis ##################################
 
-    path('sync_client_db', api_views.sync_client_db, name='sync_client_db'),
+    path('sync_conversation', api_views.sync_conversation, name='sync_conversation'),
 
     #######################################################################################
 
