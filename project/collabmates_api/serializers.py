@@ -1,14 +1,14 @@
 import json
-import time
+from urllib.parse import parse_qsl, urlsplit
 
 from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_community_id, \
     generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
-    is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp
+    is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp,get_community_members_count_for_preview
 
-from utility.states import card_types, question_states, member_states, poll_types, deleted_members
+from utility.states import card_types, question_states, member_states, poll_types, deleted_members,chatroom_states
 
 url = settings.URL
 import ast
@@ -1167,7 +1167,8 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
 
     if conversation.internal_link:
-        conversation['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
+
+        temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
                                                  community_instance=conversation.preview_community,
                                                  chatroom_instance=conversation.preview_chatroom)
 
@@ -1217,6 +1218,8 @@ def get_answer_files(answer_id):
 def get_preview_for_url(member_id=None, preview_url=None,
                         community_instance=None, chatroom_instance=None, send_preview_text=True):
     """ function to get preview of community or chatroom """
+
+
 
     user_instance = User.objects.get(pk=member_id)
 
@@ -1316,6 +1319,8 @@ def get_preview_for_url(member_id=None, preview_url=None,
         route = route + f"&source_id={source_id}"
 
     context["action_route"] = route
+
+
 
     return context
 

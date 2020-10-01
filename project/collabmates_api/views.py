@@ -543,10 +543,10 @@ def my_chatrooms_version_1(request):
         last_conversation = instance.last_conversation
 
         if last_conversation:
-            chatroom['last_conversation'] = conversationSerializer(last_conversation)
+            chatroom['last_conversation'] = conversationSerializer(last_conversation,current_user_id=member_id)
             second_last_conversation = instance.second_last_conversation
             if second_last_conversation:
-                chatroom['second_last_conversation'] = conversationSerializer(second_last_conversation)
+                chatroom['second_last_conversation'] = conversationSerializer(second_last_conversation,current_user_id=member_id)
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
