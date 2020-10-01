@@ -33,7 +33,8 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail, upload_community_files)
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
-                            poll_types, chatroom_actions, member_rights, manager_rights)
+                            poll_types, chatroom_actions, member_rights, manager_rights,
+                            moderation_history_types)
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -73,6 +74,8 @@ from .mails import *
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
 from cms.models import NewAnswer
+
+from .user_moderation_rights import *
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -986,6 +989,7 @@ def join_promoter_created_community_version_1(res, request):
 
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
+    is_private_link = False
 
     member_id = get_member_id_from_headers(request)
     if not member_id:
@@ -1039,6 +1043,7 @@ def join_promoter_created_community_version_1(res, request):
             time_in_hrs = 2
 
             if validate_time:
+                is_private_link = True
                 auto_join_community(community_instance, user_instance)
                 set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
                 post_introduction_card_for_community(community_id, member_id, request)
@@ -1116,6 +1121,16 @@ def join_promoter_created_community_version_1(res, request):
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
         update_community_toast(user_instance, community_instance)
+
+    if 'shared_by' in res:
+        if is_private_link:
+            history_type = moderation_history_types.APPLIED_PRIVATE_LINK
+        else:
+            history_type = moderation_history_types.APPLIED_PUBLIC_LINK
+
+        shared_user = User.objects.get(pk=res['shared_by'])
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=shared_user, type=history_type)
 
 
 def update_community_toast(user_instance, community_instance):
@@ -1986,7 +2001,8 @@ def remove_from_member(request):
 
                 if member_filter.exists():
                     member_state = member_filter[0].state
-                    if member_state == member_states.MEMBER or member_state == member_states.KNOWN_NOMINATED_PROMOTER:
+                    if member_state == member_states.MEMBER or member_state == member_states.KNOWN_NOMINATED_PROMOTER \
+                            or member_state == member_states.PROFILE_UNAVAILABLE:
                         remove_members(community_id, member_filter[0].member_id.id,
                                        removed_state=deleted_members.REMOVED)
 
@@ -2008,7 +2024,8 @@ def remove_from_member(request):
     if not is_promoter and member_ids == False:
 
         is_member = Members.objects.filter(community_id=community_id, member_id=member_id).filter(
-            Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER))
+                    Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER) |
+                    Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
         if is_member.exists():
             remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
             return JsonResponse({'success': True})
@@ -2087,8 +2104,21 @@ def fetch_community_profile(request):
     if not user_id or not community_id:
         return JsonResponse({"error_message": "send user id and community_id in get params"})
 
+    current_user_member_instance = Members.objects.filter(member_id=current_member_id, community_id=community_id)
+    is_promoter = False
+    is_owner = False
+    if current_user_member_instance.exists():
+        if current_user_member_instance[0]:
+            is_promoter = current_user_member_instance.state == member_states.ADMIN
+            is_owner = current_user_member_instance.is_owner
+
+    user_admin_rights = None
+    if is_owner or is_promoter:
+        user_admin_rights = check_all_manager_rights(current_member_id, community_id)
+
     member_ids = [user_id]
-    member = get_members_profile(member_ids, community_id, current_user_id=current_member_id)
+    member = get_members_profile(member_ids, community_id, current_user_id=current_member_id, is_promoter=is_promoter,
+                                 is_owner=is_owner, profile_detail_api=True, user_admin_rights=user_admin_rights)
 
     if member:
         member = member[0]
@@ -2785,8 +2815,6 @@ def create_card_internal(user_id, community_id, res):
                                               community_instance=card_instance.preview_community,
                                               chatroom_instance=card_instance.preview_chatroom)
 
-    # preview_dict = get_previews_for_card_and_answers(card_instance, user_id)
-    # collabcard.update(**preview_dict)
     collabcard['date'] = datetime.today().strftime('%d-%m-%Y')
 
     # get user object's serialized json
@@ -3969,6 +3997,7 @@ def request_response(request, req_dict=None):
     }
     approve_or_decline_private_community(req_dict, request)
     update_pending_member_count_in_engage(req_dict['community_id'])
+
     return JsonResponse({'success': True})
 
 
@@ -4026,6 +4055,10 @@ def approve_or_decline_private_community(req_dict, request):
             send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],
                                                       promoter_name)
             send_community_confirmation_email.delay(req_dict['member_id'], req_dict['community_id'])
+
+            accepted_user = User.objects.get(pk=req_dict['member_id'])
+            save_moderation_history(user=accepted_user, community=community, moderation_by=current_user_instance,
+                                    type=moderation_history_types.APPROVED_FROM)
 
 
     else:
@@ -4765,10 +4798,8 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
         if ans.internal_link:
             context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
-                                           community_instance=ans.preview_community,
-                                           chatroom_instance=ans.preview_chatroom)
-        # preview_dict = get_previews_for_card_and_answers(ans, current_user_id)
-        # context.update(**preview_dict)
+                                                     community_instance=ans.preview_community,
+                                                     chatroom_instance=ans.preview_chatroom)
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
 
@@ -10667,7 +10698,10 @@ def update_community_manager_rights(request):
 
     community_instance = Community.objects.get(pk=community_id)
     current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = User.objects.get(pk=user_id)
+    if int(user_id) == int(current_user_id):
+        user_instance = current_user_instance
+    else:
+        user_instance = User.objects.get(pk=user_id)
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
@@ -10685,40 +10719,49 @@ def update_community_manager_rights(request):
             is_owner = admin[0].is_owner
             if not custom_title:
                 custom_title = admin[0].custom_title
+            Members.objects.filter(community_id=community_instance,
+                                   memberid=user_instance).update(state=member_states.ADMIN, is_owner=is_owner,
+                                                                  custom_title=custom_title)
+        else:
+            member = Members.objects.filter(member_id=user_instance,
+                                            community_id=community_instance)
+            member_instance = None
+            if member.exists():
+                member_instance = member[0]
+            else:
+                context = get_error_context(False, "user is not a member")
+                return JsonResponse(context)
 
-        Members.objects.filter(community_id=community_instance,
-                               memberid=user_instance).update(state=member_states.ADMIN, is_owner=is_owner,
-                                                              custom_title=custom_title)
+            is_member_already_promoter = member_instance.state == member_states.ADMIN
+
+            if not custom_title:
+                custom_title = member_instance.custom_title
+
+            parent_cm = current_user_instance
+            if member_instance.parent_cm:
+                parent_cm = member_instance.parent_cm
+
+            parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
+            if not current_user_id in parent_list:
+                parent_list.append(current_user_id)
+            parent_list = json.dumps(parent_list)
+
+            member.update(state=member_states.ADMIN, is_owner=is_owner, custom_title=custom_title,
+                          parent_cm=parent_cm, parent_cm_list=parent_list)
+
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.MANAGER_PERMISSION_EDITED)
+
+            if not is_member_already_promoter:
+                save_moderation_history(user=user_instance, community=community_instance,
+                                        moderation_by=current_user_instance,
+                                        type=moderation_history_types.MADE_COMMUNITY_MANAGER)
+
         return JsonResponse({'success': True})
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
-
-
-def give_all_member_rights(user, community):
-    """function to give a member all the rights """
-    userMemberRights.objects.filter(user=user, community=community).delete()
-
-    member_rights = memberRights.objects.all().order_by("state")
-    fill_member_rights(user, community, member_rights)
-
-
-def give_all_manager_rights(user, community):
-    """function to give a manager all the rights """
-    userAdminRights.objects.filter(user=user, community=community).delete()
-
-    admin_rights = adminRights.objects.all().order_by("state")
-    fill_admin_rights(user, community, admin_rights)
-
-
-def fill_admin_rights(user, community, rights_list):
-    for right in rights_list:
-        userAdminRights(user=user, community=community, right=right).save()
-
-
-def fill_member_rights(user, community, rights_list):
-    for right in rights_list:
-        userMemberRights(user=user, community=community, right=right).save()
 
 
 def remove_community_manager(request):
@@ -10756,6 +10799,10 @@ def remove_community_manager(request):
             # updating member state of manager to member
             Members.objects.filter(community_id=community_instance,
                                    memberid=user_instance).update(state=member_states.MEMBER)
+
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
 
             return JsonResponse({'success': True})
         else:
@@ -10898,131 +10945,6 @@ def fetch_community_member_rights(request):
     return JsonResponse({"member": member_profile, "rights": rights_context})
 
 
-def get_saved_member_rights_list(user_rights, admin_rights=None):
-
-    all_member_rights = memberRights.objects.all().order_by("state")
-    rights_list = []
-    for right in all_member_rights:
-        right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
-                      "is_selected": False, "is_locked": False}
-
-        if right.state == create_room_member_right['state']:
-            right_dict["is_selected"] = user_rights["create_room"]
-            if admin_rights:
-                right_dict["is_locked"] = not admin_rights["delete_room"]
-
-        elif right.state == create_poll_member_right['state']:
-            right_dict["is_selected"] = user_rights["create_poll"]
-            if admin_rights:
-                right_dict["is_locked"] = not admin_rights["delete_room"]
-
-        elif right.state == create_event_member_right['state']:
-            right_dict["is_selected"] = user_rights["create_event"]
-            if admin_rights:
-                right_dict["is_locked"] = not admin_rights["delete_room"]
-
-        elif right.state == respond_in_rooms_member_right['state']:
-            right_dict["is_selected"] = user_rights["respond_in_rooms"]
-            if admin_rights:
-                right_dict["is_locked"] = not admin_rights["delete_room"]
-
-        elif right.state == invite_private_member_right['state']:
-            right_dict["is_selected"] = user_rights["invite_private"]
-            if admin_rights:
-                right_dict["is_locked"] = not admin_rights["approve"]
-
-        rights_list.append(right_dict)
-
-    return rights_list
-
-
-def get_saved_manager_rights_list(admin_rights):
-
-    all_manager_rights = adminRights.objects.all().order_by("state")
-    rights_list = []
-    for right in all_manager_rights:
-        right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
-                      "is_selected": False}
-
-        if right.state == delete_room_manager_right['state']:
-            right_dict["is_selected"] = admin_rights["delete_room"]
-
-        elif right.state == approve_manager_right['state']:
-            right_dict["is_selected"] = admin_rights["approve"]
-
-        elif right.state == edit_community_manager_right['state']:
-            right_dict["is_selected"] = admin_rights["edit_community"]
-
-        elif right.state == view_contact_manager_right['state']:
-            right_dict["is_selected"] = admin_rights["view_contact"]
-
-        elif right.state == add_manager_manager_right['state']:
-            right_dict["is_selected"] = admin_rights["add_manager"]
-
-        rights_list.append(right_dict)
-
-    return rights_list
-
-
-def check_all_manager_rights(user, community):
-    """function to give a manager all the rights """
-
-    admin_rights = userAdminRights.objects.select_related('right').filter(user=user,
-                                                                          community=community).order_by("right__state")
-    delete_room = False
-    approve = False
-    edit_community = False
-    view_contact = False
-    add_manager = False
-
-    rights_list = {"delete_room": delete_room, "approve": approve, "edit_community": edit_community,
-                  "view_contact": view_contact, "add_manager": add_manager}
-
-    for right in admin_rights:
-        if right.state == delete_room_manager_right['state']:
-            rights_list["delete_room"] = True
-        elif right.state == approve_manager_right['state']:
-            rights_list["approve"] = True
-        elif right.state == edit_community_manager_right['state']:
-            rights_list["edit_community"] = True
-        elif right.state == view_contact_manager_right['state']:
-            rights_list["view_contact"] = True
-        elif right.state == add_manager_manager_right['state']:
-            rights_list["add_manager"] = True
-
-    return rights_list
-
-
-def check_all_member_rights(user, community):
-    """function to give a manager all the rights """
-
-    admin_rights = userMemberRights.objects.select_related('right').filter(user=user,
-                                                                           community=community).order_by("right__state")
-    create_room = False
-    create_poll = False
-    create_event = False
-    respond_in_rooms = False
-    invite_private = False
-
-    for right in admin_rights:
-        if right.state == create_room_member_right['state']:
-            create_room = True
-        elif right.state == create_poll_member_right['state']:
-            create_poll = True
-        elif right.state == create_event_member_right['state']:
-            create_event = True
-        elif right.state == respond_in_rooms_member_right['state']:
-            respond_in_rooms = True
-        elif right.state == invite_private_member_right['state']:
-            invite_private = True
-
-    rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
-              "respond_in_rooms": respond_in_rooms, "invite_private": invite_private}
-
-    return rights
-
-
-
 def update_community_member_rights(request):
     """ function to remove a communtiy manager as manager """
 
@@ -11064,58 +10986,67 @@ def update_community_member_rights(request):
                 right = memberRights.objects.get(pk=right["id"])
                 userMemberRights(user=user_instance, community=community_instance, right=right).save()
 
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=current_user_instance,
+                                type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+
         return JsonResponse({'success': True})
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
 
 
-def remove_creation_rights_for_user(user, community):
-    user_rights = userMemberRights.objects.filter(user=user,
-                                community=community).filter(Q(right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS) |
-                                Q(right__state=member_rights.MEMBER_RIGHT_CREATE_POLL) |
-                                Q(right__state=member_rights.MEMBER_RIGHT_CREATE_EVENT))
-    user_rights.delete()
+def fetch_moderation_history(request):
+    """ function to fetch moderation history of a member """
+
+    if request.method == 'POST':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'})
+
+    current_user_id = get_member_id_from_headers(request)
+    community_id = request.GET.get('community_id', None)
+    user_id = request.GET.get('user_id', None)
+
+    current_member_instance = Members.objects.filter(member_id=user_id, community_id=community_id, state=member_states.ADMIN)
+    viewed_member_instance = Members.objects.filter(member_id=user_id, community_id=community_id)
+
+    current_user_is_promoter = False
+    if current_member_instance.exists():
+        current_user_is_promoter = True
+
+    parent_cm_list = None
+    is_child = False # user id is child or grand child of x-member-id
+    viewed_member_state = 0
+    if viewed_member_instance.exists():
+        viewed_member = viewed_member_instance[0]
+        viewed_member_state = viewed_member.state
+        parent_cm_list = json.loads(viewed_member.parent_cm_list) if viewed_member.parent_cm_list else None
+
+    if parent_cm_list:
+        is_child = current_user_id in parent_cm_list
+
+    history_list = []
+    moderations = moderationHistory.objects.select_related("user", "community", 'moderation_by').filter(user=user_id,
+                                                           community_id=community_id).order_by("id")
+    for moderation in moderations:
+        history = get_moderation_history_title(moderation)
+        history_list.append(history)
+
+    context = {"moderations": history_list}
+
+    if is_child:
+        edit_type = 0
+        context["edit_type"] = edit_type
+
+    elif current_user_is_promoter and (viewed_member_state == member_states.MEMBER or
+                                       viewed_member_state == member_states.PROFILE_UNAVAILABLE or
+                                       viewed_member_state == member_states.KNOWN_NOMINATED_PROMOTER):
+        edit_type = 1
+        context["edit_type"] = edit_type
+
+    return JsonResponse({context})
 
 
-def check_admin_delete_right(user, community):
 
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
-
-    if user_rights.exists():
-        return True
-    return False
-
-
-def check_admin_approve_right(user, community):
-
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
-
-    if user_rights.exists():
-        return True
-    return False
-
-
-def check_admin_view_contact_right(user, community):
-
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
-
-    if user_rights.exists():
-        return True
-    return False
-
-
-def check_admin_edit_community_right(user, community):
-
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  state=manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY)
-
-    if user_rights.exists():
-        return True
-    return Fals
 
 
 ################################ client db synching apis #################################################

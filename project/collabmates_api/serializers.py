@@ -10,7 +10,7 @@ from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_commu
 
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights)
-
+from .user_moderation_rights import *
 url = settings.URL
 import ast
 from .static_files import *
@@ -1093,7 +1093,12 @@ def userMobilesSerializer(mobile_instance):
 
 #member comunity profiles
 
-def MembersSerializer(member_instance, community_id, current_user_id=None,send_profile=True):
+def MembersSerializer(member_instance, community_id, current_user_id=None, send_profile=True,
+                      is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
+                      user_admin_rights=None):
+
+    user_is_owner = member_instance.is_owner
+    parents_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
     member_id = member_instance.member_id.id
     community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
     community_profile['state'] = member_instance.state
@@ -1117,15 +1122,86 @@ def MembersSerializer(member_instance, community_id, current_user_id=None,send_p
         community_profile['custom_intro_text'] = """Created this community on %s""" % (
             time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
-    if (
-            member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
+    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
         community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
             time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
         community_profile[
             'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
         member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
+    # add menu for all members api and fetch community profile API
+
+    if (all_members_api or profile_detail_api) and (is_promoter or is_owner):
+        community_profile["menu"] = get_menu_for_members(current_user_id=current_user_id,item_member_id=member_id,
+                             current_user_is_promoter=is_promoter, current_user_is_owner=is_owner,
+                             item_member_state=member_instance.state, item_member_is_owner=user_is_owner,
+                             current_user_admin_rights=user_admin_rights,parents_list=parents_list,
+                             profile_detail_api=profile_detail_api)
+
+    elif current_user_id and int(current_user_id) != int(member_id):
+        community_profile["menu"] = ["Report member"]
+
     return community_profile
+
+
+def get_menu_for_members(current_user_id, item_member_id, current_user_is_promoter, item_member_state, current_user_is_owner=False,
+                         item_member_is_owner=False, current_user_admin_rights=None, parents_list=None,
+                         profile_detail_api=False):
+    """ function to get the menu for all members for all members api and profile detail api """
+    #  x is current member , y is member whose profile is currently in iteration sequence
+    # current_user_state, item_member_state,
+
+    if parents_list is None:
+        parents_list = []
+
+    if current_user_id and int(current_user_id) == int(item_member_id):
+        return []
+    elif not current_user_id:
+        return []
+
+    menu = []
+
+    if current_user_is_owner and item_member_is_owner:
+        menu = ["Edit title"]
+    elif current_user_is_owner and item_member_state == member_states.ADMIN:
+        menu = ["Remove from community", "Edit management rights"]
+
+    elif current_user_is_owner and item_member_state == member_states.MEMBER:
+        menu = ["Remove from community", "Edit permissions", "Give community management rights"]
+
+    elif current_user_is_promoter and item_member_state == member_states.ADMIN:
+
+        is_child = current_user_id in parents_list
+
+        if current_user_admin_rights:
+            if current_user_admin_rights["approve"] and is_child:
+                menu.append("Remove from community")
+
+            if current_user_admin_rights["add_manager"] and is_child:
+                menu.append("Edit permissions")
+
+        if profile_detail_api:
+            menu.append("Report member")
+
+    elif current_user_is_promoter and item_member_state == member_states.MEMBER:
+        if current_user_admin_rights:
+            if current_user_admin_rights["approve"]:
+                menu.append("Remove from community")
+
+            if current_user_admin_rights["delete_room"] or current_user_admin_rights["approve"]:
+                menu.append("Edit permissions")
+
+            if current_user_admin_rights["add_manager"]:
+                menu.append("Give community management rights")
+
+            if not current_user_admin_rights["approve"] and profile_detail_api:
+                menu.append("Report member")
+        # menu = ["Remove from community", "Edit management rights", "Report member"]
+    else:
+        if profile_detail_api:
+            menu.append("Report member")
+
+    return menu
 
 
 def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True,remove=False):
@@ -1160,7 +1236,11 @@ def get_user_profile(user_id, community_id, current_user_id=None, send_profile=T
 
     return userinfo_serialized_object
 
-def get_members_profile(member_ids, community_id, current_user_id=None,send_profile=True,remove=False):
+
+def get_members_profile(member_ids, community_id, current_user_id=None, send_profile=True, remove=False,
+                        is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
+                        user_admin_rights=None):
+
     '''function to get member profile from list of members ids'''
     member_profile_list = []
 
@@ -1169,7 +1249,16 @@ def get_members_profile(member_ids, community_id, current_user_id=None,send_prof
         member_filter = Members.objects.filter(member_id=id, community_id=community_id)
 
         if member_filter.exists():
-            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id,send_profile=send_profile)
+
+            if user_admin_rights and not user_admin_rights["approve"]:
+                if member_filter[0].state == member_states.PENDING_MEMBER:
+                    continue
+
+            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id,
+                                                  send_profile=send_profile, all_members_api=all_members_api,
+                                                  profile_detail_api=profile_detail_api, user_admin_rights=user_admin_rights,
+                                                  is_owner=is_owner, is_promoter=is_promoter
+                                                  )
             member_profile_list.append(community_profile)
 
         else:

@@ -666,19 +666,22 @@ class App_Update_Info(models.Model):
 
 class Report(models.Model):
     '''Table containing the report data of user'''
-
-    tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
     collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE, null=True)
+
     reported_member_id = models.IntegerField(default=0)
     member = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_by_user')
+    user_reported = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_who_is_reported')
     reason = models.CharField(max_length=2048, null=True)
+    tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
+    type = models.IntegerField(default=0)
+
     date_epoch = models.BigIntegerField(default=-9223372036854775808, null=True)
 
     link = models.TextField(null=True)
-    conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE, null=True)
-
-    community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
-
 
 class collabcardState(models.Model):
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
@@ -1132,3 +1135,22 @@ class userMemberRights(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     right = models.ForeignKey(memberRights, on_delete=models.CASCADE)
+
+
+class moderationHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    type = models.IntegerField(null=True)
+    moderation_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='moderation_by_user')
+    moderation_time = models.BigIntegerField(default=0)
+
+    def __str__(self):
+        return self.user.userinfo.name + "__" + self.community_id.name
+
+    def save(self, *args, **kwargs):
+        if self.moderation_time <= 0:
+            self.moderation_time = time.time()
+        super(moderationHistory, self).save(*args, **kwargs)
+
+
+

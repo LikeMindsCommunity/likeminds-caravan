@@ -36,6 +36,27 @@ class MemberRights:
 member_rights = MemberRights()
 
 
+class ModerationHistoryTypes:
+
+    APPLIED_PUBLIC_LINK = 0
+    APPLIED_PRIVATE_LINK = 1
+    APPROVED_FROM = 2
+    MEMBER_PERMISSION_EDITED = 3
+    MANAGER_PERMISSION_EDITED = 4
+    MADE_COMMUNITY_MANAGER = 5
+    REMOVED_AS_COMMUNITY_MANAGER = 6
+    APPLIED_PUBLIC_LINK_TEXT = "Applied via public link from "
+    APPLIED_PRIVATE_LINK_TEXT = "Applied via private link from "
+    APPROVED_FROM_TEXT = "Approved from "
+    MEMBER_PERMISSION_EDITED_TEXT = "Member permission edited by "
+    MANAGER_PERMISSION_EDITED_TEXT = "Management permission edited by "
+    MADE_COMMUNITY_MANAGER_TEXT = "Made community manager by "
+    REMOVED_AS_COMMUNITY_MANAGER_TEXT = "Removed as community manager by "
+
+
+moderation_history_types = ModerationHistoryTypes()
+
+
 # chatroom actions
 class ChatroomActions:
 

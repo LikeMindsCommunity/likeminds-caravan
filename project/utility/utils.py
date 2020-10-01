@@ -124,12 +124,12 @@ def get_members_count_in_community(community_id):
 
 
 #community related functions
-def generate_private_link(community_instance,promoter_instance):
+def generate_private_link(community_instance, promoter_instance):
 
     '''function to generate private links of community'''
 
     community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
-    unique_code_list = list(community_expire_filter.values_list('unique_code',flat=True))
+    unique_code_list = list(community_expire_filter.values_list('unique_code', flat=True))
 
 
 
@@ -141,7 +141,7 @@ def generate_private_link(community_instance,promoter_instance):
         expireInstance.promoter = promoter_instance
         expireInstance.created_at = time.time()
         expireInstance.unique_code = unique_code
-        expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj="+ str(unique_code)
+        expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj=" + str(unique_code)
         expireInstance.expire_duration = 86400
         expireInstance.save()
 
@@ -167,11 +167,12 @@ def generate_private_link(community_instance,promoter_instance):
 
     return community_expire_filter[0].private_link
 
+
 def generate_random(unique_code_list):
 
   '''function to generate a random number'''
 
-  randInt = randint(1,100000)
+  randInt = randint(1, 100000)
 
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
