@@ -10517,7 +10517,7 @@ def sync_client_db(request):
 
     page = request.GET.get('page',1)
 
-    paginate_by = request.GET.get('paginate_by',500)
+    paginate_by = request.GET.get('paginate_by',100)
 
     paginate_by = int(paginate_by)
     conversation_filter = card_answers.objects.filter(user=member_id).order_by('id')
@@ -10527,7 +10527,8 @@ def sync_client_db(request):
 
     for conversation in conversation_list:
 
-        temp = conversationSerializer(conversation)
+        #temp = conversationSerializer(conversation)
+        temp = get_conversation_instance(conversation,conversation.community,current_user_id=member_id)
         conversations.append(temp)
 
 
