@@ -1162,7 +1162,9 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     remove = False
     if conversation.remove:
         remove = True
-    temp['member'] = get_user_profile(conversation.user, conversation.community.id, send_profile=False, remove=remove)
+    #temp['member'] = get_user_profile(conversation.user, conversation.community.id, send_profile=False, remove=remove)
+    member_profile = get_members_profile([conversation.user.id], conversation.community.id, current_user_id=current_user_id,send_profile=False,remove=remove)
+    temp['member'] = member_profile [0]
 
     temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
 
