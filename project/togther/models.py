@@ -315,6 +315,8 @@ class card_answers(models.Model):
     preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
                                          related_name='conversation_preview_chatroom')
 
+    has_files = models.BooleanField(default=False)
+
 
 class conversationMemberState(models.Model):
 
