@@ -1056,7 +1056,7 @@ def userMobilesSerializer(mobile_instance):
 
 def MembersSerializer(member_instance, community_id, current_user_id=None,send_profile=True):
     member_id = member_instance.member_id.id
-    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
+    community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
     community_profile['state'] = member_instance.state
 
     # sending image  url of members
@@ -1074,9 +1074,12 @@ def MembersSerializer(member_instance, community_id, current_user_id=None,send_p
         community_profile['member_since'] = "Verification pending for " + member_instance.community_id.name
 
 
-    if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
-        community_profile['custom_intro_text'] = """Created this community on %s""" % (
-            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+    if member_instance.state == member_states.ADMIN:
+
+        answer_filter = communityAnswers.objects.filter(community=community_id).filter(member=member_instance.member_id).order_by('id')
+        if answer_filter.exists():
+            community_profile['custom_intro_text'] = """Created this community on %s""" % (
+                time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
     if (
             member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
@@ -1145,6 +1148,8 @@ def get_members_profile(member_ids, community_id, current_user_id=None,send_prof
 
 ## chatroom conversation data
 
+
+
 def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     temp = {
         "id": conversation.id,
@@ -1154,7 +1159,8 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
         'is_edited': conversation.is_edited,
         'created_at' : conversation.created_at,
         'has_files': conversation.has_files,
-        'chatroom_id':conversation.card.id
+        'chatroom_id':conversation.card.id,
+        'community_id':conversation.community.id
     }
 
     if conversation.has_files:
@@ -1173,6 +1179,8 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     if conversation.remove:
         remove = True
     #temp['member'] = get_user_profile(conversation.user, conversation.community.id, send_profile=False, remove=remove)
+
+
     member_profile = get_members_profile([conversation.user.id], conversation.community.id, current_user_id=current_user_id,send_profile=False,remove=remove)
     temp['member'] = member_profile [0]
 
@@ -1218,6 +1226,46 @@ def get_answer_files(answer_id):
     files['image'] = img_list
     files['pdf'] = pdf
     return files
+
+
+def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=None):
+
+    temp = {
+        "id": conversation.id,
+        "answer": conversation.answer,
+        "state": conversation.state,
+        'is_deleted': conversation.is_deleted,
+        'is_edited': conversation.is_edited,
+        'created_at': conversation.created_at,
+        'has_files': conversation.has_files,
+        'chatroom_id': conversation.card.id,
+        'community_id': conversation.community.id,
+        'member_id':conversation.user.id
+    }
+
+    if conversation.has_files:
+        answer_files = get_answer_files(temp['id'])
+        temp['images'] = answer_files['image']
+        temp['pdf'] = answer_files['pdf']
+        if 'location' in answer_files:
+            temp['location'] = answer_files['location']
+
+    if conversation.og_tags:
+        temp['og_tags'] = json.loads(conversation.og_tags)
+
+
+    temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
+
+    if conversation.internal_link:
+        temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
+                                                 community_instance=conversation.preview_community,
+                                                 chatroom_instance=conversation.preview_chatroom)
+
+    if conversation.reply and fetch_reply:
+        temp['reply_conversation'] = get_conversation_instance_for_db_synching(conversation,fetch_reply=False,current_user_id=current_user_id)
+
+
+    return temp
 
 
 
