@@ -7881,7 +7881,7 @@ def send_otp_on_mobile(phone_no,international=False):
         password = inter_auth['password']
         phone_no = "00"+str(phone_no)
         msg = inter_auth['msg']
-        generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC"""%(ghupshap_user_id,password,phone_no,str(msg))
+        generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC"""%(str(ghupshap_user_id),str(password),str(phone_no),str(msg))
         response = rqst.get(generate_url)
 
     info_logger.info("Gupshap mobile generate otp response")
@@ -7916,7 +7916,7 @@ def verify_otp_on_mobile(phone_no, otp,international=False):
         ghupshap_user_id = inter_auth['user_id']
         password = inter_auth['password']
         phone_no = "00" + str(phone_no)
-        verify_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&otp_code=%s"""%(ghupshap_user_id,password,phone_no,otp)
+        verify_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&otp_code=%s"""%(str(ghupshap_user_id),str(password),str(phone_no),str(otp))
         response = rqst.get(verify_url)
 
     info_logger.info("Ghupshap verify otp response")
