@@ -7614,7 +7614,7 @@ def merge_account(request):
     return JsonResponse(context)
 
 
-ef generate_otp(request):
+def generate_otp(request):
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
