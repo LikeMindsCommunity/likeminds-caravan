@@ -248,6 +248,12 @@ GOOGLE_API_KEY=os.getenv('GOOGLE_API_KEY')
 
 EMAIL_GHUPSHAP_KEY = "015472e4127a7c6aff548e84b06e4cf3"
 
+INTERNATIONAL_GHUPSHAP = {
+    'user_id': '2000193536',
+    'password': 'GIYMA8Kcf',
+    'msg': """%25code%25%20is%20your%20OTP%20for%20LikeMinds.%20For%20security%20reasons%2C%20do%20not%20share%20this%20OTP%20with%20anyone.%20cW6ZEtFKpHc"""
+}
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
