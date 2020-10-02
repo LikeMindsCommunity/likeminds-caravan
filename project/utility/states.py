@@ -26,11 +26,14 @@ class MemberRights:
     MEMBER_RIGHT_CREATE_EVENT = 2
     MEMBER_RIGHT_RESPOND_IN_ROOM = 3
     MEMBER_RIGHT_INVITE_PRIVATE_LINK = 4
+    MEMBER_RIGHT_AUTO_APPROVE = 5
+
     MEMBER_RIGHT_CREATE_ROOMS_TITLE = "Create chat rooms"
     MEMBER_RIGHT_CREATE_POLL_TITLE = "Create polls"
     MEMBER_RIGHT_CREATE_EVENT_TITLE = "Create events"
     MEMBER_RIGHT_RESPOND_IN_ROOM_TITLE = "Respond in chat rooms"
     MEMBER_RIGHT_INVITE_PRIVATE_LINK_TITLE = "Invite members via private link"
+    MEMBER_RIGHT_AUTO_APPROVE_TITLE = "Auto-approve created chat rooms"
 
 
 member_rights = MemberRights()

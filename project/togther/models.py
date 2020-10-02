@@ -194,7 +194,7 @@ class Collabcard(models.Model):
                                           related_name='chatroom_preview_community')
     preview_chatroom = models.ForeignKey('self', on_delete=models.PROTECT, null=True,
                                          related_name='chatroom_preview_chatroom')
-    is_approved = models.BooleanField(default=False)  # for pending chat rooms which has to be approved
+    is_pending = models.BooleanField(default=False)  # for pending chat rooms which has to be approved
     is_deleted = models.BooleanField(default=False)
     deleted_by_user = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
                                         related_name='chatroom_deleted_by_user')
@@ -673,18 +673,20 @@ class Report(models.Model):
     reported_member_id = models.IntegerField(default=0)  # can be removed
     member = models.ForeignKey(User, on_delete=models.CASCADE)  # can be removed
 
-    reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_by_user')
-    user_reported = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_who_is_reported')
+    reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_by_user', null=True)
+    user_reported = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_who_is_reported', null=True)
     reason = models.CharField(max_length=2048, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
-    type = models.IntegerField(default=0)
-    action_taken_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='action_taken_by_promoter')
+    type = models.IntegerField(null=True)
+    action_taken_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='action_taken_by_promoter', null=True)
     action_taken_reason = models.CharField(max_length=2048, null=True)
-    action_taken_tag_id = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, related_name='action_taken_tag')
+    action_taken_tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, related_name='action_taken_tag', null=True)
     rights_added = models.TextField(null=True)
     rights_removed = models.TextField(null=True)
-    action_taken = models.IntegerField(default=0)
-
+    action_taken = models.IntegerField(null=True)
+    is_closed = models.BooleanField(default=False)
+    closed_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='report_closed_by_user', null=True)
+    closed_time = models.BigIntegerField(default=0, null=True)
     date_epoch = models.BigIntegerField(default=-9223372036854775808, null=True)
 
     link = models.TextField(null=True)
@@ -1161,4 +1163,6 @@ class moderationHistory(models.Model):
         super(moderationHistory, self).save(*args, **kwargs)
 
 
-
+class communityRightsSettings(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    right = models.ForeignKey(memberRights, on_delete=models.CASCADE)

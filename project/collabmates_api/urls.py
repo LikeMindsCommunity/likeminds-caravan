@@ -143,6 +143,7 @@ urlpatterns = [
     path('fetch_report_tags', api_views.fetch_report_tags, name='fetch_report_tags'),
     path('push_report', api_views.push_report, name='push_report'),
 
+
     path('community_collabcard_id', api_views.community_collabcard_id, name='community_collabcard_id'),
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
 
@@ -190,7 +191,6 @@ urlpatterns = [
     path('sync_client_db', api_views.sync_client_db, name='sync_client_db'),
 
     #######################################################################################
-
 ]
 
 app_name = 'collabmates_api'

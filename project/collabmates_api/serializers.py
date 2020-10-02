@@ -547,7 +547,7 @@ def get_chatroom_name(user_name, card):
     return chatroom_name
 
 
-def get_chatroom_instance(card_instance, member_id, current_user_id=None,state_instance=None):
+def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None):
 
     if not current_user_id:
         current_user_id = member_id
@@ -1268,6 +1268,68 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
 
     return member_profile_list
 
+
+def report_serializer(report_instance):
+
+    community_id = report_instance.community.id
+    report = {"community_id": community_id}
+
+    if report_instance.tag:
+        report["tag"] = report_tag_serializer(report_instance.tag)
+
+    if report_instance.reason:
+        report["reason"] = report_instance.reason
+
+    if report_instance.user_reported:
+        user_profile = get_members_profile(member_ids=[report_instance.user_reported.id], community_id=community_id)
+        report["user_reported"] = user_profile
+
+    if report_instance.reported_by:
+        user_profile = get_members_profile(member_ids=[report_instance.reported_by.id], community_id=community_id)
+        report["user_reported"] = user_profile
+
+    if report_instance.type is not None:
+        report["type"] =report_instance.type
+
+    if report_instance.action_taken_tag:
+        report["tag"] = report_tag_serializer(report_instance.action_taken_tag)
+
+    if report_instance.action_taken_reason:
+        report["reason"] = report_instance.action_taken_reason
+
+    if report_instance.action_taken_by:
+        user_profile = get_members_profile(member_ids=[report_instance.action_taken_by.id], community_id=community_id)
+        report["user_reported"] = user_profile
+
+    if report_instance.action_taken is not None:
+        report["action_taken"] = report_instance.action_taken
+
+    if report_instance.rights_added is not None:
+        report["rights_added"] = json.loads(report_instance.rights_added)
+
+    if report_instance.rights_removed is not None:
+        report["rights_removed"] = json.loads(report_instance.rights_removed)
+
+    if report_instance.is_closed:
+        report["is_closed"] = report_instance.is_closed
+
+    if report_instance.closed_by is not None:
+        user_profile = get_members_profile(member_ids=[report_instance.closed_by.id], community_id=community_id)
+        report["closed_by"] = user_profile
+
+    if report_instance.closed_time:
+        report["closed_on"] = report_instance.closed_time
+
+    report["reported_on"] = report_instance.date_epoch
+
+    return report
+
+
+def report_tag_serializer(tag_instance):
+    tag_dict = {'id': tag_instance.tag_id,
+                "name": tag_instance.tag_name}
+
+    return tag_dict
 
 
 

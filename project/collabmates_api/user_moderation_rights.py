@@ -159,17 +159,17 @@ def check_all_member_rights(user, community):
 
 
 def remove_creation_rights_for_user(user, community):
-    user_rights = userMemberRights.objects.filter(user=user,
-                                community=community).filter(Q(right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS) |
-                                Q(right__state=member_rights.MEMBER_RIGHT_CREATE_POLL) |
-                                Q(right__state=member_rights.MEMBER_RIGHT_CREATE_EVENT))
+    user_rights = userMemberRights.objects.filter(user=user, community=community).filter(
+                                                  Q(right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS) |
+                                                  Q(right__state=member_rights.MEMBER_RIGHT_CREATE_POLL) |
+                                                  Q(right__state=member_rights.MEMBER_RIGHT_CREATE_EVENT))
     user_rights.delete()
 
 
 def check_admin_delete_right(user, community):
 
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
+    user_rights = userAdminRights.objects.filter(user=user, community=community,
+                                                 state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
 
     if user_rights.exists():
         return True
@@ -178,8 +178,8 @@ def check_admin_delete_right(user, community):
 
 def check_admin_approve_right(user, community):
 
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
+    user_rights = userAdminRights.objects.filter(user=user, community=community,
+                                                 state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
 
     if user_rights.exists():
         return True
@@ -188,8 +188,8 @@ def check_admin_approve_right(user, community):
 
 def check_admin_view_contact_right(user, community):
 
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
+    user_rights = userAdminRights.objects.filter(user=user, community=community,
+                                                 state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
 
     if user_rights.exists():
         return True
@@ -198,12 +198,12 @@ def check_admin_view_contact_right(user, community):
 
 def check_admin_edit_community_right(user, community):
 
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  state=manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY)
+    user_rights = userAdminRights.objects.filter(user=user, community=community,
+                                                 state=manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY)
 
     if user_rights.exists():
         return True
-    return Fals
+    return False
 
 
 def get_moderation_history_title(moderation_history):
@@ -245,4 +245,53 @@ def save_moderation_history(user, community, moderation_by, type):
     moderationHistory(user=user, community=community, moderation_by=moderation_by, type=type).save()
 
 
+def check_member_invite_private_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
+def check_member_respond_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
+def check_member_create_room_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
+def remove_member_auto_approve_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
+def give_member_auto_approve_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
+
+    if not user_rights.exists():
+        user_rights = userMemberRights(user=user, community=community,
+                                       state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
+        user_rights.save()
 

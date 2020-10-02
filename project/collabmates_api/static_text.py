@@ -278,6 +278,23 @@ invite_private_member_right = {'id': 5, 'title': "Invite members via private lin
                                'sub_title': "Private links remain valid for 24 hours and. the user joining via them a re auto verified",
                                "state": 4
                                }
+auto_approve_member_right = {'id': 6, 'title': "Auto-approve created chat rooms", 'sub_title': None, "state": 5}
 
 member_rights_list = [create_room_member_right, create_poll_member_right,
-                      create_event_member_right, respond_in_rooms_member_right, invite_private_member_right]
+                      create_event_member_right, respond_in_rooms_member_right,
+                      invite_private_member_right, auto_approve_member_right]
+
+
+tool_member_requests = {"title": "Member Requests", "image_url": "", "count": 0}
+
+tool_pending_chat_rooms = {"title": "Pending Chat Rooms", "image_url": "", "count": 0}
+
+tool_review_reports = {"title": "Review Reports", "image_url": "", "count": 0}
+
+tool_edit_directory_questions = {"title": "Edit directory questions", "image_url": ""}
+
+tool_edit_community_details = {"title": "Edit community details", "image_url": ""}
+
+tool_community_settings = {"title": "Community Settings", "image_url": ""}
+
+

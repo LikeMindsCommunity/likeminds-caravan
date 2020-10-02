@@ -72,7 +72,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
 
     pending_requests = []
 
-    promoter_filter = Members.objects.filter(community_id=community_id,member_id=requested_member_id,state=member_states.ADMIN)
+    promoter_filter = Members.objects.filter(community_id=community_id,member_id=requested_member_id, state=member_states.ADMIN)
 
     if not promoter_filter.exists():
         return []
