@@ -7652,9 +7652,11 @@ def generate_otp(request):
             info_logger.info(context)
             return JsonResponse(context)
 
+
         international = False
         if country_code != '91':
             international = True
+
 
         context = send_otp_on_mobile(phone_no,international=international)
         backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
@@ -7940,6 +7942,8 @@ def verify_otp_on_mobile(phone_no, otp,international=False):
     info_logger.info(context)
     info_logger.info("\n\n")
     return context
+
+
 
 
 def send_otp_on_email(email):
