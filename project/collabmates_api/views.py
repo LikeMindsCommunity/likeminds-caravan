@@ -6128,6 +6128,8 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
     if collabcard_state_filter.exists():
         if collabcard_state_filter[0].follow_status == status:
+            if collabcard_state_filter[0].is_tagged:
+                collabcard_state_filter.update(is_tagged=False,mute_status=False)
             return
         expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
         if is_guest:
