@@ -7929,28 +7929,6 @@ def verify_otp_on_mobile(phone_no, otp,international=False):
     return context
 
 
-def send_otp_on_email(email):
-    email_key = settings.EMAIL_GHUPSHAP_KEY
-    context = {}
-    success = False
-
-    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s""" % (
-        email, email_key)
-    response = rqst.get(generate_url)
-    print(response.content)
-
-    if response.status_code == 200:
-        success = True
-        response = response.text
-        response_list = response.split("|")
-        if response_list[0].strip() == "error":
-            success = False
-
-    context['success'] = success
-    if not success:
-        context['error_message'] = response
-
-    return context
 
 
 def send_otp_on_email(email):
