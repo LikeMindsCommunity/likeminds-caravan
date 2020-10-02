@@ -7640,18 +7640,21 @@ def generate_otp(request):
     info_logger.info("user_id")
     info_logger.info(user_id)
 
-    try:
-        mobile_no = int(mobile_no)
-    except:
-        context = get_error_context(False,"special characters error")
-        info_logger.info(context)
-        return JsonResponse(context)
-
     phone_no = str(country_code) + str(mobile_no)
     context = {}
     if mobile_no:
+        try:
+            mobile_no = int(mobile_no)
+        except:
+            context = get_error_context(False, "special characters error")
+            info_logger.info(context)
+            return JsonResponse(context)
 
-        context = send_otp_on_mobile(phone_no)
+        international = False
+        if country_code != '91':
+            international = True
+
+        context = send_otp_on_mobile(phone_no,international=international)
         backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
 
         if not backup_filter.exists():
@@ -7666,7 +7669,11 @@ def generate_otp(request):
         mobile_filter = userMobiles.objects.filter(user_id=user_id)
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
-            context = send_otp_on_mobile(phone_no)
+
+            international = False
+            if str(instance.country_code) != '91':
+                international = True
+            context = send_otp_on_mobile(phone_no,international=international)
 
             info_logger.info(instance.user.id)
             info_logger.info(context)
@@ -7686,12 +7693,12 @@ def generate_otp(request):
 
 
 def verify_otp(request):
+
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
     otp = request.GET.get('otp')
 
-    info_logger.info("\n\n")
     info_logger.info("country code")
     info_logger.info(country_code)
 
@@ -7704,7 +7711,6 @@ def verify_otp(request):
     info_logger.info("otp")
     info_logger.info(otp)
 
-
     if mobile_no == "9458668721":
         if otp == "0000":
             context = {}
@@ -7716,7 +7722,6 @@ def verify_otp(request):
                 context['access'] = is_user_community_part(context['user']['id'])
             return JsonResponse(context)
         else:
-
             return JsonResponse({'success': False, 'error_message': "Wrong otp"})
 
     # for existing users flow
@@ -7784,7 +7789,20 @@ def verify_otp(request):
     # verifying  mobile number
 
     if mobile_no:
-        verified = verify_otp_on_mobile(phone_no, otp)
+
+        try:
+            mobile_no = int(mobile_no)
+        except:
+            context = get_error_context(False, "special characters error")
+            info_logger.info(context)
+            return JsonResponse(context)
+
+        international = False
+        if country_code != '91':
+            international = True
+
+
+        verified = verify_otp_on_mobile(phone_no, otp,international=international)
         context['success'] = verified['success']
 
         # saving data for existing user migrations
@@ -7815,8 +7833,12 @@ def verify_otp(request):
         context = {'success': False}
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
-            context = verify_otp_on_mobile(phone_no, otp)
 
+            international = False
+            if str(instance.country_code) != '91':
+                international = True
+
+            context = verify_otp_on_mobile(phone_no, otp,international=international)
             if context['success']:
                 break
 
@@ -7844,14 +7866,23 @@ def verify_otp(request):
     return JsonResponse(context)
 
 
-def send_otp_on_mobile(phone_no):
+def send_otp_on_mobile(phone_no,international=False):
     key = settings.GHUPSHUP_KEY
     context = {}
     success = False
 
-    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
-        phone_no, key)
-    response = rqst.get(generate_url)
+    if not international:
+        generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
+            phone_no, key)
+        response = rqst.get(generate_url)
+    else:
+        inter_auth = settings.INTERNATIONAL_GHUPSHAP
+        ghupshap_user_id = inter_auth['user_id']
+        password = inter_auth['password']
+        phone_no = "00"+str(phone_no)
+        msg = inter_auth['msg']
+        generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC"""%(ghupshap_user_id,password,phone_no,str(msg))
+        response = rqst.get(generate_url)
 
     info_logger.info("Gupshap mobile generate otp response")
     info_logger.info(response.text)
@@ -7873,11 +7904,20 @@ def send_otp_on_mobile(phone_no):
     return context
 
 
-def verify_otp_on_mobile(phone_no, otp):
+def verify_otp_on_mobile(phone_no, otp,international=False):
     key = settings.GHUPSHUP_KEY
-    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s""" % (
-        str(phone_no), key, str(otp))
-    response = rqst.get(verify_url)
+
+    if not international:
+        verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s""" % (
+            str(phone_no), key, str(otp))
+        response = rqst.get(verify_url)
+    else:
+        inter_auth = settings.INTERNATIONAL_GHUPSHAP
+        ghupshap_user_id = inter_auth['user_id']
+        password = inter_auth['password']
+        phone_no = "00" + str(phone_no)
+        verify_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&otp_code=%s"""%(ghupshap_user_id,password,phone_no,otp)
+        response = rqst.get(verify_url)
 
     info_logger.info("Ghupshap verify otp response")
     info_logger.info(response.text)
