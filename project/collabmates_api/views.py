@@ -7609,13 +7609,23 @@ def merge_account(request):
 def generate_otp(request):
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
-
     user_id = request.GET.get('user_id')
+
+    info_logger.info("\n\n")
+    info_logger.info("country code")
+    info_logger.info(country_code)
+
+    info_logger.info("mobile number")
+    info_logger.info(mobile_no)
+
+    info_logger.info("user_id")
+    info_logger.info(user_id)
 
     try:
         mobile_no = int(mobile_no)
     except:
-        context = get_error_context(False,"send correct mobile number")
+        context = get_error_context(False,"special characters error")
+        info_logger.info(context)
         return JsonResponse(context)
 
     phone_no = str(country_code) + str(mobile_no)
@@ -7661,6 +7671,20 @@ def verify_otp(request):
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
     otp = request.GET.get('otp')
+
+    info_logger.info("\n\n")
+    info_logger.info("country code")
+    info_logger.info(country_code)
+
+    info_logger.info("mobile number")
+    info_logger.info(mobile_no)
+
+    info_logger.info("user_id")
+    info_logger.info(user_id)
+
+    info_logger.info("otp")
+    info_logger.info(otp)
+
 
     if mobile_no == "9458668721":
         if otp == "0000":
@@ -7809,7 +7833,9 @@ def send_otp_on_mobile(phone_no):
     generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
         phone_no, key)
     response = rqst.get(generate_url)
-    print(response.content)
+
+    info_logger.info("Gupshap mobile generate otp response")
+    info_logger.info(response.text)
 
     if response.status_code == 200:
         success = True
@@ -7822,6 +7848,9 @@ def send_otp_on_mobile(phone_no):
     if not success:
         context['error_message'] = response
 
+    info_logger.info("api/generate_otp mobile response")
+    info_logger.info(context)
+    info_logger.info("\n\n")
     return context
 
 
@@ -7831,6 +7860,8 @@ def verify_otp_on_mobile(phone_no, otp):
         str(phone_no), key, str(otp))
     response = rqst.get(verify_url)
 
+    info_logger.info("Ghupshap verify otp response")
+    info_logger.info(response.text)
     context = {}
     success = False
 
@@ -7844,7 +7875,9 @@ def verify_otp_on_mobile(phone_no, otp):
     context['success'] = success
     if not success:
         context['error_message'] = "Incorrect OTP"
-
+    info_logger.info("api/verify_otp mobile response")
+    info_logger.info(context)
+    info_logger.info("\n\n")
     return context
 
 
