@@ -7631,6 +7631,12 @@ def generate_otp(request):
 
     user_id = request.GET.get('user_id')
 
+    try:
+        mobile_no = int(mobile_no)
+    except:
+        context = get_error_context(False,"send correct mobile number")
+        return JsonResponse(context)
+
     phone_no = str(country_code) + str(mobile_no)
     context = {}
     if mobile_no:
