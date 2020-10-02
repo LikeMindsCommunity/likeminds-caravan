@@ -7563,38 +7563,44 @@ def custom_login(request, res, login_type="custom"):
 def create_custom_user(name, mobile_no, country_code, email, image_url, login_type):
     has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
     user_name = name + "_" + str(mobile_no)
-    print(has_mobile_no.exists())
+
+
     if not has_mobile_no.exists():
         # creating user instance
-        user_instance = User()
-        user_instance.username = user_name
-        user_instance.save()
 
-        # creating userinfo instance
+        has_user = User.objects.filter(username=user_name)
+        if not has_user.exists():
+            user_instance = User()
+            user_instance.username = user_name
+            user_instance.save()
 
-        userinfo_instance = Userinfo()
-        userinfo_instance.name = name
-        userinfo_instance.email = email
-        userinfo_instance.image_link = image_url
-        userinfo_instance.login_type = login_type
-        userinfo_instance.login_json = None
-        userinfo_instance.created_at = time.time()
-        userinfo_instance.user_id = user_instance
-        userinfo_instance.save()
-        print(userinfo_instance.image_link)
-        # creating user email
-        save_user_primary_email(user_instance, email, email_state=email_states.PRIMARY)
+            # creating userinfo instance
 
-        # send verification mail for email
-        verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
+            userinfo_instance = Userinfo()
+            userinfo_instance.name = name
+            userinfo_instance.email = email
+            userinfo_instance.image_link = image_url
+            userinfo_instance.login_type = login_type
+            userinfo_instance.login_json = None
+            userinfo_instance.created_at = time.time()
+            userinfo_instance.user_id = user_instance
+            userinfo_instance.save()
+          
+            # creating user email
+            save_user_primary_email(user_instance, email, email_state=email_states.PRIMARY)
 
-        # sending a email from template
-        send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
-                                              verification_link=verification_details['verify_url'], email=email)
+            # send verification mail for email
+            verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
 
-        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+            # sending a email from template
+            send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
+                                                  verification_link=verification_details['verify_url'], email=email)
 
-        return user_instance
+            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+
+            return user_instance
+        else:
+            return has_user[0]
 
     return has_mobile_no[0].user
 
