@@ -714,10 +714,6 @@ def community(request, community_id, req_dict=None):
             return JsonResponse(context,safe=False)
 
 
-
-
-
-
     community = Community.objects.get(id=community_id)
     member_id = get_member_id_from_headers(request)
     is_promoter = False
@@ -10430,12 +10426,50 @@ def sync_conversation(request):
 
     for conversation in conversation_list:
 
-        #temp = conversationSerializer(conversation)
-        temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
+        #temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
+        temp = get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=member_id)
+
         conversations.append(temp)
 
 
     return JsonResponse({'conversations':conversations})
+
+
+def sync_members(request):
+
+    '''api to sync members'''
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
+
+    page = request.GET.get('page', 1)
+
+    paginate_by = request.GET.get('page_size', 200)
+
+    last_updated = request.GET.get('last_updated')
+
+    paginate_by = int(paginate_by)
+
+    if not last_updated:
+        member_filter = Members.objects.all().order_by('id')
+    else:
+        member_filter = Members.objects.filter(updated_at__gt=last_updated).order_by('id')
+
+    member_filter = pagination(member_filter,page,paginate_by=paginate_by)
+    member_list = []
+
+    for member_instance in member_filter:
+        member_data = get_member_instance_for_db_synching(member_instance,member_instance.community_id.id,current_user_id=member_id,send_profile=False)
+        member_list.append(member_data)
+
+    context = {
+        'members':member_list
+    }
+
+    return JsonResponse(context)
 
 
 

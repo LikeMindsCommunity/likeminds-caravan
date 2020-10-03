@@ -1055,6 +1055,7 @@ def userMobilesSerializer(mobile_instance):
 #member comunity profiles
 
 def MembersSerializer(member_instance, community_id, current_user_id=None,send_profile=True):
+
     member_id = member_instance.member_id.id
     community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
     community_profile['state'] = member_instance.state
@@ -1077,17 +1078,20 @@ def MembersSerializer(member_instance, community_id, current_user_id=None,send_p
     if member_instance.state == member_states.ADMIN:
 
         answer_filter = communityAnswers.objects.filter(community=community_id).filter(member=member_instance.member_id).order_by('id')
-        if answer_filter.exists():
+        if not answer_filter.exists():
             community_profile['custom_intro_text'] = """Created this community on %s""" % (
                 time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
-    if (
-            member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
-        community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
-            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
-        community_profile[
-            'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
-        member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE):
+
+        answer_filter = communityAnswers.objects.filter(community=community_id).filter(
+            member=member_instance.member_id).order_by('id')
+
+        if not answer_filter.exists():
+            community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
+                time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+            community_profile['custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
+            member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
     return community_profile
 
@@ -1142,8 +1146,6 @@ def get_members_profile(member_ids, community_id, current_user_id=None,send_prof
             member_profile_list.append(temp)
 
     return member_profile_list
-
-
 
 
 ## chatroom conversation data
@@ -1228,6 +1230,8 @@ def get_answer_files(answer_id):
     return files
 
 
+
+
 def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=None):
 
     temp = {
@@ -1266,6 +1270,58 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
 
 
     return temp
+
+
+
+def get_member_instance_for_db_synching(member_instance, community_id, current_user_id=None,send_profile=True):
+
+    #member_id = member_instance.member_id.id
+
+    community_name = member_instance.community_id.name
+    locale_time = time.localtime(member_instance.created_at)
+
+    community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id,
+                                         send_profile=send_profile)
+    community_profile['state'] = member_instance.state
+
+    # sending image  url of members
+    if member_instance.image_url:
+        community_profile['image_url'] = member_instance.image_url
+
+    if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
+        # community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
+        #     str(community_id), str(member_id))
+
+        community_profile['member_since'] = "Member of " + community_name + " since " + time.strftime('%b %d %Y',
+                                                                                                           locale_time)
+    elif member_instance.state == member_states.PENDING_MEMBER:
+        community_profile['member_since'] = "Verification pending for " + community_name
+
+    if member_instance.state == member_states.ADMIN:
+
+        answer_filter = communityAnswers.objects.filter(community=community_id).filter(
+            member=member_instance.member_id)
+
+        if not answer_filter.exists():
+            community_profile['custom_intro_text'] = """Created this community on %s""" % (
+                time.strftime("%d %B %Y", locale_time))
+
+    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE):
+
+        answer_filter = communityAnswers.objects.filter(community=community_id).filter(
+            member=member_instance.member_id)
+
+        if not answer_filter.exists():
+
+            community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
+                time.strftime("%d %B %Y", locale_time))
+            community_profile['custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
+                member_instance.member_id.userinfo.name,
+                time.strftime("%d %B %Y", locale_time))
+
+    community_profile['community_id'] = community_id
+
+    return community_profile
 
 
 
