@@ -703,7 +703,6 @@ def get_home_screen_community_actions(community_instance):
     return actions
 
 
-
 def community(request, community_id, req_dict=None):
     ''' Community detail page '''
 
