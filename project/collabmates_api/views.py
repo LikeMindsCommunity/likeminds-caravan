@@ -10454,7 +10454,7 @@ def sync_members(request):
     paginate_by = int(paginate_by)
 
     if not last_updated:
-        member_filter = Members.objects.all().order_by('id')
+        member_filter = Members.objects.order_by('id')
     else:
         member_filter = Members.objects.filter(updated_at__gt=last_updated).order_by('id')
 
@@ -10465,10 +10465,29 @@ def sync_members(request):
         member_data = get_member_instance_for_db_synching(member_instance,member_instance.community_id.id,current_user_id=member_id,send_profile=False)
         member_list.append(member_data)
 
-    context = {
-        'members':member_list
-    }
 
+
+    #getting the removed members data
+    if len(member_list) == 0:
+
+        if not last_updated:
+            remove_member_filter = removedMembers.objects.order_by('id')
+        else:
+            remove_member_filter = removedMembers.objects.filter(created_at__gt=last_updated).order_by('id')
+
+        for data in remove_member_filter:
+
+            member_data = get_removed_member_instance(data)
+            member_list.append(member_data)
+
+
+    #getting the guest users
+
+
+
+    context = {
+        'members': member_list
+    }
     return JsonResponse(context)
 
 

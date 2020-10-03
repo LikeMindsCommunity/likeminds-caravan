@@ -1128,6 +1128,7 @@ def get_user_profile(user_id, community_id, current_user_id=None, send_profile=T
 
     return userinfo_serialized_object
 
+
 def get_members_profile(member_ids, community_id, current_user_id=None,send_profile=True,remove=False):
     '''function to get member profile from list of members ids'''
     member_profile_list = []
@@ -1231,6 +1232,8 @@ def get_answer_files(answer_id):
 
 
 
+# ====================== client db synching serializers ==============================================================
+
 
 def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=None):
 
@@ -1323,6 +1326,20 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
 
     return community_profile
 
+
+def get_removed_member_instance(instance):
+
+    community_id = instance.community.id
+    user_profile = get_user_profile(instance.member, community_id, send_profile=False, remove=True)
+    removed = get_removed_member_custom_text(instance)
+    user_profile['custom_intro_text'] = removed['custom_intro_text']
+    user_profile['custom_click_text'] = removed['custom_click_text']
+    user_profile['remove_state'] = removed['remove_state']
+    user_profile['community_id'] = community_id
+
+    return user_profile
+
+# ==============================================================================================================
 
 
 
