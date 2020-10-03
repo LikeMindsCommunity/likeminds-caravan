@@ -277,10 +277,10 @@ def get_active_chatroom_member_images(community_instance,member_id):
     current_time = time.time()
     state_filter = collabcardState.objects.filter(community=community_instance,
                                                   user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-expiry_time','-card')
-
+    temp = {}
     member_list = []
     user_set = set()
-
+    temp['count'] = state_filter.count()
     for data in state_filter:
         card_instance = data.card
         user_id = card_instance.user.id
@@ -305,8 +305,8 @@ def get_active_chatroom_member_images(community_instance,member_id):
 
         if len(member_list) > 3:
             break
-
-    return member_list
+    temp['member_list'] = member_list
+    return temp
 
 def your_communities(request, user_id):
     '''This function is used to see your communities based on user id'''
@@ -365,18 +365,20 @@ def your_communities(request, user_id):
 
         #active count of chatrooms in communities
 
-        count = get_active_chatrooms_count_in_community(each_community.community_id.id,member_id,current_time)
+        #count = get_active_chatrooms_count_in_community(each_community.community_id.id,member_id,current_time)
+        temp = get_active_chatroom_member_images(community_instance=each_community.community_id, member_id=member_id)
 
-        active_chatroom_count = count
+        active_chatroom_count = temp['count']
         community['active_chatroom_count'] = active_chatroom_count
 
         # if community['collabcard_unseen'] > 0:
             # header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         if community['collabcard_unseen'] > 0:
-            #community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
-            community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+            community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
+            #community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         else:
-            active_chatroom_users = get_active_chatroom_member_images(community_instance=each_community.community_id,member_id=member_id)
+            #active_chatroom_users = get_active_chatroom_member_images(community_instance=each_community.community_id,member_id=member_id)
+            active_chatroom_users = temp['member_list']
             if active_chatroom_users:
                 community['active_chatroom_users'] = active_chatroom_users
 
