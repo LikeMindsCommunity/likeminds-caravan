@@ -1342,6 +1342,7 @@ def get_guest_member_instance(instance):
     community_id = instance.community.id
     user_profile = get_user_profile(instance.user, community_id, send_profile=False)
     user_profile['community_id'] = community_id
+    user_profile['chatroom_id'] = instance.card.id
 
     if instance.source:
         guest = get_guest_custom_text(instance)
