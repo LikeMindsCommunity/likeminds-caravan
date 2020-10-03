@@ -240,9 +240,9 @@ EMAIL_USE_TLS = True
 
 CORS_ORIGIN_ALLOW_ALL = True
 
-CORS_ALLOW_HEADERS = default_headers + (
-    'Access-Control-Allow-Origin',
-)
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-member-id','x-platform-code'
+]
 
 FCM_DJANGO_SETTINGS = {
     "FCM_SERVER_KEY":  os.getenv('PROD_FCM_SERVER_KEY'),
