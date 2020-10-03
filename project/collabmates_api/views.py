@@ -706,6 +706,18 @@ def get_home_screen_community_actions(community_instance):
 def community(request, community_id, req_dict=None):
     ''' Community detail page '''
 
+
+    #handling web redirection to playstore and app store
+    if is_request_web(request):
+        context = get_redirection_links_for_android_ios(request, community_id)
+        if context:
+            return JsonResponse(context,safe=False)
+
+
+
+
+
+
     community = Community.objects.get(id=community_id)
     member_id = get_member_id_from_headers(request)
     is_promoter = False
@@ -769,6 +781,31 @@ def community(request, community_id, req_dict=None):
         context['menu'] = menu
 
     return JsonResponse(context)
+
+def get_redirection_links_for_android_ios(request,community_id):
+
+    aj = request.GET.get('aj', False)
+    source = request.GET.get('source')
+    # auto join check functionality
+
+    context = {}
+    ios_private_link = ""
+
+
+    if aj and is_request_android(request) and not source:
+        private_link = "https://" + request.META['HTTP_HOST'] + "/community/" + str(community_id) + "?aj=" + str(aj)
+        playstore_ref_link = android_app_download_link + """&referrer=%s""" % (quote(private_link))
+        context['playstore_ref_link'] = playstore_ref_link
+        #return redirect(playstore_ref_link)
+
+    if aj and is_request_ios(request) and not source:
+        ios_deep_link = "Collabmates://" + request.META['HTTP_HOST'] + "/community/" + str(community_id) + "?aj=" + str(
+            aj)
+        ios_branch_link = """https://collabmates.app.link/q9PKG0YPR8?$deep_link=%s""" % (quote(ios_deep_link))
+        context['ios_ref_link']= ios_branch_link
+
+        #return redirect(ios_branch_link)
+    return context
 
 
 def similar_community(request, community_id, req_dict=None):
