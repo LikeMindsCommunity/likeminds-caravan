@@ -518,9 +518,6 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None,state_i
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
 
 
-
-
-
     # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
     collabcard_serializer['images'] = collabcard_files[0]
@@ -1336,6 +1333,21 @@ def get_removed_member_instance(instance):
     user_profile['custom_click_text'] = removed['custom_click_text']
     user_profile['remove_state'] = removed['remove_state']
     user_profile['community_id'] = community_id
+
+    return user_profile
+
+
+def get_guest_member_instance(instance):
+
+    community_id = instance.community.id
+    user_profile = get_user_profile(instance.user, community_id, send_profile=False)
+    user_profile['community_id'] = community_id
+
+    if instance.source:
+        guest = get_guest_custom_text(instance)
+        user_profile['custom_intro_text'] = guest['custom_intro_text']
+        user_profile['custom_click_text'] = guest['custom_click_text']
+
 
     return user_profile
 

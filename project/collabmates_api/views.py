@@ -10446,7 +10446,8 @@ def sync_members(request):
         return JsonResponse(context)
 
     page = request.GET.get('page', 1)
-
+    page = int(page)
+    current_page = page
     paginate_by = request.GET.get('page_size', 200)
 
     last_updated = request.GET.get('last_updated')
@@ -10458,7 +10459,11 @@ def sync_members(request):
     else:
         member_filter = Members.objects.filter(updated_at__gt=last_updated).order_by('id')
 
-    member_filter = pagination(member_filter,page,paginate_by=paginate_by)
+    paginated_members = get_paginated_queryset_with_maxpages(member_filter,page,paginate_by=paginate_by)
+
+    member_filter = paginated_members['page_list']
+    max_pages_members = paginated_members['last_page']
+
     member_list = []
 
     for member_instance in member_filter:
@@ -10468,6 +10473,7 @@ def sync_members(request):
 
 
     #getting the removed members data
+
     if len(member_list) == 0:
 
         if not last_updated:
@@ -10475,15 +10481,30 @@ def sync_members(request):
         else:
             remove_member_filter = removedMembers.objects.filter(created_at__gt=last_updated).order_by('id')
 
-        for data in remove_member_filter:
+        page = page - max_pages_members
+        pagianted_removed_members = get_paginated_queryset_with_maxpages(remove_member_filter,page,paginate_by=paginate_by)
 
+        remove_member_filter = pagianted_removed_members['page_list']
+        max_pages_removed_members = pagianted_removed_members['last_page']
+        for data in remove_member_filter:
             member_data = get_removed_member_instance(data)
             member_list.append(member_data)
 
 
-    #getting the guest users
+        #getting the guest users
+        if len(member_list) == 0:
 
+            page = current_page - (max_pages_members + max_pages_removed_members)
 
+            if not last_updated:
+                guest_filter = collabcardState.objects.filter(is_guest=True).order_by('id')
+            else:
+                guest_filter = collabcardState.objects.filter(is_guest=True,updated_at__gt=last_updated).order_by('id')
+
+            guest_filter = pagination(guest_filter,page,paginate_by=paginate_by)
+            for guest_instance in guest_filter:
+                member_data = get_guest_member_instance(guest_instance)
+                member_list.append(member_data)
 
     context = {
         'members': member_list
