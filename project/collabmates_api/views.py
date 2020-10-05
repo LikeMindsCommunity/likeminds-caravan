@@ -1013,7 +1013,7 @@ def join_promoter_created_community_version_1(res, request):
     if not member_id:
         member_id = request.GET.get('member_id', None)
     else:
-        res['timestamp'] = res['timestamp'] / 1000  # for android timestamp
+        res['timestamp'] = time.time()  # for android timestamp
 
     user_instance = User.objects.get(id=member_id)
 
@@ -1036,7 +1036,6 @@ def join_promoter_created_community_version_1(res, request):
 
             if question_instance.is_hidden:
                 continue
-            print(question)
             answer_instance = communityAnswers()
             answer_instance.question = question_instance
             answer_instance.member = user_instance
@@ -2274,6 +2273,7 @@ def create_community_version_1(request):
         member_instance.state = member_states.ADMIN
         member_instance.actions_required = True
         member_instance.created_at = time.time()
+        member_instance.updated_at = time.time()
         member_instance.save()
 
         # making the member enage instance for created community
@@ -2384,7 +2384,7 @@ def create_community_questions(res):
 
     # setting the state of community in order to make it editable and saving only those questions which are changed
     if current_question_count != question_count:
-        Members.objects.filter(community_id=community_instance, state=member_states.MEMBER).update(edit_required=True)
+        Members.objects.filter(community_id=community_instance, state=member_states.MEMBER).update(edit_required=True,updated_at=time.time())
 
     return {'success': True}
 
@@ -3752,7 +3752,7 @@ def check_for_member_eligibiity(community_id, member_id):
         if return_count >= eligibility_count:
             member = Members.objects.filter(member_id=member_id, community_id=community)
             if member[0].state != 1:
-                Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+                Members.objects.filter(member_id=member_id, community_id=community).update(state=9,updated_at=time.time())
                 community_id = community.id
                 community_name = community.name
                 ref_id = member_id
@@ -3785,7 +3785,7 @@ def check_for_member_eligibiity(community_id, member_id):
             if count >= eligibility_count:
                 member = Members.objects.filter(member_id=member_id, community_id=community)
                 if member[0].state != 1:
-                    Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+                    Members.objects.filter(member_id=member_id, community_id=community).update(state=9,updated_at=time.time())
 
                     community_id = community.id
                     community_name = community.name
@@ -3844,15 +3844,15 @@ def accept_invitation(request):
                     engage.updated_at = time.time()
                     engage.pending_members = pending_members
                     engage.save()
-                    Members.objects.filter(community_id=community, member_id=member_id).update(created_at=time.time())
+                    Members.objects.filter(community_id=community, member_id=member_id).update(created_at=time.time(),updated_at=time.time())
 
         if len(promoter) == 1:
             # if the community has only one promoter
             prop_admin = Userinfo.objects.get(user_id=promoter[0].member_id.id)
             # if the promoter is actually a promoter
             if promoter[0].state == 1:
-                Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
-                Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=1)
+                Members.objects.filter(community_id=community, member_id=member_id).update(state=1,updated_at=time.time())
+                Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=1,updated_at=time.time())
                 # updating member count of the community
                 update_member_count(community.id)
                 # sending email to promoter , that user has accepted his request to beacome a promoter
@@ -8505,7 +8505,7 @@ def dismiss(request):
     is_promoter = is_member_promoter(community_id=community_id, member_id=member_id)
 
     if type == "community_actions" and is_promoter:
-        Members.objects.filter(community_id=community_id, member_id=member_id).update(actions_required=False)
+        Members.objects.filter(community_id=community_id, member_id=member_id).update(actions_required=False,updated_at=time.time())
         context['success'] = True
         return JsonResponse(context)
 
@@ -8848,7 +8848,7 @@ def edit_community_questions(request):
 
     # updating members state table for editing
     if major_change:
-        Members.objects.filter(community_id=community_instance).update(edit_required=True)
+        Members.objects.filter(community_id=community_instance).update(edit_required=True,updated_at=time.time())
         send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
     edit_community_data(community_instance, user_instance, edit_field="directory")
@@ -8954,7 +8954,7 @@ def edit_questions_version_1(request):
 
     # updating members state table for editing
     if major_change:
-        Members.objects.filter(community_id=community_instance).update(edit_required=True)
+        Members.objects.filter(community_id=community_instance).update(edit_required=True,updated_at=time.time())
         send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
     edit_community_data(community_instance, user_instance, edit_field="directory")
