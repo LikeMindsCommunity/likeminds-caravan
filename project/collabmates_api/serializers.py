@@ -800,7 +800,7 @@ def draftPollsSerializers(poll):
 
 
 def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False):
-    responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
+    responses = communityAnswers.objects.filter(community=community_id,member=user_id).order_by('id')
     if not responses.exists():
         return None
 
@@ -1282,6 +1282,7 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
 
     community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id,
                                          send_profile=send_profile)
+
     community_profile['state'] = member_instance.state
 
     # sending image  url of members
@@ -1303,6 +1304,7 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
             member=member_instance.member_id)
 
         if not answer_filter.exists():
+        #if 'question_answers' not in community_profile:
             community_profile['custom_intro_text'] = """Created this community on %s""" % (
                 time.strftime("%d %B %Y", locale_time))
 
@@ -1312,6 +1314,7 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
             member=member_instance.member_id)
 
         if not answer_filter.exists():
+        #if 'question_answers' not in community_profile:
 
             community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
                 time.strftime("%d %B %Y", locale_time))
@@ -1351,6 +1354,9 @@ def get_guest_member_instance(instance):
 
 
     return user_profile
+
+
+
 
 # ==============================================================================================================
 
@@ -1520,6 +1526,7 @@ def get_chatroom_preview(card_instance, member_id, active=None):
     chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
     return chatroom_instance
+
 
 
 
