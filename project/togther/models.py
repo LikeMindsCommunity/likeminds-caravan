@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 import time
+from django.db.models.query import QuerySet
 
 response_choices = (
     ('text', 'Text'),
@@ -32,7 +33,6 @@ class Community(models.Model):
     thumbnail = models.CharField(max_length=500, null=True)
     introduction_text_state = models.IntegerField(default=0)
     attribute_type = models.IntegerField(default=0)
-
     # for  purpose collabcard image
     image_link_round = models.TextField(null=True)
 
@@ -198,7 +198,7 @@ class Collabcard(models.Model):
     is_deleted = models.BooleanField(default=False)
     deleted_by_user = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
                                         related_name='chatroom_deleted_by_user')
-    deleted_by_user_state = models.IntegerField(default=0)  # state in community member or manager
+    deleted_by_user_state = models.IntegerField(null=True)  # state in community member or manager
     deleted_by_text = models.CharField(max_length=512, null=True)
     reason = models.CharField(max_length=512, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
@@ -716,8 +716,8 @@ class collabcardState(models.Model):
 
 
 class CollabcardStateBackup(models.Model):
-    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
-    deleted_card = models.ForeignKey(deletedChatrooms, on_delete=models.CASCADE)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    deleted_card = models.ForeignKey(deletedChatrooms, on_delete=models.CASCADE, null=True)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     state = models.IntegerField(null=True)
@@ -1166,3 +1166,20 @@ class moderationHistory(models.Model):
 class communityRightsSettings(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     right = models.ForeignKey(memberRights, on_delete=models.CASCADE)
+
+
+class dummyTestModel(models.Model):
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at <= 0:
+            self.created_at = time.time()
+        self.updated_at = time.time()
+        super(dummyTestModel, self).save(*args, **kwargs)
+
+    class QuerySet(QuerySet):
+
+        def update(self, *args, **kwargs):
+            self.updated_at = time.time()
+            super(self.dummyTestModel.QuerySet, self).update(*args,**kwargs)

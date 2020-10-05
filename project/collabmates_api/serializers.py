@@ -909,7 +909,7 @@ def get_question_instance(question_instance):
 def check_admin_view_contact_right(user, community):
 
     user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
+                                                  right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
 
     if user_rights.exists():
         return True
@@ -1089,10 +1089,7 @@ def userMobilesSerializer(mobile_instance):
     }
 
 
-
-
 #member comunity profiles
-
 def MembersSerializer(member_instance, community_id, current_user_id=None, send_profile=True,
                       is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
                       user_admin_rights=None):
@@ -1138,7 +1135,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
                              current_user_admin_rights=user_admin_rights,parents_list=parents_list,
                              profile_detail_api=profile_detail_api)
 
-    elif current_user_id and int(current_user_id) != int(member_id):
+    elif (all_members_api or profile_detail_api) and current_user_id and int(current_user_id) != int(member_id):
         community_profile["menu"] = ["Report member"]
 
     return community_profile

@@ -2,20 +2,22 @@ from togther.models import (adminRights, memberRights, Members,
                             Community, userAdminRights, userMemberRights)
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.db.models import Count
+import time
+import psycopg2
+from collabmates_api.notification import get_connection
 
 delete_room = {'id': 1, 'title': 'Delete chat rooms/messages', 'sub_title': None, "state": 0}
 
-edit_permission = {'id': 2, 'title': 'Edit member permissions', 'sub_title': None, "state": 1}
+approve_members = {'id': 2, 'title': 'Approve/remove members', 'sub_title': None, "state": 1}
 
-invite = {'id': 3, 'title': 'Approve/remove members', 'sub_title': None, "state": 2}
+edit_community = {'id': 3, 'title': "Edit community details", 'sub_title': None, "state": 2}
 
-edit_community = {'id': 4, 'title': "Edit community details", 'sub_title': None, "state": 3}
+view_contact = {'id': 4, 'title': 'View member contact info', 'sub_title': None, "state": 3}
 
-view_contact = {'id': 5, 'title': 'View member contact info', 'sub_title': None, "state": 4}
+add_manager = {'id': 5, 'title': "Add community managers", 'sub_title': None, "state": 4}
 
-add_manager = {'id': 6, 'title': "Add community managers", 'sub_title': None, "state": 5}
-
-manager_rights_list = [delete_room, edit_permission, invite, edit_community, view_contact, add_manager]
+manager_rights_list = [delete_room, approve_members, edit_community, view_contact, add_manager]
 
 create_room = {'id': 1, 'title': "Create chat rooms", 'sub_title': None, "state": 0}
 
@@ -63,6 +65,7 @@ def fill_rights():
     for member in members:
         if member.state == 1 or member.state == 2:
             fill_admin_rights(member.member_id, member.community_id, admin_rights)
+            fill_member_rights(member.member_id, member.community_id, member_rights)
         else:
             fill_member_rights(member.member_id, member.community_id, member_rights)
 
@@ -76,7 +79,89 @@ def fill_member_rights(user, community, rights_list):
     for right in rights_list:
         userMemberRights(user=user, community=community, right=right).save()
 
-print(">>>>>> started")
-save_rights()
-fill_rights()
-print(">>>>>> end")
+
+def get_communities_with_admins():
+
+    '''function to get all the communities from database'''
+    try:
+        connection = get_connection()
+        curr = connection.cursor()
+        sql = """SELECT community_id_id,count(community_id_id) FROM public.togther_members WHERE state=1 or state=2
+                    group by community_id_id Having
+                    COUNT(community_id_id) > 1 ORDER BY community_id_id ASC"""
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+        connection.close()
+        if res:
+            return res
+        else:
+            return []
+    except(Exception, psycopg2.Error) as error:
+        print("Error", error)
+
+
+def update_community_owners():
+
+    '''function to get all the communities from database'''
+    try:
+        connection = get_connection()
+        curr = connection.cursor()
+        sql = """Update public.togther_members set is_owner=true where community_id_id in 
+                    (SELECT community_id_id FROM public.togther_members WHERE state=1 or state=2
+                    group by community_id_id Having
+                    COUNT(community_id_id) > 1 ORDER BY community_id_id ASC)
+                and state=1 or state=2"""
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+        connection.close()
+        if res:
+            return res
+        else:
+            return []
+    except(Exception, psycopg2.Error) as error:
+        print("Error", error)
+
+
+def fill_parent_for_admins():
+
+    community_ids = get_communities_with_admins()
+
+    for community_id in community_ids:
+        print(community_id[0])
+        members = Members.objects.filter(community_id=community_id[0]).order_by("id")
+
+    # for member in members:
+    #     print(member.count_status)
+
+        # if member.admin_count > 1:
+        #     print(member.community_id.id)
+        # if members.exists() and members.count() > 1:
+        #     pass
+
+
+start_time = time.time()
+print(">>>>>> started >>>>>>>>   ", start_time)
+
+
+# save_rights()
+# fill_rights()
+fill_parent_for_admins()
+
+
+end_time = time.time()
+print(">>>>>> end >>>>>>>>  ", end_time)
+diff = end_time-start_time
+print(">>>>>> total >>>>>>>>  ", diff)
+
+"""-- SELECT DISTINCT community_id_id,member_id_id FROM public.togther_members WHERE state=1 or state=2
+-- group by community_id_id, member_id_id Having
+-- COUNT(community_id_id) > 1 ORDER BY community_id_id ASC 
+
+SELECT
+    community_id_id, MIN(member_id_id)
+FROM
+    togther_members
+GROUP BY
+    community_id_id"""

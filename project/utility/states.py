@@ -10,7 +10,6 @@ class ManagerRights:
     MANAGER_RIGHT_ADD_MANAGERS = 4
     MANAGER_RIGHT_DELETE_ROOMS_TITLE = "Delete chat rooms/messages"
     MANAGER_RIGHT_APPROVE_MEMBERS_TITLE = "Approve/remove members"
-    MANAGER_RIGHT_REMOVE_MEMBERS_TITLE = "Approve/remove members"
     MANAGER_RIGHT_EDIT_COMMUNITY_TITLE = "Edit community details"
     MANAGER_RIGHT_VIEW_CONTACT_INFO_TITLE = "View member contact info"
     MANAGER_RIGHT_ADD_MANAGERS_TITLE = "Add community managers"

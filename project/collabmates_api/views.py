@@ -11574,5 +11574,10 @@ def sync_client_db(request):
 
 
 
+def dummyModalUpdate(request):
+
+    dummyTestModel().save()
+
+
 ##############################################################################################################
 
