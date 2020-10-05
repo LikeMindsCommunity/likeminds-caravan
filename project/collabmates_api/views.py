@@ -1088,10 +1088,12 @@ def join_promoter_created_community_version_1(res, request):
 
             generate_private_link(community_instance, user_instance)
 
+            Members.objects.filter(member_id=user_instance, community_id=community_instance).update(updated_at=time.time())
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                 member_referral="", click_state=click_states.DEFAULT)
 
             # updating the community level 3 state
+
 
             communityLevels.objects.filter(community=community_instance).update(
                 level_click_state=level_click_states.COMMUNITY_JOINED)
@@ -1765,7 +1767,7 @@ def edit_member_profile(request):
 
     # setting edit status in members table
     member_filter = Members.objects.filter(community_id=community_instance, member_id=user_instance)
-    member_filter.update(edit_required=False)
+    member_filter.update(edit_required=False,updated_at=time.time())
     if 'image_url' in res:
         member_filter.update(image_url=res['image_url'])
 
