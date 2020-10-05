@@ -842,7 +842,7 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
         questions = get_question_data(response.question, member_state, send_back=send_back,
                                       user_id=current_user_id, community_id=community_id)
         if questions:
-            temp['community_id'] = community_id
+            temp['community_id'] = community_id if isinstance(community_id, str) else community_id.id
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
             temp['value'] = response.question_answer

@@ -299,3 +299,98 @@ def give_member_auto_approve_right(user, community):
                                        right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
         user_rights.save()
 
+
+def give_right_to_all_members(community, right):
+
+    community_members = Members.objects.select_related("member_id").filter(community_id=community).exclude(state__in=[3, 5, 6, 8])
+
+    for member in community_members:
+        community_right = userMemberRights.objects.filter(user=member.member_id, community=community, right=right)
+
+        if not community_right.exists():
+            userMemberRights(user=member.member_id, community=community, right=right).save()
+
+
+def remove_right_for_all_members(community, right):
+    userMemberRights.objects.filter(community=community, right=right).delete()
+
+
+
+def get_tool_member_requests(user_id, community_id):
+
+    member_count = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
+    tool_member_requests = tool_member_requests.copy()
+    tool_member_requests["count"] = member_count
+    return tool_member_requests
+
+
+def get_tool_pending_chat_rooms(user_id, community_id):
+
+    count = Collabcard.objects.filter(community_id=community_id, is_pending=True, is_deleted=False).count()
+    tool_pending_chat_rooms = tool_pending_chat_rooms.copy()
+    tool_pending_chat_rooms["count"] = count
+    return tool_member_requests
+
+
+def get_tool_review_reports(user_id, community_id, **kwargs):
+
+    is_owner = kwargs["is_owner"] if "is_owner" in kwargs else False
+    parent_cm_list = kwargs["parent_cm_list"] if "parent_cm_list" in kwargs else []
+    has_right_0 = kwargs["has_right_0"] if "has_right_0" in kwargs else False
+    has_right_1 = kwargs["has_right_1"] if "has_right_1" in kwargs else False
+    has_right_2 = kwargs["has_right_2"] if "has_right_2" in kwargs else False
+
+    report_count = get_related_reports_for_user(user_id=user_id, community_id=community_id, has_right_0=has_right_0,
+                                                is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                parent_cm_list=parent_cm_list, return_reports_count=True)
+
+    tool_review_reports = tool_review_reports.copy()
+    tool_review_reports["count"] = report_count
+    return tool_member_requests
+
+
+def get_related_reports_for_user(user_id, community_id, **kwargs):
+
+    reports = Report.objects.select_related("reported_by", "user_reported", "tag", "action_taken_by",
+                                            "action_taken_tag", "community", "collabcard",
+                                            "conversation").filter(community=community_id,
+                                                                   is_closed=False).exclude(type=3).order_by("-id")
+
+    is_owner = kwargs["is_owner"] if "is_owner" in kwargs else False
+    parent_cm_list = kwargs["parent_cm_list"] if "parent_cm_list" in kwargs else []
+    has_right_0 = kwargs["has_right_0"] if "has_right_0" in kwargs else False
+    has_right_1 = kwargs["has_right_1"] if "has_right_1" in kwargs else False
+    has_right_2 = kwargs["has_right_2"] if "has_right_2" in kwargs else False
+    return_reports_count = kwargs["return_reports_count"] if "return_reports_count" in kwargs else False
+
+    if is_owner:
+        # owner cannot see those reports which are reported on owner itself
+        reports = reports.exclude(user_reported__id=user_id)
+
+    else:
+        reports = reports.exclude(user_reported__id__in=parent_cm_list)
+        if has_right_0 and not has_right_1 and not has_right_2:
+            # if user has only right 0
+            reports = reports.exclude(type=0)
+        elif not has_right_1 and not has_right_0 and not has_right_2:
+            # if user has only right 1
+            reports = reports.exclude(type__in=[1, 2])
+
+    if return_reports_count:
+        return reports.count
+
+    return reports
+
+
+def get_right_dict(right):
+
+    right_dict = {"id": right.id, "state": right.state, "title": right.title}
+
+    if right.sub_title:
+        right_dict["sub_title"] = right.sub_title
+
+    return right_dict
+
+
+
+

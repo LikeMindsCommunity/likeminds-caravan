@@ -1168,18 +1168,3 @@ class communityRightsSettings(models.Model):
     right = models.ForeignKey(memberRights, on_delete=models.CASCADE)
 
 
-class dummyTestModel(models.Model):
-    created_at = models.BigIntegerField(default=0)
-    updated_at = models.BigIntegerField(default=0)
-
-    def save(self, *args, **kwargs):
-        if self.created_at <= 0:
-            self.created_at = time.time()
-        self.updated_at = time.time()
-        super(dummyTestModel, self).save(*args, **kwargs)
-
-    class QuerySet(QuerySet):
-
-        def update(self, *args, **kwargs):
-            self.updated_at = time.time()
-            super(self.dummyTestModel.QuerySet, self).update(*args,**kwargs)

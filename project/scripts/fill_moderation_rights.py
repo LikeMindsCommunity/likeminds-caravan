@@ -6,6 +6,7 @@ from django.db.models import Count
 import time
 import psycopg2
 from collabmates_api.notification import get_connection
+import json
 
 delete_room = {'id': 1, 'title': 'Delete chat rooms/messages', 'sub_title': None, "state": 0}
 
@@ -19,6 +20,7 @@ add_manager = {'id': 5, 'title': "Add community managers", 'sub_title': None, "s
 
 manager_rights_list = [delete_room, approve_members, edit_community, view_contact, add_manager]
 
+
 create_room = {'id': 1, 'title': "Create chat rooms", 'sub_title': None, "state": 0}
 
 create_poll = {'id': 2, 'title': "Create polls", 'sub_title': None, "state": 1}
@@ -29,7 +31,7 @@ respond_in_rooms = {'id': 4, 'title': "Respond in chat rooms", 'sub_title': None
 
 invite_private = {'id': 5, 'title': "Invite members via private link",
                   'sub_title': "Private links remain valid for 24 hours and. the user joining via them a re auto verified"
-                  , "state": 4
+    , "state": 4
                   }
 
 member_rights_list = [create_room, create_poll, create_event, respond_in_rooms, invite_private]
@@ -55,7 +57,9 @@ def create_member_rights_records():
 
 
 def fill_rights():
-
+    print("\n>>>>>>>>>    filling rights")
+    start_time = time.time()
+    print(">>>>>> filling rights started >>>>>>>>   ", start_time)
     admin_rights = adminRights.objects.all().order_by("state")
     member_rights = memberRights.objects.all().order_by("state")
 
@@ -63,25 +67,40 @@ def fill_rights():
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state=9))
 
     for member in members:
+        is_owner = member.is_owner
         if member.state == 1 or member.state == 2:
-            fill_admin_rights(member.member_id, member.community_id, admin_rights)
-            fill_member_rights(member.member_id, member.community_id, member_rights)
+            fill_admin_rights(member.member_id, member.community_id, admin_rights, is_owner=is_owner)
+            fill_member_rights(member.member_id, member.community_id, member_rights, is_admin=True)
         else:
             fill_member_rights(member.member_id, member.community_id, member_rights)
 
 
-def fill_admin_rights(user, community, rights_list):
+    end_time = time.time()
+    print(">>>>>> filling rights end >>>>>>>>   ", end_time)
+    diff = end_time - start_time
+    print(">>>>>> filling rights total time >>>>>>>>  ", diff)
+
+
+def fill_admin_rights(user, community, rights_list, is_owner=False):
+
+    loop_count = 0
     for right in rights_list:
+        if not is_owner and loop_count >= 3:
+            break
         userAdminRights(user=user, community=community, right=right).save()
+        loop_count += 1
 
 
-def fill_member_rights(user, community, rights_list):
+def fill_member_rights(user, community, rights_list, is_admin=False):
+    loop_count = 0
     for right in rights_list:
+        if not is_admin and loop_count >= 4:
+            break
         userMemberRights(user=user, community=community, right=right).save()
+        loop_count += 1
 
 
 def get_communities_with_admins():
-
     '''function to get all the communities from database'''
     try:
         connection = get_connection()
@@ -102,66 +121,46 @@ def get_communities_with_admins():
 
 
 def update_community_owners():
-
-    '''function to get all the communities from database'''
+    """ function to update all owners from database """
     try:
         connection = get_connection()
         curr = connection.cursor()
-        sql = """Update public.togther_members set is_owner=true where community_id_id in 
-                    (SELECT community_id_id FROM public.togther_members WHERE state=1 or state=2
-                    group by community_id_id Having
-                    COUNT(community_id_id) > 1 ORDER BY community_id_id ASC)
-                and state=1 or state=2"""
+        sql = """update togther_members set is_owner=true where id in (
+                 SELECT MIN(id) as id FROM togther_members WHERE state=1 or state=2
+                 GROUP BY community_id_id Having COUNT(community_id_id) > 1
+                )"""
         curr.execute(sql)
-        res = curr.fetchall()
         curr.close()
         connection.close()
-        if res:
-            return res
-        else:
-            return []
     except(Exception, psycopg2.Error) as error:
         print("Error", error)
 
 
 def fill_parent_for_admins():
-
+    print("\n>>>>>>>>>     filling parent")
+    update_community_owners()
     community_ids = get_communities_with_admins()
 
     for community_id in community_ids:
-        print(community_id[0])
-        members = Members.objects.filter(community_id=community_id[0]).order_by("id")
-
-    # for member in members:
-    #     print(member.count_status)
-
-        # if member.admin_count > 1:
-        #     print(member.community_id.id)
-        # if members.exists() and members.count() > 1:
-        #     pass
-
-
+        owner = Members.objects.filter(community_id=community_id[0], is_owner=True)
+        # print("owner >>>>>>>  ", owner, community_id[0])
+        if owner.exists():
+            owner_id = owner[0].member_id
+            parent_list = json.dumps([owner[0].member_id.id])
+            status = Members.objects.filter(community_id=community_id,
+                                            is_owner=False, state=1).update(parent_cm=owner_id,
+                                                                            parent_cm_list=parent_list)
 start_time = time.time()
 print(">>>>>> started >>>>>>>>   ", start_time)
 
-
-# save_rights()
-# fill_rights()
+save_rights()
+fill_rights()
 fill_parent_for_admins()
-
 
 end_time = time.time()
 print(">>>>>> end >>>>>>>>  ", end_time)
-diff = end_time-start_time
+diff = end_time - start_time
 print(">>>>>> total >>>>>>>>  ", diff)
 
-"""-- SELECT DISTINCT community_id_id,member_id_id FROM public.togther_members WHERE state=1 or state=2
--- group by community_id_id, member_id_id Having
--- COUNT(community_id_id) > 1 ORDER BY community_id_id ASC 
+# fill_moderation_rights.py
 
-SELECT
-    community_id_id, MIN(member_id_id)
-FROM
-    togther_members
-GROUP BY
-    community_id_id"""
