@@ -1220,7 +1220,7 @@ def auto_join_community(community_instance, user_instance):
 
         # removing guest status from all chatrooms after access
         collabcardState.objects.filter(community=community_instance, user=user_instance).update(
-            is_guest=False, remove=None)
+            is_guest=False, remove=None,updated_at=time.time())
         card_answers.objects.filter(community=community_instance, user=user_instance).update(
             is_guest=False, remove=None)
 
@@ -2088,7 +2088,7 @@ def remove_members(community_id, member_id, removed_state):
         instance.save()
         # saving collabcard state in update status
         update_chatroom = collabcardState.objects.filter(community=community_instance, user=member_id).update(
-            remove=instance)
+            remove=instance,updated_at=time.time())
         update_conversations = card_answers.objects.filter(user=member_id, community=community_instance).update(
             remove=instance)
 
@@ -3153,9 +3153,9 @@ def chatroom_mute(request):
     value = request.POST.get('value', False)
 
     if value == "true":
-        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=True)
+        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=True,updated_at=time.time())
     else:
-        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=False,is_tagged=False)
+        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=False,is_tagged=False,updated_at=time.time())
 
     return JsonResponse({'success': True})
 
@@ -3330,6 +3330,7 @@ def update_activity_in_chatroom(card_instance, user_instance):
             if state_filter.exists():
                 #expiry_time = get_expiry_time_of_chatroom(card_state_instance=state_filter[0])
                 state_filter[0].expiry_time = None
+                state_filter[0].updated_at = time.time()
                 state_filter[0].save()
             # conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
 
@@ -3379,7 +3380,7 @@ def set_chatroom_active(request):
         info_logger.info("state of data exists")
         instance = state_filter[0]
         expiry_time = instance.expiry_time
-
+        instance.updated_at = time.time()
         instance.expiry_time = updated_time
         instance.save()
     else:
@@ -4026,7 +4027,7 @@ def approve_or_decline_private_community(req_dict, request):
 
             # removing guest status from all chatrooms after access
             collabcardState.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).update(
-                is_guest=False, remove=None)
+                is_guest=False, remove=None,updated_at=time.time())
             card_answers.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).update(
                 is_guest=False, remove=None)
 
@@ -5060,7 +5061,7 @@ def save_the_latest_conversation(card_instance, user_id):
             conversation_member_instance.save()
 
             collabcardState.objects.filter(card=card_instance, user=user_instance,
-                                           follow_status=True).update(expiry_time=expiry_time)
+                                           follow_status=True).update(expiry_time=expiry_time,updated_at=time.time())
 
             update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                      last_conversation_id=conversation_instance.id, unseen_count=0)
@@ -5075,7 +5076,7 @@ def save_the_latest_conversation(card_instance, user_id):
             if conversation_instance.id != conversation_member_filter[0].conversation.id:
                 conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
                 collabcardState.objects.filter(card=card_instance, user=user_instance,
-                                               follow_status=True).update(expiry_time=expiry_time)
+                                               follow_status=True).update(expiry_time=expiry_time,updated_at=time.time())
 
                 update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                          last_conversation_id=conversation_instance.id,
