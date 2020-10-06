@@ -1299,9 +1299,8 @@ def get_preview_for_url(member_id=None, preview_url=None,
         context["title"] = title
 
     if community_id:
-        # checking chatroom_instance cause if chatroom_instance already exists then
-        # community instance is already assigned
-        if not chatroom_instance:
+        # checking if community_instance already exists
+        if not community_instance:
             community_instance = Community.objects.get(pk=community_id)
 
         community = get_community_preview(community_instance, user_instance)
