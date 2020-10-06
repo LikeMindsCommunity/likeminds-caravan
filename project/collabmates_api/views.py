@@ -271,7 +271,41 @@ def get_new_chatroom_member_images(member_id,community_id):
 
     return member_list
 
+def get_active_chatroom_member_images(community_instance,member_id):
 
+    current_time = time.time()
+    state_filter = collabcardState.objects.filter(community=community_instance,
+                                                  user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-expiry_time','-card')
+    temp = {}
+    member_list = []
+    user_set = set()
+    temp['count'] = state_filter.count()
+    for data in state_filter:
+        card_instance = data.card
+        user_id = card_instance.user.id
+        user_instance = card_instance.user
+
+        if user_id not in user_set:
+            member_filter = Members.objects.filter(member_id=user_instance, community_id=data.community)
+            if member_filter.exists():
+                image_url = user_instance.userinfo.image_link if user_instance.userinfo.image_link else ''
+                member_instance = member_filter[0]
+                if member_instance.image_url:
+                    image_url = member_instance.image_url
+            else:
+                image_url = REMOVED_USER_URL
+
+            member = get_user_profile(user_instance, community_instance, send_profile=False)
+            member['image_url'] = image_url
+            member_list.append(member)
+
+            user_set.add(user_id)
+
+
+        if len(member_list) > 3:
+            break
+    temp['member_list'] = member_list
+    return temp
 
 def your_communities(request, user_id):
     '''This function is used to see your communities based on user id'''
@@ -295,7 +329,7 @@ def your_communities(request, user_id):
     create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-    communities = pagination(communities, page_number, paginate_by=10)
+    communities = pagination(communities, page_number, paginate_by=6)
     current_time = time.time()
     for each_community in communities:
 
@@ -330,15 +364,22 @@ def your_communities(request, user_id):
 
         #active count of chatrooms in communities
 
-        count = get_active_chatrooms_count_in_community(each_community.community_id.id,member_id,current_time)
+        #count = get_active_chatrooms_count_in_community(each_community.community_id.id,member_id,current_time)
+        temp = get_active_chatroom_member_images(community_instance=each_community.community_id, member_id=member_id)
 
-        active_chatroom_count = count
+        active_chatroom_count = temp['count']
         community['active_chatroom_count'] = active_chatroom_count
 
         # if community['collabcard_unseen'] > 0:
             # header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
-        if each_community.new_chatroom_users:
+        if community['collabcard_unseen'] > 0:
             community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
+            #community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+        else:
+            #active_chatroom_users = get_active_chatroom_member_images(community_instance=each_community.community_id,member_id=member_id)
+            active_chatroom_users = temp['member_list']
+            if active_chatroom_users:
+                community['active_chatroom_users'] = active_chatroom_users
 
         my_community.append(community)
 
