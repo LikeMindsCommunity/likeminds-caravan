@@ -10767,12 +10767,10 @@ def fetch_community_manager_rights(request):
         admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance)
         user_rights = list(userAdminRights.objects.filter(community=community_instance,
                                                           user=user_instance).values_list('right__id',
-                                                                                          flat=True).distinct())
-        print("user rights ===  ", user_rights)
+                                                                                          flat=True))
         if admin_rights.exists():
             for right in admin_rights:
                 right = right.right
-                print("right in list ===  ", right.id in user_rights, "  ==>  ", right.id)
                 right_dict = get_right_dict(right)
                 right_dict["is_selected"] = True if right.id in user_rights else False  # add check for int or string
                 rights_context.append(right_dict)
@@ -10826,12 +10824,24 @@ def update_community_manager_rights(request):
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     if admin.exists():
         # deleting all manager rights
-        userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
+        # userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
+        # had to get added and ermoved rights for many other purposes ex: notifications
+        existing_rights = set(userAdminRights.objects.filter(community=community,
+                                                             user=user).values_list("right__id", flat=True))
+        rights_added, rights_removed = get_added_and_removed_rights(user=user_instance, community=community_instance,
+                                                                    selected_rights=selected_rights,
+                                                                    existing_rights=existing_rights)
 
-        for right in selected_rights:
-            if right["is_selected"]:
-                right = adminRights.objects.get(pk=right["id"])
-                userAdminRights(user=user_instance, community=community_instance, right=right).save()
+        for right_id in rights_added:
+            right = adminRights.objects.get(pk=right_id)
+            userAdminRights(user=user_instance, community=community_instance, right=right).save()
+
+        for right_id in rights_removed:
+            right = adminRights.objects.get(pk=right_id)
+            userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
+
+
+        give_all_member_rights(user=user_instance, community=community_instance)
 
         is_owner = False
         if int(user_id) == int(current_user_id):
@@ -10839,8 +10849,8 @@ def update_community_manager_rights(request):
             if not custom_title:
                 custom_title = admin[0].custom_title
             Members.objects.filter(community_id=community_instance,
-                                   memberid=user_instance).update(state=member_states.ADMIN, is_owner=is_owner,
-                                                                  custom_title=custom_title)
+                                   member_id=user_instance).update(state=member_states.ADMIN, is_owner=is_owner,
+                                                                   custom_title=custom_title)
         else:
             member = Members.objects.filter(member_id=user_instance,
                                             community_id=community_instance)
@@ -10860,13 +10870,20 @@ def update_community_manager_rights(request):
             if member_instance.parent_cm:
                 parent_cm = member_instance.parent_cm
 
+            admin_parents = json.loads(admin[0].parent_cm_list) if admin[0].parent_cm_list else []
             parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
-            if not current_user_id in parent_list:
+
+            for parent_id in admin_parents:
+                if parent_id not in parent_list:
+                    parent_list.append(parent_id)
+
+            if current_user_id not in parent_list:
                 parent_list.append(current_user_id)
-            parent_list = json.dumps(parent_list)
+
+            final_parent_list = json.dumps(parent_list)
 
             member.update(state=member_states.ADMIN, is_owner=is_owner, custom_title=custom_title,
-                          parent_cm=parent_cm, parent_cm_list=parent_list)
+                          parent_cm=parent_cm, parent_cm_list=final_parent_list)
 
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=current_user_instance,
@@ -10881,6 +10898,19 @@ def update_community_manager_rights(request):
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
+
+
+def get_added_and_removed_rights(user, community, selected_rights, existing_rights):
+
+    selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
+
+    rights_added = selected_rights_list - existing_rights
+    removed_rights = existing_rights - selected_rights_list
+
+    # print(">>>>> added >>>>>>  ", rights_added)
+    # print(">>>>> removed >>>>>>  ", removed_rights)
+
+    return rights_added, rights_removed
 
 
 @csrf_exempt
@@ -11101,12 +11131,27 @@ def update_community_member_rights(request):
 
     if admin.exists():
         # deleting all member rights
-        userMemberRights.objects.filter(community=community_instance, user=user_instance).delete()
+        # userMemberRights.objects.filter(community=community_instance, user=user_instance).delete()
 
-        for right in selected_rights:
-            if right["is_selected"]:
-                right = memberRights.objects.get(pk=right["id"])
-                userMemberRights(user=user_instance, community=community_instance, right=right).save()
+        # had to get added and ermoved rights for many other purposes ex: notifications
+        existing_rights = set(userMemberRights.objects.filter(community=community_instance,
+                                                                user=user_instance).values_list("right__id", flat=True))
+        rights_added, rights_removed = get_added_and_removed_rights(user=user_instance, community=community_instance,
+                                                                    selected_rights=selected_rights,
+                                                                    existing_rights=existing_rights)
+
+        for right_id in rights_added:
+            right = adminRights.objects.get(pk=right_id)
+            userAdminRights(user=user_instance, community=community_instance, right=right).save()
+
+        for right_id in rights_removed:
+            right = adminRights.objects.get(pk=right_id)
+            userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
+
+        # for right in selected_rights:
+        #     if right["is_selected"]:
+        #         right = memberRights.objects.get(pk=right["id"])
+        #         userMemberRights(user=user_instance, community=community_instance, right=right).save()
 
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=current_user_instance,

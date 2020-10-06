@@ -146,7 +146,7 @@ def fill_parent_for_admins():
         # print("owner >>>>>>>  ", owner, community_id[0])
         if owner.exists():
             owner_id = owner[0].member_id
-            parent_list = json.dumps([owner[0].member_id.id])
+            parent_list = json.dumps([str(owner[0].member_id.id)])
             status = Members.objects.filter(community_id=community_id,
                                             is_owner=False, state=1).update(parent_cm=owner_id,
                                                                             parent_cm_list=parent_list)
