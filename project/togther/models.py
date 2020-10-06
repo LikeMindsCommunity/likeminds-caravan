@@ -1137,7 +1137,7 @@ class memberNotificationFlag(models.Model):
     flag = models.BooleanField(default=True)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
     updated_at = models.BigIntegerField(default=0, null=True)
     created_at = models.BigIntegerField(default=0, null=True)
-    
+
     def save(self, *args, **kwargs):
         if self.created_at == 0:
             self.created_at = time.time()
@@ -1177,3 +1177,6 @@ class userFeedback(models.Model):
     created_at = models.BigIntegerField(null=True)
     images = models.TextField(null=True)
     feedback = models.TextField(null=True)
+
+
+

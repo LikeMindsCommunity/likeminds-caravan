@@ -1726,3 +1726,94 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         print("Error while connecting to PostgreSQL")
 
 
+
+
+
+
+@app.task
+def send_notification_to_inactive_chatroom_users():
+
+    current_time = time.time()
+
+    inactive_chatrooms = collabcardState.objects.filter(follow_status=True,
+                                                        remove=None).filter(~Q(expiry_time=None) & Q(
+        expiry_time__lt=current_time))
+
+    user_set = set()
+    user_list = []
+    for data in inactive_chatrooms:
+
+        key = str(data.user.id)+"--"+str(data.card.id)
+        if key not in user_set:
+            temp = {}
+            user_instance = data.user
+            card_instance = data.card
+            notification_filter = memberNotificationFlag.objects.filter(member=user_instance,
+                                                                        card=card_instance,
+                                                                        code='chat_room_becoming_inactive'
+                                                                        )
+            if notification_filter.exists():
+                if data.expiry_time > notification_filter[0].updated_at:
+                    temp['user_id'] = user_instance.id
+                    temp['user_name'] = user_instance.userinfo.name
+                    temp['chatroom_id'] = card_instance.id
+                    temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+                    notification_filter.update(updated_at=current_time)
+                    user_list.append(temp)
+            else:
+                instance = memberNotificationFlag()
+                instance.member = user_instance
+                instance.card = card_instance
+                instance.updated_at = current_time
+                instance.created_at = current_time
+                instance.community = data.community
+                instance.flag = True
+                instance.code = 'chat_room_becoming_inactive'
+                instance.save()
+                temp['user_id'] = user_instance.id
+                temp['user_name'] = user_instance.userinfo.name
+                temp['chatroom_id'] = card_instance.id
+                temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+                user_list.append(temp)
+
+            user_set.add(key)
+
+    end_time = time.time()
+    diff = end_time - current_time
+    print(diff)
+
+    send_inactive_notification_utils(user_list)
+
+
+
+
+def send_inactive_notification_utils(user_list):
+
+
+    for data in user_list:
+        notification_list = []
+        notification_details = get_token_for_fcm(data['user_id'], flag=True)
+        temp = {
+            'id': data['user_id'],
+            'fcm_token': notification_details[0],
+            'mobile_os': notification_details[1],
+        }
+        notification_list.append(temp)
+        sub_title = """Hey %s, this chat room has been moved to inactive chat rooms since there has been no new activity here in the last 24 hours since you opened it. You may want to mark it as active for yourself if you intend to respond further in it. Else if anyone else responds in the future, it will become active again."""%(data['user_name'])
+        message = {}
+        message['payload'] = {
+            'title': data['chatroom_name'],
+            'sub_title': sub_title,
+            'route': 'route://community?community_id=' + str(1000)
+        }
+        print(notification_list)
+        print(message)
+        #notification_meta(notification_list,message)
+
+    print("Notification Sent")
+
+
+
+# x=CeleryBeatTask()
+# x.terminate_task("send_notification_to_inactive_chatroom_users")
+# x.terminate_task("run_after_10_sec")
