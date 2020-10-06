@@ -557,3 +557,8 @@ def list_all_answers(request):
     return render(request, 'cms/list_all_answers.html', context)
 
 
+
+def url_shortner(request):
+    # records = PerDayRecordOverview.objects.all().order_by('created_at')[:10]
+    context = {}
+    return render(request, 'cms/url_shortner.html', context)
