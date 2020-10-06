@@ -11,6 +11,9 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+from corsheaders.defaults import default_headers
+
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -237,6 +240,10 @@ EMAIL_USE_TLS = True
 
 CORS_ORIGIN_ALLOW_ALL = True
 
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-member-id','x-platform-code'
+]
+
 FCM_DJANGO_SETTINGS = {
     "FCM_SERVER_KEY":  os.getenv('PROD_FCM_SERVER_KEY'),
     "ONE_DEVICE_PER_USER": True,
@@ -251,6 +258,12 @@ GUPSHUP_ID = '2000193166'
 GUPSHUP_PASS = 'yeDiJFr3B'
 
 
+
+INTERNATIONAL_GHUPSHAP = {
+    'user_id': '2000193536',
+    'password': 'GIYMA8Kcf',
+    'msg': """%25code%25%20is%20your%20OTP%20for%20LikeMinds.%20For%20security%20reasons%2C%20do%20not%20share%20this%20OTP%20with%20anyone.%20cW6ZEtFKpHc"""
+}
 
 LOGGING = {
     'version': 1,

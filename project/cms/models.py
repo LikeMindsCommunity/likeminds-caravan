@@ -237,7 +237,7 @@ class PerWeekRecordOverview(models.Model):
         # if self.updated_at == 0 :
         #     self.updated_at = self.created_at
 
-        super(PerDayRecordOverview, self).save(*args, **kwargs)
+        super(PerWeekRecordOverview, self).save(*args, **kwargs)
 
 
 

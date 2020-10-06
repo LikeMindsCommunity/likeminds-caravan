@@ -182,6 +182,14 @@ urlpatterns = [
 
     ##############################################################################
 
+
+    ############################ synching client db apis ##################################
+
+    path('sync_conversation', api_views.sync_conversation, name='sync_conversation'),
+    path('sync_members', api_views.sync_members, name='sync_members'),
+
+    #######################################################################################
+
 ]
 
 app_name = 'collabmates_api'
