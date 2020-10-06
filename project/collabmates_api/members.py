@@ -181,13 +181,13 @@ def get_member_instances_without_filter(member_list,current_user_id,community_id
             # if member_set and current_user_id and int(current_user_id) in member_set:
             #     current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
             # elif not member_set:
-            current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id,send_profile=False)
+            current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id,send_profile=True)
 
     #member_list = pagination(member_list, page, paginate_by=10)
 
     for member in member_list:
         member_id = member.member_id.id
-        userinfo_serialized_object = MembersSerializer(member,community_id,current_user_id=current_user_id,send_profile=False)
+        userinfo_serialized_object = MembersSerializer(member,community_id,current_user_id=current_user_id,send_profile=True)
         if member_id == int(current_user_id):
             pass
         else:
@@ -221,7 +221,7 @@ def get_member_instances_with_filter(member_set,current_user_id,community_id,pag
         current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
         if current_filter.exists():
             if member_set and current_user_id and int(current_user_id) in member_set:
-                current_user = MembersSerializer(current_filter[0], community_id, current_user_id=current_user_id,send_profile=False)
+                current_user = MembersSerializer(current_filter[0], community_id, current_user_id=current_user_id,send_profile=True)
 
     #logic for pagination of members for filters
     if current_user_id and int(current_user_id) in member_set:
@@ -229,7 +229,7 @@ def get_member_instances_with_filter(member_set,current_user_id,community_id,pag
     member_ids = list(member_set)
     member_ids = paginate_list(member_ids,page,paginate_by=10)
 
-    member_instances_list = get_members_profile(list(member_ids), community_id, current_user_id=current_user_id,send_profile=False)
+    member_instances_list = get_members_profile(list(member_ids), community_id, current_user_id=current_user_id,send_profile=True)
     if current_user:
         members.insert(0, current_user)
 
