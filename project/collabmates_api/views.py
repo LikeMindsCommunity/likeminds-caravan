@@ -300,6 +300,34 @@ def get_active_chatroom_member_images(community_instance,member_id):
             member['image_url'] = image_url
             member_list.append(member)
 
+=======
+
+    current_time = time.time()
+    state_filter = collabcardState.objects.filter(community=community_instance,
+                                                  user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-expiry_time','-card')
+    temp = {}
+    member_list = []
+    user_set = set()
+    temp['count'] = state_filter.count()
+    for data in state_filter:
+        card_instance = data.card
+        user_id = card_instance.user.id
+        user_instance = card_instance.user
+
+        if user_id not in user_set:
+            member_filter = Members.objects.filter(member_id=user_instance, community_id=data.community)
+            if member_filter.exists():
+                image_url = user_instance.userinfo.image_link if user_instance.userinfo.image_link else ''
+                member_instance = member_filter[0]
+                if member_instance.image_url:
+                    image_url = member_instance.image_url
+            else:
+                image_url = REMOVED_USER_URL
+
+            member = get_user_profile(user_instance, community_instance, send_profile=False)
+            member['image_url'] = image_url
+            member_list.append(member)
+
             user_set.add(user_id)
 
 
