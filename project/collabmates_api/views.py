@@ -300,8 +300,6 @@ def get_active_chatroom_member_images(community_instance,member_id):
             member['image_url'] = image_url
             member_list.append(member)
 
-=======
-
     current_time = time.time()
     state_filter = collabcardState.objects.filter(community=community_instance,
                                                   user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-expiry_time','-card')
