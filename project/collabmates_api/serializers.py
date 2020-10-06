@@ -1351,13 +1351,7 @@ def get_title_for_chatroom_preview(chatroom, current_user_id):
         is_open_event = chatroom.type == card_types.CARD_PUBLIC_EVENT
         additional_text = "open " if is_open_event else ""
 
-        is_host = False
-        if chatroom.co_hosts:
-            co_host_list = json.loads(chatroom.co_hosts)
-            if str(current_user_id) in co_host_list:
-                is_host = True
-
-        if is_host:
+        if int(current_user_id) == int(chatroom.user.id):
             return f"I am hosting this {additional_text}event for {chatroom.community.name}. RSVP to join us."
         else:
 
