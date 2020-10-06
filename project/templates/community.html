@@ -32,7 +32,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-        <link rel="stylesheet" href="{% static 'css/mahaDev/mahaDev.css' %}">
+        <link rel="stylesheet" type="text/css"  href="{% static 'css/mahaDev/mahaDev.css' %}">
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
     </head>
     <body class="bgBg">
@@ -186,12 +186,18 @@
                 {% elif Nom_mem_state == 8 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13" id="down_ref">Invite members</button>
                 {% elif Nom_mem_state == 3 %}
-                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled> Open in LikeMinds</button>
+                <div class="h60"></div>
+
+                <div class="taC pF b0 l0 r0 h60 bdtE bgBg z1">
+                    {% include 'components/download_app_bar.html' with  subtitle='Edit your profile info for the community.' auto_join=footer %}
+                    <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App Already a Member</button> -->
+
+                </div>
                 {% elif Nom_mem_state == 1%}
                 <div class="h60"></div>
 
                 <div class="taC pF b0 l0 r0 h60 bdtE bgBg z1">
-                    {% include 'components/download_app_bar.html' with  subtitle='Manage the community using various tools' auto_join=footer %}
+                    {% include 'components/download_app_bar.html' with  subtitle='Unlock full potential of your community.' auto_join=footer %}
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App Already a Member</button> -->
 
                 </div>
