@@ -1288,15 +1288,6 @@ def get_preview_for_url(member_id=None, preview_url=None,
         title = f'Participate in this LikeMinds chat room in community. "{community_instance.name}"'
         route = f"route://collabcard?collabcard_id={chatroom_id}"
 
-    if chatroom_instance:
-        title = get_title_for_chatroom_preview(chatroom_instance, member_id)
-
-    elif preview_type != "chatroom":
-        is_private = True if aj else False
-        title = get_title_for_community_preview(community_instance, member_id, preview_type, is_private=is_private)
-
-    if send_preview_text:
-        context["title"] = title
 
     if community_id:
         # checking if community_instance already exists
@@ -1318,6 +1309,16 @@ def get_preview_for_url(member_id=None, preview_url=None,
             context["action"] = "JOIN COMMUNITY"
         else:
             context["action"] = "JOIN COMMUNITY"
+
+    if preview_type == "chatroom":
+        title = get_title_for_chatroom_preview(chatroom_instance, member_id)
+
+    else:
+        is_private = True if aj else False
+        title = get_title_for_community_preview(community_instance, member_id, preview_type, is_private=is_private)
+
+    if send_preview_text:
+        context["title"] = title
 
     # writing at last to get the action and others based on progress done above
     if chatroom_id:
@@ -1346,6 +1347,10 @@ def get_preview_for_url(member_id=None, preview_url=None,
 def get_title_for_chatroom_preview(chatroom, current_user_id):
 
     if chatroom.type == card_types.CARD_EVENT or chatroom.type == card_types.CARD_PUBLIC_EVENT:
+
+        is_open_event = chatroom.type == card_types.CARD_PUBLIC_EVENT
+        additional_text = "open " if is_open_event else ""
+
         is_host = False
         if chatroom.co_hosts:
             co_host_list = json.loads(chatroom.co_hosts)
@@ -1353,14 +1358,12 @@ def get_title_for_chatroom_preview(chatroom, current_user_id):
                 is_host = True
 
         if is_host:
-            return f"I am hosting this open event for {chatroom.community.name}. RSVP to join us."
+            return f"I am hosting this {additional_text}event for {chatroom.community.name}. RSVP to join us."
         else:
-            is_open_event = chatroom.type == card_types.CARD_PUBLIC_EVENT
-            additional_text = "open " if is_open_event else ""
 
-            event_date = card.end_date
+            event_date = chatroom.end_date
 
-            result = time.localtime(int(event_date))
+            result = time.localtime(int(event_date)/1000)
 
             if int(result.tm_mday) == 1:
                 day_text = "1st"
@@ -1376,6 +1379,7 @@ def get_title_for_chatroom_preview(chatroom, current_user_id):
             event_date_text = f"{day_text} {month_text}"
 
             current_year = time.strftime("%Y")
+
             if int(result.tm_year) != int(current_year):
                 event_date_text = event_date_text + " " + str(result.tm_year)
 
@@ -1387,10 +1391,10 @@ def get_title_for_chatroom_preview(chatroom, current_user_id):
     elif chatroom.type == card_types.CARD_INTRO:
 
         community_name = chatroom.community.name
-        if int(current_user_id) == int(card.user.id):
+        if int(current_user_id) == int(chatroom.user.id):
             return f"I have joined {community_name}. Join me for a chat or view my community profile here."
 
-        return f"{card.user.userinfo.name} joined {community_name}. Know more about them or join them for a chat here."
+        return f"{chatroom.user.userinfo.name} joined {community_name}. Know more about them or join them for a chat here."
 
     else:
         return "Join us in this conversation. Guest access is enabled for the next 24 hours."
