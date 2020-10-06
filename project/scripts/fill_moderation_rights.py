@@ -8,33 +8,35 @@ import psycopg2
 from collabmates_api.notification import get_connection
 import json
 
-delete_room = {'id': 1, 'title': 'Delete chat rooms/messages', 'sub_title': None, "state": 0}
+delete_room = {'id': 1, 'title': 'Delete chat rooms/messages', "state": 0}
 
-approve_members = {'id': 2, 'title': 'Approve/remove members', 'sub_title': None, "state": 1}
+approve_members = {'id': 2, 'title': 'Approve/remove members', "state": 1}
 
-edit_community = {'id': 3, 'title': "Edit community details", 'sub_title': None, "state": 2}
+edit_community = {'id': 3, 'title': "Edit community details", "state": 2}
 
-view_contact = {'id': 4, 'title': 'View member contact info', 'sub_title': None, "state": 3}
+view_contact = {'id': 4, 'title': 'View member contact info', "state": 3}
 
-add_manager = {'id': 5, 'title': "Add community managers", 'sub_title': None, "state": 4}
+add_manager = {'id': 5, 'title': "Add community managers", "state": 4}
 
 manager_rights_list = [delete_room, approve_members, edit_community, view_contact, add_manager]
 
 
-create_room = {'id': 1, 'title': "Create chat rooms", 'sub_title': None, "state": 0}
+create_room = {'id': 1, 'title': "Create chat rooms", "state": 0}
 
-create_poll = {'id': 2, 'title': "Create polls", 'sub_title': None, "state": 1}
+create_poll = {'id': 2, 'title': "Create polls", "state": 1}
 
-create_event = {'id': 3, 'title': "Create events", 'sub_title': None, "state": 2}
+create_event = {'id': 3, 'title': "Create events", "state": 2}
 
-respond_in_rooms = {'id': 4, 'title': "Respond in chat rooms", 'sub_title': None, "state": 3}
+respond_in_rooms = {'id': 4, 'title': "Respond in chat rooms", "state": 3}
 
 invite_private = {'id': 5, 'title': "Invite members via private link",
                   'sub_title': "Private links remain valid for 24 hours and. the user joining via them a re auto verified"
-    , "state": 4
+                  , "state": 4
                   }
 
-member_rights_list = [create_room, create_poll, create_event, respond_in_rooms, invite_private]
+auto_approve_rooms = {'id': 6, 'title': "Auto-approve created chat rooms", "state": 5}
+
+member_rights_list = [create_room, create_poll, create_event, respond_in_rooms, invite_private, auto_approve_rooms]
 
 
 def save_rights():
@@ -94,8 +96,8 @@ def fill_admin_rights(user, community, rights_list, is_owner=False):
 def fill_member_rights(user, community, rights_list, is_admin=False):
     loop_count = 0
     for right in rights_list:
-        if not is_admin and loop_count >= 4:
-            break
+        if not is_admin and loop_count == 5:
+            continue
         userMemberRights(user=user, community=community, right=right).save()
         loop_count += 1
 
@@ -127,8 +129,7 @@ def update_community_owners():
         curr = connection.cursor()
         sql = """update togther_members set is_owner=true where id in (
                  SELECT MIN(id) as id FROM togther_members WHERE state=1 or state=2
-                 GROUP BY community_id_id Having COUNT(community_id_id) > 1
-                )"""
+                 GROUP BY community_id_id Having COUNT(community_id_id) > 0)"""
         curr.execute(sql)
         curr.close()
         connection.close()

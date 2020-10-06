@@ -39,7 +39,7 @@ def get_saved_member_rights_list(user_rights, admin_rights=None):
     all_member_rights = memberRights.objects.all().order_by("state")
     rights_list = []
     for right in all_member_rights:
-        right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
+        right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title, "state": right.state,
                       "is_selected": False, "is_locked": False}
 
         if right.state == create_room_member_right['state']:
@@ -66,6 +66,9 @@ def get_saved_member_rights_list(user_rights, admin_rights=None):
             right_dict["is_selected"] = user_rights["invite_private"]
             if admin_rights:
                 right_dict["is_locked"] = not admin_rights["approve"]
+
+        if right.sub_title is None:
+            del right_dict["sub_title"]
 
         rights_list.append(right_dict)
 
@@ -94,6 +97,9 @@ def get_saved_manager_rights_list(admin_rights):
 
         elif right.state == add_manager_manager_right['state']:
             right_dict["is_selected"] = admin_rights["add_manager"]
+
+        if right.sub_title is None:
+            del right_dict["sub_title"]
 
         rights_list.append(right_dict)
 
@@ -279,7 +285,17 @@ def check_member_create_room_right(user, community):
     return False
 
 
-def remove_member_auto_approve_right(user, community):
+def check_member_auto_approve_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  right__state=member_rights.MEMBER_RIGHT_AUTO_APPROVE)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
+def remove_member_create_room_right(user, community):
 
     user_rights = userMemberRights.objects.filter(user=user, community=community,
                                                   right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
@@ -289,7 +305,7 @@ def remove_member_auto_approve_right(user, community):
     return False
 
 
-def give_member_auto_approve_right(user, community):
+def give_member_create_room_right(user, community):
 
     user_rights = userMemberRights.objects.filter(user=user, community=community,
                                                   right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)

@@ -1151,6 +1151,8 @@ def get_menu_for_members(current_user_id, item_member_id, current_user_is_promot
     if parents_list is None:
         parents_list = []
 
+    if current_user_is_owner and int(current_user_id) == int(item_member_id):
+        return ["Edit title"]
     if current_user_id and int(current_user_id) == int(item_member_id):
         return []
     elif not current_user_id:
@@ -1176,6 +1178,7 @@ def get_menu_for_members(current_user_id, item_member_id, current_user_is_promot
 
             if current_user_admin_rights["add_manager"] and is_child:
                 menu.append("Edit permissions")
+
 
         if profile_detail_api:
             menu.append("Report member")

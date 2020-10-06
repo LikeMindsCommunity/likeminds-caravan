@@ -1044,6 +1044,13 @@ def join_promoter_created_community_version_1(res, request):
 
             if validate_time:
                 is_private_link = True
+                # saving moderation history
+                if 'shared_by' in res:
+                    history_type = moderation_history_types.APPLIED_PRIVATE_LINK
+                    shared_user = User.objects.get(pk=res['shared_by'])
+                    save_moderation_history(user=user_instance, community=community_instance,
+                                            moderation_by=shared_user, type=history_type)
+
                 auto_join_community(community_instance, user_instance)
                 set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
                 post_introduction_card_for_community(community_id, member_id, request)
@@ -2730,7 +2737,7 @@ def create_chatroom_instance(res, community_instance, user_instance):
 
         card.internal_link = res['internal_link']
 
-    has_right_5 = check_member_invite_private_right(user=user_instance, community=community_instance)
+    has_right_5 = check_member_auto_approve_right(user=user_instance, community=community_instance)
     if not has_right_5:
         card.is_pending = True
 
@@ -8467,13 +8474,14 @@ def members_state(request, req_dict=None):
 
     json_response['member'] = get_user_profile(member_id, community_id)
     json_response['member']['state'] = state
-    json_response['member']['custom_title'] = custom_title
+    if custom_title:
+        json_response['member']['custom_title'] = custom_title
 
     if state == member_states.ADMIN:
-        admin_rights = check_all_manager_rights(query_set[0].member_id, community)
+        admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
         json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
 
-    user_rights = check_all_member_rights(query_set[0].member_id, community)
+    user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
     json_response['member_rights'] = get_saved_member_rights_list(user_rights)
 
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
@@ -10826,9 +10834,9 @@ def update_community_manager_rights(request):
         # deleting all manager rights
         # userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
         # had to get added and ermoved rights for many other purposes ex: notifications
-        existing_rights = set(userAdminRights.objects.filter(community=community,
-                                                             user=user).values_list("right__id", flat=True))
-        rights_added, rights_removed = get_added_and_removed_rights(user=user_instance, community=community_instance,
+        existing_rights = set(userAdminRights.objects.filter(community=community_instance,
+                                                             user=user_instance).values_list("right__id", flat=True))
+        rights_added, removed_rights = get_added_and_removed_rights(user=user_instance, community=community_instance,
                                                                     selected_rights=selected_rights,
                                                                     existing_rights=existing_rights)
 
@@ -10836,7 +10844,7 @@ def update_community_manager_rights(request):
             right = adminRights.objects.get(pk=right_id)
             userAdminRights(user=user_instance, community=community_instance, right=right).save()
 
-        for right_id in rights_removed:
+        for right_id in removed_rights:
             right = adminRights.objects.get(pk=right_id)
             userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
 
@@ -10904,13 +10912,16 @@ def get_added_and_removed_rights(user, community, selected_rights, existing_righ
 
     selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
 
+    print(">>>>> existing_rights >>>>>>  ", existing_rights)
+    print(">>>>> selected_rights >>>>>>  ", selected_rights_list)
+
     rights_added = selected_rights_list - existing_rights
     removed_rights = existing_rights - selected_rights_list
 
-    # print(">>>>> added >>>>>>  ", rights_added)
-    # print(">>>>> removed >>>>>>  ", removed_rights)
+    print(">>>>> added >>>>>>  ", rights_added)
+    print(">>>>> removed >>>>>>  ", removed_rights)
 
-    return rights_added, rights_removed
+    return rights_added, removed_rights
 
 
 @csrf_exempt
@@ -10921,8 +10932,8 @@ def remove_community_manager(request):
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
 
     current_user_id = get_member_id_from_headers(request)
-    community_id = request.GET.get('community_id', None)
-    user_id = request.GET.get('user_id', None)
+    community_id = request.POST.get('community_id', None)
+    user_id = request.POST.get('user_id', None)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
@@ -10941,26 +10952,27 @@ def remove_community_manager(request):
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     if admin.exists():
-        admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance,
-                                                      right__id=manager_rights.MANAGER_RIGHT_APPROVE_MEMBERS)
-        if admin_rights.exists():
-            # deleting all menager rights
-            userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
-            # updating member state of manager to member
-            Members.objects.filter(community_id=community_instance,
-                                   memberid=user_instance).update(state=member_states.MEMBER)
+        # admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance,
+        #                                               right__id=manager_rights.MANAGER_RIGHT_APPROVE_MEMBERS)
+        # if admin_rights.exists():
+        # deleting all manager rights
+        userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
+        # updating member state of manager to member
+        Members.objects.filter(community_id=community_instance,
+                               member_id=user_instance).update(state=member_states.MEMBER, custom_title="Member",
+                                                               parent_cm=None, parent_cm_list='[]')
 
-            save_moderation_history(user=user_instance, community=community_instance,
-                                    moderation_by=current_user_instance,
-                                    type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=current_user_instance,
+                                type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
 
-            return JsonResponse({'success': True})
-        else:
-            context = get_error_context(False, "user does not have right to remove members")
-            return JsonResponse(context)
+        return JsonResponse({'success': True})
+        # else:
+        #     context = get_error_context(False, "you have no right to remove members")
+        #     return JsonResponse(context)
 
     else:
-        context = get_error_context(False, "user is not a admin")
+        context = get_error_context(False, "you are not a admin")
         return JsonResponse(context)
 
 
@@ -11021,35 +11033,51 @@ def transfer_community_ownership(request):
     if admin.exists():
 
         if not admin[0].is_owner:
-            context = get_error_context(False, "user is not the owner of the community")
+            context = get_error_context(False, "you are not the owner of the community")
             return JsonResponse(context)
 
         previous_owner_title = "Owner"
         if admin[0].custom_title:
             previous_owner_title = admin[0].custom_title
 
-        # admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance)
-        # if admin_rights.exists():
-            # deleting all menager rights
-        # userAdminRights.objects.filter(community=community_instance, user=user_instance)
-
-        # transfering ownership member state of manager to member
-        # new owner
         Members.objects.filter(community_id=community_instance,
-                               memberid=user_instance).update(state=member_states.ADMIN, is_owner=True,
-                                                              custom_title=previous_owner_title)
+                               member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
+                                                               custom_title=previous_owner_title, parent_cm=None,
+                                                               parent_cm_list='[]')
         give_all_manager_rights(user_instance, community_instance)  # for new owner
         # current owner
-        admin.update(is_owner=False, custom_title="Community Manager")
+        admin.update(is_owner=False, custom_title="Community Manager",
+                     parent_cm=user_instance, parent_cm_list=json.dumps([str(user_id)]))
+
+        # update_parent_cm_list(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
 
         return JsonResponse({'success': True})
-        # else:
-        #     context = get_error_context(False, "user does not have right to remove members")
-        #     return JsonResponse(context)
 
     else:
-        context = get_error_context(False, "user is not a admin")
+        context = get_error_context(False, "you are not a admin")
         return JsonResponse(context)
+
+
+@shared_task
+def update_parent_cm_list(community_id, new_owner_id, prev_owner_id):
+
+    member_state_list = [member_states.ADMIN, member_states.MEMBER,
+                         member_states.KNOWN_NOMINATED_PROMOTER, member_states.PROFILE_UNAVAILABLE]
+    all_members = Members.objects.filter(community_id=community_id, is_owner=False).filter(state__in=member_state_list)
+
+    for member in all_members:
+        member_instance = Members.objects.get(pk=member.id) # id of members table not user_id, need instance to update the data
+        parent_list = json.loads(member_instance.parent_cm_list)
+
+        if str(new_owner_id) not in parent_list:
+            parent_list.append(new_owner_id)
+
+        if int(prev_owner_id) != member_instance.parent_cm.id:
+            if str(prev_owner_id) in parent_list:
+                parent_list.remove(str(prev_owner_id))
+
+        member_instance.parent_cm_list = parent_list
+        member_instance.save()
 
 
 def fetch_community_member_rights(request):
@@ -11082,8 +11110,8 @@ def fetch_community_member_rights(request):
     rights_context = []
 
     if admin.exists():
-        admin_rights = check_all_manager_rights(current_user_instance, community)
-        user_rights = check_all_member_rights(user_instance, community)
+        admin_rights = check_all_manager_rights(current_user_instance, community_instance)
+        user_rights = check_all_member_rights(user_instance, community_instance)
 
         rights_context = get_saved_member_rights_list(user_rights, admin_rights)
 
@@ -11093,7 +11121,7 @@ def fetch_community_member_rights(request):
 
     member_profile = get_members_profile([user_instance], community_instance)
 
-    return JsonResponse({"member": member_profile, "rights": rights_context})
+    return JsonResponse({"member": member_profile[0], "rights": rights_context})
 
 
 @csrf_exempt
@@ -11108,6 +11136,7 @@ def update_community_member_rights(request):
     user_id = req_body['user_id'] if "user_id" in req_body else None
     community_id = req_body['community_id'] if "community_id" in req_body else None
     selected_rights = req_body['rights'] if "rights" in req_body else None
+    custom_title = req_body['custom_title'] if "custom_title" in req_body else None
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
@@ -11141,17 +11170,16 @@ def update_community_member_rights(request):
                                                                     existing_rights=existing_rights)
 
         for right_id in rights_added:
-            right = adminRights.objects.get(pk=right_id)
-            userAdminRights(user=user_instance, community=community_instance, right=right).save()
+            right = memberRights.objects.get(pk=right_id)
+            userMemberRights(user=user_instance, community=community_instance, right=right).save()
 
         for right_id in rights_removed:
-            right = adminRights.objects.get(pk=right_id)
-            userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
+            right = memberRights.objects.get(pk=right_id)
+            userMemberRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
 
-        # for right in selected_rights:
-        #     if right["is_selected"]:
-        #         right = memberRights.objects.get(pk=right["id"])
-        #         userMemberRights(user=user_instance, community=community_instance, right=right).save()
+        if custom_title:
+            Members.objects.filter(member_id=user_instance,
+                                   community_id=community_instance).update(custom_title=custom_title)
 
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=current_user_instance,
@@ -11364,9 +11392,9 @@ def action_pending_chatroom(request):
 
     if pre_approve is not None:
         if pre_approve or pre_approve == "true":
-            give_member_auto_approve_right(user=current_user_id, community=community_id)
+            give_member_create_room_right(user=current_user_id, community=community_id)
         else:
-            remove_creation_rights_for_user(user=current_user_id, community=community_id)
+            remove_member_create_room_right(user=current_user_id, community=community_id)
 
     return JsonResponse({'success': True})
 
