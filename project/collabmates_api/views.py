@@ -1395,7 +1395,8 @@ def update_community_actions(community_instance):
                 community_level_filter.filter(level="Level 3").update(title="Set up community directory",
                                                                       sub_title="Help members know each other. Ask members to complete their profile for the directory or add new members.",
                                                                       state=community_level_states.PENDING)
-
+                #community managers emails
+                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, start_time, level=2, day=0, counter=0)
                 # community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
                 #                                                       sub_title="Grow your community. Start social sharing and approve 10 new members.",
                 #                                                       state=community_level_states.PENDING)
@@ -1413,6 +1414,8 @@ def update_community_actions(community_instance):
                 community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
                                                                       sub_title="Grow your community. Start social sharing and approve 10 new members.",
                                                                       state=community_level_states.PENDING)
+                #community managers emails
+                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, start_time, level=3, day=0, counter=0)
 
         elif instance.level == "Level 4" and instance.state == community_level_states.PENDING:
 
@@ -1424,6 +1427,8 @@ def update_community_actions(community_instance):
                 instance.state = community_level_states.COMPLETE
                 promoter_filter.update(actions_required=False)
                 instance.save()
+                #community managers emails
+                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, start_time, level=4, day=0, counter=0)
 
 
 def set_levels_on_ctc(community_instance, level, promoter=False):
@@ -2340,6 +2345,9 @@ def create_community_version_1(request):
 
         create_introduction_question_in_community(community_instance)
         post_purpose_collabcard_for_community(request, community_instance, member_id)
+
+        #send mails to ask cm to upgrade level
+        send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, start_time, level=1, day=0, counter=0)
 
         community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
         return JsonResponse({'success': True, 'community': community_serializer})
@@ -4048,7 +4056,8 @@ def approve_or_decline_private_community(req_dict, request):
             mobile_filter = userMobiles.objects.filter(user_id=new_user_instance.id)
             print(mobile_filter)
             for instance in mobile_filter:
-                print("sending sms here")
+                # print("sending sms here")
+                info_logger.log('sending sms for community approval to',instance.id)
                 phone_no = str(instance.country_code) + str(instance.mobile_no)
                 send_community_confirmation_sms.delay(phone_no,community.name,new_user_name,new_user_instance.id)
 

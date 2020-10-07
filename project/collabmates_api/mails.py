@@ -58,17 +58,14 @@ def send_feedback_mail_to_webmaster(feedback_id):
 @shared_task
 def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,day=0,counter=0):
 
-    celerybeatask = CeleryBeatTask()
-    community_levels = communityLevels.objects.filter(state = community_level_states.PENDING,community_id=community_id)
-
-
-
     if day == 0:
         counter = counter + 1
-        start_time = get_next_day_time(start_time,hours=8,minutes=0)
-        start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = get_next_day_time(start_time,hours=8,minutes=0)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 2
         args = [community_id, start_time, day,level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
@@ -80,9 +77,11 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
     elif day == 2:
         send_8am_level_mails_to_admin_mailer(community_id, day, level)
         counter = counter + 1
-        start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 4
         args = [community_id, start_time, day,level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
@@ -94,9 +93,12 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
     elif day == 4:
         send_8am_level_mails_to_admin_mailer(community_id, day, level)
         counter = counter + 1
-        start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
+
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 6
         args = [community_id, start_time, day,level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
@@ -108,9 +110,12 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
     elif day == 6:
         send_8am_level_mails_to_admin_mailer(community_id, day, level)
         counter = counter + 1
-        start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
+
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 8
         args = [community_id, start_time, day,level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
@@ -123,9 +128,12 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
     elif day == 8 and level < 3:
         send_8am_level_mails_to_admin_mailer(community_id, day, level)
         counter = counter + 1
-        start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
+
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 10
         args = [community_id, start_time, day,level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
@@ -166,7 +174,7 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
         ]
 
         if check_notification_flag(member.member_id.id, notification_list, card_id=None, community_id=None):
-            subject = str(member.userinfo.name) + " is waiting for your response! "
+            # subject = str(member.userinfo.name) + " is waiting for your response! "
             email_context = {
                 'subject': subject,
                 'member_name': member.userinfo.name,
