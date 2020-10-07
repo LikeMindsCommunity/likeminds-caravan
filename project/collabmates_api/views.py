@@ -3072,23 +3072,37 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 
 
 def create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
-                                   expire_at=None,external_seen=True):
+                                   expire_at=None,external_seen=True,is_guest=False,source=None,follow_status=False,
+                                   mute_status=False,is_tagged=False):
     '''function to create chatroom state instance'''
     # if not expire_at:
     #     expire_at = get_expiry_time_of_chatroom()
 
 
+    try:
+        collabcard_state_instance = collabcardState()
+        collabcard_state_instance.card = card_instance
+        collabcard_state_instance.community = card_instance.community
+        collabcard_state_instance.user = user_instance
+        collabcard_state_instance.state = state
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.external_seen = external_seen
+        collabcard_state_instance.expiry_time = expire_at
 
-    collabcard_state_instance = collabcardState()
-    collabcard_state_instance.card = card_instance
-    collabcard_state_instance.community = card_instance.community
-    collabcard_state_instance.user = user_instance
-    collabcard_state_instance.state = state
-    collabcard_state_instance.created_at = time.time()
-    collabcard_state_instance.updated_at = time.time()
-    collabcard_state_instance.external_seen = external_seen
-    collabcard_state_instance.expiry_time = expire_at
-    collabcard_state_instance.save()
+        collabcard_state_instance.follow_status = follow_status
+        collabcard_state_instance.mute_status = mute_status
+        collabcard_state_instance.is_tagged=is_tagged
+        collabcard_state_instance.is_guest = is_guest
+        collabcard_state_instance.source = source
+
+        collabcard_state_instance.save()
+        return collabcard_state_instance
+    except Exception as e:
+        info_logger.info(e.args)
+        info_logger.info("Duplicate key creation in collabcardState table")
+        info_logger.info(str(card_instance.id))
+        info_logger.info(str(user_instance.id))
 
 
 def create_chatroom_engagement(card_instance, user_instance, func_dict=None):
@@ -6371,18 +6385,23 @@ def collabcard_follow(request, function_dict=None):
 
     collabcard_state_filter = collabcardState.objects.filter(card=collabcard, user=user_instance)
     if not collabcard_state_filter.exists():
-        collabcard_state_instance = collabcardState()
-        collabcard_state_instance.card = collabcard
-        collabcard_state_instance.community = community_instance
-        collabcard_state_instance.user = user_instance
-        collabcard_state_instance.state = 0
-        collabcard_state_instance.created_at = time.time()
-        collabcard_state_instance.updated_at = time.time()
-        collabcard_state_instance.follow_status = status
-        collabcard_state_instance.is_guest = is_guest
-        collabcard_state_instance.external_seen = True
-        collabcard_state_instance.expiry_time = expiry_time
-        collabcard_state_instance.save()
+        # collabcard_state_instance = collabcardState()
+        # collabcard_state_instance.card = collabcard
+        # collabcard_state_instance.community = community_instance
+        # collabcard_state_instance.user = user_instance
+        # collabcard_state_instance.state = 0
+        # collabcard_state_instance.created_at = time.time()
+        # collabcard_state_instance.updated_at = time.time()
+        # collabcard_state_instance.follow_status = status
+        # collabcard_state_instance.is_guest = is_guest
+        # collabcard_state_instance.external_seen = True
+        # collabcard_state_instance.expiry_time = expiry_time
+        # collabcard_state_instance.save()
+
+        create_chatroom_state_instance(card_instance, user_instance, state=0,
+                                       expire_at=expiry_time, external_seen=True,is_guest=is_guest,follow_status=status)
+
+
 
         if status:
 
@@ -6473,22 +6492,33 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
             collabcard_state_filter.update(follow_status=status,updated_at=time.time(),expiry_time=expiry_time,is_tagged=is_tagged,external_seen=True,mute_status=mute_status)
 
     else:
-        collabcard_state_instance = collabcardState()
-        collabcard_state_instance.card = card_instance
-        collabcard_state_instance.community = card_instance.community
-        collabcard_state_instance.user = user_instance
-        collabcard_state_instance.state = 0
-        collabcard_state_instance.created_at = time.time()
-        collabcard_state_instance.updated_at = time.time()
-        collabcard_state_instance.follow_status = status
-        collabcard_state_instance.is_guest = is_guest
-        collabcard_state_instance.source = ref_instance
-        collabcard_state_instance.external_seen = True
+        # collabcard_state_instance = collabcardState()
+        # collabcard_state_instance.card = card_instance
+        # collabcard_state_instance.community = card_instance.community
+        # collabcard_state_instance.user = user_instance
+        # collabcard_state_instance.state = 0
+        # collabcard_state_instance.created_at = time.time()
+        # collabcard_state_instance.updated_at = time.time()
+        # collabcard_state_instance.follow_status = status
+        # collabcard_state_instance.is_guest = is_guest
+        # collabcard_state_instance.source = ref_instance
+        # collabcard_state_instance.external_seen = True
+        #
+        # collabcard_state_instance.is_tagged = is_tagged
+        # collabcard_state_instance.mute_status = True if is_tagged else False
+        # collabcard_state_instance.expiry_time = get_expiry_time_of_chatroom()
+        # collabcard_state_instance.save()
 
-        collabcard_state_instance.is_tagged = is_tagged
-        collabcard_state_instance.mute_status = True if is_tagged else False
-        collabcard_state_instance.expiry_time = get_expiry_time_of_chatroom()
-        collabcard_state_instance.save()
+        if is_tagged:
+            mute_status=True
+        else:
+            mute_status = False
+        expiry_time = get_expiry_time_of_chatroom()
+        create_chatroom_state_instance(card_instance, user_instance, state=0,
+                                       expire_at=expiry_time, external_seen=True, is_guest=is_guest, source=ref_instance,
+                                       follow_status=status,
+                                       mute_status=mute_status, is_tagged=is_tagged)
+
 
     if status:
         create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
@@ -6509,15 +6539,23 @@ def set_state_for_event_cards(collabcard, community_instance, user_instance, sta
                 collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
             except:
                 # for autofollowing the co-host
-                collabcard_state_instance = collabcardState()
-                collabcard_state_instance.card = collabcard
-                collabcard_state_instance.community = community_instance
-                collabcard_state_instance.user = user_instance
-                collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
-                collabcard_state_instance.follow_status = True
-                collabcard_state_instance.created_at = time.time()
-                collabcard_state_instance.updated_at = time.time()
-                collabcard_state_instance.save()
+                # collabcard_state_instance = collabcardState()
+                # collabcard_state_instance.card = collabcard
+                # collabcard_state_instance.community = community_instance
+                # collabcard_state_instance.user = user_instance
+                # collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+                # collabcard_state_instance.follow_status = True
+                # collabcard_state_instance.created_at = time.time()
+                # collabcard_state_instance.updated_at = time.time()
+                # collabcard_state_instance.save()
+
+                collabcard_state_instance = create_chatroom_state_instance(collabcard, user_instance,
+                                               state=collabcard_states.COLLABCARD_STATE_SEEN,
+                                               expire_at=None, external_seen=True, is_guest=False, source=None,
+                                               follow_status=True,
+                                               mute_status=False, is_tagged=False)
+
+
 
             # when the user is not attending but following the collabcard
             if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
@@ -6643,14 +6681,22 @@ def collabcard_attend(request):
             state_instance.save()
 
         except:
-            collabcard_state_instance = collabcardState()
-            collabcard_state_instance.card = card_instance
-            collabcard_state_instance.community = card_instance.community
-            collabcard_state_instance.user = user_instance
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
-            collabcard_state_instance.created_at = time.time()
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
+            # collabcard_state_instance = collabcardState()
+            # collabcard_state_instance.card = card_instance
+            # collabcard_state_instance.community = card_instance.community
+            # collabcard_state_instance.user = user_instance
+            # collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
+            # collabcard_state_instance.created_at = time.time()
+            # collabcard_state_instance.updated_at = time.time()
+            # collabcard_state_instance.save()
+
+            create_chatroom_state_instance(card_instance, user_instance,
+                                           state=collabcard_states.COLLABCARD_STATE_ATTENDING,
+                                           expire_at=None, external_seen=True, is_guest=False, source=None,
+                                           follow_status=True,
+                                           mute_status=False, is_tagged=False)
+
+
 
         func_dict = {'member_id': member_id, 'collabcard_id': card_instance.id, 'status': True,
                      'source': "Event attend"}
@@ -6672,14 +6718,19 @@ def collabcard_attend(request):
             state_instance.save()
 
         except:
-            collabcard_state_instance = collabcardState()
-            collabcard_state_instance.card = card_instance
-            collabcard_state_instance.community = card_instance.community
-            collabcard_state_instance.user = user_instance
-            collabcard_state_instance.state = state
-            collabcard_state_instance.created_at = time.time()
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
+            # collabcard_state_instance = collabcardState()
+            # collabcard_state_instance.card = card_instance
+            # collabcard_state_instance.community = card_instance.community
+            # collabcard_state_instance.user = user_instance
+            # collabcard_state_instance.state = state
+            # collabcard_state_instance.created_at = time.time()
+            # collabcard_state_instance.updated_at = time.time()
+            # collabcard_state_instance.save()
+            create_chatroom_state_instance(card_instance, user_instance,
+                                           state=state,
+                                           expire_at=None, external_seen=True, is_guest=False, source=None,
+                                           follow_status=True,
+                                           mute_status=False, is_tagged=False)
 
     update_event_answer_text(collabcard_id)  # function to update the text when a user attends an event
 
@@ -10834,3 +10885,13 @@ def sync_members(request):
 
 # ==============================================================================================================
 
+def check():
+
+    user_instance = User.objects.get(id=36)
+    card_instance = Collabcard.objects.get(id=2770)
+    create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
+                                   expire_at=None, external_seen=True)
+
+
+
+check()

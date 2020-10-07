@@ -127,17 +127,21 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id,card_id):
 
         state_filter = collabcardState.objects.filter(user=data.member_id,card=card_instance)
         if not state_filter.exists():
-            user_instance = data.member_id
-            collabcard_state_instance = collabcardState()
-            collabcard_state_instance.card = card_instance
-            collabcard_state_instance.community = card_instance.community
-            collabcard_state_instance.user = user_instance
-            collabcard_state_instance.state = 0
-            collabcard_state_instance.created_at = time.time()
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.external_seen = False
-            collabcard_state_instance.expiry_time = None
-            collabcard_state_instance.save()
+            try:
+                user_instance = data.member_id
+                collabcard_state_instance = collabcardState()
+                collabcard_state_instance.card = card_instance
+                collabcard_state_instance.community = card_instance.community
+                collabcard_state_instance.user = user_instance
+                collabcard_state_instance.state = 0
+                collabcard_state_instance.created_at = time.time()
+                collabcard_state_instance.updated_at = time.time()
+                collabcard_state_instance.external_seen = False
+                collabcard_state_instance.expiry_time = None
+                collabcard_state_instance.save()
+            except Exception as e:
+                info_logger.info(e.args)
+                info_logger.info("Duplicate key creation in collabcardState table")
 
         update_last_unseen_in_engage(user=data.member_id.id, community=community_id, is_seen=True)
 
