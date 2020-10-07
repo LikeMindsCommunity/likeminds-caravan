@@ -5478,26 +5478,6 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
     return  { 'show_follow_telescope' : False, 'show_follow_auto_tag':False, 'show_active':False }
 
 
-
-
-
-    # if show:
-    #     last = False
-    #     if latest_conversation:
-    #         for conversation in conversations:
-    #             if latest_conversation.id == conversation['id']:
-    #                 last = True
-    #     else:
-    #         last = True
-    #
-    #     if last:
-    #         show = True
-    #     else:
-    #         show = False
-
-    #return show
-
-
 def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id, latest_conversation, conversations):
     '''function to show follow telescope of user'''
 
@@ -5548,25 +5528,6 @@ def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id, 
         return temp
     return  { 'show_follow_telescope' : False, 'show_follow_auto_tag':False, 'show_active':False }
 
-
-
-
-
-    # if show:
-    #     last = False
-    #     if latest_conversation:
-    #         for conversation in conversations:
-    #             if latest_conversation.id == conversation['id']:
-    #                 last = True
-    #     else:
-    #         last = True
-    #
-    #     if last:
-    #         show = True
-    #     else:
-    #         show = False
-
-    #return show
 
 
 def create_introduction_card_placeholder(card_instance, user_id):
