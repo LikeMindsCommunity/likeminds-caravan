@@ -184,7 +184,7 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
                 'ios_app_download_link': ios_app_download_link,
                 'playstore_image': GOOGLE_PLAYSTORE,
                 'applestore_image': APPLE_APPSTORE,
-                'blog_link_1':'https://www.notion.so/LikeMinds-Guide-08f238ca116d4dfe95ea7a8db088c9b2&sa=D&ust=1602078293885000&usg=AFQjCNEoO3unAVvA5j8X9WKyVudB2kc9vw',
+                'blog_link_1':'http://bit.ly/lmcm_guide',
                 'app_image': APP_LOGO,
                 'cta_url': url + '/community/' + str(community_id),
                 'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(member.member_id) + '&code=send_8am_level_mails_to_admin_mailer'
