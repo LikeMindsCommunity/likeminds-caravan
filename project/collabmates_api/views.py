@@ -5145,11 +5145,11 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 
     conversations = []
 
-    # if not conversation_id and not scroll_direction:
-    #
-    #     if is_guest:
-    #         context = adding_guest_in_chatroom(request, context, card_instance, aj, source_id,
-    #                                            card_instance.community.id, current_user_id=user_id)
+    if not conversation_id and not scroll_direction:
+
+        if is_guest:
+            context = adding_guest_in_chatroom(request, context, card_instance, aj, source_id,
+                                               card_instance.community.id, current_user_id=user_id)
     #
     #     instance_filter = conversationMemberState.objects.filter(user_id=user_id, card=card_instance)
     #     if not instance_filter.exists():
