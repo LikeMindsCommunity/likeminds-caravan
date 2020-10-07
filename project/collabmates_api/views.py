@@ -5218,9 +5218,9 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     # sending the chatroom actions
 
     if user_id and int(user_id) == card_instance.user.id:
-        chatroom_actions = get_chatroom_actions(card_status, creator=True, promoter=is_promoter)
+        chatroom_actions = get_chatroom_actions(card_status,request ,creator=True, promoter=is_promoter)
     else:
-        chatroom_actions = get_chatroom_actions(card_status, creator=False, promoter=is_promoter)
+        chatroom_actions = get_chatroom_actions(card_status,request,creator=False, promoter=is_promoter)
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
     print("latest_conversations--",latest_conversations)
@@ -5244,7 +5244,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     latest_conversation = conversations_filter.last()
 
     #icons states for sending following, tagging
-    icon_states =  get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_conversation,
+    icon_states =  get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id, latest_conversation,
                                                           conversations)
     card['show_follow_telescope'] = icon_states['show_follow_telescope']
     card['show_follow_auto_tag'] = icon_states['show_follow_auto_tag']
@@ -5472,6 +5472,77 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
             show = True
         else:
             show = False
+
+    if show:
+        return temp
+    return  { 'show_follow_telescope' : False, 'show_follow_auto_tag':False, 'show_active':False }
+
+
+
+
+
+    # if show:
+    #     last = False
+    #     if latest_conversation:
+    #         for conversation in conversations:
+    #             if latest_conversation.id == conversation['id']:
+    #                 last = True
+    #     else:
+    #         last = True
+    #
+    #     if last:
+    #         show = True
+    #     else:
+    #         show = False
+
+    #return show
+
+
+def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id, latest_conversation, conversations):
+    '''function to show follow telescope of user'''
+
+    show = False
+
+    temp = {
+        'show_follow_telescope' : False,
+        'show_follow_auto_tag':False,
+        'show_active':False
+    }
+
+
+    if not card_status['follow_status']:
+        temp['show_follow_telescope'] = True
+        show = True
+
+    if card_instance.user.id == user_id:
+        temp['show_follow_telescope'] = False
+        show = True
+
+    if card_status['active'] and card_status['is_tagged']:
+        temp['show_follow_telescope'] = False
+        temp['show_active'] = False
+        temp['show_follow_auto_tag'] = True
+        show = True
+
+    if card_status['active'] == False and card_status["follow_status"] == True:
+        temp['show_follow_telescope'] = False
+        temp['show_active'] = True
+        temp['show_follow_auto_tag'] = False
+        show = True
+
+    # if show:
+    #     last = False
+    #     if latest_conversation:
+    #         for conversation in conversations:
+    #             if latest_conversation.id == conversation['id']:
+    #                 last = True
+    #     else:
+    #         last = True
+    #
+    #     if last:
+    #         show = True
+    #     else:
+    #         show = False
 
     if show:
         return temp
@@ -7077,7 +7148,6 @@ def fetch_chatroom_feed_version_1(request):
     print(member_id)
 
     chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
-
 
     state_filter = collabcardState.objects.filter(community=community_id).distinct('card_id').order_by('-card_id')
 
