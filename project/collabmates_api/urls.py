@@ -12,7 +12,7 @@ urlpatterns = [
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
     path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
 
-    path('communities', api_views.communities, name="communities"),
+    #path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
 
     path('community/<int:community_id>', api_views.community, name="community"),
@@ -181,6 +181,14 @@ urlpatterns = [
     path('fetch_intro_examples', api_views.fetch_intro_examples, name='fetch_intro_examples'),
 
     ##############################################################################
+
+
+    ############################ synching client db apis ##################################
+
+    path('sync_conversation', api_views.sync_conversation, name='sync_conversation'),
+    path('sync_members', api_views.sync_members, name='sync_members'),
+
+    #######################################################################################
 
 ]
 

@@ -11,6 +11,9 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+from corsheaders.defaults import default_headers
+
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -236,6 +239,10 @@ EMAIL_USE_TLS = True
 
 
 CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-member-id','x-platform-code'
+]
 
 FCM_DJANGO_SETTINGS = {
     "FCM_SERVER_KEY":  os.getenv('PROD_FCM_SERVER_KEY'),

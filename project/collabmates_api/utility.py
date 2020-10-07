@@ -29,7 +29,7 @@ def is_request_web(request):
     '''function to tell if the request is web or not'''
 
     platform_code = get_platform_code_from_headers(request)
-    if platform_code == 0:
+    if platform_code == 0 or platform_code == "Web":
         return True
 
     return False
@@ -76,4 +76,14 @@ def get_total_pages(count,limit=10):
         page_count = int(count / limit) + 1
 
     return page_count
+
+
+
+
+def paginate_list(queryset, page_number, paginate_by=10):
+    '''function to create pagination and return a query set for page number'''
+    paginator = Paginator(queryset, paginate_by)
+    max_page = len(paginator.page_range)
+
+    return [] if (max_page < int(page_number) or not queryset) else paginator.get_page(page_number)
 
