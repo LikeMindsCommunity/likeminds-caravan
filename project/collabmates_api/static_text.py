@@ -105,7 +105,7 @@ collabcard_action_user_follow_unmute = [
 
     {
         'id': 10,
-        'title': 'Report'
+        'title': 'Report Spam/Abuse'
     }
 
 
@@ -144,7 +144,7 @@ collabcard_action_user_follow_mute = [
 
     {
         'id': 10,
-        'title': 'Report'
+        'title': 'Report Spam/Abuse'
     }
 
 
@@ -177,7 +177,7 @@ collabcard_action_user_unfollow = [
 
     {
         'id': 10,
-        'title': 'Report'
+        'title': 'Report Spam/Abuse'
     }
 ]
 
@@ -199,7 +199,7 @@ unMute_notifications = {'id': 8, 'title': 'UnMute notifications'}
 
 unfollow_chatroom = {'id': 9, 'title': 'Unfollow chatroom'}
 
-report = {'id': 10, 'title': 'Report'}
+report = {'id': 10, 'title': 'Report Spam/Abuse'}
 
 mark_active = {'id': 11, 'title': 'Mark active'}
 

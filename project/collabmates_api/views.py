@@ -478,10 +478,10 @@ def my_chatrooms(request):
         last_conversation = instance.last_conversation
 
         if last_conversation:
-            chatroom['last_conversation'] = conversationSerializer(last_conversation)
+            chatroom['last_conversation'] = conversationSerializer(last_conversation,current_user_id=member_id)
             second_last_conversation = instance.second_last_conversation
             if second_last_conversation:
-                chatroom['second_last_conversation'] = conversationSerializer(second_last_conversation)
+                chatroom['second_last_conversation'] = conversationSerializer(second_last_conversation,current_user_id=member_id)
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
@@ -4893,8 +4893,10 @@ def get_answer_bubble_context_for_web(ans):
     return answer_bubble
 
 
-def get_chatroom_actions(card_status, creator, promoter=False):
+def get_chatroom_actions(card_status, request ,creator, promoter=False):
     ''' function to get chatroom actions '''
+
+    is_ios = is_request_ios(request)
 
     purpose_card = False
     intro_card = False
@@ -4947,7 +4949,7 @@ def get_chatroom_actions(card_status, creator, promoter=False):
 
         actions.append(action)
 
-    if card_status['follow_status']:
+    if card_status['follow_status'] and not is_ios:
         if card_status["active"]:
             actions.append(mark_inactive)
         else:
@@ -4960,6 +4962,9 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     '''internal function to get the chatroom conversation screen functionalities '''
     source_id = request.GET.get('source_id')
     aj = request.GET.get('aj')
+
+
+
 
     is_guest = False
     context = {}
@@ -5053,9 +5058,9 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         is_promoter = True
     # sending the chatroom actions
     if user_id and int(user_id) == card_instance.user.id:
-        chatroom_actions = get_chatroom_actions(card_status, creator=True, promoter=is_promoter)
+        chatroom_actions = get_chatroom_actions(card_status, request ,creator=True, promoter=is_promoter)
     else:
-        chatroom_actions = get_chatroom_actions(card_status, creator=False, promoter=is_promoter)
+        chatroom_actions = get_chatroom_actions(card_status, request ,creator=False, promoter=is_promoter)
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
     print("latest_conversations--",latest_conversations)
@@ -8667,7 +8672,7 @@ def members_state(request, req_dict=None):
     edit_required = False
     actions_required = False
     created_at = 0
-
+    image_url = ""
     if query_set.exists():
         data = query_set[0]
         is_member = False
@@ -8692,6 +8697,9 @@ def members_state(request, req_dict=None):
         if data.actions_required:
             actions_required = True
 
+        if data.image_url:
+            image_url = data.image_url
+
         if not is_member:
             pass
 
@@ -8713,6 +8721,7 @@ def members_state(request, req_dict=None):
 
     json_response['member'] = get_user_profile(member_id, community_id)
     json_response['member']['state'] = state
+    json_response['image_url'] = image_url
 
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
     if toast_filter.exists():
