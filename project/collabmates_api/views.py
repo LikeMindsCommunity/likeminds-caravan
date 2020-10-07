@@ -10885,13 +10885,3 @@ def sync_members(request):
 
 # ==============================================================================================================
 
-def check():
-
-    user_instance = User.objects.get(id=36)
-    card_instance = Collabcard.objects.get(id=2770)
-    create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
-                                   expire_at=None, external_seen=True)
-
-
-
-check()
