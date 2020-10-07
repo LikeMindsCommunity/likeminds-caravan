@@ -69,6 +69,7 @@ from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard
                     send_community_confirmation_email)
 
 from .mails import *
+from .sms import *
 
 from .chatroom_backup import create_chatroom_delete_backup
 
@@ -4040,11 +4041,27 @@ def approve_or_decline_private_community(req_dict, request):
             # deleting if the user left the community before
             removedMembers.objects.filter(community=req_dict['community_id'], member=req_dict['member_id']).delete()
 
+
+            #send sms
+            member_instance = Members.objects.get(member_id = int(req_dict['member_id']))
+            new_user_instance = member_instance.member_id
+            new_user_name = get_first_name_from_name(new_user_instance.userinfo.name)
+            mobile_filter = userMobiles.objects.filter(user_id=new_user_instance.id)
+            print(mobile_filter)
+            for instance in mobile_filter:
+                print("sending sms here")
+                phone_no = str(instance.country_code) + str(instance.mobile_no)
+                send_community_confirmation_sms.delay(phone_no,community.name,new_user_name,new_user_instance.id)
+
+
             # sending mails and notifications
             # send notification
             send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],
                                                       promoter_name)
             send_community_confirmation_email.delay(req_dict['member_id'], req_dict['community_id'])
+
+
+
 
 
     else:
