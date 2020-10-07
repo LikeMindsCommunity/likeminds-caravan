@@ -716,8 +716,8 @@ class collabcardState(models.Model):
 
     external_seen = models.BooleanField(default=True)
 
-    class Meta:
-        unique_together = (('card', 'user'),)
+    # class Meta:
+    #     unique_together = (('card', 'user'),)
 
 
 
