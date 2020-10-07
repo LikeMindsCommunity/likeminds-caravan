@@ -34,10 +34,9 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions)
-from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied,
-                           send_mail_for_report_abuse,
-                           send_mail_for_query_and_feedback
+from utility.tasks import (mail_triger, new_member_request, member_request_approval_or_denied,
+                           send_mail_for_report_abuse, send_mail_for_query_and_feedback,
+                           save_name_initial_image
                            )
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_referred_members_of_a_member,
@@ -1093,6 +1092,8 @@ def join_promoter_created_community_version_1(res, request):
 
                 # saving create community action level3
                 update_community_actions(community_instance)
+
+                save_name_initial_image.delay(member_id, community_id, user_name=user_instance.userinfo.name)
 
                 # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
@@ -4061,9 +4062,7 @@ def approve_or_decline_private_community(req_dict, request):
                                                       promoter_name)
             send_community_confirmation_email.delay(req_dict['member_id'], req_dict['community_id'])
 
-
-
-
+            save_name_initial_image.delay(req_dict['member_id'], req_dict['community_id'], user_name=new_user_name)
 
     else:
 

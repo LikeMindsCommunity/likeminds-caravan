@@ -283,3 +283,26 @@ def upload_question_files(request=None, community_id=None, question_id=None, mem
 
         return JsonResponse({"success": True, "image_url": image_url})
 
+
+def upload_user_community_profile_images(user_id, communtiy_id, image, url=False):
+
+    '''function to put tags images in firebase'''
+    name="img_user_"+str(user_id)
+    if url:
+        image_url=image
+        if is_url_image_valid(image_url):
+            image_data = requests.get(image_url).content
+            user_id = str(user_id)
+            storage.child("files").child("user").child(user_id).child(name).put(image_data)
+            image_url = storage.child("files").child("user").child(user_id).child(name).get_url(None)
+            return image_url
+        else:
+            print("Image url is broken for user=", user_id)
+            return ''
+    else:
+        user_id = str(user_id)
+        storage.child("files").child("user").child(user_id).child(name).put(image)
+        image_url = storage.child("files").child("user").child(user_id).child(name).get_url(None)
+        return image_url
+
+

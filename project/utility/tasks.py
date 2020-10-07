@@ -6,8 +6,9 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from togther.models import *
-from togther.models import *
-
+from PIL import Image, ImageDraw, ImageFont
+from utility.firebase import upload_user_community_profile_images
+import os
 from .utils import *
 url = settings.URL
 
@@ -252,7 +253,29 @@ def send_mail_for_query_and_feedback(mail_dict):
     send_email(subject, template, to_list)
 
 
+@shared_task
+def save_name_initial_image(user_id, community_id, user_name):
+    name_initial = user_name[0]
+    font = ImageFont.truetype("/static/fonts/Roboto-Medium.ttf", 50, encoding="unic")
 
+    canvas = Image.new('RGB', (400, 400), "white")
+    draw = ImageDraw.Draw(canvas)
+    text_width, text_height = draw.textsize(name_initial, font=font)
+
+    draw.text(((400 - text_width) / 2, (400 - text_height) / 2), text, 'black', font)
+    image_name = f"media/media/user_community_profile/{user_id}_{community_id}_profile_image.png"
+    canvas.save(image_name, "PNG")
+    # canvas.show()
+
+    image_url = upload_user_community_profile_images(user_id, communtiy_id, image=canvas, url=False)
+
+    if image_url:
+        member_instance = Members.objects.filter(community_id=communtiy_id, member_id=user_id)
+        if member_instance.exists():
+            member_instance.update(image_url=image_url)
+
+    if os.path.isfile(image_name):
+        os.remove(image_name)
 
 # mail_dict={}
 # mail_dict['user_name'] = "Mahesh Royals"
