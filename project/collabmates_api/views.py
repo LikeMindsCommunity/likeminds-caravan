@@ -5226,7 +5226,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     print("latest_conversations--",latest_conversations)
 
     # getting the state of chatroom against the user
-    chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id, remove=None)
+    chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
     # if the user is seeing this chatroom from external link or notification
     if not chatroom_state.exists() and user_instance:
         expire_at = get_expiry_time_of_chatroom()
