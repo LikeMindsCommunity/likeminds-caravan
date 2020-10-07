@@ -400,7 +400,7 @@ def your_communities(request, user_id):
 
         # if community['collabcard_unseen'] > 0:
             # header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
-        if community['collabcard_unseen'] > 0:
+        if community['collabcard_unseen'] > 0 and each_community.new_chatroom_users:
             community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
             #community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         else:
@@ -2408,6 +2408,7 @@ def create_community_questions(res):
                 continue
 
             else:
+
                 question_instance = communityQuestions()
                 create_or_update_question_instances(question_instance, question, community_instance)
 
