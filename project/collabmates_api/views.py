@@ -8722,7 +8722,7 @@ def members_state(request, req_dict=None):
 
     json_response['member'] = get_user_profile(member_id, community_id)
     json_response['member']['state'] = state
-    json_response['image_url'] = image_url
+    json_response['member']['image_url'] = image_url
 
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
     if toast_filter.exists():
