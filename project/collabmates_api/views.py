@@ -2082,7 +2082,7 @@ def remove_from_member(request):
                         remove_members(community_id, member_filter[0].member_id.id,
                                        removed_state=deleted_members.REMOVED)
 
-                        check_reports_and_update_action(action_taken_by=current_user_id,
+                        check_reports_and_update_action(action_taken_by=member_id,
                                                               action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
                                                               user=member_id, community=community_id,
                                                               action_taken_tag_id=tag_id, action_taken_reason=reason)
@@ -2100,7 +2100,7 @@ def remove_from_member(request):
             toast_filter = communityToast.objects.filter(community_id=community_id, user=member_id)
             toast_filter.update(toast_message="Your request for joining this community is cancelled")
 
-            check_reports_and_update_action(action_taken_by=current_user_id,
+            check_reports_and_update_action(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
 
@@ -2112,9 +2112,10 @@ def remove_from_member(request):
         is_member = Members.objects.filter(community_id=community_id, member_id=member_id).filter(
                     Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER) |
                     Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+
         if is_member.exists():
             remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
-            check_reports_and_update_action(action_taken_by=current_user_id,
+            check_reports_and_update_action(action_taken_by=member_id,
                                             action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                             user=member_id, community=community_id)
             return JsonResponse({'success': True})
@@ -8978,8 +8979,10 @@ def members_state(request, req_dict=None):
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
         json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
 
-    user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
-    json_response['member_rights'] = get_saved_member_rights_list(user_rights)
+    if state == member_states.MEMBER or state == member_states.KNOWN_NOMINATED_PROMOTER or \
+            state == member_states.PROFILE_UNAVAILABLE or state == member_states.ADMIN or state == member_states.TEMP_ADMIN:
+        user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
+        json_response['member_rights'] = get_saved_member_rights_list(user_rights)
                              
     json_response['member']['image_url'] = image_url
 
@@ -11276,7 +11279,7 @@ def update_community_manager_rights(request):
 def get_added_and_removed_rights(user, community, selected_rights, existing_rights):
 
     selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
-    
+
     print(">>>>> existing_rights >>>>>>  ", existing_rights)
     print(">>>>> selected_rights >>>>>>  ", selected_rights_list)
 
@@ -11809,9 +11812,9 @@ def action_pending_chatroom(request):
     current_user_id = get_member_id_from_headers(request)
     # user_instance = User.objects.get(id=current_user_id)
 
-    chatroom_id = request.GET.get('chatroom_id', None)
-    value = request.GET.get('value', False)
-    pre_approve = request.GET.get('pre_approve', None)
+    chatroom_id = request.POST.get('chatroom_id', None)
+    value = request.POST.get('value', False)
+    pre_approve = request.POST.get('pre_approve', None)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
@@ -11883,7 +11886,8 @@ def fetch_management_tools(request):
 
 
     community_instance = Community.objects.get(pk=community_id)
-    header = f"Management tools for {community_instance.name}"
+    community_name = community_instance.name
+    header = f"Management tools for {community_name}"
     management_tools = []
 
 
@@ -11896,10 +11900,14 @@ def fetch_management_tools(request):
     # had to do this multiple duplicate checks cause to send in tool order as per design
     if has_right_1:
         member_request_tool = get_tool_member_requests(user_id=current_user_id, community_id=community_id)
+
+        member_request_tool["route"] = f"route://member_approve?community_id={community_id}&community_name={community_name}"
+
         management_tools.append(member_request_tool)
 
     if has_right_0:
         pending_chatrooms_tool = get_tool_pending_chat_rooms(user_id=current_user_id, community_id=community_id)
+        pending_chatrooms_tool["route"] = f"route://pending_chatrooms?community_id={community_id}"
         management_tools.append(pending_chatrooms_tool)
 
     if has_right_0 or has_right_1:
@@ -11907,13 +11915,26 @@ def fetch_management_tools(request):
                                                has_right_0=has_right_0, has_right_1=has_right_1,
                                                has_right_2=has_right_2, parent_cm_list=parent_cm_list,
                                                is_owner=is_owner)
+        reports_tool["route"] = f"route://review_reports?community_id={community_id}"
         management_tools.append(reports_tool)
 
     if has_right_2:
+        global tool_edit_directory_questions
+        global tool_edit_community_details
+
+        tool_edit_directory_questions = tool_edit_directory_questions.copy()
+        tool_edit_community_details = tool_edit_community_details.copy()
+
+        tool_edit_directory_questions["route"] = f"route://edit_community_directory?community_id={community_id}"
+        tool_edit_community_details["route"] = f"route://edit_community?community_id={community_id}"
+
         management_tools.append(tool_edit_directory_questions)
         management_tools.append(tool_edit_community_details)
 
     if has_right_0 or has_right_1:
+        global tool_community_settings
+        tool_community_settings = tool_community_settings.copy()
+        tool_community_settings["route"] = f"route://community_settings?community_id={community_id}"
         management_tools.append(tool_community_settings)
 
     return JsonResponse(tools)
