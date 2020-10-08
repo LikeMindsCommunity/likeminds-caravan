@@ -24,7 +24,7 @@ from datetime import datetime, date
 #         fields = ('id','name', 'purpose', 'image_url' ,'about', 'location')
 
 
-def CommunitySerializer(community, promoter_id=0):
+def CommunitySerializer(community, promoter_id=0, current_user_id=None):
     # function to serialize a community object
     new_dict = {
         'id': community.id,
@@ -55,6 +55,8 @@ def CommunitySerializer(community, promoter_id=0):
     new_dict['is_member'] = ''
 
     new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+    if current_user_id:
+        new_dict['share_url'] = new_dict['share_url'] + f"&shared_by={current_user_id}"
 
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_members_count_in_community(community.id)
@@ -64,6 +66,8 @@ def CommunitySerializer(community, promoter_id=0):
     if promoter_id:
         private_link = generate_private_link(community_instance=community,
                                              promoter_instance=promoter_id)
+        if current_user_id:
+            private_link = private_link + f"&shared_by={current_user_id}"
         new_dict['private_link'] = private_link
         if new_dict['members_count'] <= 10:
             new_dict[
@@ -164,6 +168,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         'type': card.type,
         'date_time': card.date_time,
         'duration': card.duration,
+        "is_deleted": card.is_deleted,
         'answers_count': card.answers_count,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
@@ -256,6 +261,12 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         member_ids = [card.updated_member]
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id, current_user_id=user)
         collabcard['updated_member'] = temp[0]
+
+    if card.is_deleted:
+        member_ids = [card.deleted_by_user]
+        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id, current_user_id=user)
+        collabcard['deleted_by'] = temp[0]
+        collabcard['deleted_by_member_state'] = card.deleted_by_user_state
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
@@ -1099,7 +1110,9 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
     member_id = member_instance.member_id.id
     community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
     community_profile['state'] = member_instance.state
-
+    community_profile['is_owner'] = member_instance.is_owner
+    if member_instance.custom_title:
+        community_profile['custom_title'] = member_instance.custom_title
     # sending image  url of members
     if member_instance.image_url:
         community_profile['image_url'] = member_instance.image_url

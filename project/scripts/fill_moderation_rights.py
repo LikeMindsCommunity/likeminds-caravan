@@ -8,33 +8,35 @@ import psycopg2
 from collabmates_api.notification import get_connection
 import json
 
-delete_room = {'id': 1, 'title': 'Delete chat rooms/messages', "state": 0}
+delete_room = {'id': 1, 'sub_title': None, 'title': 'Delete chat rooms/messages', "state": 0}
 
-approve_members = {'id': 2, 'title': 'Approve/remove members', "state": 1}
+approve_members = {'id': 2, 'sub_title': None, 'title': 'Approve/remove members', "state": 1}
 
-edit_community = {'id': 3, 'title': "Edit community details", "state": 2}
+edit_community = {'id': 3, 'sub_title': None, 'title': "Edit community details", "state": 2}
 
-view_contact = {'id': 4, 'title': 'View member contact info', "state": 3}
+view_contact = {'id': 4, 'sub_title': None, 'title': 'View member contact info', "state": 3}
 
-add_manager = {'id': 5, 'title': "Add community managers", "state": 4}
+add_manager = {'id': 5, 'sub_title': None, 'title': "Add community managers", "state": 4}
 
 manager_rights_list = [delete_room, approve_members, edit_community, view_contact, add_manager]
 
 
-create_room = {'id': 1, 'title': "Create chat rooms", "state": 0}
+create_room = {'id': 1, 'sub_title': None, 'title': "Create chat rooms", "state": 0}
 
-create_poll = {'id': 2, 'title': "Create polls", "state": 1}
+create_poll = {'id': 2, 'sub_title': None, 'title': "Create polls", "state": 1}
 
-create_event = {'id': 3, 'title': "Create events", "state": 2}
+create_event = {'id': 3, 'sub_title': None, 'title': "Create events", "state": 2}
 
-respond_in_rooms = {'id': 4, 'title': "Respond in chat rooms", "state": 3}
+respond_in_rooms = {'id': 4, 'sub_title': None, 'title': "Respond in chat rooms", "state": 3}
 
 invite_private = {'id': 5, 'title': "Invite members via private link",
                   'sub_title': "Private links remain valid for 24 hours and. the user joining via them a re auto verified"
                   , "state": 4
                   }
 
-auto_approve_rooms = {'id': 6, 'title': "Auto-approve created chat rooms", "state": 5}
+auto_approve_rooms = {'id': 6, 'title': "Auto-approve created chat rooms",
+                      'sub_title': "If auto-approved, member's chat rooms will be posted instantly and would not need any approval.",
+                      "state": 5}
 
 member_rights_list = [create_room, create_poll, create_event, respond_in_rooms, invite_private, auto_approve_rooms]
 
@@ -74,7 +76,7 @@ def fill_rights():
             fill_admin_rights(member.member_id, member.community_id, admin_rights, is_owner=is_owner)
             fill_member_rights(member.member_id, member.community_id, member_rights, is_admin=True)
         else:
-            fill_member_rights(member.member_id, member.community_id, member_rights)
+            fill_member_rights(member.member_id, member.community_id, member_rights, is_admin=False)
 
 
     end_time = time.time()
@@ -88,18 +90,18 @@ def fill_admin_rights(user, community, rights_list, is_owner=False):
     loop_count = 0
     for right in rights_list:
         if not is_owner and loop_count >= 3:
+            print(">>>> admin  --  ", user, community, right)
             break
         userAdminRights(user=user, community=community, right=right).save()
         loop_count += 1
 
 
 def fill_member_rights(user, community, rights_list, is_admin=False):
-    loop_count = 0
     for right in rights_list:
-        if not is_admin and loop_count == 5:
+        if not is_admin and right.state == 4:
+            print(">>>> member  --  ", user.id, community.id, right.id)
             continue
         userMemberRights(user=user, community=community, right=right).save()
-        loop_count += 1
 
 
 def get_communities_with_admins():
@@ -154,9 +156,9 @@ def fill_parent_for_admins():
 start_time = time.time()
 print(">>>>>> started >>>>>>>>   ", start_time)
 
-save_rights()
+# save_rights()
 fill_rights()
-fill_parent_for_admins()
+# fill_parent_for_admins()
 
 end_time = time.time()
 print(">>>>>> end >>>>>>>>  ", end_time)

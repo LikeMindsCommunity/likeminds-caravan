@@ -124,7 +124,7 @@ def get_all_members(request, req_dict=None):
 
     promoter_instance = is_member_promoter(community_instance,current_user_id)
 
-    community = CommunitySerializer(community_instance, promoter_id=promoter_instance)
+    community = CommunitySerializer(community_instance, promoter_id=promoter_instance, current_user_id=current_user_id)
 
     if filter_list:
         member_list = get_member_query_set(current_user_id, community_id,send_all=True)
@@ -431,7 +431,7 @@ def send_participants_of_chatroom(chatroom_id,filter_list,community_id,current_u
 
     promoter_instance = is_member_promoter(community_instance, current_user_id)
 
-    community = CommunitySerializer(community_instance, promoter_id=promoter_instance)
+    community = CommunitySerializer(community_instance, promoter_id=promoter_instance, current_user_id=current_user_id)
 
     context = {'members': members, 'community': community}
 

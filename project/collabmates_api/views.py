@@ -337,7 +337,7 @@ def your_communities(request, user_id):
     current_time = time.time()
     for each_community in communities:
 
-        community = CommunitySerializer(each_community.community_id)
+        community = CommunitySerializer(each_community.community_id, current_user_id=current_user_id)
 
         if each_community.member_state == member_states.ADMIN:
             has_approve_right = check_admin_approve_right(user, each_community.community_id)
@@ -449,11 +449,11 @@ def my_chatrooms(request):
         draft_instance = instance.draft
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id)
-            chatroom['community'] = CommunitySerializer(card_instance.community)
+            chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id)
             chatroom['is_draft'] = False
         elif draft_instance:
             chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance, member_id)
-            chatroom['community'] = CommunitySerializer(draft_instance.community)
+            chatroom['community'] = CommunitySerializer(draft_instance.community, current_user_id=member_id)
             chatroom['is_draft'] = True
 
         last_conversation = instance.last_conversation
@@ -543,11 +543,11 @@ def my_chatrooms_version_1(request):
         draft_instance = instance.draft
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id)
-            chatroom['community'] = CommunitySerializer(card_instance.community)
+            chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id)
             chatroom['is_draft'] = False
         elif draft_instance:
             chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance, member_id)
-            chatroom['community'] = CommunitySerializer(draft_instance.community)
+            chatroom['community'] = CommunitySerializer(draft_instance.community, current_user_id=member_id)
             chatroom['is_draft'] = True
 
         last_conversation = instance.last_conversation
@@ -749,9 +749,9 @@ def community(request, community_id, req_dict=None):
         block_leave_community = True
 
     if is_promoter:
-        serialized_object = CommunitySerializer(community, promoter_id=promoter_instance)
+        serialized_object = CommunitySerializer(community, promoter_id=promoter_instance, current_user_id=member_id)
     else:
-        serialized_object = CommunitySerializer(community)
+        serialized_object = CommunitySerializer(community, current_user_id=member_id)
 
     community_state = get_state_of_community(community)
 
@@ -875,7 +875,7 @@ def questions(request):
 
     data = communityQuestions.objects.filter(community=community_id).order_by('-rank', 'id')
     community_instance = Community.objects.get(id=community_id)
-    community = CommunitySerializer(community_instance)
+    community = CommunitySerializer(community_instance, current_user_id=member_id)
 
     created_by = get_community_creator(community_instance)
 
@@ -2216,7 +2216,7 @@ def fetch_common_communities(request):
 
     for order in communities_order:
         community_instance = Community.objects.get(id=order[0])
-        community_serializer = CommunitySerializer(community_instance)
+        community_serializer = CommunitySerializer(community_instance, current_user_id=member_id)
 
         communities.append(community_serializer)
     return JsonResponse({'communities': communities, 'total_count': total_count})
@@ -2313,7 +2313,7 @@ def create_community_version_1(request):
         }
         send_created_community_email_to_team.delay(email_context)
 
-        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
+        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance, current_user_id=member_id)
         return JsonResponse({'success': True, 'community': community_serializer})
 
 
@@ -2330,7 +2330,7 @@ def create_community_version_1(request):
         create_introduction_question_in_community(community_instance)
         post_purpose_collabcard_for_community(request, community_instance, member_id)
 
-        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
+        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance, current_user_id=member_id)
         return JsonResponse({'success': True, 'community': community_serializer})
 
     elif page == 3:
@@ -2359,7 +2359,7 @@ def create_community_version_1(request):
             context = get_error_context(False, e)
             return JsonResponse(context)
 
-        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
+        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance, current_user_id=member_id)
         return JsonResponse({'success': True, 'community': community_serializer})
 
 
@@ -3024,7 +3024,7 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 
         if state == chatroom_states.CHATROOM_HEADER:
 
-            community = CommunitySerializer(card_instance.community)
+            community = CommunitySerializer(card_instance.community, current_user_id=current_user_id)
             community_route = "route://community?community_id=" + str(community['id'])
             community_name = "<<" + str(community['name']) + "|" + community_route + ">>"
             if (card_instance.type == card_types.CARD_POLL):
@@ -4810,12 +4810,17 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
         if ans.reply and fetch_reply:
             context['reply_conversation'] = get_answer_data([ans.reply], community_id,
-                                                            current_user_id, fetch_reply=False)
+                                                            current_user_id, fetch_reply=False)[0]
 
         if ans.internal_link:
             context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
                                                      community_instance=ans.preview_community,
                                                      chatroom_instance=ans.preview_chatroom)
+        if ans.is_deleted:
+            member_ids = [ans.deleted_by_user]
+            temp = get_members_profile(member_ids=member_ids, community_id=community_id, current_user_id=current_user_id)
+            context['deleted_by'] = temp[0]
+            context['deleted_by_member_state'] = ans.deleted_by_user_state
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
 
@@ -5062,7 +5067,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     context['chatroom_actions'] = chatroom_actions
     context['total_response_count'] = total_response_count
 
-    context['community'] = CommunitySerializer(card_instance.community)
+    context['community'] = CommunitySerializer(card_instance.community, current_user_id=user_id)
 
     # updating the activity of chatroom
     # update_activity_in_chatroom(card_instance,user_instance=user_id)
@@ -5158,11 +5163,12 @@ def adding_guest_in_chatroom(request, context, card_instance, aj, source_id, com
             'title'] = "Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room."
         if status:
             # for promoter
-            community_serializer = CommunitySerializer(card_instance.community, status.member_id)
+            community_serializer = CommunitySerializer(card_instance.community, status.member_id,
+                                                       current_user_id=current_user_id)
             community_serializer['created_by'] = get_community_creator(card_instance.community)
             aj_expired_disclaimer['community'] = community_serializer
         else:
-            community_serializer = CommunitySerializer(card_instance.community)
+            community_serializer = CommunitySerializer(card_instance.community, current_user_id=current_user_id)
             community_serializer['created_by'] = get_community_creator(card_instance.community)
             aj_expired_disclaimer['community'] = community_serializer
 
@@ -5317,9 +5323,10 @@ def community_collabcard_invite(request, community_id):
     member_id = request.GET.get('member_id')
     member_instance = User.objects.get(id=member_id)
     if is_member_promoter(community_id=community_id, member_id=member_id):
-        community_serializer_instance = CommunitySerializer(community, promoter_id=member_instance)
+        community_serializer_instance = CommunitySerializer(community, promoter_id=member_instance,
+                                                            current_user_id=member_id)
     else:
-        community_serializer_instance = CommunitySerializer(community)
+        community_serializer_instance = CommunitySerializer(community, current_user_id=member_id)
 
     # if the community is a user-created community
     if community_serializer_instance['state'] == community_states.PRIVATE or community_serializer_instance[
@@ -8284,7 +8291,7 @@ def limit_access(request):
     community_list = []
     for member in members_filter:
         community_instance = member.community_id
-        community = CommunitySerializer(community_instance)
+        community = CommunitySerializer(community_instance, current_user_id=member_id)
 
         community_creator = get_community_creator(community_instance)
         if community_creator:
@@ -8721,7 +8728,7 @@ def edit_community(request):
     instance.community = community
     instance.save()
 
-    serialized_object = CommunitySerializer(community)
+    serialized_object = CommunitySerializer(community, current_user_id=member_id)
     new_dict = {}
     new_dict.update(serialized_object)
 
@@ -10432,7 +10439,11 @@ def delete_conversation(request):
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
 
     member_id = get_member_id_from_headers(request)
+    current_user_instance = User.objects.get(pk=member_id)
+
     conversation_id = request.POST.get('conversation_id', None)
+    tag_id = request.POST.get('tag_id', None)
+    reason = request.POST.get('reason', None)
 
     if not conversation_id:
         context = get_error_context(False, "send the conversation_id in post params")
@@ -10450,22 +10461,52 @@ def delete_conversation(request):
     if current_member.exists():
         is_promoter = True
 
-    if (int(conversation.user.id) == int(member_id)) or is_promoter:
+    conversation_creator = int(conversation.user.id) == int(member_id)
 
-        if is_promoter:
+    if conversation_creator or is_promoter:
+
+        if is_promoter and not conversation_creator:
             # calling inside to avoid a query hit in non manager case
             if not check_admin_delete_right(user=member_id, community=community_id):
                 context = get_error_context(False, "You do not have right to delete messages")
                 return JsonResponse(context)
 
-        conversation.is_deleted = True
-        conversation.save()
+        # conversation.is_deleted = True
+        # conversation.save()
+        update_conversation_delete_status(conversation, current_user_instance, is_promoter,
+                                          conversation_creator=conversation_creator, reason=reason, tag_id=tag_id)
 
     else:
         context = get_error_context(False, "Only conversation creator or community manager can delete messages")
         return JsonResponse(context)
 
     return JsonResponse({'success': True})
+
+def update_conversation_delete_status(conversation_instance, current_user_instance, is_promoter,
+                                      conversation_creator, reason, tag_id=None):
+
+    deleted_by_user_state = 1 if is_promoter else 4
+    deleted_by_text = ""
+    if conversation_creator:
+        deleted_by_text = "creator"
+    elif is_promoter:
+        deleted_by_text = "community manager"
+
+    tag_instance = None
+    if tag_id:
+        tag = Report_Tags.objects.filter(tag_id=tag_id)
+        if tag.exists():
+            tag_instance = tag[0]
+
+    conversation_instance.is_deleted = True
+    conversation_instance.deleted_by_user = current_user_instance
+    conversation_instance.deleted_by_user_state = deleted_by_user_state
+    conversation_instance.deleted_by_text = deleted_by_text
+    conversation_instance.tag = tag_instance
+    conversation_instance.reason = reason
+    conversation_instance.save()
+
+    info_logger.info("successfully updated conversation_instance delete status")
 
 
 @csrf_exempt
