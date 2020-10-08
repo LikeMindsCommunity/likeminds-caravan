@@ -141,7 +141,7 @@ urlpatterns = [
     path('push_onboarding', api_views.push_onboarding, name='push_onboarding'),
 
     path('fetch_report_tags', api_views.fetch_report_tags, name='fetch_report_tags'),
-    path('push_report', api_views.push_report, name='push_report'),
+    path('push_report', api_views.push_report_v1, name='push_report'),
 
 
     path('community_collabcard_id', api_views.community_collabcard_id, name='community_collabcard_id'),

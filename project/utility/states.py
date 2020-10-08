@@ -59,6 +59,20 @@ class ModerationHistoryTypes:
 moderation_history_types = ModerationHistoryTypes()
 
 
+class ReportActionTypes:
+
+    EDIT_MEMBER_PERMISSION = 0
+    REMOVE_FROM_COMMUNITY = 1
+    LEFT_THE_COMMUNITY = 2
+    RESPONSE_DELETED_BY_CM = 3
+    RESPONSE_DELETED_BY_CREATOR = 4
+    CHATROOM_DELETED_BY_CM = 5
+    CHATROOM_DELETED_BY_CREATOR = 6
+
+
+report_Action_Types = ReportActionTypes()
+
+
 # chatroom actions
 class ChatroomActions:
 

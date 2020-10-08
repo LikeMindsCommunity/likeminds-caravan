@@ -34,7 +34,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
-                            moderation_history_types)
+                            moderation_history_types, report_Action_Types)
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -62,6 +62,9 @@ from .raw_queries import *
 from .serializers import *
 from .static_files import *
 from .static_text import *
+from .static_text import (tool_member_requests, tool_pending_chat_rooms,
+                          tool_review_reports, tool_edit_directory_questions,
+                          tool_edit_community_details, tool_community_settings)
 from .members import *
 from .utility import *
 from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard_posted,
@@ -1042,10 +1045,12 @@ def join_promoter_created_community_version_1(res, request):
             # insert private link dropoff here
             time_in_hrs = 2
 
-            if validate_time:
+            if True:
                 is_private_link = True
                 # saving moderation history
+                print("saving history 1")
                 if 'shared_by' in res:
+                    print("saving history 2 ---  ", res['shared_by'])
                     history_type = moderation_history_types.APPLIED_PRIVATE_LINK
                     shared_user = User.objects.get(pk=res['shared_by'])
                     save_moderation_history(user=user_instance, community=community_instance,
@@ -1994,6 +1999,8 @@ def remove_from_member(request):
     community_id = request.POST.get('community_id')
 
     member_ids = request.POST.get('member_ids', False)
+    tag_id = request.POST.get('tag_id', None)
+    reason = request.POST.get('reason', None)
 
     is_promoter = Members.objects.filter(state=member_states.ADMIN, community_id=community_id, member_id=member_id)
     is_promoter = is_promoter.exists()
@@ -2013,6 +2020,11 @@ def remove_from_member(request):
                         remove_members(community_id, member_filter[0].member_id.id,
                                        removed_state=deleted_members.REMOVED)
 
+                        check_reports_and_update_action(action_taken_by=current_user_id,
+                                                              action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
+                                                              user=member_id, community=community_id,
+                                                              action_taken_tag_id=tag_id, action_taken_reason=reason)
+
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'error_message': "You are not the promoter of this community"})
@@ -2025,6 +2037,11 @@ def remove_from_member(request):
             remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
             toast_filter = communityToast.objects.filter(community_id=community_id, user=member_id)
             toast_filter.update(toast_message="Your request for joining this community is cancelled")
+
+            check_reports_and_update_action(action_taken_by=current_user_id,
+                                                  action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
+                                                  user=member_id, community=community_id)
+
             return JsonResponse({'success': True})
 
     # flow to leave the community
@@ -2035,6 +2052,9 @@ def remove_from_member(request):
                     Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
         if is_member.exists():
             remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
+            check_reports_and_update_action(action_taken_by=current_user_id,
+                                            action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
+                                            user=member_id, community=community_id)
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False,
@@ -3264,6 +3284,15 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
     collabcard_instance.reason = reason
     collabcard_instance.save()
 
+    if int(current_user_instance.id) == int(collabcard_instance.user.id):
+        action_taken = report_Action_Types.CHATROOM_DELETED_BY_CREATOR
+    else:
+        action_taken = report_Action_Types.CHATROOM_DELETED_BY_CM
+
+    check_reports_and_update_action(action_taken_by=current_user_instance.id,
+                                    action_taken=action_taken,
+                                    chatroom_id=collabcard_instance.id)
+
     info_logger.info("successfully updated chatroom delete status")
 
 
@@ -4073,7 +4102,8 @@ def approve_or_decline_private_community(req_dict, request):
             send_community_confirmation_email.delay(req_dict['member_id'], req_dict['community_id'])
 
             accepted_user = User.objects.get(pk=req_dict['member_id'])
-            save_moderation_history(user=accepted_user, community=community, moderation_by=current_user_instance,
+            save_moderation_history(user=accepted_user, community=community,
+                                    moderation_by=current_user_instance.user_id,
                                     type=moderation_history_types.APPROVED_FROM)
 
 
@@ -9889,6 +9919,7 @@ def push_report_v1(request):
         report_type = 3  # assume as community reported
         reported_member_instance = None
         collabcard_instance = None
+        conversation_instance = None
         is_promoter = False
         is_owner = False
         has_right_0 = False  # right to delete chat rooms or conversations
@@ -9916,7 +9947,6 @@ def push_report_v1(request):
             if not community_id:
                 community_id = collabcard_instance.community.id
 
-        conversation_instance = None
         if conversation_id:
 
             if is_promoter and has_right_0:
@@ -9952,9 +9982,9 @@ def push_report_v1(request):
         report_instance.conversation = conversation_instance
         report_instance.community = community_instance
 
-        report_instance.reported_member_id = reported_member_id
+        report_instance.reported_member_id = reported_member_id  # has to be removed
         report_instance.user_reported = reported_member_instance
-        report_instance.member = user_instance
+        report_instance.member = user_instance  # has to be removed
         report_instance.reported_by = user_instance
 
         report_instance.type = report_type
@@ -10505,6 +10535,15 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
     conversation_instance.tag = tag_instance
     conversation_instance.reason = reason
     conversation_instance.save()
+
+    if int(current_user_instance.id) == int(conversation_instance.member.id):
+        action_taken = report_Action_Types.RESPONSE_DELETED_BY_CREATOR
+    else:
+        action_taken = report_Action_Types.RESPONSE_DELETED_BY_CM
+
+    check_reports_and_update_action(action_taken_by=current_user_instance.id,
+                                    action_taken=action_taken,
+                                    conversation_id=conversation_instance.id)
 
     info_logger.info("successfully updated conversation_instance delete status")
 
@@ -11200,12 +11239,9 @@ def update_community_member_rights(request):
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
 
     if admin.exists():
-        # deleting all member rights
-        # userMemberRights.objects.filter(community=community_instance, user=user_instance).delete()
-
-        # had to get added and ermoved rights for many other purposes ex: notifications
+        # had to get added and removed rights for many other purposes ex: notifications
         existing_rights = set(userMemberRights.objects.filter(community=community_instance,
-                                                                user=user_instance).values_list("right__id", flat=True))
+                                                              user=user_instance).values_list("right__id", flat=True))
         rights_added, rights_removed = get_added_and_removed_rights(user=user_instance, community=community_instance,
                                                                     selected_rights=selected_rights,
                                                                     existing_rights=existing_rights)
@@ -11226,10 +11262,87 @@ def update_community_member_rights(request):
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
+        check_reports_and_update_action(action_taken_by=current_user_id,
+                                              action_taken=report_Action_Types.EDIT_MEMBER_PERMISSION,
+                                              user=user_id, community=community_id,
+                                              added_member_rights=rights_added, removed_member_rights=rights_removed)
+
         return JsonResponse({'success': True})
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
+
+
+@shared_task
+def check_reports_and_update_action(action_taken_by, action_taken, conversation_id=None,
+                                    user=None, community=None, chatroom_id=None,
+                                    added_member_rights=None, removed_member_rights=None,
+                                    added_admin_rights=None, removed_admin_rights=None,
+                                    action_taken_tag_id=None, action_taken_reason=None):
+    if chatroom_id:
+        reports = Report.objects.filter(collabcard=chatroom_id)
+    elif conversation_id:
+        reports = Report.objects.filter(conversation=conversation_id)
+    elif user and community:
+        reports = Report.objects.filter(user_reported=user, community=community)
+    else:
+        return
+
+    if reports.exists():
+        final_rights_added = {}
+        final_rights_removed = {}
+
+        # for getting added rights
+        if added_member_rights:
+            added_member_rights_list = []
+            added_member_rights = memberRights.objects.filter(pk__in=added_member_rights)
+            for right in added_member_rights:
+                right_dict = get_right_dict(right)
+                added_member_rights_list.append(right_dict)
+            final_rights_added = {"member_rights": added_member_rights_list}
+
+        if added_admin_rights:
+            added_admin_rights_list = []
+            added_admin_rights = adminRights.objects.filter(pk__in=added_admin_rights)
+            for right in added_admin_rights:
+                right_dict = get_right_dict(right)
+                added_admin_rights_list.append(right_dict)
+
+            final_rights_added = {"admin_rights": added_admin_rights_list}
+
+        # for getting removed rights
+        if removed_member_rights:
+            removed_member_rights_list = []
+            removed_member_rights = memberRights.objects.filter(pk__in=removed_member_rights)
+            for right in removed_member_rights:
+                right_dict = get_right_dict(right)
+                removed_member_rights_list.append(right_dict)
+
+            final_rights_removed = {"member_rights": removed_member_rights_list}
+
+        if removed_admin_rights:
+            removed_admin_rights_list = []
+            removed_admin_rights = adminRights.objects.filter(pk__in=removed_admin_rights)
+            for right in removed_admin_rights:
+                right_dict = get_right_dict(right)
+                removed_admin_rights_list.append(right_dict)
+
+            final_rights_removed = {"admin_rights": removed_admin_rights_list}
+
+        action_taken_tag_instance = None
+        if action_taken_tag_id:
+            action_taken_tag_instance = Report_tags.objects.get(tag_id=action_taken_tag_id)
+
+        final_rights_added = json.dumps(final_rights_added)
+        final_rights_removed = json.dumps(final_rights_removed)
+        action_taken_by_user = User.objects.get(pk=action_taken_by)
+
+        reports.update(action_taken_by=action_taken_by_user, action_taken=action_taken,
+                       rights_added=final_rights_added, rights_removed=final_rights_removed,
+                       action_taken_tag=action_taken_tag_instance, action_taken_reason = action_taken_reason
+                       )
+
+    return
 
 
 def fetch_moderation_history(request):
@@ -11252,7 +11365,8 @@ def fetch_moderation_history(request):
         context = get_error_context(False, "send community_id in params")
         return JsonResponse(context)
 
-    current_member_instance = Members.objects.filter(member_id=user_id, community_id=community_id, state=member_states.ADMIN)
+    current_member_instance = Members.objects.filter(member_id=current_user_id, community_id=community_id,
+                                                     state=member_states.ADMIN)
     viewed_member_instance = Members.objects.filter(member_id=user_id, community_id=community_id)
 
     current_user_is_promoter = False
@@ -11266,6 +11380,7 @@ def fetch_moderation_history(request):
         viewed_member = viewed_member_instance[0]
         viewed_member_state = viewed_member.state
         parent_cm_list = json.loads(viewed_member.parent_cm_list) if viewed_member.parent_cm_list else None
+        print("parent_cm_list ===  ", parent_cm_list)
 
     if parent_cm_list:
         is_child = current_user_id in parent_cm_list
@@ -11278,7 +11393,7 @@ def fetch_moderation_history(request):
         history_list.append(history)
 
     context = {"moderations": history_list}
-
+    print("child ===  ",is_child)
     if is_child:
         edit_type = 0
         context["edit_type"] = edit_type
@@ -11289,7 +11404,7 @@ def fetch_moderation_history(request):
         edit_type = 1
         context["edit_type"] = edit_type
 
-    return JsonResponse({context})
+    return JsonResponse(context)
 
 
 def fetch_reports(request):
@@ -11462,9 +11577,7 @@ def fetch_management_tools(request):
     has_right_0 = False  # right to delete chat rooms or conversations
     has_right_1 = False  # right to approve or reject pending requests
     has_right_2 = False  # right to edit community
-    parent_cm_list = [
-
-    ]
+    parent_cm_list = []
     member_instance = Members.objects.filter(community_id=community_id,
                                              member_id=current_user_id, state=member_states.ADMIN)
 
@@ -11503,10 +11616,10 @@ def fetch_management_tools(request):
         management_tools.append(pending_chatrooms_tool)
 
     if has_right_0 or has_right_1:
-        reports_tool = get_related_reports_for_user(user_id=current_user_id, community_id=community_id,
-                                                    is_owner=is_owner, has_right_0=has_right_0,
-                                                    has_right_1=has_right_1, has_right_2=has_right_2,
-                                                    parent_cm_list=parent_cm_list)
+        reports_tool = get_tool_review_reports(user_id=current_user_id, community_id=community_id,
+                                               has_right_0=has_right_0, has_right_1=has_right_1,
+                                               has_right_2=has_right_2, parent_cm_list=parent_cm_list,
+                                               is_owner=is_owner)
         management_tools.append(reports_tool)
 
     if has_right_2:

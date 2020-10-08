@@ -1,6 +1,6 @@
 from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
-                            moderationHistory)
+                            moderationHistory, Report, Report_Tags)
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
 
 from django.db.models import Q
@@ -243,7 +243,7 @@ def get_moderation_history_title(moderation_history):
     elif moderation_history.type == moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER:
         title = moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER_TEXT
 
-    title = title + f"<{user_name}>|route://member_profile/<{user_id}?community_id={community_id}&member_id={user_id}"
+    title = title + f"<{user_name}>|route://member_profile/{user_id}?community_id={community_id}&member_id={user_id}"
 
     history = {"title": title, "moderation_time": moderation_history.moderation_time}
 
@@ -334,6 +334,7 @@ def remove_right_for_all_members(community, right):
 
 def get_tool_member_requests(user_id, community_id):
 
+    global tool_member_requests
     member_count = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
     tool_member_requests = tool_member_requests.copy()
     tool_member_requests["count"] = member_count
@@ -342,14 +343,16 @@ def get_tool_member_requests(user_id, community_id):
 
 def get_tool_pending_chat_rooms(user_id, community_id):
 
+    global tool_pending_chat_rooms
     count = Collabcard.objects.filter(community_id=community_id, is_pending=True, is_deleted=False).count()
     tool_pending_chat_rooms = tool_pending_chat_rooms.copy()
     tool_pending_chat_rooms["count"] = count
-    return tool_member_requests
+    return tool_pending_chat_rooms
 
 
 def get_tool_review_reports(user_id, community_id, **kwargs):
 
+    global tool_review_reports
     is_owner = kwargs["is_owner"] if "is_owner" in kwargs else False
     parent_cm_list = kwargs["parent_cm_list"] if "parent_cm_list" in kwargs else []
     has_right_0 = kwargs["has_right_0"] if "has_right_0" in kwargs else False
@@ -362,7 +365,7 @@ def get_tool_review_reports(user_id, community_id, **kwargs):
 
     tool_review_reports = tool_review_reports.copy()
     tool_review_reports["count"] = report_count
-    return tool_member_requests
+    return tool_review_reports
 
 
 def get_related_reports_for_user(user_id, community_id, **kwargs):
@@ -379,6 +382,7 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
     has_right_2 = kwargs["has_right_2"] if "has_right_2" in kwargs else False
     return_reports_count = kwargs["return_reports_count"] if "return_reports_count" in kwargs else False
 
+
     if is_owner:
         # owner cannot see those reports which are reported on owner itself
         reports = reports.exclude(user_reported__id=user_id)
@@ -393,7 +397,7 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
             reports = reports.exclude(type__in=[1, 2])
 
     if return_reports_count:
-        return reports.count
+        return reports.count()
 
     return reports
 

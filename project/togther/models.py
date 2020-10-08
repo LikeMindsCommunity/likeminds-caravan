@@ -670,13 +670,13 @@ class Report(models.Model):
     collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
     conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE, null=True)
 
-    reported_member_id = models.IntegerField(default=0)  # can be removed
-    member = models.ForeignKey(User, on_delete=models.CASCADE)  # can be removed
+    reported_member_id = models.IntegerField(null=True)  # can be removed
+    member = models.ForeignKey(User, on_delete=models.CASCADE, null=True)  # can be removed
 
     reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_by_user', null=True)
     user_reported = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_who_is_reported', null=True)
     reason = models.CharField(max_length=2048, null=True)
-    tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
+    tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
     type = models.IntegerField(null=True)
     action_taken_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='action_taken_by_promoter', null=True)
     action_taken_reason = models.CharField(max_length=2048, null=True)
