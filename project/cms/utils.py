@@ -157,11 +157,11 @@ def get_weekly_records(community,day=1):
     #     total_users = 0
 
     per_day_record = PerWeekRecordOverview()
-    communities = NewCommunities.objects.all()
-    community_count = communities.count()
-    community_id = []
-    for community in communities:
-        community_id.append(community.community_id)
+    # communities = NewCommunities.objects.all()
+    # community_count = communities.count()
+    # community_id = []
+    # for community in communities:
+    #     community_id.append(community.community_id)
 
     midnight = datetime.combine(datetime.today(), datetime.min.time())
     # print('^^^',midnight,day*7)
@@ -177,10 +177,10 @@ def get_weekly_records(community,day=1):
     day_2 = day_2 + timedelta(days=6-day_of_week+1)
 
     # day_of_week = day_2.weekday()
-    print(day_2)
+    # print(day_2)
     day_1 = day_1 - timedelta(days=day_of_week)
-    print(day_1, day_2)
-    return
+    # print(day_1, day_2)
+    # return
     day_1 = day_1.timestamp() + 5*60*60 + 30*60
     day_2 = day_2.timestamp() + 5*60*60 + 30*60
 
@@ -256,12 +256,12 @@ def get_weekly_records(community,day=1):
     per_day_record.new_intro_event_messages = event_room_messages.count()
     per_day_record.new_messages_by_cm = 0
     per_day_record.new_users = new_users.count()
-    per_day_record.new_users_cumulative = new_users.count() + total_users
+    # per_day_record.new_users_cumulative = new_users.count() + total_users
     per_day_record.active_users = active_counter
     per_day_record.members_added = members.count()
     per_day_record.cummulative_members = all_members.count()
     per_day_record.updated_at = test_day
-    # per_day_record.save()
+    per_day_record.save()
 
 
 
@@ -273,11 +273,15 @@ def run_daily_tasks(day=0):
     for community in communities:
         get_general_records(community,day)
 
+    if datetime.today().weekday() == 0:
+        run_weekly_tasks()
+
 
 def run_weekly_tasks(day=1):
     communities = Community.objects.filter(created_at__gte=1596157200)
     for community in communities:
         get_weekly_records(community,day)
+
 
 
 def sanitize_division(a,b):
@@ -290,4 +294,4 @@ def get_percent(a,b):
     if b == 0:
         return '-'
     else:
-        return ("%.0f" % (a/b*100) + ' %')
+        return ("%.0f" % (a/b*100) + '%')

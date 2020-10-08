@@ -88,6 +88,7 @@ def is_member_verified(community,user_instance):
         return is_verified[0]
     return False
 
+
 def is_member_promoter(community_id,member_id):
 
     is_promoter = Members.objects.filter(community_id=community_id,member_id=member_id,state=member_states.ADMIN)
@@ -98,11 +99,13 @@ def is_member_promoter(community_id,member_id):
 
     return False
 
+
 def is_member_pending(community_id, member_id):
 
     is_pending = Members.objects.filter(community_id=community_id, member_id=member_id, state=member_states.PENDING_MEMBER)
 
     return is_pending.exists()
+
 
 def is_member_present(community_id,member_id):
 
@@ -177,8 +180,6 @@ def generate_random(unique_code_list):
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
 
-
-
 #private link generation for chatrooms
 def generate_private_link_for_chatroom(card_instance,user_instance):
 
@@ -242,8 +243,6 @@ def get_date_time_from_timestamp(timestamp):
     return time.strftime('%d/%m/%y %H:%M', time.localtime(timestamp))
 
 
-
-
 def decode_option(value):
 
     if not value:
@@ -258,6 +257,7 @@ def decode_option(value):
     #print(value_list)
 
     return value_list
+
 
 #collabcard related functions
 def decode_meta_from_url(url):
@@ -296,7 +296,6 @@ def decode_meta_from_url(url):
         pass
     og_tags['url']=url
     return og_tags
-
 
 
 def get_time_text(created_time):
@@ -358,8 +357,6 @@ def get_time_text_for_my_chatrooms(updated_at):
         return time.strftime('%d/%m/%y', time.localtime(updated_at))
     else:
         return time.strftime('%H:%M', time.localtime(updated_at))
-
-
 
 
 def get_nominated_admin_details(community_id,email):
@@ -877,7 +874,6 @@ def update_hometown_tags_for_all_users(tag_id):
         insert_user_home_town_tags(user_id=user_id, tag=tag_id)
 
 
-
 def user_onbaord(member_id):
     ''' checking if user has gone through on-boarding flow or not'''
     user_legacy = User_Legacy.objects.filter(user_id=member_id)
@@ -893,6 +889,7 @@ def user_onbaord(member_id):
         return True
     else:
         return False
+
 
 def user_onbaord_new(user_instance):
     ''' checking if user has gone through on-boarding flow or not'''
@@ -917,21 +914,25 @@ def user_onbaord_new(user_instance):
     else:
         return False
 
+
 def legacy_exists(user_legacy):
 
     condition = not (user_legacy.count() == 1 and user_legacy[0].tags_id.tag_id == 15)
     # print("legacy_exists === ",condition)
     return condition
 
+
 def profession_exists(user_profession):
     condition = not (user_profession.count() == 1 and user_profession[0].tags_id.tag_id == 16)
     # print("profession_exists === ", condition)
     return condition
 
+
 def interest_exists(user_interest):
     condition = not (user_interest.count() == 1 and user_interest[0].tags_id.tag_id == 17)
     # print("interest_exists === ", condition)
     return condition
+
 
 def geography_exists(user_geography):
     condition = not (user_geography.count() == 1 and user_geography[0].tags_id.tag_id == 18)
@@ -1019,6 +1020,7 @@ def is_request_ios(request):
             return False
     return False
 
+
 def is_request_pc(request):
     '''function to check if request is pc or not'''
     if 'HTTP_USER_AGENT' in request.META:
@@ -1029,7 +1031,6 @@ def is_request_pc(request):
         else:
             return False
     return False
-
 
 
 def is_IG_community(community):
@@ -1064,6 +1065,7 @@ def is_LG_or_LP_community(community):
         return False
     return False
 
+
 def is_legacy_home_town(communities_legacy):
 
     '''function to check whether the community is legacy hometown or not'''
@@ -1087,6 +1089,7 @@ def get_user_communities_by_rank_web(request):
             communities_list.append(comm)
     return communities_list
 
+
 def get_user_email(member_id):
     member = User.objects.get(pk=member_id)
     if member.userinfo.email:
@@ -1098,7 +1101,8 @@ def get_user_email(member_id):
                 return emails.first().email
         else:
             return None
-    
+
+
 def check_notification_flag(member_id,notification_list,card_id=None,community_id=None):
 
     ''' 
@@ -1157,12 +1161,42 @@ def add_relative_time_to_epoch(epoch_time, minutes=0, hours=0, days=0):
     epoch_time = epoch_time.timestamp()
     return epoch_time
 
+
 def get_next_day_time(epoch_time,minutes=0,hours=0):
     epoch_time = datetime.fromtimestamp(epoch_time + (24 * 60 * 60))
     epoch_time = epoch_time.replace(hour=hours,minute=minutes)
     epoch_time = epoch_time.timestamp()
     return epoch_time
 
+
 def get_first_name_from_name(name):
     name = name.strip(' ')
     return name.split(' ')[0]
+
+
+def get_community_members_count_for_preview(community_instance, user_instance):
+    """ function to get the creator of community """
+    community_members = Members.objects.filter(community_id=community_instance).filter(
+        Q(state=member_states.MEMBER) | Q(state=member_states.ADMIN) | Q(
+            state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
+
+    promoters = community_members.filter(state=member_states.ADMIN).order_by('id')
+    current_user = community_members.filter(member_id=user_instance)
+
+    created_by = ""
+    if promoters.exists():
+        promoter_instance = promoters[0].member_id
+        created_by = promoter_instance.userinfo.name
+
+    member_state = 0
+    if current_user.exists():
+        member_state = current_user[0].state
+
+    final_dict = {"created_by": created_by,
+                  "promoters_count": promoters.count(),
+                  "members_count": community_members.count(),
+                  "member_state": member_state
+                  }
+
+    return final_dict
+

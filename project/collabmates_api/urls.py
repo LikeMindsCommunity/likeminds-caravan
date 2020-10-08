@@ -49,7 +49,10 @@ urlpatterns = [
     path('create_draft_collabcard', api_views.create_draft_collabcard, name="create_draft_collabcard"),
 
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
+
     path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
+    path('v1/fetch_chatroom', api_views.fetch_chatroom_version_1, name="fetch_chatroom_version_1"),
+
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
     path('v1/fetch_chatroom_feed', api_views.fetch_chatroom_feed_version_1, name="fetch_chatroom_feed_version_1"),
     path('fetch_community_chatroom_feed', api_views.fetch_community_chatroom_feed, name="fetch_community_chatroom_feed"),
@@ -212,7 +215,8 @@ urlpatterns = [
 
     ############################ synching client db apis ##################################
 
-    path('sync_client_db', api_views.sync_client_db, name='sync_client_db'),
+    path('sync_conversation', api_views.sync_conversation, name='sync_conversation'),
+    path('sync_members', api_views.sync_members, name='sync_members'),
 
     #######################################################################################
 ]

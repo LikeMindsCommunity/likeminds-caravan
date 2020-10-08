@@ -228,7 +228,6 @@ class QuestionStates:
     PROFILE_LINK=8
     MOBILE_NO = 9
     EMAIL_ID = 10
-
     GOOGLE_CITY_FETCH = 11
 
 question_states=QuestionStates()

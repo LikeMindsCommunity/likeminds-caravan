@@ -98,7 +98,7 @@ collabcard_action_user_follow_unmute = [
 
     {
         'id': 10,
-        'title': 'Report'
+        'title': 'Report Spam/Abuse'
     }
 
 ]
@@ -132,7 +132,7 @@ collabcard_action_user_follow_mute = [
 
     {
         'id': 10,
-        'title': 'Report'
+        'title': 'Report Spam/Abuse'
     }
 
 ]
@@ -161,7 +161,7 @@ collabcard_action_user_unfollow = [
 
     {
         'id': 10,
-        'title': 'Report'
+        'title': 'Report Spam/Abuse'
     }
 ]
 
@@ -183,7 +183,7 @@ unMute_notifications = {'id': 8, 'title': 'UnMute notifications'}
 
 unfollow_chatroom = {'id': 9, 'title': 'Unfollow chatroom'}
 
-report = {'id': 10, 'title': 'Report'}
+report = {'id': 10, 'title': 'Report Spam/Abuse'}
 
 mark_active = {'id': 11, 'title': 'Mark active'}
 
@@ -255,6 +255,7 @@ MENU = {
 
 delete_room_manager_right = {'id': 1, 'title': 'Delete chat rooms/messages', 'sub_title': None, "state": 0}
 
+
 approve_manager_right = {'id': 2, 'title': 'Approve/remove members', 'sub_title': None, "state": 1}
 
 edit_community_manager_right = {'id': 3, 'title': "Edit community details", 'sub_title': None, "state": 2}
@@ -305,5 +306,20 @@ tool_edit_community_details = {"title": "Edit community details",
 
 tool_community_settings = {"title": "Community Settings",
                            "image_url": "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fcommunity_settings.png?alt=media&token=0e105674-9bde-4336-850b-118671fcdec8"}
+
+months_semi = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
+               9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
+
+
+months_full = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August",
+               9: "September", 10: "October", 11: "November", 12: "December"}
+
+
+MENU = {
+    'member' : ['Invite members','View all chat rooms','Member directory','Leave community','Report'],
+    'promoter': ['Invite members','View all chat rooms','Member directory','Edit community','Report'],
+    'pending_member':['Cancel joining request']
+}
+
 
 

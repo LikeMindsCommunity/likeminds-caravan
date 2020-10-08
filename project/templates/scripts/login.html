@@ -270,6 +270,9 @@
     }
     function showCountries(){
         $('.county_list').show();
+        $('.ui.modal').on('touchmove', function(event) {
+            event.stopImmediatePropagation();
+        });
     }
     $( document ).ready(function() {
         $('#county_list .item').click(function(){

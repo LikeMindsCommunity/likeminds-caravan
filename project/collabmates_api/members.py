@@ -192,9 +192,11 @@ def get_member_instances_without_filter(member_list,current_user_id,community_id
             # if member_set and current_user_id and int(current_user_id) in member_set:
             #     current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
             # elif not member_set:
+
             current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
                                              send_profile=False, all_members_api=True, is_promoter=is_promoter,
                                              is_owner=is_owner)
+
 
     #member_list = pagination(member_list, page, paginate_by=10)
 
@@ -207,6 +209,7 @@ def get_member_instances_without_filter(member_list,current_user_id,community_id
         userinfo_serialized_object = MembersSerializer(member, community_id, current_user_id=current_user_id,
                                                        send_profile=False, all_members_api=True, is_promoter=is_promoter
                                                        , is_owner=is_owner, user_admin_rights=user_admin_rights)
+
         if member_id == int(current_user_id):
             pass
         else:
@@ -251,6 +254,7 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
                                                  send_profile=False, all_members_api=True, is_promoter=is_promoter,
                                                  is_owner=is_owner)
 
+
     #logic for pagination of members for filters
     if current_user_id and int(current_user_id) in member_set:
         member_set.remove(int(current_user_id))
@@ -263,6 +267,7 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
     member_instances_list = get_members_profile(list(member_ids), community_id, current_user_id=current_user_id,
                                                 send_profile=False, all_members_api=True, is_promoter=is_promoter,
                                                 is_owner=is_owner, user_admin_rights=user_admin_rights)
+
     if current_user:
         members.insert(0, current_user)
 

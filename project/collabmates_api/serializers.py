@@ -1,19 +1,22 @@
 import json
-import time
+from urllib.parse import parse_qsl, urlsplit
 
 from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_community_id, \
     generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
-    is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp
+    is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp,get_community_members_count_for_preview
 
 from utility.states import (card_types, question_states, member_states, poll_types,
-                            deleted_members, manager_rights, member_rights)
+                            deleted_members, manager_rights, member_rights, chatroom_states)
 from .user_moderation_rights import *
+
 url = settings.URL
 import ast
 from .static_files import *
+from .static_text import months_semi
+
 from datetime import datetime, date
 
 
@@ -353,6 +356,9 @@ def draftChatroomSerializer(card, user, community=None):
         if card.online_link:
             chatroom['online_link'] = card.online_link
 
+        if card.internal_link:
+            chatroom['internal_link'] = card.internal_link
+
     # for sending header
     if card.header:
         chatroom['header'] = card.header
@@ -470,72 +476,6 @@ def get_category_of_chatroom(typ):
     return chatroom_type
 
 
-def conversationSerializer(conversation, fetch_reply=True):
-    temp = {
-        "id": conversation.id,
-        "answer": conversation.answer,
-        "state": conversation.state,
-        'is_deleted': conversation.is_deleted,
-        'is_edited': conversation.is_edited,
-    }
-
-    answer_files = get_answer_files(temp['id'])
-
-    temp['images'] = answer_files['image']
-    temp['pdf'] = answer_files['pdf']
-
-    if 'location' in answer_files:
-        temp['location'] = answer_files['location']
-
-    if conversation.og_tags:
-        temp['og_tags'] = json.loads(conversation.og_tags)
-
-    if conversation.reply and fetch_reply:
-        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
-
-    #if member is removed from community
-    remove = False
-    if conversation.remove:
-        remove = True
-    temp['member'] =  get_user_profile(conversation.user,conversation.community.id,send_profile=False,remove=remove)
-    if conversation.is_deleted:
-        temp['deleted_by'] = get_members_profile([conversation.user.id], conversation.community.id)
-        temp['deleted_by_member_state'] = conversation.deleted_by_user_state
-
-    return temp
-
-
-
-
-def get_answer_files(answer_id):
-    '''function to return pdf and image files of a collabcard'''
-
-    attachments = answerAttachment.objects.filter(answer=answer_id)
-    img_list = []
-    pdf = []
-    files = {}
-    for file in attachments:
-        if file.type == 'image':
-            if file.file_url:
-                img = {'image_url': file.file_url}
-                img_list.append(img)
-        elif file.type == 'pdf':
-            if file.file_url:
-                pdf_url = {'pdf_file': file.file_url}
-                pdf.append(pdf_url)
-        elif file.type == "location":
-            location = {
-                'location_name': file.location_name,
-                'location_lat': file.location_lat,
-                'location_long': file.location_long
-
-            }
-            files['location'] = location
-
-    files['image'] = img_list
-    files['pdf'] = pdf
-    return files
-
 
 def get_chatroom_name(user_name, card):
     '''function to create chatroom name'''
@@ -591,9 +531,6 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-
-
-
 
 
     # get chatroom files
@@ -655,6 +592,13 @@ def get_draft_chatroom_instance(draft_instance, member_id):
     if draft_member:
         draft_serializer['member'] = draft_member[0]
 
+    if draft_instance.internal_link:
+        draft_serializer['preview'] = get_preview_for_url(member_id=member_id,
+                                                          preview_url=draft_instance.internal_link,
+                                                          community_instance=draft_instance.preview_community,
+                                                          chatroom_instance=draft_instance.preview_chatroom,
+                                                          send_preview_text=True)
+
     # status = get_status_of_collabcard(member_id, card_instance)
     # collabcard_serializer['state'] = status['state']
     # collabcard_serializer['mute_status'] = status['mute_status']
@@ -707,6 +651,45 @@ def get_status_of_collabcard(member_id, card,state_instance=None):
         collabcard_status['expiry_time'] = state_instance.expiry_time
         collabcard_status['is_tagged'] = state_instance.is_tagged
     return collabcard_status
+
+def get_member_images_of_chatroom(conversation_filter):
+    """ function to give member images of chatrooms """
+    unique_members = set()
+    member_images = []
+
+    last_conversations_member = []
+    count = 0
+    for conversation in conversation_filter:
+        community_instance = conversation.card.community
+        if conversation.user.id not in unique_members:
+            member_filter = Members.objects.filter(member_id=conversation.user, community_id=community_instance)
+            image_link = conversation.user.userinfo.image_link
+            image_url = image_link if image_link else ""
+
+            if member_filter.exists():
+                member_instance = member_filter[0]
+                if member_instance.image_url:
+                    image_url = member_instance.image_url
+
+            remove = False
+            if conversation.remove:
+                remove = True
+            member_images.append(image_url)
+
+            member_data = get_user_profile(conversation.user, community_instance, send_profile=False, remove=remove)
+            last_conversations_member.append(member_data)
+            unique_members.add(conversation.user.id)
+            count = count + 1
+
+        if count > 5:
+            break
+
+    temp = {
+        'members_images': member_images,
+        'last_response_members': last_conversations_member
+    }
+
+    return temp
 
 
 def CollabcardPollsSerializer(poll, user, card):
@@ -830,7 +813,7 @@ def draftPollsSerializers(poll):
 
 
 def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False):
-    responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
+    responses = communityAnswers.objects.filter(community=community_id,member=user_id).order_by('id')
     if not responses.exists():
         return None
 
@@ -1107,8 +1090,9 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
 
     user_is_owner = member_instance.is_owner
     parents_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
+
     member_id = member_instance.member_id.id
-    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
+    community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
     community_profile['state'] = member_instance.state
     community_profile['is_owner'] = member_instance.is_owner
     if member_instance.custom_title:
@@ -1128,16 +1112,24 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         community_profile['member_since'] = "Verification pending for " + member_instance.community_id.name
 
 
-    if member_instance.state == member_states.ADMIN and 'question_answers' not in community_profile:
-        community_profile['custom_intro_text'] = """Created this community on %s""" % (
-            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+    if member_instance.state == member_states.ADMIN:
 
-    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE) and 'question_answers' not in community_profile:
-        community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
-            time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
-        community_profile[
-            'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
-        member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+        answer_filter = communityAnswers.objects.filter(community=community_id).filter(member=member_instance.member_id).order_by('id')
+        if not answer_filter.exists():
+            community_profile['custom_intro_text'] = """Created this community on %s""" % (
+                time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+
+    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE):
+
+        answer_filter = communityAnswers.objects.filter(community=community_id).filter(
+            member=member_instance.member_id).order_by('id')
+
+        if not answer_filter.exists():
+            community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
+                time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+            community_profile['custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
+            member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+
 
     # add menu for all members api and fetch community profile API
 
@@ -1250,6 +1242,7 @@ def get_user_profile(user_id, community_id, current_user_id=None, send_profile=T
     return userinfo_serialized_object
 
 
+
 def get_members_profile(member_ids, community_id, current_user_id=None, send_profile=True, remove=False,
                         is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
                         user_admin_rights=None):
@@ -1280,6 +1273,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
             member_profile_list.append(temp)
 
     return member_profile_list
+
 
 
 def report_serializer(report_instance):
@@ -1343,6 +1337,467 @@ def report_tag_serializer(tag_instance):
                 "name": tag_instance.tag_name}
 
     return tag_dict
+
+## chatroom conversation data
+
+
+
+def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
+    temp = {
+        "id": conversation.id,
+        "answer": conversation.answer,
+        "state": conversation.state,
+        'is_deleted': conversation.is_deleted,
+        'is_edited': conversation.is_edited,
+        'created_at' : conversation.created_at,
+        'has_files': conversation.has_files,
+        'chatroom_id':conversation.card.id,
+        'community_id':conversation.community.id
+    }
+
+    if conversation.has_files:
+        answer_files = get_answer_files(temp['id'])
+        temp['images'] = answer_files['image']
+        temp['pdf'] = answer_files['pdf']
+        if 'location' in answer_files:
+            temp['location'] = answer_files['location']
+
+    if conversation.og_tags:
+        temp['og_tags'] = json.loads(conversation.og_tags)
+
+
+    # if member is removed from community
+    remove = False
+    if conversation.remove:
+        remove = True
+    #temp['member'] = get_user_profile(conversation.user, conversation.community.id, send_profile=False, remove=remove)
+
+
+    member_profile = get_members_profile([conversation.user.id], conversation.community.id, current_user_id=current_user_id,send_profile=False,remove=remove)
+    temp['member'] = member_profile [0]
+
+    temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
+
+    if conversation.internal_link:
+
+        temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
+                                                 community_instance=conversation.preview_community,
+                                                 chatroom_instance=conversation.preview_chatroom)
+
+    if conversation.reply and fetch_reply:
+        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
+
+
+    return temp
+
+def get_answer_files(answer_id):
+    '''function to return pdf and image files of a collabcard'''
+
+    attachments = answerAttachment.objects.filter(answer=answer_id)
+    img_list = []
+    pdf = []
+    files = {}
+    for file in attachments:
+        if file.type == 'image':
+            if file.file_url:
+                img = {'image_url': file.file_url}
+                img_list.append(img)
+        elif file.type == 'pdf':
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+                pdf.append(pdf_url)
+        elif file.type == "location":
+            location = {
+                'location_name': file.location_name,
+                'location_lat': file.location_lat,
+                'location_long': file.location_long
+
+            }
+            files['location'] = location
+
+    files['image'] = img_list
+    files['pdf'] = pdf
+    return files
+
+
+
+# ====================== client db synching serializers ==============================================================
+
+
+def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=None):
+
+    temp = {
+        "id": conversation.id,
+        "answer": conversation.answer,
+        "state": conversation.state,
+        'is_deleted': conversation.is_deleted,
+        'is_edited': conversation.is_edited,
+        'created_at': conversation.created_at,
+        'has_files': conversation.has_files,
+        'chatroom_id': conversation.card.id,
+        'community_id': conversation.community.id,
+        'member_id':conversation.user.id
+    }
+
+    if conversation.has_files:
+        answer_files = get_answer_files(temp['id'])
+        temp['images'] = answer_files['image']
+        temp['pdf'] = answer_files['pdf']
+        if 'location' in answer_files:
+            temp['location'] = answer_files['location']
+
+    if conversation.og_tags:
+        temp['og_tags'] = json.loads(conversation.og_tags)
+
+
+    temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
+
+    if conversation.internal_link:
+        temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
+                                                 community_instance=conversation.preview_community,
+                                                 chatroom_instance=conversation.preview_chatroom)
+
+    if conversation.reply and fetch_reply:
+        temp['reply_conversation'] = get_conversation_instance_for_db_synching(conversation,fetch_reply=False,current_user_id=current_user_id)
+
+
+    return temp
+
+
+
+def get_member_instance_for_db_synching(member_instance, community_id, current_user_id=None,send_profile=True):
+
+    #member_id = member_instance.member_id.id
+
+    community_name = member_instance.community_id.name
+    locale_time = time.localtime(member_instance.created_at)
+
+    community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id,
+                                         send_profile=send_profile)
+
+    community_profile['state'] = member_instance.state
+
+    # sending image  url of members
+    if member_instance.image_url:
+        community_profile['image_url'] = member_instance.image_url
+
+    if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
+        # community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
+        #     str(community_id), str(member_id))
+
+        community_profile['member_since'] = "Member of " + community_name + " since " + time.strftime('%b %d %Y',
+                                                                                                           locale_time)
+    elif member_instance.state == member_states.PENDING_MEMBER:
+        community_profile['member_since'] = "Verification pending for " + community_name
+
+    if member_instance.state == member_states.ADMIN:
+
+        answer_filter = communityAnswers.objects.filter(community=community_id).filter(
+            member=member_instance.member_id)
+
+        if not answer_filter.exists():
+        #if 'question_answers' not in community_profile:
+            community_profile['custom_intro_text'] = """Created this community on %s""" % (
+                time.strftime("%d %B %Y", locale_time))
+
+    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE):
+
+        answer_filter = communityAnswers.objects.filter(community=community_id).filter(
+            member=member_instance.member_id)
+
+        if not answer_filter.exists():
+        #if 'question_answers' not in community_profile:
+
+            community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
+                time.strftime("%d %B %Y", locale_time))
+            community_profile['custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
+                member_instance.member_id.userinfo.name,
+                time.strftime("%d %B %Y", locale_time))
+
+    community_profile['community_id'] = community_id
+
+    return community_profile
+
+
+def get_removed_member_instance(instance):
+
+    community_id = instance.community.id
+    user_profile = get_user_profile(instance.member, community_id, send_profile=False, remove=True)
+    removed = get_removed_member_custom_text(instance)
+    user_profile['custom_intro_text'] = removed['custom_intro_text']
+    user_profile['custom_click_text'] = removed['custom_click_text']
+    user_profile['remove_state'] = removed['remove_state']
+    user_profile['community_id'] = community_id
+
+    return user_profile
+
+
+def get_guest_member_instance(instance):
+
+    community_id = instance.community.id
+    user_profile = get_user_profile(instance.user, community_id, send_profile=False)
+    user_profile['community_id'] = community_id
+    user_profile['chatroom_id'] = instance.card.id
+
+    if instance.source:
+        guest = get_guest_custom_text(instance)
+        user_profile['custom_intro_text'] = guest['custom_intro_text']
+        user_profile['custom_click_text'] = guest['custom_click_text']
+
+
+    return user_profile
+
+
+
+
+# ==============================================================================================================
+
+
+
+
+
+############################ fetch preview functions #####################
+
+
+def get_preview_for_url(member_id=None, preview_url=None,
+                        community_instance=None, chatroom_instance=None, send_preview_text=True):
+    """ function to get preview of community or chatroom """
+
+    user_instance = User.objects.get(pk=member_id)
+
+    is_member_directory = False
+    preview_type = None
+    preview_text = None
+    title = None
+    route = None
+    aj = None
+    source_id = None
+    chatroom_id = None
+    community_id = None
+
+    if preview_url:
+        parsed_url = urlsplit(preview_url)
+        query_items = dict(parse_qsl(parsed_url.query))
+
+        if "community" in parsed_url.path:
+            if 'source' in query_items and query_items['source'] == 'members_directory':
+                is_member_directory = True
+                preview_type = "directory"
+                title = "Follow the link to join this LikeMinds community and view its member's profiles"
+                preview_text = "Preview of directory will be added later"
+            else:
+                preview_type = "community"
+                title = "Follow the link to join this LikeMinds community."
+                preview_text = "Preview of community will be added later"
+            community_id = parsed_url.path.split("/")[-1]
+
+        elif "collabcard" in parsed_url.path:
+            preview_type = "chatroom"
+            preview_text = "Preview of chat room will be added later"
+            chatroom_id = parsed_url.path.split("/")[-1]
+
+        if 'aj' in query_items:
+            aj = query_items['aj']
+        if 'source_id' in query_items:
+            source_id = query_items['source_id']
+
+    context = {"preview_type": preview_type}
+    if send_preview_text:
+        context = {"internal_link": preview_url, "preview_type": preview_type,
+                   "preview_text": preview_text, "title": title}
+
+    if chatroom_id:
+        if not chatroom_instance:
+            chatroom_instance = Collabcard.objects.get(pk=chatroom_id)
+
+        community_instance = chatroom_instance.community
+        community_id = community_instance.id
+
+        chatroom = get_chatroom_preview(chatroom_instance, member_id)
+        context["chatroom"] = chatroom
+
+        title = f'Participate in this LikeMinds chat room in community. "{community_instance.name}"'
+        route = f"route://collabcard?collabcard_id={chatroom_id}"
+
+
+    if community_id:
+        # checking if community_instance already exists
+        if not community_instance:
+            community_instance = Community.objects.get(pk=community_id)
+
+        community = get_community_preview(community_instance, user_instance)
+        context["community"] = community
+        is_member = community["member_state"] in [1, 2, 3, 4, 7, 9]
+
+        if is_member_directory and is_member:
+            context["action"] = "VIEW DIRECTORY"
+            route = f"route://members_directory?community_id={community_id}&community_name={community_instance.name}"
+        elif is_member and not chatroom_id:
+            route = f"route://community?community_id={community_id}"
+            context["action"] = "VIEW COMMUNITY"
+        elif not chatroom_id:
+            route = f"route://community?community_id={community_id}"
+            context["action"] = "JOIN COMMUNITY"
+        else:
+            context["action"] = "JOIN COMMUNITY"
+
+    if preview_type == "chatroom":
+        title = get_title_for_chatroom_preview(chatroom_instance, member_id)
+
+    else:
+        is_private = True if aj else False
+        title = get_title_for_community_preview(community_instance, member_id, preview_type, is_private=is_private)
+
+    if send_preview_text:
+        context["title"] = title
+
+    # writing at last to get the action and others based on progress done above
+    if chatroom_id:
+        if chatroom_instance.type == card_types.CARD_EVENT or chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
+            context["action"] = "VIEW EVENT"
+            if send_preview_text:
+                context["preview_text"] = "Preview of the event will be added later"
+        elif chatroom_instance.type == card_types.CARD_POLL:
+            context["action"] = "VIEW POLL"
+            if send_preview_text:
+                context["preview_text"] = "Preview of the poll will be added later"
+        else:
+            context["action"] = "VIEW CHAT ROOM"
+
+    if aj:
+        route = route + f"&aj={aj}"
+
+    if source_id:
+        route = route + f"&source_id={source_id}"
+
+    context["action_route"] = route
+
+    return context
+
+
+def get_title_for_chatroom_preview(chatroom, current_user_id):
+
+    if chatroom.type == card_types.CARD_EVENT or chatroom.type == card_types.CARD_PUBLIC_EVENT:
+
+        is_open_event = chatroom.type == card_types.CARD_PUBLIC_EVENT
+        additional_text = "open " if is_open_event else ""
+
+        if int(current_user_id) == int(chatroom.user.id):
+            return f"I am hosting this {additional_text}event for {chatroom.community.name}. RSVP to join us."
+        else:
+
+            event_date = chatroom.end_date
+
+            result = time.localtime(int(event_date)/1000)
+
+            if int(result.tm_mday) == 1:
+                day_text = "1st"
+            elif int(result.tm_mday) == 2:
+                day_text = "2nd"
+            elif int(result.tm_mday) == 3:
+                day_text = "3rd"
+            else:
+                day_text = f"{result.tm_mday}th"
+
+            month_text = months_semi[result.tm_mon]
+
+            event_date_text = f"{day_text} {month_text}"
+
+            current_year = time.strftime("%Y")
+
+            if int(result.tm_year) != int(current_year):
+                event_date_text = event_date_text + " " + str(result.tm_year)
+
+            return f"Join us for this {additional_text}event on {event_date_text}"
+
+    elif chatroom.type == card_types.CARD_POLL:
+        return 'Please express your views on this poll'
+
+    elif chatroom.type == card_types.CARD_INTRO:
+
+        community_name = chatroom.community.name
+        if int(current_user_id) == int(chatroom.user.id):
+            return f"I have joined {community_name}. Join me for a chat or view my community profile here."
+
+        return f"{chatroom.user.userinfo.name} joined {community_name}. Know more about them or join them for a chat here."
+
+    else:
+        return "Join us in this conversation. Guest access is enabled for the next 24 hours."
+
+
+def get_title_for_community_preview(community, current_user_id, preview_type, is_private=False):
+
+    if preview_type == "directory":
+        return "The directory for our community has been set up. Complete your profile to see detailed profiles of other members in the community."
+    else:
+        community_name = community.name
+        if is_private:
+            return f"Join {community_name} with my exclusive invite. For security, this is valid only for the next 24 hours."
+        else:
+            is_admin = Members.objects.filter(community_id=community,
+                                              member_id=current_user_id, state=member_states.ADMIN).exists()
+            if is_admin:
+                return f"I am building {community_name} community. Apply to join our community."
+            else:
+                return f"I am a part of {community_name} community. Apply to join our community."
+
+
+
+def get_community_preview(community_instance, user_instance):
+    community = {"id": community_instance.id,
+                 "name": community_instance.name,
+                 "purpose": community_instance.purpose,
+                 }
+
+    if community_instance.image_link:
+        community['image_url'] = community_instance.image_link
+    elif community_instance.image_url:
+        community['image_url'] = community_instance.image_url.url
+    else:
+        community['image_url'] = '/media/media/community/default.jpeg'
+
+    if community_instance.image_link_round:
+        community['image_url_round'] = community_instance.image_link_round
+
+    if community['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
+        community[
+            'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn' \
+                           ':ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO '
+    elif not community_instance.image_link:
+        community['image_url'] = url + community['image_url']
+
+    community_members = get_community_members_count_for_preview(community_instance, user_instance)
+
+    community.update(**community_members)
+
+    return community
+
+
+def get_chatroom_preview(card_instance, member_id, active=None):
+    """ function to get chatrooms """
+
+    chatroom_instance = get_chatroom_instance(card_instance, member_id)
+    conversation_filter = card_answers.objects.filter(card=card_instance.id,
+                                                      state=chatroom_states.ANSWER).order_by('id')
+    chatroom_instance['total_response_count'] = conversation_filter.count()
+
+    if card_instance.internal_link:
+        chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
+                                                           community_instance=card_instance.preview_community,
+                                                           chatroom_instance=card_instance.preview_chatroom,
+                                                           send_preview_text=False)
+
+    last_response_members = get_member_images_of_chatroom(conversation_filter)
+    chatroom_instance['members_images'] = last_response_members['members_images']
+    chatroom_instance['last_response_members'] = last_response_members['last_response_members']
+
+    return chatroom_instance
+
+
+
+
+#=========================================================================#
+
 
 
 

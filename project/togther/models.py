@@ -242,6 +242,13 @@ class draftChatroom(models.Model):
     # for saving chatroom name
     header = models.TextField(null=True)
 
+    internal_link = models.TextField(null=True)
+    preview_type = models.TextField(null=True)
+    preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
+                                          related_name='draft_chatroom_preview_community')
+    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
+                                         related_name='draft_chatroom_preview_chatroom')
+
 
 class inActiveChatroomsCount(models.Model):
     '''models to save the count of in-active chatrooms for user'''
@@ -321,6 +328,8 @@ class card_answers(models.Model):
                                           related_name='conversation_preview_community')
     preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
                                          related_name='conversation_preview_chatroom')
+
+    has_files = models.BooleanField(default=False)
 
 
 class conversationMemberState(models.Model):
@@ -714,6 +723,9 @@ class collabcardState(models.Model):
 
     external_seen = models.BooleanField(default=True)
 
+    class Meta:
+        unique_together = (('card', 'user'),)
+
 
 class CollabcardStateBackup(models.Model):
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
@@ -1033,6 +1045,9 @@ class communityFieldTypes(models.Model):
     def __str__(self):
         return self.type
 
+    class Meta:
+        ordering = ["type"]
+
 
 class communityFieldSubTypes(models.Model):
     type = models.ForeignKey(communityFieldTypes, on_delete=models.CASCADE)
@@ -1048,6 +1063,11 @@ class communityFieldSubTypes(models.Model):
 
     def __str__(self):
         return self.sub_type
+
+
+    class Meta:
+        ordering = ["sub_type"]
+
 
 
 class communityField(models.Model):
