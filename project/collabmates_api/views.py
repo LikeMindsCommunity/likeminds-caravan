@@ -5055,7 +5055,7 @@ def get_answer_bubble_context_for_web(ans):
 
 
 
-def get_chatroom_actions(card_status, creator, promoter=False, current_user_instance=None,
+def get_chatroom_actions(card_status, request,creator, promoter=False, current_user_instance=None,
                          community_instance=None):
 
     ''' function to get chatroom actions '''
