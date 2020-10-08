@@ -144,7 +144,8 @@ urlpatterns = [
     path('push_onboarding', api_views.push_onboarding, name='push_onboarding'),
 
     path('fetch_report_tags', api_views.fetch_report_tags, name='fetch_report_tags'),
-    path('push_report', api_views.push_report, name='push_report'),
+    path('push_report', api_views.push_report_v1, name='push_report'),
+
 
     path('community_collabcard_id', api_views.community_collabcard_id, name='community_collabcard_id'),
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
@@ -178,13 +179,39 @@ urlpatterns = [
     path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
     path('fetch_preview', api_views.fetch_preview, name='fetch_preview'),
 
-
     ############################ static apis #####################################
 
     path('fetch_intro_examples', api_views.fetch_intro_examples, name='fetch_intro_examples'),
 
-    ##############################################################################
+    # ==================== moderation rights ========================================
 
+    path('fetch_community_manager_rights', api_views.fetch_community_manager_rights,
+         name='fetch_community_manager_rights'),
+    path('update_community_manager_rights', api_views.update_community_manager_rights,
+         name='update_community_manager_rights'),
+    path('remove_community_manager', api_views.remove_community_manager,
+         name='remove_community_manager'),
+    path('transfer_ownership', api_views.transfer_community_ownership,
+         name='transfer_ownership'),
+
+    path('fetch_member_rights', api_views.fetch_community_member_rights,
+         name='fetch_member_rights'),
+    path('update_member_rights', api_views.update_community_member_rights,
+         name='update_member_rights'),
+    path('fetch_moderation_history', api_views.fetch_moderation_history,
+         name='fetch_moderation_history'),
+    path('fetch_reports', api_views.fetch_reports,
+         name='fetch_reports'),
+
+    path('fetch_pending_chatroom', api_views.fetch_pending_chatroom,
+         name='fetch_pending_chatroom'),
+    path('action_pending_chatroom', api_views.action_pending_chatroom,
+         name='action_pending_chatroom'),
+
+    path('fetch_management_tools', api_views.fetch_management_tools,
+         name='fetch_management_tools'),
+    path('update_community_rights', api_views.update_community_rights,
+         name='update_community_rights'),
 
     ############################ synching client db apis ##################################
 
@@ -192,7 +219,6 @@ urlpatterns = [
     path('sync_members', api_views.sync_members, name='sync_members'),
 
     #######################################################################################
-
 ]
 
 app_name = 'collabmates_api'

@@ -1726,3 +1726,127 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         print("Error while connecting to PostgreSQL")
 
 
+@shared_task
+def send_notification_for_deleted_chatrooms(deleted_by_user_id, community_id, card_id):
+
+    community_instance = Community.objects.get(pk=community_id)
+    deleted_by_user = User.objects.get(pk=deleted_by_user_id)
+    chatroom_instance = Collabcard.objects.get(pk=card_id)
+
+    community_name = community_instance.name
+    deleted_by_user_name = deleted_by_user.userinfo.name
+    chatroom_name = chatroom_instance.header
+
+    state_filter = list(collabcardState.objects.filter(card=card_id).filter(Q(expiry_time=None) |
+                                                       Q(expiry_time__gt=time.time())).values_list('user__id',
+                                                                                                   flat=True))
+
+    users = Userinfo.objects.filter(user_id__id__in=state_filter)
+    message = {}
+    notification_list = []
+    for user in users:
+
+        temp = {
+            'fcm_token': user.fcm_token,
+            'mobile_os': user.mobile_os,
+        }
+        notification_list.append(temp)
+
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": f"{deleted_by_user_name} has deleted the chat room {chatroom_name}. Click here to know the reasons.",
+        'route': '//route://community_collabcard?community_id='
+    }
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, community_id):
+    community_instance = Community.objects.get(pk=community_id)
+    pre_owner = User.objects.get(pk=prev_owner_id)
+    new_owner = User.objects.get(pk=new_owner_id)
+    community_name = community_instance.name
+    prev_owner_name = pre_owner.userinfo.name
+
+    new_owner_fcm_token = new_owner.userinfo.fcm_token
+    new_owner_mobile_os = new_owner.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        'fcm_token': new_owner_fcm_token,
+        'mobile_os': new_owner_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": f"{prev_owner_name} has transferred the ownership of the community to you.",
+        'route': '//route://community_collabcard?community_id='
+    }
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_removed_member(admin_id, removed_user_id, community_id):
+    community_instance = Community.objects.get(pk=community_id)
+    admin = User.objects.get(pk=admin_id)
+    removed_user = User.objects.get(pk=removed_user_id)
+    community_name = community_instance.name
+    admin_name = admin.userinfo.name
+
+    removed_user_fcm_token = removed_user.userinfo.fcm_token
+    removed_user_mobile_os = removed_user.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        'fcm_token': removed_user_fcm_token,
+        'mobile_os': removed_user_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    message['payload'] = {
+        "title": "LikeMinds",
+        "sub_title": f"{admin_name} has removed you from the {community_name}. Click here to know the reasons.",
+        'route': '//route://community_collabcard?community_id='
+    }
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_right_given_to_member(admin_id, removed_user_id, community_id):
+    community_instance = Community.objects.get(pk=community_id)
+    admin = User.objects.get(pk=admin_id)
+    removed_user = User.objects.get(pk=removed_user_id)
+    community_name = community_instance.name
+    admin_name = admin.userinfo.name
+
+    removed_user_fcm_token = removed_user.userinfo.fcm_token
+    removed_user_mobile_os = removed_user.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        'fcm_token': removed_user_fcm_token,
+        'mobile_os': removed_user_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    message['payload'] = {
+        "title": "LikeMinds",
+        "sub_title": f"{admin_name} has removed you from the {community_name}. Click here to know the reasons.",
+        'route': '//route://community_collabcard?community_id='
+    }
+
+    notification_meta(notification_list, message)
+
+
+
+
