@@ -262,7 +262,16 @@ def save_name_initial_image(user_id, community_id, user_name):
     draw = ImageDraw.Draw(canvas)
     text_width, text_height = draw.textsize(name_initial, font=font)
 
-    draw.text(((400 - text_width) / 2, (400 - text_height) / 2), text, 'black', font)
+    draw.text(((400 - text_width) / 2, (400 - text_height) / 2 - 20), text, 'black', font)
+
+    # cropping into circular image
+    big_size = (canvas.size[0] * 2, canvas.size[1] * 2)
+    mask = Image.new('L', big_size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0) + big_size, fill=255)
+    mask = mask.resize(canvas.size, Image.ANTIALIAS)
+    canvas.putalpha(mask)
+
     image_name = f"media/media/user_community_profile/{user_id}_{community_id}_profile_image.png"
     canvas.save(image_name, "PNG")
     # canvas.show()
