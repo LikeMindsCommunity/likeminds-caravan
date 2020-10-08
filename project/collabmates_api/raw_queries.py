@@ -70,7 +70,7 @@ def get_active_chatrooms_count_in_community(community_id,user_id,current_time):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql="""select count(*) from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
+        sql="""select count(distinct(card_id))  from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
         and (expiry_time is null or expiry_time > %s)"""%(str(community_id),str(user_id),str(current_time))
 
         curr.execute(sql)
@@ -91,7 +91,7 @@ def get_inactive_chatrooms_count_in_community(community_id,user_id,current_time)
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql="""select count(*) from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
+        sql="""select count(distinct(card_id)) from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
         and (expiry_time is not null and expiry_time < %s)"""%(str(community_id),str(user_id),str(current_time))
 
         curr.execute(sql)

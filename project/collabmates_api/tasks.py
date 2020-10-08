@@ -549,6 +549,7 @@ def send_community_confirmation_email(user_id, community_id):
         print(email_context)
         celerybeatask = CeleryBeatTask()
         task_name = str(user_id)+"_"+str(community_id) + "_send_community_confirmation_email_2"
+        celerybeatask.terminate_task(task_name)
         args = [user_id, community_id,task_name]
         task_path = "collabmates_api.tasks.send_community_confirmation_email_2"
 
