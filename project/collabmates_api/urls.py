@@ -166,7 +166,8 @@ urlpatterns = [
     path('sync_email', api_views.sync_email, name='sync_email'),
 
     path('test_notification_api',api_views.test_notification_api,name='test_notification_api'),
-    path('unread_conversation_notification', api_views.unread_conversation_notification, name='unread_conversation_notification'),
+    path('unread_conversation_notification', api_views.unread_conversation_notification,
+         name='unread_conversation_notification'),
 
     path('create_poll', api_views.create_poll, name='create_poll'),
     path('create_poll_draft', api_views.create_poll_draft_collabcard, name='create_poll_draft'),
@@ -189,29 +190,20 @@ urlpatterns = [
          name='fetch_community_manager_rights'),
     path('update_community_manager_rights', api_views.update_community_manager_rights,
          name='update_community_manager_rights'),
-    path('remove_community_manager', api_views.remove_community_manager,
-         name='remove_community_manager'),
-    path('transfer_ownership', api_views.transfer_community_ownership,
-         name='transfer_ownership'),
+    path('remove_community_manager', api_views.remove_community_manager, name='remove_community_manager'),
+    path('transfer_ownership', api_views.transfer_community_ownership, name='transfer_ownership'),
 
-    path('fetch_member_rights', api_views.fetch_community_member_rights,
-         name='fetch_member_rights'),
-    path('update_member_rights', api_views.update_community_member_rights,
-         name='update_member_rights'),
-    path('fetch_moderation_history', api_views.fetch_moderation_history,
-         name='fetch_moderation_history'),
-    path('fetch_reports', api_views.fetch_reports,
-         name='fetch_reports'),
+    path('fetch_member_rights', api_views.fetch_community_member_rights, name='fetch_member_rights'),
+    path('update_member_rights', api_views.update_community_member_rights, name='update_member_rights'),
+    path('fetch_moderation_history', api_views.fetch_moderation_history, name='fetch_moderation_history'),
+    path('fetch_reports', api_views.fetch_reports, name='fetch_reports'),
+    path('close_report', api_views.close_report, name='close_report'),
 
-    path('fetch_pending_chatroom', api_views.fetch_pending_chatroom,
-         name='fetch_pending_chatroom'),
-    path('action_pending_chatroom', api_views.action_pending_chatroom,
-         name='action_pending_chatroom'),
+    path('fetch_pending_chatroom', api_views.fetch_pending_chatroom, name='fetch_pending_chatroom'),
+    path('action_pending_chatroom', api_views.action_pending_chatroom, name='action_pending_chatroom'),
 
-    path('fetch_management_tools', api_views.fetch_management_tools,
-         name='fetch_management_tools'),
-    path('update_community_rights', api_views.update_community_rights,
-         name='update_community_rights'),
+    path('fetch_management_tools', api_views.fetch_management_tools, name='fetch_management_tools'),
+    path('update_community_rights', api_views.update_community_rights, name='update_community_rights'),
 
     ############################ synching client db apis ##################################
 

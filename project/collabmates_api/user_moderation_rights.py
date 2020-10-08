@@ -67,6 +67,10 @@ def get_saved_member_rights_list(user_rights, admin_rights=None):
             if admin_rights:
                 right_dict["is_locked"] = not admin_rights["approve"]
 
+        elif right.state == auto_approve_member_right['state']:
+            right_dict["is_selected"] = user_rights["auto_approve"]
+            right_dict["is_locked"] = False
+
         if right.sub_title is None:
             del right_dict["sub_title"]
 
@@ -147,6 +151,7 @@ def check_all_member_rights(user, community):
     create_event = False
     respond_in_rooms = False
     invite_private = False
+    auto_approve = False
 
     for right in admin_rights:
         right = right.right
@@ -161,9 +166,10 @@ def check_all_member_rights(user, community):
             respond_in_rooms = True
         elif right.state == invite_private_member_right['state']:
             invite_private = True
-
+        elif right.state == auto_approve_member_right['state']:
+            auto_approve = True
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
-              "respond_in_rooms": respond_in_rooms, "invite_private": invite_private}
+              "respond_in_rooms": respond_in_rooms, "invite_private": invite_private, "auto_approve": auto_approve}
 
     return rights
 
@@ -338,6 +344,7 @@ def get_tool_member_requests(user_id, community_id):
     member_count = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
     tool_member_requests = tool_member_requests.copy()
     tool_member_requests["count"] = member_count
+
     return tool_member_requests
 
 
@@ -372,8 +379,7 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
 
     reports = Report.objects.select_related("reported_by", "user_reported", "tag", "action_taken_by",
                                             "action_taken_tag", "community", "collabcard",
-                                            "conversation").filter(community=community_id,
-                                                                   is_closed=False).exclude(type=3).order_by("-id")
+                                            "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
 
     is_owner = kwargs["is_owner"] if "is_owner" in kwargs else False
     parent_cm_list = kwargs["parent_cm_list"] if "parent_cm_list" in kwargs else []
