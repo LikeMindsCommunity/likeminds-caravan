@@ -2074,21 +2074,17 @@ def remove_from_member(request):
 
             for member in member_ids:
                 member_filter = Members.objects.filter(community_id=community_id, member_id=member)
-                print(">>>>>  1")
                 if member_filter.exists():
-                    print(">>>>>  2")
                     member_state = member_filter[0].state
                     if member_state == member_states.MEMBER or member_state == member_states.KNOWN_NOMINATED_PROMOTER \
                             or member_state == member_states.PROFILE_UNAVAILABLE:
-                        print(">>>>>  3")
                         remove_members(community_id, member_filter[0].member_id.id,
                                        removed_state=deleted_members.REMOVED)
 
-                        check_reports_and_update_action(action_taken_by=member_id,
+                        check_reports_and_update_action.delay(action_taken_by=member_id,
                                                               action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
                                                               user=member, community=community_id,
                                                               action_taken_tag_id=tag_id, action_taken_reason=reason)
-                        print(">>>>>  4")
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'error_message': "You are not the promoter of this community"})
@@ -2102,7 +2098,7 @@ def remove_from_member(request):
             toast_filter = communityToast.objects.filter(community_id=community_id, user=member_id)
             toast_filter.update(toast_message="Your request for joining this community is cancelled")
 
-            check_reports_and_update_action(action_taken_by=member_id,
+            check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
 
@@ -2117,9 +2113,9 @@ def remove_from_member(request):
 
         if is_member.exists():
             remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
-            check_reports_and_update_action(action_taken_by=member_id,
-                                            action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
-                                            user=member_id, community=community_id)
+            check_reports_and_update_action.delay(action_taken_by=member_id,
+                                                  action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
+                                                  user=member_id, community=community_id)
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False,
@@ -3389,10 +3385,10 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
     else:
         action_taken = report_Action_Types.CHATROOM_DELETED_BY_CM
 
-    check_reports_and_update_action(action_taken_by=current_user_instance.id,
-                                    action_taken=action_taken,
-                                    chatroom_id=collabcard_instance.id, action_taken_tag_id=tag_id,
-                                    action_taken_reason=reason)
+    check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
+                                          action_taken=action_taken,
+                                          chatroom_id=collabcard_instance.id, action_taken_tag_id=tag_id,
+                                          action_taken_reason=reason)
 
     info_logger.info("successfully updated chatroom delete status")
 
@@ -11011,10 +11007,10 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
     else:
         action_taken = report_Action_Types.RESPONSE_DELETED_BY_CM
 
-    check_reports_and_update_action(action_taken_by=current_user_instance.id,
-                                    action_taken=action_taken,
-                                    conversation_id=conversation_instance.id, action_taken_tag_id=tag_id,
-                                    action_taken_reason=reason)
+    check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
+                                          action_taken=action_taken,
+                                          conversation_id=conversation_instance.id, action_taken_tag_id=tag_id,
+                                          action_taken_reason=reason)
 
     info_logger.info("successfully updated conversation_instance delete status")
 
@@ -11556,7 +11552,7 @@ def update_community_member_rights(request):
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
-        check_reports_and_update_action(action_taken_by=current_user_id,
+        check_reports_and_update_action.delay(action_taken_by=current_user_id,
                                               action_taken=report_Action_Types.EDIT_MEMBER_PERMISSION,
                                               user=user_id, community=community_id,
                                               added_member_rights=rights_added, removed_member_rights=rights_removed)
