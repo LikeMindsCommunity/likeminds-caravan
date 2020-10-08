@@ -2198,7 +2198,7 @@ def fetch_community_profile(request):
     is_owner = False
     if current_user_member_instance.exists():
         if current_user_member_instance[0]:
-            is_promoter = current_user_member_instance.state == member_states.ADMIN
+            is_promoter = current_user_member_instance[0].state == member_states.ADMIN
             is_owner = current_user_member_instance.is_owner
 
     user_admin_rights = None
