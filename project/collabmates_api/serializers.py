@@ -13,6 +13,7 @@ from utility.states import card_types, question_states, member_states, poll_type
 url = settings.URL
 import ast
 from .static_files import *
+from .static_text import months_semi
 
 from datetime import datetime, date
 
@@ -1371,8 +1372,6 @@ def get_preview_for_url(member_id=None, preview_url=None,
                         community_instance=None, chatroom_instance=None, send_preview_text=True):
     """ function to get preview of community or chatroom """
 
-
-
     user_instance = User.objects.get(pk=member_id)
 
     is_member_directory = False
@@ -1429,10 +1428,9 @@ def get_preview_for_url(member_id=None, preview_url=None,
         title = f'Participate in this LikeMinds chat room in community. "{community_instance.name}"'
         route = f"route://collabcard?collabcard_id={chatroom_id}"
 
-    if send_preview_text:
-        context["title"] = title
 
     if community_id:
+        # checking if community_instance already exists
         if not community_instance:
             community_instance = Community.objects.get(pk=community_id)
 
@@ -1452,6 +1450,17 @@ def get_preview_for_url(member_id=None, preview_url=None,
         else:
             context["action"] = "JOIN COMMUNITY"
 
+    if preview_type == "chatroom":
+        title = get_title_for_chatroom_preview(chatroom_instance, member_id)
+
+    else:
+        is_private = True if aj else False
+        title = get_title_for_community_preview(community_instance, member_id, preview_type, is_private=is_private)
+
+    if send_preview_text:
+        context["title"] = title
+
+    # writing at last to get the action and others based on progress done above
     if chatroom_id:
         if chatroom_instance.type == card_types.CARD_EVENT or chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
             context["action"] = "VIEW EVENT"
@@ -1472,9 +1481,75 @@ def get_preview_for_url(member_id=None, preview_url=None,
 
     context["action_route"] = route
 
-
-
     return context
+
+
+def get_title_for_chatroom_preview(chatroom, current_user_id):
+
+    if chatroom.type == card_types.CARD_EVENT or chatroom.type == card_types.CARD_PUBLIC_EVENT:
+
+        is_open_event = chatroom.type == card_types.CARD_PUBLIC_EVENT
+        additional_text = "open " if is_open_event else ""
+
+        if int(current_user_id) == int(chatroom.user.id):
+            return f"I am hosting this {additional_text}event for {chatroom.community.name}. RSVP to join us."
+        else:
+
+            event_date = chatroom.end_date
+
+            result = time.localtime(int(event_date)/1000)
+
+            if int(result.tm_mday) == 1:
+                day_text = "1st"
+            elif int(result.tm_mday) == 2:
+                day_text = "2nd"
+            elif int(result.tm_mday) == 3:
+                day_text = "3rd"
+            else:
+                day_text = f"{result.tm_mday}th"
+
+            month_text = months_semi[result.tm_mon]
+
+            event_date_text = f"{day_text} {month_text}"
+
+            current_year = time.strftime("%Y")
+
+            if int(result.tm_year) != int(current_year):
+                event_date_text = event_date_text + " " + str(result.tm_year)
+
+            return f"Join us for this {additional_text}event on {event_date_text}"
+
+    elif chatroom.type == card_types.CARD_POLL:
+        return 'Please express your views on this poll'
+
+    elif chatroom.type == card_types.CARD_INTRO:
+
+        community_name = chatroom.community.name
+        if int(current_user_id) == int(chatroom.user.id):
+            return f"I have joined {community_name}. Join me for a chat or view my community profile here."
+
+        return f"{chatroom.user.userinfo.name} joined {community_name}. Know more about them or join them for a chat here."
+
+    else:
+        return "Join us in this conversation. Guest access is enabled for the next 24 hours."
+
+
+def get_title_for_community_preview(community, current_user_id, preview_type, is_private=False):
+
+    if preview_type == "directory":
+        return "The directory for our community has been set up. Complete your profile to see detailed profiles of other members in the community."
+    else:
+        community_name = community.name
+        if is_private:
+            return f"Join {community_name} with my exclusive invite. For security, this is valid only for the next 24 hours."
+        else:
+            is_admin = Members.objects.filter(community_id=community,
+                                              member_id=current_user_id, state=member_states.ADMIN).exists()
+            if is_admin:
+                return f"I am building {community_name} community. Apply to join our community."
+            else:
+                return f"I am a part of {community_name} community. Apply to join our community."
+
 
 
 def get_community_preview(community_instance, user_instance):
