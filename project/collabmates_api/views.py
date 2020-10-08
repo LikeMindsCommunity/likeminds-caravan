@@ -2074,7 +2074,6 @@ def remove_from_member(request):
 
             for member in member_ids:
                 member_filter = Members.objects.filter(community_id=community_id, member_id=member)
-
                 if member_filter.exists():
                     member_state = member_filter[0].state
                     if member_state == member_states.MEMBER or member_state == member_states.KNOWN_NOMINATED_PROMOTER \
@@ -2082,11 +2081,10 @@ def remove_from_member(request):
                         remove_members(community_id, member_filter[0].member_id.id,
                                        removed_state=deleted_members.REMOVED)
 
-                        check_reports_and_update_action(action_taken_by=member_id,
+                        check_reports_and_update_action.delay(action_taken_by=member_id,
                                                               action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
-                                                              user=member_id, community=community_id,
+                                                              user=member, community=community_id,
                                                               action_taken_tag_id=tag_id, action_taken_reason=reason)
-
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'error_message': "You are not the promoter of this community"})
@@ -2100,7 +2098,7 @@ def remove_from_member(request):
             toast_filter = communityToast.objects.filter(community_id=community_id, user=member_id)
             toast_filter.update(toast_message="Your request for joining this community is cancelled")
 
-            check_reports_and_update_action(action_taken_by=member_id,
+            check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
 
@@ -2115,9 +2113,9 @@ def remove_from_member(request):
 
         if is_member.exists():
             remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
-            check_reports_and_update_action(action_taken_by=member_id,
-                                            action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
-                                            user=member_id, community=community_id)
+            check_reports_and_update_action.delay(action_taken_by=member_id,
+                                                  action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
+                                                  user=member_id, community=community_id)
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False,
@@ -3319,10 +3317,6 @@ def chatroom_delete(request):
         card_creator = collabcard_instance.user
         current_user_instance = User.objects.get(pk=member_id)
 
-        if not check_admin_delete_right(user=current_user_instance, community=community_instance):
-            context = get_error_context(False, "You do not have right to delete this chatroom")
-            return JsonResponse(context)
-
         is_promoter = False
         member_instance = Members.objects.filter(member_id=member_id,
                                                  community_id=community_instance).filter(Q(state=1))
@@ -3335,6 +3329,11 @@ def chatroom_delete(request):
             context = get_error_context(False,
                                         "You are not the card creator or promoter. you cannot delete this chatroom")
             return JsonResponse(context)
+
+        if not is_card_creator:
+            if not check_admin_delete_right(user=current_user_instance, community=community_instance):
+                context = get_error_context(False, "You do not have right to delete this chatroom")
+                return JsonResponse(context)
 
         # updating collabcard delete status
         update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
@@ -3353,7 +3352,7 @@ def chatroom_delete(request):
 
 
 def update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
-                                    card_creator, reason, tag_id=None):
+                                    card_creator, reason=None, tag_id=None):
 
     deleted_by_user_state = 1 if is_promoter else 4
     deleted_by_text = ""
@@ -3386,9 +3385,10 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
     else:
         action_taken = report_Action_Types.CHATROOM_DELETED_BY_CM
 
-    check_reports_and_update_action(action_taken_by=current_user_instance.id,
-                                    action_taken=action_taken,
-                                    chatroom_id=collabcard_instance.id)
+    check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
+                                          action_taken=action_taken,
+                                          chatroom_id=collabcard_instance.id, action_taken_tag_id=tag_id,
+                                          action_taken_reason=reason)
 
     info_logger.info("successfully updated chatroom delete status")
 
@@ -10977,8 +10977,9 @@ def delete_conversation(request):
 
     return JsonResponse({'success': True})
 
+
 def update_conversation_delete_status(conversation_instance, current_user_instance, is_promoter,
-                                      conversation_creator, reason, tag_id=None):
+                                      conversation_creator, reason=None, tag_id=None):
 
     deleted_by_user_state = 1 if is_promoter else 4
     deleted_by_text = ""
@@ -11001,14 +11002,15 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
     conversation_instance.reason = reason
     conversation_instance.save()
 
-    if int(current_user_instance.id) == int(conversation_instance.member.id):
+    if int(current_user_instance.id) == int(conversation_instance.user.id):
         action_taken = report_Action_Types.RESPONSE_DELETED_BY_CREATOR
     else:
         action_taken = report_Action_Types.RESPONSE_DELETED_BY_CM
 
-    check_reports_and_update_action(action_taken_by=current_user_instance.id,
-                                    action_taken=action_taken,
-                                    conversation_id=conversation_instance.id)
+    check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
+                                          action_taken=action_taken,
+                                          conversation_id=conversation_instance.id, action_taken_tag_id=tag_id,
+                                          action_taken_reason=reason)
 
     info_logger.info("successfully updated conversation_instance delete status")
 
@@ -11550,7 +11552,7 @@ def update_community_member_rights(request):
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
-        check_reports_and_update_action(action_taken_by=current_user_id,
+        check_reports_and_update_action.delay(action_taken_by=current_user_id,
                                               action_taken=report_Action_Types.EDIT_MEMBER_PERMISSION,
                                               user=user_id, community=community_id,
                                               added_member_rights=rights_added, removed_member_rights=rights_removed)
@@ -11619,7 +11621,7 @@ def check_reports_and_update_action(action_taken_by, action_taken, conversation_
 
         action_taken_tag_instance = None
         if action_taken_tag_id:
-            action_taken_tag_instance = Report_tags.objects.get(tag_id=action_taken_tag_id)
+            action_taken_tag_instance = Report_Tags.objects.get(tag_id=action_taken_tag_id)
 
         final_rights_added = json.dumps(final_rights_added)
         final_rights_removed = json.dumps(final_rights_removed)
@@ -11627,7 +11629,7 @@ def check_reports_and_update_action(action_taken_by, action_taken, conversation_
 
         reports.update(action_taken_by=action_taken_by_user, action_taken=action_taken,
                        rights_added=final_rights_added, rights_removed=final_rights_removed,
-                       action_taken_tag=action_taken_tag_instance, action_taken_reason = action_taken_reason
+                       action_taken_tag=action_taken_tag_instance, action_taken_reason=action_taken_reason
                        )
 
     return
@@ -11741,7 +11743,7 @@ def fetch_reports(request):
         context = get_error_context(False, "user has not Owner or CM")
         return JsonResponse(context)
 
-    reports = get_related_reports_for_user(user_id=current_user_id, community=community_id, has_right_0=has_right_0,
+    reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                            is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
                                            parent_cm_list=parent_cm_list)
 
@@ -11752,6 +11754,30 @@ def fetch_reports(request):
         report_list.append(report_dict)
 
     return JsonResponse({"reports": report_list})
+
+
+@csrf_exempt
+def close_report(request):
+    """ function to approve a chatroom """
+    if request.method == "GET":
+        context = get_error_context(False, "change HTTP method to POST")
+        return JsonResponse(context)
+
+    current_user_id = get_member_id_from_headers(request)
+    user_instance = User.objects.get(id=current_user_id)
+
+    report_id = request.POST.get('report_id', None)
+
+    if not current_user_id:
+        context = get_error_context(False, "send member_id in headers")
+        return JsonResponse(context)
+    if not report_id:
+        context = get_error_context(False, "send report_id in params")
+        return JsonResponse(context)
+
+    Report.objects.filter(pk=report_id).update(is_closed=True, closed_by=user_instance, closed_time=time.time())
+
+    return JsonResponse({'success': True})
 
 
 def fetch_pending_chatroom(request):

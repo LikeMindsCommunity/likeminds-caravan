@@ -1289,11 +1289,11 @@ def report_serializer(report_instance):
 
     if report_instance.user_reported:
         user_profile = get_members_profile(member_ids=[report_instance.user_reported.id], community_id=community_id)
-        report["user_reported"] = user_profile
+        report["user_reported"] = user_profile[0]
 
     if report_instance.reported_by:
         user_profile = get_members_profile(member_ids=[report_instance.reported_by.id], community_id=community_id)
-        report["user_reported"] = user_profile
+        report["reported_by"] = user_profile[0]
 
     if report_instance.type is not None:
         report["type"] =report_instance.type
@@ -1302,11 +1302,11 @@ def report_serializer(report_instance):
         report["tag"] = report_tag_serializer(report_instance.action_taken_tag)
 
     if report_instance.action_taken_reason:
-        report["reason"] = report_instance.action_taken_reason
+        report["action_taken_reason"] = report_instance.action_taken_reason
 
     if report_instance.action_taken_by:
         user_profile = get_members_profile(member_ids=[report_instance.action_taken_by.id], community_id=community_id)
-        report["user_reported"] = user_profile
+        report["action_taken_by"] = user_profile[0]
 
     if report_instance.action_taken is not None:
         report["action_taken"] = report_instance.action_taken
@@ -1322,7 +1322,7 @@ def report_serializer(report_instance):
 
     if report_instance.closed_by is not None:
         user_profile = get_members_profile(member_ids=[report_instance.closed_by.id], community_id=community_id)
-        report["closed_by"] = user_profile
+        report["closed_by"] = user_profile[0]
 
     if report_instance.closed_time:
         report["closed_on"] = report_instance.closed_time
