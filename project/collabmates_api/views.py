@@ -1093,8 +1093,6 @@ def join_promoter_created_community_version_1(res, request):
                 # saving create community action level3
                 update_community_actions(community_instance)
 
-                save_name_initial_image.delay(member_id, community_id, user_name=user_instance.userinfo.name)
-
                 # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
                 log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
@@ -4061,8 +4059,6 @@ def approve_or_decline_private_community(req_dict, request):
             send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],
                                                       promoter_name)
             send_community_confirmation_email.delay(req_dict['member_id'], req_dict['community_id'])
-
-            save_name_initial_image.delay(req_dict['member_id'], req_dict['community_id'], user_name=new_user_name)
 
     else:
 
@@ -7625,6 +7621,9 @@ def login_with_google(google_id_token, request, res, login_type="google"):
                                        json_to_save=json_to_save
                                        )
 
+            if 'picture' not in res:
+                save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
+
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
             save_user_primary_email(user, res['email'], verified=True)
@@ -7697,6 +7696,9 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
 
         save_user_primary_email(user, res['email'], verified=True)
 
+        if 'picture' not in res:
+            save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
+
         email_exists = False
     else:
         userinfo = user.userinfo
@@ -7755,6 +7757,9 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
 
+        if 'profilePicture' not in res:
+            save_name_initial_image.delay(user_id=user.id, user_name=user_name)
+
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
         save_user_primary_email(user, email, verified=True)
         email_exists = False
@@ -7812,6 +7817,9 @@ def login_with_apple(request, res, json_to_save, login_type="apple"):
                                    json_to_save=json_to_save, city=city, apple_id=res['id']
                                    )
 
+        if 'picture' not in res:
+            save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
+
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         save_user_primary_email(user, res['email'], verified=True)
@@ -7868,7 +7876,11 @@ def custom_login(request, res, login_type="custom"):
     image_url = ""
     if 'image_url' in profile:
         image_url = profile['image_url']
+
     user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type)
+
+    if 'image_url' not in profile:
+        save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
 
     if is_request_web(request):
         phone_no = str(country_code) + str(mobile_no)

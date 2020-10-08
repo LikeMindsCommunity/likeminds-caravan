@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 from utility.firebase import upload_user_community_profile_images
 import os
 from .utils import *
+import random
 url = settings.URL
 
 is_beta = settings.IS_BETA
@@ -254,15 +255,20 @@ def send_mail_for_query_and_feedback(mail_dict):
 
 
 @shared_task
-def save_name_initial_image(user_id, community_id, user_name):
-    name_initial = user_name[0]
-    font = ImageFont.truetype("/static/fonts/Roboto-Medium.ttf", 50, encoding="unic")
+def save_name_initial_image(user_id, user_name):
 
-    canvas = Image.new('RGB', (400, 400), "white")
+    colour_codes = ["#2196F3", "#03A9F4", "#fdbd39", "#F44336", "#9C27B0", "#FFEB3B", "#d0021b", "#28d0021b"]
+    chosen_color = random.randint(0, len(colour_codes))
+    width, length = 216, 216
+
+    name_initial = user_name[0]
+    font = ImageFont.truetype("/static/fonts/Roboto-Medium.ttf", 140, encoding="unic")
+
+    canvas = Image.new(mode='RGBA', size=(width, length), color=colour_codes[chosen_color])
     draw = ImageDraw.Draw(canvas)
     text_width, text_height = draw.textsize(name_initial, font=font)
 
-    draw.text(((400 - text_width) / 2, (400 - text_height) / 2 - 20), text, 'black', font)
+    draw.text(((width - text_width) / 2, (length - text_height) / 2 - 20), name_initial, 'white', font)
 
     # cropping into circular image
     big_size = (canvas.size[0] * 2, canvas.size[1] * 2)
@@ -272,19 +278,20 @@ def save_name_initial_image(user_id, community_id, user_name):
     mask = mask.resize(canvas.size, Image.ANTIALIAS)
     canvas.putalpha(mask)
 
-    image_name = f"media/media/user_community_profile/{user_id}_{community_id}_profile_image.png"
+    image_name = f"media/media/user_profile/{user_id}_profile_image.png"
     canvas.save(image_name, "PNG")
     # canvas.show()
 
-    image_url = upload_user_community_profile_images(user_id, communtiy_id, image=canvas, url=False)
+    image_url = upload_user_community_profile_images(user_id, image=canvas, url=False)
 
     if image_url:
-        member_instance = Members.objects.filter(community_id=communtiy_id, member_id=user_id)
-        if member_instance.exists():
-            member_instance.update(image_url=image_url)
+        user_info = Userinfo.objects.get(user_id=user_id)
+        user_info.image_link = image_url
+        user_info.save()
 
     if os.path.isfile(image_name):
         os.remove(image_name)
+
 
 # mail_dict={}
 # mail_dict['user_name'] = "Mahesh Royals"
