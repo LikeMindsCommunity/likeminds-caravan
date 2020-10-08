@@ -11275,8 +11275,8 @@ def update_community_manager_rights(request):
 
 def get_added_and_removed_rights(user, community, selected_rights, existing_rights):
 
-    selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]
-                             
+    selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
+    
     print(">>>>> existing_rights >>>>>>  ", existing_rights)
     print(">>>>> selected_rights >>>>>>  ", selected_rights_list)
 
