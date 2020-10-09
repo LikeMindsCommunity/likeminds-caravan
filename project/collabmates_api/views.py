@@ -3255,8 +3255,8 @@ def chatroom_mute(request):
         if collabcard_state_filter.exists():
            instance =  collabcard_state_filter[0]
            instance.mute_status = False
-           instance.updated_at=time.time()
-           instance.external_seen = True if instance.is_tagged else False
+           instance.updated_at = time.time()
+           instance.external_follow = True if instance.is_tagged else False
            instance.is_tagged = False
            instance.save()
            #collabcard_state_filter.update(mute_status=False,is_tagged=False,updated_at=time.time())
