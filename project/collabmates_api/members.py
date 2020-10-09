@@ -207,7 +207,7 @@ def get_member_instances_without_filter(member_list,current_user_id,community_id
     for member in member_list:
         member_id = member.member_id.id
         userinfo_serialized_object = MembersSerializer(member, community_id, current_user_id=current_user_id,
-                                                       send_profile=False, all_members_api=True, is_promoter=is_promoter
+                                                       send_profile=True, all_members_api=True, is_promoter=is_promoter
                                                        , is_owner=is_owner, user_admin_rights=user_admin_rights)
 
         if member_id == int(current_user_id):
