@@ -6545,6 +6545,8 @@ def collabcard_follow(request, function_dict=None):
         context = {}
         context = adding_guest_in_chatroom(request, context, collabcard, aj, source_id, community_instance.id, current_member_id,guest_header=True)
 
+        #updating the collabcard state external follow for guest member
+        collabcardState.objects.filter(card=collabcard, user=user_instance).update(external_follow=True)
         return JsonResponse(context)
 
     expiry_time = get_expiry_time_of_chatroom()
