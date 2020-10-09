@@ -11846,7 +11846,7 @@ def action_pending_chatroom(request):
         return JsonResponse(context)
 
     current_user_id = get_member_id_from_headers(request)
-    # user_instance = User.objects.get(id=current_user_id)
+    user_instance = User.objects.get(id=current_user_id)
 
     chatroom_id = request.POST.get('chatroom_id', None)
     value = request.POST.get('value', False)
@@ -11860,21 +11860,28 @@ def action_pending_chatroom(request):
         return JsonResponse(context)
 
     chatroom = Collabcard.objects.get(pk=chatroom_id)
-    community_id = chatroom.community
-    has_right_approve = check_admin_approve_right(user=current_user_id, community=community_id)
+    community_instance = chatroom.community
+    has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)
     if not has_right_approve:
         context = get_error_context(False, "you have no right to approve chatrooms")
         return JsonResponse(context)
 
-    if value or value == "true":
+    if value == "true" or value is True:
+        # creating  a copy of existing model and saving it
+        chatroom.pk = None
+        chatroom.id = None
         chatroom.is_pending = False
+        chatroom.date_epoch = time.time()
         chatroom.save()
 
+    # deleting the old instance even if value = true or false
+    Collabcard.objects.filter(pk=chatroom_id).delete()
+
     if pre_approve is not None:
-        if pre_approve or pre_approve == "true":
-            give_member_create_room_right(user=current_user_id, community=community_id)
+        if pre_approve == "true" or pre_approve is True:
+            give_member_auto_approve_right(user=user_instance, community=community_instance)
         else:
-            remove_member_create_room_right(user=current_user_id, community=community_id)
+            remove_member_create_room_right(user=user_instance, community=community_instance)
 
     return JsonResponse({'success': True})
 

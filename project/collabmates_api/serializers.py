@@ -172,6 +172,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         'date_time': card.date_time,
         'duration': card.duration,
         "is_deleted": card.is_deleted,
+        "is_pending": card.is_pending,
         'answers_count': card.answers_count,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
