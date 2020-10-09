@@ -11555,7 +11555,8 @@ def update_community_member_rights(request):
         check_reports_and_update_action.delay(action_taken_by=current_user_id,
                                               action_taken=report_Action_Types.EDIT_MEMBER_PERMISSION,
                                               user=user_id, community=community_id,
-                                              added_member_rights=rights_added, removed_member_rights=rights_removed)
+                                              added_member_rights=list(rights_added),
+                                              removed_member_rights=list(rights_removed))
 
         return JsonResponse({'success': True})
     else:
@@ -11836,8 +11837,8 @@ def action_pending_chatroom(request):
         return JsonResponse(context)
 
     current_user_id = get_member_id_from_headers(request)
-    user_instance = User.objects.get(id=current_user_id)
-
+    # user_instance = User.objects.get(id=current_user_id)
+    #
     chatroom_id = request.POST.get('chatroom_id', None)
     value = request.POST.get('value', False)
     pre_approve = request.POST.get('pre_approve', None)
@@ -11851,6 +11852,7 @@ def action_pending_chatroom(request):
 
     chatroom = Collabcard.objects.get(pk=chatroom_id)
     community_instance = chatroom.community
+    chatroom_creator = chatroom.user
     has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)
     if not has_right_approve:
         context = get_error_context(False, "you have no right to approve chatrooms")
@@ -11869,9 +11871,9 @@ def action_pending_chatroom(request):
 
     if pre_approve is not None:
         if pre_approve == "true" or pre_approve is True:
-            give_member_auto_approve_right(user=user_instance, community=community_instance)
+            give_member_auto_approve_right(user=chatroom_creator, community=community_instance)
         else:
-            remove_member_create_room_right(user=user_instance, community=community_instance)
+            remove_member_create_room_right(user=chatroom_creator, community=community_instance)
 
     return JsonResponse({'success': True})
 

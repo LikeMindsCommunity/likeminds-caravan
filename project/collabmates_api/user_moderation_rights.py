@@ -318,11 +318,12 @@ def remove_member_create_room_right(user, community):
 def give_member_auto_approve_right(user, community):
 
     try:
+        approve_right = memberRights.objects.get(state=member_rights.MEMBER_RIGHT_AUTO_APPROVE)
         user_rights = userMemberRights(user=user, community=community,
-                                       right__state=member_rights.MEMBER_RIGHT_AUTO_APPROVE)
+                                       right=approve_right)
         user_rights.save()
     except:
-        print("right already exists for user ----> ",user.id, community.id, member_rights.MEMBER_RIGHT_AUTO_APPROVE)
+        print("right already exists for user ----> ", user.id, community.id, member_rights.MEMBER_RIGHT_AUTO_APPROVE)
 
 
 
