@@ -1,5 +1,5 @@
 from togther.models import (adminRights, memberRights, Members,
-                            Community, userAdminRights, userMemberRights)
+                            Community, userAdminRights, userMemberRights, communityRightsSettings)
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.db.models import Count
@@ -177,14 +177,34 @@ def fill_parent_for_admins():
                                             is_owner=False, state=1).update(parent_cm=owner_id,
                                                                             parent_cm_list=parent_list)
 
+
+def fill_community_setting_rights():
+    print("\n>>>>>>>>>     filling community_setting rights")
+    communities = Community.objects.all()
+    member_rights = memberRights.objects.all().order_by("state")
+    for community in communities:
+        save_community_setting_rights(community, member_rights)
+
+
+def save_community_setting_rights(community, rights_list):
+
+    for right in rights_list:
+        try:
+            communityRightsSettings(community=community, right=right).save()
+        except:
+            print(">>>> member  --  ", community.id, right.id)
+
+
+
 start_time = time.time()
 print(">>>>>> started >>>>>>>>   ", start_time)
 
-save_rights()
-update_community_owners()
-update_custom_title_for_all()
-fill_rights()
-fill_parent_for_admins()
+# save_rights()
+# update_community_owners()
+# update_custom_title_for_all()
+# fill_rights()
+# fill_parent_for_admins()
+fill_community_setting_rights()
 
 end_time = time.time()
 print(">>>>>> end >>>>>>>>  ", end_time)

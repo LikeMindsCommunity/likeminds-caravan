@@ -1,6 +1,6 @@
 from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
-                            moderationHistory, Report, Report_Tags)
+                            moderationHistory, Report, Report_Tags, communityRightsSettings)
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
 
 from django.db.models import Q
@@ -144,11 +144,15 @@ def check_all_manager_rights(user, community):
     return rights_list
 
 
-def check_all_member_rights(user, community):
+def check_all_member_rights(user=None, community=None):
     """function to give a manager all the rights """
 
-    admin_rights = userMemberRights.objects.select_related('right').filter(user=user,
-                                                                           community=community).order_by("right__state")
+    if user is None:
+        member_rights = communityRightsSettings.objects.select_related('right').filter(
+                        community=community).order_by("right__state")
+    else:
+        member_rights = userMemberRights.objects.select_related('right').filter(user=user,
+                                                                                community=community).order_by("right__state")
     create_room = False
     create_poll = False
     create_event = False
@@ -156,7 +160,7 @@ def check_all_member_rights(user, community):
     invite_private = False
     auto_approve = False
 
-    for right in admin_rights:
+    for right in member_rights:
         right = right.right
 
         if right.state == create_room_member_right['state']:
@@ -339,11 +343,11 @@ def give_member_create_room_right(user, community):
 
 def give_right_to_all_members(community, right):
 
-    community_members = Members.objects.select_related("member_id").filter(community_id=community).exclude(state__in=[3, 5, 6, 8])
-
+    community_members = Members.objects.select_related("member_id").filter(
+                                community_id=community).filter(Q(state=member_states.MEMBER) |
+                                                               Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
+                                                               Q(state=member_states.PROFILE_UNAVAILABLE))
     for member in community_members:
-        # community_right = userMemberRights.objects.filter(user=member.member_id, community=community, right=right)
-
         try:
             userMemberRights(user=member.member_id, community=community, right=right).save()
         except:
@@ -351,7 +355,17 @@ def give_right_to_all_members(community, right):
 
 
 def remove_right_for_all_members(community, right):
-    userMemberRights.objects.filter(community=community, right=right).delete()
+
+    community_members = Members.objects.select_related("member_id").filter(
+                                community_id=community).filter(Q(state=member_states.MEMBER) |
+                                                               Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
+                                                               Q(state=member_states.PROFILE_UNAVAILABLE))
+
+    for member in community_members:
+        try:
+            userMemberRights.objects.filter(user=member.member_id, community=community, right=right).delete()
+        except:
+            print("rights already exists")
 
 
 

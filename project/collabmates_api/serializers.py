@@ -1136,6 +1136,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
 
     if (all_members_api or profile_detail_api) and (is_promoter or is_owner):
         community_profile["menu"] = get_menu_for_members(current_user_id=current_user_id,item_member_id=member_id,
+                                                         community_id=community_id,
                              current_user_is_promoter=is_promoter, current_user_is_owner=is_owner,
                              item_member_state=member_instance.state, item_member_is_owner=user_is_owner,
                              current_user_admin_rights=user_admin_rights,parents_list=parents_list,
@@ -1147,18 +1148,30 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
     return community_profile
 
 
-def get_menu_for_members(current_user_id, item_member_id, current_user_is_promoter, item_member_state, current_user_is_owner=False,
+def get_menu_for_members(current_user_id, item_member_id, community_id, current_user_is_promoter, item_member_state, current_user_is_owner=False,
                          item_member_is_owner=False, current_user_admin_rights=None, parents_list=None,
                          profile_detail_api=False):
     """ function to get the menu for all members for all members api and profile detail api """
     #  x is current member , y is member whose profile is currently in iteration sequence
     # current_user_state, item_member_state,
 
+    edit_title = {"title": "Edit title"}
+    edit_permissions = {"title": "Edit permissions",
+                        "route": f"route://edit_member_rights?community_id={community_id}&member_id={item_member_id}"}
+    give_CM_rights = {"title": "Give community management rights",
+                      "route": f"route://edit_manager_rights?community_id={community_id}&member_id={item_member_id}"}
+    edit_CM_rights = {"title": "Edit management rights",
+                      "route": f"route://edit_manager_rights?community_id={community_id}&member_id={item_member_id}"}
+    report_member = {"title": "Report member",
+                     "route": f"route://report_member?community_id={community_id}&member_id={item_member_id}"}
+    remove_from_community = {"title": "Remove from community",
+                             "route": f"route://remove_from_community?community_id={community_id}&member_id={item_member_id}"}
+
     if parents_list is None:
         parents_list = []
 
     if current_user_is_owner and int(current_user_id) == int(item_member_id):
-        return ["Edit title"]
+        return [edit_title]
     if current_user_id and int(current_user_id) == int(item_member_id):
         return []
     elif not current_user_id:
@@ -1167,12 +1180,12 @@ def get_menu_for_members(current_user_id, item_member_id, current_user_is_promot
     menu = []
 
     if current_user_is_owner and item_member_is_owner:
-        menu = ["Edit title"]
+        menu = [edit_title]
     elif current_user_is_owner and item_member_state == member_states.ADMIN:
-        menu = ["Remove from community", "Edit management rights"]
+        menu = [remove_from_community, edit_CM_rights]
 
     elif current_user_is_owner and item_member_state == member_states.MEMBER:
-        menu = ["Remove from community", "Edit permissions", "Give community management rights"]
+        menu = [remove_from_community, edit_permissions, give_CM_rights]
 
     elif current_user_is_promoter and item_member_state == member_states.ADMIN:
 
@@ -1180,32 +1193,32 @@ def get_menu_for_members(current_user_id, item_member_id, current_user_is_promot
 
         if current_user_admin_rights:
             if current_user_admin_rights["approve"] and is_child:
-                menu.append("Remove from community")
+                menu.append(remove_from_community)
 
             if current_user_admin_rights["add_manager"] and is_child:
-                menu.append("Edit permissions")
+                menu.append(edit_permissions)
 
 
         if profile_detail_api:
-            menu.append("Report member")
+            menu.append(report_member)
 
     elif current_user_is_promoter and item_member_state == member_states.MEMBER:
         if current_user_admin_rights:
             if current_user_admin_rights["approve"]:
-                menu.append("Remove from community")
+                menu.append(remove_from_community)
 
             if current_user_admin_rights["delete_room"] or current_user_admin_rights["approve"]:
-                menu.append("Edit permissions")
+                menu.append(edit_permissions)
 
             if current_user_admin_rights["add_manager"]:
-                menu.append("Give community management rights")
+                menu.append(give_CM_rights)
 
             if not current_user_admin_rights["approve"] and profile_detail_api:
-                menu.append("Report member")
-        # menu = ["Remove from community", "Edit management rights", "Report member"]
+                menu.append(report_member)
+
     else:
         if profile_detail_api:
-            menu.append("Report member")
+            menu.append(report_member)
 
     return menu
 
