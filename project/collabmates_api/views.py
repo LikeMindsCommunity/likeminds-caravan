@@ -3149,7 +3149,7 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 
 def create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
                                    expire_at=None, external_seen=True, is_guest=False, source=None, follow_status=False,
-                                   mute_status=False, is_tagged=False, **kwargs):
+                                   mute_status=False, is_tagged=False, external_follow=False ,**kwargs):
     '''function to create chatroom state instance'''
     # if not expire_at:
     #     expire_at = get_expiry_time_of_chatroom()
@@ -3171,6 +3171,7 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
         collabcard_state_instance.is_tagged=is_tagged
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = source
+        collabcard_state_instance.external_follow = external_follow
 
         collabcard_state_instance.save()
         return collabcard_state_instance
@@ -3247,11 +3248,18 @@ def chatroom_mute(request):
         return JsonResponse(context)
 
     value = request.POST.get('value', False)
-
+    collabcard_state_filter = collabcardState.objects.filter(card_id=chatroom_id, user=member_id)
     if value == "true":
-        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=True,updated_at=time.time())
+        collabcard_state_filter.update(mute_status=True,updated_at=time.time())
     else:
-        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=False,is_tagged=False,updated_at=time.time())
+        if collabcard_state_filter.exists():
+           instance =  collabcard_state_filter[0]
+           instance.mute_status = False
+           instance.updated_at=time.time()
+           instance.external_seen = True if instance.is_tagged else False
+           instance.is_tagged = False
+           instance.save()
+           #collabcard_state_filter.update(mute_status=False,is_tagged=False,updated_at=time.time())
 
     return JsonResponse({'success': True})
 
@@ -6558,7 +6566,7 @@ def collabcard_follow(request, function_dict=None):
 
         create_chatroom_state_instance(card_instance, user_instance, state=0,
                                        expire_at=expiry_time, external_seen=True,is_guest=is_guest,
-                                       follow_status=status, function_called="collabcard_follow")
+                                       follow_status=status, function_called="collabcard_follow",external_follow=True)
 
 
 
@@ -6581,14 +6589,14 @@ def collabcard_follow(request, function_dict=None):
 
         if status:
             expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
-            collabcard_state_filter.update(follow_status = status,updated_at=time.time(),expiry_time=expiry_time,external_seen=True)
+            collabcard_state_filter.update(follow_status = status,updated_at=time.time(),expiry_time=expiry_time,external_seen=True,external_follow=status)
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
             create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
 
         else:
-            collabcard_state_filter.update(follow_status = status, updated_at=time.time(),is_tagged=False,external_seen=True)
+            collabcard_state_filter.update(follow_status = status, updated_at=time.time(),is_tagged=False,external_seen=True,external_follow=status)
 
             #deleting the conversation engage
             delete_status = conversationEngage.objects.filter(card=collabcard,user=user_instance).delete()

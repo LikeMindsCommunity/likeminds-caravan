@@ -722,6 +722,7 @@ class collabcardState(models.Model):
     expiry_time = models.BigIntegerField(null=True)
 
     external_seen = models.BooleanField(default=True)
+    external_follow = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('card', 'user'),)
