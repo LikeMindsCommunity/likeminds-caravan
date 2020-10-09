@@ -180,8 +180,8 @@ def fill_parent_for_admins():
 start_time = time.time()
 print(">>>>>> started >>>>>>>>   ", start_time)
 
-# save_rights()
-# update_community_owners()
+save_rights()
+update_community_owners()
 update_custom_title_for_all()
 fill_rights()
 fill_parent_for_admins()
