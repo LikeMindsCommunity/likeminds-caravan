@@ -203,6 +203,8 @@ urlpatterns = [
     path('action_pending_chatroom', api_views.action_pending_chatroom, name='action_pending_chatroom'),
 
     path('fetch_management_tools', api_views.fetch_management_tools, name='fetch_management_tools'),
+    path('fetch_community_setting_rights', api_views.fetch_community_setting_rights,
+         name='fetch_community_setting_rights'),
     path('update_community_rights', api_views.update_community_rights, name='update_community_rights'),
 
     ############################ synching client db apis ##################################
