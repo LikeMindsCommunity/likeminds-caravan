@@ -194,7 +194,7 @@ def get_member_instances_without_filter(member_list,current_user_id,community_id
             # elif not member_set:
 
             current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
-                                             send_profile=False, all_members_api=True, is_promoter=is_promoter,
+                                             send_profile=True, all_members_api=True, is_promoter=is_promoter,
                                              is_owner=is_owner)
 
 
@@ -251,7 +251,7 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
 
             if member_set and current_user_id and int(current_user_id) in member_set:
                 current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
-                                                 send_profile=False, all_members_api=True, is_promoter=is_promoter,
+                                                 send_profile=True, all_members_api=True, is_promoter=is_promoter,
                                                  is_owner=is_owner)
 
 
@@ -265,7 +265,7 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
         user_admin_rights = check_all_manager_rights(current_user_id, community_id)
 
     member_instances_list = get_members_profile(list(member_ids), community_id, current_user_id=current_user_id,
-                                                send_profile=False, all_members_api=True, is_promoter=is_promoter,
+                                                send_profile=True, all_members_api=True, is_promoter=is_promoter,
                                                 is_owner=is_owner, user_admin_rights=user_admin_rights)
 
     if current_user:
