@@ -11857,8 +11857,14 @@ def action_pending_chatroom(request):
         return JsonResponse(context)
 
     if value or value == "true":
+        # creating  a copy of existing model and saving it
+        chatroom.pk = None
+        chatroom.id = None
         chatroom.is_pending = False
         chatroom.save()
+
+        # deleting the old instance
+        chatroom = Collabcard.objects.filter(pk=chatroom_id).delete()
 
     if pre_approve is not None:
         if pre_approve or pre_approve == "true":
