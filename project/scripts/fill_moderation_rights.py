@@ -124,12 +124,33 @@ def get_communities_with_admins():
         print("Error", error)
 
 
+def update_custom_title_for_Members():
+    """ function to update all owners from database """
+    try:
+        connection = get_connection()
+        curr = connection.cursor()
+        sql = """update togther_members set custom_title='Member' WHERE state=4 or state=7 or state=9"""
+        curr.execute(sql)
+        curr.close()
+        connection.close()
+    except(Exception, psycopg2.Error) as error:
+        print("Error", error)
+
+
+def update_custom_title_for_all():
+    """ function to update all owners from database """
+    Members.objects.filter(is_owner=False).filter(Q(state=1) | Q(state=2)).update(custom_title="Community Manager")
+    Members.objects.filter(is_owner=True).filter(Q(state=1) | Q(state=2)).update(custom_title="Owner")
+    Members.objects.filter(Q(state=4) | Q(state=7) | Q(state=9)).update(custom_title="Manager")
+
+
+
 def update_community_owners():
     """ function to update all owners from database """
     try:
         connection = get_connection()
         curr = connection.cursor()
-        sql = """update togther_members set is_owner=true where id in (
+        sql = """update togther_members set is_owner=true, custom_title='Owner' where id in (
                  SELECT MIN(id) as id FROM togther_members WHERE state=1 or state=2
                  GROUP BY community_id_id Having COUNT(community_id_id) > 0)"""
         curr.execute(sql)
@@ -141,9 +162,7 @@ def update_community_owners():
 
 def fill_parent_for_admins():
     print("\n>>>>>>>>>     filling parent")
-    update_community_owners()
     community_ids = get_communities_with_admins()
-
     for community_id in community_ids:
         owner = Members.objects.filter(community_id=community_id[0], is_owner=True)
         # print("owner >>>>>>>  ", owner, community_id[0])
@@ -153,11 +172,14 @@ def fill_parent_for_admins():
             status = Members.objects.filter(community_id=community_id,
                                             is_owner=False, state=1).update(parent_cm=owner_id,
                                                                             parent_cm_list=parent_list)
+
 start_time = time.time()
 print(">>>>>> started >>>>>>>>   ", start_time)
 
 # save_rights()
-# fill_rights()
+# update_community_owners()
+update_custom_title_for_all()
+fill_rights()
 fill_parent_for_admins()
 
 end_time = time.time()
