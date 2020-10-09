@@ -92,17 +92,21 @@ def fill_admin_rights(user, community, rights_list, is_owner=False):
         if not is_owner and loop_count >= 3:
             print(">>>> admin  --  ", user, community, right)
             break
-        userAdminRights(user=user, community=community, right=right).save()
+        try:
+            userAdminRights(user=user, community=community, right=right).save()
+        except:
+            print(">>>> member  --  ", user.id, community.id, right.id)
         loop_count += 1
 
 
 def fill_member_rights(user, community, rights_list, is_admin=False):
     for right in rights_list:
         if not is_admin and right.state == 4:
-            print(">>>> member  --  ", user.id, community.id, right.id)
             continue
-        userMemberRights(user=user, community=community, right=right).save()
-
+        try:
+            userMemberRights(user=user, community=community, right=right).save()
+        except:
+            print(">>>> member  --  ", user.id, community.id, right.id)
 
 def get_communities_with_admins():
     '''function to get all the communities from database'''
