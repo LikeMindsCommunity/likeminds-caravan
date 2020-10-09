@@ -68,7 +68,7 @@ def fill_rights():
     member_rights = memberRights.objects.all().order_by("state")
 
     members = Members.objects.select_related('member_id', 'community_id').filter(
-        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state=9)).distinct("member_id")
+        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state=9))
 
     for member in members:
         is_owner = member.is_owner
