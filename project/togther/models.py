@@ -1159,13 +1159,16 @@ class userAdminRights(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     right = models.ForeignKey(adminRights, on_delete=models.CASCADE)
     # right_given_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='right_given_by_user')
-
+    class Meta:
+        unique_together = (('user', 'community', 'right'),)
 
 class userMemberRights(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     right = models.ForeignKey(memberRights, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = (('user', 'community', 'right'),)
 
 class moderationHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -1187,4 +1190,6 @@ class communityRightsSettings(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     right = models.ForeignKey(memberRights, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = (('community', 'right'),)
 

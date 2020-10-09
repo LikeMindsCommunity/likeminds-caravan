@@ -156,8 +156,8 @@ def fill_parent_for_admins():
 start_time = time.time()
 print(">>>>>> started >>>>>>>>   ", start_time)
 
-save_rights()
-fill_rights()
+# save_rights()
+# fill_rights()
 fill_parent_for_admins()
 
 end_time = time.time()

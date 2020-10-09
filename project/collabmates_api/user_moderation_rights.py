@@ -31,7 +31,10 @@ def fill_admin_rights(user, community, rights_list):
 
 def fill_member_rights(user, community, rights_list):
     for right in rights_list:
-        userMemberRights(user=user, community=community, right=right).save()
+        try:
+            userMemberRights(user=user, community=community, right=right).save()
+        except:
+            pass
 
 
 def get_saved_member_rights_list(user_rights, admin_rights=None):
@@ -303,23 +306,34 @@ def check_member_auto_approve_right(user, community):
 
 def remove_member_create_room_right(user, community):
 
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
+    create_rights = [member_rights.MEMBER_RIGHT_CREATE_ROOMS, member_rights.MEMBER_RIGHT_CREATE_POLL,
+                     member_rights.MEMBER_RIGHT_CREATE_EVENT]
+    try:
+        userMemberRights.objects.filter(user=user, community=community,
+                                        right__state__in=create_rights).delete()
+    except:
+        print("rights not exists")
 
-    if user_rights.exists():
-        return True
-    return False
+
+def give_member_auto_approve_right(user, community):
+
+    try:
+        user_rights = userMemberRights(user=user, community=community,
+                                       right__state=member_rights.MEMBER_RIGHT_AUTO_APPROVE)
+        user_rights.save()
+    except:
+        print("right already exists for user ----> ",user.id, community.id, member_rights.MEMBER_RIGHT_AUTO_APPROVE)
+
 
 
 def give_member_create_room_right(user, community):
 
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
-
-    if not user_rights.exists():
+    try:
         user_rights = userMemberRights(user=user, community=community,
                                        right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
         user_rights.save()
+    except:
+        print("right already exists for user ----> ",user.id, community.id, member_rights.MEMBER_RIGHT_CREATE_ROOMS)
 
 
 def give_right_to_all_members(community, right):
@@ -327,10 +341,12 @@ def give_right_to_all_members(community, right):
     community_members = Members.objects.select_related("member_id").filter(community_id=community).exclude(state__in=[3, 5, 6, 8])
 
     for member in community_members:
-        community_right = userMemberRights.objects.filter(user=member.member_id, community=community, right=right)
+        # community_right = userMemberRights.objects.filter(user=member.member_id, community=community, right=right)
 
-        if not community_right.exists():
+        try:
             userMemberRights(user=member.member_id, community=community, right=right).save()
+        except:
+            print("rights already exists")
 
 
 def remove_right_for_all_members(community, right):
