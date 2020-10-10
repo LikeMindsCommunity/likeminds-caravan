@@ -369,13 +369,13 @@ def your_communities(request, user_id):
 
         community = CommunitySerializer(each_community.community_id, current_user_id=current_user_id)
 
-        if each_community.member_state == member_states.ADMIN:
-            has_approve_right = check_admin_approve_right(user, each_community.community_id)
-            if has_approve_right:
-                community['pending_members_count'] = each_community.pending_members
-            else:
-                community['pending_members_count'] = 0
-        # community['pending_members_count'] = each_community.pending_members
+        # if each_community.member_state == member_states.ADMIN:
+        #     has_approve_right = check_admin_approve_right(user, each_community.community_id)
+        #     if has_approve_right:
+        #         community['pending_members_count'] = each_community.pending_members
+        #     else:
+        #         community['pending_members_count'] = 0
+        community['pending_members_count'] = each_community.pending_members
 
 
         actions = get_home_screen_community_actions(each_community.community_id)
@@ -2203,9 +2203,8 @@ def fetch_community_profile(request):
     is_promoter = False
     is_owner = False
     if current_user_member_instance.exists():
-        if current_user_member_instance[0]:
-            is_promoter = current_user_member_instance[0].state == member_states.ADMIN
-            is_owner = current_user_member_instance[0].is_owner
+        is_promoter = current_user_member_instance[0].state == member_states.ADMIN
+        is_owner = current_user_member_instance[0].is_owner
 
     user_admin_rights = None
     if is_owner or is_promoter:
@@ -9565,7 +9564,6 @@ def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
 
 
 ############# functions to update user location and city    ##########################
-
 @csrf_exempt
 def update_location(request):
     ''' function to update user location lat and long co-ordinates '''
