@@ -369,13 +369,13 @@ def your_communities(request, user_id):
 
         community = CommunitySerializer(each_community.community_id, current_user_id=current_user_id)
 
-        # if each_community.member_state == member_states.ADMIN:
-        #     has_approve_right = check_admin_approve_right(user, each_community.community_id)
-        #     if has_approve_right:
-        #         community['pending_members_count'] = each_community.pending_members
-        #     else:
-        #         community['pending_members_count'] = 0
-        community['pending_members_count'] = each_community.pending_members
+        if each_community.member_state == member_states.ADMIN:
+            has_approve_right = check_admin_approve_right(user, each_community.community_id)
+            if has_approve_right:
+                community['pending_members_count'] = each_community.pending_members
+            else:
+                community['pending_members_count'] = 0
+        # community['pending_members_count'] = each_community.pending_members
 
 
         actions = get_home_screen_community_actions(each_community.community_id)
