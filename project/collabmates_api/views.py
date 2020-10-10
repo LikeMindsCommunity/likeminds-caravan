@@ -9003,8 +9003,9 @@ def members_state(request, req_dict=None):
             state == member_states.PROFILE_UNAVAILABLE or state == member_states.ADMIN or state == member_states.TEMP_ADMIN:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
         json_response['member_rights'] = get_saved_member_rights_list(user_rights)
-                             
-    json_response['member']['image_url'] = image_url
+
+    if image_url:
+        json_response['member']['image_url'] = image_url
 
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
     if toast_filter.exists():
