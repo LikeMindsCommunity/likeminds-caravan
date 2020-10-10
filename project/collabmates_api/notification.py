@@ -1958,5 +1958,41 @@ def send_notification_for_reports(card_id=None, conversation_id=None, reported_o
     notification_meta(notification_list, message)
 
 
+@shared_task
+def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, community_id):
+
+    deleted_by_user = User.objects.get(pk=deleted_by_user_id)
+    deleted_by_user_name = deleted_by_user.userinfo.name
+    community_instance = Community.objects.get(pk=community_id)
+    community_name = community_instance.name
+
+    card_instance = Collabcard.objects.get(pk=card_id)
+    card_name = card_instance.header
+    sub_title = f"The Community Manager has deleted {card_name}. Click here to know the reasons."
+    route = ""
+
+    message = {}
+    notification_list = []
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": sub_title,
+        'route': route
+    }
+
+    following_member_ids = list(conversationEngage.objects.filter(card=card_instance).values_list("user__id", flat=True))
+
+    userinfos = Userinfo.objects.filter(user_id__in=following_member_ids)
+
+    for user in userinfos:
+        user_details = {
+            'fcm_token': user.fcm_token,
+            'mobile_os': user.mobile_os,
+        }
+
+        notification_list.append(user_details)
+
+    notification_meta(notification_list, message)
+
+
 
 
