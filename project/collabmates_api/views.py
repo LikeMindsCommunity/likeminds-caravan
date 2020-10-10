@@ -4073,7 +4073,7 @@ def approve_or_decline_private_community(req_dict, request):
                 # print(mobile_filter)
                 for instance in mobile_filter:
                     # print("sending sms here")
-                    info_logger.log('sending sms for community approval to',instance.id)
+                    # info_logger.log('sending sms for community approval to',instance.id)
                     phone_no = str(instance.country_code) + str(instance.mobile_no)
                     send_community_confirmation_sms.delay(phone_no,community.name,new_user_name,new_user_instance.id)
 
