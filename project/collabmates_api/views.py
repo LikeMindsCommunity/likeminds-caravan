@@ -7226,6 +7226,7 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None):
         chatroom_instance['members_images'] = last_response_members['members_images']
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
+        chatrooms.append(chatroom_instance)
         # chatroom_instance = {
         #     'id' : chatroom_instance['id'],
         #     'active': chatroom_instance['active']
@@ -7236,7 +7237,8 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None):
         #     chatrooms.append(chatroom_instance)
         #
         # if active == None:
-        chatrooms.append(chatroom_instance)
+        # #chatroom_instance = {'id':card_instance.id}
+
 
 
 
@@ -7339,7 +7341,7 @@ def fetch_chatroom_feed_version_1(request):
         active = None
 
     member_id = get_member_id_from_headers(request)
-    print(member_id)
+    #print(member_id)
 
     chatroom_filter = Collabcard.objects.filter(community=community_id,
                                                 is_pending=False, is_deleted=False).order_by('id')
@@ -7358,20 +7360,22 @@ def fetch_chatroom_feed_version_1(request):
             chatrooms = get_chatrooms_version_1(chatroom_list, member_id)
         else:
             last_seen = last_seen[0]
+
             if active:
                 upward = state_filter.filter(card__lte=last_seen.card.id,user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-card')[:3]
-                downward = state_filter.filter(card__gt=last_seen.card.id,user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time))[:3]
+                downward = state_filter.filter(card__gt=last_seen.card.id,user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('card')[:3]
 
             else:
 
                 upward = state_filter.filter(card__lte=last_seen.card.id,user=member_id).filter(
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:3]
 
-                downward = state_filter.filter(card__gt=last_seen.card.id,user=member_id).filter((~Q(expiry_time=None)) & Q(expiry_time__lte = current_time))[:3]
+                downward = state_filter.filter(card__gt=last_seen.card.id,user=member_id).filter((~Q(expiry_time=None)) & Q(expiry_time__lte = current_time)).order_by('card')[:3]
+
 
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('card_id')
-
+            #print(chatroom_list)
             chatrooms = get_chatrooms_version_1(chatroom_list, member_id,active)
 
         #context['header'] = chatroom_feed_header(community_id, member_id)
@@ -7400,7 +7404,7 @@ def fetch_chatroom_feed_version_1(request):
             else:
                 downward = state_filter.filter(card__gt=chatroom_id,user=member_id).filter(
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time))[:5]
-
+            #print(downward)
             chatrooms = get_chatrooms_version_1(downward, member_id,active)
 
     context['chatrooms'] = chatrooms
