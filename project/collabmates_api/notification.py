@@ -11,8 +11,10 @@ from django.db.models import Q
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
-                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,conversationMemberState
-                            )
+                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,
+                            conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
+                            moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers)
+from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,)
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -388,6 +390,9 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_list_member = []
 
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+        # getting the list of users who has blocked the card creator
+        blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
+                                    blocked_member=card_creater_id).values_list("blocked_by__id", flat=True))
         # print(member_list)
         for member in member_list:
             temp = {}
@@ -395,17 +400,13 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             notification_details = get_token_for_fcm(member[0], True)
             temp['fcm_token'] = notification_details[0]
             temp['mobile_os'] = notification_details[1]
-            if str(member[0]) not in tagged_users_list:
+            if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
                 notification_list_member.append(temp)
-                
-
 
         card_id = kwargs['card_id']
         card = Collabcard.objects.get(id=card_id)
 
         custom_payload = get_custom_data_for_new_chatroom_created(card)
-
-        
         
         collabcard_title = get_title_from_collabcard(card)
 
@@ -425,6 +426,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
             route = 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
+
         message['payload'] = {
             # 'title': str(card_creater_name) + " @ " + str(community_name),
             'title': title,
@@ -1724,5 +1726,238 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
     except:
         print("Error while connecting to PostgreSQL")
+
+
+@shared_task
+def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, community_id):
+    community_instance = Community.objects.get(pk=community_id)
+    pre_owner = User.objects.get(pk=prev_owner_id)
+    new_owner = User.objects.get(pk=new_owner_id)
+    community_name = community_instance.name
+    prev_owner_name = pre_owner.userinfo.name
+
+    new_owner_fcm_token = new_owner.userinfo.fcm_token
+    new_owner_mobile_os = new_owner.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        'fcm_token': new_owner_fcm_token,
+        'mobile_os': new_owner_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": f"{prev_owner_name} has transferred the ownership of the community to you.",
+        'route': '//route://community_collabcard?community_id='
+    }
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_removed_member(admin_id, removed_user_id, community_id):
+    community_instance = Community.objects.get(pk=community_id)
+    admin = User.objects.get(pk=admin_id)
+    removed_user = User.objects.get(pk=removed_user_id)
+    community_name = community_instance.name
+    admin_name = admin.userinfo.name
+
+    removed_user_fcm_token = removed_user.userinfo.fcm_token
+    removed_user_mobile_os = removed_user.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        'fcm_token': removed_user_fcm_token,
+        'mobile_os': removed_user_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    message['payload'] = {
+        "title": "LikeMinds",
+        "sub_title": f"{admin_name} has removed you from the {community_name}. Click here to know the reasons.",
+        'route': '//route://community_collabcard?community_id='
+    }
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_right_given_to_member(user_id, community_id, rights_added):
+    community_instance = Community.objects.get(pk=community_id)
+    user_instance = User.objects.get(pk=user_id)
+    community_name = community_instance.name
+
+    user_fcm_token = user_instance.userinfo.fcm_token
+    user_mobile_os = user_instance.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        'fcm_token': user_fcm_token,
+        'mobile_os': user_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    for right_id in rights_added:
+        right = memberRights.objects.get(pk=right_id)
+        right_title = str(right.title).lower()
+        route = ""
+        sub_title = f"The Community Manager has reactivated your privilege to {right_title}"
+
+        if right.state == member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM:
+            sub_title = f"The Community Manager has reactivated your privilege to respond inside chat rooms."
+            route = ""
+        elif right.state == member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK:
+            sub_title = f"You have earned the privilege to invite new members to the community via private links!"
+            route = ""
+
+        message['payload'] = {
+            "title": community_name,
+            "sub_title": sub_title,
+            'route': '//route://community_collabcard?community_id='
+        }
+
+        notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_pending_chatroom_approved_or_rejected(card_id, is_approved=False):
+    card_instance = Collabcard.objects.get(pk=card_id)
+    chatroom_title = card_instance.header
+    card_creator = card_instance.user
+    community_name = card_instance.community.name
+    card_creator_first_name = card_creator.userinfo.name.split(" ")[0]
+    user_fcm_token = card_creator.userinfo.fcm_token
+    user_mobile_os = card_creator.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        'fcm_token': user_fcm_token,
+        'mobile_os': user_mobile_os,
+    }
+    notification_list.append(user_details)
+
+
+    if is_approved:
+        sub_title = f"Hurray! {card_creator_first_name}, your chat room ‘{chatroom_title}’ has been approved."
+        route = ""
+    else:
+        sub_title = f"{card_creator_first_name}, we are sorry to inform you that your chat room ‘{chatroom_title}’ was not approved."
+        route = ""
+
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": sub_title,
+        'route': route
+    }
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_reports(card_id=None, conversation_id=None, reported_on_user_id=None,
+                                  community_id=None,
+                                  reported_by_user_id=None, report_type=None, reason=None, tag_id=None):
+
+    reported_by_user = User.objects.get(pk=reported_by_user_id)
+    reported_by_user_name = reported_by_user.userinfo.name
+    community_instance = Community.objects.get(pk=community_id)
+    community_name = community_instance.name
+
+    sub_title_prefix = ""
+
+    if report_type == 0:
+        reported_on_user = User.objects.get(pk=reported_on_user_id)
+        sub_title_prefix = reported_on_user.userinfo.name
+
+    elif report_type == 1:
+        card_instance = Collabcard.objects.get(pk=card_id)
+        sub_title_prefix = card_instance.header
+
+    elif report_type == 2:
+        conversation_instance = card_answers.objects.get(pk=conversation_id)
+        chatroom_name = conversation_instance.card.header
+        sub_title_prefix = f"A message in ‘{chatroom_name}'"
+
+    if tag_id:
+        report = Report_Tags.objects.get(tag_id=tag_id)
+        reason = report.tag_name
+
+    sub_title = f"{sub_title_prefix} was reported by {reported_by_user_name} citing the reason: '{reason}’."
+    route = ""
+
+    message = {}
+    notification_list = []
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": sub_title,
+        'route': route
+    }
+
+    if report_type == 0:
+        admin_ids = list(userAdminRights.objects.filter(community=community_instance,
+                         right__state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS).values_list("user__id",
+                                                                                                        flat=True))
+    else:
+        admin_ids = list(userAdminRights.objects.filter(community=community_instance,
+                         right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS).values_list("user__id", flat=True))
+
+    userinfos = Userinfo.objects.filter(user_id__in=admin_ids)
+
+    for user in userinfos:
+        user_details = {
+            'fcm_token': user.fcm_token,
+            'mobile_os': user.mobile_os,
+        }
+
+        notification_list.append(user_details)
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, community_id):
+
+    deleted_by_user = User.objects.get(pk=deleted_by_user_id)
+    deleted_by_user_name = deleted_by_user.userinfo.name
+    community_instance = Community.objects.get(pk=community_id)
+    community_name = community_instance.name
+
+    card_instance = Collabcard.objects.get(pk=card_id)
+    card_name = card_instance.header
+    sub_title = f"The Community Manager has deleted {card_name}. Click here to know the reasons."
+    route = ""
+
+    message = {}
+    notification_list = []
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": sub_title,
+        'route': route
+    }
+
+    following_member_ids = list(conversationEngage.objects.filter(card=card_instance).values_list("user__id", flat=True))
+
+    userinfos = Userinfo.objects.filter(user_id__in=following_member_ids)
+
+    for user in userinfos:
+        user_details = {
+            'fcm_token': user.fcm_token,
+            'mobile_os': user.mobile_os,
+        }
+
+        notification_list.append(user_details)
+
+    notification_meta(notification_list, message)
+
+
 
 

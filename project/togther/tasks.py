@@ -10,7 +10,7 @@ from togther.models import *
 from utility.tasks import send_email
 url  = settings.URL
 # from collabmates_api.notification import notification_after_compute_rank
-from utility.utils import android_app_download_link,ios_app_download_link
+from utility.utils import android_app_download_link, ios_app_download_link
 
 # def send_email(subject,template,to):
 #     fail_silently=True
@@ -83,4 +83,3 @@ def send_mail_after_rank_computation(user_id):
         else:
             count += 1
             time.sleep(30)
-

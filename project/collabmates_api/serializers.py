@@ -8,8 +8,10 @@ from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_commu
     generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
     is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp,get_community_members_count_for_preview
 
-from utility.states import card_types, question_states, member_states, poll_types, deleted_members,chatroom_states
-
+from utility.states import (card_types, question_states, member_states, poll_types,
+                            deleted_members, manager_rights, member_rights, chatroom_states)
+from .user_moderation_rights import *
+import time
 url = settings.URL
 import ast
 from .static_files import *
@@ -25,7 +27,7 @@ from datetime import datetime, date
 #         fields = ('id','name', 'purpose', 'image_url' ,'about', 'location')
 
 
-def CommunitySerializer(community, promoter_id=0):
+def CommunitySerializer(community, promoter_id=0, current_user_id=None):
     # function to serialize a community object
     new_dict = {
         'id': community.id,
@@ -56,6 +58,8 @@ def CommunitySerializer(community, promoter_id=0):
     new_dict['is_member'] = ''
 
     new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+    if current_user_id:
+        new_dict['share_url'] = new_dict['share_url'] + f"?shared_by={current_user_id}"
 
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_members_count_in_community(community.id)
@@ -65,6 +69,8 @@ def CommunitySerializer(community, promoter_id=0):
     if promoter_id:
         private_link = generate_private_link(community_instance=community,
                                              promoter_instance=promoter_id)
+        if current_user_id:
+            private_link = private_link + f"&shared_by={current_user_id}"
         new_dict['private_link'] = private_link
         if new_dict['members_count'] <= 10:
             new_dict[
@@ -165,6 +171,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         'type': card.type,
         'date_time': card.date_time,
         'duration': card.duration,
+        "is_deleted": card.is_deleted,
+        "is_pending": card.is_pending,
         'answers_count': card.answers_count,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
@@ -257,6 +265,12 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         member_ids = [card.updated_member]
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id, current_user_id=user)
         collabcard['updated_member'] = temp[0]
+
+    if card.is_deleted:
+        member_ids = [card.deleted_by_user]
+        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id, current_user_id=user)
+        collabcard['deleted_by'] = temp[0]
+        collabcard['deleted_by_member_state'] = card.deleted_by_user_state
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
@@ -463,6 +477,7 @@ def get_category_of_chatroom(typ):
     return chatroom_type
 
 
+
 def get_chatroom_name(user_name, card):
     '''function to create chatroom name'''
 
@@ -484,7 +499,7 @@ def get_chatroom_name(user_name, card):
     return chatroom_name
 
 
-def get_chatroom_instance(card_instance, member_id, current_user_id=None,state_instance=None):
+def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None):
 
     if not current_user_id:
         current_user_id = member_id
@@ -774,6 +789,7 @@ def get_answer_text_for_poll(card, current_user_id=None):
         return f"{len(user_names)} members voted"
     return "Be the first one to vote"
 
+
 def draftPollsSerializers(poll):
     polls = {
         'draft_poll_id': poll.id,
@@ -797,9 +813,6 @@ def draftPollsSerializers(poll):
     return polls
 
 
-
-
-
 def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False):
     responses = communityAnswers.objects.filter(community=community_id,member=user_id).order_by('id')
     if not responses.exists():
@@ -821,9 +834,10 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
             send_back = True
 
         temp = {}
-        questions = get_question_data(response.question, member_state, send_back=send_back)
+        questions = get_question_data(response.question, member_state, send_back=send_back,
+                                      user_id=current_user_id, community_id=community_id)
         if questions:
-            temp['community_id'] = community_id
+            temp['community_id'] = community_id.id if isinstance(community_id, Community) else community_id
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
             temp['value'] = response.question_answer
@@ -849,30 +863,52 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
     return (user_response, new_response)
 
 
-
-def get_question_data(question_id, member_state, send_back):
-    '''function to get question id'''
+def get_question_data(question_id, member_state, send_back, user_id=None, community_id = None):
+    ''' function to get question id '''
 
     question_instance = question_id
+    if send_back:
+        questions = CommunityQuestionsSerializer(question_instance)
 
-    if member_state == 1 or member_state == 2 or send_back:
+    elif member_state == 1 or member_state == 2:
+        if user_id and community_id:
+            has_right = check_admin_view_contact_right(user_id, community_id)
+            if not has_right:
+                questions = get_question_instance(question_instance)
+                return questions
+
         questions = CommunityQuestionsSerializer(question_instance)
     else:
-        if question_instance.value and question_instance.value != '':
-            value_list = ast.literal_eval(question_instance.value)
-            privacy = "Public"
-            for value in value_list:
-                if 'answer_privacy' in value:
-                    privacy = value['answer_privacy']
-
-            if privacy == "Public":
-                questions = CommunityQuestionsSerializer(question_instance)
-            else:
-                return False
-        else:
-            questions = CommunityQuestionsSerializer(question_instance)
+        questions = get_question_instance(question_instance)
 
     return questions
+
+
+def get_question_instance(question_instance):
+    if question_instance.value and question_instance.value != '':
+        value_list = ast.literal_eval(question_instance.value)
+        privacy = "Public"
+        for value in value_list:
+            if 'answer_privacy' in value:
+                privacy = value['answer_privacy']
+
+        if privacy == "Public":
+            questions = CommunityQuestionsSerializer(question_instance)
+        else:
+            return False
+    else:
+        questions = CommunityQuestionsSerializer(question_instance)
+
+    return questions
+
+def check_admin_view_contact_right(user, community):
+
+    user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                  right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
+
+    if user_rights.exists():
+        return True
+    return False
 
 
 def CommunityQuestionsSerializer(community_question_instance):
@@ -1048,16 +1084,20 @@ def userMobilesSerializer(mobile_instance):
     }
 
 
-
-
 #member comunity profiles
+def MembersSerializer(member_instance, community_id, current_user_id=None, send_profile=True,
+                      is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
+                      user_admin_rights=None):
 
-def MembersSerializer(member_instance, community_id, current_user_id=None,send_profile=True):
+    user_is_owner = member_instance.is_owner
+    parents_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
 
     member_id = member_instance.member_id.id
     community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
     community_profile['state'] = member_instance.state
-
+    community_profile['is_owner'] = member_instance.is_owner
+    if member_instance.custom_title:
+        community_profile['custom_title'] = member_instance.custom_title
     # sending image  url of members
     if member_instance.image_url:
         community_profile['image_url'] = member_instance.image_url
@@ -1091,7 +1131,104 @@ def MembersSerializer(member_instance, community_id, current_user_id=None,send_p
             community_profile['custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
             member_instance.member_id.userinfo.name, time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
+
+    # add menu for all members api and fetch community profile API
+
+    if (all_members_api or profile_detail_api) and (is_promoter or is_owner):
+        community_profile["menu"] = get_menu_for_members(current_user_id=current_user_id,item_member_id=member_id,
+                                    community_id=community_id, current_user_is_promoter=is_promoter,
+                                    current_user_is_owner=is_owner, item_member_state=member_instance.state,
+                                    item_member_is_owner=user_is_owner, current_user_admin_rights=user_admin_rights,
+                                    parents_list=parents_list, profile_detail_api=profile_detail_api)
+
+    elif profile_detail_api and current_user_id and int(current_user_id) != int(member_id):
+        report_member = {"title": "Report member",
+                         "route": f"route://report_member?community_id={community_id}&member_id={member_id}"}
+        block_member = {"title": "Block member",
+                        "route": f"route://block_member?community_id={community_id}&member_id={member_id}"}
+        community_profile["menu"] = [report_member, block_member]
+
     return community_profile
+
+
+def get_menu_for_members(current_user_id, item_member_id, community_id, current_user_is_promoter, item_member_state,
+                         current_user_is_owner=False, item_member_is_owner=False, current_user_admin_rights=None,
+                         parents_list=None, profile_detail_api=False):
+    """ function to get the menu for all members for all members api and profile detail api """
+    #  x is current member , y is member whose profile is currently in iteration sequence
+    # current_user_state, item_member_state,
+
+    edit_title = {"title": "Edit title"}
+    edit_permissions = {"title": "Edit permissions",
+                        "route": f"route://edit_member_rights?community_id={community_id}&member_id={item_member_id}"}
+    give_CM_rights = {"title": "Give community management rights",
+                      "route": f"route://edit_manager_rights?community_id={community_id}&member_id={item_member_id}"}
+    edit_CM_rights = {"title": "Edit management rights",
+                      "route": f"route://edit_manager_rights?community_id={community_id}&member_id={item_member_id}"}
+    report_member = {"title": "Report member",
+                     "route": f"route://report_member?community_id={community_id}&member_id={item_member_id}"}
+    remove_from_community = {"title": "Remove from community",
+                             "route": f"route://remove_from_community?community_id={community_id}&member_id={item_member_id}"}
+    block_member = {"title": "Block member",
+                    "route": f"route://block_member?community_id={community_id}&member_id={item_member_id}"}
+
+    if parents_list is None:
+        parents_list = []
+
+    if current_user_is_owner and int(current_user_id) == int(item_member_id):
+        return [edit_title]
+    if current_user_id and int(current_user_id) == int(item_member_id):
+        return []
+    elif not current_user_id:
+        return []
+
+    menu = []
+
+    if current_user_is_owner and item_member_is_owner:
+        menu = [edit_title]
+    elif current_user_is_owner and item_member_state == member_states.ADMIN:
+        menu = [remove_from_community, edit_CM_rights]
+
+    elif current_user_is_owner and item_member_state == member_states.MEMBER:
+        menu = [remove_from_community, edit_permissions, give_CM_rights]
+
+    elif current_user_is_promoter and item_member_state == member_states.ADMIN:
+
+        is_child = current_user_id in parents_list
+
+        if current_user_admin_rights:
+            if current_user_admin_rights["approve"] and is_child:
+                menu.append(remove_from_community)
+
+            if current_user_admin_rights["add_manager"] and is_child:
+                menu.append(edit_permissions)
+
+        if profile_detail_api:
+            menu.append(report_member)
+            menu.append(block_member)
+
+    elif current_user_is_promoter and item_member_state == member_states.MEMBER:
+        if current_user_admin_rights:
+            if current_user_admin_rights["approve"]:
+                menu.append(remove_from_community)
+
+            if current_user_admin_rights["delete_room"] or current_user_admin_rights["approve"]:
+                menu.append(edit_permissions)
+
+            if current_user_admin_rights["add_manager"]:
+                menu.append(give_CM_rights)
+
+            if not current_user_admin_rights["approve"] and profile_detail_api:
+                menu.append(report_member)
+
+            if profile_detail_api:
+                menu.append(block_member)
+
+    else:
+        if profile_detail_api:
+            menu.append(report_member)
+
+    return menu
 
 
 def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True,remove=False):
@@ -1127,7 +1264,11 @@ def get_user_profile(user_id, community_id, current_user_id=None, send_profile=T
     return userinfo_serialized_object
 
 
-def get_members_profile(member_ids, community_id, current_user_id=None,send_profile=True,remove=False):
+
+def get_members_profile(member_ids, community_id, current_user_id=None, send_profile=True, remove=False,
+                        is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
+                        user_admin_rights=None):
+
     '''function to get member profile from list of members ids'''
     member_profile_list = []
 
@@ -1136,7 +1277,16 @@ def get_members_profile(member_ids, community_id, current_user_id=None,send_prof
         member_filter = Members.objects.filter(member_id=id, community_id=community_id)
 
         if member_filter.exists():
-            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id,send_profile=send_profile)
+
+            if user_admin_rights and not user_admin_rights["approve"]:
+                if member_filter[0].state == member_states.PENDING_MEMBER:
+                    continue
+
+            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id,
+                                                  send_profile=send_profile, all_members_api=all_members_api,
+                                                  profile_detail_api=profile_detail_api, user_admin_rights=user_admin_rights,
+                                                  is_owner=is_owner, is_promoter=is_promoter
+                                                  )
             member_profile_list.append(community_profile)
 
         else:
@@ -1146,6 +1296,69 @@ def get_members_profile(member_ids, community_id, current_user_id=None,send_prof
 
     return member_profile_list
 
+
+
+def report_serializer(report_instance):
+
+    community_id = report_instance.community.id
+    report = {"community_id": community_id}
+
+    if report_instance.tag:
+        report["tag"] = report_tag_serializer(report_instance.tag)
+
+    if report_instance.reason:
+        report["reason"] = report_instance.reason
+
+    if report_instance.user_reported:
+        user_profile = get_members_profile(member_ids=[report_instance.user_reported.id], community_id=community_id)
+        report["user_reported"] = user_profile[0]
+
+    if report_instance.reported_by:
+        user_profile = get_members_profile(member_ids=[report_instance.reported_by.id], community_id=community_id)
+        report["reported_by"] = user_profile[0]
+
+    if report_instance.type is not None:
+        report["type"] =report_instance.type
+
+    if report_instance.action_taken_tag:
+        report["tag"] = report_tag_serializer(report_instance.action_taken_tag)
+
+    if report_instance.action_taken_reason:
+        report["action_taken_reason"] = report_instance.action_taken_reason
+
+    if report_instance.action_taken_by:
+        user_profile = get_members_profile(member_ids=[report_instance.action_taken_by.id], community_id=community_id)
+        report["action_taken_by"] = user_profile[0]
+
+    if report_instance.action_taken is not None:
+        report["action_taken"] = report_instance.action_taken
+
+    if report_instance.rights_added is not None:
+        report["rights_added"] = json.loads(report_instance.rights_added)
+
+    if report_instance.rights_removed is not None:
+        report["rights_removed"] = json.loads(report_instance.rights_removed)
+
+    if report_instance.is_closed:
+        report["is_closed"] = report_instance.is_closed
+
+    if report_instance.closed_by is not None:
+        user_profile = get_members_profile(member_ids=[report_instance.closed_by.id], community_id=community_id)
+        report["closed_by"] = user_profile[0]
+
+    if report_instance.closed_time:
+        report["closed_on"] = report_instance.closed_time
+
+    report["reported_on"] = report_instance.date_epoch
+
+    return report
+
+
+def report_tag_serializer(tag_instance):
+    tag_dict = {'id': tag_instance.tag_id,
+                "name": tag_instance.tag_name}
+
+    return tag_dict
 
 ## chatroom conversation data
 
@@ -1606,9 +1819,6 @@ def get_chatroom_preview(card_instance, member_id, active=None):
 
 
 #=========================================================================#
-
-
-
 
 
 
