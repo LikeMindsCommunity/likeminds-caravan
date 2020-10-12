@@ -867,18 +867,17 @@ def get_question_data(question_id, member_state, send_back, user_id=None, commun
     ''' function to get question id '''
 
     question_instance = question_id
-    print(">>>>>>>   ", question_instance.id)
     if send_back:
         questions = CommunityQuestionsSerializer(question_instance)
 
-    # elif member_state == 1 or member_state == 2:
-    #     if user_id and community_id:
-    #         has_right = check_admin_view_contact_right(user_id, community_id)
-    #         if not has_right:
-    #             questions = get_question_instance(question_instance)
-    #             return questions
-    #
-    #     questions = CommunityQuestionsSerializer(question_instance)
+    elif member_state == 1 or member_state == 2:
+        if user_id and community_id:
+            has_right = check_admin_view_contact_right(user_id, community_id)
+            if not has_right:
+                questions = get_question_instance(question_instance)
+                return questions
+
+        questions = CommunityQuestionsSerializer(question_instance)
     else:
         questions = get_question_instance(question_instance)
 
@@ -1144,7 +1143,9 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
                              profile_detail_api=profile_detail_api)
 
     elif (all_members_api or profile_detail_api) and current_user_id and int(current_user_id) != int(member_id):
-        community_profile["menu"] = ["Report member"]
+        report_member = {"title": "Report member",
+                         "route": f"route://report_member?community_id={community_id}&member_id={item_member_id}"}
+        community_profile["menu"] = [report_member]
 
     return community_profile
 
