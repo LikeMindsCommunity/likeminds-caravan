@@ -108,7 +108,7 @@ def get_devices_of_users(user_id):
 
     for device in devices_filter:
         temp = {}
-        temp['id'] = device.user.id,
+        temp['id'] = device.user.id
         temp['fcm_token'] = device.fcm_token
         temp['mobile_os'] = device.mobile_os
         user_devices.append(temp)
