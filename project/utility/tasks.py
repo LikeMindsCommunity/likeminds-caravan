@@ -296,8 +296,7 @@ def save_name_initial_image(user_id, user_name):
         user_info.image_link = image_url
         user_info.save()
 
-    if os.path.isfile(image_name):
-        os.remove(image_name)
+    os.remove(image_name)
 
 
 # mail_dict={}
