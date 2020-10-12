@@ -268,10 +268,10 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
 
     last_conversation_user = None
     second_last_conversation_user = None
-    if len(member_conversations) > 1:
+    if len(user_conversations) > 1:
         last_conversation_user = user_conversations[0]
         second_last_conversation_user = user_conversations[1]
-    elif len(member_conversations) == 1:
+    elif len(user_conversations) == 1:
         last_conversation_user = user_conversations[0]
 
 
@@ -368,7 +368,7 @@ def check(chatroom_id):
     if len(member_conversations) > 1:
         last_conversation_user = user_conversations[0]
         second_last_conversation_user = user_conversations[1]
-    elif len(member_conversations) == 1:
+    elif len(user_conversations) == 1:
         last_conversation_user = user_conversations[0]
 
     print(last_conversation_member)

@@ -633,7 +633,7 @@ def get_latest_conversation_members(last_conversation_member,second_last_convers
 
     if last_conversation_user:
         instance = last_conversation_user
-       
+
         remove = False
         if instance.remove:
             remove = True
