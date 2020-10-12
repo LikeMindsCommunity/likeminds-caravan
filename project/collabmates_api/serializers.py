@@ -59,7 +59,7 @@ def CommunitySerializer(community, promoter_id=0, current_user_id=None):
 
     new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
     if current_user_id:
-        new_dict['share_url'] = new_dict['share_url'] + f"&shared_by={current_user_id}"
+        new_dict['share_url'] = new_dict['share_url'] + f"?shared_by={current_user_id}"
 
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_members_count_in_community(community.id)
@@ -867,17 +867,18 @@ def get_question_data(question_id, member_state, send_back, user_id=None, commun
     ''' function to get question id '''
 
     question_instance = question_id
-
-    if member_state == 1 or member_state == 2:
-        if user_id and community_id:
-            has_right = check_admin_view_contact_right(user_id, community_id)
-            if not has_right:
-                questions = get_question_instance(question_instance)
-                return questions
-
+    print(">>>>>>>   ", question_instance.id)
+    if send_back:
         questions = CommunityQuestionsSerializer(question_instance)
-    elif send_back:
-        questions = CommunityQuestionsSerializer(question_instance)
+
+    # elif member_state == 1 or member_state == 2:
+    #     if user_id and community_id:
+    #         has_right = check_admin_view_contact_right(user_id, community_id)
+    #         if not has_right:
+    #             questions = get_question_instance(question_instance)
+    #             return questions
+    #
+    #     questions = CommunityQuestionsSerializer(question_instance)
     else:
         questions = get_question_instance(question_instance)
 
