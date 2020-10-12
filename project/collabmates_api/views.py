@@ -1292,7 +1292,6 @@ def post_introduction_card_for_community(community_id, member_id, request):
         if introduction_answer_list.exists():
             introduction_answer = introduction_answer_list[0].question_answer
             req_dict = {
-
                 'member_id': member_id,
                 'community_id': community_id,
                 'title': introduction_answer,
@@ -11410,17 +11409,30 @@ def transfer_community_ownership(request):
     #     return JsonResponse(context)
 
     if user_id:
-        mobile_filter = userMobiles.objects.filter(user_id=user_id)
+        mobile_filter = userMobiles.objects.filter(user_id=user_id).order_by("-state")
 
         context = {'success': False}
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
-            context = verify_otp_on_mobile(phone_no, otp)
 
+            international = False
+            if str(instance.country_code) != '91':
+                international = True
+
+            context = verify_otp_on_mobile(phone_no, otp,international=international)
             if context['success']:
                 break
+
         if not context['success']:
-            context = get_error_context(False, "Incorrect OTP")
+            # verifying otp from email
+            email_filter = userEmails.objects.filter(user_id=user_id)
+            for instance in email_filter:
+                email = instance.email
+                context = verify_otp_on_email(email, otp)
+                if context['success']:
+                    break
+
+        if not context['success']:
             return JsonResponse(context)
 
     # verified = verify_otp_on_mobile(mobile_no, otp)
@@ -11525,7 +11537,12 @@ def fetch_community_member_rights(request):
 
     member_profile = get_members_profile([user_instance], community_instance)
 
-    return JsonResponse({"member": member_profile[0], "rights": rights_context})
+    mobile_filter = userMobiles.objects.filter(user=current_user_instance)
+    mobile_list = []
+    for mobile_no in mobile_filter:
+        mobile_list.append(userMobilesSerializer(mobile_no))
+
+    return JsonResponse({"admin_mobiles": mobile_list, "member": member_profile[0], "rights": rights_context})
 
 
 @csrf_exempt
