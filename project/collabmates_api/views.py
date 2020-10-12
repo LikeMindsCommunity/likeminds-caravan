@@ -633,11 +633,12 @@ def get_latest_conversation_members(last_conversation_member,second_last_convers
 
     if last_conversation_user:
         instance = last_conversation_user
+       
         remove = False
         if instance.remove:
             remove = True
 
-        temp = get_user_profile([instance.user],send_profile=False,remove=remove)
+        temp = get_user_profile(instance.user,instance.community.id,send_profile=False,remove=remove)
 
         conversation_users.append(temp)
 
@@ -658,7 +659,7 @@ def get_latest_conversation_members(last_conversation_member,second_last_convers
         remove = False
         if instance.remove:
             remove = True
-        temp = get_user_profile([instance.user], send_profile=False, remove=remove)
+        temp = get_user_profile(instance.user, instance.community.id,send_profile=False, remove=remove)
         conversation_users.append(temp)
 
 
