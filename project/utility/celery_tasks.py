@@ -253,15 +253,29 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
         second_last = card_answers.objects.filter(card_id=chatroom_id,state=0).filter(~Q(user=last_conversation.user)).last()
 
 
-    last_conversation_members = get_latest_conversation_members(chatroom_id)
+    last_conversations = get_latest_conversation_members(chatroom_id)
+
+    member_conversations = last_conversations[0]
+    user_conversations = last_conversations[1]
+
     last_conversation_member = None
     second_last_conversation_member = None
+    if len(member_conversations) > 1:
+        last_conversation_member = member_conversations[0]
+        second_last_conversation_member = member_conversations[1]
+    elif len(member_conversations) == 1:
+        last_conversation_member = member_conversations[0]
 
-    if len(last_conversation_members) > 1:
-        last_conversation_member = last_conversation_members[0]
-        second_last_conversation_member = last_conversation_members[0]
-    elif len(last_conversation_members) == 1:
-        last_conversation_member = last_conversation_members[0]
+    last_conversation_user = None
+    second_last_conversation_user = None
+    if len(member_conversations) > 1:
+        last_conversation_user = user_conversations[0]
+        second_last_conversation_user = user_conversations[1]
+    elif len(member_conversations) == 1:
+        last_conversation_user = user_conversations[0]
+
+
+
 
     length = len(conversations)
     for user in user_list:
@@ -277,7 +291,11 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
                 updated_at = time.time(),
                 unseen_count = unseen_count,
                 last_conversation_member=last_conversation_member,
-                second_last_conversation_member=second_last_conversation_member)
+                second_last_conversation_member=second_last_conversation_member,
+                last_conversation_user=last_conversation_user,
+                second_last_conversation_user = second_last_conversation_user
+
+            )
         else:
             #print(length)
             conversation_engage_filter.filter(user=user).update(
@@ -286,39 +304,78 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
                 updated_at=time.time(),
                 unseen_count=length,
                 last_conversation_member=last_conversation_member,
-                second_last_conversation_member=second_last_conversation_member)
+                second_last_conversation_member=second_last_conversation_member,
+                last_conversation_user=last_conversation_user,
+                second_last_conversation_user=second_last_conversation_user
+
+            )
 
 
-def get_latest_conversation_members(card_instance):
+def get_latest_conversation_members(chatroom_id):
 
     '''function to get last conversation members'''
+
+    card_instance = Collabcard.objects.get(id=chatroom_id)
 
     answer_filter = card_answers.objects.filter(card=card_instance, state=0).order_by('-id')
 
     user_set = set()
 
-    last_conversations = []
-
+    member_conversarions = []
+    user_conversations = []
     for data in answer_filter:
 
         if data.card.user.id == data.user.id:
             continue
 
         if data.user not in user_set:
-            member_instance =None
+
             member_filter = Members.objects.filter(community_id=card_instance.community,member_id=data.user)
             if member_filter.exists():
                 member_instance=member_filter[0]
-            last_conversations.append(member_instance)
+                member_conversarions.append(member_instance)
+            else:
+                state_filter = collabcardState.objects.filter(card=card_instance,user=data.user)
+                if state_filter.exists():
+                    state_instance=state_filter[0]
+                    user_conversations.append(state_instance)
+
             user_set.add(data.user)
 
         if len(user_set) > 1:
             break
 
 
-    return last_conversations
+    return (member_conversarions,user_conversations)
 
 
+def check(chatroom_id):
+    last_conversations = get_latest_conversation_members(chatroom_id)
+
+    member_conversations = last_conversations[0]
+    user_conversations = last_conversations[1]
+
+    last_conversation_member = None
+    second_last_conversation_member = None
+    if len(member_conversations) > 1:
+        last_conversation_member = member_conversations[0]
+        second_last_conversation_member = member_conversations[1]
+    elif len(member_conversations) == 1:
+        last_conversation_member = member_conversations[0]
+
+    last_conversation_user = None
+    second_last_conversation_user = None
+    if len(member_conversations) > 1:
+        last_conversation_user = user_conversations[0]
+        second_last_conversation_user = user_conversations[1]
+    elif len(member_conversations) == 1:
+        last_conversation_user = user_conversations[0]
+
+    print(last_conversation_member)
+    print(second_last_conversation_member)
+    print(last_conversation_user)
+    print(second_last_conversation_user)
 
 
+#print(get_latest_conversation_members(Collabcard.objects.get(id=1156)))
 
