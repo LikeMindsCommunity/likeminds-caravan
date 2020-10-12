@@ -11511,7 +11511,12 @@ def fetch_community_member_rights(request):
 
     member_profile = get_members_profile([user_instance], community_instance)
 
-    return JsonResponse({"member": member_profile[0], "rights": rights_context})
+    mobile_filter = userMobiles.objects.filter(user=user_instance)
+    mobile_list = []
+    for mobile_no in mobile_filter:
+        mobile_list.append(userMobilesSerializer(mobile_no))
+
+    return JsonResponse({"admin_mobiles": mobile_list, "member": member_profile[0], "rights": rights_context})
 
 
 @csrf_exempt
