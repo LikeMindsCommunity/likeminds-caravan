@@ -1145,7 +1145,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         report_member = {"title": "Report member",
                          "route": f"route://report_member?community_id={community_id}&member_id={member_id}"}
         block_member = {"title": "Block member",
-                        "route": f"route://block_member?community_id={community_id}&member_id={item_member_id}"}
+                        "route": f"route://block_member?community_id={community_id}&member_id={member_id}"}
         community_profile["menu"] = [report_member, block_member]
 
     return community_profile
