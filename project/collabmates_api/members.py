@@ -8,7 +8,7 @@ from .serializers import *
 from .utility import *
 
 
-def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=None):
+def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
 
     '''function to give tagging list of members in community'''
 
@@ -18,11 +18,20 @@ def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=No
         community_id = card_instance.community.id
 
     member_filter = Members.objects.filter(community_id=community_id).filter(
-        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-            state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
+                    Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
+                    Q(state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
 
     tagging_list = []
+
+    blocked_users_list = list(blockedMembers.objects.filter(community=community_id,
+                                                            blocked_by=current_member_id).values_list(
+                                                            "blocked_member__id", flat=True))
     for member in member_filter:
+
+        user_instance = member.member_id
+        if int(user_instance.id) in blocked_users_list:
+            continue
+
         temp = {}
 
         user_instance = member.member_id
@@ -39,11 +48,11 @@ def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=No
 
         tagging_list.append(temp)
 
-    tagging_list = sorted(tagging_list,key=lambda i:i['name'])
+    tagging_list = sorted(tagging_list, key=lambda i: i['name'])
 
     guest_list = []
     if chatroom_id:
-        state_filter = collabcardState.objects.filter(card_id=chatroom_id, is_guest=True,remove=None)
+        state_filter = collabcardState.objects.filter(card_id=chatroom_id, is_guest=True, remove=None)
 
         for data in state_filter:
             temp = {}
@@ -60,28 +69,29 @@ def get_tagging_list_internal(community_id,chatroom_id=None,current_member_id=No
 
             # member_dict = {'member': temp}
             guest_list.append(temp)
-        guest_list = sorted(guest_list,key=lambda i:i['name'])
+        guest_list = sorted(guest_list, key=lambda i: i['name'])
 
     tagging_list = tagging_list + guest_list
     return tagging_list
 
 
-def get_pending_members_of_community(community_id,requested_member_id):
+def get_pending_members_of_community(community_id, requested_member_id):
 
-    '''functions to get pending members of the community'''
+    """ functions to get pending members of the community """
 
     pending_requests = []
 
-    promoter_filter = Members.objects.filter(community_id=community_id,member_id=requested_member_id, state=member_states.ADMIN)
+    promoter_filter = Members.objects.filter(community_id=community_id,
+                                             member_id=requested_member_id, state=member_states.ADMIN)
 
     if not promoter_filter.exists():
         return []
 
-    member_filter = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER)
+    member_filter = Members.objects.filter(community_id=community_id, state=member_states.PENDING_MEMBER)
 
     for pending_member in member_filter:
 
-        user_profile = MembersSerializer(pending_member,community_id,current_user_id=requested_member_id)
+        user_profile = MembersSerializer(pending_member, community_id, current_user_id=requested_member_id)
 
         pending_requests.append(user_profile)
 
@@ -90,7 +100,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
 
 
 def get_all_members(request, req_dict=None):
-    '''function to get all members of the community'''
+    """function to get all members of the community"""
 
     page = request.GET.get('page', 1)
 
@@ -127,7 +137,7 @@ def get_all_members(request, req_dict=None):
     community = CommunitySerializer(community_instance, promoter_id=promoter_instance, current_user_id=current_user_id)
 
     if filter_list:
-        member_list = get_member_query_set(current_user_id, community_id,send_all=True)
+        member_list = get_member_query_set(current_user_id, community_id, send_all=True)
         filter_list = json.loads(filter_list)
         member_set = get_filtered_users(filter_list, member_list)
         total_filtered_members = len(member_set)
@@ -146,7 +156,8 @@ def get_all_members(request, req_dict=None):
     context['total_members'] = community['members_count']
     context['total_filtered_members'] = total_filtered_members
     if promoter_instance:
-        context['total_pending_members'] = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
+        context['total_pending_members'] = Members.objects.filter(community_id=community_id,
+                                                                  state=member_states.PENDING_MEMBER).count()
 
     return context
 
@@ -155,7 +166,8 @@ def get_community_managers(community_instance):
 
     '''function to get count of community managers'''
 
-    manager_filter = Members.objects.filter(community_id=community_instance,state=member_states.ADMIN).order_by('created_at')
+    manager_filter = Members.objects.filter(community_id=community_instance,
+                                            state=member_states.ADMIN).order_by('created_at')
     temp = {}
     manager_name = ""
     for manager in manager_filter:
@@ -167,7 +179,7 @@ def get_community_managers(community_instance):
     return temp
 
 
-def get_member_instances_without_filter(member_list,current_user_id,community_id,page=1):
+def get_member_instances_without_filter(member_list, current_user_id, community_id,page=1):
 
     '''function to get members instances from members table'''
 
@@ -181,7 +193,7 @@ def get_member_instances_without_filter(member_list,current_user_id,community_id
 
     if int(page) == 1:
 
-        current_filter = Members.objects.filter(member_id=current_user_id,community_id=community_id)
+        current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
 
         if current_filter.exists():
 

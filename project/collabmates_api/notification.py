@@ -13,8 +13,8 @@ from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
                             Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,
                             conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
-                            moderationHistory, Report, Report_Tags, communityRightsSettings)
-from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
+                            moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers)
+from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,)
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -391,8 +391,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
 
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
         # getting the list of users who has blocked the card creator
-        # blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
-        #                             blocked_member=card_creater_id).values_list("blocked_by__id", flat=True))
+        blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
+                                    blocked_member=card_creater_id).values_list("blocked_by__id", flat=True))
         # print(member_list)
         for member in member_list:
             temp = {}
@@ -400,18 +400,13 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             notification_details = get_token_for_fcm(member[0], True)
             temp['fcm_token'] = notification_details[0]
             temp['mobile_os'] = notification_details[1]
-            if str(member[0]) not in tagged_users_list:
-                # and str(member[0]) not in blocked_by_user_list:
+            if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
                 notification_list_member.append(temp)
-                
-
 
         card_id = kwargs['card_id']
         card = Collabcard.objects.get(id=card_id)
 
         custom_payload = get_custom_data_for_new_chatroom_created(card)
-
-        
         
         collabcard_title = get_title_from_collabcard(card)
 

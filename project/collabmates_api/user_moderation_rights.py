@@ -26,7 +26,10 @@ def give_all_manager_rights(user, community):
 
 def fill_admin_rights(user, community, rights_list):
     for right in rights_list:
-        userAdminRights(user=user, community=community, right=right).save()
+        try:
+            userAdminRights(user=user, community=community, right=right).save()
+        except:
+            print("right already given")
 
 
 def fill_member_rights(user, community, rights_list):
@@ -34,7 +37,7 @@ def fill_member_rights(user, community, rights_list):
         try:
             userMemberRights(user=user, community=community, right=right).save()
         except:
-            pass
+            print("right already given")
 
 
 def get_saved_member_rights_list(user_rights, admin_rights=None):
@@ -104,6 +107,37 @@ def get_saved_manager_rights_list(admin_rights):
 
         elif right.state == add_manager_manager_right['state']:
             right_dict["is_selected"] = admin_rights["add_manager"]
+
+        if right.sub_title is None:
+            del right_dict["sub_title"]
+
+        rights_list.append(right_dict)
+
+    return rights_list
+
+
+def get_default_manager_rights_list():
+
+    all_manager_rights = adminRights.objects.all().order_by("state")
+    rights_list = []
+    for right in all_manager_rights:
+        right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
+                      "is_selected": False}
+
+        if right.state == delete_room_manager_right['state']:
+            right_dict["is_selected"] = True
+
+        elif right.state == approve_manager_right['state']:
+            right_dict["is_selected"] = True
+
+        elif right.state == edit_community_manager_right['state']:
+            right_dict["is_selected"] = True
+
+        elif right.state == view_contact_manager_right['state']:
+            right_dict["is_selected"] = False
+
+        elif right.state == add_manager_manager_right['state']:
+            right_dict["is_selected"] = False
 
         if right.sub_title is None:
             del right_dict["sub_title"]

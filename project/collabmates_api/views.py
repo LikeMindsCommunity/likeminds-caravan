@@ -11183,11 +11183,16 @@ def fetch_community_manager_rights(request):
                                                           user=user_instance).values_list('right__id',
                                                                                           flat=True))
         if admin_rights.exists():
-            for right in admin_rights:
-                right = right.right
-                right_dict = get_right_dict(right)
-                right_dict["is_selected"] = True if right.id in user_rights else False  # add check for int or string
-                rights_context.append(right_dict)
+
+            if len(user_rights) == 0:
+                rights_context = get_default_manager_rights_list()
+
+            else:
+                for right in admin_rights:
+                    right = right.right
+                    right_dict = get_right_dict(right)
+                    right_dict["is_selected"] = True if right.id in user_rights else False
+                    rights_context.append(right_dict)
         else:
             context = get_error_context(False, "user does not have any manager rights")
             return JsonResponse(context)
@@ -11466,7 +11471,7 @@ def transfer_community_ownership(request):
         admin.update(is_owner=False, custom_title="Community Manager",
                      parent_cm=user_instance, parent_cm_list=json.dumps([str(user_id)]))
 
-        # update_parent_cm_list(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
+        update_parent_cm_list.delay(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
 
         return JsonResponse({'success': True})
 
@@ -11489,9 +11494,9 @@ def update_parent_cm_list(community_id, new_owner_id, prev_owner_id):
         if str(new_owner_id) not in parent_list:
             parent_list.append(new_owner_id)
 
-        if int(prev_owner_id) != member_instance.parent_cm.id:
-            if str(prev_owner_id) in parent_list:
-                parent_list.remove(str(prev_owner_id))
+        # if int(prev_owner_id) != member_instance.parent_cm.id:
+        #     if str(prev_owner_id) in parent_list:
+        #         parent_list.remove(str(prev_owner_id))
 
         member_instance.parent_cm_list = parent_list
         member_instance.save()
@@ -12113,41 +12118,41 @@ def update_community_rights(request):
         return JsonResponse(context)
 
 
-# @csrf_exempt
-# def block_member(request):
-#
-#     if request.method == 'GET':
-#         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
-#
-#     current_user_id = get_member_id_from_headers(request)
-#     community_id = request.POST.get('community_id', None)
-#     blocked_user_id = request.POST.get('user_id', None)
-#
-#     if not current_user_id:
-#         context = get_error_context(False, "send member_id in headers")
-#         return JsonResponse(context)
-#     if not blocked_user_id:
-#         context = get_error_context(False, "send user_id in POST params")
-#         return JsonResponse(context)
-#     if not community_id:
-#         context = get_error_context(False, "send community_id in POST params")
-#         return JsonResponse(context)
-#
-#     community_instance = Community.objects.get(pk=community_id)
-#     current_user_instance = User.objects.get(pk=current_user_id)
-#     blocked_user_instance = User.objects.get(pk=blocked_user_id)
-#
-#     try:
-#         blockedMembers(blocked_by=current_user_instance,
-#                        blocked_member=blocked_user_instance, community=community_instance).save()
-#     except:
-#         info_logger.info("member already blocked by this user")
-#
-#     return JsonResponse({'success': True})
+@csrf_exempt
+def block_member(request):
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    current_user_id = get_member_id_from_headers(request)
+    community_id = request.POST.get('community_id', None)
+    blocked_user_id = request.POST.get('user_id', None)
+
+    if not current_user_id:
+        context = get_error_context(False, "send member_id in headers")
+        return JsonResponse(context)
+    if not blocked_user_id:
+        context = get_error_context(False, "send user_id in POST params")
+        return JsonResponse(context)
+    if not community_id:
+        context = get_error_context(False, "send community_id in POST params")
+        return JsonResponse(context)
+
+    community_instance = Community.objects.get(pk=community_id)
+    current_user_instance = User.objects.get(pk=current_user_id)
+    blocked_user_instance = User.objects.get(pk=blocked_user_id)
+
+    try:
+        blockedMembers(blocked_by=current_user_instance,
+                       blocked_member=blocked_user_instance, community=community_instance).save()
+    except:
+        info_logger.info("member already blocked by this user")
+
+    return JsonResponse({'success': True})
 
 
 
-############################### client db synching apis #################################################
+############################## client db synching apis #################################################
 
 
 def sync_conversation(request):

@@ -206,6 +206,7 @@ urlpatterns = [
     path('fetch_community_setting_rights', api_views.fetch_community_setting_rights,
          name='fetch_community_setting_rights'),
     path('update_community_rights', api_views.update_community_rights, name='update_community_rights'),
+    path('block_member', api_views.block_member, name='block_member'),
 
     ############################ synching client db apis ##################################
 
