@@ -1292,7 +1292,6 @@ def post_introduction_card_for_community(community_id, member_id, request):
         if introduction_answer_list.exists():
             introduction_answer = introduction_answer_list[0].question_answer
             req_dict = {
-
                 'member_id': member_id,
                 'community_id': community_id,
                 'title': introduction_answer,
@@ -11525,7 +11524,7 @@ def fetch_community_member_rights(request):
 
     member_profile = get_members_profile([user_instance], community_instance)
 
-    mobile_filter = userMobiles.objects.filter(user=user_instance)
+    mobile_filter = userMobiles.objects.filter(user=current_user_instance)
     mobile_list = []
     for mobile_no in mobile_filter:
         mobile_list.append(userMobilesSerializer(mobile_no))
