@@ -11409,17 +11409,18 @@ def transfer_community_ownership(request):
     #     return JsonResponse(context)
 
     if user_id:
-        mobile_filter = userMobiles.objects.filter(user_id=user_id).order_by("-state")
+        mobile_filter = userMobiles.objects.filter(user_id=current_user_id).order_by("-state")
 
         context = {'success': False}
         for instance in mobile_filter:
+            print(">>>>>>>  ",instance.mobile_no)
             phone_no = str(instance.country_code) + str(instance.mobile_no)
 
             international = False
             if str(instance.country_code) != '91':
                 international = True
 
-            context = verify_otp_on_mobile(phone_no, otp,international=international)
+            context = verify_otp_on_mobile(phone_no, otp, international=international)
             if context['success']:
                 break
 

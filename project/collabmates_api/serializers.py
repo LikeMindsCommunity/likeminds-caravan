@@ -1142,7 +1142,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
                              current_user_admin_rights=user_admin_rights,parents_list=parents_list,
                              profile_detail_api=profile_detail_api)
 
-    elif (all_members_api or profile_detail_api) and current_user_id and int(current_user_id) != int(member_id):
+    elif profile_detail_api and current_user_id and int(current_user_id) != int(member_id):
         report_member = {"title": "Report member",
                          "route": f"route://report_member?community_id={community_id}&member_id={item_member_id}"}
         community_profile["menu"] = [report_member]

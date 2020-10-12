@@ -1729,41 +1729,6 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
 
 @shared_task
-def send_notification_for_deleted_chatrooms(deleted_by_user_id, community_id, card_id):
-
-    community_instance = Community.objects.get(pk=community_id)
-    deleted_by_user = User.objects.get(pk=deleted_by_user_id)
-    chatroom_instance = Collabcard.objects.get(pk=card_id)
-
-    community_name = community_instance.name
-    deleted_by_user_name = deleted_by_user.userinfo.name
-    chatroom_name = chatroom_instance.header
-
-    state_filter = list(collabcardState.objects.filter(card=card_id).filter(Q(expiry_time=None) |
-                                                       Q(expiry_time__gt=time.time())).values_list('user__id',
-                                                                                                   flat=True))
-
-    users = Userinfo.objects.filter(user_id__id__in=state_filter)
-    message = {}
-    notification_list = []
-    for user in users:
-
-        temp = {
-            'fcm_token': user.fcm_token,
-            'mobile_os': user.mobile_os,
-        }
-        notification_list.append(temp)
-
-    message['payload'] = {
-        "title": community_name,
-        "sub_title": f"{deleted_by_user_name} has deleted the chat room {chatroom_name}. Click here to know the reasons.",
-        'route': '//route://community_collabcard?community_id='
-    }
-
-    notification_meta(notification_list, message)
-
-
-@shared_task
 def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, community_id):
     community_instance = Community.objects.get(pk=community_id)
     pre_owner = User.objects.get(pk=prev_owner_id)
