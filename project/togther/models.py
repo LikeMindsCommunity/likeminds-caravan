@@ -1194,3 +1194,20 @@ class communityRightsSettings(models.Model):
     class Meta:
         unique_together = (('community', 'right'),)
 
+
+class userDevices(models.Model):
+
+    '''class to store the devices of user when the user installs the app'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    fcm_token = models.TextField(null=True)
+    mobile_os = models.TextField(null=True)
+
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_at <= 0:
+            self.created_at = time.time()
+        super(userDevices, self).save(*args, **kwargs)
+
