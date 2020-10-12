@@ -253,6 +253,16 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
         second_last = card_answers.objects.filter(card_id=chatroom_id,state=0).filter(~Q(user=last_conversation.user)).last()
 
 
+    last_conversation_members = get_latest_conversation_members(chatroom_id)
+    last_conversation_member = None
+    second_last_conversation_member = None
+
+    if len(last_conversation_members) > 1:
+        last_conversation_member = last_conversation_members[0]
+        second_last_conversation_member = last_conversation_members[0]
+    elif len(last_conversation_members) == 1:
+        last_conversation_member = last_conversation_members[0]
+
     length = len(conversations)
     for user in user_list:
 
@@ -264,12 +274,51 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
             conversation_engage_filter.filter(user=user).update(
                 last_conversation=last_conversation,
                 second_last_conversation=second_last,
-                updated_at = time.time(),unseen_count = unseen_count)
+                updated_at = time.time(),
+                unseen_count = unseen_count,
+                last_conversation_member=last_conversation_member,
+                second_last_conversation_member=second_last_conversation_member)
         else:
             #print(length)
             conversation_engage_filter.filter(user=user).update(
                 last_conversation = last_conversation,
                 second_last_conversation=second_last,
-                updated_at=time.time(),unseen_count=length)
+                updated_at=time.time(),
+                unseen_count=length,
+                last_conversation_member=last_conversation_member,
+                second_last_conversation_member=second_last_conversation_member)
+
+
+def get_latest_conversation_members(card_instance):
+
+    '''function to get last conversation members'''
+
+    answer_filter = card_answers.objects.filter(card=card_instance, state=0).order_by('-id')
+
+    user_set = set()
+
+    last_conversations = []
+
+    for data in answer_filter:
+
+        if data.card.user.id == data.user.id:
+            continue
+
+        if data.user not in user_set:
+            member_instance =None
+            member_filter = Members.objects.filter(community_id=card_instance.community,member_id=data.user)
+            if member_filter.exists():
+                member_instance=member_filter[0]
+            last_conversations.append(member_instance)
+            user_set.add(data.user)
+
+        if len(user_set) > 1:
+            break
+
+
+    return last_conversations
+
+
+
 
 

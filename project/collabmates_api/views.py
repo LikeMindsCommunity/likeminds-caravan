@@ -3208,7 +3208,6 @@ def create_chatroom_engagement(card_instance, user_instance, func_dict=None):
         instance.unseen_count = 0
         instance.created_at = time.time()
         instance.updated_at = time.time()
-
         instance.save()
     else:
         instance = instance_list[0]

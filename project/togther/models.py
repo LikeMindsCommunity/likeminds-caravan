@@ -364,6 +364,9 @@ class conversationEngage(models.Model):
     updated_at = models.BigIntegerField(default=0)
     draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE, null=True)
 
+    last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,related_name='last_conversation_member')
+    second_last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,related_name='second_last_conversation_member')
+
 
 class temp_admin(models.Model):
     name = models.CharField(max_length=200)
