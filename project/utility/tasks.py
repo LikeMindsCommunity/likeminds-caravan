@@ -7,15 +7,17 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from togther.models import *
 from PIL import Image, ImageDraw, ImageFont
-from utility.firebase import upload_user_community_profile_images
+from utility.firebase import is_url_image_valid, storage
 import os
 from .utils import *
 import random
-url = settings.URL
+import requests
+from threading import Timer
+from urllib.request import urlopen
 
 is_beta = settings.IS_BETA
+url = settings.URL
 
-from threading import Timer
 
 
 def mail_triger(member_id, request):
@@ -258,7 +260,7 @@ def send_mail_for_query_and_feedback(mail_dict):
 def save_name_initial_image(user_id, user_name):
 
     colour_codes = ["#2196F3", "#03A9F4", "#fdbd39", "#F44336", "#9C27B0", "#FFEB3B", "#d0021b", "#28d0021b"]
-    chosen_color = random.randint(0, len(colour_codes))
+    chosen_color = random.randint(0, len(colour_codes)-1)
     width, length = 216, 216
 
     name_initial = user_name[0]
@@ -282,7 +284,12 @@ def save_name_initial_image(user_id, user_name):
     canvas.save(image_name, "PNG")
     # canvas.show()
 
-    image_url = upload_user_community_profile_images(user_id, image=canvas, url=False)
+    local_image_url = url + "/" + image_name
+
+    user_id = str(user_id)
+    image_data = requests.get(local_image_url).content
+    storage.child("files").child("profile").child(user_id).put(image_data)
+    image_url = storage.child("files").child("profile").child(user_id).get_url(None)
 
     if image_url:
         user_info = Userinfo.objects.get(user_id=user_id)

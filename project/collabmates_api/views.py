@@ -7558,7 +7558,8 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
         userinfo.user_id = user
         userinfo.email = email
         userinfo.name = user_name
-        userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
+        if profile_picture is not None:
+            userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
         userinfo.login_type = login_type
         userinfo.login_json = json_to_save
         userinfo.created_at = time.time()
@@ -7613,8 +7614,8 @@ def login_with_google(google_id_token, request, res, login_type="google"):
             user_instance = user
             if 'picture' in res:
                 image_link = upload_image_to_firebase(res['picture'], user.id)
-            # else:
-            #     image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+            else:
+                image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
 
             userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
                                        profile_picture=image_link, login_type=login_type,
@@ -7671,7 +7672,7 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
     # converting email to lower case and removing unwanted space
     email = email.lower().strip()
     user = get_user_from_email(email)
-    image_link = ""
+    image_link = None
     if not user:
         # creating a user if no user is associated with that email
         user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
@@ -7682,8 +7683,8 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
         # fb_link = res['link'] if 'link' in res else None
         if 'picture' in res:
             image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
-        # else:
-        #     image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+        else:
+            image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
 
         city = res['location']['name'] if 'location' in res else None
 
@@ -7697,7 +7698,7 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
         save_user_primary_email(user, res['email'], verified=True)
 
         if 'picture' not in res:
-            save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
+            save_name_initial_image(user_id=user.id, user_name=res['name'])
 
         email_exists = False
     else:
@@ -7750,8 +7751,8 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
         if 'profilePicture' in res:
             profile_picture = upload_image_to_firebase(
                 res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user.id)
-        # else:
-        #     profile_picture = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+        else:
+            profile_picture = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
 
         userinfo = create_userinfo(user=user, email=email, user_name=user_name,
                                    profile_picture=profile_picture, login_type=login_type,
@@ -7806,8 +7807,8 @@ def login_with_apple(request, res, json_to_save, login_type="apple"):
         # fb_link = res['link'] if 'link' in res else None
         if 'picture' in res:
             image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
-        # else:
-        #     image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+        else:
+            image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
 
         city = res['location']['name'] if 'location' in res else None
         # if there is no user then user will not have userinfo too
