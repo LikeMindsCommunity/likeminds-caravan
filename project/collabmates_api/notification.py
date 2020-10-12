@@ -390,6 +390,9 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_list_member = []
 
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+        # getting the list of users who has blocked the card creator
+        # blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
+        #                             blocked_member=card_creater_id).values_list("blocked_by__id", flat=True))
         # print(member_list)
         for member in member_list:
             temp = {}
@@ -398,6 +401,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             temp['fcm_token'] = notification_details[0]
             temp['mobile_os'] = notification_details[1]
             if str(member[0]) not in tagged_users_list:
+                # and str(member[0]) not in blocked_by_user_list:
                 notification_list_member.append(temp)
                 
 
@@ -427,6 +431,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
             route = 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
+
         message['payload'] = {
             # 'title': str(card_creater_name) + " @ " + str(community_name),
             'title': title,

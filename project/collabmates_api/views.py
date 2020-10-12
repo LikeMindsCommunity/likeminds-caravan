@@ -11211,7 +11211,7 @@ def update_community_manager_rights(request):
     req_body = json.loads(request.body)
     user_id = req_body['user_id'] if "user_id" in req_body else None
     community_id = req_body['community_id'] if "community_id" in req_body else None
-    selected_rights = req_body['rights'] if "rights" in req_body else None
+    selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
 
     if not current_user_id:
@@ -11223,9 +11223,9 @@ def update_community_manager_rights(request):
     if not community_id:
         context = get_error_context(False, "send community_id in body")
         return JsonResponse(context)
-    if not selected_rights:
-        context = get_error_context(False, "send rights in body")
-        return JsonResponse(context)
+    # if selected_rights is None:
+    #     context = get_error_context(False, "send rights in body")
+    #     return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
     current_user_instance = User.objects.get(pk=current_user_id)
@@ -11557,7 +11557,7 @@ def update_community_member_rights(request):
     req_body = json.loads(request.body)
     user_id = req_body['user_id'] if "user_id" in req_body else None
     community_id = req_body['community_id'] if "community_id" in req_body else None
-    selected_rights = req_body['rights'] if "rights" in req_body else None
+    selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
 
     if not current_user_id:
@@ -11569,9 +11569,9 @@ def update_community_member_rights(request):
     if not community_id:
         context = get_error_context(False, "send community_id in body")
         return JsonResponse(context)
-    if not selected_rights:
-        context = get_error_context(False, "send rights in body")
-        return JsonResponse(context)
+    # if selected_rights is None:
+    #     context = get_error_context(False, "send rights in body")
+    #     return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
     current_user_instance = User.objects.get(pk=current_user_id)
@@ -12110,6 +12110,40 @@ def update_community_rights(request):
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
+
+
+# @csrf_exempt
+# def block_member(request):
+#
+#     if request.method == 'GET':
+#         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+#
+#     current_user_id = get_member_id_from_headers(request)
+#     community_id = request.POST.get('community_id', None)
+#     blocked_user_id = request.POST.get('user_id', None)
+#
+#     if not current_user_id:
+#         context = get_error_context(False, "send member_id in headers")
+#         return JsonResponse(context)
+#     if not blocked_user_id:
+#         context = get_error_context(False, "send user_id in POST params")
+#         return JsonResponse(context)
+#     if not community_id:
+#         context = get_error_context(False, "send community_id in POST params")
+#         return JsonResponse(context)
+#
+#     community_instance = Community.objects.get(pk=community_id)
+#     current_user_instance = User.objects.get(pk=current_user_id)
+#     blocked_user_instance = User.objects.get(pk=blocked_user_id)
+#
+#     try:
+#         blockedMembers(blocked_by=current_user_instance,
+#                        blocked_member=blocked_user_instance, community=community_instance).save()
+#     except:
+#         info_logger.info("member already blocked by this user")
+#
+#     return JsonResponse({'success': True})
+
 
 
 ################################ client db synching apis #################################################

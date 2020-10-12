@@ -1136,23 +1136,24 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
 
     if (all_members_api or profile_detail_api) and (is_promoter or is_owner):
         community_profile["menu"] = get_menu_for_members(current_user_id=current_user_id,item_member_id=member_id,
-                                                         community_id=community_id,
-                             current_user_is_promoter=is_promoter, current_user_is_owner=is_owner,
-                             item_member_state=member_instance.state, item_member_is_owner=user_is_owner,
-                             current_user_admin_rights=user_admin_rights,parents_list=parents_list,
-                             profile_detail_api=profile_detail_api)
+                                    community_id=community_id, current_user_is_promoter=is_promoter,
+                                    current_user_is_owner=is_owner, item_member_state=member_instance.state,
+                                    item_member_is_owner=user_is_owner, current_user_admin_rights=user_admin_rights,
+                                    parents_list=parents_list, profile_detail_api=profile_detail_api)
 
     elif profile_detail_api and current_user_id and int(current_user_id) != int(member_id):
         report_member = {"title": "Report member",
-                         "route": f"route://report_member?community_id={community_id}&member_id={item_member_id}"}
-        community_profile["menu"] = [report_member]
+                         "route": f"route://report_member?community_id={community_id}&member_id={member_id}"}
+        block_member = {"title": "Block member",
+                        "route": f"route://block_member?community_id={community_id}&member_id={item_member_id}"}
+        community_profile["menu"] = [report_member, block_member]
 
     return community_profile
 
 
-def get_menu_for_members(current_user_id, item_member_id, community_id, current_user_is_promoter, item_member_state, current_user_is_owner=False,
-                         item_member_is_owner=False, current_user_admin_rights=None, parents_list=None,
-                         profile_detail_api=False):
+def get_menu_for_members(current_user_id, item_member_id, community_id, current_user_is_promoter, item_member_state,
+                         current_user_is_owner=False, item_member_is_owner=False, current_user_admin_rights=None,
+                         parents_list=None, profile_detail_api=False):
     """ function to get the menu for all members for all members api and profile detail api """
     #  x is current member , y is member whose profile is currently in iteration sequence
     # current_user_state, item_member_state,
@@ -1168,6 +1169,8 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
                      "route": f"route://report_member?community_id={community_id}&member_id={item_member_id}"}
     remove_from_community = {"title": "Remove from community",
                              "route": f"route://remove_from_community?community_id={community_id}&member_id={item_member_id}"}
+    block_member = {"title": "Block member",
+                    "route": f"route://block_member?community_id={community_id}&member_id={item_member_id}"}
 
     if parents_list is None:
         parents_list = []
@@ -1200,9 +1203,9 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
             if current_user_admin_rights["add_manager"] and is_child:
                 menu.append(edit_permissions)
 
-
         if profile_detail_api:
             menu.append(report_member)
+            menu.append(block_member)
 
     elif current_user_is_promoter and item_member_state == member_states.MEMBER:
         if current_user_admin_rights:
@@ -1217,6 +1220,9 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
 
             if not current_user_admin_rights["approve"] and profile_detail_api:
                 menu.append(report_member)
+
+            if profile_detail_api:
+                menu.append(block_member)
 
     else:
         if profile_detail_api:

@@ -1195,6 +1195,15 @@ class communityRightsSettings(models.Model):
         unique_together = (('community', 'right'),)
 
 
+# class blockedMembers(models.Model):
+#     blocked_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_by_user')
+#     blocked_member = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_who_is_blocked')
+#     community = models.ForeignKey(Community, on_delete=models.CASCADE)
+#
+#     class Meta:
+#         unique_together = (('blocked_by', 'blocked_member', 'community'),)
+
+
 class userDevices(models.Model):
 
     '''class to store the devices of user when the user installs the app'''
