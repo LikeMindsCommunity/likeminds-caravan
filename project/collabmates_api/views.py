@@ -631,7 +631,7 @@ def get_latest_conversation_members(last_conversation_member,second_last_convers
             temp['image_url'] = last_conversation_member.member_id.userinfo.image_link
         conversation_users.append(temp)
 
-    elif last_conversation_user:
+    if last_conversation_user:
         instance = last_conversation_user
         remove = False
         if instance.remove:
@@ -653,7 +653,7 @@ def get_latest_conversation_members(last_conversation_member,second_last_convers
         else:
             temp['image_url'] = second_last_conversation_member.member_id.userinfo.image_link
         conversation_users.append(temp)
-    elif second_last_conversation_user:
+    if second_last_conversation_user:
         instance = second_last_conversation_user
         remove = False
         if instance.remove:
