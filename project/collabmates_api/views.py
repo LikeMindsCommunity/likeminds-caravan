@@ -11599,15 +11599,16 @@ def update_community_member_rights(request):
             Members.objects.filter(member_id=user_instance,
                                    community_id=community_instance).update(custom_title=custom_title)
 
-        save_moderation_history(user=user_instance, community=community_instance,
-                                moderation_by=current_user_instance,
-                                type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+        if len(selected_rights) > 0:
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
-        check_reports_and_update_action.delay(action_taken_by=current_user_id,
-                                              action_taken=report_Action_Types.EDIT_MEMBER_PERMISSION,
-                                              user=user_id, community=community_id,
-                                              added_member_rights=list(rights_added),
-                                              removed_member_rights=list(rights_removed))
+            check_reports_and_update_action.delay(action_taken_by=current_user_id,
+                                                  action_taken=report_Action_Types.EDIT_MEMBER_PERMISSION,
+                                                  user=user_id, community=community_id,
+                                                  added_member_rights=list(rights_added),
+                                                  removed_member_rights=list(rights_removed))
 
         return JsonResponse({'success': True})
     else:
@@ -12146,7 +12147,7 @@ def update_community_rights(request):
 
 
 
-################################ client db synching apis #################################################
+############################### client db synching apis #################################################
 
 
 def sync_conversation(request):
