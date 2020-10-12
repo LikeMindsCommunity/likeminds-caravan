@@ -7398,10 +7398,10 @@ def fetch_chatroom_feed_version_1(request):
 
             if active:
                 downward = state_filter.filter(card__gt=chatroom_id,user=member_id).filter(
-                    Q(expiry_time=None) | Q(expiry_time__gt=current_time))[:5]
+                    Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('card_id')[:5]
             else:
                 downward = state_filter.filter(card__gt=chatroom_id,user=member_id).filter(
-                    ~Q(expiry_time=None) & Q(expiry_time__lte=current_time))[:5]
+                    ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('card_id')[:5]
             #print(downward)
             chatrooms = get_chatrooms_version_1(downward, member_id,active)
 
@@ -9096,17 +9096,31 @@ def push(request):
             platform_code = 'iOS'
 
         success = True
-        # if not is_member[0].fcm_token:
-        #     send_welcome_mail.delay(member_id)
+        user_instance = User.objects.get(id=member_id)
+
+        info_logger.info("push api hit")
+
+        devices_filter = userDevices.objects.filter(user=user_instance,fcm_token=token,mobile_os=platform_code)
+        if not devices_filter.exists():
+            instance = userDevices()
+            instance.user = user_instance
+            instance.fcm_token = token
+            instance.mobile_os = platform_code
+            instance.updated_at = time.time()
+            instance.save()
+
+            info_logger.info("new device registered")
+            info_logger.info(instance)
+        else:
+            instance = devices_filter[0]
+            instance.updated_at = time.time()
+            instance.save()
+
         fcm_token = Userinfo.objects.filter(user_id=member_id).update(fcm_token=token, mobile_os=platform_code)
 
-        info_logger.info("Push Notification hit with member id")
-        info_logger.info(member_id)
-        info_logger.info(token)
-        info_logger.info(fcm_token)
+
 
     return JsonResponse({'success': success})
-
 
 def config(request):
     '''function to update the version number of android for a user profile'''
