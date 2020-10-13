@@ -5051,7 +5051,7 @@ def get_chatroom_actions(card_status, request ,creator, promoter=False):
     return actions
 
 
-def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction, is_request_ios):
+def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction, is_request_ios=False):
     '''internal function to get the chatroom conversation screen functionalities '''
     source_id = request.GET.get('source_id')
     aj = request.GET.get('aj')
