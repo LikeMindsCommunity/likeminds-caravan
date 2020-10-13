@@ -627,7 +627,7 @@ def get_latest_conversation_members(last_conversation_member,second_last_convers
         temp['id'] = last_conversation_member.member_id.id
         temp['name'] = last_conversation_member.member_id.userinfo.name
         if last_conversation_member.image_url:
-            temp['image_url'] = last_conversation_member.member_id.image_url
+            temp['image_url'] = last_conversation_member.image_url
         else:
             temp['image_url'] = last_conversation_member.member_id.userinfo.image_link
         conversation_users.append(temp)
@@ -651,7 +651,7 @@ def get_latest_conversation_members(last_conversation_member,second_last_convers
         temp['id'] = second_last_conversation_member.member_id.id
         temp['name'] = second_last_conversation_member.member_id.userinfo.name
         if second_last_conversation_member.image_url:
-            temp['image_url'] = second_last_conversation_member.member_id.image_url
+            temp['image_url'] = second_last_conversation_member.image_url
         else:
             temp['image_url'] = second_last_conversation_member.member_id.userinfo.image_link
         conversation_users.append(temp)
