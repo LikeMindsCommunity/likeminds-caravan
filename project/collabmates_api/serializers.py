@@ -1190,8 +1190,8 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     if conversation.internal_link:
 
         temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
-                                                 community_instance=conversation.preview_community,
-                                                 chatroom_instance=conversation.preview_chatroom)
+                                              community_instance=conversation.preview_community,
+                                              chatroom_instance=conversation.preview_chatroom)
 
     if conversation.reply and fetch_reply:
         temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
