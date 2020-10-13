@@ -560,13 +560,16 @@ def my_chatrooms_version_1(request):
         chatroom = {}
         card_instance = instance.card
         draft_instance = instance.draft
+
+
+
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id)
-            chatroom['community'] = CommunitySerializer(card_instance.community)
+            chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id)
             chatroom['is_draft'] = False
         elif draft_instance:
             chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance, member_id)
-            chatroom['community'] = CommunitySerializer(draft_instance.community)
+            chatroom['community'] = CommunitySerializer(draft_instance.community, current_user_id=member_id)
             chatroom['is_draft'] = True
 
         last_conversation = instance.last_conversation
@@ -580,6 +583,17 @@ def my_chatrooms_version_1(request):
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
 
+        last_conversation_member= instance.last_conversation_member
+        second_last_conversation_member = instance.second_last_conversation_member
+        last_conversation_user = instance.last_conversation_user
+        second_last_conversation_user = instance.second_last_conversation_user
+
+
+        conversation_users = get_latest_conversation_members(last_conversation_member,
+                                                             second_last_conversation_member,
+                                                             last_conversation_user,
+                                                             second_last_conversation_user)
+        chatroom['conversation_users'] = conversation_users
         my_chatrooms.append(chatroom)
 
 
@@ -589,6 +603,54 @@ def my_chatrooms_version_1(request):
                }
 
     return JsonResponse(context)
+
+
+def get_latest_conversation_members(last_conversation_member,second_last_conversation_member,last_conversation_user,second_last_conversation_user):
+
+    conversation_users = []
+    if last_conversation_member:
+        temp = {}
+        temp['id'] = last_conversation_member.member_id.id
+        temp['name'] = last_conversation_member.member_id.userinfo.name
+        if last_conversation_member.image_url:
+            temp['image_url'] = last_conversation_member.image_url
+        else:
+            temp['image_url'] = last_conversation_member.member_id.userinfo.image_link
+        conversation_users.append(temp)
+
+    if last_conversation_user:
+        instance = last_conversation_user
+
+        remove = False
+        if instance.remove:
+            remove = True
+
+        temp = get_user_profile(instance.user,instance.community.id,send_profile=False,remove=remove)
+
+        conversation_users.append(temp)
+
+
+
+    if second_last_conversation_member:
+
+        temp = {}
+        temp['id'] = second_last_conversation_member.member_id.id
+        temp['name'] = second_last_conversation_member.member_id.userinfo.name
+        if second_last_conversation_member.image_url:
+            temp['image_url'] = second_last_conversation_member.image_url
+        else:
+            temp['image_url'] = second_last_conversation_member.member_id.userinfo.image_link
+        conversation_users.append(temp)
+    if second_last_conversation_user:
+        instance = second_last_conversation_user
+        remove = False
+        if instance.remove:
+            remove = True
+        temp = get_user_profile(instance.user, instance.community.id,send_profile=False, remove=remove)
+        conversation_users.append(temp)
+
+
+    return conversation_users
 
 
 

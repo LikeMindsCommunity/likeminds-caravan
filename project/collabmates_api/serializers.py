@@ -25,7 +25,7 @@ from datetime import datetime, date
 #         fields = ('id','name', 'purpose', 'image_url' ,'about', 'location')
 
 
-def CommunitySerializer(community, promoter_id=0):
+def CommunitySerializer(community, promoter_id=0,current_user_id=None):
     # function to serialize a community object
     new_dict = {
         'id': community.id,
