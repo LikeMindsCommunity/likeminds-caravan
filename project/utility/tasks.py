@@ -7,7 +7,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from togther.models import *
 from PIL import Image, ImageDraw, ImageFont
-from utility.firebase import is_url_image_valid, storage
+from utility.firebase import upload_user_initial_image
 import os
 from .utils import *
 import random
@@ -286,10 +286,7 @@ def save_name_initial_image(user_id, user_name):
 
     local_image_url = url + "/" + image_name
 
-    user_id = str(user_id)
-    image_data = requests.get(local_image_url).content
-    storage.child("files").child("profile").child(user_id).put(image_data)
-    image_url = storage.child("files").child("profile").child(user_id).get_url(None)
+    image_url = upload_user_initial_image(user_id, image=local_image_url, url=True)
 
     if image_url:
         user_info = Userinfo.objects.get(user_id=user_id)

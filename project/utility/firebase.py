@@ -284,5 +284,21 @@ def upload_question_files(request=None, community_id=None, question_id=None, mem
         return JsonResponse({"success": True, "image_url": image_url})
 
 
-
+def upload_user_initial_image(user_id, image, url=False):
+    """function to put user initial images in firebase"""
+    name = str(user_id)
+    if url:
+        image_url = image
+        if is_url_image_valid(image_url):
+            image_data = requests.get(image_url).content
+            storage.child("files").child("profile").child(name).put(image_data)
+            image_url = storage.child("files").child("profile").child(name).get_url(None)
+            return image_url
+        else:
+            print("Image url is broken for user=", user_id)
+            return None
+    else:
+        storage.child("files").child("user").child(user_id).child(name).put(image)
+        image_url = storage.child("files").child("user").child(user_id).child(name).get_url(None)
+        return image_url
 
