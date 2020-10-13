@@ -4719,7 +4719,7 @@ def get_normal_chatroom_context(request, card_instance):
         current_user['follow_status'] = collabcard_status['follow_status']
 
     chatroom_dict = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id=None,
-                                          scroll_direction=None)
+                                          scroll_direction=None,is_request_ios=False)
 
     has_conversation = card_answers.objects.filter(card=card_instance, user=current_user_id,
                                                    state=chatroom_states.ANSWER).exists()
