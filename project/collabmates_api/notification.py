@@ -12,11 +12,10 @@ from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
                             Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,
-
                             conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers)
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,
-                            conversationMemberState, blockedMembers)
+                           )
 
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask

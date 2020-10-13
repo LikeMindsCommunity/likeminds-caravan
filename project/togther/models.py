@@ -361,14 +361,7 @@ class collabcardState(models.Model):
 
 
 
-class conversationMemberState(models.Model):
 
-
-    external_seen = models.BooleanField(default=True)
-    external_follow = models.BooleanField(default=False)
-
-    class Meta:
-        unique_together = (('card', 'user'),)
 
 class conversationMemberState(models.Model):
     '''function to save member state of conversation'''
