@@ -4423,7 +4423,7 @@ def collabcard(request, card_id):
         if is_request_web(request) and request.user.is_authenticated:
             current_user_id = request.user.id
             #todo: check_authenticated
-            answers = get_chatroom_internal(request, card_instance, current_user_id, page, '', '')
+            answers = get_chatroom_internal(request, card_instance, current_user_id, page, '', '',False)
         else:
             # get all the answers of the card
             answer = card_answers.objects.filter(card=card_instance).order_by('id')
@@ -4711,7 +4711,7 @@ def get_normal_chatroom_context(request, card_instance):
         current_user['follow_status'] = collabcard_status['follow_status']
 
     chatroom_dict = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id=None,
-                                          scroll_direction=None)
+                                          scroll_direction=None,is_request_ios=False)
 
     has_conversation = card_answers.objects.filter(card=card_instance, user=current_user_id,
                                                    state=chatroom_states.ANSWER).exists()
