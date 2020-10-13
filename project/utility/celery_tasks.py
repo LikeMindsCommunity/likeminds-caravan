@@ -377,5 +377,4 @@ def check(chatroom_id):
     print(second_last_conversation_user)
 
 
-#print(get_latest_conversation_members(Collabcard.objects.get(id=1156)))
 

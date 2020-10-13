@@ -1,4 +1,4 @@
-from togther.models import Members,collabcardState,Userinfo,Collabcard
+from togther.models import Members,collabcardState,Userinfo,Collabcard, blockedMembers
 from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
     card_types, chatroom_states, email_states
 
@@ -21,6 +21,10 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
                     Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
                     Q(state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
 
+    blocked_users_list = list(blockedMembers.objects.filter(community=community_id,
+                                                            blocked_by=current_member_id).values_list(
+                                                            "blocked_member__id", flat=True))
+
     tagging_list = []
 
     blocked_users_list = list(blockedMembers.objects.filter(community=community_id,
@@ -28,13 +32,19 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
                                                             "blocked_member__id", flat=True))
     for member in member_filter:
 
+
         user_instance = member.member_id
         if int(user_instance.id) in blocked_users_list:
             continue
 
         temp = {}
 
+
         user_instance = member.member_id
+        if int(user_instance.id) in blocked_users_list:
+            continue
+
+        temp = {}
         temp['id'] = user_instance.id
 
         if str(temp['id']) == current_member_id:

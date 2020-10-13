@@ -331,6 +331,8 @@ class card_answers(models.Model):
 
     has_files = models.BooleanField(default=False)
 
+
+
 class collabcardState(models.Model):
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
@@ -342,6 +344,7 @@ class collabcardState(models.Model):
     # if got removed saving the previous state
     remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
 
+
     mute_status = models.BooleanField(default=False)
     follow_status = models.BooleanField(default=False)
     is_guest = models.BooleanField(default=False)
@@ -349,6 +352,17 @@ class collabcardState(models.Model):
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
 
     expiry_time = models.BigIntegerField(null=True)
+
+    external_seen = models.BooleanField(default=True)
+    external_follow = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = (('card', 'user'),)
+
+
+
+class conversationMemberState(models.Model):
+
 
     external_seen = models.BooleanField(default=True)
     external_follow = models.BooleanField(default=False)
@@ -386,8 +400,8 @@ class conversationEngage(models.Model):
     unseen_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
-    draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE, null=True)
 
+    draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE, null=True)
     last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,related_name='last_conversation_member')
     second_last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,related_name='second_last_conversation_member')
 
@@ -730,6 +744,7 @@ class Report(models.Model):
     date_epoch = models.BigIntegerField(default=-9223372036854775808, null=True)
 
     link = models.TextField(null=True)
+
 
 
 
@@ -1150,6 +1165,7 @@ class userFeedback(models.Model):
     feedback = models.TextField(null=True)
 
 
+
 class adminRights(models.Model):
     title = models.TextField(null=True)
     sub_title = models.TextField(null=True)
@@ -1211,6 +1227,7 @@ class blockedMembers(models.Model):
         unique_together = (('blocked_by', 'blocked_member', 'community'),)
 
 
+
 class userDevices(models.Model):
 
     '''class to store the devices of user when the user installs the app'''
@@ -1226,4 +1243,5 @@ class userDevices(models.Model):
         if self.created_at <= 0:
             self.created_at = time.time()
         super(userDevices, self).save(*args, **kwargs)
+
 

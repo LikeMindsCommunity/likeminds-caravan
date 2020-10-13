@@ -12,9 +12,12 @@ from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
                             Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,
+
                             conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers)
-from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,)
+from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,
+                            conversationMemberState, blockedMembers)
+
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -390,9 +393,11 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_list_member = []
 
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
-        # getting the list of users who has blocked the card creator
+
         blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
-                                    blocked_member=card_creater_id).values_list("blocked_by__id", flat=True))
+                                                                  blocked_member=card_creater_id).values_list(
+                                                                  "blocked_by__id", flat=True))
+
         # print(member_list)
         for member in member_list:
             temp = {}

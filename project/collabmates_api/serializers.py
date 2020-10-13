@@ -27,7 +27,9 @@ from datetime import datetime, date
 #         fields = ('id','name', 'purpose', 'image_url' ,'about', 'location')
 
 
-def CommunitySerializer(community, promoter_id=0, current_user_id=None):
+
+def CommunitySerializer(community, promoter_id=0,current_user_id=None):
+
     # function to serialize a community object
     new_dict = {
         'id': community.id,
@@ -1403,8 +1405,8 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     if conversation.internal_link:
 
         temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
-                                                 community_instance=conversation.preview_community,
-                                                 chatroom_instance=conversation.preview_chatroom)
+                                              community_instance=conversation.preview_community,
+                                              chatroom_instance=conversation.preview_chatroom)
 
     if conversation.reply and fetch_reply:
         temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
