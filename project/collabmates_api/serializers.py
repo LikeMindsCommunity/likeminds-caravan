@@ -1454,7 +1454,7 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
         "state": conversation.state,
         'is_deleted': conversation.is_deleted,
         'is_edited': conversation.is_edited,
-        'created_at': conversation.created_at,
+        'created_at': time.strftime('%H:%M', time.localtime(conversation.created_at)),
         'has_files': conversation.has_files,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,
