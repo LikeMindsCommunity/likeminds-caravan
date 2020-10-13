@@ -1501,7 +1501,8 @@ def update_community_actions(community_instance):
                 community_level_filter.filter(level="Level 3").update(title="Set up community directory",
                                                                       sub_title="Help members know each other. Ask members to complete their profile for the directory or add new members.",
                                                                       state=community_level_states.PENDING)
-
+                #community managers emails
+                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=2, day=0, counter=0)
                 # community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
                 #                                                       sub_title="Grow your community. Start social sharing and approve 10 new members.",
                 #                                                       state=community_level_states.PENDING)
@@ -1519,6 +1520,8 @@ def update_community_actions(community_instance):
                 community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
                                                                       sub_title="Grow your community. Start social sharing and approve 10 new members.",
                                                                       state=community_level_states.PENDING)
+                #community managers emails
+                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=3, day=0, counter=0)
 
         elif instance.level == "Level 4" and instance.state == community_level_states.PENDING:
 
@@ -1530,6 +1533,8 @@ def update_community_actions(community_instance):
                 instance.state = community_level_states.COMPLETE
                 promoter_filter.update(actions_required=False)
                 instance.save()
+                #community managers emails
+                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=4, day=0, counter=0)
 
 
 def set_levels_on_ctc(community_instance, level, promoter=False):
@@ -2480,7 +2485,10 @@ def create_community_version_1(request):
         create_introduction_question_in_community(community_instance)
         post_purpose_collabcard_for_community(request, community_instance, member_id)
 
-        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance, current_user_id=member_id)
+        #send mails to ask cm to upgrade level
+        send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=1, day=0, counter=0)
+
+        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance,current_user_id=member_id)
         return JsonResponse({'success': True, 'community': community_serializer})
 
     elif page == 3:
@@ -9931,33 +9939,33 @@ Once verified, we will send an email on: """ + str(email)
 
     return member_direction_lock
 
-
-def invite_members(request):
-    ''' function to get members requested to join in a community '''
-
-    member_id = request.GET.get('member_id', None)
-    community_id = request.GET.get('community_id', None)
-
-    pend_requests = get_referred_members_of_a_member(community_id, member_id)
-
-    pending_requests = []
-    for i in pend_requests:
-        user_id = i
-        resp = Form_response.objects.filter(community=community_id).filter(user=user_id)
-        user = Userinfo.objects.get(user_id=user_id)
-        # serilaizing userinfo object
-        usr = UserinfoSerializer(user)
-        user_response = []
-        for j in resp:
-            # getting the answers of the users who requested to join
-            # for the questions that have been asked while requestiong to join in a community
-            response_object = {}
-            response_object['key'] = j.data
-            response_object['value'] = j.response
-            user_response.append(response_object)
-        usr['response'] = user_response
-        pending_requests.append(usr)
-    return JsonResponse({'pending_members': pending_requests})
+#
+# def invite_members(request):
+#     ''' function to get members requested to join in a community '''
+#
+#     member_id = request.GET.get('member_id', None)
+#     community_id = request.GET.get('community_id', None)
+#
+#     pend_requests = get_referred_members_of_a_member(community_id, member_id)
+#
+#     pending_requests = []
+#     for i in pend_requests:
+#         user_id = i
+#         # resp = Form_response.objects.filter(community=community_id).filter(user=user_id)
+#         user = Userinfo.objects.get(user_id=user_id)
+#         # serilaizing userinfo object
+#         usr = UserinfoSerializer(user)
+#         user_response = []
+#         for j in resp:
+#             # getting the answers of the users who requested to join
+#             # for the questions that have been asked while requestiong to join in a community
+#             response_object = {}
+#             response_object['key'] = j.data
+#             response_object['value'] = j.response
+#             user_response.append(response_object)
+#         usr['response'] = user_response
+#         pending_requests.append(usr)
+#     return JsonResponse({'pending_members': pending_requests})
 
 
 def get_profile(request):

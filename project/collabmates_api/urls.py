@@ -137,7 +137,7 @@ urlpatterns = [
 
     path('member_activity', api_views.member_activity, name='member_activity'),
 
-    path('invite_members', api_views.invite_members, name='invite_members'),
+    # path('invite_members', api_views.invite_members, name='invite_members'),
     path('get_profile', api_views.get_profile, name='get_profile'),
     path('config', api_views.config, name='config'),
     path('onboarding', api_views.onboarding, name='onboarding'),
