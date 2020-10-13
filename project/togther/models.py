@@ -1180,3 +1180,14 @@ class userFeedback(models.Model):
     created_at = models.BigIntegerField(null=True)
     images = models.TextField(null=True)
     feedback = models.TextField(null=True)
+
+
+class blockedMembers(models.Model):
+    blocked_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_by_user')
+    blocked_member = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_who_is_blocked')
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = (('blocked_by', 'blocked_member', 'community'),)
+
+

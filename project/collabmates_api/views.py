@@ -10897,5 +10897,36 @@ def sync_members(request):
 
 
 
-# ==============================================================================================================
+# =========================== block member ========================================================
 
+@csrf_exempt
+def block_member(request):
+
+    if request.method == 'GET':
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+
+    current_user_id = get_member_id_from_headers(request)
+    community_id = request.POST.get('community_id', None)
+    blocked_user_id = request.POST.get('user_id', None)
+
+    if not current_user_id:
+        context = get_error_context(False, "send member_id in headers")
+        return JsonResponse(context)
+    if not blocked_user_id:
+        context = get_error_context(False, "send user_id in POST params")
+        return JsonResponse(context)
+    if not community_id:
+        context = get_error_context(False, "send community_id in POST params")
+        return JsonResponse(context)
+
+    community_instance = Community.objects.get(pk=community_id)
+    current_user_instance = User.objects.get(pk=current_user_id)
+    blocked_user_instance = User.objects.get(pk=blocked_user_id)
+
+    try:
+        blockedMembers(blocked_by=current_user_instance,
+                       blocked_member=blocked_user_instance, community=community_instance).save()
+    except:
+        info_logger.info("member already blocked by this user")
+
+    return JsonResponse({'success': True})
