@@ -413,9 +413,10 @@ def your_communities(request, user_id):
 
         # if community['collabcard_unseen'] > 0:
             # header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
-        if community['collabcard_unseen'] > 0 and each_community.new_chatroom_users:
-            community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
-            #community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+        if community['collabcard_unseen'] > 0:
+            #if each_community.new_chatroom_users:
+            #community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
+            community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         else:
             #active_chatroom_users = get_active_chatroom_member_images(community_instance=each_community.community_id,member_id=member_id)
             active_chatroom_users = temp['member_list']
