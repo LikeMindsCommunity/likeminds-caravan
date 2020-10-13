@@ -332,6 +332,37 @@ class card_answers(models.Model):
     has_files = models.BooleanField(default=False)
 
 
+
+class collabcardState(models.Model):
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    state = models.IntegerField(null=True)
+    created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+    updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+
+    # if got removed saving the previous state
+    remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
+
+
+    mute_status = models.BooleanField(default=False)
+    follow_status = models.BooleanField(default=False)
+    is_guest = models.BooleanField(default=False)
+    is_tagged = models.BooleanField(default=False)
+    source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
+
+    expiry_time = models.BigIntegerField(null=True)
+
+    external_seen = models.BooleanField(default=True)
+    external_follow = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = (('card', 'user'),)
+
+
+
+
+
 class conversationMemberState(models.Model):
     '''function to save member state of conversation'''
     conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE)
@@ -362,8 +393,15 @@ class conversationEngage(models.Model):
     unseen_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
-    draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE, null=True)
 
+    draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE, null=True)
+    last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,related_name='last_conversation_member')
+    second_last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,related_name='second_last_conversation_member')
+
+    last_conversation_user = models.ForeignKey(collabcardState, on_delete=models.SET_NULL, null=True,
+                                               related_name='last_conversation_user')
+    second_last_conversation_user = models.ForeignKey(collabcardState, on_delete=models.SET_NULL, null=True,
+                                               related_name='second_last_conversation_user')
 
 class temp_admin(models.Model):
     name = models.CharField(max_length=200)
@@ -702,30 +740,7 @@ class Report(models.Model):
 
 
 
-class collabcardState(models.Model):
-    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    state = models.IntegerField(null=True)
-    created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
-    updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
 
-    # if got removed saving the previous state
-    remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
-
-    mute_status = models.BooleanField(default=False)
-    follow_status = models.BooleanField(default=False)
-    is_guest = models.BooleanField(default=False)
-    is_tagged = models.BooleanField(default=False)
-    source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
-
-    expiry_time = models.BigIntegerField(null=True)
-
-    external_seen = models.BooleanField(default=True)
-    external_follow = models.BooleanField(default=False)
-
-    class Meta:
-        unique_together = (('card', 'user'),)
 
 
 class CollabcardStateBackup(models.Model):
@@ -1143,6 +1158,7 @@ class userFeedback(models.Model):
     feedback = models.TextField(null=True)
 
 
+
 class adminRights(models.Model):
     title = models.TextField(null=True)
     sub_title = models.TextField(null=True)
@@ -1193,4 +1209,32 @@ class communityRightsSettings(models.Model):
 
     class Meta:
         unique_together = (('community', 'right'),)
+
+
+class blockedMembers(models.Model):
+    blocked_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_by_user')
+    blocked_member = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_who_is_blocked')
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = (('blocked_by', 'blocked_member', 'community'),)
+
+
+
+class userDevices(models.Model):
+
+    '''class to store the devices of user when the user installs the app'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    fcm_token = models.TextField(null=True)
+    mobile_os = models.TextField(null=True)
+
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_at <= 0:
+            self.created_at = time.time()
+        super(userDevices, self).save(*args, **kwargs)
+
 
