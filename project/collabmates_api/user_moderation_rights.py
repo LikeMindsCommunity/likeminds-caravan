@@ -91,7 +91,7 @@ def get_saved_manager_rights_list(admin_rights):
     rights_list = []
     for right in all_manager_rights:
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
-                      "is_selected": False}
+                      "state": right.state, "is_selected": False}
 
         if right.state == delete_room_manager_right['state']:
             right_dict["is_selected"] = admin_rights["delete_room"]
@@ -122,7 +122,7 @@ def get_default_manager_rights_list():
     rights_list = []
     for right in all_manager_rights:
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
-                      "is_selected": False}
+                      "state": right.state, "is_selected": False}
 
         if right.state == delete_room_manager_right['state']:
             right_dict["is_selected"] = True
