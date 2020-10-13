@@ -1162,7 +1162,7 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
     edit_permissions = {"title": "Edit permissions",
                         "route": f"route://edit_member_rights?community_id={community_id}&member_id={item_member_id}"}
     give_CM_rights = {"title": "Give community management rights",
-                      "route": f"route://edit_manager_rights?community_id={community_id}&member_id={item_member_id}"}
+                      "route": f"route://give_manager_rights?community_id={community_id}&member_id={item_member_id}"}
     edit_CM_rights = {"title": "Edit management rights",
                       "route": f"route://edit_manager_rights?community_id={community_id}&member_id={item_member_id}"}
     report_member = {"title": "Report member",
