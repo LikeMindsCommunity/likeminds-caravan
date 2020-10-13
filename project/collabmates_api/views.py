@@ -6428,7 +6428,8 @@ def create_conversation(request):
 
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'])
 
-    return JsonResponse({'success': True, 'id': ans.id})
+    conversation = get_conversation_instance_for_db_synching(ans,current_user_id=member_id)
+    return JsonResponse({'success': True, 'id': ans.id,'conversation':conversation})
 
 
 def conversation_tagging(request, res, card_instance, user_instance, member_id):
