@@ -11,8 +11,8 @@ from django.db.models import Q
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
-                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,conversationMemberState
-                            )
+                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,
+                            conversationMemberState, blockedMembers)
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -388,6 +388,9 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_list_member = []
 
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+        blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
+                                                                  blocked_member=card_creater_id).values_list(
+                                                                  "blocked_by__id", flat=True))
         # print(member_list)
         for member in member_list:
             temp = {}
@@ -395,7 +398,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             notification_details = get_token_for_fcm(member[0], True)
             temp['fcm_token'] = notification_details[0]
             temp['mobile_os'] = notification_details[1]
-            if str(member[0]) not in tagged_users_list:
+            if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
                 notification_list_member.append(temp)
                 
 
