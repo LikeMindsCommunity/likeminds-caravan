@@ -1316,9 +1316,13 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
         member_instance.community_id = community_instance
         member_instance.state = member_states.MEMBER
         member_instance.joined_by = shared_user_instance
+        member_instance.custom_title = "Member"
         member_instance.created_at = time.time()
         member_instance.updated_at = time.time()
         member_instance.save()
+
+        # give default members rights
+        give_default_member_rights(user=user_instance, community=community_instance)
 
         toast_filter = communityToast.objects.filter(community=community_instance, user=user_instance)
         toast_filter.delete()
