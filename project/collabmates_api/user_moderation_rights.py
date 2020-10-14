@@ -1,8 +1,9 @@
 from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
-                            moderationHistory, Report, Report_Tags, communityRightsSettings)
+                            moderationHistory, Report, Report_Tags, communityRightsSettings,
+                            Community)
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
-
+from django.contrib.auth.models import User
 from django.db.models import Q
 from .static_text import *
 
@@ -14,6 +15,22 @@ def give_all_member_rights(user, community):
 
     member_rights = memberRights.objects.all().order_by("state")
     fill_member_rights(user, community, member_rights)
+
+
+def give_default_member_rights(user, community):
+    """function to give a member all the rights """
+
+    if not isinstance(user, User):
+        user = User.objects.get(pk=user)
+
+    if not isinstance(community, Community):
+        community = Community.objects.get(pk=community)
+
+    userMemberRights.objects.filter(user=user, community=community).delete()
+
+    member_rights_list = memberRights.objects.all().order_by("state").exclude(
+                    state=member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK)
+    fill_member_rights(user, community, member_rights_list)
 
 
 def give_all_manager_rights(user, community):
