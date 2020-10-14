@@ -4231,8 +4231,8 @@ def approve_or_decline_private_community(req_dict, request):
     '''function to approve the whatsapp community'''
 
     current_user_id = get_member_id_from_headers(request)
-    current_user_instance = Userinfo.objects.get(user_id=current_user_id)
-    promoter_name = current_user_instance.name
+    current_user_instance = User.objects.get(user_id=current_user_id)
+    promoter_name = current_user_instance.userinfo.name
 
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
@@ -4241,7 +4241,8 @@ def approve_or_decline_private_community(req_dict, request):
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
                                    community_id=req_dict['community_id']).update(state=member_states.MEMBER,
-                                                                                 approved_by=current_user_instance.user_id,
+                                                                                 approved_by=current_user_instance,
+                                                                                 custom_title="Member",
                                                                                  created_at=time.time(),
                                                                                  updated_at=time.time())
 
@@ -4303,12 +4304,8 @@ def approve_or_decline_private_community(req_dict, request):
 
             accepted_user = User.objects.get(pk=req_dict['member_id'])
             save_moderation_history(user=accepted_user, community=community,
-                                    moderation_by=current_user_instance.user_id,
+                                    moderation_by=current_user_instance,
                                     type=moderation_history_types.APPROVED_FROM)
-
-
-
-
 
     else:
 
@@ -5118,9 +5115,8 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             temp = get_members_profile(member_ids=member_ids, community_id=community_id, current_user_id=current_user_id)
             context['deleted_by'] = temp[0]
             context['deleted_by_member_state'] = ans.deleted_by_user_state
-        print("is ios  >>>>>>", is_ios)
+
         if is_ios:
-            print("here", ans.id)
             context['answer'] = context['answer'] + f"\n{ans.internal_link}"
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
@@ -11565,7 +11561,7 @@ def transfer_community_ownership(request):
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
                                                                custom_title=previous_owner_title, parent_cm=None,
-                                                               parent_cm_list='[]')
+                                                               parent_cm_list=None)
         give_all_manager_rights(user_instance, community_instance)  # for new owner
         # current owner
         admin.update(is_owner=False, custom_title="Community Manager",
@@ -11588,8 +11584,8 @@ def update_parent_cm_list(community_id, new_owner_id, prev_owner_id):
     all_members = Members.objects.filter(community_id=community_id, is_owner=False).filter(state__in=member_state_list)
 
     for member in all_members:
-        member_instance = Members.objects.get(pk=member.id) # id of members table not user_id, need instance to update the data
-        parent_list = json.loads(member_instance.parent_cm_list)
+        member_instance = Members.objects.get(pk=member.id)  # id of members table not user_id, need instance to update the data
+        parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list is not None else []
 
         if str(new_owner_id) not in parent_list:
             parent_list.append(new_owner_id)
