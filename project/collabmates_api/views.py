@@ -4231,7 +4231,12 @@ def approve_or_decline_private_community(req_dict, request):
     '''function to approve the whatsapp community'''
 
     current_user_id = get_member_id_from_headers(request)
-    current_user_instance = User.objects.get(id=current_user_id)
+
+    if not current_user_id:
+        context = get_error_context(False, "send member id in headers")
+        return context
+
+    current_user_instance = User.objects.get(pk=current_user_id)
     promoter_name = current_user_instance.userinfo.name
 
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
@@ -4245,7 +4250,8 @@ def approve_or_decline_private_community(req_dict, request):
                                                                                  custom_title="Member",
                                                                                  created_at=time.time(),
                                                                                  updated_at=time.time())
-
+            # giving default member rights
+            give_default_member_rights(user=req_dict['member_id'], community=req_dict['community_id'])
             Member_Engage.objects.filter(member_id=req_dict['member_id'],
                                          community_id=req_dict['community_id']).update(
                 member_state=member_states.MEMBER,
