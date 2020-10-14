@@ -290,7 +290,7 @@ def get_moderation_history_title(moderation_history):
     elif moderation_history.type == moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER:
         title = moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER_TEXT
 
-    title = title + f"<{user_name}>|route://member_profile/{user_id}?community_id={community_id}&member_id={user_id}"
+    title = title + f"<<{user_name}|route://member_profile/{user_id}?community_id={community_id}&member_id={user_id}>>"
 
     history = {"title": title, "moderation_time": moderation_history.moderation_time}
 
@@ -364,7 +364,6 @@ def give_member_auto_approve_right(user, community):
         print("right already exists for user ----> ", user.id, community.id, member_rights.MEMBER_RIGHT_AUTO_APPROVE)
 
 
-
 def give_member_create_room_right(user, community):
 
     try:
@@ -400,7 +399,6 @@ def remove_right_for_all_members(community, right):
             userMemberRights.objects.filter(user=member.member_id, community=community, right=right).delete()
         except:
             print("rights already exists")
-
 
 
 def get_tool_member_requests(user_id, community_id):
