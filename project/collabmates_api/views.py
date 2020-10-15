@@ -414,7 +414,11 @@ def your_communities(request, user_id):
         # if community['collabcard_unseen'] > 0:
             # header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         if community['collabcard_unseen'] > 0:
-            community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+
+            if each_community.new_chatroom_users:
+                community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
+            #community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+
         else:
             #active_chatroom_users = get_active_chatroom_member_images(community_instance=each_community.community_id,member_id=member_id)
             active_chatroom_users = temp['member_list']
@@ -5230,7 +5234,9 @@ def get_chatroom_actions(card_status, request, creator, promoter=False, current_
     return actions
 
 
-def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios):
+
+def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios=False):
+
     '''internal function to get the chatroom conversation screen functionalities '''
     source_id = request.GET.get('source_id')
     aj = request.GET.get('aj')
@@ -5266,8 +5272,10 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         if not instance_filter.exists():
 
             conversations = pagination(conversations_filter, page, paginate_by=20)
-            conversations = get_answer_data(conversations, card_instance.community.id,
-                                            current_user_id=user_id, is_ios=is_ios)
+
+            conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
+                                            is_ios=is_ios)
+
 
             placeholder = create_introduction_card_placeholder(card_instance, user_id)
             if placeholder:
@@ -5282,8 +5290,11 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             # merging both conversations
             conversations = upward_conversation | downward_conversation
             conversations = conversations.order_by('id')
-            conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
-                                            last_seen=conversation_instance, is_ios=is_ios)
+
+            conversations = get_answer_data(conversations, card_instance.community.id,
+                                            current_user_id=user_id, last_seen=conversation_instance,
+                                            is_ios=is_ios)
+
 
     else:
 
@@ -5303,8 +5314,10 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         else:
             conversations = conversations_filter
 
-        conversations = get_answer_data(conversations, card_instance.community.id,
-                                        current_user_id=user_id, is_ios=is_ios)
+
+        conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
+                                        is_ios=is_ios)
+
 
     card = get_chatroom_instance(card_instance, user_id)
     if card_instance.internal_link:
@@ -5373,8 +5386,10 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         last_conversation = latest_conversations['last_conversation']
         # print("***",latest_conversations)
         if last_conversation:
-            serialized_last = get_answer_data([last_conversation], card_instance.community.id,
-                                              current_user_id=user_id, is_ios=is_ios)
+
+            serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id,
+                                              is_ios=is_ios)
+
             if serialized_last:
                 card['last_conversation'] = serialized_last[0]
 
@@ -5390,7 +5405,9 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     return context
 
-def get_chatroom_internal_version_1(request, card_instance, user_id, page, conversation_id, scroll_direction,is_ios=False):
+
+def get_chatroom_internal_version_1(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios=False):
+
 
     '''version 1 function for sending chatroom instance without conversations'''
     source_id = request.GET.get('source_id')
@@ -5474,6 +5491,8 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
                                               community_instance=card_instance.preview_community,
                                               chatroom_instance=card_instance.preview_chatroom,
                                               send_preview_text=False)
+        if is_ios:
+            card['title'] = card['title'] + f"\n{card_instance.internal_link}"
 
         if is_ios:
             card['title'] = card['title'] + f"\n{card_instance.internal_link}"
