@@ -4987,6 +4987,7 @@ def conversation_meta(request):
     chatroom = get_answer_data(answer, card_instance.community.id,
                                current_user_id=user_id)
 
+
     context = {
         'conversations': chatroom
     }
@@ -5104,6 +5105,9 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'state': ans.state,
             'is_deleted': ans.is_deleted,
             'is_edited': ans.is_edited,
+            'member_id':ans.user.id,
+            'community_id':community_id,
+            'chatroom_id':ans.card.id
         }
 
         if ans.og_tags:
