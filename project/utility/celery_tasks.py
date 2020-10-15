@@ -200,9 +200,10 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
 
 def get_new_chatroom_members(member_id, community_id):
-    """ to get the member objects for new chatrooms created """
-    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
 
+    """ to get the member objects for new chatrooms created """
+
+    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
 
     if last_instance:
         last_card = last_instance.card
