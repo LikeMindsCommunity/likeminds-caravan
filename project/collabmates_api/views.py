@@ -2463,6 +2463,10 @@ def create_community_version_1(request):
         engage.click_state = click_states.SET_PURPOSE
         engage.save()
 
+        # give all the CM and member rights to the community creator i.e owner
+        give_all_manager_rights(user=user_instance, community=community_instance)
+        give_all_member_rights(user=user_instance, community=community_instance)
+
         # send community created mail to the team
         email_context = {
             'member_name': member_instance.member_id.userinfo.name,
