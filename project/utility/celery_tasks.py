@@ -205,8 +205,6 @@ def get_new_chatroom_members(member_id, community_id):
 
     last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
 
-    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
-
     if last_instance:
         last_card = last_instance.card
         unseen_chatrooms = Collabcard.objects.filter(community=community_id,id__gt=last_card.id).distinct('user_id')
