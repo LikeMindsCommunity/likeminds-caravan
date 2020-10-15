@@ -41,6 +41,21 @@ def give_all_manager_rights(user, community):
     fill_admin_rights(user, community, admin_rights)
 
 
+def give_default_manager_rights_list(user, community):
+
+    if not isinstance(user, User):
+        user = User.objects.get(pk=user)
+
+    if not isinstance(community, Community):
+        community = Community.objects.get(pk=community)
+
+    userMemberRights.objects.filter(user=user, community=community).delete()
+
+    exclude_state_list = [manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO, member_rights.MANAGER_RIGHT_ADD_MANAGERS]
+    admin_rights_list = adminRights.objects.all().order_by("state").exclude(state=exclude_state_list)
+    fill_admin_rights(user, community, admin_rights_list)
+
+
 def fill_admin_rights(user, community, rights_list):
     for right in rights_list:
         try:

@@ -4230,7 +4230,7 @@ def request_response(request, req_dict=None):
         'accepted': accepted
     }
     approve_or_decline_private_community(req_dict, request)
-    update_pending_member_count_in_engage(req_dict['community_id'])
+    # update_pending_member_count_in_engage(req_dict['community_id'])
 
     return JsonResponse({'success': True})
 
@@ -4269,6 +4269,9 @@ def approve_or_decline_private_community(req_dict, request):
             community = Community.objects.get(id=req_dict['community_id'])
             members_count = community.members_count + 1
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
+
+            # updating pending members count
+            update_pending_member_count_in_engage(req_dict['community_id'])
 
             # setting the follow state for purpose collabcard
             set_state_for_onboarding_chatroom(community_instance=community, user_id=req_dict['member_id'],
@@ -4330,7 +4333,8 @@ def approve_or_decline_private_community(req_dict, request):
 
         # delete the responses of user to community questions, if any
         communityAnswers.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
-
+        # updating pending members count
+        update_pending_member_count_in_engage(req_dict['community_id'])
         # saving the community toast change
         toast_filter = communityToast.objects.filter(community=req_dict['community_id'], user=req_dict['member_id'])
         toast_filter.update(
