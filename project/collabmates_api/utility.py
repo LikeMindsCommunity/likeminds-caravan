@@ -24,6 +24,15 @@ def get_platform_code_from_headers(request):
     return platform_code
 
 
+def is_platform_ios(request):
+
+    platform = get_platform_code_from_headers(request)
+
+    if isinstance(platform, str):
+        return platform.lower() == "ios"
+    return False
+
+
 def is_request_web(request):
 
     '''function to tell if the request is web or not'''
