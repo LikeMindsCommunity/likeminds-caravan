@@ -401,7 +401,9 @@ class conversationEngage(models.Model):
     last_conversation_user = models.ForeignKey(collabcardState, on_delete=models.SET_NULL, null=True,
                                                related_name='last_conversation_user')
     second_last_conversation_user = models.ForeignKey(collabcardState, on_delete=models.SET_NULL, null=True,
-                                               related_name='second_last_conversation_user')
+                                                      related_name='second_last_conversation_user')
+
+    rights_list = models.TextField(null=True)
 
 class temp_admin(models.Model):
     name = models.CharField(max_length=200)
@@ -550,7 +552,7 @@ class Member_Engage(models.Model):
     member_state = models.IntegerField(null=True)
     click_state = models.IntegerField(default=0)
     new_chatroom_users = models.TextField(null=True)
-
+    rights_list = models.TextField(null=True)
 
 # community lpig
 

@@ -279,6 +279,7 @@ def get_new_chatroom_member_images(member_id,community_id):
 
     return member_list
 
+
 def get_active_chatroom_member_images(community_instance,member_id):
 
     current_time = time.time()
@@ -341,6 +342,7 @@ def get_active_chatroom_member_images(community_instance,member_id):
     temp['member_list'] = member_list
     return temp
 
+
 def your_communities(request, user_id):
     '''This function is used to see your communities based on user id'''
 
@@ -392,7 +394,6 @@ def your_communities(request, user_id):
             actions.append(pending_members)
 
 
-
         if each_community.member_state == member_states.ADMIN or each_community.member_state == member_states.MEMBER or each_community.member_state == member_states.PROFILE_UNAVAILABLE:
             community['collabcard_unseen'] = each_community.last_unseen_count
         else:
@@ -421,10 +422,13 @@ def your_communities(request, user_id):
             if active_chatroom_users:
                 community['active_chatroom_users'] = active_chatroom_users
 
+        community['right_states'] = json.loads(each_community.rights_list) if each_community.rights_list else []
+
         my_community.append(community)
 
 
     return JsonResponse({'your_communities': my_community})
+
 
 def my_chatrooms(request):
     '''functions to get chatrooms for users'''
@@ -508,11 +512,15 @@ def my_chatrooms(request):
         #     my_chatrooms.append(chatroom)
         #
         # if active == None:
+
+        chatroom['right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
+
         my_chatrooms.append(chatroom)
 
     #in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
 
     return JsonResponse({"my_chatrooms": my_chatrooms})
+
 
 def my_chatrooms_version_1(request):
     '''functions to get chatrooms for users'''
@@ -573,8 +581,6 @@ def my_chatrooms_version_1(request):
         card_instance = instance.card
         draft_instance = instance.draft
 
-
-
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id)
             chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id)
@@ -606,6 +612,7 @@ def my_chatrooms_version_1(request):
                                                              last_conversation_user,
                                                              second_last_conversation_user)
         chatroom['conversation_users'] = conversation_users
+        chatroom['right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
         my_chatrooms.append(chatroom)
 
 
@@ -665,7 +672,6 @@ def get_latest_conversation_members(last_conversation_member,second_last_convers
     return conversation_users
 
 
-
 def fetch_chatroom_inactive(request):
 
     '''api to return the in-active chatrooms snack-bar'''
@@ -692,7 +698,6 @@ def fetch_chatroom_inactive(request):
             context['title'] = """%s chatrooms moved to inactive""" % (str(inactive_chatroom_count))
             in_active_filter.update(updated_at=current_time)
 
-
     else:
         inactive_chatrooms = collabcardState.objects.filter(user=member_id, follow_status=True,
                                                             remove=None).filter(
@@ -705,6 +710,7 @@ def fetch_chatroom_inactive(request):
             context['title'] = """%s chatrooms moved to inactive""" % (str(inactive_count))
 
     return JsonResponse(context)
+
 
 def create_or_update_inActiveChatroomsCount_instance(user_instance,inactive_count):
 
@@ -11713,6 +11719,13 @@ def update_community_member_rights(request):
             Members.objects.filter(member_id=user_instance,
                                    community_id=community_instance).update(custom_title=custom_title)
 
+        final_rights = [right["state"] for right in selected_rights if right["is_selected"]]
+        rights_list = json.dumps(final_rights)
+        Member_Engage.objects.filter(member_id=user_instance,
+                                     community_id=community_instance).update(rights_list=rights_list)
+        conversationEngage.objects.filter(user=user_instance,
+                                          community=community_instance).update(rights_list=rights_list)
+
         if len(selected_rights) > 0:
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=current_user_instance,
@@ -12108,7 +12121,7 @@ def fetch_management_tools(request):
 
     if has_right_0:
         pending_chatrooms_tool = get_tool_pending_chat_rooms(user_id=current_user_id, community_id=community_id)
-        pending_chatrooms_tool["route"] = f"route://pending_chatrooms?community_id={community_id}"
+        pending_chatrooms_tool["route"] = f"route://pending_chatrooms?community_id={community_id}&community_name={community_name}"
         management_tools.append(pending_chatrooms_tool)
 
     if has_right_0 or has_right_1:

@@ -1,4 +1,4 @@
-from togther.models import (adminRights, memberRights, Members,
+from togther.models import (adminRights, memberRights, Members, Member_Engage, conversationEngage,
                             Community, userAdminRights, userMemberRights, communityRightsSettings)
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -100,6 +100,7 @@ def fill_admin_rights(user, community, rights_list, is_owner=False):
 
 
 def fill_member_rights(user, community, rights_list, is_admin=False):
+
     for right in rights_list:
         if not is_admin and right.state == 4:
             continue
@@ -107,6 +108,14 @@ def fill_member_rights(user, community, rights_list, is_admin=False):
             userMemberRights(user=user, community=community, right=right).save()
         except:
             print(">>>> member  --  ", user.id, community.id, right.id)
+
+    state_list = [0, 1, 2, 3, 4, 5]
+    if not is_admin:
+        state_list.remove(4)
+    rights_list = json.dumps(state_list)
+    Member_Engage.objects.filter(member_id=user, community_id=community).update(rights_list=rights_list)
+    conversationEngage.objects.filter(user=user, community=community).update(rights_list=rights_list)
+
 
 def get_communities_with_admins():
     '''function to get all the communities from database'''
@@ -211,5 +220,5 @@ print(">>>>>> end >>>>>>>>  ", end_time)
 diff = end_time - start_time
 print(">>>>>> total >>>>>>>>  ", diff)
 
-# fill_moderation_rights.py
+# from scripts import fill_moderation_rights
 
