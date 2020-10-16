@@ -30,7 +30,17 @@ def give_default_member_rights(user, community):
 
     member_rights_list = memberRights.objects.all().order_by("state").exclude(
                     state=member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK)
-    fill_member_rights(user, community, member_rights_list)
+
+    community_settings = list(communityRightsSettings.objects.filter(community=community).values_list("right__state",
+                                                                                                      flat=True))
+
+    for right in member_rights_list:
+        try:
+            if right.state not in community_settings:
+                continue
+            userMemberRights(user=user, community=community, right=right).save()
+        except:
+            print("right already given")
 
 
 def give_all_manager_rights(user, community):
