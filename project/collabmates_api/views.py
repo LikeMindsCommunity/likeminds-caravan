@@ -5148,7 +5148,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             context['deleted_by'] = temp[0]
             context['deleted_by_member_state'] = ans.deleted_by_user_state
 
-        if is_ios:
+        if is_ios and ans.internal_link:
             context['answer'] = context['answer'] + f"\n{ans.internal_link}"
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
