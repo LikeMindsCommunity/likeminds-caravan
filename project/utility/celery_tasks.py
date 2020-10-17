@@ -156,8 +156,9 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id,card_id, **
 def update_last_unseen_in_engage_on_card_creation(community_id,is_seen=True):
     '''function to update the unseen  collabcard in engage when a new collabcard is posted in community
        for all members in the community'''
-    community_members = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2)|
-                                                                                   Q(state=4)|Q(state=7))
+    community_members = Members.objects.filter(community_id = community_id).filter(Q(state=1) | Q(state=2) |
+                                                                                   Q(state=4) | Q(state=7) |
+                                                                                   Q(state=9))
 
     for member in community_members:
         print("member >>>>>    ",member.member_id.id)
