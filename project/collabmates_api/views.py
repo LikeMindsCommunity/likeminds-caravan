@@ -12488,6 +12488,8 @@ def sync_chatrooms(request):
                                                                chatroom_instance=card_instance.preview_chatroom,
                                                                send_preview_text=False)
 
+        chatroom_instance['chatroom_expiry_time'] = data.expiry_time
+
 
         # last_response_members = get_member_images_of_chatroom(conversation_filter)
         # chatroom_instance['members_images'] = last_response_members['members_images']
