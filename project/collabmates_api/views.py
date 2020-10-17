@@ -426,7 +426,7 @@ def your_communities(request, user_id):
             if active_chatroom_users:
                 community['active_chatroom_users'] = active_chatroom_users
 
-        community['right_states'] = json.loads(each_community.rights_list) if each_community.rights_list else []
+        community['member_right_states'] = json.loads(each_community.rights_list) if each_community.rights_list else []
 
         my_community.append(community)
 
@@ -517,7 +517,7 @@ def my_chatrooms(request):
         #
         # if active == None:
 
-        chatroom['right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
+        chatroom['member_right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
 
         my_chatrooms.append(chatroom)
 
@@ -616,9 +616,8 @@ def my_chatrooms_version_1(request):
                                                              last_conversation_user,
                                                              second_last_conversation_user)
         chatroom['conversation_users'] = conversation_users
-        chatroom['right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
+        chatroom['member_right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
         my_chatrooms.append(chatroom)
-
 
     context = {'my_chatrooms': my_chatrooms,
                'inactive_chatroom_count': in_active_chatroom_count,
@@ -745,10 +744,6 @@ def create_or_update_inActiveChatroomsCount_instance(user_instance,inactive_coun
     #         temp['inactive_count'] = diff if diff > 0 else (-1)*(diff)
 
     return temp
-
-
-
-
 
 
 ######################function for api utility#################################
@@ -2820,7 +2815,7 @@ def create_poll(request):
     return JsonResponse({'success': True, 'collabcard': context['collabcard']})
 
 
-def create_chatroom_instance(res, community_instance, user_instance):
+def create_chatroom_instance(res, community_instance, user_instance, has_auto_approve_right=False):
     '''function to create chatroom instance'''
 
     # getting the taaged members in chatroom
@@ -2914,25 +2909,25 @@ def create_chatroom_instance(res, community_instance, user_instance):
 
         # card.internal_link = res['internal_link']
 
-    has_right_5 = check_member_auto_approve_right(user=user_instance, community=community_instance)
-    if not has_right_5:
+    if not has_auto_approve_right:
         card.is_pending = True
 
     card.date_epoch = time.time()  # card creation time
     card.save()
     # add ownerflag here
 
-    if card.type == card_types.CARD_POLL:
+    if card.type == card_types.CARD_POLL and has_auto_approve_right:
         # print("sendingpolls notification----->")
         send_chatroom_creation_notifications_and_mails(card, user_instance)
         schedule_poll_end_notification.delay(community_instance.name, community_instance.id, card_types.CARD_POLL,
                                              card.end_date, card.id)
 
-    # create relevant flags for first time conversation
-    notification_list = [
-        'mail_card_owner_inactivity'
-    ]
-    check_notification_flag(card.user.id, notification_list, card_id=card.id, community_id=None)
+    if has_auto_approve_right:
+        # create relevant flags for first time conversation
+        notification_list = [
+            'mail_card_owner_inactivity'
+        ]
+        check_notification_flag(card.user.id, notification_list, card_id=card.id, community_id=None)
 
     # send notification to new chatroom posted
     if has_been_named:
@@ -2992,7 +2987,10 @@ def create_card_internal(user_id, community_id, res):
         context = get_error_context(False, "the community id does n't exists")
         return context
 
-    card_instance = create_chatroom_instance(res, community_instance, user_instance)
+    has_auto_approve_right = check_member_auto_approve_right(user=user_instance,
+                                                             community=community_instance)
+    card_instance = create_chatroom_instance(res, community_instance, user_instance,
+                                             has_auto_approve_right=has_auto_approve_right)
 
     # if the community is a ig community
     create_intro = False
@@ -3012,23 +3010,23 @@ def create_card_internal(user_id, community_id, res):
         # intro-card notification
         send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
 
-    # following the user created chatroom
-    func_dict = {
-        'member_id': user_id,
-        'collabcard_id': card_instance.id,
-        'status': True,
-        'source': "create_chatroom"
-    }
-    collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+    if has_auto_approve_right:
+        # following the user created chatroom
+        func_dict = {
+            'member_id': user_id,
+            'collabcard_id': card_instance.id,
+            'status': True,
+            'source': "create_chatroom"
+        }
+        collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
-    update_last_answer_id(card_instance.id, "")
+        update_last_answer_id(card_instance.id, "")
 
-    # creating a chatroom for the collabcard posted
-    create_chatroom(card_instance=card_instance, user_instance=user_instance
-                    , state=chatroom_states.CHATROOM_HEADER, current_user_id=user_id)
+        # creating a chatroom for the collabcard posted
+        create_chatroom(card_instance=card_instance, user_instance=user_instance,
+                        state=chatroom_states.CHATROOM_HEADER, current_user_id=user_id)
 
-
-    send_ice_breaker_notification.delay(community_id, time.time(), day=0)
+        send_ice_breaker_notification.delay(community_id, time.time(), day=0)
 
     # deleting the draft chatroom
     if 'draft_id' in res:
@@ -3036,9 +3034,9 @@ def create_card_internal(user_id, community_id, res):
         draftChatroom.objects.filter(id=res['draft_id']).delete()
         draftPolls.objects.filter(draft=res['draft_id']).delete()
 
-
-    #batch update for already existing users and saving their unseen count
-    set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id,
+    if has_auto_approve_right:
+        #batch update for already existing users and saving their unseen count
+        set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id,
                                                               function_called="create_card_internal")
     #update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
@@ -7452,7 +7450,7 @@ def fetch_chatroom_feed(request):
 
 
 def fetch_chatroom_feed_version_1(request):
-    ''' api to fetch chatroom feed '''
+    """ api to fetch chatroom feed """
 
     community_id = request.GET.get('community_id')
     page = request.GET.get('page', 1)
@@ -7481,7 +7479,8 @@ def fetch_chatroom_feed_version_1(request):
     chatroom_filter = Collabcard.objects.filter(community=community_id,
                                                 is_pending=False, is_deleted=False).order_by('id')
 
-    state_filter = collabcardState.objects.filter(community=community_id).distinct('card_id').order_by('-card_id')
+    state_filter = collabcardState.objects.filter(community=community_id,
+                                                  card__is_pending=False).distinct('card_id').order_by('-card_id')
 
     chatrooms = []
     context = {}
@@ -7550,7 +7549,6 @@ def fetch_chatroom_feed_version_1(request):
     context['active_chatroom_count'] = get_active_chatrooms_count_in_community(community_id,member_id,current_time)
     context['inactive_chatroom_count'] = get_inactive_chatrooms_count_in_community(community_id,member_id,current_time)
     return JsonResponse(context)
-
 
 
 def fetch_community_chatroom_feed(request):
@@ -12081,6 +12079,26 @@ def action_pending_chatroom(request):
         chatroom.is_pending = False
         chatroom.date_epoch = time.time()
         chatroom.save()
+
+        func_dict = {
+            'member_id': chatroom.user_id,
+            'collabcard_id': chatroom.id,
+            'status': True,
+            'source': "create_chatroom"
+        }
+        collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+
+        update_last_answer_id(chatroom.id, "")
+
+        # creating a chatroom for the collabcard posted
+        create_chatroom(card_instance=chatroom, user_instance=chatroom.user,
+                        state=chatroom_states.CHATROOM_HEADER, current_user_id=chatroom.user.id)
+
+        send_ice_breaker_notification.delay(chatroom.community.id, time.time(), day=0)
+
+        # batch update for already existing users and saving their unseen count
+        set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
+                                                                  function_called="create_card_internal")
 
     # deleting the old instance even if value = true or false
     Collabcard.objects.filter(pk=chatroom_id).delete()
