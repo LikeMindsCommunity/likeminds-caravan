@@ -7351,7 +7351,7 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None, is_ios=False
                                                                community_instance=card_instance.preview_community,
                                                                chatroom_instance=card_instance.preview_chatroom,
                                                                send_preview_text=False)
-            if is_ios:
+            if is_ios and card_instance.internal_link:
                 chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
 
         last_response_members = get_member_images_of_chatroom(conversation_filter)
@@ -12453,6 +12453,50 @@ def sync_members(request):
         'members': member_list
     }
     return JsonResponse(context)
+
+
+def sync_chatrooms(request):
+
+    '''api to sync chatrooms'''
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
+
+    page = request.GET.get('page', 1)
+    page = int(page)
+    paginate_by = request.GET.get('page_size', 200)
+
+    last_updated = request.GET.get('last_updated')
+
+    chatrooms = []
+
+    if not last_updated:
+        state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
+    else:
+        state_filter = collabcardState.objects.filter(user=member_id,updated_at__gt=last_updated).order_by('id')
+
+    state_filter = pagination(state_filter,page,paginate_by=paginate_by)
+    for data in state_filter:
+        card_instance = data.card
+        chatroom_instance = get_chatroom_instance(card_instance,member_id,current_user_id=member_id)
+        if card_instance.internal_link:
+            chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
+                                                               preview_url=card_instance.internal_link,
+                                                               community_instance=card_instance.preview_community,
+                                                               chatroom_instance=card_instance.preview_chatroom,
+                                                               send_preview_text=False)
+
+
+        # last_response_members = get_member_images_of_chatroom(conversation_filter)
+        # chatroom_instance['members_images'] = last_response_members['members_images']
+        # chatroom_instance['last_response_members'] = last_response_members['last_response_members']
+
+        chatrooms.append(chatroom_instance)
+
+    return JsonResponse({'chatrooms':chatrooms})
+
 
 
 

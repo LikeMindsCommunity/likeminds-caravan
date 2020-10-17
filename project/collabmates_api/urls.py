@@ -212,9 +212,12 @@ urlpatterns = [
 
     path('sync_conversation', api_views.sync_conversation, name='sync_conversation'),
     path('sync_members', api_views.sync_members, name='sync_members'),
-    path('block_member', api_views.block_member, name='block_member'),
+    path('sync_chatrooms', api_views.sync_chatrooms, name='sync_chatrooms'),
+
 
     #######################################################################################
+
+    path('block_member', api_views.block_member, name='block_member'),
 ]
 
 app_name = 'collabmates_api'
