@@ -36,9 +36,8 @@ def give_default_member_rights(user, community):
 
     for right in member_rights_list:
         try:
-            if right.state not in community_settings:
-                continue
-            userMemberRights(user=user, community=community, right=right).save()
+            if right.state in community_settings:
+                userMemberRights(user=user, community=community, right=right).save()
         except:
             print("right already given")
 

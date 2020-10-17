@@ -1,5 +1,6 @@
 import time
-from togther.models import (deletedChatrooms, Report_Tags, collabcardState, CollabcardStateBackup)
+from togther.models import (deletedChatrooms, Report_Tags, collabcardState, CollabcardStateBackup,
+                            conversationEngage)
 
 
 def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id=None, reason=None, card_creator=False,
@@ -77,6 +78,8 @@ def create_chatroom_participants_backup(card_instance=None, deleted_card_instanc
     for participant in participants_list:
         create_collbacard_state_backup(collabcard_state_instance=participant,
                                        deleted_card_instance=deleted_card_instance, card_instance=card_instance)
+    collabcardState.objects.filter(card=card_instance).delete()
+    conversationEngage.objects.filter(card=card_instance).delete()
 
 
 def create_collbacard_state_backup(collabcard_state_instance, deleted_card_instance=None, card_instance=None):

@@ -7457,7 +7457,8 @@ def fetch_chatroom_feed_version_1(request):
                                                 is_pending=False, is_deleted=False).order_by('id')
 
     state_filter = collabcardState.objects.filter(community=community_id,
-                                                  card__is_pending=False).distinct('card_id').order_by('-card_id')
+                                                  card__is_pending=False,
+                                                  card__is_deleted=False).distinct('card_id').order_by('-card_id')
 
     chatrooms = []
     context = {}
@@ -12061,7 +12062,7 @@ def action_pending_chatroom(request):
 
         # batch update for already existing users and saving their unseen count
         set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
-                                                                  function_called="create_card_internal")
+                                                                  function_called="action_pending_chatroom")
 
     # deleting the old instance even if value = true or false
     Collabcard.objects.filter(pk=chatroom_id).delete()
@@ -12291,7 +12292,6 @@ def block_member(request):
     return JsonResponse({'success': True})
 
 
-
 ############################## client db synching apis #################################################
 
 
@@ -12416,7 +12416,6 @@ def sync_members(request):
         'members': member_list
     }
     return JsonResponse(context)
-
 
 
 # =========================== block member ========================================================
