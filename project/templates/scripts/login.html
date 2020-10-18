@@ -245,6 +245,11 @@
     function createAccount(){
         // $('#create_account').prop('disabled', true);
         var name = document.getElementById('name').value;
+        if (name.trim() == ''){
+            document.getElementById('name-error').innerHTML = "Please enter your name";
+            console.log("hello");
+           return
+        }
         var email = document.getElementById('email').value;
         var country_code = stripValues(document.getElementById('country_code').innerHTML);
         var phone_number = stripValues(document.getElementById('phone_number').value);
