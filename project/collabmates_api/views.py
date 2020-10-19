@@ -12377,15 +12377,24 @@ def sync_conversation(request):
     conversation_list = pagination(conversation_filter,page,paginate_by=paginate_by)
     conversations = []
 
+    max_last_updated = 0
     for conversation in conversation_list:
 
         #temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
         temp = get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=member_id)
+        if max_last_updated < conversation.last_updated:
+            max_last_updated = conversation.last_updated
+
 
         conversations.append(temp)
 
+    context = {
+        'conversations':conversations
+    }
 
-    return JsonResponse({'conversations':conversations})
+    if max_last_updated:
+        context['max_last_updated'] = max_last_updated
+    return JsonResponse(context)
 
 
 def sync_members(request):
