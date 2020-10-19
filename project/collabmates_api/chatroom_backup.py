@@ -1,13 +1,21 @@
 import time
-from togther.models import (deletedChatrooms, Report_Tags, collabcardState, CollabcardStateBackup)
+from togther.models import (deletedChatrooms, Report_Tags, collabcardState, CollabcardStateBackup,
+                            conversationEngage)
 
 
 def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id=None, reason=None, card_creator=False,
-                                        promoter=False, removing_member=False):
+                                  promoter=False, removing_member=False):
     deleted_filter = deletedChatrooms.objects.filter(card_id=card_instance.id)
 
     if deleted_filter.exists():
         return
+
+    if not removing_member:
+        card = create_card_backup(card_instance, current_user_instance, card_creator, promoter, reason, tag_id)
+        create_chatroom_participants_backup(card_instance=card_instance, deleted_card_instance=card)
+
+
+def create_card_backup(card_instance, current_user_instance, card_creator, promoter, reason, tag_id):
     card = deletedChatrooms()
     card.title = card_instance.title
     card.community = card_instance.community
@@ -62,19 +70,23 @@ def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id=N
     card.date_epoch = time.time()  # card creation time
     card.card_id = card_instance.id
     card.save()
-    if not removing_member:
-        create_chatroom_participants_backup(card_instance=card_instance, deleted_card_instance=card)
+    return card
 
 
-def create_chatroom_participants_backup(card_instance, deleted_card_instance):
+def create_chatroom_participants_backup(card_instance=None, deleted_card_instance=None):
     participants_list = collabcardState.objects.filter(card=card_instance).filter(follow_status=True).distinct("user")
     for participant in participants_list:
-        create_collbacard_state_backup(participant, deleted_card_instance=deleted_card_instance)
+        create_collbacard_state_backup(collabcard_state_instance=participant,
+                                       deleted_card_instance=deleted_card_instance, card_instance=card_instance)
+    collabcardState.objects.filter(card=card_instance).delete()
+    conversationEngage.objects.filter(card=card_instance).delete()
 
-def create_collbacard_state_backup(collabcard_state_instance, deleted_card_instance):
+
+def create_collbacard_state_backup(collabcard_state_instance, deleted_card_instance=None, card_instance=None):
 
     backup_instance = CollabcardStateBackup()
-    backup_instance.card = deleted_card_instance
+    backup_instance.card = card_instance
+    backup_instance.deleted_card = deleted_card_instance
     backup_instance.community = collabcard_state_instance.community
     backup_instance.user = collabcard_state_instance.user
     backup_instance.state = collabcard_state_instance.state
@@ -85,3 +97,5 @@ def create_collbacard_state_backup(collabcard_state_instance, deleted_card_insta
     backup_instance.is_guest = collabcard_state_instance.is_guest
     backup_instance.source = collabcard_state_instance.source
     backup_instance.save()
+
+
