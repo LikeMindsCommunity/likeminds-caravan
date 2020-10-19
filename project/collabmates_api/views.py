@@ -972,13 +972,16 @@ def admins(request, community_id, req_dict=None):
     member_id = request.GET.get('member_id', None)
 
     current_user_id = get_member_id_from_headers(request)
+
+
+
     admins = Members.objects.filter(community_id=community_id, state=member_states.ADMIN).order_by('-updated_at')
     users = []
     current_member_data = {}
     for admin in admins:
 
         user_instance = admin.member_id
-        if user_instance.id == int(current_user_id):
+        if current_user_id and user_instance.id == int(current_user_id):
             temp = MembersSerializer(admin, community_id, current_user_id=current_user_id)
             current_member_data = temp
         else:
@@ -7559,9 +7562,9 @@ def fetch_community_chatroom_feed(request):
     size = request.GET.get('size', 3)
     size = int(size)
     community_id = request.GET.get('community_id')
-    if not member_id:
-        context = get_error_context(False, "send member id in request header")
-        return JsonResponse(context)
+    # if not member_id:
+    #     context = get_error_context(False, "send member id in request header")
+    #     return JsonResponse(context)
 
     try:
         community_instance = Community.objects.get(id=community_id)
