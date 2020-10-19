@@ -331,6 +331,17 @@ class card_answers(models.Model):
 
     has_files = models.BooleanField(default=False)
 
+    last_updated = models.BigIntegerField(default=0)
+
+
+    #saving the last updated in milliseconds
+    def save(self, *args, **kwargs):
+        if self.last_updated == 0:
+            self.last_updated = int(round(time.time() * 1000))
+
+
+        super(card_answers, self).save(*args, **kwargs)
+
 
 
 class collabcardState(models.Model):
