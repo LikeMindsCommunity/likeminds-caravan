@@ -1813,7 +1813,7 @@ def send_inactive_notification_utils(user_list):
             'route': f"route://inactive_chatroom?chatroom_id={data['chatroom_id']}"
         }
 
-        #notification_meta(notification_list,message)
+        notification_meta(notification_list,message)
 
     print("Notification Sent")
 
@@ -2051,7 +2051,6 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
         notification_list.append(user_details)
 
     notification_meta(notification_list, message)
-
 
 
 
