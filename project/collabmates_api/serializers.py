@@ -391,6 +391,8 @@ def get_collabcard_files(card_id, draft=False):
         files = draftChatroomFiles.objects.filter(draft=card_id)
     img_list = []
     pdf = []
+    video_list = []
+    audio_list = []
     for file in files:
         if file.type == 'image':
             if file.file_url:
@@ -398,13 +400,25 @@ def get_collabcard_files(card_id, draft=False):
             else:
                 img = {'image_url': url + file.attachment.url}
             img_list.append(img)
+        elif file.type == 'video':
+            if file.file_url:
+                video_url = {'video_url': file.file_url}
+            else:
+                video_url = {'video_url': url + file.attachment.url}
+            video_list.append(video_url)
+        elif file.type == 'audio':
+            if file.file_url:
+                audio_url = {'audio_url': file.file_url}
+            else:
+                audio_url = {'audio_url': url + file.attachment.url}
+            audio_list.append(audio_url)
         elif file.type == 'pdf':
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url}
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
-    return (img_list, pdf)
+    return img_list, pdf, audio_list, video_list
 
 
 def get_share_url_text(card, user_id):
@@ -540,6 +554,9 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
     collabcard_serializer['images'] = collabcard_files[0]
     collabcard_serializer['pdf'] = collabcard_files[1]
+    collabcard_serializer['audios'] = collabcard_files[2]
+    collabcard_serializer['videos'] = collabcard_files[3]
+
 
     # # get time stamp for card
     # time_text = get_time_text(card_instance.date_epoch)
@@ -611,6 +628,8 @@ def get_draft_chatroom_instance(draft_instance, member_id):
 
     draft_serializer['images'] = draft_files[0]
     draft_serializer['pdf'] = draft_files[1]
+    draft_serializer['audios'] = draft_files[2]
+    draft_serializer['videos'] = draft_files[3]
     return draft_serializer
 
 
@@ -1422,6 +1441,7 @@ def get_answer_files(answer_id):
     img_list = []
     pdf = []
     videos = []
+    audios = []
     files = {}
     for file in attachments:
         if file.type == 'image':
@@ -1432,6 +1452,10 @@ def get_answer_files(answer_id):
             if file.file_url:
                 video_url = {'video_url': file.file_url}
                 videos.append(video_url)
+        elif file.type == 'audio':
+            if file.file_url:
+                audio_url = {'audio_url': file.file_url}
+                audios.append(audio_url)
         elif file.type == 'pdf':
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url}
@@ -1447,6 +1471,7 @@ def get_answer_files(answer_id):
     files['image'] = img_list
     files['pdf'] = pdf
     files['videos'] = videos
+    files['audios'] = audios
     return files
 
 
@@ -1473,6 +1498,7 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
         answer_files = get_answer_files(temp['id'])
         temp['images'] = answer_files['image']
         temp['videos'] = answer_files['videos']
+        temp['audios'] = answer_files['audios']
         temp['pdf'] = answer_files['pdf']
         if 'location' in answer_files:
             temp['location'] = answer_files['location']

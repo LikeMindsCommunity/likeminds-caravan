@@ -4506,6 +4506,8 @@ def collabcard(request, card_id):
         card['images'] = files[0]
         card['member'] = usr
         card['pdf'] = files[1]
+        card['audios'] = files[2]
+        card['videos'] = files[3]
         if user_id:
             collabcard_status = get_status_of_collabcard(member_id=user_id, card=card_instance)
             card['state'] = collabcard_status['state']
@@ -5112,6 +5114,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'created_at': time_text,
             'member': user_context,
             'images': attachements['image'],
+            'audios': attachements['audios'],
             'videos': attachements['videos'],
             'pdf': attachements['pdf'],
             'date': date,
@@ -7251,6 +7254,8 @@ def community_collabcard_meta(request):
         card_dict['member'] = usr
         card_dict['images'] = files[0]
         card_dict['pdf'] = files[1]
+        card_dict['audios'] = files[2]
+        card_dict['videos'] = files[3]
         card_list.append(card_dict)
 
     if community_instance:
@@ -7282,6 +7287,7 @@ def get_last_conversation(conversation_filter, member_id, chatroom_id):
         if 'location' in conversation_files:
             conversation['location'] = conversation_files['location']
         conversation['images'] = conversation_files['image']
+        conversation['audios'] = conversation_files['audios']
         conversation['videos'] = conversation_files['videos']
         conversation['pdf'] = conversation_files['pdf']
 
@@ -7294,6 +7300,7 @@ def get_last_conversation(conversation_filter, member_id, chatroom_id):
         if 'location' in conversation_files:
             conversation['location'] = conversation_files['location']
         conversation['images'] = conversation_files['image']
+        conversation['audios'] = conversation_files['audios']
         conversation['videos'] = conversation_files['videos']
         conversation['pdf'] = conversation_files['pdf']
 
