@@ -12372,7 +12372,7 @@ def sync_conversation(request):
     if not last_updated:
         conversation_filter = card_answers.objects.all().order_by('id')
     else:
-        conversation_filter = card_answers.objects.filter(created_at__gt=last_updated).order_by('id')
+        conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).order_by('id')
 
     conversation_list = pagination(conversation_filter,page,paginate_by=paginate_by)
     conversations = []
