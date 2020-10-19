@@ -7625,7 +7625,12 @@ def chatroom_feed_header(community_id, member_id):
 def upload_files(request):
     '''function to upload files'''
     body = request.GET
+
+
     member_id = get_member_id_from_headers(request)
+
+    conversation = None
+
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
 
@@ -7679,6 +7684,13 @@ def upload_files(request):
         file.location_lat = body['location_lat'] if 'location_lat' in body else None
         file.location_long = body['location_long'] if 'location_long' in body else None
         file.save()
+        current_time_ms = int(round(time.time() * 1000))
+
+        #updating the last updated when posting answer
+        card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms)
+
+        conversation = get_conversation_instance_for_db_synching(answer_instance,current_user_id=member_id)
+
     elif 'poll_id' in body:
 
         try:
@@ -7707,7 +7719,18 @@ def upload_files(request):
         except:
             return JsonResponse({'success': False, 'error_message': "Send valid draft poll id"})
 
-    return JsonResponse({'success': True})
+
+
+    context = {
+        'success': True,
+    }
+
+    # sending the conversation instance if present
+    if conversation:
+        context['conversation'] = conversation
+
+
+    return JsonResponse(context)
 
 
 ############# functions for  login flow   ##########################
