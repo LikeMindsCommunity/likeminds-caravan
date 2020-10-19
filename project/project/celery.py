@@ -45,7 +45,7 @@ app.conf.beat_schedule = {
 
     'send_notification_to_inactive_chatroom_users': {
         'task': 'collabmates_api.notification.send_notification_to_inactive_chatroom_users',
-        'schedule': 300,
+        'schedule': 600,
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose
     },

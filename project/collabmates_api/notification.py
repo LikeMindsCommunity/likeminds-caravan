@@ -1743,7 +1743,7 @@ def send_notification_to_inactive_chatroom_users():
 
     inactive_chatrooms = collabcardState.objects.filter(follow_status=True,
                                                         remove=None).filter(~Q(expiry_time=None) & Q(
-        expiry_time__lt=current_time))
+        expiry_time__lt=current_time)).filter(created_at__gt = 1603109125)
 
     user_set = set()
     user_list = []
@@ -1810,10 +1810,9 @@ def send_inactive_notification_utils(user_list):
         message['payload'] = {
             'title': data['chatroom_name'],
             'sub_title': sub_title,
-            'route': 'route://community?community_id=' + str(1000)
+            'route': f"route://inactive_chatroom?chatroom_id={data['chatroom_id']}"
         }
-        print(notification_list)
-        print(message)
+
         #notification_meta(notification_list,message)
 
     print("Notification Sent")
