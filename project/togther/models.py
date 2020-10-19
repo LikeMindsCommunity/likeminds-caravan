@@ -1172,6 +1172,7 @@ class userFeedback(models.Model):
 
 
 
+
 class adminRights(models.Model):
     title = models.TextField(null=True)
     sub_title = models.TextField(null=True)
