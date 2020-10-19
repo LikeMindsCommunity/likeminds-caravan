@@ -5112,6 +5112,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'created_at': time_text,
             'member': user_context,
             'images': attachements['image'],
+            'videos': attachements['videos'],
             'pdf': attachements['pdf'],
             'date': date,
             'state': ans.state,
@@ -7281,6 +7282,7 @@ def get_last_conversation(conversation_filter, member_id, chatroom_id):
         if 'location' in conversation_files:
             conversation['location'] = conversation_files['location']
         conversation['images'] = conversation_files['image']
+        conversation['videos'] = conversation_files['videos']
         conversation['pdf'] = conversation_files['pdf']
 
         return (conversation, unseen_count)
@@ -7292,6 +7294,7 @@ def get_last_conversation(conversation_filter, member_id, chatroom_id):
         if 'location' in conversation_files:
             conversation['location'] = conversation_files['location']
         conversation['images'] = conversation_files['image']
+        conversation['videos'] = conversation_files['videos']
         conversation['pdf'] = conversation_files['pdf']
 
         return (conversation, unseen_count)

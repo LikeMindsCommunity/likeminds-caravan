@@ -1382,6 +1382,7 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     if conversation.has_files:
         answer_files = get_answer_files(temp['id'])
         temp['images'] = answer_files['image']
+        temp['videos'] = answer_files['videos']
         temp['pdf'] = answer_files['pdf']
         if 'location' in answer_files:
             temp['location'] = answer_files['location']
@@ -1420,12 +1421,17 @@ def get_answer_files(answer_id):
     attachments = answerAttachment.objects.filter(answer=answer_id)
     img_list = []
     pdf = []
+    videos = []
     files = {}
     for file in attachments:
         if file.type == 'image':
             if file.file_url:
                 img = {'image_url': file.file_url}
                 img_list.append(img)
+        elif file.type == 'video':
+            if file.file_url:
+                video_url = {'video_url': file.file_url}
+                videos.append(video_url)
         elif file.type == 'pdf':
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url}
@@ -1435,12 +1441,12 @@ def get_answer_files(answer_id):
                 'location_name': file.location_name,
                 'location_lat': file.location_lat,
                 'location_long': file.location_long
-
             }
             files['location'] = location
 
     files['image'] = img_list
     files['pdf'] = pdf
+    files['videos'] = videos
     return files
 
 
@@ -1466,6 +1472,7 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
     if conversation.has_files:
         answer_files = get_answer_files(temp['id'])
         temp['images'] = answer_files['image']
+        temp['videos'] = answer_files['videos']
         temp['pdf'] = answer_files['pdf']
         if 'location' in answer_files:
             temp['location'] = answer_files['location']
