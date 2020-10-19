@@ -973,9 +973,7 @@ def admins(request, community_id, req_dict=None):
 
     current_user_id = get_member_id_from_headers(request)
 
-    #handling the web case for members
-    if not current_user_id:
-        current_user_id = None
+
 
     admins = Members.objects.filter(community_id=community_id, state=member_states.ADMIN).order_by('-updated_at')
     users = []
@@ -7564,9 +7562,9 @@ def fetch_community_chatroom_feed(request):
     size = request.GET.get('size', 3)
     size = int(size)
     community_id = request.GET.get('community_id')
-    if not member_id:
-        context = get_error_context(False, "send member id in request header")
-        return JsonResponse(context)
+    # if not member_id:
+    #     context = get_error_context(False, "send member id in request header")
+    #     return JsonResponse(context)
 
     try:
         community_instance = Community.objects.get(id=community_id)
