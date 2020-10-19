@@ -8252,7 +8252,7 @@ def custom_login(request, res, login_type="custom"):
 
     profile = res['user']
 
-    name = profile['name']
+    name = profile['name'].capitalize()
     email = profile['email'] if 'email' in profile else ''
     email_exists = get_user_from_email(email)
 
@@ -12378,6 +12378,7 @@ def sync_conversation(request):
     conversations = []
 
     max_last_updated = 0
+
     for conversation in conversation_list:
 
         #temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
@@ -12394,6 +12395,8 @@ def sync_conversation(request):
 
     if max_last_updated:
         context['max_last_updated'] = max_last_updated
+
+
     return JsonResponse(context)
 
 
