@@ -673,9 +673,12 @@ def update_report_count_in_member_engage(user, community, is_owner=False, parent
     has_right_1 = check_admin_approve_right(user=user, community=community)
     has_right_2 = check_admin_edit_community_right(user=user, community=community)
 
-    report_count = get_related_reports_for_user(user_id=user, community_id=community, has_right_0=has_right_0,
-                                                is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                                parent_cm_list=parent_cm_list, return_reports_count=True)
+    if not has_right_0 and not has_right_1 and has_right_2:
+        report_count = 0
+    else:
+        report_count = get_related_reports_for_user(user_id=user, community_id=community, has_right_0=has_right_0,
+                                                    is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                    parent_cm_list=parent_cm_list, return_reports_count=True)
 
     Member_Engage.objects.filter(member_id=user, community_id=community).update(open_reports=report_count)
 
