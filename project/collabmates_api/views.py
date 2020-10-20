@@ -10571,6 +10571,10 @@ def push_report_v1(request):
 
             conversation_instance = card_answers.objects.get(id=conversation_id)
             report_type = report_Types.REPORT_CONVERSATION
+
+            if collabcard_instance is None:
+                collabcard_instance = conversation_instance.card
+
             if not reported_member_id:
                 reported_member_instance = conversation_instance.user
 
@@ -11932,7 +11936,7 @@ def fetch_reports(request):
     report_list = []
 
     for report in reports:
-        report_dict = report_serializer(report)
+        report_dict = report_serializer(report, current_user_id)
         report_list.append(report_dict)
 
     return JsonResponse({"reports": report_list})
