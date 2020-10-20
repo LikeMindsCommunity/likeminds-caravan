@@ -1246,6 +1246,8 @@ class userDevices(models.Model):
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(null=True)
 
+    device_id = models.TextField(null=True)
+
     def save(self, *args, **kwargs):
         if self.created_at <= 0:
             self.created_at = time.time()
