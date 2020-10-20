@@ -8407,6 +8407,7 @@ def verify_otp(request):
             for instance in mobile_filter:
                 phone_no = str(instance.country_code) + str(instance.mobile_no)
                 verified = verify_otp_on_mobile(phone_no, otp)
+                print()
 
                 if verified['success']:
                     break
