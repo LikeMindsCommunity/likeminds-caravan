@@ -13,8 +13,11 @@ from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
                             Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,
                             conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
-                            moderationHistory, Report, Report_Tags, communityRightsSettings,userDevices)
-from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
+                            moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,userDevices)
+
+from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,
+                           )
+
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -439,6 +442,11 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_list_member = []
 
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+
+        blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
+                                                                  blocked_member=card_creater_id).values_list(
+                                                                  "blocked_by__id", flat=True))
+
         # print(member_list)
         for member in member_list:
             temp = {}
@@ -446,17 +454,13 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             notification_details = get_token_for_fcm(member[0], True)
             temp['fcm_token'] = notification_details[0]
             temp['mobile_os'] = notification_details[1]
-            if str(member[0]) not in tagged_users_list:
+            if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
                 notification_list_member.append(temp)
-                
-
 
         card_id = kwargs['card_id']
         card = Collabcard.objects.get(id=card_id)
 
         custom_payload = get_custom_data_for_new_chatroom_created(card)
-
-        
         
         collabcard_title = get_title_from_collabcard(card)
 
@@ -476,6 +480,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
             route = 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
+
         message['payload'] = {
             # 'title': str(card_creater_name) + " @ " + str(community_name),
             'title': title,
@@ -1782,42 +1787,96 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         print("Error while connecting to PostgreSQL")
 
 
-@shared_task
-def send_notification_for_deleted_chatrooms(deleted_by_user_id, community_id, card_id):
 
-    community_instance = Community.objects.get(pk=community_id)
-    deleted_by_user = User.objects.get(pk=deleted_by_user_id)
-    chatroom_instance = Collabcard.objects.get(pk=card_id)
 
-    community_name = community_instance.name
-    deleted_by_user_name = deleted_by_user.userinfo.name
-    chatroom_name = chatroom_instance.header
 
-    state_filter = list(collabcardState.objects.filter(card=card_id).filter(Q(expiry_time=None) |
-                                                       Q(expiry_time__gt=time.time())).values_list('user__id',
-                                                                                                   flat=True))
 
-    users = Userinfo.objects.filter(user_id__id__in=state_filter)
-    message = {}
-    notification_list = []
-    for user in users:
+@app.task
+def send_notification_to_inactive_chatroom_users():
 
+    current_time = time.time()
+
+    inactive_chatrooms = collabcardState.objects.filter(follow_status=True,
+                                                        remove=None).filter(~Q(expiry_time=None) & Q(
+        expiry_time__lt=current_time)).filter(created_at__gt = 1603109125)
+
+    user_set = set()
+    user_list = []
+    for data in inactive_chatrooms:
+
+        key = str(data.user.id)+"--"+str(data.card.id)
+        if key not in user_set:
+            temp = {}
+            user_instance = data.user
+            card_instance = data.card
+            notification_filter = memberNotificationFlag.objects.filter(member=user_instance,
+                                                                        card=card_instance,
+                                                                        code='chat_room_becoming_inactive'
+                                                                        )
+            if notification_filter.exists():
+                if data.expiry_time > notification_filter[0].updated_at:
+                    temp['user_id'] = user_instance.id
+                    temp['user_name'] = user_instance.userinfo.name
+                    temp['chatroom_id'] = card_instance.id
+                    temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+                    notification_filter.update(updated_at=current_time)
+                    user_list.append(temp)
+            else:
+                instance = memberNotificationFlag()
+                instance.member = user_instance
+                instance.card = card_instance
+                instance.updated_at = current_time
+                instance.created_at = current_time
+                instance.community = data.community
+                instance.flag = True
+                instance.code = 'chat_room_becoming_inactive'
+                instance.save()
+                temp['user_id'] = user_instance.id
+                temp['user_name'] = user_instance.userinfo.name
+                temp['chatroom_id'] = card_instance.id
+                temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+                user_list.append(temp)
+
+            user_set.add(key)
+
+    end_time = time.time()
+    diff = end_time - current_time
+    print(diff)
+
+    send_inactive_notification_utils(user_list)
+
+
+
+
+def send_inactive_notification_utils(user_list):
+
+
+    for data in user_list:
+        notification_list = []
+        notification_details = get_token_for_fcm(data['user_id'], flag=True)
         temp = {
-            'id':user.user_id.id,
-            'fcm_token': user.fcm_token,
-            'mobile_os': user.mobile_os,
+            'id': data['user_id'],
+            'fcm_token': notification_details[0],
+            'mobile_os': notification_details[1]
         }
         notification_list.append(temp)
+        sub_title = """Hey %s, this chat room has been moved to inactive chat rooms since there has been no new activity here in the last 24 hours since you opened it. You may want to mark it as active for yourself if you intend to respond further in it. Else if anyone else responds in the future, it will become active again."""%(data['user_name'])
+        message = {}
+        message['payload'] = {
+            'title': data['chatroom_name'],
+            'sub_title': sub_title,
+            'route': f"route://inactive_chatroom?chatroom_id={data['chatroom_id']}"
+        }
 
-    message['payload'] = {
-        "title": community_name,
-        "sub_title": f"{deleted_by_user_name} has deleted the chat room {chatroom_name}. Click here to know the reasons.",
-        'route': '//route://community_collabcard?community_id='
-    }
+        notification_meta(notification_list,message)
 
-    notification_meta(notification_list, message)
+    print("Notification Sent")
 
 
+
+# x=CeleryBeatTask()
+# x.terminate_task("send_notification_to_inactive_chatroom_users")
+# x.terminate_task("run_after_10_sec")
 @shared_task
 def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, community_id):
     community_instance = Community.objects.get(pk=community_id)
@@ -2047,7 +2106,6 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
         notification_list.append(user_details)
 
     notification_meta(notification_list, message)
-
 
 
 

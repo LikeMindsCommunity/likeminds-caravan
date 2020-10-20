@@ -1,8 +1,9 @@
 from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
-                            moderationHistory, Report, Report_Tags, communityRightsSettings)
+                            moderationHistory, Report, Report_Tags, communityRightsSettings,
+                            Community)
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
-
+from django.contrib.auth.models import User
 from django.db.models import Q
 from .static_text import *
 
@@ -16,6 +17,31 @@ def give_all_member_rights(user, community):
     fill_member_rights(user, community, member_rights)
 
 
+def give_default_member_rights(user, community):
+    """function to give a member all the rights """
+
+    if not isinstance(user, User):
+        user = User.objects.get(pk=user)
+
+    if not isinstance(community, Community):
+        community = Community.objects.get(pk=community)
+
+    userMemberRights.objects.filter(user=user, community=community).delete()
+
+    member_rights_list = memberRights.objects.all().order_by("state").exclude(
+                    state=member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK)
+
+    community_settings = list(communityRightsSettings.objects.filter(community=community).values_list("right__state",
+                                                                                                      flat=True))
+
+    for right in member_rights_list:
+        try:
+            if right.state in community_settings:
+                userMemberRights(user=user, community=community, right=right).save()
+        except:
+            print("right already given")
+
+
 def give_all_manager_rights(user, community):
     """function to give a manager all the rights """
     userAdminRights.objects.filter(user=user, community=community).delete()
@@ -24,9 +50,27 @@ def give_all_manager_rights(user, community):
     fill_admin_rights(user, community, admin_rights)
 
 
+def give_default_manager_rights_list(user, community):
+
+    if not isinstance(user, User):
+        user = User.objects.get(pk=user)
+
+    if not isinstance(community, Community):
+        community = Community.objects.get(pk=community)
+
+    userMemberRights.objects.filter(user=user, community=community).delete()
+
+    exclude_state_list = [manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO, member_rights.MANAGER_RIGHT_ADD_MANAGERS]
+    admin_rights_list = adminRights.objects.all().order_by("state").exclude(state=exclude_state_list)
+    fill_admin_rights(user, community, admin_rights_list)
+
+
 def fill_admin_rights(user, community, rights_list):
     for right in rights_list:
-        userAdminRights(user=user, community=community, right=right).save()
+        try:
+            userAdminRights(user=user, community=community, right=right).save()
+        except:
+            print("right already given")
 
 
 def fill_member_rights(user, community, rights_list):
@@ -34,7 +78,7 @@ def fill_member_rights(user, community, rights_list):
         try:
             userMemberRights(user=user, community=community, right=right).save()
         except:
-            pass
+            print("right already given")
 
 
 def get_saved_member_rights_list(user_rights, admin_rights=None):
@@ -88,7 +132,7 @@ def get_saved_manager_rights_list(admin_rights):
     rights_list = []
     for right in all_manager_rights:
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
-                      "is_selected": False}
+                      "state": right.state, "is_selected": False}
 
         if right.state == delete_room_manager_right['state']:
             right_dict["is_selected"] = admin_rights["delete_room"]
@@ -104,6 +148,37 @@ def get_saved_manager_rights_list(admin_rights):
 
         elif right.state == add_manager_manager_right['state']:
             right_dict["is_selected"] = admin_rights["add_manager"]
+
+        if right.sub_title is None:
+            del right_dict["sub_title"]
+
+        rights_list.append(right_dict)
+
+    return rights_list
+
+
+def get_default_manager_rights_list():
+
+    all_manager_rights = adminRights.objects.all().order_by("state")
+    rights_list = []
+    for right in all_manager_rights:
+        right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title,
+                      "state": right.state, "is_selected": False}
+
+        if right.state == delete_room_manager_right['state']:
+            right_dict["is_selected"] = True
+
+        elif right.state == approve_manager_right['state']:
+            right_dict["is_selected"] = True
+
+        elif right.state == edit_community_manager_right['state']:
+            right_dict["is_selected"] = True
+
+        elif right.state == view_contact_manager_right['state']:
+            right_dict["is_selected"] = False
+
+        elif right.state == add_manager_manager_right['state']:
+            right_dict["is_selected"] = False
 
         if right.sub_title is None:
             del right_dict["sub_title"]
@@ -256,7 +331,7 @@ def get_moderation_history_title(moderation_history):
     elif moderation_history.type == moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER:
         title = moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER_TEXT
 
-    title = title + f"<{user_name}>|route://member_profile/{user_id}?community_id={community_id}&member_id={user_id}"
+    title = title + f"<<{user_name}|route://member_profile/{user_id}?community_id={community_id}&member_id={user_id}>>"
 
     history = {"title": title, "moderation_time": moderation_history.moderation_time}
 
@@ -330,7 +405,6 @@ def give_member_auto_approve_right(user, community):
         print("right already exists for user ----> ", user.id, community.id, member_rights.MEMBER_RIGHT_AUTO_APPROVE)
 
 
-
 def give_member_create_room_right(user, community):
 
     try:
@@ -366,7 +440,6 @@ def remove_right_for_all_members(community, right):
             userMemberRights.objects.filter(user=member.member_id, community=community, right=right).delete()
         except:
             print("rights already exists")
-
 
 
 def get_tool_member_requests(user_id, community_id):

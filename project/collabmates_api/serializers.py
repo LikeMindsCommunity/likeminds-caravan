@@ -11,7 +11,7 @@ from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_commu
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, chatroom_states)
 from .user_moderation_rights import *
-
+import time
 url = settings.URL
 import ast
 from .static_files import *
@@ -27,7 +27,9 @@ from datetime import datetime, date
 #         fields = ('id','name', 'purpose', 'image_url' ,'about', 'location')
 
 
-def CommunitySerializer(community, promoter_id=0, current_user_id=None):
+
+def CommunitySerializer(community, promoter_id=0,current_user_id=None):
+
     # function to serialize a community object
     new_dict = {
         'id': community.id,
@@ -1136,23 +1138,24 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
 
     if (all_members_api or profile_detail_api) and (is_promoter or is_owner):
         community_profile["menu"] = get_menu_for_members(current_user_id=current_user_id,item_member_id=member_id,
-                                                         community_id=community_id,
-                             current_user_is_promoter=is_promoter, current_user_is_owner=is_owner,
-                             item_member_state=member_instance.state, item_member_is_owner=user_is_owner,
-                             current_user_admin_rights=user_admin_rights,parents_list=parents_list,
-                             profile_detail_api=profile_detail_api)
+                                    community_id=community_id, current_user_is_promoter=is_promoter,
+                                    current_user_is_owner=is_owner, item_member_state=member_instance.state,
+                                    item_member_is_owner=user_is_owner, current_user_admin_rights=user_admin_rights,
+                                    parents_list=parents_list, profile_detail_api=profile_detail_api)
 
-    elif (all_members_api or profile_detail_api) and current_user_id and int(current_user_id) != int(member_id):
+    elif profile_detail_api and current_user_id and int(current_user_id) != int(member_id):
         report_member = {"title": "Report member",
-                         "route": f"route://report_member?community_id={community_id}&member_id={item_member_id}"}
-        community_profile["menu"] = [report_member]
+                         "route": f"route://report_member?community_id={community_id}&member_id={member_id}"}
+        block_member = {"title": "Block member",
+                        "route": f"route://block_member?community_id={community_id}&member_id={member_id}"}
+        community_profile["menu"] = [report_member, block_member]
 
     return community_profile
 
 
-def get_menu_for_members(current_user_id, item_member_id, community_id, current_user_is_promoter, item_member_state, current_user_is_owner=False,
-                         item_member_is_owner=False, current_user_admin_rights=None, parents_list=None,
-                         profile_detail_api=False):
+def get_menu_for_members(current_user_id, item_member_id, community_id, current_user_is_promoter, item_member_state,
+                         current_user_is_owner=False, item_member_is_owner=False, current_user_admin_rights=None,
+                         parents_list=None, profile_detail_api=False):
     """ function to get the menu for all members for all members api and profile detail api """
     #  x is current member , y is member whose profile is currently in iteration sequence
     # current_user_state, item_member_state,
@@ -1161,13 +1164,15 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
     edit_permissions = {"title": "Edit permissions",
                         "route": f"route://edit_member_rights?community_id={community_id}&member_id={item_member_id}"}
     give_CM_rights = {"title": "Give community management rights",
-                      "route": f"route://edit_manager_rights?community_id={community_id}&member_id={item_member_id}"}
+                      "route": f"route://give_manager_rights?community_id={community_id}&member_id={item_member_id}"}
     edit_CM_rights = {"title": "Edit management rights",
                       "route": f"route://edit_manager_rights?community_id={community_id}&member_id={item_member_id}"}
     report_member = {"title": "Report member",
                      "route": f"route://report_member?community_id={community_id}&member_id={item_member_id}"}
     remove_from_community = {"title": "Remove from community",
                              "route": f"route://remove_from_community?community_id={community_id}&member_id={item_member_id}"}
+    block_member = {"title": "Block member",
+                    "route": f"route://block_member?community_id={community_id}&member_id={item_member_id}"}
 
     if parents_list is None:
         parents_list = []
@@ -1200,9 +1205,9 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
             if current_user_admin_rights["add_manager"] and is_child:
                 menu.append(edit_permissions)
 
-
         if profile_detail_api:
             menu.append(report_member)
+            menu.append(block_member)
 
     elif current_user_is_promoter and item_member_state == member_states.MEMBER:
         if current_user_admin_rights:
@@ -1217,6 +1222,9 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
 
             if not current_user_admin_rights["approve"] and profile_detail_api:
                 menu.append(report_member)
+
+            if profile_detail_api:
+                menu.append(block_member)
 
     else:
         if profile_detail_api:
@@ -1397,8 +1405,8 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     if conversation.internal_link:
 
         temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
-                                                 community_instance=conversation.preview_community,
-                                                 chatroom_instance=conversation.preview_chatroom)
+                                              community_instance=conversation.preview_community,
+                                              chatroom_instance=conversation.preview_chatroom)
 
     if conversation.reply and fetch_reply:
         temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
@@ -1448,7 +1456,7 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
         "state": conversation.state,
         'is_deleted': conversation.is_deleted,
         'is_edited': conversation.is_edited,
-        'created_at': conversation.created_at,
+        'created_at': time.strftime('%H:%M', time.localtime(conversation.created_at)),
         'has_files': conversation.has_files,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,

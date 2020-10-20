@@ -137,7 +137,7 @@ urlpatterns = [
 
     path('member_activity', api_views.member_activity, name='member_activity'),
 
-    path('invite_members', api_views.invite_members, name='invite_members'),
+    # path('invite_members', api_views.invite_members, name='invite_members'),
     path('get_profile', api_views.get_profile, name='get_profile'),
     path('config', api_views.config, name='config'),
     path('onboarding', api_views.onboarding, name='onboarding'),
@@ -206,11 +206,13 @@ urlpatterns = [
     path('fetch_community_setting_rights', api_views.fetch_community_setting_rights,
          name='fetch_community_setting_rights'),
     path('update_community_rights', api_views.update_community_rights, name='update_community_rights'),
+    path('block_member', api_views.block_member, name='block_member'),
 
     ############################ synching client db apis ##################################
 
     path('sync_conversation', api_views.sync_conversation, name='sync_conversation'),
     path('sync_members', api_views.sync_members, name='sync_members'),
+    path('block_member', api_views.block_member, name='block_member'),
 
     #######################################################################################
 ]

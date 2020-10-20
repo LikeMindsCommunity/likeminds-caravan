@@ -1,6 +1,7 @@
 #file to use utility functions
 from django.core.paginator import Paginator
 
+
 def get_member_id_from_headers(request):
     '''function to get member id from headers'''
     headers = request.META
@@ -13,6 +14,7 @@ def get_member_id_from_headers(request):
 
     return member_id
 
+
 def get_platform_code_from_headers(request):
 
     headers = request.META
@@ -22,6 +24,15 @@ def get_platform_code_from_headers(request):
         platform_code = headers['HTTP_X_PLATFORM_CODE']
 
     return platform_code
+
+
+def is_platform_ios(request):
+
+    platform = get_platform_code_from_headers(request)
+
+    if isinstance(platform, str):
+        return platform.lower() == "ios"
+    return False
 
 
 def is_request_web(request):
