@@ -331,6 +331,17 @@ class card_answers(models.Model):
 
     has_files = models.BooleanField(default=False)
 
+    last_updated = models.BigIntegerField(default=0)
+
+
+    #saving the last updated in milliseconds
+    def save(self, *args, **kwargs):
+        if self.last_updated == 0:
+            self.last_updated = int(round(time.time() * 1000))
+
+
+        super(card_answers, self).save(*args, **kwargs)
+
 
 
 class collabcardState(models.Model):
@@ -1161,6 +1172,7 @@ class userFeedback(models.Model):
 
 
 
+
 class adminRights(models.Model):
     title = models.TextField(null=True)
     sub_title = models.TextField(null=True)
@@ -1233,6 +1245,8 @@ class userDevices(models.Model):
 
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(null=True)
+
+    device_id = models.TextField(null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at <= 0:

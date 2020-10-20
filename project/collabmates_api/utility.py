@@ -34,6 +34,7 @@ def is_platform_ios(request):
         return platform.lower() == "ios"
     return False
 
+
 def is_request_web(request):
 
     '''function to tell if the request is web or not'''

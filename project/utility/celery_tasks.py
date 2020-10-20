@@ -171,7 +171,7 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
     total_chatrooms = Collabcard.objects.filter(community=community).distinct('id').count()
     print("total_chatrooms--",total_chatrooms)
-    seen_chatrooms = collabcardState.objects.filter(community=community,user=user,external_seen=True).distinct('card').count()
+    seen_chatrooms = collabcardState.objects.filter(community=community,user=user,external_seen=True).filter(~Q(state=0)).distinct('card').count()
     print("seen_chatrooms--", seen_chatrooms)
     diff = total_chatrooms - seen_chatrooms
 
@@ -201,9 +201,10 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
 
 def get_new_chatroom_members(member_id, community_id):
-    """ to get the member objects for new chatrooms created """
-    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
 
+    """ to get the member objects for new chatrooms created """
+
+    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
 
     if last_instance:
         last_card = last_instance.card

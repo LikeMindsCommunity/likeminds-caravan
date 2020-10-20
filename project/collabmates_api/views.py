@@ -35,11 +35,9 @@ from utility.states import (collabcard_states, member_states, question_states, c
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types, report_Types)
-from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied,
-                           send_mail_for_report_abuse,
-                           send_mail_for_query_and_feedback
-                           )
+from utility.tasks import (mail_triger, new_member_request, member_request_approval_or_denied,
+                           send_mail_for_report_abuse, send_mail_for_query_and_feedback,
+                           save_name_initial_image)
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_referred_members_of_a_member,
                            eligibility_count,
@@ -415,7 +413,11 @@ def your_communities(request, user_id):
         # if community['collabcard_unseen'] > 0:
             # header_images = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
         if community['collabcard_unseen'] > 0:
-            community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+
+            if each_community.new_chatroom_users:
+                community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
+            #community['new_chatroom_users'] = get_new_chatroom_member_images(member_id=member_id,community_id=each_community.community_id.id)
+
         else:
             #active_chatroom_users = get_active_chatroom_member_images(community_instance=each_community.community_id,member_id=member_id)
             active_chatroom_users = temp['member_list']
@@ -968,13 +970,16 @@ def admins(request, community_id, req_dict=None):
     member_id = request.GET.get('member_id', None)
 
     current_user_id = get_member_id_from_headers(request)
+
+
+
     admins = Members.objects.filter(community_id=community_id, state=member_states.ADMIN).order_by('-updated_at')
     users = []
     current_member_data = {}
     for admin in admins:
 
         user_instance = admin.member_id
-        if user_instance.id == int(current_user_id):
+        if current_user_id and user_instance.id == int(current_user_id):
             temp = MembersSerializer(admin, community_id, current_user_id=current_user_id)
             current_member_data = temp
         else:
@@ -4997,6 +5002,7 @@ def conversation_meta(request):
     chatroom = get_answer_data(answer, card_instance.community.id,
                                current_user_id=user_id)
 
+
     context = {
         'conversations': chatroom
     }
@@ -5114,6 +5120,9 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'state': ans.state,
             'is_deleted': ans.is_deleted,
             'is_edited': ans.is_edited,
+            'member_id':ans.user.id,
+            'community_id':community_id,
+            'chatroom_id':ans.card.id
         }
 
         if ans.og_tags:
@@ -5140,7 +5149,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             context['deleted_by'] = temp[0]
             context['deleted_by_member_state'] = ans.deleted_by_user_state
 
-        if is_ios:
+        if is_ios and ans.internal_link:
             context['answer'] = context['answer'] + f"\n{ans.internal_link}"
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
@@ -5244,7 +5253,9 @@ def get_chatroom_actions(card_status, request, creator, promoter=False, current_
     return actions
 
 
-def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios):
+
+def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios=False):
+
     '''internal function to get the chatroom conversation screen functionalities '''
     source_id = request.GET.get('source_id')
     aj = request.GET.get('aj')
@@ -5280,8 +5291,10 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         if not instance_filter.exists():
 
             conversations = pagination(conversations_filter, page, paginate_by=20)
-            conversations = get_answer_data(conversations, card_instance.community.id,
-                                            current_user_id=user_id, is_ios=is_ios)
+
+            conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
+                                            is_ios=is_ios)
+
 
             placeholder = create_introduction_card_placeholder(card_instance, user_id)
             if placeholder:
@@ -5296,8 +5309,11 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             # merging both conversations
             conversations = upward_conversation | downward_conversation
             conversations = conversations.order_by('id')
-            conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
-                                            last_seen=conversation_instance, is_ios=is_ios)
+
+            conversations = get_answer_data(conversations, card_instance.community.id,
+                                            current_user_id=user_id, last_seen=conversation_instance,
+                                            is_ios=is_ios)
+
 
     else:
 
@@ -5317,8 +5333,10 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         else:
             conversations = conversations_filter
 
-        conversations = get_answer_data(conversations, card_instance.community.id,
-                                        current_user_id=user_id, is_ios=is_ios)
+
+        conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
+                                        is_ios=is_ios)
+
 
     card = get_chatroom_instance(card_instance, user_id)
     if card_instance.internal_link:
@@ -5387,8 +5405,10 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         last_conversation = latest_conversations['last_conversation']
         # print("***",latest_conversations)
         if last_conversation:
-            serialized_last = get_answer_data([last_conversation], card_instance.community.id,
-                                              current_user_id=user_id, is_ios=is_ios)
+
+            serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id,
+                                              is_ios=is_ios)
+
             if serialized_last:
                 card['last_conversation'] = serialized_last[0]
 
@@ -5404,7 +5424,9 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     return context
 
-def get_chatroom_internal_version_1(request, card_instance, user_id, page, conversation_id, scroll_direction,is_ios=False):
+
+def get_chatroom_internal_version_1(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios=False):
+
 
     '''version 1 function for sending chatroom instance without conversations'''
     source_id = request.GET.get('source_id')
@@ -5488,6 +5510,8 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
                                               community_instance=card_instance.preview_community,
                                               chatroom_instance=card_instance.preview_chatroom,
                                               send_preview_text=False)
+        if is_ios:
+            card['title'] = card['title'] + f"\n{card_instance.internal_link}"
 
         if is_ios:
             card['title'] = card['title'] + f"\n{card_instance.internal_link}"
@@ -7538,9 +7562,9 @@ def fetch_community_chatroom_feed(request):
     size = request.GET.get('size', 3)
     size = int(size)
     community_id = request.GET.get('community_id')
-    if not member_id:
-        context = get_error_context(False, "send member id in request header")
-        return JsonResponse(context)
+    # if not member_id:
+    #     context = get_error_context(False, "send member id in request header")
+    #     return JsonResponse(context)
 
     try:
         community_instance = Community.objects.get(id=community_id)
@@ -7604,7 +7628,12 @@ def chatroom_feed_header(community_id, member_id):
 def upload_files(request):
     '''function to upload files'''
     body = request.GET
+
+
     member_id = get_member_id_from_headers(request)
+
+    conversation = None
+
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
 
@@ -7658,6 +7687,13 @@ def upload_files(request):
         file.location_lat = body['location_lat'] if 'location_lat' in body else None
         file.location_long = body['location_long'] if 'location_long' in body else None
         file.save()
+        current_time_ms = int(round(time.time() * 1000))
+
+        #updating the last updated when posting answer
+        card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms)
+
+        conversation = get_conversation_instance_for_db_synching(answer_instance,current_user_id=member_id)
+
     elif 'poll_id' in body:
 
         try:
@@ -7686,7 +7722,18 @@ def upload_files(request):
         except:
             return JsonResponse({'success': False, 'error_message': "Send valid draft poll id"})
 
-    return JsonResponse({'success': True})
+
+
+    context = {
+        'success': True,
+    }
+
+    # sending the conversation instance if present
+    if conversation:
+        context['conversation'] = conversation
+
+
+    return JsonResponse(context)
 
 
 ############# functions for  login flow   ##########################
@@ -7916,7 +7963,8 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
         userinfo.user_id = user
         userinfo.email = email
         userinfo.name = user_name
-        userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
+        if profile_picture is not None:
+            userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
         userinfo.login_type = login_type
         userinfo.login_json = json_to_save
         userinfo.created_at = time.time()
@@ -7956,7 +8004,7 @@ def login_with_google(google_id_token, request, res, login_type="google"):
     created = False
     # context ={'success':False,'error_message':"please give permission to use your google account"}
     context = get_error_context(False, "please give permission to use your google account")
-    image_link = ""
+    image_link = None
     if 'email' in res:
         email = res['email']
         email = email.lower().strip()
@@ -7978,6 +8026,9 @@ def login_with_google(google_id_token, request, res, login_type="google"):
                                        profile_picture=image_link, login_type=login_type,
                                        json_to_save=json_to_save
                                        )
+
+            if 'picture' not in res:
+                save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
 
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
@@ -8026,7 +8077,7 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
     # converting email to lower case and removing unwanted space
     email = email.lower().strip()
     user = get_user_from_email(email)
-    image_link = ""
+    image_link = None
     if not user:
         # creating a user if no user is associated with that email
         user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
@@ -8050,6 +8101,9 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         save_user_primary_email(user, res['email'], verified=True)
+
+        if 'picture' not in res:
+            save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
 
         email_exists = False
     else:
@@ -8093,7 +8147,7 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
     email = res['email']['elements'][0]['handle~']['emailAddress']
 
     user = get_user_from_email(email)
-
+    profile_picture = None
     if not user:
 
         user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
@@ -8108,6 +8162,9 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
         userinfo = create_userinfo(user=user, email=email, user_name=user_name,
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
+
+        if 'profilePicture' not in res:
+            save_name_initial_image.delay(user_id=user.id, user_name=user_name)
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
         save_user_primary_email(user, email, verified=True)
@@ -8145,7 +8202,7 @@ def login_with_apple(request, res, json_to_save, login_type="apple"):
 
     res = res['login_json']
     userinfo = Userinfo.objects.filter(apple_id=res['id'])
-    image_link = ""
+    image_link = None
 
     if not userinfo.exists():
         # creating a user if no user is associated with that email
@@ -8165,6 +8222,9 @@ def login_with_apple(request, res, json_to_save, login_type="apple"):
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city, apple_id=res['id']
                                    )
+
+        if 'picture' not in res:
+            save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
@@ -8208,7 +8268,7 @@ def custom_login(request, res, login_type="custom"):
 
     profile = res['user']
 
-    name = profile['name']
+    name = profile['name'].capitalize()
     email = profile['email'] if 'email' in profile else ''
     email_exists = get_user_from_email(email)
 
@@ -8219,10 +8279,14 @@ def custom_login(request, res, login_type="custom"):
         context['email_exists'] = True
 
         return context
-    image_url = ""
+    image_url = None
     if 'image_url' in profile:
         image_url = profile['image_url']
+
     user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type)
+
+    if 'image_url' not in profile:
+        save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
 
     if is_request_web(request):
         phone_no = str(country_code) + str(mobile_no)
@@ -8420,6 +8484,20 @@ def verify_otp(request):
             return JsonResponse(context)
         else:
             return JsonResponse({'success': False, 'error_message': "Wrong otp"})
+
+
+    if settings.IS_BETA:
+        if otp == "9999":
+            context = {}
+            context['success'] = True
+            mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+            context['profile_exists'] = mobile_filter.exists()
+            if mobile_filter.exists():
+                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
+                context['access'] = is_user_community_part(context['user']['id'])
+                return JsonResponse(context)
+            else:
+                return JsonResponse({'success': False, 'error_message': "Wrong otp"})
 
     # for existing users flow
     member_id = get_member_id_from_headers(request)
@@ -9195,6 +9273,9 @@ def push(request):
     member_id = request.GET.get('member_id', '')
     token = request.GET.get('token', '')
     platform_code = get_platform_code_from_headers(request)
+
+    device_id = request.GET.get('device_id',None)
+
     if member_id:
         is_member = Userinfo.objects.filter(user_id=member_id)
     else:
@@ -9216,27 +9297,60 @@ def push(request):
 
         info_logger.info("push api hit")
 
-        devices_filter = userDevices.objects.filter(user=user_instance,fcm_token=token,mobile_os=platform_code)
-        if not devices_filter.exists():
-            instance = userDevices()
-            instance.user = user_instance
-            instance.fcm_token = token
-            instance.mobile_os = platform_code
-            instance.updated_at = time.time()
-            instance.save()
 
-            info_logger.info("new device registered")
-            info_logger.info(instance)
+        if device_id:
+
+            #saving the device id for existing user
+            device_filter = userDevices.objects.filter(user=user_instance)
+            for data in device_filter:
+
+                if not data.device_id:
+                    data.device_id = device_id
+                    data.fcm_tokem = token
+                    data.updated_at = time.time()
+                    data.save()
+
+
+            device_filter = userDevices.objects.filter(device_id=device_id)
+
+            if not device_filter.exists():
+                instance = userDevices()
+                instance.user = user_instance
+                instance.mobile_os = platform_code
+                instance.updated_at = time.time()
+                instance.fcm_token = token
+                instance.device_id = device_id
+                instance.save()
+
+            else:
+                instance = device_filter[0]
+                instance.user = user_instance
+                instance.mobile_os = platform_code
+                instance.updated_at = time.time()
+                instance.fcm_token = token
+                instance.device_id = device_id
+                instance.save()
+
         else:
-            instance = devices_filter[0]
-            instance.updated_at = time.time()
-            instance.save()
+            device_filter = userDevices.objects.filter(user=user_instance,mobile_os = platform_code)
 
-        fcm_token = Userinfo.objects.filter(user_id=member_id).update(fcm_token=token, mobile_os=platform_code)
+            if not device_filter.exists():
+                instance = userDevices()
+                instance.user = user_instance
+                instance.mobile_os = platform_code
+                instance.updated_at = time.time()
+                instance.fcm_token = token
+                instance.device_id = device_id
+                instance.save()
+            else:
+                instance = device_filter[0]
+                instance.fcm_token = token
+                instance.updated_at = time.time()
+                instance.save()
 
-
-
+        #fcm_token = Userinfo.objects.filter(user_id=member_id).update(mobile_os=platform_code)
     return JsonResponse({'success': success})
+
 
 def config(request):
     '''function to update the version number of android for a user profile'''
@@ -12321,20 +12435,32 @@ def sync_conversation(request):
     if not last_updated:
         conversation_filter = card_answers.objects.all().order_by('id')
     else:
-        conversation_filter = card_answers.objects.filter(created_at__gt=last_updated).order_by('id')
+        conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).order_by('id')
 
     conversation_list = pagination(conversation_filter,page,paginate_by=paginate_by)
     conversations = []
+
+    max_last_updated = 0
 
     for conversation in conversation_list:
 
         #temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
         temp = get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=member_id)
+        if max_last_updated < conversation.last_updated:
+            max_last_updated = conversation.last_updated
+
 
         conversations.append(temp)
 
+    context = {
+        'conversations':conversations
+    }
 
-    return JsonResponse({'conversations':conversations})
+    if max_last_updated:
+        context['max_last_updated'] = max_last_updated
+
+
+    return JsonResponse(context)
 
 
 def sync_members(request):
@@ -12367,14 +12493,21 @@ def sync_members(request):
         paginated_members = get_paginated_queryset_with_maxpages(member_filter,page,paginate_by=paginate_by)
 
         member_filter = paginated_members['page_list']
-
+        max_last_updated = 0
         for member_instance in member_filter:
+
+            if max_last_updated < member_instance.updated_at:
+                max_last_updated = member_instance.updated_at
+
             member_data = get_member_instance_for_db_synching(member_instance,member_instance.community_id.id,current_user_id=member_id,send_profile=False)
             member_list.append(member_data)
 
         context = {
             'members': member_list
         }
+
+        if max_last_updated:
+            context['max_last_updated'] = max_last_updated
 
         return JsonResponse(context)
 
@@ -12392,14 +12525,22 @@ def sync_members(request):
         pagianted_removed_members = get_paginated_queryset_with_maxpages(remove_member_filter,page,paginate_by=paginate_by)
 
         remove_member_filter = pagianted_removed_members['page_list']
-        max_pages_removed_members = pagianted_removed_members['last_page']
+        #max_pages_removed_members = pagianted_removed_members['last_page']
+        max_last_updated = 0
         for data in remove_member_filter:
+
+            if max_last_updated < data.created_at:
+                max_last_updated = data.created_at
+
             member_data = get_removed_member_instance(data)
             member_list.append(member_data)
 
         context = {
             'members': member_list
         }
+
+        if max_last_updated:
+            context['max_last_updated'] = max_last_updated
         return JsonResponse(context)
 
 
@@ -12412,13 +12553,23 @@ def sync_members(request):
             guest_filter = collabcardState.objects.filter(is_guest=True,updated_at__gt=last_updated).order_by('id')
 
         guest_filter = pagination(guest_filter,page,paginate_by=paginate_by)
+
+        max_last_updated = 0
         for guest_instance in guest_filter:
+
+            if max_last_updated < guest_instance.created_at:
+                max_last_updated = guest_instance.created_at
+
             member_data = get_guest_member_instance(guest_instance)
             member_list.append(member_data)
 
         context = {
             'members': member_list
         }
+
+        if max_last_updated:
+            context['max_last_updated'] = max_last_updated
+
         return JsonResponse(context)
 
     context = {
