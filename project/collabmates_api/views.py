@@ -12045,8 +12045,9 @@ def fetch_reports(request):
             parent_cm_list = json.loads(member.parent_cm_list)
 
     if not has_right_0 and not has_right_1 and has_right_2:
-        context = get_error_context(False, "user has no required rights to view reports")
-        return JsonResponse(context)
+        # context = get_error_context(False, "user has no required rights to view reports")
+        # return JsonResponse(context)
+        return JsonResponse({"reports": []})
 
     elif not is_owner and not is_promoter:
         context = get_error_context(False, "user has not Owner or CM")
