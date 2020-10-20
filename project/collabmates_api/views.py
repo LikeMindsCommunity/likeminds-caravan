@@ -5216,7 +5216,9 @@ def get_chatroom_actions(card_status, request, creator, promoter=False, current_
     final = final_dict.copy()
 
     if promoter and not creator:
+        print("here >>>>>>>>>> ", current_user_instance, community_instance)
         if check_admin_delete_right(user=current_user_instance, community=community_instance):
+            print("inside >>>>>>>>>> ")
             final.append(delete_chatroom)
 
     actions = []
@@ -5362,10 +5364,14 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if member_instance.exists():
         is_promoter = True
     # sending the chatroom actions
+
+    is_card_creator = False
     if user_id and int(user_id) == card_instance.user.id:
-        chatroom_actions = get_chatroom_actions(card_status, request ,creator=True, promoter=is_promoter)
-    else:
-        chatroom_actions = get_chatroom_actions(card_status, request ,creator=False, promoter=is_promoter)
+        is_card_creator = True
+    chatroom_actions = get_chatroom_actions(card_status, request, creator=is_card_creator, promoter=is_promoter,
+                                            current_user_instance=user_id,
+                                            community_instance=card_instance.community
+                                            )
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
     print("latest_conversations--",latest_conversations)
@@ -5527,15 +5533,18 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     }
 
     is_promoter = False
-    member_instance = Members.objects.filter(member_id=user_id, community_id=card_instance.community).filter(Q(state=1))
+    member_instance = Members.objects.filter(member_id=user_id,
+                                             community_id=card_instance.community).filter(Q(state=member_states.ADMIN))
     if member_instance.exists():
         is_promoter = True
     # sending the chatroom actions
-
+    is_card_creator = False
     if user_id and int(user_id) == card_instance.user.id:
-        chatroom_actions = get_chatroom_actions(card_status,request ,creator=True, promoter=is_promoter)
-    else:
-        chatroom_actions = get_chatroom_actions(card_status,request,creator=False, promoter=is_promoter)
+        is_card_creator = True
+    chatroom_actions = get_chatroom_actions(card_status, request, creator=is_card_creator, promoter=is_promoter,
+                                            current_user_instance=user_id,
+                                            community_instance=card_instance.community
+                                            )
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
     print("latest_conversations--",latest_conversations)

@@ -268,7 +268,7 @@ def remove_creation_rights_for_user(user, community):
 def check_admin_delete_right(user, community):
 
     user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
+                                                 right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
 
     if user_rights.exists():
         return True
@@ -288,7 +288,7 @@ def check_admin_approve_right(user, community):
 def check_admin_view_contact_right(user, community):
 
     user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
+                                                 right__state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
 
     if user_rights.exists():
         return True
@@ -508,6 +508,7 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
             reports = reports.exclude(type__in=[1, 2])
 
     if return_reports_count:
+        reports.exclude(is_closed=True)
         return reports.count()
 
     return reports
