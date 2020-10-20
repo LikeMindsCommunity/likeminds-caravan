@@ -164,6 +164,11 @@
         var country_code = stripValues(document.getElementById('country_code').innerHTML);
         var merge_phone_number = stripValues(document.getElementById('phone_number').value);
         var otp = stripValues(get_otp_from_user());
+        if(otp == "" || otp.length != 4){
+            console.log('wrong opt');
+            showSnackbar("Wrong OTP","error");
+            return;
+        }
         var url = "//{{ request.META.HTTP_HOST }}/verify_otp?mobile_no="+merge_phone_number+"&country_code="+country_code+"&otp="+otp;
         console.log(country_code,phone_number,url);
         $.ajax(
@@ -172,7 +177,7 @@
                 url: url, 
                 success: function(result){
                     obj = result;
-                    console.log("***",result['profile_exists']);
+                    console.log('***',result);
                     var success = result['success'];
                     console.log("***",success);
                     if(success == true){                           
