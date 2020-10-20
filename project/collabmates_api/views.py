@@ -9256,6 +9256,9 @@ def push(request):
     member_id = request.GET.get('member_id', '')
     token = request.GET.get('token', '')
     platform_code = get_platform_code_from_headers(request)
+
+    device_id = request.GET.get('device_id',None)
+
     if member_id:
         is_member = Userinfo.objects.filter(user_id=member_id)
     else:
@@ -9277,27 +9280,60 @@ def push(request):
 
         info_logger.info("push api hit")
 
-        devices_filter = userDevices.objects.filter(user=user_instance,fcm_token=token,mobile_os=platform_code)
-        if not devices_filter.exists():
-            instance = userDevices()
-            instance.user = user_instance
-            instance.fcm_token = token
-            instance.mobile_os = platform_code
-            instance.updated_at = time.time()
-            instance.save()
 
-            info_logger.info("new device registered")
-            info_logger.info(instance)
+        if device_id:
+
+            #saving the device id for existing user
+            device_filter = userDevices.objects.filter(user=user_instance)
+            for data in device_filter:
+
+                if not data.device_id:
+                    data.device_id = device_id
+                    data.fcm_tokem = token
+                    data.updated_at = time.time()
+                    data.save()
+
+
+            device_filter = userDevices.objects.filter(device_id=device_id)
+
+            if not device_filter.exists():
+                instance = userDevices()
+                instance.user = user_instance
+                instance.mobile_os = platform_code
+                instance.updated_at = time.time()
+                instance.fcm_token = token
+                instance.device_id = device_id
+                instance.save()
+
+            else:
+                instance = device_filter[0]
+                instance.user = user_instance
+                instance.mobile_os = platform_code
+                instance.updated_at = time.time()
+                instance.fcm_token = token
+                instance.device_id = device_id
+                instance.save()
+
         else:
-            instance = devices_filter[0]
-            instance.updated_at = time.time()
-            instance.save()
+            device_filter = userDevices.objects.filter(user=user_instance,mobile_os = platform_code)
 
-        fcm_token = Userinfo.objects.filter(user_id=member_id).update(fcm_token=token, mobile_os=platform_code)
+            if not device_filter.exists():
+                instance = userDevices()
+                instance.user = user_instance
+                instance.mobile_os = platform_code
+                instance.updated_at = time.time()
+                instance.fcm_token = token
+                instance.device_id = device_id
+                instance.save()
+            else:
+                instance = device_filter[0]
+                instance.fcm_token = token
+                instance.updated_at = time.time()
+                instance.save()
 
-
-
+        #fcm_token = Userinfo.objects.filter(user_id=member_id).update(mobile_os=platform_code)
     return JsonResponse({'success': success})
+
 
 def config(request):
     '''function to update the version number of android for a user profile'''
