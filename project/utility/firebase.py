@@ -72,14 +72,13 @@ def upload_image_to_firebase(image_url,user_id):
 
 def is_url_image_valid(image_url):
 
-   '''function to check whether the image url is valid or not'''
+    '''function to check whether the image url is valid or not'''
 
-   image_formats = ("image/png", "image/jpeg", "image/jpg")
-   r = requests.head(image_url)
-   if r.headers["content-type"] in image_formats:
-      return True
-   return False
-
+    image_formats = ("image/png", "image/jpeg", "image/jpg")
+    r = requests.head(image_url)
+    if r.headers["content-type"] in image_formats:
+        return True
+    return False
 
 
 def upload_tag_files(tag_id,image,url=False):
@@ -235,7 +234,7 @@ def upload_tag_thumbnail(tag_id,image_url):
 def upload_main_website_images_to_firebase(file):
 
     '''saving main website images in firebase'''
-    
+
     name="third_section"
     storage.child("files").child("main_website").child(name).put(file)
     time.sleep(.200)
@@ -282,3 +281,23 @@ def upload_question_files(request=None, community_id=None, question_id=None, mem
             member_id).child(name).get_url(None)
 
         return JsonResponse({"success": True, "image_url": image_url})
+
+
+def upload_user_initial_image(user_id, image, url=False):
+    """function to put user initial images in firebase"""
+    name = str(user_id)
+    if url:
+        image_url = image
+        # if is_url_image_valid(image_url):
+        image_data = requests.get(image_url).content
+        storage.child("files").child("profile").child(name).put(image_data)
+        image_url = storage.child("files").child("profile").child(name).get_url(None)
+        return image_url
+        # else:
+        #     print("Image url is broken for user=", user_id)
+        #     return None
+    else:
+        storage.child("files").child("user").child(user_id).child(name).put(image)
+        image_url = storage.child("files").child("user").child(user_id).child(name).get_url(None)
+        return image_url
+
