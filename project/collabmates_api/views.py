@@ -68,7 +68,8 @@ from .utility import *
 from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard_posted,
                     send_welcome_mail, send_verification_mail_for_email_sync,
                     send_tagged_user_mail, send_chatroom_owner_mail,
-                    send_community_confirmation_email)
+                    send_community_confirmation_email, update_pending_chatrooms_and_report_count,
+                    update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters)
 
 from .mails import *
 from .sms import *
@@ -3042,6 +3043,8 @@ def create_card_internal(user_id, community_id, res):
         #batch update for already existing users and saving their unseen count
         set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id,
                                                               function_called="create_card_internal")
+    else:
+        update_pending_chatroom_count_for_promoters.delay(community_id)
     #update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
     context = {
@@ -10738,6 +10741,8 @@ def push_report_v1(request):
         report_instance.date_epoch = time.time()
         report_instance.save()
 
+        update_report_count_for_all_promoters.delay(community_id)
+
         if report_type == 1 and is_owner:
             subject = '[Chatroom reported] LikeMinds App'
             send_report_mail_to_team.delay(subject, report_instance.id)
@@ -11497,6 +11502,7 @@ def update_community_manager_rights(request):
         # had to get added and ermoved rights for many other purposes ex: notifications
         existing_rights = set(userAdminRights.objects.filter(community=community_instance,
                                                              user=user_instance).values_list("right__id", flat=True))
+        # getting list of rights added and rights removed when compared to existing rights
         rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
                                                                     existing_rights=existing_rights)
 
@@ -11507,12 +11513,13 @@ def update_community_manager_rights(request):
         for right_id in removed_rights:
             right = adminRights.objects.get(pk=right_id)
             userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
-
-
+        # giving all of the members rights to promoter
         give_all_member_rights(user=user_instance, community=community_instance)
 
         is_owner = False
         if int(user_id) == int(current_user_id):
+            # if user id and current_user_id are same..its probably the owner
+            # bcz no other can edit their own custom title or rights
             is_owner = admin[0].is_owner
             if not custom_title:
                 custom_title = admin[0].custom_title
@@ -11539,25 +11546,30 @@ def update_community_manager_rights(request):
                 parent_cm = member_instance.parent_cm
 
             admin_parents = json.loads(admin[0].parent_cm_list) if admin[0].parent_cm_list else []
-            parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
-
+            member_parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
+            # adding admins parents for updating member's parents
             for parent_id in admin_parents:
-                if parent_id not in parent_list:
-                    parent_list.append(parent_id)
+                if parent_id not in member_parent_list:
+                    member_parent_list.append(parent_id)
+            # adding current user as parent
+            if current_user_id not in member_parent_list:
+                member_parent_list.append(current_user_id)
 
-            if current_user_id not in parent_list:
-                parent_list.append(current_user_id)
-
-            final_parent_list = json.dumps(parent_list)
-
+            final_parent_list = json.dumps(member_parent_list)
+            # updating parent cm list
             member.update(state=member_states.ADMIN, is_owner=is_owner, custom_title=custom_title,
                           parent_cm=parent_cm, parent_cm_list=final_parent_list)
-
+            # savig moderation history for permission edited
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=current_user_instance,
                                     type=moderation_history_types.MANAGER_PERMISSION_EDITED)
+            # updating pending chatroom count and open reports count
+            # bcz the neccessary rights might have been added or removed
+            update_pending_chatrooms_and_report_count.delay(community_id)
 
             if not is_member_already_promoter:
+                Member_Engage.objects.filter(member_id=user_instance,
+                                             community_id=community_id).update(member_state=member_states.ADMIN)
                 save_moderation_history(user=user_instance, community=community_instance,
                                         moderation_by=current_user_instance,
                                         type=moderation_history_types.MADE_COMMUNITY_MANAGER)
@@ -11619,7 +11631,10 @@ def remove_community_manager(request):
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.MEMBER, custom_title="Member",
                                                                parent_cm=None, parent_cm_list='[]')
-
+        Member_Engage.objects.filter(member_id=user_instance,
+                                     community_id=community_instance).update(member_state=member_states.MEMBER,
+                                                                             pending_chatrooms=0,
+                                                                             open_reports=0)
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
@@ -12087,7 +12102,7 @@ def close_report(request):
         return JsonResponse(context)
 
     Report.objects.filter(pk=report_id).update(is_closed=True, closed_by=user_instance, closed_time=time.time())
-
+    update_report_count_for_all_promoters.delay(report_id=report_id)
     return JsonResponse({'success': True})
 
 
@@ -12198,6 +12213,8 @@ def action_pending_chatroom(request):
 
     # deleting the old instance even if value = true or false
     Collabcard.objects.filter(pk=chatroom_id).delete()
+
+    update_pending_chatroom_count_for_promoters.delay(community_instance.id)
 
     if pre_approve is not None:
         if pre_approve == "true" or pre_approve is True:
