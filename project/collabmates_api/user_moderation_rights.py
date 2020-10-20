@@ -456,7 +456,7 @@ def get_tool_member_requests(user_id, community_id):
 def get_tool_pending_chat_rooms(user_id, community_id):
 
     global tool_pending_chat_rooms
-    count = Collabcard.objects.filter(community_id=community_id, is_pending=True, is_deleted=False).count()
+    count = Collabcard.objects.filter(community=community_id, is_pending=True, is_deleted=False).count()
     tool_pending_chat_rooms = tool_pending_chat_rooms.copy()
     tool_pending_chat_rooms["count"] = count
     return tool_pending_chat_rooms

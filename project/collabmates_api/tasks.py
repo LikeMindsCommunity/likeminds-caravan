@@ -13,13 +13,17 @@ from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
                            is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email,
                            android_app_download_link,ios_app_download_link,check_notification_flag)
-
+from utility.states import (collabcard_states, member_states, community_states,
+                            card_types, chatroom_states, chatroom_actions, member_rights, manager_rights,
+                            moderation_history_types, report_Action_Types, report_Types)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from togther.models import Collabcard
-from utility.encryption import encrypt,decrypt
+from utility.encryption import encrypt, decrypt
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
+from .user_moderation_rights import (get_related_reports_for_user, check_admin_delete_right,
+                                     check_admin_approve_right, check_admin_edit_community_right)
 # from datetime import datetime,
 # url = 'https://beta.likeminds.community'
 url = settings.URL
@@ -597,5 +601,33 @@ def send_community_confirmation_email_2(user_id, community_id,task_name,*args,**
         print(email_context)
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
+
+
+@shared_task
+def update_pending_chatroom_count_for_promoters(community_id):
+    community = Community.objects.get(pk=community_id)
+    user_list = get_users_with_right(community, manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
+
+    pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True, is_deleted=False).count()
+
+    Member_Engage.objects.filter(member_id__in=user_list,
+                                 community_id=community).update(pending_chatrooms=pending_chatrooms)
+
+
+def get_users_with_right(community, right_state):
+    user_list = list(userAdminRights.objects.filter(community=community,
+                                           right__state=right_state).distinct("user").values_list("user__id"))
+    return user_list
+
+
+def update_report_count_in_member_engage(user_id, community_id):
+
+    has_right_0 = check_admin_delete_right(user=user_id, community=community_id)
+    has_right_1 = check_admin_approve_right(user=user_id, community=community_id)
+    has_right_2 = check_admin_edit_community_right(user=user_id, community=community_id)
+
+    get_related_reports_for_user()
+
+
 
 
