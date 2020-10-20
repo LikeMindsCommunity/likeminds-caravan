@@ -34,7 +34,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
-                            moderation_history_types, report_Action_Types)
+                            moderation_history_types, report_Action_Types, report_Types)
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -2449,7 +2449,7 @@ def create_community_version_1(request):
         member_instance.state = member_states.ADMIN
         member_instance.actions_required = True
         member_instance.is_owner = True
-        member_instance.custom_title = "Owner"
+        member_instance.custom_title = "Owner"  # community creator is the owner of community
         member_instance.created_at = time.time()
         member_instance.updated_at = time.time()
         member_instance.save()
@@ -2467,6 +2467,8 @@ def create_community_version_1(request):
         # give all the CM and member rights to the community creator i.e owner
         give_all_manager_rights(user=user_instance, community=community_instance)
         give_all_member_rights(user=user_instance, community=community_instance)
+        # give all community setting rights
+        give_all_community_setting_rights(community=community_instance)
 
         # send community created mail to the team
         email_context = {
@@ -10516,7 +10518,7 @@ def push_report(request):
 
 @csrf_exempt
 def push_report_v1(request):
-    """ Fucntion to report a user or a collabcard """
+    """ Fucntion to report a user, collabcard, conversation, community and a link"""
     if request.method == 'POST':
 
         member_id = get_member_id_from_headers(request)
@@ -10531,7 +10533,7 @@ def push_report_v1(request):
         link = request_body['link'] if 'link' in request_body else None
         conversation_id = request_body['conversation_id'] if 'conversation_id' in request_body else None
 
-        report_type = 3  # assume as community reported
+        report_type = report_Types.REPORT_COMMUNITY  # assume as community reported
         reported_member_instance = None
         collabcard_instance = None
         conversation_instance = None
@@ -10555,7 +10557,7 @@ def push_report_v1(request):
                 return JsonResponse({'success': False, "error_message": "you have no right to report chatroom"})
 
             collabcard_instance = Collabcard.objects.get(id=collabcard_id)
-            report_type = 1
+            report_type = report_Types.REPORT_CHATROOM
             if not reported_member_id:
                 reported_member_instance = collabcard_instance.user
 
@@ -10568,7 +10570,7 @@ def push_report_v1(request):
                 return JsonResponse({'success': False, "error_message": "you have no right to report convesations"})
 
             conversation_instance = card_answers.objects.get(id=conversation_id)
-            report_type = 2
+            report_type = report_Types.REPORT_CONVERSATION
             if not reported_member_id:
                 reported_member_instance = conversation_instance.user
 
@@ -10583,7 +10585,7 @@ def push_report_v1(request):
             if not community_id:
                 return JsonResponse({'success': False, "error_message": "send community_id in body"})
 
-            report_type = 0
+            report_type = report_Types.REPORT_MEMBER
             reported_member_instance = User.objects.get(pk=reported_member_id)
 
         report_tag_instance = Report_Tags.objects.get(tag_id=tag_id) if tag_id else None
@@ -10601,10 +10603,11 @@ def push_report_v1(request):
         report_instance.user_reported = reported_member_instance
         report_instance.member = user_instance  # has to be removed
         report_instance.reported_by = user_instance
-
+        if link is not None:
+            report_type = report_Types.REPORT_LINK
+        report_instance.link = link
         report_instance.type = report_type
         report_instance.date_epoch = time.time()
-        report_instance.link = link
         report_instance.save()
 
         if report_type == 1 and is_owner:
@@ -12174,7 +12177,7 @@ def fetch_management_tools(request):
 
 
 def fetch_community_setting_rights(request):
-    """ function to fetch member rights """
+    """ function to fetch community setting rights """
 
     if request.method == 'POST':
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'})
@@ -12195,10 +12198,10 @@ def fetch_community_setting_rights(request):
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
-
+    # checking if the logged in user is Manager of the community or not
     if admin.exists():
         user_rights = check_all_member_rights(community=community_instance)
-
+        # fetching all the rights of the community
         rights_context = get_saved_member_rights_list(user_rights)
         return JsonResponse({"rights": rights_context})
     else:
@@ -12208,7 +12211,7 @@ def fetch_community_setting_rights(request):
 
 @csrf_exempt
 def update_community_rights(request):
-
+    """ function to save the community setting rights """
     if request.method == 'GET':
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
 
@@ -12232,15 +12235,14 @@ def update_community_rights(request):
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
-
+    # checking if the logged in user is Manager of the community or not
     if admin.exists():
-        # deleting all member rights
-
         existing_rights = set(communityRightsSettings.objects.filter(community=community_instance).values_list("right__id", flat=True))
         rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
                                                                     existing_rights=existing_rights)
 
         for right_id in rights_added:
+            # if right is added, the right is given to all the members
             try:
                 right = memberRights.objects.get(pk=right_id)
                 communityRightsSettings(community=community_instance, right=right).save()
@@ -12249,6 +12251,7 @@ def update_community_rights(request):
                 print("rights already exists")
 
         for right_id in removed_rights:
+            # if right is removed, the right is disabled for all the members
             right = memberRights.objects.get(pk=right_id)
             communityRightsSettings.objects.filter(community=community_instance, right=right).delete()
             remove_right_for_all_members(community=community_instance, right=right)
@@ -12261,7 +12264,7 @@ def update_community_rights(request):
 
 @csrf_exempt
 def block_member(request):
-
+    """ function to blocka member in community """
     if request.method == 'GET':
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
 
@@ -12284,9 +12287,11 @@ def block_member(request):
     blocked_user_instance = User.objects.get(pk=blocked_user_id)
 
     try:
+        # saving in DB
         blockedMembers(blocked_by=current_user_instance,
                        blocked_member=blocked_user_instance, community=community_instance).save()
     except:
+        # a member can be blocked only once in a community
         info_logger.info("member already blocked by this user")
 
     return JsonResponse({'success': True})

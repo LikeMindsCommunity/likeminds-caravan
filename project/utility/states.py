@@ -73,6 +73,18 @@ class ReportActionTypes:
 report_Action_Types = ReportActionTypes()
 
 
+class ReportTypes:
+
+    REPORT_MEMBER = 0
+    REPORT_CHATROOM = 1
+    REPORT_CONVERSATION = 2
+    REPORT_COMMUNITY = 3
+    REPORT_LINK = 4
+
+
+report_Types = ReportTypes()
+
+
 # chatroom actions
 class ChatroomActions:
 

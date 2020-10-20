@@ -1,0 +1,1211 @@
+2020-10-14 18:31:57,200  ERROR Internal Server Error: /api/v1/join_community  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column "last_conversation_member_id" of relation "togther_conversationengage" does not exist
+LINE 1: ...n_count", "created_at", "updated_at", "draft_id", "last_conv...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 1112, in join_community_responses_version_1
+    join_promoter_created_community_version_1(res, request)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 1187, in join_promoter_created_community_version_1
+    set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 4350, in set_state_for_onboarding_chatroom
+    collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 6796, in collabcard_follow_internal
+    create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 3284, in create_chatroom_engagement
+    instance.save()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/base.py", line 746, in save
+    force_update=force_update, update_fields=update_fields)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/base.py", line 784, in save_base
+    force_update, using, update_fields,
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/base.py", line 887, in _save_table
+    results = self._do_insert(cls._base_manager, using, fields, returning_fields, raw)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/base.py", line 926, in _do_insert
+    using=using, raw=raw,
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/manager.py", line 82, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1204, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1384, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column "last_conversation_member_id" of relation "togther_conversationengage" does not exist
+LINE 1: ...n_count", "created_at", "updated_at", "draft_id", "last_conv...
+                                                             ^
+
+2020-10-14 18:31:57,296  ERROR "POST /api/v1/join_community HTTP/1.1" 500 187413  
+2020-10-14 18:32:38,858  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 18:32:42,454  INFO Watching for file changes with StatReloader  
+2020-10-14 18:50:50,308  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-10-14 18:50:52,059  INFO Watching for file changes with StatReloader  
+2020-10-14 18:51:27,428  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-10-14 18:51:29,107  INFO Watching for file changes with StatReloader  
+2020-10-14 19:04:35,237  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/utility.py changed, reloading.  
+2020-10-14 19:04:37,019  INFO Watching for file changes with StatReloader  
+2020-10-14 19:09:39,776  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:09:41,971  INFO Watching for file changes with StatReloader  
+2020-10-14 19:11:38,983  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:11:40,604  INFO Watching for file changes with StatReloader  
+2020-10-14 19:13:31,124  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:13:32,801  INFO Watching for file changes with StatReloader  
+2020-10-14 19:13:43,282  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:13:45,724  INFO Watching for file changes with StatReloader  
+2020-10-14 19:14:13,986  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:14:14,952  INFO Watching for file changes with StatReloader  
+2020-10-14 19:15:40,496  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:15:42,448  INFO Watching for file changes with StatReloader  
+2020-10-14 19:15:59,833  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:16:01,485  INFO Watching for file changes with StatReloader  
+2020-10-14 19:17:10,224  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:17:12,942  INFO Watching for file changes with StatReloader  
+2020-10-14 19:17:51,328  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:17:52,622  INFO Watching for file changes with StatReloader  
+2020-10-14 19:19:29,500  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:19:31,531  INFO Watching for file changes with StatReloader  
+2020-10-14 19:24:50,129  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-14 19:24:52,058  INFO Watching for file changes with StatReloader  
+2020-10-14 19:29:37,535  INFO "GET /api/v1/fetch_chatroom?chatroom_id=3856 HTTP/1.1" 200 12322  
+2020-10-14 19:30:01,418  INFO "GET /api/fetch_chatroom?chatroom_id=3856 HTTP/1.1" 200 31767  
+2020-10-14 19:31:16,573  INFO "GET /api/collabcard/3856 HTTP/1.1" 200 42  
+2020-10-15 09:55:06,198  INFO /Users/maheshroyal/collabmates/Togther/project/utility/firebase.py changed, reloading.  
+2020-10-15 09:55:08,422  INFO Watching for file changes with StatReloader  
+2020-10-15 09:55:23,908  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 09:55:25,681  INFO Watching for file changes with StatReloader  
+2020-10-15 10:47:30,892  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 10:47:36,364  INFO Watching for file changes with StatReloader  
+2020-10-15 10:53:49,574  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 10:53:51,221  INFO Watching for file changes with StatReloader  
+2020-10-15 11:02:30,888  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 11:02:34,136  INFO Watching for file changes with StatReloader  
+2020-10-15 11:14:02,912  INFO "POST /api/v1/create_community HTTP/1.1" 200 2014  
+2020-10-15 11:16:16,212  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 11:16:20,336  INFO Watching for file changes with StatReloader  
+2020-10-15 11:21:55,394  INFO "POST /api/v1/create_community HTTP/1.1" 200 2014  
+2020-10-15 11:22:26,911  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 11:22:28,662  INFO Watching for file changes with StatReloader  
+2020-10-15 11:22:36,511  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 11:22:38,192  INFO Watching for file changes with StatReloader  
+2020-10-15 11:22:53,615  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 11:22:55,344  INFO Watching for file changes with StatReloader  
+2020-10-15 11:23:08,836  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 11:23:09,743  INFO Watching for file changes with StatReloader  
+2020-10-15 11:23:21,842  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 11:23:24,848  INFO Watching for file changes with StatReloader  
+2020-10-15 11:30:17,452  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 11:30:19,283  INFO Watching for file changes with StatReloader  
+2020-10-15 11:34:29,799  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/user_moderation_rights.py changed, reloading.  
+2020-10-15 11:34:32,058  INFO Watching for file changes with StatReloader  
+2020-10-15 11:38:13,308  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/user_moderation_rights.py changed, reloading.  
+2020-10-15 11:38:14,998  INFO Watching for file changes with StatReloader  
+2020-10-15 23:11:50,884  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 23:11:52,717  INFO Watching for file changes with StatReloader  
+2020-10-15 23:49:11,640  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 23:49:19,684  INFO Watching for file changes with StatReloader  
+2020-10-15 23:55:09,741  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-15 23:55:11,284  INFO Watching for file changes with StatReloader  
+2020-10-16 09:18:36,796  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 09:18:38,574  INFO Watching for file changes with StatReloader  
+2020-10-16 09:23:32,487  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 09:23:34,141  INFO Watching for file changes with StatReloader  
+2020-10-16 09:26:27,220  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 09:26:29,409  INFO Watching for file changes with StatReloader  
+2020-10-16 09:30:28,939  INFO "GET /api/your_communities/458?member_id=458&page=1 HTTP/1.1" 200 10310  
+2020-10-16 09:40:51,814  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 09:40:51,914  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 148781  
+2020-10-16 09:51:43,359  INFO Watching for file changes with StatReloader  
+2020-10-16 09:52:21,267  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 43789  
+2020-10-16 10:15:24,540  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 10:15:26,284  INFO Watching for file changes with StatReloader  
+2020-10-16 10:44:06,722  ERROR Invalid HTTP_HOST header: 'localhost:8000'. You may need to add 'localhost' to ALLOWED_HOSTS.  
+2020-10-16 10:44:10,900  WARNING Bad Request: /api/your_communities/458  
+2020-10-16 10:44:10,900  WARNING "GET /api/your_communities/458?member_id=458&page=1 HTTP/1.1" 400 143  
+2020-10-16 10:45:12,472  INFO Watching for file changes with StatReloader  
+2020-10-16 10:46:58,423  INFO "GET /api/your_communities/458?member_id=458&page=1 HTTP/1.1" 200 10310  
+2020-10-16 10:47:02,889  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 10:47:02,963  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 148782  
+2020-10-16 10:53:51,279  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-10-16 10:53:52,965  INFO Watching for file changes with StatReloader  
+2020-10-16 11:00:27,537  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-10-16 11:00:28,994  INFO Watching for file changes with StatReloader  
+2020-10-16 11:02:25,396  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:02:25,470  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149327  
+2020-10-16 11:02:52,980  INFO Watching for file changes with StatReloader  
+2020-10-16 11:02:55,945  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:02:56,035  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149327  
+2020-10-16 11:02:57,048  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:02:57,104  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149327  
+2020-10-16 11:02:58,144  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:02:58,238  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149328  
+2020-10-16 11:02:59,150  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:02:59,201  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149327  
+2020-10-16 11:03:00,119  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:03:00,175  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149327  
+2020-10-16 11:07:46,549  INFO Watching for file changes with StatReloader  
+2020-10-16 11:07:50,701  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:07:50,776  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149327  
+2020-10-16 11:07:52,075  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:07:52,127  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149327  
+2020-10-16 11:09:54,877  INFO Watching for file changes with StatReloader  
+2020-10-16 11:09:59,269  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 483, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:09:59,341  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149327  
+2020-10-16 11:35:39,809  INFO Watching for file changes with StatReloader  
+2020-10-16 11:36:01,729  INFO "GET /api/your_communities/458?member_id=458&page=1 HTTP/1.1" 200 10242  
+2020-10-16 11:36:18,199  ERROR Internal Server Error: /api/my_chatrooms  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 480, in my_chatrooms
+    for instance in instance_list:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 885, in __iter__
+    v = self[i]
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/paginator.py", line 161, in __getitem__
+    self.object_list = list(self.object_list)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 276, in __iter__
+    self._fetch_all()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1261, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 57, in __iter__
+    results = compiler.execute_sql(chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1144, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column togther_conversationengage.last_conversation_member_id does not exist
+LINE 1: ...ted_at", "togther_conversationengage"."draft_id", "togther_c...
+                                                             ^
+
+2020-10-16 11:36:18,287  ERROR "GET /api/my_chatrooms?page=1 HTTP/1.1" 500 149328  
+2020-10-16 11:38:18,870  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 11:38:20,441  INFO Watching for file changes with StatReloader  
+2020-10-16 13:03:06,470  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 13:03:08,443  INFO Watching for file changes with StatReloader  
+2020-10-16 15:25:59,535  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 15:26:04,772  INFO Watching for file changes with StatReloader  
+2020-10-16 15:26:30,334  INFO "GET /api/fetch_member_rights?community_id=48775&user_id=494 HTTP/1.1" 200 2213  
+2020-10-16 15:28:29,308  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 15:28:32,649  INFO Watching for file changes with StatReloader  
+2020-10-16 15:29:18,529  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:29:21,309  INFO "GET /api/fetch_member_rights?community_id=48775&user_id=494 HTTP/1.1" 200 2218  
+2020-10-16 15:29:53,859  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:30:20,541  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 15:30:23,811  INFO Watching for file changes with StatReloader  
+2020-10-16 15:30:31,674  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:30:38,687  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:32:34,683  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 15:32:36,764  INFO Watching for file changes with StatReloader  
+2020-10-16 15:32:46,979  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:34:04,970  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 15:34:06,512  INFO Watching for file changes with StatReloader  
+2020-10-16 15:34:11,105  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:34:24,149  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:34:40,893  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:36:32,368  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 15:36:34,392  INFO Watching for file changes with StatReloader  
+2020-10-16 15:37:21,191  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:37:36,892  INFO "GET /api/fetch_member_rights?community_id=48775&user_id=494 HTTP/1.1" 200 2219  
+2020-10-16 15:39:12,605  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 15:39:14,801  INFO Watching for file changes with StatReloader  
+2020-10-16 15:39:21,237  INFO "GET /api/fetch_member_rights?community_id=48775&user_id=494 HTTP/1.1" 200 2219  
+2020-10-16 15:39:48,573  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 15:42:15,225  INFO Watching for file changes with StatReloader  
+2020-10-16 15:42:19,487  INFO "GET /api/fetch_management_tools?community_id=49231 HTTP/1.1" 200 1792  
+2020-10-16 15:44:40,141  INFO "GET /api/your_communities/458?member_id=458&page=1 HTTP/1.1" 200 10329  
+2020-10-16 16:06:44,465  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 16:06:46,318  INFO Watching for file changes with StatReloader  
+2020-10-16 16:28:41,809  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49277 HTTP/1.1" 200 15883  
+2020-10-16 18:42:39,225  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 18:42:41,127  INFO Watching for file changes with StatReloader  
+2020-10-16 18:43:36,971  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 18:44:40,851  ERROR Internal Server Error: /api/create_collabcard  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+psycopg2.errors.UndefinedColumn: column "last_conversation_member_id" of relation "togther_conversationengage" does not exist
+LINE 1: ...n_count", "created_at", "updated_at", "draft_id", "last_conv...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2797, in create_card
+    context = create_card_internal(user_id, community_id, res)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 3018, in create_card_internal
+    collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 6810, in collabcard_follow_internal
+    create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 3294, in create_chatroom_engagement
+    instance.save()
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/base.py", line 746, in save
+    force_update=force_update, update_fields=update_fields)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/base.py", line 784, in save_base
+    force_update, using, update_fields,
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/base.py", line 887, in _save_table
+    results = self._do_insert(cls._base_manager, using, fields, returning_fields, raw)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/base.py", line 926, in _do_insert
+    using=using, raw=raw,
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/manager.py", line 82, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/query.py", line 1204, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/models/sql/compiler.py", line 1384, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 100, in execute
+    return super().execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 68, in execute
+    return self._execute_with_wrappers(sql, params, many=False, executor=self._execute)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 77, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/utils.py", line 90, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/db/backends/utils.py", line 86, in _execute
+    return self.cursor.execute(sql, params)
+django.db.utils.ProgrammingError: column "last_conversation_member_id" of relation "togther_conversationengage" does not exist
+LINE 1: ...n_count", "created_at", "updated_at", "draft_id", "last_conv...
+                                                             ^
+
+2020-10-16 18:44:40,974  ERROR "POST /api/create_collabcard?community_id=48775&member_id=496 HTTP/1.1" 500 182659  
+2020-10-16 18:46:55,625  INFO Watching for file changes with StatReloader  
+2020-10-16 18:48:11,315  INFO Watching for file changes with StatReloader  
+2020-10-16 18:48:16,910  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 18:48:21,035  INFO "POST /api/create_collabcard?community_id=48775&member_id=496 HTTP/1.1" 200 1174  
+2020-10-16 18:50:13,939  INFO "POST /api/create_collabcard?community_id=48775&member_id=494 HTTP/1.1" 200 1182  
+2020-10-16 18:54:37,500  INFO "GET /api/fetch_pending_chatroom?community_id=48775 HTTP/1.1" 200 5832  
+2020-10-16 18:55:15,726  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 7644  
+2020-10-16 18:55:28,095  INFO "GET /api/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 17019  
+2020-10-16 19:04:40,207  INFO "GET /api/fetch_member_rights?community_id=48775&user_id=494 HTTP/1.1" 200 2220  
+2020-10-16 19:05:15,519  INFO "POST /api/action_pending_chatroom HTTP/1.1" 200 17  
+2020-10-16 19:05:19,517  INFO "GET /api/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 19527  
+2020-10-16 19:05:38,768  INFO "GET /api/fetch_member_rights?community_id=48775&user_id=494 HTTP/1.1" 200 2219  
+2020-10-16 19:05:51,168  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 7644  
+2020-10-16 19:09:49,791  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4179&scroll_direction=1 HTTP/1.1" 200 77  
+2020-10-16 19:09:57,965  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4178&scroll_direction=1 HTTP/1.1" 200 77  
+2020-10-16 19:10:01,852  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4178&scroll_direction=0 HTTP/1.1" 200 12688  
+2020-10-16 19:27:51,421  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 7644  
+2020-10-16 19:35:37,180  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4178&scroll_direction=0 HTTP/1.1" 200 12688  
+2020-10-16 19:37:59,559  WARNING Not Found: /api//fetch_chatroom_feed  
+2020-10-16 19:37:59,559  WARNING "GET /api//fetch_chatroom_feed?community_id=48775 HTTP/1.1" 404 61749  
+2020-10-16 19:38:42,129  WARNING Not Found: /api//fetch_chatroom_feed  
+2020-10-16 19:38:42,136  WARNING "GET /api//fetch_chatroom_feed?community_id=48775 HTTP/1.1" 404 61749  
+2020-10-16 19:38:46,803  INFO "GET /api/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 19527  
+2020-10-16 19:39:16,858  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4175&scroll_direction=1 HTTP/1.1" 200 77  
+2020-10-16 19:39:49,285  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 7644  
+2020-10-16 19:39:55,489  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 7644  
+2020-10-16 19:39:56,467  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 7644  
+2020-10-16 19:43:31,640  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4175&scroll_direction=1&active=true HTTP/1.1" 200 77  
+2020-10-16 19:43:56,115  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4175&scroll_direction=0&active=true HTTP/1.1" 200 16390  
+2020-10-16 19:44:14,609  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=41200&scroll_direction=0&active=true HTTP/1.1" 200 20768  
+2020-10-16 19:54:31,050  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=41200&scroll_direction=0&active=false HTTP/1.1" 200 12688  
+2020-10-16 19:55:14,312  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=41200&scroll_direction=0&active=true HTTP/1.1" 200 20768  
+2020-10-16 19:55:21,022  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=41200&scroll_direction=1&active=true HTTP/1.1" 200 77  
+2020-10-16 19:55:27,163  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=41200&scroll_direction=0&active=true HTTP/1.1" 200 20768  
+2020-10-16 19:55:36,551  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4108&scroll_direction=0&active=true HTTP/1.1" 200 7028  
+2020-10-16 19:55:41,574  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4108&scroll_direction=1&active=true HTTP/1.1" 200 16912  
+2020-10-16 19:55:54,581  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4173&scroll_direction=1&active=true HTTP/1.1" 200 11643  
+2020-10-16 19:59:54,359  INFO "GET /api/fetch_member_rights?community_id=48775&user_id=494 HTTP/1.1" 200 2219  
+2020-10-16 20:01:15,934  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 20:01:18,677  INFO "GET /api/fetch_member_rights?community_id=48775&user_id=494 HTTP/1.1" 200 2220  
+2020-10-16 20:01:57,551  INFO "POST /api/create_collabcard?community_id=48775&member_id=494 HTTP/1.1" 200 1182  
+2020-10-16 20:02:07,059  INFO "GET /api/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 19527  
+2020-10-16 20:02:20,267  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4173&scroll_direction=1&active=true HTTP/1.1" 200 11643  
+2020-10-16 20:05:23,979  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4173&scroll_direction=1&active=true HTTP/1.1" 200 11599  
+2020-10-16 20:10:32,429  INFO Watching for file changes with StatReloader  
+2020-10-16 20:10:40,096  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4173&scroll_direction=1&active=true HTTP/1.1" 200 11599  
+2020-10-16 20:10:49,321  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4175&scroll_direction=1&active=true HTTP/1.1" 200 77  
+2020-10-16 20:11:06,878  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:11:09,878  INFO Watching for file changes with StatReloader  
+2020-10-16 20:13:10,488  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4175&scroll_direction=1&active=true HTTP/1.1" 200 2608  
+2020-10-16 20:14:58,719  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:15:02,323  INFO Watching for file changes with StatReloader  
+2020-10-16 20:18:00,883  INFO "POST /api/action_pending_chatroom HTTP/1.1" 200 17  
+2020-10-16 20:18:08,286  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4175&scroll_direction=1&active=true HTTP/1.1" 200 77  
+2020-10-16 20:18:18,030  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4175&scroll_direction=1&active=true HTTP/1.1" 200 77  
+2020-10-16 20:22:37,910  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:22:41,228  INFO Watching for file changes with StatReloader  
+2020-10-16 20:25:39,773  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:25:41,914  INFO Watching for file changes with StatReloader  
+2020-10-16 20:32:40,683  INFO "POST /api/create_collabcard?community_id=48775&member_id=494 HTTP/1.1" 200 1183  
+2020-10-16 20:33:00,979  ERROR Internal Server Error: /api/action_pending_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 12060, in action_pending_chatroom
+    , state=chatroom_states.CHATROOM_HEADER, current_user_id=chatroom.user_id)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 3202, in create_chatroom
+    user_name = user_instance.userinfo.name
+AttributeError: 'int' object has no attribute 'userinfo'
+2020-10-16 20:33:01,053  ERROR "POST /api/action_pending_chatroom HTTP/1.1" 500 90697  
+2020-10-16 20:36:14,299  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:36:15,879  INFO Watching for file changes with StatReloader  
+2020-10-16 20:36:21,885  ERROR Internal Server Error: /api/action_pending_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 50, in _reraise_errors
+    yield
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 221, in dumps
+    payload = encoder(data)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/utils/json.py", line 70, in dumps
+    **dict(default_kwargs, **kwargs))
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/__init__.py", line 238, in dumps
+    **kw).encode(obj)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 199, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 257, in iterencode
+    return _iterencode(o, 0)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/utils/json.py", line 59, in default
+    return super(JSONEncoder, self).default(o)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 179, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type Community is not JSON serializable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 12062, in action_pending_chatroom
+    send_ice_breaker_notification.delay(chatroom.community, time.time(), day=0)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/celery/app/task.py", line 425, in delay
+    return self.apply_async(args, kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/celery/app/task.py", line 568, in apply_async
+    **options
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/celery/app/base.py", line 771, in send_task
+    amqp.send_task_message(P, name, message, **options)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/celery/app/amqp.py", line 559, in send_task_message
+    **properties
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/messaging.py", line 169, in publish
+    compression, headers)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/messaging.py", line 252, in _prepare
+    body) = dumps(body, serializer=serializer)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 221, in dumps
+    payload = encoder(data)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/contextlib.py", line 130, in __exit__
+    self.gen.throw(type, value, traceback)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 54, in _reraise_errors
+    reraise(wrapper, wrapper(exc), sys.exc_info()[2])
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/vine/five.py", line 194, in reraise
+    raise value.with_traceback(tb)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 50, in _reraise_errors
+    yield
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 221, in dumps
+    payload = encoder(data)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/utils/json.py", line 70, in dumps
+    **dict(default_kwargs, **kwargs))
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/__init__.py", line 238, in dumps
+    **kw).encode(obj)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 199, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 257, in iterencode
+    return _iterencode(o, 0)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/utils/json.py", line 59, in default
+    return super(JSONEncoder, self).default(o)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 179, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+kombu.exceptions.EncodeError: Object of type Community is not JSON serializable
+2020-10-16 20:36:21,974  ERROR "POST /api/action_pending_chatroom HTTP/1.1" 500 230509  
+2020-10-16 20:36:45,372  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:36:47,149  INFO Watching for file changes with StatReloader  
+2020-10-16 20:36:50,803  ERROR Internal Server Error: /api/action_pending_chatroom  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 50, in _reraise_errors
+    yield
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 221, in dumps
+    payload = encoder(data)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/utils/json.py", line 70, in dumps
+    **dict(default_kwargs, **kwargs))
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/__init__.py", line 238, in dumps
+    **kw).encode(obj)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 199, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 257, in iterencode
+    return _iterencode(o, 0)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/utils/json.py", line 59, in default
+    return super(JSONEncoder, self).default(o)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 179, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type Community is not JSON serializable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 12062, in action_pending_chatroom
+    send_ice_breaker_notification.delay(chatroom.community, time.time(), day=0)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/celery/app/task.py", line 425, in delay
+    return self.apply_async(args, kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/celery/app/task.py", line 568, in apply_async
+    **options
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/celery/app/base.py", line 771, in send_task
+    amqp.send_task_message(P, name, message, **options)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/celery/app/amqp.py", line 559, in send_task_message
+    **properties
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/messaging.py", line 169, in publish
+    compression, headers)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/messaging.py", line 252, in _prepare
+    body) = dumps(body, serializer=serializer)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 221, in dumps
+    payload = encoder(data)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/contextlib.py", line 130, in __exit__
+    self.gen.throw(type, value, traceback)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 54, in _reraise_errors
+    reraise(wrapper, wrapper(exc), sys.exc_info()[2])
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/vine/five.py", line 194, in reraise
+    raise value.with_traceback(tb)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 50, in _reraise_errors
+    yield
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/serialization.py", line 221, in dumps
+    payload = encoder(data)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/utils/json.py", line 70, in dumps
+    **dict(default_kwargs, **kwargs))
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/__init__.py", line 238, in dumps
+    **kw).encode(obj)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 199, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 257, in iterencode
+    return _iterencode(o, 0)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/kombu/utils/json.py", line 59, in default
+    return super(JSONEncoder, self).default(o)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.7/lib/python3.7/json/encoder.py", line 179, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+kombu.exceptions.EncodeError: Object of type Community is not JSON serializable
+2020-10-16 20:36:50,899  ERROR "POST /api/action_pending_chatroom HTTP/1.1" 500 230540  
+2020-10-16 20:37:35,226  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:37:37,677  INFO Watching for file changes with StatReloader  
+2020-10-16 20:37:43,023  INFO "POST /api/action_pending_chatroom HTTP/1.1" 200 17  
+2020-10-16 20:38:03,635  INFO "GET /api/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 22035  
+2020-10-16 20:39:30,911  INFO "GET /api/fetch_chatroom_feed?community_id=48775 HTTP/1.1" 200 22035  
+2020-10-16 20:43:34,049  INFO "GET /api/fetch_member_rights?community_id=49302&user_id=504 HTTP/1.1" 200 1579  
+2020-10-16 20:43:42,525  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 20:43:45,117  INFO "GET /api/fetch_member_rights?community_id=49302&user_id=504 HTTP/1.1" 200 1586  
+2020-10-16 20:46:47,221  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:46:49,801  INFO Watching for file changes with StatReloader  
+2020-10-16 20:49:44,997  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:49:46,609  INFO Watching for file changes with StatReloader  
+2020-10-16 20:53:05,882  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 20:53:09,046  INFO Watching for file changes with StatReloader  
+2020-10-16 21:02:00,920  INFO "POST /api/create_collabcard?community_id=49302&member_id=504 HTTP/1.1" 200 1414  
+2020-10-16 21:07:11,260  INFO "GET /api/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 7278  
+2020-10-16 21:08:22,758  INFO "POST /api/action_pending_chatroom HTTP/1.1" 200 17  
+2020-10-16 21:25:07,549  INFO "GET /api/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 9409  
+2020-10-16 21:25:18,206  INFO "GET /api/v1/fetch_chatroom_feed?community_id=48775&chatroom_id=4175&scroll_direction=1&active=true HTTP/1.1" 200 10209  
+2020-10-16 21:25:44,725  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302&chatroom_id=4172&scroll_direction=1&active=true HTTP/1.1" 200 2204  
+2020-10-16 21:28:03,874  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 21:28:07,583  INFO Watching for file changes with StatReloader  
+2020-10-16 21:33:54,728  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 21:33:56,288  INFO Watching for file changes with StatReloader  
+2020-10-16 21:45:30,317  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/members.py changed, reloading.  
+2020-10-16 21:45:34,091  INFO Watching for file changes with StatReloader  
+2020-10-16 21:45:56,288  INFO "GET /api/fetch_member_rights?community_id=49302&user_id=504 HTTP/1.1" 200 1585  
+2020-10-16 21:46:05,295  INFO "POST /api/update_member_rights HTTP/1.1" 200 17  
+2020-10-16 21:46:11,062  INFO "GET /api/fetch_member_rights?community_id=49302&user_id=504 HTTP/1.1" 200 1586  
+2020-10-16 21:46:20,856  ERROR Internal Server Error: /api/create_collabcard  
+Traceback (most recent call last):
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/maheshroyal/Library/Python/3.7/lib/python/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2792, in create_card
+    context = create_card_internal(user_id, community_id, res)
+  File "/Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py", line 2987, in create_card_internal
+    community=community_instance).exists()
+AttributeError: 'bool' object has no attribute 'exists'
+2020-10-16 21:46:20,918  ERROR "POST /api/create_collabcard?community_id=49302&member_id=504 HTTP/1.1" 500 89696  
+2020-10-16 21:47:33,620  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 21:47:35,808  INFO Watching for file changes with StatReloader  
+2020-10-16 21:47:48,406  INFO "POST /api/create_collabcard?community_id=49302&member_id=504 HTTP/1.1" 200 1414  
+2020-10-16 21:53:34,319  INFO "GET /api/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 9409  
+2020-10-16 21:53:37,833  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302&chatroom_id=4172&scroll_direction=1&active=true HTTP/1.1" 200 2204  
+2020-10-16 21:53:47,189  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302&chatroom_id=4172&scroll_direction=1&active=true HTTP/1.1" 200 2204  
+2020-10-16 21:53:52,075  INFO "POST /api/action_pending_chatroom HTTP/1.1" 200 17  
+2020-10-16 21:53:56,537  INFO "GET /api/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 11540  
+2020-10-16 21:54:11,470  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302&chatroom_id=4172&scroll_direction=1&active=true HTTP/1.1" 200 4335  
+2020-10-16 23:30:05,272  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 23:30:07,127  INFO Watching for file changes with StatReloader  
+2020-10-16 23:42:38,890  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/user_moderation_rights.py changed, reloading.  
+2020-10-16 23:42:40,754  INFO Watching for file changes with StatReloader  
+2020-10-16 23:43:57,618  INFO "GET /api/fetch_community_setting_rights?community_id=49221 HTTP/1.1" 200 817  
+2020-10-16 23:48:50,014  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 23:48:53,748  INFO Watching for file changes with StatReloader  
+2020-10-16 23:49:39,262  INFO "POST /api/v1/join_community HTTP/1.1" 200 17  
+2020-10-16 23:51:51,076  INFO "POST /api/update_community_rights?community_id=49221 HTTP/1.1" 200 58  
+2020-10-16 23:53:02,686  INFO "POST /api/update_community_rights?community_id=49221 HTTP/1.1" 200 58  
+2020-10-16 23:53:14,589  INFO "POST /api/update_community_rights?community_id=49221 HTTP/1.1" 200 17  
+2020-10-16 23:53:53,906  INFO "POST /api/v1/join_community HTTP/1.1" 200 17  
+2020-10-16 23:54:20,965  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-16 23:54:23,370  INFO Watching for file changes with StatReloader  
+2020-10-17 09:47:18,496  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/user_moderation_rights.py changed, reloading.  
+2020-10-17 09:47:30,150  INFO Watching for file changes with StatReloader  
+2020-10-17 10:29:43,727  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-17 10:29:45,468  INFO Watching for file changes with StatReloader  
+2020-10-17 11:09:31,771  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/raw_queries.py changed, reloading.  
+2020-10-17 11:09:33,516  INFO Watching for file changes with StatReloader  
+2020-10-17 11:17:38,156  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-17 11:17:39,902  INFO Watching for file changes with StatReloader  
+2020-10-17 11:19:43,790  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-10-17 11:19:45,362  INFO Watching for file changes with StatReloader  
+2020-10-17 12:22:17,198  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-10-17 12:22:19,068  INFO Watching for file changes with StatReloader  
+2020-10-17 12:42:23,416  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 7160  
+2020-10-17 12:42:25,050  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 7160  
+2020-10-17 12:42:26,096  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 7160  
+2020-10-17 12:42:27,021  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 7160  
+2020-10-17 12:42:28,048  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 7160  
+2020-10-17 12:42:28,892  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 7160  
+2020-10-17 12:42:29,672  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 7160  
+2020-10-17 12:42:30,394  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 7160  
+2020-10-17 12:43:12,616  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-10-17 12:43:22,968  INFO "GET /api/v1/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 6821  
+2020-10-17 12:43:33,226  INFO "GET /api/fetch_chatroom_feed?community_id=49302 HTTP/1.1" 200 11204  
+2020-10-17 12:44:21,252  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 45554  
+2020-10-17 12:45:11,129  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 45554  
+2020-10-17 12:45:14,941  INFO "POST /api/chatroom_delete HTTP/1.1" 200 17  
+2020-10-17 12:45:20,542  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 45872  
+2020-10-17 12:45:35,910  INFO "GET /api/v1/my_chatrooms?page=1 HTTP/1.1" 200 3699  
+2020-10-17 12:47:35,991  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 45872  
+2020-10-17 12:48:00,321  INFO "GET /api/v1/my_chatrooms?page=2 HTTP/1.1" 200 50665  
+2020-10-17 12:48:13,457  INFO "GET /api/v1/my_chatrooms?page=2 HTTP/1.1" 200 50665  
+2020-10-17 12:48:18,322  INFO "GET /api/my_chatrooms?page=2 HTTP/1.1" 200 44253  
+2020-10-17 12:48:27,848  INFO "GET /api/my_chatrooms?page=1 HTTP/1.1" 200 45872  
+2020-10-17 12:58:11,496  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-10-17 12:58:13,506  INFO Watching for file changes with StatReloader  
+2020-10-17 13:14:22,793  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-10-17 13:14:24,625  INFO Watching for file changes with StatReloader  
+2020-10-17 13:14:57,667  INFO /Users/maheshroyal/collabmates/Togther/project/togther/models.py changed, reloading.  
+2020-10-17 13:14:58,537  INFO Watching for file changes with StatReloader  
+2020-10-17 13:18:01,531  INFO /Users/maheshroyal/collabmates/Togther/project/collabmates_api/serializers.py changed, reloading.  
+2020-10-17 13:18:03,206  INFO Watching for file changes with StatReloader  
+2020-10-17 14:08:40,136  INFO /Users/maheshroyal/collabmates/Togther/project/project/celery.py changed, reloading.  
+2020-10-19 14:26:19,504  INFO Watching for file changes with StatReloader  
+2020-10-19 14:26:37,643  INFO /Users/maheshroyal/collabmates/Togther/project/manage.py changed, reloading.  
+2020-10-19 14:26:41,340  INFO Watching for file changes with StatReloader  
+2020-10-19 14:57:37,427  INFO "POST /api/v1/login?type=facebook HTTP/1.1" 200 318  
+2020-10-19 14:58:07,945  INFO "POST /api/v1/login?type=facebook HTTP/1.1" 200 318  
+2020-10-19 14:58:17,237  INFO "POST /api/v1/login?type=facebook HTTP/1.1" 200 318  
+2020-10-19 15:41:32,017  INFO /Users/maheshroyal/collabmates/Togther/project/utility/firebase.py changed, reloading.  
+2020-10-19 15:41:34,822  INFO Watching for file changes with StatReloader  
+2020-10-19 15:42:00,356  INFO Watching for file changes with StatReloader  
+2020-10-19 15:45:08,418  INFO "POST /api/v1/login?type=facebook HTTP/1.1" 200 318  
+2020-10-19 15:49:59,546  INFO /Users/maheshroyal/collabmates/Togther/project/utility/firebase.py changed, reloading.  
+2020-10-19 15:50:01,465  INFO Watching for file changes with StatReloader  
+2020-10-19 15:50:10,121  INFO "POST /api/v1/login?type=facebook HTTP/1.1" 200 318  
+2020-10-19 15:51:36,382  INFO /Users/maheshroyal/collabmates/Togther/project/utility/tasks.py changed, reloading.  
+2020-10-19 15:51:37,983  INFO Watching for file changes with StatReloader  
+2020-10-19 15:51:49,440  INFO "POST /api/v1/login?type=facebook HTTP/1.1" 200 318  
+2020-10-19 15:52:51,921  INFO /Users/maheshroyal/collabmates/Togther/project/utility/tasks.py changed, reloading.  
+2020-10-19 15:52:53,712  INFO Watching for file changes with StatReloader  
+2020-10-19 15:52:59,179  INFO "POST /api/v1/login?type=facebook HTTP/1.1" 200 318  
+2020-10-19 15:53:36,890  INFO /Users/maheshroyal/collabmates/Togther/project/project/celery.py changed, reloading.  
+2020-10-19 15:53:38,367  INFO Watching for file changes with StatReloader  
+2020-10-19 15:53:48,526  INFO "POST /api/v1/login?type=facebook HTTP/1.1" 200 318  
+2020-10-19 15:53:48,601  INFO "GET /media/media/user_profile/706_profile_image.png HTTP/1.1" 200 5060  
+2020-10-19 15:54:33,431  INFO "GET /admin_dashboard HTTP/1.1" 301 0  
+2020-10-19 15:54:33,538  INFO "GET /admin_dashboard/ HTTP/1.1" 302 0  
+2020-10-19 15:54:33,605  INFO "GET /admin_login HTTP/1.1" 200 6977  
+2020-10-19 15:54:33,737  INFO "GET /static/login/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1" 200 124962  
+2020-10-19 15:54:33,746  INFO "GET /static/login/fonts/font-awesome-4.7.0/css/font-awesome.min.css HTTP/1.1" 200 31000  
+2020-10-19 15:54:33,747  INFO "GET /static/login/vendor/animate/animate.css HTTP/1.1" 200 23848  
+2020-10-19 15:54:33,747  INFO "GET /static/login/fonts/Linearicons-Free-v1.0.0/icon-font.min.css HTTP/1.1" 200 7354  
+2020-10-19 15:54:33,750  INFO "GET /static/login/vendor/css-hamburgers/hamburgers.min.css HTTP/1.1" 200 19686  
+2020-10-19 15:54:33,756  INFO "GET /static/login/vendor/animsition/css/animsition.min.css HTTP/1.1" 200 27478  
+2020-10-19 15:54:33,757  INFO "GET /static/login/vendor/daterangepicker/daterangepicker.css HTTP/1.1" 200 8163  
+2020-10-19 15:54:33,758  INFO "GET /static/login/vendor/select2/select2.min.css HTTP/1.1" 200 15196  
+2020-10-19 15:54:33,770  INFO "GET /static/login/css/main.css HTTP/1.1" 200 12185  
+2020-10-19 15:54:33,770  INFO "GET /static/login/vendor/animsition/js/animsition.min.js HTTP/1.1" 200 5615  

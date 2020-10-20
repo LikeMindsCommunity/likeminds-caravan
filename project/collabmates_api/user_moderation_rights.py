@@ -8,7 +8,6 @@ from django.db.models import Q
 from .static_text import *
 
 
-
 def give_all_member_rights(user, community):
     """function to give a member all the rights """
     userMemberRights.objects.filter(user=user, community=community).delete()
@@ -18,7 +17,7 @@ def give_all_member_rights(user, community):
 
 
 def give_default_member_rights(user, community):
-    """function to give a member all the rights """
+    """function to give default member rights to a user """
 
     if not isinstance(user, User):
         user = User.objects.get(pk=user)
@@ -51,7 +50,7 @@ def give_all_manager_rights(user, community):
 
 
 def give_default_manager_rights_list(user, community):
-
+    """ function to save default CM rights to a user in a community """
     if not isinstance(user, User):
         user = User.objects.get(pk=user)
 
@@ -66,6 +65,7 @@ def give_default_manager_rights_list(user, community):
 
 
 def fill_admin_rights(user, community, rights_list):
+    """ function to save CM rights of a user in a community """
     for right in rights_list:
         try:
             userAdminRights(user=user, community=community, right=right).save()
@@ -74,6 +74,7 @@ def fill_admin_rights(user, community, rights_list):
 
 
 def fill_member_rights(user, community, rights_list):
+    """ function to save members rights of a user in a community """
     for right in rights_list:
         try:
             userMemberRights(user=user, community=community, right=right).save()
@@ -82,7 +83,7 @@ def fill_member_rights(user, community, rights_list):
 
 
 def get_saved_member_rights_list(user_rights, admin_rights=None):
-
+    """ function to return the selected and disabled rights of a member or community settings """
     all_member_rights = memberRights.objects.all().order_by("state")
     rights_list = []
     for right in all_member_rights:
@@ -434,7 +435,7 @@ def remove_right_for_all_members(community, right):
                                 community_id=community).filter(Q(state=member_states.MEMBER) |
                                                                Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
                                                                Q(state=member_states.PROFILE_UNAVAILABLE))
-
+    # has to loop through the members list cause the right should not be deleted for CM's
     for member in community_members:
         try:
             userMemberRights.objects.filter(user=member.member_id, community=community, right=right).delete()
@@ -521,6 +522,19 @@ def get_right_dict(right):
 
     return right_dict
 
+
+def give_all_community_setting_rights(community):
+    member_rights = memberRights.objects.all().order_by("state")
+    save_community_setting_rights(community, member_rights)
+
+
+def save_community_setting_rights(community, rights_list):
+
+    for right in rights_list:
+        try:
+            communityRightsSettings(community=community, right=right).save()
+        except:
+            print(">>>> member  --  ", community.id, right.id)
 
 
 

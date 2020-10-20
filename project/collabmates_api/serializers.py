@@ -1320,10 +1320,10 @@ def report_serializer(report_instance):
         report["reported_by"] = user_profile[0]
 
     if report_instance.type is not None:
-        report["type"] =report_instance.type
+        report["type"] = report_instance.type
 
     if report_instance.action_taken_tag:
-        report["tag"] = report_tag_serializer(report_instance.action_taken_tag)
+        report["action_taken_tag"] = report_tag_serializer(report_instance.action_taken_tag)
 
     if report_instance.action_taken_reason:
         report["action_taken_reason"] = report_instance.action_taken_reason
@@ -1341,8 +1341,8 @@ def report_serializer(report_instance):
     if report_instance.rights_removed is not None:
         report["rights_removed"] = json.loads(report_instance.rights_removed)
 
-    if report_instance.is_closed:
-        report["is_closed"] = report_instance.is_closed
+    # if report_instance.is_closed:
+    report["is_closed"] = report_instance.is_closed if report_instance.is_closed is not None else False
 
     if report_instance.closed_by is not None:
         user_profile = get_members_profile(member_ids=[report_instance.closed_by.id], community_id=community_id)
