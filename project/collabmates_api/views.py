@@ -35,11 +35,10 @@ from utility.states import (collabcard_states, member_states, question_states, c
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types)
-from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied,
-                           send_mail_for_report_abuse,
-                           send_mail_for_query_and_feedback
-                           )
+
+from utility.tasks import (mail_triger, new_member_request, member_request_approval_or_denied,
+                           send_mail_for_report_abuse, send_mail_for_query_and_feedback,
+                           save_name_initial_image)
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_referred_members_of_a_member,
                            eligibility_count,
@@ -7963,7 +7962,8 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
         userinfo.user_id = user
         userinfo.email = email
         userinfo.name = user_name
-        userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
+        if profile_picture is not None:
+            userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
         userinfo.login_type = login_type
         userinfo.login_json = json_to_save
         userinfo.created_at = time.time()
@@ -8003,7 +8003,7 @@ def login_with_google(google_id_token, request, res, login_type="google"):
     created = False
     # context ={'success':False,'error_message':"please give permission to use your google account"}
     context = get_error_context(False, "please give permission to use your google account")
-    image_link = ""
+    image_link = None
     if 'email' in res:
         email = res['email']
         email = email.lower().strip()
@@ -8025,6 +8025,9 @@ def login_with_google(google_id_token, request, res, login_type="google"):
                                        profile_picture=image_link, login_type=login_type,
                                        json_to_save=json_to_save
                                        )
+
+            if 'picture' not in res:
+                save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
 
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
@@ -8073,7 +8076,7 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
     # converting email to lower case and removing unwanted space
     email = email.lower().strip()
     user = get_user_from_email(email)
-    image_link = ""
+    image_link = None
     if not user:
         # creating a user if no user is associated with that email
         user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
@@ -8097,6 +8100,9 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         save_user_primary_email(user, res['email'], verified=True)
+
+        if 'picture' not in res:
+            save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
 
         email_exists = False
     else:
@@ -8140,7 +8146,7 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
     email = res['email']['elements'][0]['handle~']['emailAddress']
 
     user = get_user_from_email(email)
-
+    profile_picture = None
     if not user:
 
         user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
@@ -8155,6 +8161,9 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
         userinfo = create_userinfo(user=user, email=email, user_name=user_name,
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
+
+        if 'profilePicture' not in res:
+            save_name_initial_image.delay(user_id=user.id, user_name=user_name)
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
         save_user_primary_email(user, email, verified=True)
@@ -8192,7 +8201,7 @@ def login_with_apple(request, res, json_to_save, login_type="apple"):
 
     res = res['login_json']
     userinfo = Userinfo.objects.filter(apple_id=res['id'])
-    image_link = ""
+    image_link = None
 
     if not userinfo.exists():
         # creating a user if no user is associated with that email
@@ -8212,6 +8221,9 @@ def login_with_apple(request, res, json_to_save, login_type="apple"):
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city, apple_id=res['id']
                                    )
+
+        if 'picture' not in res:
+            save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
@@ -8266,10 +8278,14 @@ def custom_login(request, res, login_type="custom"):
         context['email_exists'] = True
 
         return context
-    image_url = ""
+    image_url = None
     if 'image_url' in profile:
         image_url = profile['image_url']
+
     user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type)
+
+    if 'image_url' not in profile:
+        save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
 
     if is_request_web(request):
         phone_no = str(country_code) + str(mobile_no)
