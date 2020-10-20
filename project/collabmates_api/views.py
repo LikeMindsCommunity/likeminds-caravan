@@ -12433,14 +12433,21 @@ def sync_members(request):
         paginated_members = get_paginated_queryset_with_maxpages(member_filter,page,paginate_by=paginate_by)
 
         member_filter = paginated_members['page_list']
-
+        max_last_updated = 0
         for member_instance in member_filter:
+
+            if max_last_updated < member_instance.updated_at:
+                max_last_updated = member_instance.updated_at
+
             member_data = get_member_instance_for_db_synching(member_instance,member_instance.community_id.id,current_user_id=member_id,send_profile=False)
             member_list.append(member_data)
 
         context = {
             'members': member_list
         }
+
+        if max_last_updated:
+            context['max_last_updated'] = max_last_updated
 
         return JsonResponse(context)
 
@@ -12458,14 +12465,22 @@ def sync_members(request):
         pagianted_removed_members = get_paginated_queryset_with_maxpages(remove_member_filter,page,paginate_by=paginate_by)
 
         remove_member_filter = pagianted_removed_members['page_list']
-        max_pages_removed_members = pagianted_removed_members['last_page']
+        #max_pages_removed_members = pagianted_removed_members['last_page']
+        max_last_updated = 0
         for data in remove_member_filter:
+
+            if max_last_updated < data.created_at:
+                max_last_updated = data.created_at
+
             member_data = get_removed_member_instance(data)
             member_list.append(member_data)
 
         context = {
             'members': member_list
         }
+
+        if max_last_updated:
+            context['max_last_updated'] = max_last_updated
         return JsonResponse(context)
 
 
@@ -12478,13 +12493,23 @@ def sync_members(request):
             guest_filter = collabcardState.objects.filter(is_guest=True,updated_at__gt=last_updated).order_by('id')
 
         guest_filter = pagination(guest_filter,page,paginate_by=paginate_by)
+
+        max_last_updated = 0
         for guest_instance in guest_filter:
+
+            if max_last_updated < guest_instance.created_at:
+                max_last_updated = guest_instance.created_at
+
             member_data = get_guest_member_instance(guest_instance)
             member_list.append(member_data)
 
         context = {
             'members': member_list
         }
+
+        if max_last_updated:
+            context['max_last_updated'] = max_last_updated
+
         return JsonResponse(context)
 
     context = {
