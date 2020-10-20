@@ -12155,7 +12155,7 @@ def fetch_management_tools(request):
                                                has_right_0=has_right_0, has_right_1=has_right_1,
                                                has_right_2=has_right_2, parent_cm_list=parent_cm_list,
                                                is_owner=is_owner)
-        reports_tool["route"] = f"route://review_reports?community_id={community_id}"
+        reports_tool["route"] = f"route://review_reports?community_id={community_id}&community_name={community_name}"
         management_tools.append(reports_tool)
 
     if has_right_2:
@@ -12165,8 +12165,8 @@ def fetch_management_tools(request):
         tool_edit_directory_questions = tool_edit_directory_questions.copy()
         tool_edit_community_details = tool_edit_community_details.copy()
 
-        tool_edit_directory_questions["route"] = f"route://edit_community_directory?community_id={community_id}"
-        tool_edit_community_details["route"] = f"route://edit_community?community_id={community_id}"
+        tool_edit_directory_questions["route"] = f"route://edit_community_directory?community_id={community_id}&community_name={community_name}"
+        tool_edit_community_details["route"] = f"route://edit_community?community_id={community_id}&community_name={community_name}"
 
         management_tools.append(tool_edit_directory_questions)
         management_tools.append(tool_edit_community_details)
@@ -12174,7 +12174,7 @@ def fetch_management_tools(request):
     if has_right_0 or has_right_1:
         global tool_community_settings
         tool_community_settings = tool_community_settings.copy()
-        tool_community_settings["route"] = f"route://community_settings?community_id={community_id}"
+        tool_community_settings["route"] = f"route://community_settings?community_id={community_id}&community_name={community_name}"
         management_tools.append(tool_community_settings)
 
     return JsonResponse(tools)
