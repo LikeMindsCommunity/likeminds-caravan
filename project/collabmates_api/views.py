@@ -627,7 +627,7 @@ def my_chatrooms_version_1(request):
     return JsonResponse(context)
 
 
-def get_latest_conversation_members(last_conversation_member,second_last_conversation_member,last_conversation_user,second_last_conversation_user):
+def  get_latest_conversation_members(last_conversation_member,second_last_conversation_member,last_conversation_user,second_last_conversation_user):
 
     conversation_users = []
     if last_conversation_member:
@@ -3021,7 +3021,7 @@ def create_card_internal(user_id, community_id, res):
             'status': True,
             'source': "create_chatroom"
         }
-        collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+        collabcard_follow_internal(func_dict, state=0)
 
         update_last_answer_id(card_instance.id, "")
 
