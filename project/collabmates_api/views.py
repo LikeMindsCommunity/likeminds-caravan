@@ -375,7 +375,8 @@ def your_communities(request, user_id):
                 community['pending_members_count'] = each_community.pending_members
             else:
                 community['pending_members_count'] = 0
-        # community['pending_members_count'] = each_community.pending_members
+            community['pending_chatroom_count'] = each_community.pending_chatrooms
+            community['open_reports_count'] = each_community.open_reports
 
 
         actions = get_home_screen_community_actions(each_community.community_id)
