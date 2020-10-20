@@ -482,10 +482,6 @@ def get_tool_review_reports(user_id, community_id, **kwargs):
 
 def get_related_reports_for_user(user_id, community_id, **kwargs):
 
-    reports = Report.objects.select_related("reported_by", "user_reported", "tag", "action_taken_by",
-                                            "action_taken_tag", "community", "collabcard",
-                                            "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
-
     is_owner = kwargs["is_owner"] if "is_owner" in kwargs else False
     parent_cm_list = kwargs["parent_cm_list"] if "parent_cm_list" in kwargs else []
     has_right_0 = kwargs["has_right_0"] if "has_right_0" in kwargs else False
@@ -493,6 +489,9 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
     has_right_2 = kwargs["has_right_2"] if "has_right_2" in kwargs else False
     return_reports_count = kwargs["return_reports_count"] if "return_reports_count" in kwargs else False
 
+    reports = Report.objects.select_related("reported_by", "user_reported", "tag", "action_taken_by",
+                                            "action_taken_tag", "community", "collabcard",
+                                            "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
 
     if is_owner:
         # owner cannot see those reports which are reported on owner itself
@@ -503,12 +502,12 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
         if has_right_0 and not has_right_1 and not has_right_2:
             # if user has only right 0
             reports = reports.exclude(type=0)
-        elif not has_right_1 and not has_right_0 and not has_right_2:
+        elif has_right_1 and not has_right_0 and not has_right_2:
             # if user has only right 1
             reports = reports.exclude(type__in=[1, 2])
 
     if return_reports_count:
-        reports.exclude(is_closed=True)
+        reports = reports.exclude(is_closed=True)
         return reports.count()
 
     return reports
