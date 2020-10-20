@@ -122,6 +122,9 @@ def get_all_members(request, req_dict=None):
         collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
 
     current_user_id = get_member_id_from_headers(request)
+
+
+
     is_filter = request.GET.get('is_filter', False)
 
     filter_list = request.GET.get('filter', None)
@@ -232,7 +235,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
                                                        send_profile=True, all_members_api=True, is_promoter=is_promoter
                                                        , is_owner=is_owner, user_admin_rights=user_admin_rights)
 
-        if member_id == int(current_user_id):
+        if current_user_id and member_id == int(current_user_id):
             pass
         else:
             members.append(userinfo_serialized_object)
