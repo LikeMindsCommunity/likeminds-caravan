@@ -11,7 +11,7 @@ def migrate_user_devices():
 
     for data in userinfo_filter:
 
-        devices_filter = userDevices.objects.filter(user=data.user_id, fcm_token=data.fcm_token, mobile_os=data.mobile_os)
+        devices_filter = userDevices.objects.filter(user=data.user_id, mobile_os=data.mobile_os)
         if not devices_filter.exists() and data.fcm_token:
             instance = userDevices()
             instance.user = data.user_id
