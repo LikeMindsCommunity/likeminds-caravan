@@ -2835,12 +2835,13 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     tagged_members = get_tagged_members_list(res['title'])
     tagged_member_list = tagged_members[0]
     res_text = tagged_members[1]
+    card_type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
 
     card = Collabcard()
     card.title = res['title']
     card.community = community_instance
     card.user = user_instance
-    card.type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
+    card.type = card_type
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
     card.date_time = res['date_time'] if ('date_time' in res) else 0
@@ -2921,8 +2922,8 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
             card.internal_link = preview['internal_link']
 
         # card.internal_link = res['internal_link']
-
-    if not has_auto_approve_right:
+    is_intro_card = card_type == card_types.CARD_INTRO
+    if not has_auto_approve_right and not is_intro_card:
         card.is_pending = True
 
     card.date_epoch = time.time()  # card creation time
@@ -2935,7 +2936,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         schedule_poll_end_notification.delay(community_instance.name, community_instance.id, card_types.CARD_POLL,
                                              card.end_date, card.id)
 
-    if has_auto_approve_right:
+    if has_auto_approve_right or is_intro_card:
         # create relevant flags for first time conversation
         notification_list = [
             'mail_card_owner_inactivity'
@@ -2974,17 +2975,19 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None
         collabcardpolls_instance.save()
 
-    # following the tagged member chatroom
+    # if pending card and is not intro card
+    if has_auto_approve_right or is_intro_card:
+        # following the tagged member chatroom
 
-    for user_id in tagged_member_list:
-        req_dict = {
-            'member_id': user_id,
-            'collabcard_id': card.id,
-            'status': True,
-            'source':"create_chatroom",
-            'is_tagged':True
-        }
-        collabcard_follow_internal(req_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
+        for user_id in tagged_member_list:
+            req_dict = {
+                'member_id': user_id,
+                'collabcard_id': card.id,
+                'status': True,
+                'source': "create_chatroom",
+                'is_tagged': True
+            }
+            collabcard_follow_internal(req_dict,state=collabcard_states.COLLABCARD_STATE_SEEN)
 
 
     return card
@@ -2999,6 +3002,9 @@ def create_card_internal(user_id, community_id, res):
     except:
         context = get_error_context(False, "the community id does n't exists")
         return context
+
+    card_type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
+    is_intro_card = card_type == card_types.CARD_INTRO
 
     has_auto_approve_right = check_member_auto_approve_right(user=user_instance,
                                                              community=community_instance)
@@ -3023,7 +3029,7 @@ def create_card_internal(user_id, community_id, res):
         # intro-card notification
         send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
 
-    if has_auto_approve_right:
+    if has_auto_approve_right or is_intro_card:
         # following the user created chatroom
         func_dict = {
             'member_id': user_id,
@@ -3047,13 +3053,14 @@ def create_card_internal(user_id, community_id, res):
         draftChatroom.objects.filter(id=res['draft_id']).delete()
         draftPolls.objects.filter(draft=res['draft_id']).delete()
 
-    if has_auto_approve_right:
+    if has_auto_approve_right or is_intro_card:
         #batch update for already existing users and saving their unseen count
         set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id,
-                                                              function_called="create_card_internal")
+                                                                  function_called="create_card_internal")
     else:
         update_pending_chatroom_count_for_promoters.delay(community_id)
-    #update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
+
+    update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
     context = {
         'collabcard': collabcard,
