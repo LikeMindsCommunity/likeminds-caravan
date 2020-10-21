@@ -3057,10 +3057,10 @@ def create_card_internal(user_id, community_id, res):
         #batch update for already existing users and saving their unseen count
         set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id,
                                                                   function_called="create_card_internal")
+        # update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
+
     else:
         update_pending_chatroom_count_for_promoters.delay(community_id)
-
-    update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
     context = {
         'collabcard': collabcard,
