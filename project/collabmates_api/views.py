@@ -7417,6 +7417,7 @@ def fetch_chatroom_feed(request):
     chatroom_id = request.GET.get('chatroom_id')
     scroll_direction = request.GET.get('scroll_direction')
 
+
     if scroll_direction and not chatroom_id:
         context = get_error_context(False, "send chatroom id with scroll direction")
         return JsonResponse(context)
@@ -7489,6 +7490,8 @@ def fetch_chatroom_feed_version_1(request):
     is_ios = is_platform_ios(request)
     chatroom_id = request.GET.get('chatroom_id')
     scroll_direction = request.GET.get('scroll_direction')
+
+    info_logger.info(request.GET)
 
     if scroll_direction and not chatroom_id:
         context = get_error_context(False, "send chatroom id with scroll direction")
