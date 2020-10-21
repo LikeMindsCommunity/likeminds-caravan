@@ -10677,14 +10677,14 @@ def push_report_v1(request):
         has_right_0 = False  # right to delete chat rooms or conversations
         has_right_1 = False  # right to approve or reject pending requests
 
-        member_instance = Members.objects.filter(community_id=community_id, member_id=reported_member_id)
+        member_instance = Members.objects.filter(community_id=community_id, member_id=member_id)
 
         if member_instance.exists():
             member = member_instance[0]
             is_owner = member.is_owner
             is_promoter = member.state == member_states.ADMIN
-            has_right_0 = check_admin_delete_right(user=reported_member_id, community=community_id)
-            has_right_1 = check_admin_approve_right(user=reported_member_id, community=community_id)
+            has_right_0 = check_admin_delete_right(user=member_id, community=community_id)
+            has_right_1 = check_admin_approve_right(user=member_id, community=community_id)
 
         if collabcard_id:
 
