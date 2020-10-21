@@ -655,7 +655,7 @@ def update_report_count_for_all_promoters(community_id=None, report_id=None):
     else:
         community = community_id
 
-    promoters = Members.objects.filter(community_id=community_id, state=member_states.ADMIN)
+    promoters = Members.objects.filter(community_id=community, state=member_states.ADMIN)
     for promoter in promoters:
         is_owner = promoter.is_owner
         parent_cm_list = json.loads(promoter.parent_cm_list) if promoter.parent_cm_list else []

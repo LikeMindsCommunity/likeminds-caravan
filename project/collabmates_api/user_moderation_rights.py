@@ -494,8 +494,7 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
 
     reports = Report.objects.select_related("reported_by", "user_reported", "tag", "action_taken_by",
                                             "action_taken_tag", "community", "collabcard",
-                                            "conversation").filter(community=community_id,
-                                                                   is_closed=False).exclude(type=3).order_by("-id")
+                                            "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
 
     # no once can see those reports which are reported on himself
     reports = reports.exclude(user_reported__id=user_id)
