@@ -164,18 +164,23 @@
         var country_code = stripValues(document.getElementById('country_code').innerHTML);
         var merge_phone_number = stripValues(document.getElementById('phone_number').value);
         var otp = stripValues(get_otp_from_user());
+        if(otp == "" || otp.length != 4){
+            console.log('wrong opt');
+            showSnackbar("Wrong OTP","asd");
+            return;
+        }
         var url = "//{{ request.META.HTTP_HOST }}/verify_otp?mobile_no="+merge_phone_number+"&country_code="+country_code+"&otp="+otp;
         console.log(country_code,phone_number,url);
         $.ajax(
-            {   
+            {
                 //confirm
-                url: url, 
+                url: url,
                 success: function(result){
                     obj = result;
-                    console.log("***",result['profile_exists']);
+                    console.log('***',result);
                     var success = result['success'];
                     console.log("***",success);
-                    if(success == true){                           
+                    if(success == true){
                         $('.test').modal('hide');
                         if(result['profile_exists'] == true){
                             console.log('reloading')
@@ -192,10 +197,11 @@
                     else{
                         $('#otp_error_message').html("Wrong OTP. Try Again");
                         $('#otp_form').addClass('error');
+                        showSnackbar("Wrong OTP"," ");
                     }
-                    
+
                 },
-                error: function (result) { // error callback 
+                error: function (result) { // error callback
                     console.log("Error:"+result)
                 }
             }
@@ -210,15 +216,15 @@
         var url = "//{{ request.META.HTTP_HOST }}/verify_otp?mobile_no="+phone_number+"&country_code="+country_code+"&otp="+otp+"&user_id="+user_id;
         console.log(country_code,phone_number,url);
         $.ajax(
-            {   
+            {
                 //confirm
-                url: url, 
+                url: url,
                 success: function(result){
                     var success = result['success'];
                     if(success == true){
 
                         showSnackbar("Login Successful","success");
-                        location.reload(); 
+                        location.reload();
                         // $('.test').modal('hide');
                         // $('.one_more_step').modal('show');
                         // $('.one_more_step').modal({
@@ -230,9 +236,9 @@
                         $('#otp_error_message').html("Wrong OTP. Try Again");
                         $('#otp_form').addClass('error');
                     }
-                    
+
                 },
-                error: function (result) { // error callback 
+                error: function (result) { // error callback
                     console.log("Error:"+result)
                 }
             }
