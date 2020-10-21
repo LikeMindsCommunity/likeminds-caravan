@@ -1137,7 +1137,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
     # add menu for all members api and fetch community profile API
 
     if (all_members_api or profile_detail_api) and (is_promoter or is_owner):
-        community_profile["menu"] = get_menu_for_members(current_user_id=current_user_id,item_member_id=member_id,
+        community_profile["menu"] = get_menu_for_members(current_user_id=current_user_id, item_member_id=member_id,
                                     community_id=community_id, current_user_is_promoter=is_promoter,
                                     current_user_is_owner=is_owner, item_member_state=member_instance.state,
                                     item_member_is_owner=user_is_owner, current_user_admin_rights=user_admin_rights,
@@ -1230,6 +1230,7 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
     else:
         if profile_detail_api:
             menu.append(report_member)
+            menu.append(block_member)
 
     return menu
 

@@ -5235,9 +5235,7 @@ def get_chatroom_actions(card_status, request, creator, promoter=False, current_
     final = final_dict.copy()
 
     if promoter and not creator:
-        print("here >>>>>>>>>> ", current_user_instance, community_instance)
         if check_admin_delete_right(user=current_user_instance, community=community_instance):
-            print("inside >>>>>>>>>> ")
             final.append(delete_chatroom)
 
     actions = []
@@ -5262,6 +5260,11 @@ def get_chatroom_actions(card_status, request, creator, promoter=False, current_
                                 action['id'] == chatroom_actions.ACTION_UNMUTE or \
                                 action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
+
+        elif action['id'] == chatroom_actions.ACTION_REPORT:
+            if promoter and not creator:
+                if check_admin_delete_right(user=current_user_instance, community=community_instance):
+                    continue
 
         actions.append(action)
 
