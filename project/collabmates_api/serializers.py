@@ -1160,7 +1160,8 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
     #  x is current member , y is member whose profile is currently in iteration sequence
     # current_user_state, item_member_state,
 
-    edit_title = {"title": "Edit title"}
+    edit_title = {"title": "Edit title",
+                  "route": f"route://edit_custom_title?community_id={community_id}&member_id={item_member_id}"}
     edit_permissions = {"title": "Edit permissions",
                         "route": f"route://edit_member_rights?community_id={community_id}&member_id={item_member_id}"}
     give_CM_rights = {"title": "Give community management rights",
