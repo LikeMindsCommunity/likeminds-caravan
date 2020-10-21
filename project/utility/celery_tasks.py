@@ -192,7 +192,7 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         )
 
     if unseen_count > 0:
-        member_instances = get_new_chatroom_members(user, community)
+        member_instances = fetch_new_chatroom_creater_images(user,community)
         if len(member_instances) > 0:
             Member_Engage.objects.filter(community_id=community, member_id=user).update(
                 new_chatroom_users=json.dumps(member_instances))
@@ -211,6 +211,7 @@ def get_new_chatroom_members(member_id, community_id):
         unseen_chatrooms = Collabcard.objects.filter(community=community_id,id__gt=last_card.id).distinct('user_id')
     else:
         unseen_chatrooms = Collabcard.objects.filter(community=community_id).distinct('user_id')
+
 
     member_list = []
     for card in unseen_chatrooms:
@@ -232,6 +233,38 @@ def get_new_chatroom_members(member_id, community_id):
         if len(member_list) > 3:
             break
 
+    return member_list
+
+
+def fetch_new_chatroom_creater_images(member_id,community_id):
+
+    unseen_chatrooms = collabcardState.objects.filter(user=member_id,community_id=community_id,external_seen=False).distinct('card')
+    print(unseen_chatrooms.query)
+    member_set = set()
+    member_list = []
+    for data in unseen_chatrooms:
+
+
+        user_instance = data.card.user
+
+        if user_instance not in member_set:
+
+            member_filter = Members.objects.filter(member_id=user_instance, community_id=data.community)
+            image_url = user_instance.userinfo.image_link if user_instance.userinfo.image_link else ''
+            exists = member_filter.exists()
+            if exists:
+                member_instance = member_filter[0]
+                if member_instance.image_url:
+                    image_url = member_instance.image_url
+
+            member = get_user_profile(user_instance, community_id, send_profile=False)
+            member['image_url'] = image_url
+            # member['removed'] = exists
+            member_list.append(member)
+            member_set.add(user_instance)
+
+        if len(member_list) > 3:
+            break
     return member_list
 
 
