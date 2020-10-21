@@ -393,6 +393,14 @@ def your_communities(request, user_id):
             }
             actions.append(pending_members)
 
+        if each_community.member_state == member_states.ADMIN:
+            management_tools = {
+                'title': """Management tools""",
+                'route': """route://management_tools?community_id=%s&community_name=%s""" % (
+                    str(community['id']), community['name'])
+            }
+            actions.append(management_tools)
+
 
         if each_community.member_state == member_states.ADMIN or each_community.member_state == member_states.MEMBER or each_community.member_state == member_states.PROFILE_UNAVAILABLE:
             community['collabcard_unseen'] = each_community.last_unseen_count
