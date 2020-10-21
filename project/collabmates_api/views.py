@@ -3031,7 +3031,7 @@ def create_card_internal(user_id, community_id, res):
             'status': True,
             'source': "create_chatroom"
         }
-        collabcard_follow_internal(func_dict, state=0)
+        collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
         update_last_answer_id(card_instance.id, "")
 
