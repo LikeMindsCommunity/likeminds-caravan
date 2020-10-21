@@ -635,7 +635,7 @@ def my_chatrooms_version_1(request):
     return JsonResponse(context)
 
 
-def get_latest_conversation_members(last_conversation_member,second_last_conversation_member,last_conversation_user,second_last_conversation_user):
+def  get_latest_conversation_members(last_conversation_member,second_last_conversation_member,last_conversation_user,second_last_conversation_user):
 
     conversation_users = []
     if last_conversation_member:
@@ -8545,6 +8545,7 @@ def verify_otp(request):
             for instance in mobile_filter:
                 phone_no = str(instance.country_code) + str(instance.mobile_no)
                 verified = verify_otp_on_mobile(phone_no, otp)
+                print()
 
                 if verified['success']:
                     break

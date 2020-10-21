@@ -1860,7 +1860,14 @@ def send_inactive_notification_utils(user_list):
             'mobile_os': notification_details[1]
         }
         notification_list.append(temp)
-        sub_title = """Hey %s, this chat room has been moved to inactive chat rooms since there has been no new activity here in the last 24 hours since you opened it. You may want to mark it as active for yourself if you intend to respond further in it. Else if anyone else responds in the future, it will become active again."""%(data['user_name'])
+
+        user_name = data['user_name']
+        if user_name:
+            split_name = user_name.split(" ")
+            if split_name and split_name[0]:
+                user_name = split_name[0]
+
+        sub_title = """Hey %s, this chat room has been moved to inactive chat rooms since there has been no new activity here in the last 24 hours since you opened it. You may want to mark it as active for yourself if you intend to respond further in it. Else if anyone else responds in the future, it will become active again."""%(user_name)
         message = {}
         message['payload'] = {
             'title': data['chatroom_name'],
