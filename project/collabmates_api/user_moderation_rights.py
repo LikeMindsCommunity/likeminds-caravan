@@ -482,6 +482,9 @@ def get_tool_review_reports(user_id, community_id, **kwargs):
 
 def get_related_reports_for_user(user_id, community_id, **kwargs):
 
+    if isinstance(user_id, User):
+        user_id = user_id.id
+
     is_owner = kwargs["is_owner"] if "is_owner" in kwargs else False
     parent_cm_list = kwargs["parent_cm_list"] if "parent_cm_list" in kwargs else []
     has_right_0 = kwargs["has_right_0"] if "has_right_0" in kwargs else False
@@ -493,11 +496,10 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
                                             "action_taken_tag", "community", "collabcard",
                                             "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
 
-    if is_owner:
-        # owner cannot see those reports which are reported on owner itself
-        reports = reports.exclude(user_reported__id=user_id)
+    # no once can see those reports which are reported on himself
+    reports = reports.exclude(user_reported__id=user_id)
+    if not is_owner:
 
-    else:
         reports = reports.exclude(user_reported__id__in=parent_cm_list)
         if has_right_0 and not has_right_1 and not has_right_2:
             # if user has only right 0
