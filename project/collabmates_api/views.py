@@ -2353,7 +2353,7 @@ def fetch_user_chatrooms(request):
         for chatroom in state_filter:
             temp = get_chatroom_instance(chatroom.card, user_id, current_user_id=current_user_id)
             temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
-            engage_filter = conversationEngage.objects.filter(card=chatroom, user=user_id)
+            engage_filter = conversationEngage.objects.filter(card=chatroom.card, user=user_id)
             temp['conversation_users'] = []
             if engage_filter.exists():
                 temp['conversation_users'] = get_conversation_users(engage_filter[0])
