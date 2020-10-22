@@ -613,7 +613,7 @@ def my_chatrooms_version_1(request):
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
 
-        last_conversation_member= instance.last_conversation_member
+        last_conversation_member = instance.last_conversation_member
         second_last_conversation_member = instance.second_last_conversation_member
         last_conversation_user = instance.last_conversation_user
         second_last_conversation_user = instance.second_last_conversation_user
@@ -2328,6 +2328,11 @@ def fetch_user_chatrooms(request):
 
         for chatroom in chatroom_filter:
             temp = get_chatroom_instance(chatroom, user_id, current_user_id=current_user_id)
+            temp['conversation_users'] = []
+            engage_filter = conversationEngage.objects.filter(card=chatroom,user=user_id)
+            if engage_filter.exists():
+                temp['conversation_users'] = get_conversation_users(engage_filter[0])
+
             chatrooms.append(temp)
 
         return JsonResponse({'chatrooms': chatrooms, 'total_chatrooms_created': created_chatroom_count})
@@ -2344,9 +2349,14 @@ def fetch_user_chatrooms(request):
             card__in=chatroom_filter.values('id')).order_by('-updated_at')
         followed_chatroom_count = state_filter.count()
         state_filter = pagination(state_filter, page, paginate_by=10)
+
         for chatroom in state_filter:
             temp = get_chatroom_instance(chatroom.card, user_id, current_user_id=current_user_id)
             temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
+            engage_filter = conversationEngage.objects.filter(card=chatroom, user=user_id)
+            temp['conversation_users'] = []
+            if engage_filter.exists():
+                temp['conversation_users'] = get_conversation_users(engage_filter[0])
             chatrooms.append(temp)
 
         return JsonResponse({'chatrooms': chatrooms, 'total_chatrooms_followed': followed_chatroom_count})
@@ -2393,6 +2403,18 @@ def fetch_common_communities(request):
         communities.append(community_serializer)
     return JsonResponse({'communities': communities, 'total_count': total_count})
 
+def get_conversation_users(instance):
+
+    last_conversation_member = instance.last_conversation_member
+    second_last_conversation_member = instance.second_last_conversation_member
+    last_conversation_user = instance.last_conversation_user
+    second_last_conversation_user = instance.second_last_conversation_user
+
+    conversation_users = get_latest_conversation_members(last_conversation_member,
+                                                         second_last_conversation_member,
+                                                         last_conversation_user,
+                                                         second_last_conversation_user)
+    return  conversation_users
 
 ############# functions for  create flow of card,community and members   ##########################
 
