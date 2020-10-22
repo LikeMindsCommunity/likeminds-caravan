@@ -9862,6 +9862,7 @@ def edit_community_data(community_instance, user_instance, edit_field):
 
         if edit_field == "directory":
             member_directory_route = f"route://members_directory?community_id={community_instance.id}&community_name={community_instance.name}"
+            member_directory_route = quote(member_directory_route)
             bubble_text = "<<" + user_name + """ edited member directory. Tap to view.""" + "|" + member_directory_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
 
