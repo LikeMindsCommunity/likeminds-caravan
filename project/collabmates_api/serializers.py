@@ -16,7 +16,7 @@ url = settings.URL
 import ast
 from .static_files import *
 from .static_text import months_semi
-
+from .user_moderation_rights import check_member_invite_private_right
 from datetime import datetime, date
 
 
@@ -28,7 +28,8 @@ from datetime import datetime, date
 
 
 
-def CommunitySerializer(community, promoter_id=0,current_user_id=None):
+def CommunitySerializer(community, promoter_id=0, is_owner=False,
+                        current_user_id=None, current_user_instance=None):
 
     # function to serialize a community object
     new_dict = {
@@ -68,7 +69,7 @@ def CommunitySerializer(community, promoter_id=0,current_user_id=None):
     new_dict['state'] = int(community.hide_community)
 
     # generating private link
-    if promoter_id:
+    if promoter_id or is_owner:
         private_link = generate_private_link(community_instance=community,
                                              promoter_instance=promoter_id)
         if current_user_id:
@@ -82,11 +83,30 @@ def CommunitySerializer(community, promoter_id=0,current_user_id=None):
             new_dict[
                 'private_link_text_admin'] = """Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
             community.name, private_link)
+        private_link_members_directory = private_link + "&source=members_directory"
+        new_dict['private_link_members_directory'] = private_link_members_directory
 
-        new_dict['private_link_members_directory'] = private_link + "&source=members_directory"
+        if is_owner:
+            private_link_text_members_directory = f"I have created a community directory for {community.name} on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}"
+
+        else:
+            private_link_text_members_directory = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
+
         new_dict[
-            'private_link_text_members_directory'] = """I have created a community directory for %s on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
-        community.name, new_dict['private_link_members_directory'])
+            'private_link_text_members_directory'] = private_link_text_members_directory
+
+    elif current_user_instance:
+
+        if check_member_invite_private_right(current_user_instance, community):
+            private_link = generate_private_link(community_instance=community,
+                                                 promoter_instance=current_user_instance)
+            if current_user_id:
+                private_link = private_link + f"&shared_by={current_user_id}"
+
+            new_dict['private_link_text_member'] = f"Join {community.name} on LikeMinds with my exclusive link. For security, this is valid only for next 24 hours: {private_link}"
+
+            private_link_members_directory = private_link + "&source=members_directory"
+            new_dict['members_directory_link_for_members'] = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
 
     if community.type:
         new_dict['type'] = community.type
@@ -1149,6 +1169,8 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         block_member = {"title": "Block member",
                         "route": f"route://block_member?community_id={community_id}&member_id={member_id}"}
         community_profile["menu"] = [report_member, block_member]
+        if user_is_owner:
+            community_profile["menu"] = [report_member]
 
     return community_profile
 
@@ -1208,6 +1230,7 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
 
         if profile_detail_api:
             menu.append(report_member)
+            # if not item_member_is_owner:
             menu.append(block_member)
 
     elif current_user_is_promoter and item_member_state == member_states.MEMBER:
@@ -1230,6 +1253,7 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
     else:
         if profile_detail_api:
             menu.append(report_member)
+            # if not item_member_is_owner:
             menu.append(block_member)
 
     return menu
