@@ -13,7 +13,8 @@ from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
                             Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers,
                             conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
-                            moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers)
+                            moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,userDevices)
+
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,
                            )
 
@@ -101,30 +102,67 @@ def get_title_from_collabcard(card):
         return card.title[:30]
 
 
-def notification_meta(notification_list,message):
+def get_devices_of_users(user_id):
+
+    '''function to get all devices of users'''
+
+    devices_filter  = userDevices.objects.filter(user=user_id)
+    user_devices = []
+
+    for device in devices_filter:
+        temp = {}
+        temp['id'] = device.user.id
+        temp['fcm_token'] = device.fcm_token
+        temp['mobile_os'] = device.mobile_os
+        user_devices.append(temp)
+
+    return user_devices
+
+
+
+def notification_meta(notification_list,message,calling_notification=""):
     # print(notification_list,message)
     '''function to process notification to send'''
 
-    token_list_android=[]
-    token_list_ios=[]
-
     for data in notification_list:
-        if data['fcm_token']:
-            if data['mobile_os'] == "Android":
-                token_list_android.append(data['fcm_token'])
-            else:
-                token_list_ios.append(data['fcm_token'])
-                #functionalities for iOS flow
+
+        if 'id' in data:
+            user_id = data['id']
+        else:
+            continue
+
+        user_devices = get_devices_of_users(user_id)
+
+        for device in user_devices:
+            if device['mobile_os'] == "Android":
+                token_list = [device['fcm_token']]
+                send_notification_for_android(token_list, message)
+            elif device['mobile_os'] == 'iOS':
+                token_list = [device['fcm_token']]
                 if 'message' in data:
-                    send_notification_for_ios(token_list_ios, data['message'])
+                    send_notification_for_ios(token_list, data['message'])
                 else:
-                    send_notification_for_ios(token_list_ios,message)
-                token_list_ios = []
+                    send_notification_for_ios(token_list,message)
 
-            #print(data)
 
-    if token_list_android:
-        send_notification_for_android(token_list_android,message)
+
+    # for data in notification_list:
+    #     if data['fcm_token']:
+    #         if data['mobile_os'] == "Android":
+    #             token_list_android.append(data['fcm_token'])
+    #         else:
+    #             token_list_ios.append(data['fcm_token'])
+    #             #functionalities for iOS flow
+    #             if 'message' in data:
+    #                 send_notification_for_ios(token_list_ios, data['message'])
+    #             else:
+    #                 send_notification_for_ios(token_list_ios,message)
+    #             token_list_ios = []
+    #
+    #         #print(data)
+    #
+    # if token_list_android:
+    #     send_notification_for_android(token_list_android,message)
 
     # if token_list_ios:
     #     send_notification_for_ios(token_list_ios,message)
@@ -282,10 +320,19 @@ def send_notification_to_admins(community_id,name):
         sql="select member_id_id from togther_members where community_id_id= " + str(community_id) + " and (state=1 or state=2)"
         curr.execute(sql)
         admins=curr.fetchall()
-        token_list=[]
+        notification_list=[]
+
         for admin in admins:
-             fcm_token=get_token_for_fcm(admin[0])
-             token_list.append((fcm_token))
+            temp = {}
+            promoter_id = admin[0]
+            notification_details = get_token_for_fcm(promoter_id, True)
+            if notification_details:
+                temp['id'] = promoter_id
+                temp['fcm_token'] = notification_details[0]
+                temp['mobile_os'] = notification_details[1]
+
+            notification_list.append(temp)
+
 
         community_name=get_community_name(community_id)
         message={}
@@ -294,7 +341,10 @@ def send_notification_to_admins(community_id,name):
             'sub_title':str(name)+' has requested to join your community',
             'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "community_name=" + str(community_name)
         }
-        send_notification_to_multiple_devices(token_list,message)
+
+        notification_meta(notification_list,message)
+
+        #send_notification_to_multiple_devices(token_list,message)
         curr.close()
         connection.close()
     except (Exception, psycopg2.Error) as error:
@@ -307,7 +357,7 @@ def send_notification_for_join_requests(community_id,flag,member_id,promoter_nam
     community_name=get_community_name(community_id)
     temp = {}
     notification_list=[]
-    temp['user_id'] = member_id
+    temp['id'] = member_id
     notification_details = get_token_for_fcm(member_id, True)
     temp['fcm_token'] = notification_details[0]
     temp['mobile_os'] = notification_details[1]
@@ -400,7 +450,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         # print(member_list)
         for member in member_list:
             temp = {}
-            temp['user_id'] = member[0]
+            temp['id'] = member[0]
             notification_details = get_token_for_fcm(member[0], True)
             temp['fcm_token'] = notification_details[0]
             temp['mobile_os'] = notification_details[1]
@@ -539,14 +589,17 @@ def send_follow_notification(card_id,user_id,answer):
                 temp['id']=member[0]
                 temp['fcm_token'] = notification_details[0]
                 temp['mobile_os'] = notification_details[1]
-                if temp['mobile_os'] == 'iOS':
+
+                #if the user has a iOS device reqistered
+                device_filter = userDevices.objects.filter(user=temp['id'],mobile_os='iOS')
+                if device_filter.exists():
                     unread_followed_chatroom = get_custom_data_for_new_conversation_created_ios(temp['id'])
                     message['payload']['unread_followed_chatroom'] = unread_followed_chatroom
                     temp['message'] = message
 
                 notification_list.append(temp)
 
-        notification_meta(notification_list,message)
+        notification_meta(notification_list,message,calling_notification="send_follow_notification")
 
 
 
@@ -749,7 +802,9 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
         temp['fcm_token'] = notification_details[0]
         temp['mobile_os'] = notification_details[1]
 
-        if temp['mobile_os'] == 'iOS' and chatroom_created == False:
+        device_filter = userDevices.objects.filter(user=temp['id'], mobile_os='iOS')
+
+        if device_filter.exists() and chatroom_created == False:
             #case for send conversation message
             unread_followed_chatroom = get_custom_data_for_new_conversation_created_ios(user_id)
             message['payload']['unread_followed_chatroom'] = unread_followed_chatroom
@@ -1732,6 +1787,103 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         print("Error while connecting to PostgreSQL")
 
 
+
+
+
+
+@app.task
+def send_notification_to_inactive_chatroom_users():
+
+    current_time = time.time()
+
+    inactive_chatrooms = collabcardState.objects.filter(follow_status=True,
+                                                        remove=None).filter(~Q(expiry_time=None) & Q(
+        expiry_time__lt=current_time)).filter(created_at__gt = 1603109125)
+
+    user_set = set()
+    user_list = []
+    for data in inactive_chatrooms:
+
+        key = str(data.user.id)+"--"+str(data.card.id)
+        if key not in user_set:
+            temp = {}
+            user_instance = data.user
+            card_instance = data.card
+            notification_filter = memberNotificationFlag.objects.filter(member=user_instance,
+                                                                        card=card_instance,
+                                                                        code='chat_room_becoming_inactive'
+                                                                        )
+            if notification_filter.exists():
+                if data.expiry_time > notification_filter[0].updated_at:
+                    temp['user_id'] = user_instance.id
+                    temp['user_name'] = user_instance.userinfo.name
+                    temp['chatroom_id'] = card_instance.id
+                    temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+                    notification_filter.update(updated_at=current_time)
+                    user_list.append(temp)
+            else:
+                instance = memberNotificationFlag()
+                instance.member = user_instance
+                instance.card = card_instance
+                instance.updated_at = current_time
+                instance.created_at = current_time
+                instance.community = data.community
+                instance.flag = True
+                instance.code = 'chat_room_becoming_inactive'
+                instance.save()
+                temp['user_id'] = user_instance.id
+                temp['user_name'] = user_instance.userinfo.name
+                temp['chatroom_id'] = card_instance.id
+                temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+                user_list.append(temp)
+
+            user_set.add(key)
+
+    end_time = time.time()
+    diff = end_time - current_time
+    print(diff)
+
+    send_inactive_notification_utils(user_list)
+
+
+
+
+def send_inactive_notification_utils(user_list):
+
+
+    for data in user_list:
+        notification_list = []
+        notification_details = get_token_for_fcm(data['user_id'], flag=True)
+        temp = {
+            'id': data['user_id'],
+            'fcm_token': notification_details[0],
+            'mobile_os': notification_details[1]
+        }
+        notification_list.append(temp)
+
+        user_name = data['user_name']
+        if user_name:
+            split_name = user_name.split(" ")
+            if split_name and split_name[0]:
+                user_name = split_name[0]
+
+        sub_title = """Hey %s, this chat room has been moved to inactive chat rooms since there has been no new activity here in the last 24 hours since you opened it. You may want to mark it as active for yourself if you intend to respond further in it. Else if anyone else responds in the future, it will become active again."""%(user_name)
+        message = {}
+        message['payload'] = {
+            'title': data['chatroom_name'],
+            'sub_title': sub_title,
+            'route': f"route://inactive_chatroom?chatroom_id={data['chatroom_id']}"
+        }
+
+        notification_meta(notification_list,message)
+
+    print("Notification Sent")
+
+
+
+# x=CeleryBeatTask()
+# x.terminate_task("send_notification_to_inactive_chatroom_users")
+# x.terminate_task("run_after_10_sec")
 @shared_task
 def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, community_id):
     community_instance = Community.objects.get(pk=community_id)
@@ -1961,7 +2113,6 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
         notification_list.append(user_details)
 
     notification_meta(notification_list, message)
-
 
 
 

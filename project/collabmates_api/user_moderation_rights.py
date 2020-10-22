@@ -8,7 +8,6 @@ from django.db.models import Q
 from .static_text import *
 
 
-
 def give_all_member_rights(user, community):
     """function to give a member all the rights """
     userMemberRights.objects.filter(user=user, community=community).delete()
@@ -18,7 +17,7 @@ def give_all_member_rights(user, community):
 
 
 def give_default_member_rights(user, community):
-    """function to give a member all the rights """
+    """function to give default member rights to a user """
 
     if not isinstance(user, User):
         user = User.objects.get(pk=user)
@@ -51,7 +50,7 @@ def give_all_manager_rights(user, community):
 
 
 def give_default_manager_rights_list(user, community):
-
+    """ function to save default CM rights to a user in a community """
     if not isinstance(user, User):
         user = User.objects.get(pk=user)
 
@@ -66,6 +65,7 @@ def give_default_manager_rights_list(user, community):
 
 
 def fill_admin_rights(user, community, rights_list):
+    """ function to save CM rights of a user in a community """
     for right in rights_list:
         try:
             userAdminRights(user=user, community=community, right=right).save()
@@ -74,6 +74,7 @@ def fill_admin_rights(user, community, rights_list):
 
 
 def fill_member_rights(user, community, rights_list):
+    """ function to save members rights of a user in a community """
     for right in rights_list:
         try:
             userMemberRights(user=user, community=community, right=right).save()
@@ -82,7 +83,7 @@ def fill_member_rights(user, community, rights_list):
 
 
 def get_saved_member_rights_list(user_rights, admin_rights=None):
-
+    """ function to return the selected and disabled rights of a member or community settings """
     all_member_rights = memberRights.objects.all().order_by("state")
     rights_list = []
     for right in all_member_rights:
@@ -267,7 +268,7 @@ def remove_creation_rights_for_user(user, community):
 def check_admin_delete_right(user, community):
 
     user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
+                                                 right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
 
     if user_rights.exists():
         return True
@@ -287,7 +288,7 @@ def check_admin_approve_right(user, community):
 def check_admin_view_contact_right(user, community):
 
     user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
+                                                 right__state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
 
     if user_rights.exists():
         return True
@@ -434,7 +435,7 @@ def remove_right_for_all_members(community, right):
                                 community_id=community).filter(Q(state=member_states.MEMBER) |
                                                                Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
                                                                Q(state=member_states.PROFILE_UNAVAILABLE))
-
+    # has to loop through the members list cause the right should not be deleted for CM's
     for member in community_members:
         try:
             userMemberRights.objects.filter(user=member.member_id, community=community, right=right).delete()
@@ -455,7 +456,7 @@ def get_tool_member_requests(user_id, community_id):
 def get_tool_pending_chat_rooms(user_id, community_id):
 
     global tool_pending_chat_rooms
-    count = Collabcard.objects.filter(community_id=community_id, is_pending=True, is_deleted=False).count()
+    count = Collabcard.objects.filter(community=community_id, is_pending=True, is_deleted=False).count()
     tool_pending_chat_rooms = tool_pending_chat_rooms.copy()
     tool_pending_chat_rooms["count"] = count
     return tool_pending_chat_rooms
@@ -481,9 +482,8 @@ def get_tool_review_reports(user_id, community_id, **kwargs):
 
 def get_related_reports_for_user(user_id, community_id, **kwargs):
 
-    reports = Report.objects.select_related("reported_by", "user_reported", "tag", "action_taken_by",
-                                            "action_taken_tag", "community", "collabcard",
-                                            "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
+    if isinstance(user_id, User):
+        user_id = user_id.id
 
     is_owner = kwargs["is_owner"] if "is_owner" in kwargs else False
     parent_cm_list = kwargs["parent_cm_list"] if "parent_cm_list" in kwargs else []
@@ -492,21 +492,24 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
     has_right_2 = kwargs["has_right_2"] if "has_right_2" in kwargs else False
     return_reports_count = kwargs["return_reports_count"] if "return_reports_count" in kwargs else False
 
+    reports = Report.objects.select_related("reported_by", "user_reported", "tag", "action_taken_by",
+                                            "action_taken_tag", "community", "collabcard",
+                                            "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
 
-    if is_owner:
-        # owner cannot see those reports which are reported on owner itself
-        reports = reports.exclude(user_reported__id=user_id)
+    # no once can see those reports which are reported on himself
+    reports = reports.exclude(user_reported__id=user_id)
+    if not is_owner:
 
-    else:
         reports = reports.exclude(user_reported__id__in=parent_cm_list)
         if has_right_0 and not has_right_1 and not has_right_2:
             # if user has only right 0
             reports = reports.exclude(type=0)
-        elif not has_right_1 and not has_right_0 and not has_right_2:
+        elif has_right_1 and not has_right_0 and not has_right_2:
             # if user has only right 1
             reports = reports.exclude(type__in=[1, 2])
 
     if return_reports_count:
+        reports = reports.exclude(is_closed=True)
         return reports.count()
 
     return reports
@@ -521,6 +524,19 @@ def get_right_dict(right):
 
     return right_dict
 
+
+def give_all_community_setting_rights(community):
+    member_rights = memberRights.objects.all().order_by("state")
+    save_community_setting_rights(community, member_rights)
+
+
+def save_community_setting_rights(community, rights_list):
+
+    for right in rights_list:
+        try:
+            communityRightsSettings(community=community, right=right).save()
+        except:
+            print(">>>> member  --  ", community.id, right.id)
 
 
 

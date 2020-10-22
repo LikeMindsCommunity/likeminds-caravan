@@ -13,13 +13,18 @@ from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
                            is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email,
                            android_app_download_link,ios_app_download_link,check_notification_flag)
-
+from utility.states import (collabcard_states, member_states, community_states,
+                            card_types, chatroom_states, chatroom_actions, member_rights, manager_rights,
+                            moderation_history_types, report_Action_Types, report_Types)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from togther.models import Collabcard
-from utility.encryption import encrypt,decrypt
+from utility.encryption import encrypt, decrypt
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
+from .user_moderation_rights import (get_related_reports_for_user, check_admin_delete_right,
+                                     check_admin_approve_right, check_admin_edit_community_right)
+import json
 # from datetime import datetime,
 # url = 'https://beta.likeminds.community'
 url = settings.URL
@@ -562,7 +567,7 @@ def send_community_confirmation_email(user_id, community_id):
 
 
 @app.task
-def send_community_confirmation_email_2(user_id, community_id,task_name,*args,**kwargs):
+def send_community_confirmation_email_2(user_id, community_id, task_name, *args, **kwargs):
     print("here")
     user_instance = User.objects.get(pk=user_id)
     community_instance = Community.objects.get(id=community_id)
@@ -597,5 +602,85 @@ def send_community_confirmation_email_2(user_id, community_id,task_name,*args,**
         print(email_context)
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
+
+
+@shared_task
+def update_pending_chatrooms_and_report_count(community_id):
+    """ function to update pending chatrooms and open reports count count for all promoters in community """
+    community = Community.objects.get(pk=community_id)
+
+    update_pending_chatroom_count_for_promoters(community)
+    update_report_count_for_all_promoters(community)
+
+
+@shared_task
+def update_pending_chatroom_count_for_promoters(community_id):
+    """ function to update pending chatrooms count for all promoters in community """
+
+    if not isinstance(community_id, Community):
+        community = Community.objects.get(pk=community_id)
+    else:
+        community = community_id
+    user_list = get_users_with_right(community, manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
+
+    pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True, is_deleted=False).count()
+
+    Member_Engage.objects.filter(member_id__in=user_list,
+                                 community_id=community).update(pending_chatrooms=pending_chatrooms)
+    member_state_list = [member_states.MEMBER, member_states.KNOWN_NOMINATED_PROMOTER, member_states.PROFILE_UNAVAILABLE]
+    Member_Engage.objects.filter(community_id=community,
+                                 member_state__in=member_state_list).update(pending_chatrooms=0,
+                                                                            open_reports=0)
+
+
+def get_users_with_right(community, right_state):
+    user_list = list(userAdminRights.objects.filter(community=community,
+                                                    right__state=right_state).distinct("user").values_list("user__id"))
+    return user_list
+
+
+@shared_task
+def update_report_count_for_all_promoters(community_id=None, report_id=None):
+    """ function to update open reports count for all promoters in community """
+
+    if community_id is None and report_id is None:
+        return
+
+    if community_id is None:
+        report_instance = Report.objects.get(pk=report_id)
+        community = report_instance.community
+
+    elif not isinstance(community_id, Community):
+        community = Community.objects.get(pk=community_id)
+    else:
+        community = community_id
+
+    promoters = Members.objects.filter(community_id=community, state=member_states.ADMIN)
+    for promoter in promoters:
+        is_owner = promoter.is_owner
+        parent_cm_list = json.loads(promoter.parent_cm_list) if promoter.parent_cm_list else []
+
+        update_report_count_in_member_engage(promoter.member_id, community,
+                                             is_owner=is_owner, parent_cm_list=parent_cm_list)
+
+
+def update_report_count_in_member_engage(user, community, is_owner=False, parent_cm_list=None):
+
+    if parent_cm_list is None:
+        parent_cm_list = []
+
+    has_right_0 = check_admin_delete_right(user=user, community=community)
+    has_right_1 = check_admin_approve_right(user=user, community=community)
+    has_right_2 = check_admin_edit_community_right(user=user, community=community)
+
+    if not has_right_0 and not has_right_1 and has_right_2:
+        report_count = 0
+    else:
+        report_count = get_related_reports_for_user(user_id=user, community_id=community, has_right_0=has_right_0,
+                                                    is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                    parent_cm_list=parent_cm_list, return_reports_count=True)
+
+    Member_Engage.objects.filter(member_id=user, community_id=community).update(open_reports=report_count)
+
 
 
