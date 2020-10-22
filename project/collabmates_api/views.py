@@ -11,8 +11,7 @@ from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import F
-from django.db.models import Q
+from django.db.models import F, When, Q
 from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -829,22 +828,24 @@ def community(request, community_id, req_dict=None):
         if context:
             return JsonResponse(context,safe=False)
 
-
     community = Community.objects.get(id=community_id)
     member_id = get_member_id_from_headers(request)
     is_promoter = False
+    is_owner = False
     block_leave_community = False
     member_list = Members.objects.filter(community_id=community, member_id=member_id)
     promoter_instance = 0
+    current_user_instance = None
     new_dict = {}
     menu = ""
     if member_list.exists():
-
+        current_user_instance = member_list[0].member_id
         state = member_list[0].state
 
         if state == member_states.ADMIN:
             is_promoter = True
-            promoter_instance = member_list[0].member_id
+            is_owner = member_list[0].is_owner
+            promoter_instance = current_user_instance
             block_leave_community = True
             menu = MENU['promoter'].copy()
 
@@ -862,9 +863,11 @@ def community(request, community_id, req_dict=None):
         block_leave_community = True
 
     if is_promoter:
-        serialized_object = CommunitySerializer(community, promoter_id=promoter_instance, current_user_id=member_id)
+        serialized_object = CommunitySerializer(community, promoter_id=current_user_instance,
+                                                is_owner=is_owner, current_user_id=member_id)
     else:
-        serialized_object = CommunitySerializer(community, current_user_id=member_id)
+        serialized_object = CommunitySerializer(community, current_user_id=member_id,
+                                                current_user_instance=current_user_instance)
 
     community_state = get_state_of_community(community)
 
@@ -1029,14 +1032,14 @@ def questions(request):
 
     managers = get_community_managers(community_instance)
 
-    if managers['count'] > 1 :
-        managed_by = managers['manager_name']+ ".."+"+"+str(managers['count'] - 1)
+    if managers['count'] > 1:
+        managed_by = managers['manager_name'] + ".."+"+"+str(managers['count'] - 1)
     else:
         managed_by = managers['manager_name']
 
     community['managed_by'] = managed_by
 
-    ##private link share flow
+    # private link share flow
     aj = request.GET.get('aj')
     user_instance = User.objects.get(id=member_id)
 
@@ -5467,7 +5470,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     context['chatroom_actions'] = chatroom_actions
     context['total_response_count'] = total_response_count
 
-    context['community'] = CommunitySerializer(card_instance.community)
+    context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance)
 
     # updating the activity of chatroom
     # update_activity_in_chatroom(card_instance,user_instance=user_id)
@@ -5638,7 +5641,8 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     context['chatroom_actions'] = chatroom_actions
     context['total_response_count'] = total_response_count
 
-    context['community'] = CommunitySerializer(card_instance.community, current_user_id=user_id)
+    context['community'] = CommunitySerializer(card_instance.community, current_user_id=user_id,
+                                               current_user_instance=user_instance)
 
     # updating the activity of chatroom
     # update_activity_in_chatroom(card_instance,user_instance=user_id)
@@ -11688,8 +11692,17 @@ def remove_community_manager(request):
         # deleting all manager rights
         userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
         # updating member state of manager to member
+
+        member_instance = Members.objects.filter(community_id=community_instance,
+                                                 member_id=user_instance)
+        custom_title = "Member"
+        if member_instance.exists():
+            custom_title = member_instance[0].custom_title
+            if custom_title == "Community Manager":
+                custom_title = "Member"
+
         Members.objects.filter(community_id=community_instance,
-                               member_id=user_instance).update(state=member_states.MEMBER, custom_title="Member",
+                               member_id=user_instance).update(state=member_states.MEMBER, custom_title=custom_title,
                                                                parent_cm=None, parent_cm_list='[]')
         Member_Engage.objects.filter(member_id=user_instance,
                                      community_id=community_instance).update(member_state=member_states.MEMBER,
@@ -11786,6 +11799,8 @@ def transfer_community_ownership(request):
         previous_owner_title = "Owner"
         if admin[0].custom_title:
             previous_owner_title = admin[0].custom_title
+            if previous_owner_title == "Owner":
+                previous_owner_title = "Community Manager"
 
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
@@ -12331,7 +12346,6 @@ def fetch_management_tools(request):
     community_name = community_instance.name
     header = f"Management tools for {community_name}"
     management_tools = []
-
 
     tools = {"header": header,
              "management_tools": management_tools}
