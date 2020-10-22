@@ -6470,6 +6470,11 @@ def create_conversation(request):
     if 'replied_conversation_id' in res:
         replied_conversation = card_answers.objects.get(pk=res['replied_conversation_id'])
 
+    has_files = False
+    if ('has_files' in res and res['has_files']):
+         has_files = True
+
+
     ans = card_answers()
     ans.answer = res['text']
     ans.card = card_instance
@@ -6477,7 +6482,7 @@ def create_conversation(request):
     ans.community = card_instance.community
     ans.is_guest = state_filter.exists()
     ans.created_at = time.time()
-    ans.has_files = True if ('has_files' in res and res['has_files']) else False
+    ans.has_files = has_files
     if replied_conversation:
         ans.reply = replied_conversation
 
@@ -6507,7 +6512,9 @@ def create_conversation(request):
         ans.og_tags = json.dumps(decode_meta_from_url(res['share_link']))
         ans.save()
 
-    update_last_answer_id(card_instance.id, ans.id)
+    #saving those answers which don't have files
+    if not has_files:
+        update_last_answer_id(card_instance.id, ans.id)
 
     # auto following the collabcard if answer is created
     if current_state['state'] == member_states.ADMIN or current_state['state'] == member_states.MEMBER or current_state[
@@ -7724,6 +7731,9 @@ def upload_files(request):
         card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms)
 
         conversation = get_conversation_instance_for_db_synching(answer_instance,current_user_id=member_id)
+
+        #saving last answer id
+        update_last_answer_id(answer_instance.card.id, answer_instance.id)
 
     elif 'poll_id' in body:
 
