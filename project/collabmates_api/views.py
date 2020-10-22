@@ -7728,6 +7728,9 @@ def upload_files(request):
         file.location_lat = body['location_lat'] if 'location_lat' in body else None
         file.location_long = body['location_long'] if 'location_long' in body else None
         file.save()
+
+        files_count = body['files_count'] if 'files_count' in body else 0
+
         current_time_ms = int(round(time.time() * 1000))
 
         #updating the last updated when posting answer
@@ -7736,7 +7739,9 @@ def upload_files(request):
         conversation = get_conversation_instance_for_db_synching(answer_instance,current_user_id=member_id)
 
         #saving last answer id
-        update_last_answer_id(answer_instance.card.id, answer_instance.id)
+        uploaded_files_count = answerAttachment.objects.filter(answer=answer_instance).count()
+        if uploaded_files_count == int(files_count):
+            update_last_answer_id(answer_instance.card.id, answer_instance.id)
 
     elif 'poll_id' in body:
 
