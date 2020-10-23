@@ -1226,7 +1226,7 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
                 menu.append(remove_from_community)
 
             if current_user_admin_rights["add_manager"] and is_child:
-                menu.append(edit_permissions)
+                menu.append(edit_CM_rights)
 
         if profile_detail_api:
             menu.append(report_member)
