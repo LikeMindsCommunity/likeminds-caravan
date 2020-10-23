@@ -2007,7 +2007,7 @@ def send_notification_for_pending_chatroom_approved_or_rejected(card_id, is_appr
     notification_list = []
 
     user_details = {
-        "id": card_creator.userinfo.user_id.id,
+        "id": card_creator.id,
         'fcm_token': user_fcm_token,
         'mobile_os': user_mobile_os,
     }
@@ -2115,13 +2115,13 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
 
     following_member_ids = list(conversationEngage.objects.filter(card=card_instance).values_list("user__id", flat=True))
 
-    userinfos = Userinfo.objects.filter(user_id__in=following_member_ids)
+    users = User.objects.filter(id__in=following_member_ids)
 
-    for user in userinfos:
+    for user in users:
         user_details = {
-            "id": user.user_id.id,
-            'fcm_token': user.fcm_token,
-            'mobile_os': user.mobile_os,
+            "id": user.id,
+            'fcm_token': user.userinfo.fcm_token,
+            'mobile_os': user.userinfo.mobile_os,
         }
 
         notification_list.append(user_details)
