@@ -7719,10 +7719,16 @@ def upload_files(request):
 
     conversation = None
 
+    context = {
+        'success': True,
+    }
+
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
 
-    if 'community_id' in body:
+
+
+    if 'community_id' in body and body['community_id']:
         # if image to be updated in community
         community_id = body['community_id']
         community = Community.objects.get(id=community_id)
@@ -7749,7 +7755,7 @@ def upload_files(request):
             instance.community = community
             instance.save()
 
-    elif 'collabcard_id' in body:
+    elif 'collabcard_id' in body and body['collabcard_id']:
         attachment_type = body['type']
         collabcard_id = body['collabcard_id']
         collabcard = Collabcard.objects.get(id=collabcard_id)
@@ -7760,7 +7766,7 @@ def upload_files(request):
         file.file_url = body['url']
         file.save()
 
-    elif 'answer_id' in body:
+    elif 'answer_id' in body and body['answer_id']:
         attachment_type = body['type']
         answer_id = body['answer_id']
         answer_instance = card_answers.objects.get(id=answer_id)
@@ -7788,7 +7794,7 @@ def upload_files(request):
             update_last_answer_id(answer_instance.card.id, answer_instance.id)
             send_follow_notification(card_id=answer_instance.card.id, user_id=answer_instance.user.id, answer=answer_instance.answer)
 
-    elif 'poll_id' in body:
+    elif 'poll_id' in body and body['poll_id']:
 
         try:
             instance = CollabcardPolls.objects.get(id=body['poll_id'])
@@ -7796,7 +7802,7 @@ def upload_files(request):
             instance.save()
         except:
             return JsonResponse({'success': False, 'error_message': "Send valid poll id"})
-    elif 'draft_id' in body:
+    elif 'draft_id' in body and body['draft_id']:
         attachment_type = body['type']
         draft_id = body['draft_id']
         draft_instance = draftChatroom.objects.get(id=draft_id)
@@ -7807,7 +7813,7 @@ def upload_files(request):
         instance.type = attachment_type
         instance.save()
 
-    elif 'draft_poll_id' in body:
+    elif 'draft_poll_id' in body and body['draft_poll_id']:
 
         try:
             instance = draftPolls.objects.get(id=body['draft_poll_id'])
@@ -7816,11 +7822,9 @@ def upload_files(request):
         except:
             return JsonResponse({'success': False, 'error_message': "Send valid draft poll id"})
 
-
-
-    context = {
-        'success': True,
-    }
+    else:
+        context['success'] = False
+        context['error_message'] = "parameters are missing"
 
     # sending the conversation instance if present
     if conversation:
