@@ -11935,7 +11935,7 @@ def update_community_member_rights(request):
                                                   removed_member_rights=list(rights_removed))
 
         if len(rights_added) > 0:
-            send_notification_for_right_given_to_member.delay(user_id, community_id, rights_added)
+            send_notification_for_right_given_to_member.delay(user_id, community_id, list(rights_added))
 
         return JsonResponse({'success': True})
     else:
