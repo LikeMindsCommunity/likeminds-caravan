@@ -11578,8 +11578,6 @@ def update_community_manager_rights(request):
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     if admin.exists():
-        # deleting all manager rights
-        # userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
         # had to get added and ermoved rights for many other purposes ex: notifications
         existing_rights = set(userAdminRights.objects.filter(community=community_instance,
                                                              user=user_instance).values_list("right__id", flat=True))
@@ -11618,11 +11616,16 @@ def update_community_manager_rights(request):
                 return JsonResponse(context)
 
             is_member_already_promoter = member_instance.state == member_states.ADMIN
-
+            custom_title_changed = False
             if not custom_title:
-                custom_title = member_instance.custom_title
-                if custom_title == 'Member':
+                if not is_member_already_promoter:
                     custom_title = "Community Manager"
+                else:
+                    custom_title = member_instance.custom_title
+            elif is_member_already_promoter:
+                prev_custom_title = member_instance.custom_title
+                if prev_custom_title != custom_title:
+                    custom_title_changed = True
 
             parent_cm = current_user_instance
             if member_instance.parent_cm:
@@ -11656,6 +11659,12 @@ def update_community_manager_rights(request):
                 save_moderation_history(user=user_instance, community=community_instance,
                                         moderation_by=current_user_instance,
                                         type=moderation_history_types.MADE_COMMUNITY_MANAGER)
+                send_notification_for_new_promoter.delay(promoter_id=current_user_id, member_id=user_id,
+                                                         community_id=community_id, custom_title=custom_title)
+            elif custom_title_changed:
+                send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
+                                                                 community_id=community_id,
+                                                                 custom_title=custom_title)
 
         return JsonResponse({'success': True})
     else:
