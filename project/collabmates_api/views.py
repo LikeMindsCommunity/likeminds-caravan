@@ -75,7 +75,7 @@ from .sms import *
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
-from cms.models import NewAnswer
+from cms.models import NewAnswer,userAcquition
 
 from .user_moderation_rights import *
 
@@ -8377,10 +8377,14 @@ def custom_login(request, res, login_type="custom"):
     if 'image_url' in profile:
         image_url = profile['image_url']
 
-    user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type)
+    user_acquired = None
+    if 'user_acquired' in res:
+        user_acquired = res['user_acquired']
 
-    if 'image_url' not in profile:
-        save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
+    user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type,user_acquired=user_acquired)
+
+    # if 'image_url' not in profile:
+    #     save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
 
     if is_request_web(request):
         phone_no = str(country_code) + str(mobile_no)
@@ -8405,7 +8409,7 @@ def custom_login(request, res, login_type="custom"):
     return context
 
 
-def create_custom_user(name, mobile_no, country_code, email, image_url, login_type):
+def create_custom_user(name, mobile_no, country_code, email, image_url, login_type,user_acquired=None):
     has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
     user_name = name + "_" + str(mobile_no)
 
@@ -8430,6 +8434,11 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
             userinfo_instance.created_at = time.time()
             userinfo_instance.user_id = user_instance
             userinfo_instance.save()
+
+            #saving the analytics of user
+            print(user_acquired)
+            if user_acquired:
+                save_userAcquition_analytics(user_instance,user_acquired)
           
             # creating user email
             save_user_primary_email(user_instance, email, email_state=email_states.PRIMARY)
@@ -8443,11 +8452,47 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
 
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
+
+
             return user_instance
         else:
             return has_user[0]
 
     return has_mobile_no[0].user
+
+
+def save_userAcquition_analytics(user_instance,user_acquired):
+
+    '''saving the analytics of acquired user'''
+
+    user_filter = userAcquition.objects.filter(user=user_instance)
+
+    if not user_filter.exists():
+
+        instance = userAcquition()
+        instance.user = user_instance
+        instance.landing_type = user_acquired['landing_type'] if 'landing_type' in user_acquired else ''
+        instance.link_type = user_acquired['link_type'] if 'link_type' in user_acquired  else ''
+
+        instance.utm_source = user_acquired['utm_source'] if 'utm_source' in user_acquired   else ''
+        instance.utm_campaign = user_acquired['utm_campaign'] if 'utm_campaign' in user_acquired   else ''
+        instance.utm_content = user_acquired['utm_content'] if 'utm_content' in user_acquired   else ''
+
+
+        instance.device_id = user_acquired['device_id'] if 'device_id' in user_acquired   else ''
+
+        if 'community_id' in user_acquired and user_acquired['community_id']:
+            community_instance = Community.objects.get(id=user_acquired['community_id'])
+            instance.community = community_instance
+
+        if  'shared_by' in user_acquired and user_acquired['shared_by']:
+            shared_user_instance = User.objects.get(id=user_acquired['shared_by'])
+            instance.shared = shared_user_instance
+
+        instance.save()
+
+
+
 
 
 @csrf_exempt
