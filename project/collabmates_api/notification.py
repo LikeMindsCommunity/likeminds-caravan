@@ -2077,13 +2077,13 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
         admin_ids = list(userAdminRights.objects.filter(community=community_instance,
                          right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS).values_list("user__id", flat=True))
 
-    userinfos = Userinfo.objects.filter(user_id__in=admin_ids)
+    users = User.objects.filter(id__in=admin_ids)
 
-    for user in userinfos:
+    for user in users:
         user_details = {
-            "id": user.user_id.id,
-            'fcm_token': user.fcm_token,
-            'mobile_os': user.mobile_os,
+            "id": user.id,
+            'fcm_token': user.userinfo.fcm_token,
+            'mobile_os': user.userinfo.mobile_os,
         }
 
         notification_list.append(user_details)
