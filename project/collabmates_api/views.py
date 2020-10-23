@@ -1338,6 +1338,7 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
         member_instance.custom_title = "Member"
         member_instance.created_at = time.time()
         member_instance.updated_at = time.time()
+        member_instance.became_member_at = time.time()
         member_instance.save()
 
         # give default members rights
@@ -2495,6 +2496,7 @@ def create_community_version_1(request):
         member_instance.custom_title = "Owner"  # community creator is the owner of community
         member_instance.created_at = time.time()
         member_instance.updated_at = time.time()
+        member_instance.became_member_at = time.time()
         member_instance.save()
 
         # making the member enage instance for created community
@@ -2954,6 +2956,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     if not has_auto_approve_right and not is_intro_card:
         card.is_pending = True
 
+    card.member_state = res['member_state']
     card.date_epoch = time.time()  # card creation time
     card.save()
     # add ownerflag here
@@ -3030,6 +3033,13 @@ def create_card_internal(user_id, community_id, res):
     except:
         context = get_error_context(False, "the community id does n't exists")
         return context
+
+
+    res["member_state"] = None
+    member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+
+    if member_instance.exists():
+        res["member_state"] = member_instance[0].state
 
     card_type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
     is_intro_card = card_type == card_types.CARD_INTRO
@@ -4318,7 +4328,8 @@ def approve_or_decline_private_community(req_dict, request):
                                                                                  approved_by=current_user_instance,
                                                                                  custom_title="Member",
                                                                                  created_at=time.time(),
-                                                                                 updated_at=time.time())
+                                                                                 updated_at=time.time(),
+                                                                                 became_member_at=time.time())
             # giving default member rights
             give_default_member_rights(user=req_dict['member_id'], community=req_dict['community_id'])
             Member_Engage.objects.filter(member_id=req_dict['member_id'],
@@ -9147,6 +9158,7 @@ def skip_community(request):
         member_instance.state = member_states.PROFILE_UNAVAILABLE
         member_instance.created_at = time.time()
         member_instance.updated_at = time.time()
+        member_instance.became_member_at = time.time()
         member_instance.save()
 
     if not is_member_engage(community_id, member_id):
