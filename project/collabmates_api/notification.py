@@ -1884,6 +1884,71 @@ def send_inactive_notification_utils(user_list):
 # x=CeleryBeatTask()
 # x.terminate_task("send_notification_to_inactive_chatroom_users")
 # x.terminate_task("run_after_10_sec")
+
+
+@shared_task
+def send_notification_for_new_promoter(promoter_id, member_id, community_id, custom_title=None):
+    community_instance = Community.objects.get(pk=community_id)
+    promoter_instance = User.objects.get(pk=promoter_id)
+    member_instance = User.objects.get(pk=member_id)
+    community_name = community_instance.name
+    promoter_name = promoter_instance.userinfo.name
+
+    member_fcm_token = member_instance.userinfo.fcm_token
+    member_mobile_os = member_instance.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        "id": member_id,
+        'fcm_token': member_fcm_token,
+        'mobile_os': member_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": f"{promoter_name} has added you as {custom_title} of the community.",
+        'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
+    }
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_custom_title_changed(promoter_id, member_id, community_id, custom_title):
+    community_instance = Community.objects.get(pk=community_id)
+    promoter_instance = User.objects.get(pk=promoter_id)
+    member_instance = User.objects.get(pk=member_id)
+    community_name = community_instance.name
+    promoter_name = promoter_instance.userinfo.name
+
+    member_fcm_token = member_instance.userinfo.fcm_token
+    member_mobile_os = member_instance.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        "id": member_id,
+        'fcm_token': member_fcm_token,
+        'mobile_os': member_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    if custom_title is None:
+        custom_title = "Community Manager"
+
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": f"{promoter_name} has made you {custom_title} of the community.",
+        'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
+    }
+
+    notification_meta(notification_list, message)
+
+
 @shared_task
 def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, community_id):
     community_instance = Community.objects.get(pk=community_id)
