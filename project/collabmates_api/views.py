@@ -2180,6 +2180,9 @@ def remove_from_member(request):
                                                               action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
                                                               user=member, community=community_id,
                                                               action_taken_tag_id=tag_id, action_taken_reason=reason)
+
+                        send_notification_for_removed_member.delay(admin_id=member_id,
+                                                                   removed_user_id=member, community_id=community_id)
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'error_message': "You are not the promoter of this community"})
@@ -3464,8 +3467,8 @@ def chatroom_delete(request):
         current_user_instance = User.objects.get(pk=member_id)
 
         is_promoter = False
-        member_instance = Members.objects.filter(member_id=member_id,
-                                                 community_id=community_instance).filter(Q(state=1))
+        member_instance = Members.objects.filter(member_id=member_id, community_id=community_instance,
+                                                 state=member_states.ADMIN)
         if member_instance.exists():
             is_promoter = True
 
@@ -3488,6 +3491,9 @@ def chatroom_delete(request):
         if disallow_create_chatroom or disallow_create_chatroom == "true":
             remove_creation_rights_for_user(card_creator, community_instance)
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
+
+        if is_promoter:
+            send_notification_for_chatroom_deleted.delay(member_id, chatroom_id, community_id)
 
     except Exception as e:
 
@@ -10807,6 +10813,12 @@ def push_report_v1(request):
 
         update_report_count_for_all_promoters.delay(community_id)
 
+        send_notification_for_reports.delay(report_id=report_instance.id, community_id=community_id,
+                                            reported_by_user_id=member_id, card_id=collabcard_id,
+                                            conversation_id=conversation_id,
+                                            reported_on_user_id=reported_member_instance.id,
+                                            report_type=report_type, reason=reason, tag_id=tag_id)
+
         if report_type == 1 and is_owner:
             subject = '[Chatroom reported] LikeMinds App'
             send_report_mail_to_team.delay(subject, report_instance.id)
@@ -11812,7 +11824,8 @@ def transfer_community_ownership(request):
                      parent_cm=user_instance, parent_cm_list=json.dumps([str(user_id)]))
 
         update_parent_cm_list.delay(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
-
+        send_notification_for_ownership_transfered.delay(prev_owner_id=current_user_id,
+                                                         new_owner_id=user_id, community_id=community_id)
         return JsonResponse({'success': True})
 
     else:
@@ -11825,10 +11838,12 @@ def update_parent_cm_list(community_id, new_owner_id, prev_owner_id):
 
     member_state_list = [member_states.ADMIN, member_states.MEMBER,
                          member_states.KNOWN_NOMINATED_PROMOTER, member_states.PROFILE_UNAVAILABLE]
-    all_members = Members.objects.filter(community_id=community_id, is_owner=False).filter(state__in=member_state_list)
+    all_members = Members.objects.filter(community_id=community_id,
+                                         is_owner=False).filter(state__in=member_state_list)
 
     for member in all_members:
-        member_instance = Members.objects.get(pk=member.id)  # id of members table not user_id, need instance to update the data
+        member_instance = Members.objects.get(pk=member.id)  # id is members table primary key
+                                                             # need instance to update the data
         parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list is not None else []
 
         if str(new_owner_id) not in parent_list:
@@ -11956,6 +11971,9 @@ def update_community_member_rights(request):
                                                   user=user_id, community=community_id,
                                                   added_member_rights=list(rights_added),
                                                   removed_member_rights=list(rights_removed))
+
+        if len(rights_added) > 0:
+            send_notification_for_right_given_to_member.delay(user_id, community_id, rights_added)
 
         return JsonResponse({'success': True})
     else:
@@ -12258,13 +12276,16 @@ def action_pending_chatroom(request):
         context = get_error_context(False, "you have no right to approve chatrooms")
         return JsonResponse(context)
 
-    if value == "true" or value is True:
+    is_approved = (value == "true" or value is True)
+    if is_approved:
         # creating  a copy of existing model and saving it
         chatroom.pk = None
         chatroom.id = None
         chatroom.is_pending = False
         chatroom.date_epoch = time.time()
         chatroom.save()
+        # force refresh the object to get the new created object's' id
+        chatroom.refresh_from_db()
 
         func_dict = {
             'member_id': chatroom.user_id,
@@ -12286,6 +12307,7 @@ def action_pending_chatroom(request):
         set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
                                                                   function_called="action_pending_chatroom")
 
+    send_notification_for_pending_chatroom_approved_or_rejected.delay(chatroom.id, is_approved=is_approved)
     # deleting the old instance even if value = true or false
     Collabcard.objects.filter(pk=chatroom_id).delete()
 

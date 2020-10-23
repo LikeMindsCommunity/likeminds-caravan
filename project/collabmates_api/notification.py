@@ -1899,6 +1899,7 @@ def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, comm
     notification_list = []
 
     user_details = {
+        "id": new_owner_id,
         'fcm_token': new_owner_fcm_token,
         'mobile_os': new_owner_mobile_os,
     }
@@ -1907,7 +1908,7 @@ def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, comm
     message['payload'] = {
         "title": community_name,
         "sub_title": f"{prev_owner_name} has transferred the ownership of the community to you.",
-        'route': '//route://community_collabcard?community_id='
+        'route': f'route://member_profile/{new_owner_id}?community_id={community_id}&member_id={new_owner_id}'
     }
 
     notification_meta(notification_list, message)
@@ -1928,6 +1929,7 @@ def send_notification_for_removed_member(admin_id, removed_user_id, community_id
     notification_list = []
 
     user_details = {
+        "id": removed_user_id,
         'fcm_token': removed_user_fcm_token,
         'mobile_os': removed_user_mobile_os,
     }
@@ -1939,7 +1941,7 @@ def send_notification_for_removed_member(admin_id, removed_user_id, community_id
         'route': '//route://community_collabcard?community_id='
     }
 
-    notification_meta(notification_list, message)
+    # notification_meta(notification_list, message)
 
 
 @shared_task
@@ -1955,6 +1957,7 @@ def send_notification_for_right_given_to_member(user_id, community_id, rights_ad
     notification_list = []
 
     user_details = {
+        "id": user_id,
         'fcm_token': user_fcm_token,
         'mobile_os': user_mobile_os,
     }
@@ -1963,20 +1966,28 @@ def send_notification_for_right_given_to_member(user_id, community_id, rights_ad
     for right_id in rights_added:
         right = memberRights.objects.get(pk=right_id)
         right_title = str(right.title).lower()
-        route = ""
+        card_type = 0
+        if right.state == member_rights.MEMBER_RIGHT_CREATE_ROOMS:
+            card_type = 0
+        elif right.state == member_rights.MEMBER_RIGHT_CREATE_POLL:
+            card_type = 3
+        elif right.state == member_rights.MEMBER_RIGHT_CREATE_EVENT:
+            card_type = 2
+
+        route = f"route://create_chatroom?community_id={community_id}&community_name={community_name}&type={card_type}"
         sub_title = f"The Community Manager has reactivated your privilege to {right_title}"
 
         if right.state == member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM:
             sub_title = f"The Community Manager has reactivated your privilege to respond inside chat rooms."
-            route = ""
+            route = f"route://community_collabcard?community_id={community_id}&community_name={community_name}"
         elif right.state == member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK:
             sub_title = f"You have earned the privilege to invite new members to the community via private links!"
-            route = ""
+            route = f"route://community?community_id={community_id}&share=true"
 
         message['payload'] = {
             "title": community_name,
             "sub_title": sub_title,
-            'route': '//route://community_collabcard?community_id='
+            'route': route
         }
 
         notification_meta(notification_list, message)
@@ -1996,18 +2007,18 @@ def send_notification_for_pending_chatroom_approved_or_rejected(card_id, is_appr
     notification_list = []
 
     user_details = {
+        "id": card_creator.id,
         'fcm_token': user_fcm_token,
         'mobile_os': user_mobile_os,
     }
     notification_list.append(user_details)
 
-
     if is_approved:
         sub_title = f"Hurray! {card_creator_first_name}, your chat room ‘{chatroom_title}’ has been approved."
-        route = ""
+        route = f"route://collabcard?collabcard_id={card_id}"
     else:
         sub_title = f"{card_creator_first_name}, we are sorry to inform you that your chat room ‘{chatroom_title}’ was not approved."
-        route = ""
+        route = "route://main"
 
     message['payload'] = {
         "title": community_name,
@@ -2019,9 +2030,9 @@ def send_notification_for_pending_chatroom_approved_or_rejected(card_id, is_appr
 
 
 @shared_task
-def send_notification_for_reports(card_id=None, conversation_id=None, reported_on_user_id=None,
-                                  community_id=None,
-                                  reported_by_user_id=None, report_type=None, reason=None, tag_id=None):
+def send_notification_for_reports(report_id, community_id, reported_by_user_id,
+                                  card_id=None, conversation_id=None, reported_on_user_id=None,
+                                  report_type=None, reason=None, tag_id=None):
 
     reported_by_user = User.objects.get(pk=reported_by_user_id)
     reported_by_user_name = reported_by_user.userinfo.name
@@ -2048,7 +2059,7 @@ def send_notification_for_reports(card_id=None, conversation_id=None, reported_o
         reason = report.tag_name
 
     sub_title = f"{sub_title_prefix} was reported by {reported_by_user_name} citing the reason: '{reason}’."
-    route = ""
+    route = f"route://review_reports?community_id={community_id}&community_name={community_name}&report_id={report_id}"
 
     message = {}
     notification_list = []
@@ -2061,22 +2072,24 @@ def send_notification_for_reports(card_id=None, conversation_id=None, reported_o
     if report_type == 0:
         admin_ids = list(userAdminRights.objects.filter(community=community_instance,
                          right__state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS).values_list("user__id",
-                                                                                                        flat=True))
+                                                                                                       flat=True))
     else:
         admin_ids = list(userAdminRights.objects.filter(community=community_instance,
                          right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS).values_list("user__id", flat=True))
 
-    userinfos = Userinfo.objects.filter(user_id__in=admin_ids)
+    users = User.objects.filter(id__in=admin_ids)
 
-    for user in userinfos:
+    for user in users:
         user_details = {
-            'fcm_token': user.fcm_token,
-            'mobile_os': user.mobile_os,
+            "id": user.id,
+            'fcm_token': user.userinfo.fcm_token,
+            'mobile_os': user.userinfo.mobile_os,
         }
 
         notification_list.append(user_details)
 
-    notification_meta(notification_list, message)
+    if report_type != 2:  # will remove check after implementing conversation delete
+        notification_meta(notification_list, message)
 
 
 @shared_task
@@ -2102,17 +2115,18 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
 
     following_member_ids = list(conversationEngage.objects.filter(card=card_instance).values_list("user__id", flat=True))
 
-    userinfos = Userinfo.objects.filter(user_id__in=following_member_ids)
+    users = User.objects.filter(id__in=following_member_ids)
 
-    for user in userinfos:
+    for user in users:
         user_details = {
-            'fcm_token': user.fcm_token,
-            'mobile_os': user.mobile_os,
+            "id": user.id,
+            'fcm_token': user.userinfo.fcm_token,
+            'mobile_os': user.userinfo.mobile_os,
         }
 
         notification_list.append(user_details)
 
-    notification_meta(notification_list, message)
+    # notification_meta(notification_list, message)
 
 
 
