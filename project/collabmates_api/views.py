@@ -11715,10 +11715,10 @@ def remove_community_manager(request):
         member_instance = Members.objects.filter(community_id=community_instance,
                                                  member_id=user_instance)
         custom_title = "Member"
-        if member_instance.exists():
-            custom_title = member_instance[0].custom_title
-            if custom_title == "Community Manager":
-                custom_title = "Member"
+        # if member_instance.exists():
+            # custom_title = member_instance[0].custom_title
+            # if custom_title == "Community Manager":
+            #     custom_title = "Member"
 
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.MEMBER, custom_title=custom_title,
