@@ -3057,7 +3057,7 @@ def create_card_internal(user_id, community_id, res):
         # intro-card notification
         send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
 
-    if has_auto_approve_right or is_intro_card:
+    if has_auto_approve_right or is_intro_card or create_intro:
         # following the user created chatroom
         func_dict = {
             'member_id': user_id,
@@ -3081,7 +3081,7 @@ def create_card_internal(user_id, community_id, res):
         draftChatroom.objects.filter(id=res['draft_id']).delete()
         draftPolls.objects.filter(draft=res['draft_id']).delete()
 
-    if has_auto_approve_right or is_intro_card:
+    if has_auto_approve_right or is_intro_card or create_intro:
         #batch update for already existing users and saving their unseen count
         set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id,
                                                                   function_called="create_card_internal")
@@ -9226,7 +9226,7 @@ def members_state(request, req_dict=None):
         is_member = False
         tool_state = 0
         state = data.state
-
+        is_owner = data.is_owner
         custom_title = data.custom_title
 
         if data.created_at > 0:
@@ -9271,6 +9271,7 @@ def members_state(request, req_dict=None):
 
     json_response['member'] = get_user_profile(member_id, community_id)
     json_response['member']['state'] = state
+    json_response['member']['is_owner'] = is_owner
                              
     if custom_title:
         json_response['member']['custom_title'] = custom_title
@@ -11616,6 +11617,8 @@ def update_community_manager_rights(request):
 
             if not custom_title:
                 custom_title = member_instance.custom_title
+                if custom_title == 'Member':
+                    custom_title = "Community Manager"
 
             parent_cm = current_user_instance
             if member_instance.parent_cm:
@@ -11811,8 +11814,6 @@ def transfer_community_ownership(request):
         previous_owner_title = "Owner"
         if admin[0].custom_title:
             previous_owner_title = admin[0].custom_title
-            if previous_owner_title == "Owner":
-                previous_owner_title = "Community Manager"
 
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
@@ -11820,8 +11821,9 @@ def transfer_community_ownership(request):
                                                                parent_cm_list=None)
         give_all_manager_rights(user_instance, community_instance)  # for new owner
         # current owner
+        parent_cm_list = json.dumps([str(user_id)])
         admin.update(is_owner=False, custom_title="Community Manager",
-                     parent_cm=user_instance, parent_cm_list=json.dumps([str(user_id)]))
+                     parent_cm=user_instance, parent_cm_list=parent_cm_list)
 
         update_parent_cm_list.delay(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
         send_notification_for_ownership_transfered.delay(prev_owner_id=current_user_id,
@@ -11836,16 +11838,17 @@ def transfer_community_ownership(request):
 @shared_task
 def update_parent_cm_list(community_id, new_owner_id, prev_owner_id):
 
-    member_state_list = [member_states.ADMIN, member_states.MEMBER,
-                         member_states.KNOWN_NOMINATED_PROMOTER, member_states.PROFILE_UNAVAILABLE]
-    all_members = Members.objects.filter(community_id=community_id,
-                                         is_owner=False).filter(state__in=member_state_list)
+    all_promoters = Members.objects.filter(community_id=community_id,
+                                           is_owner=False, state__in=member_states.ADMIN)
 
-    for member in all_members:
+    for member in all_promoters:
         member_instance = Members.objects.get(pk=member.id)  # id is members table primary key
                                                              # need instance to update the data
-        parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list is not None else []
 
+        if member_instance.is_owner:
+            continue
+
+        parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list is not None else []
         if str(new_owner_id) not in parent_list:
             parent_list.append(new_owner_id)
 
@@ -11853,7 +11856,7 @@ def update_parent_cm_list(community_id, new_owner_id, prev_owner_id):
         #     if str(prev_owner_id) in parent_list:
         #         parent_list.remove(str(prev_owner_id))
 
-        member_instance.parent_cm_list = parent_list
+        member_instance.parent_cm_list = json.dumps(parent_list)
         member_instance.save()
 
 
