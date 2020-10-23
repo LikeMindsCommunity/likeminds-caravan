@@ -9178,6 +9178,7 @@ def members_state(request, req_dict=None):
 
     user_email = ""
     ref_members = []
+    is_owner = False
     edit_required = False
     actions_required = False
     created_at = 0
