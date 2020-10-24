@@ -1,7 +1,91 @@
 import enum
 
+#  these rights can be treated as right_id mapping to enums
+class ManagerRights:
 
-# member state
+    MANAGER_RIGHT_DELETE_ROOMS = 0
+    MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS = 1
+    MANAGER_RIGHT_EDIT_COMMUNITY = 2
+    MANAGER_RIGHT_VIEW_CONTACT_INFO = 3
+    MANAGER_RIGHT_ADD_MANAGERS = 4
+    MANAGER_RIGHT_DELETE_ROOMS_TITLE = "Delete chat rooms/messages"
+    MANAGER_RIGHT_APPROVE_MEMBERS_TITLE = "Approve/remove members"
+    MANAGER_RIGHT_EDIT_COMMUNITY_TITLE = "Edit community details"
+    MANAGER_RIGHT_VIEW_CONTACT_INFO_TITLE = "View member contact info"
+    MANAGER_RIGHT_ADD_MANAGERS_TITLE = "Add community managers"
+
+
+manager_rights = ManagerRights()
+
+
+class MemberRights:
+
+    MEMBER_RIGHT_CREATE_ROOMS = 0
+    MEMBER_RIGHT_CREATE_POLL = 1
+    MEMBER_RIGHT_CREATE_EVENT = 2
+    MEMBER_RIGHT_RESPOND_IN_ROOM = 3
+    MEMBER_RIGHT_INVITE_PRIVATE_LINK = 4
+    MEMBER_RIGHT_AUTO_APPROVE = 5
+
+    MEMBER_RIGHT_CREATE_ROOMS_TITLE = "Create chat rooms"
+    MEMBER_RIGHT_CREATE_POLL_TITLE = "Create polls"
+    MEMBER_RIGHT_CREATE_EVENT_TITLE = "Create events"
+    MEMBER_RIGHT_RESPOND_IN_ROOM_TITLE = "Respond in chat rooms"
+    MEMBER_RIGHT_INVITE_PRIVATE_LINK_TITLE = "Invite members via private link"
+    MEMBER_RIGHT_AUTO_APPROVE_TITLE = "Auto-approve created chat rooms"
+
+
+member_rights = MemberRights()
+
+
+class ModerationHistoryTypes:
+
+    APPLIED_PUBLIC_LINK = 0
+    APPLIED_PRIVATE_LINK = 1
+    APPROVED_FROM = 2
+    MEMBER_PERMISSION_EDITED = 3
+    MANAGER_PERMISSION_EDITED = 4
+    MADE_COMMUNITY_MANAGER = 5
+    REMOVED_AS_COMMUNITY_MANAGER = 6
+    APPLIED_PUBLIC_LINK_TEXT = "Applied via public link from "
+    APPLIED_PRIVATE_LINK_TEXT = "Applied via private link from "
+    APPROVED_FROM_TEXT = "Approved from "
+    MEMBER_PERMISSION_EDITED_TEXT = "Member permission edited by "
+    MANAGER_PERMISSION_EDITED_TEXT = "Management permission edited by "
+    MADE_COMMUNITY_MANAGER_TEXT = "Made community manager by "
+    REMOVED_AS_COMMUNITY_MANAGER_TEXT = "Removed as community manager by "
+
+
+moderation_history_types = ModerationHistoryTypes()
+
+
+class ReportActionTypes:
+
+    EDIT_MEMBER_PERMISSION = 0
+    REMOVE_FROM_COMMUNITY = 1
+    LEFT_THE_COMMUNITY = 2
+    RESPONSE_DELETED_BY_CM = 3
+    RESPONSE_DELETED_BY_CREATOR = 4
+    CHATROOM_DELETED_BY_CM = 5
+    CHATROOM_DELETED_BY_CREATOR = 6
+
+
+report_Action_Types = ReportActionTypes()
+
+
+class ReportTypes:
+
+    REPORT_MEMBER = 0
+    REPORT_CHATROOM = 1
+    REPORT_CONVERSATION = 2
+    REPORT_COMMUNITY = 3
+    REPORT_LINK = 4
+
+
+report_Types = ReportTypes()
+
+
+# chatroom actions
 class ChatroomActions:
 
     ACTION_RENAME = 1

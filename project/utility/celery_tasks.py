@@ -156,8 +156,9 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id,card_id, **
 def update_last_unseen_in_engage_on_card_creation(community_id,is_seen=True):
     '''function to update the unseen  collabcard in engage when a new collabcard is posted in community
        for all members in the community'''
-    community_members = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2)|
-                                                                                   Q(state=4)|Q(state=7))
+    community_members = Members.objects.filter(community_id = community_id).filter(Q(state=1) | Q(state=2) |
+                                                                                   Q(state=4) | Q(state=7) |
+                                                                                   Q(state=9))
 
     for member in community_members:
         print("member >>>>>    ",member.member_id.id)
@@ -168,9 +169,10 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
     '''function to update the unseen  collabcard in engage'''
 
-    total_chatrooms = Collabcard.objects.filter(community=community).distinct('id').count()
+    total_chatrooms = collabcardState.objects.filter(community=community,user=user).distinct('card_id').count()
     print("total_chatrooms--",total_chatrooms)
     seen_chatrooms = collabcardState.objects.filter(community=community,user=user,external_seen=True).distinct('card').count()
+
     print("seen_chatrooms--", seen_chatrooms)
     diff = total_chatrooms - seen_chatrooms
 
@@ -191,25 +193,28 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         )
 
     if unseen_count > 0:
-        member_instances = get_new_chatroom_members(user, community)
+        member_instances = fetch_new_chatroom_creater_images(user,community)
         if len(member_instances) > 0:
             Member_Engage.objects.filter(community_id=community, member_id=user).update(
                 new_chatroom_users=json.dumps(member_instances))
+        else:
+            Member_Engage.objects.filter(community_id=community, member_id=user).update(
+                new_chatroom_users=None)
 
 
 
 
 def get_new_chatroom_members(member_id, community_id):
-    """ to get the member objects for new chatrooms created """
-    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
 
+    """ to get the member objects for new chatrooms created """
+
+    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
 
     if last_instance:
         last_card = last_instance.card
         unseen_chatrooms = Collabcard.objects.filter(community=community_id,id__gt=last_card.id).distinct('user_id')
     else:
         unseen_chatrooms = Collabcard.objects.filter(community=community_id).distinct('user_id')
-
 
 
     member_list = []
@@ -232,6 +237,38 @@ def get_new_chatroom_members(member_id, community_id):
         if len(member_list) > 3:
             break
 
+    return member_list
+
+
+def fetch_new_chatroom_creater_images(member_id,community_id):
+
+    unseen_chatrooms = collabcardState.objects.filter(user=member_id,community_id=community_id,external_seen=False).distinct('card')
+
+    member_set = set()
+    member_list = []
+    for data in unseen_chatrooms:
+
+
+        user_instance = data.card.user
+
+        if user_instance not in member_set:
+
+            member_filter = Members.objects.filter(member_id=user_instance, community_id=data.community)
+            image_url = user_instance.userinfo.image_link if user_instance.userinfo.image_link else ''
+            exists = member_filter.exists()
+            if exists:
+                member_instance = member_filter[0]
+                if member_instance.image_url:
+                    image_url = member_instance.image_url
+
+            member = get_user_profile(user_instance, community_id, send_profile=False)
+            member['image_url'] = image_url
+            # member['removed'] = exists
+            member_list.append(member)
+            member_set.add(user_instance)
+
+        if len(member_list) > 3:
+            break
     return member_list
 
 
@@ -376,7 +413,5 @@ def check(chatroom_id):
     print(last_conversation_user)
     print(second_last_conversation_user)
 
-
-#print(get_latest_conversation_members(Collabcard.objects.get(id=1156)))
 
 
