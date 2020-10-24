@@ -202,6 +202,7 @@ class Collabcard(models.Model):
     deleted_by_text = models.CharField(max_length=512, null=True)
     reason = models.CharField(max_length=512, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
+    disable_poll_announcement_mail = models.BooleanField(default=False)
 
 class draftChatroom(models.Model):
     title = models.TextField()

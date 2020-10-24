@@ -604,6 +604,44 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
     celerybeatask.terminate_task(task_name)
 
 
+@app.task
+def send_poll_results_announcement_mail(card_id, community_id, task_name, *args, **kwargs):
+    print("here")
+    user_instance = User.objects.get(pk=user_id)
+    community_instance = Community.objects.get(id=community_id)
+
+    email = get_user_email(user_id)
+
+    notification_list = [
+        'poll_results_announcement_mail'
+     ]
+
+    if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
+        subject = "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬'
+        email_context = {
+            'subject': "Hey " + user_instance.userinfo.name+', you are missing the real action!😬',
+            'member_name': user_instance.userinfo.name,
+            'community_name': community_instance.name,
+            'android_app_download_link': android_app_download_link,
+            'ios_app_download_link': ios_app_download_link,
+            'playstore_image': GOOGLE_PLAYSTORE,
+            'applestore_image': APPLE_APPSTORE,
+            'app_image': APP_LOGO,
+            'cta_url': url + '/community/' + str(community_id),
+            'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
+                user_id) + '&code=mail_has_installed_app',
+        }
+        template = get_template("mails/community_confirmation_email_2.html").render(email_context)
+
+        to = [email]
+        # to = ['himanshu@likeminds.community']
+
+        send_email(subject, template, to)
+        print(email_context)
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+
+
 @shared_task
 def update_pending_chatrooms_and_report_count(community_id):
     """ function to update pending chatrooms and open reports count count for all promoters in community """
