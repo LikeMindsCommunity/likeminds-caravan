@@ -169,7 +169,7 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
     '''function to update the unseen  collabcard in engage'''
 
-    total_chatrooms = collabcardState.objects.filter(community=community).distinct('card_id').count()
+    total_chatrooms = collabcardState.objects.filter(community=community,user=user).distinct('card_id').count()
     print("total_chatrooms--",total_chatrooms)
     seen_chatrooms = collabcardState.objects.filter(community=community,user=user,external_seen=True).distinct('card').count()
 
