@@ -631,9 +631,10 @@ def send_poll_results_announcement_mail(card_id, task_name):
     voted_members = set(MemberPollVotes.objects.filter(card=card_id).values_list("user", flat=True))
     followed_members = set(collabcardState.objects.filter(
         card=card_id).filter(Q(follow_status=True) | Q(external_follow=True)).values_list("user", flat=True))
-
+    print("voted members ====   ", voted_members)
+    print("followed members ====   ", followed_members)
     final_users_list = voted_members | followed_members
-
+    print("final_users_list ====   ", final_users_list)
     polls_list = []
     for poll in card_polls:
         poll_dict = CollabcardPollsSerializer(poll=poll, user=None, card=card_instance)
@@ -673,7 +674,7 @@ def send_poll_results_announcement_mail(card_id, task_name):
             fail_silently = False
             msg = EmailMultiAlternatives(subject,
                                          template,
-                                         community_instance.name,
+                                         f"{community_instance.name}<hello@likeminds.community>",
                                          to)
             msg.attach_alternative(template, "text/html")
             msg.send(fail_silently)
