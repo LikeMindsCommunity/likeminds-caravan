@@ -4991,7 +4991,7 @@ def fetch_chatroom_version_1(request):
             flag = notification_flag[0]
             flag.flag = True
             flag.save()
-g
+
     if card_instance.type == card_types.CARD_POLL and card_instance.end_date // 1000 <= time.time():
         if not card_instance.disable_poll_announcement_mail:
 

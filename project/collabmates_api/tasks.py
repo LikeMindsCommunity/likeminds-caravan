@@ -28,7 +28,7 @@ import json
 # from datetime import datetime,
 # url = 'https://beta.likeminds.community'
 url = settings.URL
-
+from .serializers import CollabcardPollsSerializer
 from .notification import get_title_from_collabcard 
 # def send_email(subject,template,to):
 #     fail_silently=True
@@ -605,39 +605,79 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
 
 
 @app.task
-def send_poll_results_announcement_mail(card_id, community_id, task_name, *args, **kwargs):
-    print("here")
-    user_instance = User.objects.get(pk=user_id)
-    community_instance = Community.objects.get(id=community_id)
+def send_poll_results_announcement_mail(card_id, task_name):
+    """ function to send poll reuslts annoucement mail for users who missed or didn't see the poll results yet """
 
-    email = get_user_email(user_id)
+    card_instance = Collabcard.objects.get(pk=card_id)
+    community_instance = card_instance.community
+    community_id = community_instance.id
+    community_owner = Members.objects.filter(community_id=community_instance,
+                                             state=member_states.ADMIN, is_owner=True)
 
-    notification_list = [
-        'poll_results_announcement_mail'
-     ]
+    if community_owner.exists():
+        community_owner_instance = community_owner[0].member_id
+    else:
+        community_owner = Members.objects.filter(community_id=community_instance,
+                                                 state=member_states.ADMIN).order_by("id")
+        community_owner_instance = community_owner[0]
 
-    if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
-        subject = "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬'
-        email_context = {
-            'subject': "Hey " + user_instance.userinfo.name+', you are missing the real action!😬',
-            'member_name': user_instance.userinfo.name,
-            'community_name': community_instance.name,
-            'android_app_download_link': android_app_download_link,
-            'ios_app_download_link': ios_app_download_link,
-            'playstore_image': GOOGLE_PLAYSTORE,
-            'applestore_image': APPLE_APPSTORE,
-            'app_image': APP_LOGO,
-            'cta_url': url + '/community/' + str(community_id),
-            'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
-                user_id) + '&code=mail_has_installed_app',
-        }
-        template = get_template("mails/community_confirmation_email_2.html").render(email_context)
+    community_owner_name = community_owner_instance.userinfo.name
 
-        to = [email]
-        # to = ['himanshu@likeminds.community']
+    card_creator = card_instance.user
+    card_creator_name = card_creator.userinfo.name
 
-        send_email(subject, template, to)
-        print(email_context)
+    card_polls = CollabcardPolls.objects.filter(card=card_instance)
+
+    voted_members = set(MemberPollVotes.objects.filter(card=card_id).values_list("user", flat=True))
+    followed_members = set(collabcardState.objects.filter(
+        card=card_id).filter(Q(follow_status=True) | Q(external_follow=True)).values_list("user", flat=True))
+
+    final_users_list = voted_members | followed_members
+
+    polls_list = []
+    for poll in card_polls:
+        poll_dict = CollabcardPollsSerializer(poll=poll, user=None, card=card_instance)
+        polls_list.append(poll_dict)
+
+    for user_id in final_users_list:
+        user_instance = User.objects.get(pk=user_id)
+        email = get_user_email(user_id)
+
+        notification_list = ['poll_results_announcement_mail']
+
+        first_name = user_instance.userinfo.name.split(" ")[0]
+
+        subject = f'{first_name}, results for {card_instance.header}'
+        if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
+
+            email_context = {
+                'subject': subject,
+                'card_instance': card_instance,
+                'poll_options': polls_list,
+                'member_name': first_name,
+                'card_creator_name': card_creator_name,
+                'community_owner_name': community_owner_name,
+                'community_name': community_instance.name,
+                'android_app_download_link': android_app_download_link,
+                'ios_app_download_link': ios_app_download_link,
+                'playstore_image': GOOGLE_PLAYSTORE,
+                'applestore_image': APPLE_APPSTORE,
+                'app_image': APP_LOGO,
+                'cta_url': url + '/community/' + str(community_id),
+                'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
+                    user_id) + '&code=poll_results_announcement_mail',
+            }
+            template = get_template("mails/poll_results_announcement.html").render(email_context)
+
+            to = ["mahesh61437mahe@gmail.com"]
+            fail_silently = False
+            msg = EmailMultiAlternatives(subject,
+                                         template,
+                                         community_instance.name,
+                                         to)
+            msg.attach_alternative(template, "text/html")
+            msg.send(fail_silently)
+
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
 
