@@ -644,13 +644,13 @@ def send_poll_results_announcement_mail(card_id, task_name):
         user_instance = User.objects.get(pk=user_id)
         email = get_user_email(user_id)
 
-        notification_list = ['poll_results_announcement_mail']
+        notification_name = 'poll_results_announcement_mail'
 
         first_name = user_instance.userinfo.name.split(" ")[0]
-
+        notification_flag = memberNotificationFlag.objects.filter(code=notification_name, card=card_instance,
+                                                                  member=user_instance, flag=True).exists()
         subject = f'{first_name}, results for {card_instance.header}'
-        if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
-
+        if not notification_flag:
             email_context = {
                 'subject': subject,
                 'card_instance': card_instance,
@@ -678,6 +678,9 @@ def send_poll_results_announcement_mail(card_id, task_name):
                                          to)
             msg.attach_alternative(template, "text/html")
             msg.send(fail_silently)
+
+    card_instance.disable_poll_announcement_mail = True
+    card_instance.save()
 
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
