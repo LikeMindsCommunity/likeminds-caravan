@@ -5572,8 +5572,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         if is_ios:
             card['title'] = card['title'] + f"\n{card_instance.internal_link}"
 
-        if is_ios:
-            card['title'] = card['title'] + f"\n{card_instance.internal_link}"
 
     card_status = {
         'state': card['state'],
@@ -5664,6 +5662,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         if placeholder:
             context['placeholder'] = placeholder
 
+    save_the_latest_conversation(card_instance, user_id)
     return context
 
 
