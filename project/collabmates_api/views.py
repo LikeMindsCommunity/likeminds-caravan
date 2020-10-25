@@ -5659,6 +5659,11 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         last_seen_conversation = conversation_member_filter[0].conversation
         context['last_seen_conversation'] = last_seen_conversation.id
 
+    else:
+        placeholder = create_introduction_card_placeholder(card_instance, user_id)
+        if placeholder:
+            context['placeholder'] = placeholder
+
     return context
 
 
