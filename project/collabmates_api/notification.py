@@ -1798,7 +1798,7 @@ def send_notification_to_inactive_chatroom_users():
 
     inactive_chatrooms = collabcardState.objects.filter(follow_status=True,
                                                         remove=None).filter(~Q(expiry_time=None) & Q(
-        expiry_time__lt=current_time)).filter(created_at__gt = 1603434220)
+        expiry_time__lt=current_time)).filter(created_at__gt = 1603604997)
 
     user_set = set()
     user_list = []
