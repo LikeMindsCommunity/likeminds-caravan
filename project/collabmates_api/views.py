@@ -12746,49 +12746,52 @@ def sync_conversation(request):
     return JsonResponse(context)
 
 
-def sync_conversation_v1(request):
+class SyncConversationVersion1(APIView):
 
-    member_id = get_member_id_from_headers(request)
+    def get(self, request, *args, **kwargs):
 
-    if not member_id:
-        context = get_error_context(False,"send member id in headers")
-        return JsonResponse(context)
+        member_id = get_member_id_from_headers(request)
 
-    page = request.GET.get('page', 1)
+        if not member_id:
+            context = get_error_context(False, "send member id in headers")
+            return JsonResponse(context)
 
-    paginate_by = request.GET.get('page_size', 200)
+        query_params = request.query_params
+        page = query_params.get('page', 1)
 
-    last_updated = request.GET.get('last_updated')
-    paginate_by = int(paginate_by)
-    if not last_updated:
-        conversation_filter = card_answers.objects.all().order_by('id')
-    else:
-        conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).order_by('id')
+        paginate_by = query_params.get('page_size', 200)
 
-    conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
-    conversations = []
+        last_updated = query_params.get('last_updated', None)
+        paginate_by = int(paginate_by)
+        if not last_updated:
+            conversation_filter = card_answers.objects.all().order_by('id')
+        else:
+            conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).order_by('id')
 
-    max_last_updated = 0
+        conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
+        conversations = []
 
-    for conversation in conversation_list:
-
-        #temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
+        max_last_updated = 0
         context = {"current_user_id": member_id, "fetch_reply": True}
-        temp = CardAnswersDBSyncSerializer(conversation, context=context)
-        if max_last_updated < conversation.last_updated:
-            max_last_updated = conversation.last_updated
+        print(">>>>>>  ", context)
+        for conversation in conversation_list:
 
-        conversations.append(temp.data)
+            #temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
+            temp = CardAnswersDBSyncSerializer(conversation, context=context)
+            if max_last_updated < conversation.last_updated:
+                max_last_updated = conversation.last_updated
 
-    context = {
-        'conversations': conversations
-    }
+            conversations.append(temp.data)
 
-    if max_last_updated:
-        context['max_last_updated'] = max_last_updated
+        context = {
+            'conversations': conversations
+        }
+
+        if max_last_updated:
+            context['max_last_updated'] = max_last_updated
 
 
-    return JsonResponse(context)
+        return JsonResponse(context)
 
 
 def sync_members(request):
@@ -12942,12 +12945,4 @@ def block_member(request):
     return JsonResponse({'success': True})
 
 
-def fetch_all_reports(request):
-    current_user_id = get_member_id_from_headers(request)
-    reports = Report.objects.all().order_by("-id")[:2]
-    report_list = []
-    for report in reports:
-        report_dict = report_serializer(report, current_user_id)
-        report_list.append(report_dict)
 
-    return JsonResponse({"reports": report_list})

@@ -22,8 +22,6 @@ from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 from dashboard.views import admin_login
-from collabmates_api.rest_api import reportsView
-from collabmates_api.views import fetch_all_reports
 
 handler404 = 'utility.exceptions.handler404'
 # handler500 = 'utility.exceptions.handler500'
@@ -40,8 +38,6 @@ urlpatterns = [
     path('utils/', include('utility.urls'), name='utils'),
     path('cms/', include('cms.urls'), name='cms'),
     path('admin_login', admin_login, name="admin_login"),
-    path('rest/reportsView', reportsView.as_view(), name='memberRightsView'),
-    path('rest/fetch_all_reports', fetch_all_reports, name='fetch_all_reports'),
 ]
 
 
