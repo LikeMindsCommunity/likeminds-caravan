@@ -1804,6 +1804,10 @@ def send_notification_to_inactive_chatroom_users():
     user_list = []
     for data in inactive_chatrooms:
 
+
+        if data.card.type == card_types.CARD_PURPOSE and not is_member_promoter(data.card.community,data.card.user):
+            continue
+
         key = str(data.user.id)+"--"+str(data.card.id)
         if key not in user_set:
             temp = {}
@@ -1820,6 +1824,7 @@ def send_notification_to_inactive_chatroom_users():
                     temp['chatroom_id'] = card_instance.id
                     temp['chatroom_name'] = get_title_from_collabcard(card_instance)
                     notification_filter.update(updated_at=current_time)
+
                     user_list.append(temp)
             else:
                 instance = memberNotificationFlag()
@@ -1835,6 +1840,7 @@ def send_notification_to_inactive_chatroom_users():
                 temp['user_name'] = user_instance.userinfo.name
                 temp['chatroom_id'] = card_instance.id
                 temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+
                 user_list.append(temp)
 
             user_set.add(key)
