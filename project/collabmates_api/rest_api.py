@@ -346,6 +346,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
                 data['preview'] = get_preview_for_url(member_id=self.current_user_id,
                                                       preview_url=data['internal_link'])
+                del data['internal_link']
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
