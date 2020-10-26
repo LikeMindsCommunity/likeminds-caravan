@@ -2834,12 +2834,18 @@ def create_card(request, req_dict=None):
         community_id = req_dict['community_id']
         res = req_dict
 
+    is_member = Members.objects.filter(community_id=community_id,member_id=user_id).filter(Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+    if not is_member:
+        context = get_error_context(False,"You cannot create a chatroom")
+        return JsonResponse(context)
+
     context = create_card_internal(user_id, community_id, res)
 
     if req_dict:
         return context
 
-    return JsonResponse({'success': True, 'collabcard': context['collabcard']})
+    context = {'success': True, 'collabcard': context['collabcard']}
+    return JsonResponse(context)
 
 
 @csrf_exempt
@@ -3022,8 +3028,11 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
 
 def create_card_internal(user_id, community_id, res):
+
     user_instance = User.objects.get(id=user_id)
     userinfo_instance = user_instance.userinfo
+
+
 
     try:
         community_instance = Community.objects.get(id=community_id)
