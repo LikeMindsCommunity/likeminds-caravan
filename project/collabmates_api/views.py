@@ -5683,7 +5683,13 @@ def save_the_latest_conversation(card_instance, user_id):
         conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
         conversation_instance = latest_card
         latest_conversation = conversation_instance
-        expiry_time = get_expiry_time_of_chatroom()
+
+
+        state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
+        if state_filter.exists():
+            expiry_time = get_expiry_time_of_chatroom(state_filter[0])
+        else:
+            expiry_time = get_expiry_time_of_chatroom()
         if not conversation_member_filter.exists():
             conversation_member_instance = conversationMemberState()
             conversation_member_instance.card = card_instance
@@ -6624,9 +6630,11 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
 
     card_instance = Collabcard.objects.get(id=card_instance_id)
 
-    update_status = collabcardState.objects.filter(card=card_instance, follow_status=True, remove=None).update(
+
+    update_status = collabcardState.objects.filter(card=card_instance, follow_status=True, remove=None).filter(~Q(user=user_id)).update(
         expiry_time=None)
-    # print(update_status)
+
+    print(update_status)
 
     # the person who is making the conversation marking his chatroom active for expiry time
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
@@ -6878,7 +6886,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         if collabcard_state_filter[0].follow_status == status:
             if collabcard_state_filter[0].is_tagged:
                 collabcard_state_filter.update(is_tagged=False,mute_status=False)
+            print("follow hit")
             return
+
         expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time,is_tagged=is_tagged,external_seen=True,mute_status=mute_status)
