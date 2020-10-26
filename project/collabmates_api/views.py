@@ -5056,7 +5056,8 @@ def conversation_meta(request):
     context = {
         'conversations': chatroom
     }
-
+    #saving the latest conversation
+    save_the_latest_conversation(card_instance,user_id)
     return JsonResponse(context)
 
 
@@ -5924,9 +5925,11 @@ def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id, 
 def create_introduction_card_placeholder(card_instance, user_id):
     '''function to create introduction card placeholder'''
 
+
     user_filter = User.objects.filter(id=user_id)
     if user_filter.exists():
         user_instance = user_filter[0]
+
     else:
         return
 
@@ -5936,6 +5939,7 @@ def create_introduction_card_placeholder(card_instance, user_id):
         user_route = "route://member_profile/" + str(card_instance.user.id)
         user_name = "<<" + user_name + "|" + user_route + ">>"
         placeholder = placeholder + user_name
+        print(placeholder)
         return placeholder
 
 
