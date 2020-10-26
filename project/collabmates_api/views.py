@@ -80,6 +80,7 @@ from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_part
 from cms.models import NewAnswer
 
 from .user_moderation_rights import *
+from .rest_api import CardAnswersDBSyncSerializer
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -11546,6 +11547,7 @@ def edit_conversation(request):
     if int(conversation.user.id) == int(member_id):
         conversation.answer = edited_answer
         conversation.is_edited = True
+        conversation.last_updated = int(round(time.time() * 1000))
         conversation.save()
     else:
         context = get_error_context(False,
@@ -12718,7 +12720,7 @@ def sync_conversation(request):
     else:
         conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).order_by('id')
 
-    conversation_list = pagination(conversation_filter,page,paginate_by=paginate_by)
+    conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
     conversations = []
 
     max_last_updated = 0
@@ -12726,7 +12728,7 @@ def sync_conversation(request):
     for conversation in conversation_list:
 
         #temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
-        temp = get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=member_id)
+        temp = get_conversation_instance_for_db_synching(conversation, fetch_reply=True, current_user_id=member_id)
         if max_last_updated < conversation.last_updated:
             max_last_updated = conversation.last_updated
 
@@ -12734,7 +12736,52 @@ def sync_conversation(request):
         conversations.append(temp)
 
     context = {
-        'conversations':conversations
+        'conversations': conversations
+    }
+
+    if max_last_updated:
+        context['max_last_updated'] = max_last_updated
+
+
+    return JsonResponse(context)
+
+
+def sync_conversation_v1(request):
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+    page = request.GET.get('page', 1)
+
+    paginate_by = request.GET.get('page_size', 200)
+
+    last_updated = request.GET.get('last_updated')
+    paginate_by = int(paginate_by)
+    if not last_updated:
+        conversation_filter = card_answers.objects.all().order_by('id')
+    else:
+        conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).order_by('id')
+
+    conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
+    conversations = []
+
+    max_last_updated = 0
+
+    for conversation in conversation_list:
+
+        #temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
+        context = {"current_user_id": member_id, "fetch_reply": True}
+        temp = CardAnswersDBSyncSerializer(conversation, context=context)
+        if max_last_updated < conversation.last_updated:
+            max_last_updated = conversation.last_updated
+
+        conversations.append(temp.data)
+
+    context = {
+        'conversations': conversations
     }
 
     if max_last_updated:
