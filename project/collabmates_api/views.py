@@ -8172,6 +8172,11 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
         has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
         if has_mobile_no.exists():
             user = has_mobile_no[0].user
+    else:
+        user_name = res['name']+res['id']
+        user_obj = User.objects.filter(username=user_name)
+        if user_obj.exists():
+            user = user_obj[0]
 
     if not user:
         # creating a user if no user is associated with that email
@@ -8251,6 +8256,11 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
         has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
         if has_mobile_no.exists():
             user = has_mobile_no[0].user
+    else:
+        user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
+        user_obj = User.objects.filter(username=user_name+res['id'])
+        if user_obj.exists():
+            user = user_obj[0]
 
     profile_picture = None
     if not user:
