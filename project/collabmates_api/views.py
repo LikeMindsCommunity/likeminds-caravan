@@ -12773,18 +12773,15 @@ class SyncConversationVersion1(APIView):
 
         max_last_updated = 0
         context = {"current_user_id": member_id, "fetch_reply": True}
-        print(">>>>>>  ", context)
-        for conversation in conversation_list:
+        conversations_data = CardAnswersDBSyncSerializer(conversation_list, context=context, many=True)
+        conversations = conversations_data.data
 
-            #temp = conversationSerializer(conversation,fetch_reply=True,current_user_id=member_id)
-            temp = CardAnswersDBSyncSerializer(conversation, context=context)
+        for conversation in conversation_list:
             if max_last_updated < conversation.last_updated:
                 max_last_updated = conversation.last_updated
 
-            conversations.append(temp.data)
-
         context = {
-            'conversations': conversations
+            'conversations': conversations,
         }
 
         if max_last_updated:
