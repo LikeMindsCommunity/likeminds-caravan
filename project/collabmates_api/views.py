@@ -5056,7 +5056,8 @@ def conversation_meta(request):
     context = {
         'conversations': chatroom
     }
-
+    #saving the latest conversation
+    save_the_latest_conversation(card_instance,user_id)
     return JsonResponse(context)
 
 
@@ -5572,8 +5573,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         if is_ios:
             card['title'] = card['title'] + f"\n{card_instance.internal_link}"
 
-        if is_ios:
-            card['title'] = card['title'] + f"\n{card_instance.internal_link}"
 
     card_status = {
         'state': card['state'],
@@ -5599,8 +5598,8 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
                                             community_instance=card_instance.community
                                             )
 
-    latest_conversations = save_the_latest_conversation(card_instance, user_id)
-    print("latest_conversations--",latest_conversations)
+    # latest_conversations = save_the_latest_conversation(card_instance, user_id)
+    # print("latest_conversations--",latest_conversations)
 
     # getting the state of chatroom against the user
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
@@ -5633,14 +5632,14 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     card['total_response_count'] = total_response_count
     # print(latest_conversations)
 
-    if latest_conversations:
-        last_conversation = latest_conversations['last_conversation']
-        # print("***",latest_conversations)
-        if last_conversation:
-            serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id,
-                                              is_ios=is_ios)
-            if serialized_last:
-                card['last_conversation'] = serialized_last[0]
+    # if latest_conversations:
+    #     last_conversation = latest_conversations['last_conversation']
+    #     # print("***",latest_conversations)
+    #     if last_conversation:
+    #         serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id,
+    #                                           is_ios=is_ios)
+    #         if serialized_last:
+    #             card['last_conversation'] = serialized_last[0]
 
     context['chatroom'] = card
     #context['conversations'] = conversations
@@ -5653,6 +5652,18 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     # updating the activity of chatroom
     # update_activity_in_chatroom(card_instance,user_instance=user_id)
 
+    #sendig the last seen conversation of user
+    conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
+    if conversation_member_filter.exists():
+        last_seen_conversation = conversation_member_filter[0].conversation
+        context['last_seen_conversation'] = last_seen_conversation.id
+
+    else:
+        placeholder = create_introduction_card_placeholder(card_instance, user_id)
+        if placeholder:
+            context['placeholder'] = placeholder
+
+    save_the_latest_conversation(card_instance, user_id)
     return context
 
 
@@ -5672,7 +5683,13 @@ def save_the_latest_conversation(card_instance, user_id):
         conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
         conversation_instance = latest_card
         latest_conversation = conversation_instance
-        expiry_time = get_expiry_time_of_chatroom()
+
+
+        state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
+        if state_filter.exists():
+            expiry_time = get_expiry_time_of_chatroom(state_filter[0])
+        else:
+            expiry_time = get_expiry_time_of_chatroom()
         if not conversation_member_filter.exists():
             conversation_member_instance = conversationMemberState()
             conversation_member_instance.card = card_instance
@@ -5914,9 +5931,11 @@ def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id, 
 def create_introduction_card_placeholder(card_instance, user_id):
     '''function to create introduction card placeholder'''
 
+
     user_filter = User.objects.filter(id=user_id)
     if user_filter.exists():
         user_instance = user_filter[0]
+
     else:
         return
 
@@ -5926,6 +5945,7 @@ def create_introduction_card_placeholder(card_instance, user_id):
         user_route = "route://member_profile/" + str(card_instance.user.id)
         user_name = "<<" + user_name + "|" + user_route + ">>"
         placeholder = placeholder + user_name
+        print(placeholder)
         return placeholder
 
 
@@ -6610,9 +6630,11 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
 
     card_instance = Collabcard.objects.get(id=card_instance_id)
 
-    update_status = collabcardState.objects.filter(card=card_instance, follow_status=True, remove=None).update(
+
+    update_status = collabcardState.objects.filter(card=card_instance, follow_status=True, remove=None).filter(~Q(user=user_id)).update(
         expiry_time=None)
-    # print(update_status)
+
+    print(update_status)
 
     # the person who is making the conversation marking his chatroom active for expiry time
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
@@ -6864,7 +6886,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         if collabcard_state_filter[0].follow_status == status:
             if collabcard_state_filter[0].is_tagged:
                 collabcard_state_filter.update(is_tagged=False,mute_status=False)
+            print("follow hit")
             return
+
         expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
         if is_guest:
             collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time,is_tagged=is_tagged,external_seen=True,mute_status=mute_status)
