@@ -8324,14 +8324,28 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
     country_code = res['country_code'] if 'country_code' in res else None
 
     res = res['login_json']
-    email = res['email']
-    # converting email to lower case and removing unwanted space
-    email = email.lower().strip()
-    user = get_user_from_email(email)
+    user = None
+    email = None
     image_link = None
+    if 'email' in res:
+        email = res['email']
+    # converting email to lower case and removing unwanted space
+        email = email.lower().strip()
+        user = get_user_from_email(email)
+
+    elif mobile_no:
+        has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
+        if has_mobile_no.exists():
+            user = has_mobile_no[0].user
+    else:
+        user_name = res['name']+res['id']
+        user_obj = User.objects.filter(username=user_name)
+        if user_obj.exists():
+            user = user_obj[0]
+
     if not user:
         # creating a user if no user is associated with that email
-        user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
+        user = create_user(user_name=res['name'], email=email, id=res['id'])
         user_instance = user
         # if there is no user then user will not have userinfo too
         # creating user info
@@ -8344,14 +8358,15 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
 
         city = res['location']['name'] if 'location' in res else None
 
-        userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+        userinfo = create_userinfo(user=user, email=email, user_name=res['name'],
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city,
                                    # fb_link=fb_link
                                    )
-        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
-
-        save_user_primary_email(user, res['email'], verified=True)
+        if mobile_no:
+            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+        if email:
+            save_user_primary_email(user, email, verified=True)
 
         if 'picture' not in res:
             save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
@@ -8394,10 +8409,24 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
     country_code = res['country_code'] if 'country_code' in res else None
 
     res = res['login_json']
+    user = None
+    email = None
     # if user is logging in with linkedIn
-    email = res['email']['elements'][0]['handle~']['emailAddress']
+    if 'email' in res:
+        email = res['email']['elements'][0]['handle~']['emailAddress']
 
-    user = get_user_from_email(email)
+        user = get_user_from_email(email)
+
+    elif mobile_no:
+        has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
+        if has_mobile_no.exists():
+            user = has_mobile_no[0].user
+    else:
+        user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
+        user_obj = User.objects.filter(username=user_name+res['id'])
+        if user_obj.exists():
+            user = user_obj[0]
+
     profile_picture = None
     if not user:
 
@@ -8416,9 +8445,10 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
 
         if 'profilePicture' not in res:
             save_name_initial_image.delay(user_id=user.id, user_name=user_name)
-
-        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
-        save_user_primary_email(user, email, verified=True)
+        if mobile_no:
+            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+        if email:
+            save_user_primary_email(user, email, verified=True)
         email_exists = False
 
     else:
