@@ -630,7 +630,7 @@ def send_poll_results_announcement_mail(card_id, task_name):
 
     voted_members = set(MemberPollVotes.objects.filter(card=card_id).values_list("user", flat=True))
     followed_members = set(collabcardState.objects.filter(
-        card=card_id).filter(Q(follow_status=True) | Q(external_follow=True)).values_list("user", flat=True))
+        card=card_id, mute=False).filter(Q(follow_status=True) | Q(external_follow=True)).values_list("user", flat=True))
     print("voted members ====   ", voted_members)
     print("followed members ====   ", followed_members)
     final_users_list = voted_members | followed_members
