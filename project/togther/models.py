@@ -202,6 +202,7 @@ class Collabcard(models.Model):
     deleted_by_text = models.CharField(max_length=512, null=True)
     reason = models.CharField(max_length=512, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
+    disable_poll_announcement_mail = models.BooleanField(default=False)
 
 class draftChatroom(models.Model):
     title = models.TextField()
@@ -319,7 +320,7 @@ class card_answers(models.Model):
     is_deleted = models.BooleanField(default=False)
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='conversation_deleted_by_user')
-    deleted_by_user_state = models.IntegerField(default=0)  # state in community member or manager
+    deleted_by_user_state = models.IntegerField(null=True)  # state in community member or manager
     is_edited = models.BooleanField(default=False)
     reply = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='replied_conversation')
     internal_link = models.TextField(null=True)
@@ -330,6 +331,17 @@ class card_answers(models.Model):
                                          related_name='conversation_preview_chatroom')
 
     has_files = models.BooleanField(default=False)
+
+    last_updated = models.BigIntegerField(default=0)
+
+
+    #saving the last updated in milliseconds
+    def save(self, *args, **kwargs):
+        if self.last_updated == 0:
+            self.last_updated = int(round(time.time() * 1000))
+
+
+        super(card_answers, self).save(*args, **kwargs)
 
 
 
@@ -547,6 +559,8 @@ class Member_Engage(models.Model):
     last_unseen_conversation = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True)
     last_unseen_count = models.IntegerField(default=0, null=True)
     pending_members = models.IntegerField(default=0, null=True)
+    pending_chatrooms = models.IntegerField(default=0, null=True)
+    open_reports = models.IntegerField(default=0, null=True)
     updated_at = models.BigIntegerField(default=0, null=True)
     member_referral = models.CharField(default='', max_length=1024)
     member_state = models.IntegerField(null=True)
@@ -1161,6 +1175,7 @@ class userFeedback(models.Model):
 
 
 
+
 class adminRights(models.Model):
     title = models.TextField(null=True)
     sub_title = models.TextField(null=True)
@@ -1233,6 +1248,8 @@ class userDevices(models.Model):
 
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(null=True)
+
+    device_id = models.TextField(null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at <= 0:

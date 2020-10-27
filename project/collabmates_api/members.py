@@ -122,10 +122,13 @@ def get_all_members(request, req_dict=None):
         collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
 
     current_user_id = get_member_id_from_headers(request)
+    current_user_instance = User.objects.get(pk=current_user_id)
+
+
     is_filter = request.GET.get('is_filter', False)
 
     filter_list = request.GET.get('filter', None)
-    community_instance = Community.objects.get(id=community_id)
+    community_instance = Community.objects.get(pk=community_id)
 
     # functionality for user filteration based on options
     context = {}
@@ -141,10 +144,18 @@ def get_all_members(request, req_dict=None):
         context = send_participants_of_chatroom(collabcard_id, filter_list, community_id, current_user_id, page=page)
         return context
 
+    promoter_instance = None
+    is_owner = False
+    is_promoter = False
+    member_instance = Members.objects.filter(community_id=community_instance, member_id=current_user_id)
+    if member_instance.exists():
+        is_promoter = member_instance[0].state == member_states.ADMIN
+        if is_promoter:
+            promoter_instance = current_user_instance
+        is_owner = member_instance[0].is_owner
 
-    promoter_instance = is_member_promoter(community_instance,current_user_id)
-
-    community = CommunitySerializer(community_instance, promoter_id=promoter_instance, current_user_id=current_user_id)
+    community = CommunitySerializer(community_instance, promoter_id=promoter_instance, is_owner=is_owner,
+                                    current_user_id=current_user_id, current_user_instance=current_user_instance)
 
     if filter_list:
         member_list = get_member_query_set(current_user_id, community_id, send_all=True)
@@ -232,7 +243,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
                                                        send_profile=True, all_members_api=True, is_promoter=is_promoter
                                                        , is_owner=is_owner, user_admin_rights=user_admin_rights)
 
-        if member_id == int(current_user_id):
+        if current_user_id and member_id == int(current_user_id):
             pass
         else:
             members.append(userinfo_serialized_object)

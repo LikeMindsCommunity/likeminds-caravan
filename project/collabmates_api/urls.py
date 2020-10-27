@@ -3,6 +3,7 @@ from . import views
 from collabmates_api import views as api_views
 # from collabmates_api.notification import send_poll_notification_manually
 from django.views.decorators.csrf import csrf_exempt
+from collabmates_api import rest_api as rest_views
 
 #for testing email templates only remove.  in prod/beta
 from django.views.generic import TemplateView
@@ -211,6 +212,7 @@ urlpatterns = [
     ############################ synching client db apis ##################################
 
     path('sync_conversation', api_views.sync_conversation, name='sync_conversation'),
+    path('v1/sync_conversation', api_views.SyncConversationVersion1.as_view(), name='sync_conversation_v1'),
     path('sync_members', api_views.sync_members, name='sync_members'),
     path('sync_chatrooms', api_views.sync_chatrooms, name='sync_chatrooms'),
 
