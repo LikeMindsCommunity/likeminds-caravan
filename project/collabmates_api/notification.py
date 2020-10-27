@@ -1711,7 +1711,7 @@ def schedule_poll_end_notification(community_name, community_id, typ, date_time,
         celerybeatask.terminate_task(task_name)
 
         args = [card_id, task_name]
-        date_time = date_time + 21600  # date time + 6 hours . change the value for testing
+        date_time = date_time + 300  # + 21600  # date time + 6 hours . change the value for testing
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
 
