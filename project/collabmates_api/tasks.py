@@ -624,6 +624,7 @@ def send_poll_results_announcement_mail(card_id, task_name):
     community_owner_name = community_owner_instance.userinfo.name
 
     card_creator = card_instance.user
+    card_creator_id = card_creator.id
     card_creator_name = card_creator.userinfo.name
 
     card_polls = CollabcardPolls.objects.filter(card=card_instance)
@@ -635,6 +636,10 @@ def send_poll_results_announcement_mail(card_id, task_name):
     print("followed members ====   ", followed_members)
     final_users_list = voted_members | followed_members
     print("final_users_list ====   ", final_users_list)
+
+    if card_creator_id not in final_users_list:
+        final_users_list.add(card_creator_id)
+
     polls_list = []
     for poll in card_polls:
         poll_dict = CollabcardPollsSerializer(poll=poll, user=None, card=card_instance)
@@ -670,7 +675,7 @@ def send_poll_results_announcement_mail(card_id, task_name):
             }
             template = get_template("mails/poll_results_announcement.html").render(email_context)
 
-            to = ["mahesh61437mahe@gmail.com"]
+            to = [email]
             fail_silently = False
             msg = EmailMultiAlternatives(subject,
                                          template,
