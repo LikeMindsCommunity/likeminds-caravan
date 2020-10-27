@@ -619,7 +619,7 @@ def send_poll_results_announcement_mail(card_id, task_name):
     else:
         community_owner = Members.objects.filter(community_id=community_instance,
                                                  state=member_states.ADMIN).order_by("id")
-        community_owner_instance = community_owner[0]
+        community_owner_instance = community_owner[0].member_id
 
     community_owner_name = community_owner_instance.userinfo.name
 
