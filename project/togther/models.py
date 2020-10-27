@@ -203,8 +203,8 @@ class Collabcard(models.Model):
     deleted_by_text = models.CharField(max_length=512, null=True)
     reason = models.CharField(max_length=512, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
-    member_state = models.IntegerField(null=True)
 
+    member_state = models.IntegerField(null=True)
 
 class draftChatroom(models.Model):
     title = models.TextField()

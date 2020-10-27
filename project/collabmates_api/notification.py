@@ -1691,19 +1691,29 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 #         notification_meta(notification_list,message)
 
 @shared_task
-def schedule_poll_end_notification(community_name, community_id, typ, date_time,card_id):
+def schedule_poll_end_notification(community_name, community_id, typ, date_time, card_id):
     task_name = str(card_id) + "_poll_expiry_or_event_remainder_notification"
-    print("date---time>>>",date_time)
+    print("date---time>>>", date_time)
     date_time = date_time/1000
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
-    celerybeatask = CeleryBeatTask()
+    # celerybeatask = CeleryBeatTask()
     args = [community_name, community_id, typ,card_id,task_name]
     # date_time = time.time() + 60
     task_path = "collabmates_api.notification.poll_expiry_or_event_remainder_notification"
     kwargs = {}
     celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                             date_time=date_time, interval=False, crontab=True)
+
+    if typ == 3:
+        task_name = str(card_id) + "_poll_results_announcement_after_6_hours"
+        task_path = "collabmates_api.tasks.send_poll_results_announcement_mail"
+        celerybeatask.terminate_task(task_name)
+
+        args = [card_id, task_name]
+        date_time = date_time + 300  # + 21600  # date time + 6 hours . change the value for testing
+        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                date_time=date_time, interval=False, crontab=True)
 
 
 @app.task
@@ -1719,7 +1729,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         owner_flag = False
         card_title = get_title_from_collabcard(card_instance)
         if typ == 2:
-            collabcardstates = collabcardState.objects.filter(card=card_id).filter(Q(state=3) |Q(state=4)).filter(removed_status=None)
+            collabcardstates = collabcardState.objects.filter(card=card_id).filter(Q(state=3) | Q(state=4)).filter(removed_status=None)
             notification_list = []
             for ccs in collabcardstates:
                 if card_owner.id == ccs.user.id:
@@ -1742,7 +1752,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
                     owner_flag = True
                 notification_details = get_token_for_fcm(member.user.id,flag=True)
                 temp = {
-                    'id':member.user.id,
+                    'id': member.user.id,
                     'fcm_token':notification_details[0],
                     'mobile_os':notification_details[1],
                 }
@@ -1791,59 +1801,65 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
 
 
-# @app.task
-# def send_notification_to_inactive_chatroom_users():
-#
-#     current_time = time.time()
-#
-#     inactive_chatrooms = collabcardState.objects.filter(follow_status=True,
-#                                                         remove=None).filter(~Q(expiry_time=None) & Q(
-#         expiry_time__lt=current_time)).filter(created_at__gt = 1603434220)
-#
-#     user_set = set()
-#     user_list = []
-#     for data in inactive_chatrooms:
-#
-#         key = str(data.user.id)+"--"+str(data.card.id)
-#         if key not in user_set:
-#             temp = {}
-#             user_instance = data.user
-#             card_instance = data.card
-#             notification_filter = memberNotificationFlag.objects.filter(member=user_instance,
-#                                                                         card=card_instance,
-#                                                                         code='chat_room_becoming_inactive'
-#                                                                         )
-#             if notification_filter.exists():
-#                 if data.expiry_time > notification_filter[0].updated_at:
-#                     temp['user_id'] = user_instance.id
-#                     temp['user_name'] = user_instance.userinfo.name
-#                     temp['chatroom_id'] = card_instance.id
-#                     temp['chatroom_name'] = get_title_from_collabcard(card_instance)
-#                     notification_filter.update(updated_at=current_time)
-#                     user_list.append(temp)
-#             else:
-#                 instance = memberNotificationFlag()
-#                 instance.member = user_instance
-#                 instance.card = card_instance
-#                 instance.updated_at = current_time
-#                 instance.created_at = current_time
-#                 instance.community = data.community
-#                 instance.flag = True
-#                 instance.code = 'chat_room_becoming_inactive'
-#                 instance.save()
-#                 temp['user_id'] = user_instance.id
-#                 temp['user_name'] = user_instance.userinfo.name
-#                 temp['chatroom_id'] = card_instance.id
-#                 temp['chatroom_name'] = get_title_from_collabcard(card_instance)
-#                 user_list.append(temp)
-#
-#             user_set.add(key)
-#
-#     end_time = time.time()
-#     diff = end_time - current_time
-#     print(diff)
-#
-#     send_inactive_notification_utils(user_list)
+@app.task
+def send_notification_to_inactive_chatroom_users():
+
+    current_time = time.time()
+
+    inactive_chatrooms = collabcardState.objects.filter(follow_status=True,
+                                                        remove=None).filter(~Q(expiry_time=None) & Q(
+        expiry_time__lt=current_time)).filter(created_at__gt = 1603604997)
+
+    user_set = set()
+    user_list = []
+    for data in inactive_chatrooms:
+
+
+        if data.card.type == card_types.CARD_PURPOSE and not is_member_promoter(data.card.community,data.card.user):
+            continue
+
+        key = str(data.user.id)+"--"+str(data.card.id)
+        if key not in user_set:
+            temp = {}
+            user_instance = data.user
+            card_instance = data.card
+            notification_filter = memberNotificationFlag.objects.filter(member=user_instance,
+                                                                        card=card_instance,
+                                                                        code='chat_room_becoming_inactive'
+                                                                        )
+            if notification_filter.exists():
+                if data.expiry_time > notification_filter[0].updated_at:
+                    temp['user_id'] = user_instance.id
+                    temp['user_name'] = user_instance.userinfo.name
+                    temp['chatroom_id'] = card_instance.id
+                    temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+                    notification_filter.update(updated_at=current_time)
+
+                    user_list.append(temp)
+            else:
+                instance = memberNotificationFlag()
+                instance.member = user_instance
+                instance.card = card_instance
+                instance.updated_at = current_time
+                instance.created_at = current_time
+                instance.community = data.community
+                instance.flag = True
+                instance.code = 'chat_room_becoming_inactive'
+                instance.save()
+                temp['user_id'] = user_instance.id
+                temp['user_name'] = user_instance.userinfo.name
+                temp['chatroom_id'] = card_instance.id
+                temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+
+                user_list.append(temp)
+
+            user_set.add(key)
+
+    end_time = time.time()
+    diff = end_time - current_time
+    print(diff)
+
+    send_inactive_notification_utils(user_list)
 
 
 

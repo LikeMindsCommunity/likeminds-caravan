@@ -745,7 +745,7 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['image_url'] = poll.image_url
 
     if poll.user:
-        member_profile = get_members_profile([poll.user.id],card_instance.community.id)
+        member_profile = get_members_profile([poll.user.id], card_instance.community.id)
         polls['member'] = member_profile[0]
 
     # if card.end_date // 1000 <= time.time():
