@@ -12786,10 +12786,36 @@ class SyncConversationVersion1(APIView):
 
         last_updated = query_params.get('last_updated', None)
         paginate_by = int(paginate_by)
-        if not last_updated:
-            conversation_filter = card_answers.objects.all().order_by('id')
+
+        chatroom_status = query_params.get('chatroom_status', '')
+        if chatroom_status == "followed":
+
+            followed_rooms = list(collabcardState.objects.filter(
+                user=member_id,follow_status=True).values_list(
+                "card_id", flat=True))
+
+            if last_updated:
+                conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated,
+                                                                  card__id__in=followed_rooms).order_by('id')
+            else:
+                conversation_filter = card_answers.objects.filter(card__id__in=followed_rooms).order_by('id')
+
         else:
-            conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).order_by('id')
+            unfollowed_rooms = list(collabcardState.objects.filter(
+                user=member_id,follow_status=False).values_list(
+                "card_id", flat=True))
+
+            if last_updated:
+                conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).filter(
+                    card__id__in=unfollowed_rooms)
+            else:
+                conversation_filter = card_answers.objects.filter(card__id__in=unfollowed_rooms).order_by('id')
+
+
+        # if not last_updated:
+        #     conversation_filter = card_answers.objects.all().order_by('id')
+        # else:
+        #     conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).order_by('id')
 
         conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
         conversations = []
