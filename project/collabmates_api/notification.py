@@ -1691,19 +1691,29 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 #         notification_meta(notification_list,message)
 
 @shared_task
-def schedule_poll_end_notification(community_name, community_id, typ, date_time,card_id):
+def schedule_poll_end_notification(community_name, community_id, typ, date_time, card_id):
     task_name = str(card_id) + "_poll_expiry_or_event_remainder_notification"
-    print("date---time>>>",date_time)
+    print("date---time>>>", date_time)
     date_time = date_time/1000
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
-    celerybeatask = CeleryBeatTask()
+    # celerybeatask = CeleryBeatTask()
     args = [community_name, community_id, typ,card_id,task_name]
     # date_time = time.time() + 60
     task_path = "collabmates_api.notification.poll_expiry_or_event_remainder_notification"
     kwargs = {}
     celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                             date_time=date_time, interval=False, crontab=True)
+
+    if typ == 3:
+        task_name = str(card_id) + "_poll_results_announcement_after_6_hours"
+        task_path = "collabmates_api.tasks.send_poll_results_announcement_mail"
+        celerybeatask.terminate_task(task_name)
+
+        args = [card_id, task_name]
+        date_time = date_time + 300  # + 21600  # date time + 6 hours . change the value for testing
+        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                date_time=date_time, interval=False, crontab=True)
 
 
 @app.task
@@ -1719,7 +1729,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         owner_flag = False
         card_title = get_title_from_collabcard(card_instance)
         if typ == 2:
-            collabcardstates = collabcardState.objects.filter(card=card_id).filter(Q(state=3) |Q(state=4)).filter(removed_status=None)
+            collabcardstates = collabcardState.objects.filter(card=card_id).filter(Q(state=3) | Q(state=4)).filter(removed_status=None)
             notification_list = []
             for ccs in collabcardstates:
                 if card_owner.id == ccs.user.id:
@@ -1742,7 +1752,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
                     owner_flag = True
                 notification_details = get_token_for_fcm(member.user.id,flag=True)
                 temp = {
-                    'id':member.user.id,
+                    'id': member.user.id,
                     'fcm_token':notification_details[0],
                     'mobile_os':notification_details[1],
                 }
