@@ -201,7 +201,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         'card_creation_time': time.strftime('%I:%M %p', time.localtime(card.date_epoch)),
         "community_name": card.community.name,
         "date": time.strftime('%d %b %Y', time.localtime(card.date_epoch)),
-        "created_at": time.strftime('%H:%M', time.localtime(card.date_epoch))
+        "created_at": time.strftime('%H:%M', time.localtime(card.date_epoch)),
+        "date_epoch":card.date_epoch
     }
 
     if user and int(user) == card.user.id:
