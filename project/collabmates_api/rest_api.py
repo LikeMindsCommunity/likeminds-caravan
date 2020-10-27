@@ -341,8 +341,10 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                     del data['deleted_by_user_state']
 
             elif field.field_name == "reply" and data['reply'] is not None and self.fetch_reply:
-                data['reply_conversation'] = CardAnswersDBSyncSerializer(fetch_reply=False,
-                                                                         current_user_id=self.current_user_id)
+                context = {"fetch_reply": False, "current_user_id": self.current_user_id}
+                reply_instance = card_answers.objects.get(pk=data['reply'])
+                data['reply_conversation'] = CardAnswersDBSyncSerializer(reply_instance, context=context).data
+
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
                 data['preview'] = get_preview_for_url(member_id=self.current_user_id,
                                                       preview_url=data['internal_link'])
