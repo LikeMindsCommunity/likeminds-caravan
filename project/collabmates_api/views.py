@@ -12972,12 +12972,40 @@ def sync_members(request):
 
     paginate_by = int(paginate_by)
     member_list = []
-    if members_type == "members":
 
-        if not last_updated:
-            member_filter = Members.objects.order_by('id')
+    chatroom_id = request.GET.get('chatroom_id', '')
+    community_id = request.GET.get('community_id', '')
+
+    if members_type == "members":
+        if chatroom_id:
+
+            chatroom_particpants = collabcardState.objects.filter(card=chatroom_id,follow_status=True,is_guest=False,remove=None).order_by('id')
+            max_last_updated = 0
+
+            member_list = []
+            chatroom_particpants = pagination(chatroom_particpants,page,paginate_by=paginate_by)
+
+            for data in chatroom_particpants:
+                user_profile = get_user_profile(data.user, community_id,
+                                                     current_user_id=member_id,
+                                                     send_profile=False)
+                if max_last_updated < data.updated_at:
+                    max_last_updated = data.updated_at
+                member_list.append(user_profile)
+
+            context ={
+                'members': member_list,
+                'max_last_updated':max_last_updated
+            }
+            return JsonResponse(context)
+
+        elif community_id:
+            member_filter = Members.objects.filter(community_id=community_id).order_by('id')
         else:
-            member_filter = Members.objects.filter(updated_at__gt=last_updated).order_by('id')
+            if not last_updated:
+                member_filter = Members.objects.order_by('id')
+            else:
+                member_filter = Members.objects.filter(updated_at__gt=last_updated).order_by('id')
 
         paginated_members = get_paginated_queryset_with_maxpages(member_filter,page,paginate_by=paginate_by)
 
@@ -13005,10 +13033,29 @@ def sync_members(request):
 
     if members_type == "removed_members":
 
-        if not last_updated:
-            remove_member_filter = removedMembers.objects.order_by('id')
+        if chatroom_id:
+            removed_members = collabcardState.objects.filter(card=chatroom_id).filter(~Q(removed=None)).order_by('id')
+            max_last_updated = 0
+            members = []
+            for data in removed_members:
+                community_profile = get_user_profile(data.user,current_user_id=member_id,send_profile=False,remove=True)
+                if max_last_updated < data.updated_at:
+                    max_last_updated = data.updated_at
+                members.append(community_profile)
+
+            context = {
+                'members': member_list,
+                'max_last_updated': max_last_updated
+            }
+            return JsonResponse(context)
+
+        elif community_id:
+            remove_member_filter = removedMembers.objects.filter(community=community_id).order_by('id')
         else:
-            remove_member_filter = removedMembers.objects.filter(created_at__gt=last_updated).order_by('id')
+            if not last_updated:
+                remove_member_filter = removedMembers.objects.order_by('id')
+            else:
+                remove_member_filter = removedMembers.objects.filter(created_at__gt=last_updated).order_by('id')
 
 
         pagianted_removed_members = get_paginated_queryset_with_maxpages(remove_member_filter,page,paginate_by=paginate_by)
@@ -13036,10 +13083,15 @@ def sync_members(request):
     #getting the guest users
     if members_type == "guest":
 
-        if not last_updated:
-            guest_filter = collabcardState.objects.filter(is_guest=True).order_by('id')
+        if chatroom_id:
+            guest_filter = collabcardState.objects.filter(is_guest=True,card=chatroom_id,remove=None).order_by('id')
+        elif community_id:
+            guest_filter = collabcardState.objects.filter(is_guest=True,community=community_id).order_by('id')
         else:
-            guest_filter = collabcardState.objects.filter(is_guest=True,updated_at__gt=last_updated).order_by('id')
+            if not last_updated:
+                guest_filter = collabcardState.objects.filter(is_guest=True).order_by('id')
+            else:
+                guest_filter = collabcardState.objects.filter(is_guest=True,updated_at__gt=last_updated).order_by('id')
 
         guest_filter = pagination(guest_filter,page,paginate_by=paginate_by)
 
