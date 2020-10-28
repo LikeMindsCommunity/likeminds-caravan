@@ -7908,6 +7908,7 @@ def upload_files(request):
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
 
+
     if 'community_id' in body and body['community_id']:
         # if image to be updated in community
         community_id = body['community_id']
@@ -8004,8 +8005,7 @@ def upload_files(request):
 
     else:
         context['success'] = False
-        context['error_message'] = "sending incorrect params"
-
+        context['error_message'] = "parameters are missing"
 
     # sending the conversation instance if present
     if conversation:
@@ -8596,7 +8596,9 @@ def custom_login(request, res, login_type="custom"):
     if 'user_acquired' in res:
         user_acquired = res['user_acquired']
 
+
     user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type,user_acquired=user_acquired)
+
 
     # if 'image_url' not in profile:
     #     save_name_initial_image.delay(user_id=user_instance.id, user_name=name)

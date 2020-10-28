@@ -205,6 +205,8 @@ class Collabcard(models.Model):
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
 
     member_state = models.IntegerField(null=True)
+    disable_poll_announcement_mail = models.BooleanField(default=False)
+
 
 class draftChatroom(models.Model):
     title = models.TextField()
