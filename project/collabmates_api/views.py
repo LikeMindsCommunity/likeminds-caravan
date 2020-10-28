@@ -12896,8 +12896,16 @@ class SyncConversationVersion1(APIView):
         chatroom_status = query_params.get('chatroom_status', '')
 
         chatroom_id = query_params.get('chatroom_id','')
-        #sending the conversations of user
-        if not chatroom_id:
+        community_id = query_params.get('community_id','')
+
+        if  chatroom_id:
+            #sending all the conversations in a particular chatroom
+            conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
+        elif community_id:
+            #sending all the conversation in a particular community
+            conversation_filter = card_answers.objects.filter(community=community_id).order_by('id')
+        else:
+            #sending all the conversations
             if chatroom_status == "followed":
 
                 followed_rooms = list(collabcardState.objects.filter(
@@ -12917,15 +12925,8 @@ class SyncConversationVersion1(APIView):
                         card__id__in=unfollowed_rooms)
                 else:
                     conversation_filter = card_answers.objects.filter(card__id__in=unfollowed_rooms).order_by('id')
-        else:
-            #sending all the conversations for a particular chatroom
-            conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
 
 
-        # if not last_updated:
-        #     conversation_filter = card_answers.objects.all().order_by('id')
-        # else:
-        #     conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).order_by('id')
 
         conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
 
