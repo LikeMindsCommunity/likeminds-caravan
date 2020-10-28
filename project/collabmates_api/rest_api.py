@@ -5,8 +5,12 @@ from togther.models import *
 from collections import OrderedDict
 import json
 import time
-from .serializers import get_answer_files, get_preview_for_url
-
+from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
+                          get_members_profile, get_share_url_text, CollabcardPollsSerializer,
+                          get_removed_member_custom_text, get_collabcard_files)
+from utility.states import (card_types, question_states, member_states, poll_types,
+                            deleted_members, manager_rights, member_rights, chatroom_states)
+from utility.utils import get_time_text
 
 def get_error_context(success, error_message):
     '''function to get error context for apis'''
@@ -33,36 +37,296 @@ class communitySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class chatroomSerializer(serializers.ModelSerializer):
-    community = communitySerializer()
+class GetChatroomInstanceSerializer(serializers.ModelSerializer):
+    """ alternative for get_chatroom_instance function, for only collabcard have to write a new DRF serializer """
+
+    date = serializers.SerializerMethodField()
+    card_creation_time = serializers.SerializerMethodField()
+    poll_type_text = serializers.SerializerMethodField()
+    submit_type_text = serializers.SerializerMethodField()
+    image_url_round = serializers.SerializerMethodField()
+    chatroom_category = serializers.SerializerMethodField()
+    is_anonymous = serializers.SerializerMethodField()
+    member = serializers.SerializerMethodField()
+    expiry_time = serializers.SerializerMethodField()
+    created_at = serializers.SerializerMethodField()
+    community_name = serializers.ReadOnlyField(source='community.name')
+    deleted_by_member_state = serializers.ReadOnlyField(source='deleted_by_user_state')
+    deleted_by = serializers.ReadOnlyField(source='deleted_by_user')
+
+    images = serializers.ListField(write_only=True)
+    pdf = serializers.ListField(write_only=True)
+    preview = serializers.DictField(write_only=True)
+    polls = serializers.ListField(write_only=True)
+    share_url = serializers.CharField(write_only=True)
+    creator_share_url = serializers.CharField(write_only=True)
+    link_created_at = serializers.CharField(write_only=True)
+    state = serializers.IntegerField(write_only=True)
+    mute_status = serializers.BooleanField(write_only=True)
+    follow_status = serializers.BooleanField(write_only=True)
+    is_guest = serializers.BooleanField(write_only=True)
+    is_tagged = serializers.BooleanField(write_only=True)
+    chatroom_expiry_time = serializers.CharField(write_only=True)
 
     class Meta:
         model = Collabcard
-        fields = '__all__'
+        fields = ('id', 'title', 'community_id', 'answer_text',
+                  'share_link', 'image_count', 'pdf_count', 'type', 'date_time', 'duration',
+                  'is_deleted', 'is_pending', 'answers_count', 'attending_count', 'polls_count',
+                  'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
+                  'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state', 'multiple_select',
+                  'multiple_select_no', 'polls', 'location', 'location_lat', 'location_long',
+                  'start_date', 'end_date', 'about', 'co_hosts', 'online_link', 'updated_member',
+                  'community', 'og_tags', 'created_at', 'image_url_round',  'is_deleted', 'is_anonymous',
+                  'deleted_by_member_state', 'expiry_time', 'poll_type_text', 'submit_type_text', 'date',
+                  'chatroom_category', 'deleted_by', 'member', 'created_at',
+                  'internal_link', 'images', 'pdf', 'preview', 'member', 'deleted_by', 'header',
+                  'share_url', 'creator_share_url', 'link_created_at',
+                  'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time'
+                  )
 
     def __init__(self, *args, **kwargs):
-        super(chatroomSerializer, self).__init__(*args, **kwargs)
-        self.current_user_id = kwargs.get('current_user_id', None)
+        super(GetChatroomInstanceSerializer, self).__init__(*args, **kwargs)
+        self.member_id = self.context.get('member_id', None)  # required
+        self.user = self.context.get('user', None)  # required
+        self.state_instance = self.context.get('state_instance', None)  # optional
+        self.current_user_id = self.context.get('current_user_id', None)  # optional
+        if not self.current_user_id:
+            self.current_user_id = self.member_id
 
+    def _set_removed_member_custom_text(self, card, member_profile):
+        is_removed = removedMembers.objects.filter(community=card.community,
+                                                   member_id=member_profile['id'])
+        if member_profile['state'] == 0 and is_removed.exists():
+            temp = get_removed_member_custom_text(is_removed[0])
+            member_profile['custom_intro_text'] = temp['custom_intro_text']
+            member_profile['custom_click_text'] = temp['custom_click_text']
+            member_profile['remove_state'] = temp['remove_state']
+            member_profile['image_url'] = temp['removed_user_image_url']
 
-    def to_representation(self, obj):
-        data = super(chatroomSerializer, self).to_representation(obj)
+    def get_created_at(self, card):
+        return time.strftime('%H:%M', time.localtime(card.date_epoch))
+
+    def get_date(self, card):
+        return time.strftime('%d %b %Y', time.localtime(card.date_epoch))
+
+    def get_card_creation_time(self, card):
+        return time.strftime('%I:%M %p', time.localtime(card.date_epoch))
+
+    def get_image_url_round(self, card):
+        return card.community.image_link_round
+
+    def get_expiry_time(self, card):
+        if card.type == card_types.CARD_POLL:
+            return card.end_date
+        return None
+
+    def get_is_anonymous(self, card):
+        if card.type == card_types.CARD_POLL:
+            return card.is_poll_anonymous
+        return None
+
+    def get_poll_type_text(self, card):
+        return "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+
+    def get_submit_type_text(self, card):
+        return "Secret voting" if card.is_poll_anonymous else "Public voting"
+
+    def get_chatroom_category(self, card):
+        return get_category_of_chatroom(card.type)
+
+    def get_deleted_by_member_state(self, card):
+        return card.deleted_by_user_state
+
+    def get_member(self, card):
+        member_profile = get_members_profile([card.user.id], card.community.id)[0]
+        self._set_removed_member_custom_text(card, member_profile)
+        return member_profile
+
+    def get_deleted_by(self, card):
+        if card.deleted_by_user is None:
+            return None
+        member_ids = [card.deleted_by_user]
+        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
+                                   current_user_id=self.current_user_id)
+        return temp[0]
+
+    def to_representation(self, card):
+        data = super(GetChatroomInstanceSerializer, self).to_representation(card)
 
         fields = self._readable_fields
 
         for field in fields:
-            if field.field_name == "community" and data['community'] is not None:
-                data['community_id'] = data['community']["id"]
-                data['community_name'] = data['community']["name"]
-                if data['community']["image_link_round"]:
-                    data['image_url_round'] = data['community']["image_link_round"]
 
+            if field.field_name == 'header':
+                if not data['header']:
+                    if len(data['title']) <= 30:
+                        data['header'] = data['title'][:30]
+                    else:
+                        data['header'] = data['title'][:27] + "..."
+
+            if field.field_name == "community" and data['community'] is not None:
+                data['community_id'] = data['community']
                 del data["community"]
 
+            elif field.field_name == "card" and data['card'] is not None:
+                data['chatroom_id'] = data['card']
+                del data["card"]
+
+            elif field.field_name == "og_tags" and data['og_tags'] is not None:
+                if not card.og_tags == '':
+                    data['og_tags'] = json.loads(data['og_tags'])
+                else:
+                    del data['og_tags']
+
+            elif field.field_name == "end_date" and data["end_date"] <= 0:
+                del data['end_date']
+
             elif field.field_name == "has_been_named":
-                pass
+                if int(self.member_id) == data['user']:
+                    data['has_been_named'] = data['has_been_named']
+                else:
+                    del data['has_been_named']
+
+            elif field.field_name == "updated_member" and data['updated_member'] is not None:
+                member_ids = [data['updated_member']]
+                temp = get_members_profile(member_ids=member_ids, community_id=data['community'],
+                                           current_user_id=self.user)
+                data['updated_member'] = temp[0]
+
+            elif field.field_name == "internal_link" and data['internal_link'] is not None:
+                data['preview'] = get_preview_for_url(member_id=self.current_user_id,
+                                                      preview_url=data['internal_link'])
+                del data['internal_link']
+
+            elif field.field_name == "multiple_select":
+                if data['type'] != card_types.CARD_POLL:
+                    del data["multiple_select"]
+
+            elif field.field_name == "multiple_select_no" and data['multiple_select_no'] is not None:
+                if data['type'] != card_types.CARD_POLL:
+                    del data["multiple_select_no"]
+
+            elif field.field_name == "multiple_select_state" and data['multiple_select_state'] is not None:
+                if data['type'] != card_types.CARD_POLL:
+                    del data["multiple_select_state"]
+
+            elif field.field_name == "allow_add_option":
+                if data['type'] != card_types.CARD_POLL:
+                    del data["allow_add_option"]
+
+            elif field.field_name == "poll_type" and data['poll_type'] is not None:
+                if data['type'] != card_types.CARD_POLL:
+                    del data["poll_type"]
+
+            elif field.field_name == "expiry_time":
+                if data['type'] != card_types.CARD_POLL:
+                    data["expiry_time"] = card.end_date
+
+            elif field.field_name == "polls":
+                if data['type'] != card_types.CARD_POLL:
+                    polls = []
+                    card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
+                    for poll in card_polls:
+                        polls.append(CollabcardPollsSerializer(poll, self.user, card))
+                    data['polls'] = polls
+                else:
+                    del data['polls']
+
+            elif field.field_name == "poll_type_text":
+                if data['type'] != card_types.CARD_POLL:
+                    del data["poll_type_text"]
+
+            elif field.field_name == "submit_type_text":
+                if data['type'] != card_types.CARD_POLL:
+                    del data["submit_type_text"]
+
+            elif field.field_name == "location" and data['location'] is not None:
+                if data['type'] not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+                    del data["location"]
+
+            elif field.field_name == "location_lat" and data['location_lat'] is not None:
+                if data['type'] not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+                    del data["location_lat"]
+
+            elif field.field_name == "location_long" and data['location_long'] is not None:
+                if data['type'] not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+                    del data["location_long"]
+
+            elif field.field_name == "start_date" and data['start_date'] is not None:
+                if data['type'] not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+                    del data["start_date"]
+
+            elif field.field_name == "about" and data['about'] is not None:
+                if data['type'] not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+                    del data["about"]
+
+            elif field.field_name == "online_link" and data['online_link'] is not None:
+                if data['type'] not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+                    del data["online_link"]
+
+            elif field.field_name == 'co_hosts' and data['co_hosts'] is not None:
+                if data['type'] not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+                    del data["co_hosts"]
+                else:
+                    co_host_list = json.loads(data['co_hosts'])
+                    data['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=data['community'],
+                                                           current_user_id=self.user)
+
+            elif field.field_name == "updated_time":
+                data["updated_time"] = get_time_text(data["updated_time"])
+
+            elif field.field_name in ['image_count', 'pdf_count']:
+                card_files = get_collabcard_files(data['id'])
+                data['images'] = card_files[0]
+                data['pdf'] = card_files[1]
+
+            elif field.field_name == 'share_link':
+                share = get_share_url_text(card, self.user)
+                data["share_url"] = share['share_url']
+                data["creator_share_url"] = share['creator_share_url']
+                data["link_created_at"] = share['link_created_at']
+
             elif data[field.field_name] is None:
                 del data[field.field_name]
+
+        del data['user']
+
+        if self.state_instance is None:
+            collabcard_state = collabcardState.objects.filter(card=card, user=self.member_id)
+            if collabcard_state.exists():
+                self.state_instance = collabcard_state[0]
+
+        if self.state_instance is not None:
+            status_dict = CardStateSerializer(self.state_instance).data
+            expiry_time = status_dict['expiry_time']
+            status_dict['chatroom_expiry_time'] = expiry_time
+            status_dict['active'] = False
+            if not expiry_time or expiry_time >= int(time.time()):
+                status_dict['active'] = True
+
+            data['state'] = status_dict['state']
+            data['mute_status'] = status_dict['mute_status']
+            data['follow_status'] = status_dict['follow_status']
+            data['is_guest'] = status_dict['is_guest']
+            data['is_tagged'] = status_dict['is_tagged']
+            data['chatroom_expiry_time'] = status_dict['chatroom_expiry_time']
+            self.state_instance = None  # making None for the next object
+
+        return data
+
+
+
+class CardStateSerializer(serializers.ModelSerializer):
+    chatroom_expiry_time = serializers.SerializerMethodField()
+    class Meta:
+        model = collabcardState
+        fields = ('state', 'mute_status', 'follow_status', 'is_guest',
+                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time')
+
+    def get_chatroom_expiry_time(self, obj):
+        return obj.expiry_time
+
 
 
 
@@ -239,38 +503,6 @@ class memberCommunityProfileSerializer(serializers.ModelSerializer):
         self.all_members_api = kwargs.get('all_members_api', None)
         self.profile_detail_api = kwargs.get('profile_detail_api', None)
         self.user_admin_rights = kwargs.get('user_admin_rights', None)
-
-
-def get_members_profile(member_ids, community_id, current_user_id=None, send_profile=True, remove=False,
-                        is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
-                        user_admin_rights=None):
-
-    '''function to get member profile from list of members ids'''
-    member_profile_list = []
-
-    for id in member_ids:
-
-        member_filter = Members.objects.filter(member_id=id, community_id=community_id)
-
-        if member_filter.exists():
-
-            if user_admin_rights and not user_admin_rights["approve"]:
-                if member_filter[0].state == member_states.PENDING_MEMBER:
-                    continue
-
-            community_profile = MembersSerializer(member_filter[0], community_id, current_user_id=current_user_id,
-                                                  send_profile=send_profile, all_members_api=all_members_api,
-                                                  profile_detail_api=profile_detail_api, user_admin_rights=user_admin_rights,
-                                                  is_owner=is_owner, is_promoter=is_promoter
-                                                  )
-            member_profile_list.append(community_profile)
-
-        else:
-            temp = get_user_profile(id, community_id, current_user_id=current_user_id,send_profile=send_profile,remove=remove)
-            temp['state'] = 0
-            member_profile_list.append(temp)
-
-    return member_profile_list
 
 
 class CardAnswersDBSyncSerializer(serializers.ModelSerializer):

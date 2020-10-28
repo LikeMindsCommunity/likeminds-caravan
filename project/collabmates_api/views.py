@@ -80,7 +80,7 @@ from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_part
 from cms.models import NewAnswer
 
 from .user_moderation_rights import *
-from .rest_api import CardAnswersDBSyncSerializer
+from .rest_api import CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -13020,12 +13020,12 @@ def sync_chatrooms(request):
     if not last_updated:
         state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
     else:
-        state_filter = collabcardState.objects.filter(user=member_id,updated_at__gt=last_updated).order_by('id')
+        state_filter = collabcardState.objects.filter(user=member_id, updated_at__gt=last_updated).order_by('id')
 
-    state_filter = pagination(state_filter,page,paginate_by=paginate_by)
+    state_filter = pagination(state_filter, page, paginate_by=paginate_by)
     for data in state_filter:
         card_instance = data.card
-        chatroom_instance = get_chatroom_instance(card_instance,member_id,current_user_id=member_id)
+        chatroom_instance = get_chatroom_instance(card_instance, member_id, current_user_id=member_id)
         if card_instance.internal_link:
             chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
                                                                preview_url=card_instance.internal_link,
@@ -13034,7 +13034,6 @@ def sync_chatrooms(request):
                                                                send_preview_text=False)
 
         chatroom_instance['chatroom_expiry_time'] = data.expiry_time
-
 
         # last_response_members = get_member_images_of_chatroom(conversation_filter)
         # chatroom_instance['members_images'] = last_response_members['members_images']
@@ -13045,7 +13044,37 @@ def sync_chatrooms(request):
     return JsonResponse({'chatrooms':chatrooms})
 
 
+class SyncChatroomsVersion1(APIView):
 
+    def get(self, request, *args, **kwargs):
+
+        member_id = get_member_id_from_headers(request)
+        if not member_id:
+            context = get_error_context(False, "send member id in headers")
+            return JsonResponse(context)
+        query_params = request.query_params
+
+        page = query_params.get('page', 1)
+        page = int(page)
+
+        paginate_by = query_params.get('page_size', 200)
+
+        last_updated = query_params.get('last_updated', None)
+
+        if not last_updated:
+            state_filter = list(collabcardState.objects.filter(user=member_id).order_by('id').values_list("card__id",
+                                                                                                          flat=True))
+        else:
+            state_filter = list(collabcardState.objects.filter(user=member_id,
+                                updated_at__gt=last_updated).order_by('id').values_list("card__id", flat=True))
+
+        cards_list = list_pagination(state_filter, page, paginate_by=paginate_by)
+        cards = Collabcard.objects.filter(pk__in=cards_list)
+
+        context = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
+        chatroom_obj = GetChatroomInstanceSerializer(cards, context=context, many=True)
+
+        return JsonResponse({'chatrooms': chatroom_obj.data})
 
 
 # =========================== block member ========================================================
