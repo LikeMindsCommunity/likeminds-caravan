@@ -28,7 +28,7 @@ import json
 # from datetime import datetime,
 # url = 'https://beta.likeminds.community'
 url = settings.URL
-
+from .serializers import CollabcardPollsSerializer
 from .notification import get_title_from_collabcard 
 # def send_email(subject,template,to):
 #     fail_silently=True
@@ -600,6 +600,93 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
 
         send_email(subject, template, to)
         print(email_context)
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+
+
+@app.task
+def send_poll_results_announcement_mail(card_id, task_name):
+    """ function to send poll reuslts annoucement mail for users who missed or didn't see the poll results yet """
+
+    card_instance = Collabcard.objects.get(pk=card_id)
+    community_instance = card_instance.community
+    community_id = community_instance.id
+    community_owner = Members.objects.filter(community_id=community_instance,
+                                             state=member_states.ADMIN, is_owner=True)
+
+    if community_owner.exists():
+        community_owner_instance = community_owner[0].member_id
+    else:
+        community_owner = Members.objects.filter(community_id=community_instance,
+                                                 state=member_states.ADMIN).order_by("id")
+        community_owner_instance = community_owner[0].member_id
+
+    community_owner_name = community_owner_instance.userinfo.name
+
+    card_creator = card_instance.user
+    card_creator_id = card_creator.id
+    card_creator_name = card_creator.userinfo.name
+
+    card_polls = CollabcardPolls.objects.filter(card=card_instance)
+
+    voted_members = set(MemberPollVotes.objects.filter(card=card_id).values_list("user", flat=True))
+    followed_members = set(collabcardState.objects.filter(
+        card=card_id, mute_status=False).filter(Q(follow_status=True) | Q(external_follow=True)).values_list("user", flat=True))
+    print("voted members ====   ", voted_members)
+    print("followed members ====   ", followed_members)
+    final_users_list = voted_members | followed_members
+    print("final_users_list ====   ", final_users_list)
+
+    if card_creator_id not in final_users_list:
+        final_users_list.add(card_creator_id)
+
+    polls_list = []
+    for poll in card_polls:
+        poll_dict = CollabcardPollsSerializer(poll=poll, user=None, card=card_instance)
+        polls_list.append(poll_dict)
+
+    for user_id in final_users_list:
+        user_instance = User.objects.get(pk=user_id)
+        email = get_user_email(user_id)
+
+        notification_name = 'poll_results_announcement_mail'
+
+        first_name = user_instance.userinfo.name.split(" ")[0]
+        notification_flag = memberNotificationFlag.objects.filter(code=notification_name, card=card_instance,
+                                                                  member=user_instance, flag=True).exists()
+        subject = f'{first_name}, results for {card_instance.header}'
+        if not notification_flag:
+            email_context = {
+                'subject': subject,
+                'card_instance': card_instance,
+                'poll_options': polls_list,
+                'member_name': first_name,
+                'card_creator_name': card_creator_name,
+                'community_owner_name': community_owner_name,
+                'community_name': community_instance.name,
+                'android_app_download_link': android_app_download_link,
+                'ios_app_download_link': ios_app_download_link,
+                'playstore_image': GOOGLE_PLAYSTORE,
+                'applestore_image': APPLE_APPSTORE,
+                'app_image': APP_LOGO,
+                'cta_url': url + '/community/' + str(community_id),
+                'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
+                    user_id) + '&code=poll_results_announcement_mail',
+            }
+            template = get_template("mails/poll_results_announcement.html").render(email_context)
+
+            to = [email]
+            fail_silently = False
+            msg = EmailMultiAlternatives(subject,
+                                         template,
+                                         f"{community_instance.name}<hello@likeminds.community>",
+                                         to)
+            msg.attach_alternative(template, "text/html")
+            msg.send(fail_silently)
+
+    card_instance.disable_poll_announcement_mail = True
+    card_instance.save()
+
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
 

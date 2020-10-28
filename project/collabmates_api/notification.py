@@ -1691,19 +1691,29 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 #         notification_meta(notification_list,message)
 
 @shared_task
-def schedule_poll_end_notification(community_name, community_id, typ, date_time,card_id):
+def schedule_poll_end_notification(community_name, community_id, typ, date_time, card_id):
     task_name = str(card_id) + "_poll_expiry_or_event_remainder_notification"
-    print("date---time>>>",date_time)
+    print("date---time>>>", date_time)
     date_time = date_time/1000
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
-    celerybeatask = CeleryBeatTask()
+    # celerybeatask = CeleryBeatTask()
     args = [community_name, community_id, typ,card_id,task_name]
     # date_time = time.time() + 60
     task_path = "collabmates_api.notification.poll_expiry_or_event_remainder_notification"
     kwargs = {}
     celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                             date_time=date_time, interval=False, crontab=True)
+
+    if typ == 3:
+        task_name = str(card_id) + "_poll_results_announcement_after_6_hours"
+        task_path = "collabmates_api.tasks.send_poll_results_announcement_mail"
+        celerybeatask.terminate_task(task_name)
+
+        args = [card_id, task_name]
+        date_time = date_time + 300  # + 21600  # date time + 6 hours . change the value for testing
+        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                date_time=date_time, interval=False, crontab=True)
 
 
 @app.task
@@ -1719,7 +1729,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         owner_flag = False
         card_title = get_title_from_collabcard(card_instance)
         if typ == 2:
-            collabcardstates = collabcardState.objects.filter(card=card_id).filter(Q(state=3) |Q(state=4)).filter(removed_status=None)
+            collabcardstates = collabcardState.objects.filter(card=card_id).filter(Q(state=3) | Q(state=4)).filter(removed_status=None)
             notification_list = []
             for ccs in collabcardstates:
                 if card_owner.id == ccs.user.id:
@@ -1742,7 +1752,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
                     owner_flag = True
                 notification_details = get_token_for_fcm(member.user.id,flag=True)
                 temp = {
-                    'id':member.user.id,
+                    'id': member.user.id,
                     'fcm_token':notification_details[0],
                     'mobile_os':notification_details[1],
                 }
@@ -1798,11 +1808,15 @@ def send_notification_to_inactive_chatroom_users():
 
     inactive_chatrooms = collabcardState.objects.filter(follow_status=True,
                                                         remove=None).filter(~Q(expiry_time=None) & Q(
-        expiry_time__lt=current_time)).filter(created_at__gt = 1603434220)
+        expiry_time__lt=current_time)).filter(created_at__gt = 1603604997)
 
     user_set = set()
     user_list = []
     for data in inactive_chatrooms:
+
+
+        if data.card.type == card_types.CARD_PURPOSE and not is_member_promoter(data.card.community,data.card.user):
+            continue
 
         key = str(data.user.id)+"--"+str(data.card.id)
         if key not in user_set:
@@ -1820,6 +1834,7 @@ def send_notification_to_inactive_chatroom_users():
                     temp['chatroom_id'] = card_instance.id
                     temp['chatroom_name'] = get_title_from_collabcard(card_instance)
                     notification_filter.update(updated_at=current_time)
+
                     user_list.append(temp)
             else:
                 instance = memberNotificationFlag()
@@ -1835,6 +1850,7 @@ def send_notification_to_inactive_chatroom_users():
                 temp['user_name'] = user_instance.userinfo.name
                 temp['chatroom_id'] = card_instance.id
                 temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+
                 user_list.append(temp)
 
             user_set.add(key)
@@ -1884,6 +1900,71 @@ def send_inactive_notification_utils(user_list):
 # x=CeleryBeatTask()
 # x.terminate_task("send_notification_to_inactive_chatroom_users")
 # x.terminate_task("run_after_10_sec")
+
+
+@shared_task
+def send_notification_for_new_promoter(promoter_id, member_id, community_id, custom_title=None):
+    community_instance = Community.objects.get(pk=community_id)
+    promoter_instance = User.objects.get(pk=promoter_id)
+    member_instance = User.objects.get(pk=member_id)
+    community_name = community_instance.name
+    promoter_name = promoter_instance.userinfo.name
+
+    member_fcm_token = member_instance.userinfo.fcm_token
+    member_mobile_os = member_instance.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        "id": member_id,
+        'fcm_token': member_fcm_token,
+        'mobile_os': member_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": f"{promoter_name} has added you as {custom_title} of the community.",
+        'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
+    }
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_custom_title_changed(promoter_id, member_id, community_id, custom_title):
+    community_instance = Community.objects.get(pk=community_id)
+    promoter_instance = User.objects.get(pk=promoter_id)
+    member_instance = User.objects.get(pk=member_id)
+    community_name = community_instance.name
+    promoter_name = promoter_instance.userinfo.name
+
+    member_fcm_token = member_instance.userinfo.fcm_token
+    member_mobile_os = member_instance.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        "id": member_id,
+        'fcm_token': member_fcm_token,
+        'mobile_os': member_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    if custom_title is None:
+        custom_title = "Community Manager"
+
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": f"{promoter_name} has made you {custom_title} of the community.",
+        'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
+    }
+
+    notification_meta(notification_list, message)
+
+
 @shared_task
 def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, community_id):
     community_instance = Community.objects.get(pk=community_id)

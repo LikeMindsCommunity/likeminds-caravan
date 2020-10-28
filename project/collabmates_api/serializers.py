@@ -201,7 +201,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         'card_creation_time': time.strftime('%I:%M %p', time.localtime(card.date_epoch)),
         "community_name": card.community.name,
         "date": time.strftime('%d %b %Y', time.localtime(card.date_epoch)),
-        "created_at": time.strftime('%H:%M', time.localtime(card.date_epoch))
+        "created_at": time.strftime('%H:%M', time.localtime(card.date_epoch)),
+        "date_epoch":card.date_epoch
     }
 
     if user and int(user) == card.user.id:
@@ -745,7 +746,7 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['image_url'] = poll.image_url
 
     if poll.user:
-        member_profile = get_members_profile([poll.user.id],card_instance.community.id)
+        member_profile = get_members_profile([poll.user.id], card_instance.community.id)
         polls['member'] = member_profile[0]
 
     # if card.end_date // 1000 <= time.time():
@@ -1226,7 +1227,7 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
                 menu.append(remove_from_community)
 
             if current_user_admin_rights["add_manager"] and is_child:
-                menu.append(edit_permissions)
+                menu.append(edit_CM_rights)
 
         if profile_detail_api:
             menu.append(report_member)
