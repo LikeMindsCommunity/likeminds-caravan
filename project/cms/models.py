@@ -249,3 +249,29 @@ class NewAnswer(models.Model):
 
     def __str__(self):
         return str(self.option)
+
+
+class userAcquition(models.Model):
+
+    '''table to save user when it comes to the platform'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    landing_type = models.TextField(null=True)
+    link_type = models.TextField(null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE,null=True)
+    utm_source = models.TextField(null=True)
+    utm_campaign = models.TextField(null=True)
+    utm_content = models.TextField(null=True)
+    shared = models.ForeignKey(User, on_delete=models.CASCADE,null=True,related_name="shared_by")
+    device_id = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+
+        super(userAcquition, self).save(*args, **kwargs)
+
+
+
+

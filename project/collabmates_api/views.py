@@ -77,7 +77,7 @@ from .sms import *
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
-from cms.models import NewAnswer
+from cms.models import NewAnswer,userAcquition
 
 from .user_moderation_rights import *
 from .rest_api import CardAnswersDBSyncSerializer
@@ -1341,6 +1341,7 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
         member_instance.custom_title = "Member"
         member_instance.created_at = time.time()
         member_instance.updated_at = time.time()
+        member_instance.became_member_at = time.time()
         member_instance.save()
 
         # give default members rights
@@ -2498,6 +2499,7 @@ def create_community_version_1(request):
         member_instance.custom_title = "Owner"  # community creator is the owner of community
         member_instance.created_at = time.time()
         member_instance.updated_at = time.time()
+        member_instance.became_member_at = time.time()
         member_instance.save()
 
         # making the member enage instance for created community
@@ -2963,6 +2965,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     if not has_auto_approve_right and not is_intro_card:
         card.is_pending = True
 
+    card.member_state = res['member_state']
     card.date_epoch = time.time()  # card creation time
     card.save()
     # add ownerflag here
@@ -3042,6 +3045,13 @@ def create_card_internal(user_id, community_id, res):
     except:
         context = get_error_context(False, "the community id does n't exists")
         return context
+
+
+    res["member_state"] = None
+    member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+
+    if member_instance.exists():
+        res["member_state"] = member_instance[0].state
 
     card_type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
     is_intro_card = card_type == card_types.CARD_INTRO
@@ -4330,7 +4340,8 @@ def approve_or_decline_private_community(req_dict, request):
                                                                                  approved_by=current_user_instance,
                                                                                  custom_title="Member",
                                                                                  created_at=time.time(),
-                                                                                 updated_at=time.time())
+                                                                                 updated_at=time.time(),
+                                                                                 became_member_at=time.time())
             # giving default member rights
             give_default_member_rights(user=req_dict['member_id'], community=req_dict['community_id'])
             Member_Engage.objects.filter(member_id=req_dict['member_id'],
@@ -7890,6 +7901,10 @@ def upload_files(request):
         'success': True,
     }
 
+    context = {
+        'success': True,
+    }
+
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
 
@@ -7990,7 +8005,6 @@ def upload_files(request):
     else:
         context['success'] = False
         context['error_message'] = "sending incorrect params"
-
 
 
     # sending the conversation instance if present
@@ -8578,10 +8592,14 @@ def custom_login(request, res, login_type="custom"):
     if 'image_url' in profile:
         image_url = profile['image_url']
 
-    user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type)
+    user_acquired = None
+    if 'user_acquired' in res:
+        user_acquired = res['user_acquired']
 
-    if 'image_url' not in profile:
-        save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
+    user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type,user_acquired=user_acquired)
+
+    # if 'image_url' not in profile:
+    #     save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
 
     if is_request_web(request):
         phone_no = str(country_code) + str(mobile_no)
@@ -8606,7 +8624,7 @@ def custom_login(request, res, login_type="custom"):
     return context
 
 
-def create_custom_user(name, mobile_no, country_code, email, image_url, login_type):
+def create_custom_user(name, mobile_no, country_code, email, image_url, login_type,user_acquired=None):
     has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
     user_name = name + "_" + str(mobile_no)
 
@@ -8631,6 +8649,11 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
             userinfo_instance.created_at = time.time()
             userinfo_instance.user_id = user_instance
             userinfo_instance.save()
+
+            #saving the analytics of user
+            print(user_acquired)
+            if user_acquired:
+                save_userAcquition_analytics(user_instance,user_acquired)
           
             # creating user email
             save_user_primary_email(user_instance, email, email_state=email_states.PRIMARY)
@@ -8644,11 +8667,47 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
 
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
+
+
             return user_instance
         else:
             return has_user[0]
 
     return has_mobile_no[0].user
+
+
+def save_userAcquition_analytics(user_instance,user_acquired):
+
+    '''saving the analytics of acquired user'''
+
+    user_filter = userAcquition.objects.filter(user=user_instance)
+
+    if not user_filter.exists():
+
+        instance = userAcquition()
+        instance.user = user_instance
+        instance.landing_type = user_acquired['landing_type'] if 'landing_type' in user_acquired else ''
+        instance.link_type = user_acquired['link_type'] if 'link_type' in user_acquired  else ''
+
+        instance.utm_source = user_acquired['utm_source'] if 'utm_source' in user_acquired   else ''
+        instance.utm_campaign = user_acquired['utm_campaign'] if 'utm_campaign' in user_acquired   else ''
+        instance.utm_content = user_acquired['utm_content'] if 'utm_content' in user_acquired   else ''
+
+
+        instance.device_id = user_acquired['device_id'] if 'device_id' in user_acquired   else ''
+
+        if 'community_id' in user_acquired and user_acquired['community_id']:
+            community_instance = Community.objects.get(id=user_acquired['community_id'])
+            instance.community = community_instance
+
+        if  'shared_by' in user_acquired and user_acquired['shared_by']:
+            shared_user_instance = User.objects.get(id=user_acquired['shared_by'])
+            instance.shared = shared_user_instance
+
+        instance.save()
+
+
+
 
 
 @csrf_exempt
@@ -9359,6 +9418,7 @@ def skip_community(request):
         member_instance.state = member_states.PROFILE_UNAVAILABLE
         member_instance.created_at = time.time()
         member_instance.updated_at = time.time()
+        member_instance.became_member_at = time.time()
         member_instance.save()
 
     if not is_member_engage(community_id, member_id):
