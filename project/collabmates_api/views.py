@@ -13037,6 +13037,7 @@ def sync_members(request):
             removed_members = collabcardState.objects.filter(card=chatroom_id).filter(~Q(remove=None)).order_by('id')
             max_last_updated = 0
             members = []
+            removed_members = pagination(removed_members,page,paginate_by=paginate_by)
             user_set = set()
             for data in removed_members:
                 key = data.user.id
@@ -13089,8 +13090,9 @@ def sync_members(request):
 
         if chatroom_id:
             guest_filter = collabcardState.objects.filter(is_guest=True,card=chatroom_id,remove=None).order_by('id')
+
         elif community_id:
-            guest_filter = collabcardState.objects.filter(is_guest=True,community=community_id).order_by('id')
+            guest_filter = collabcardState.objects.filter(is_guest=True,community=community_id).distinct('user').order_by('user')
         else:
             if not last_updated:
                 guest_filter = collabcardState.objects.filter(is_guest=True).order_by('id')
