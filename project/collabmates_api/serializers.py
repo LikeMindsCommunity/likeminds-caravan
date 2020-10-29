@@ -16,7 +16,7 @@ url = settings.URL
 import ast
 from .static_files import *
 from .static_text import months_semi
-from .user_moderation_rights import check_member_invite_private_right
+from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
 from datetime import datetime, date
 
 
@@ -924,15 +924,6 @@ def get_question_instance(question_instance):
 
     return questions
 
-def check_admin_view_contact_right(user, community):
-
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
-
-    if user_rights.exists():
-        return True
-    return False
-
 
 def CommunityQuestionsSerializer(community_question_instance):
     context = {
@@ -1119,7 +1110,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
     community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id, send_profile=send_profile)
     community_profile['state'] = member_instance.state
     community_profile['is_owner'] = member_instance.is_owner
-    if member_instance.custom_title:
+    if member_instance.custom_title and not member_instance.custom_title == 'Member':
         community_profile['custom_title'] = member_instance.custom_title
     # sending image  url of members
     if member_instance.image_url:
@@ -1321,7 +1312,8 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
             member_profile_list.append(community_profile)
 
         else:
-            temp = get_user_profile(id, community_id, current_user_id=current_user_id,send_profile=send_profile,remove=remove)
+            temp = get_user_profile(id, community_id, current_user_id=current_user_id,
+                                    send_profile=send_profile, remove=remove)
             temp['state'] = 0
             member_profile_list.append(temp)
 

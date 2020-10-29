@@ -315,34 +315,37 @@ def get_tagged_members_list(answer):
 def send_notification_to_admins(community_id,name):
     '''function to send notification to community admins'''
     try:
-        connection=get_connection()
-        curr=connection.cursor()
-        sql="select member_id_id from togther_members where community_id_id= " + str(community_id) + " and (state=1 or state=2)"
+        connection = get_connection()
+        curr = connection.cursor()
+        sql = "select member_id_id from togther_members where community_id_id= " + str(community_id) + " and (state=1 or state=2)"
         curr.execute(sql)
-        admins=curr.fetchall()
-        notification_list=[]
+        admins = curr.fetchall()
+        notification_list =  []
 
+        eligible_admin_ids = list(userAdminRights.objects.filter(community=community_id,
+                         right__state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS).values_list("user__id",
+                                                                                                       flat=True))
         for admin in admins:
             temp = {}
             promoter_id = admin[0]
-            notification_details = get_token_for_fcm(promoter_id, True)
-            if notification_details:
-                temp['id'] = promoter_id
-                temp['fcm_token'] = notification_details[0]
-                temp['mobile_os'] = notification_details[1]
+            if promoter_id in eligible_admin_ids:
+                notification_details = get_token_for_fcm(promoter_id, True)
+                if notification_details:
+                    temp['id'] = promoter_id
+                    temp['fcm_token'] = notification_details[0]
+                    temp['mobile_os'] = notification_details[1]
 
-            notification_list.append(temp)
+                notification_list.append(temp)
 
-
-        community_name=get_community_name(community_id)
-        message={}
-        message['payload']={
-            'title':community_name,
-            'sub_title':str(name)+' has requested to join your community',
-            'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "community_name=" + str(community_name)
+        community_name = get_community_name(community_id)
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': str(name)+' has requested to join your community',
+            'route': 'route://member_approve?'+'community_id=' + str(community_id) + "&" + "community_name=" + str(community_name)
         }
 
-        notification_meta(notification_list,message)
+        notification_meta(notification_list, message)
 
         #send_notification_to_multiple_devices(token_list,message)
         curr.close()
@@ -434,10 +437,13 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
     try:
         connection = get_connection()
         curr = connection.cursor()
-        sql = "select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=4 or state=9)"
+        sql = "select member_id_id, state from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=4 or state=9) "
         parameter_list = [community_id, card_creater_id]
         curr.execute(sql, parameter_list)
         member_list = curr.fetchall()
+
+        card_id = kwargs['card_id']
+        card = Collabcard.objects.get(id=card_id)
 
         notification_list_member = []
 
@@ -446,19 +452,29 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
                                                                   blocked_member=card_creater_id).values_list(
                                                                   "blocked_by__id", flat=True))
+        eligible_admin_ids = []
+        if card.is_pending:
+            eligible_admin_ids = list(userAdminRights.objects.filter(community=community_id,
+                                      right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS).values_list(
+                                      "user__id", flat=True))
 
         # print(member_list)
         for member in member_list:
+            member_id = member[0]
+            member_state = member[1]
+            if card.is_pending:
+                if member_state != member_states.ADMIN:
+                    continue
+                elif member_id not in eligible_admin_ids:
+                    continue
+
             temp = {}
-            temp['id'] = member[0]
+            temp['id'] = member_id
             notification_details = get_token_for_fcm(member[0], True)
             temp['fcm_token'] = notification_details[0]
             temp['mobile_os'] = notification_details[1]
             if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
                 notification_list_member.append(temp)
-
-        card_id = kwargs['card_id']
-        card = Collabcard.objects.get(id=card_id)
 
         custom_payload = get_custom_data_for_new_chatroom_created(card)
         
@@ -476,6 +492,10 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
             route = 'route://poll_chatroom?chatroom_id='+str(kwargs['card_id'])
+        elif card.is_pending:
+            title = community_name
+            sub_title = str(card_creater_name) + " has created a new chat room " + str(collabcard_title)
+            route = 'route://chatroom_detail?chatroom_id=' + str(kwargs['card_id'])
         else:
             title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
@@ -2096,7 +2116,7 @@ def send_notification_for_pending_chatroom_approved_or_rejected(card_id, is_appr
 
     if is_approved:
         sub_title = f"Hurray! {card_creator_first_name}, your chat room ‘{chatroom_title}’ has been approved."
-        route = f"route://collabcard?collabcard_id={card_id}"
+        route = f" route://chatroom_detail?chatroom_id=={card_id}"
     else:
         sub_title = f"{card_creator_first_name}, we are sorry to inform you that your chat room ‘{chatroom_title}’ was not approved."
         route = "route://main"

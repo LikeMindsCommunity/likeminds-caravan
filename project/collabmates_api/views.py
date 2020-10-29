@@ -1364,6 +1364,7 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
         engage.community_id = community_instance
         engage.updated_at = time.time()
         engage.member_state = member_states.MEMBER
+        engage.rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
         engage.save()
 
 
@@ -2508,6 +2509,7 @@ def create_community_version_1(request):
         engage.member_state = member_states.ADMIN
         engage.member_referral = "Finish setting up your community"
         engage.click_state = click_states.SET_PURPOSE
+        engage.rights_list = json.dumps(member_rights.ALL_MEMBER_RIGHTS)
         engage.save()
 
         # give all the CM and member rights to the community creator i.e owner
@@ -3346,13 +3348,18 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
         info_logger.info(str(user_instance.id))
 
 
-def create_chatroom_engagement(card_instance, user_instance, func_dict=None):
+def create_chatroom_engagement(card_instance, user_instance, func_dict=None, member_state=0):
     '''function to create and update chatroom engagements '''
 
     instance_list = conversationEngage.objects.filter(card=card_instance, user=user_instance)
 
     if func_dict:
         expire_time = func_dict['expiry_time']
+    rights_list = None
+    if member_state == member_states.ADMIN:
+        rights_list = member_rights.ALL_MEMBER_RIGHTS
+    elif member_state == member_states.MEMBER or member_state == member_states.PROFILE_UNAVAILABLE:
+        rights_list = member_rights.DEFAULT_MEMBER_RIGHTS
 
     if not instance_list.exists():
         instance = conversationEngage()
@@ -3361,6 +3368,7 @@ def create_chatroom_engagement(card_instance, user_instance, func_dict=None):
         instance.community = card_instance.community
         instance.last_conversation = None
         instance.unseen_count = 0
+        instance.rights_list = rights_list
         instance.created_at = time.time()
         instance.updated_at = time.time()
         instance.save()
@@ -3368,6 +3376,7 @@ def create_chatroom_engagement(card_instance, user_instance, func_dict=None):
         instance = instance_list[0]
         instance_list.last_conversation = None
         instance_list.unseen_count = 0
+        instance.rights_list = rights_list
         instance.updated_at = time.time()
         instance.save()
 
@@ -4344,13 +4353,19 @@ def approve_or_decline_private_community(req_dict, request):
             give_default_member_rights(user=req_dict['member_id'], community=req_dict['community_id'])
             Member_Engage.objects.filter(member_id=req_dict['member_id'],
                                          community_id=req_dict['community_id']).update(
-                member_state=member_states.MEMBER,
-                updated_at=time.time(), click_state=click_states.DEFAULT)
+                                             member_state=member_states.MEMBER,
+                                             updated_at=time.time(), click_state=click_states.DEFAULT,
+                                             rights_list=json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS))
 
             # updating pending member count
             community = Community.objects.get(id=req_dict['community_id'])
             members_count = community.members_count + 1
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
+
+            accepted_user = User.objects.get(pk=req_dict['member_id'])
+            save_moderation_history(user=accepted_user, community=community,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.APPROVED_FROM)
 
             # updating pending members count
             update_pending_member_count_in_engage(req_dict['community_id'])
@@ -4377,8 +4392,6 @@ def approve_or_decline_private_community(req_dict, request):
             # deleting if the user left the community before
             removedMembers.objects.filter(community=req_dict['community_id'], member=req_dict['member_id']).delete()
 
-
-
             #send sms
             notification_list = [
                 'mail_has_installed_app'
@@ -4400,11 +4413,6 @@ def approve_or_decline_private_community(req_dict, request):
             send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],
                                                       promoter_name)
             send_community_confirmation_email.delay(req_dict['member_id'], req_dict['community_id'])
-
-            accepted_user = User.objects.get(pk=req_dict['member_id'])
-            save_moderation_history(user=accepted_user, community=community,
-                                    moderation_by=current_user_instance,
-                                    type=moderation_history_types.APPROVED_FROM)
 
     else:
 
@@ -6847,7 +6855,8 @@ def collabcard_follow(request, function_dict=None):
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
 
 
-            create_chatroom_engagement(card_instance=collabcard,user_instance=user_instance)
+            create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance,
+                                       member_state=member_state['state'])
 
     else:
         follow_status = collabcard_state_filter[0].follow_status
@@ -6864,7 +6873,8 @@ def collabcard_follow(request, function_dict=None):
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
-            create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
+            create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance,
+                                       member_state=member_state['state'])
 
         else:
             collabcard_state_filter.update(follow_status = status, updated_at=time.time(),is_tagged=False,external_seen=True,external_follow=status)
@@ -6884,7 +6894,7 @@ def collabcard_follow(request, function_dict=None):
     return JsonResponse({'success': True})
 
 
-def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_SEEN):
+def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN):
 
     '''folowing collabcard internally'''
 
@@ -6896,8 +6906,6 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     ref_instance = None
     mute_status = False
 
-
-
     if 'is_guest' in func_dict:
         is_guest = func_dict['is_guest']
         source_id = func_dict['source_id']
@@ -6907,7 +6915,6 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     elif 'is_tagged' in func_dict and func_dict['is_tagged']:
         is_tagged = True
         mute_status = True
-
 
     try:
         card_instance = Collabcard.objects.get(id=card_id)
@@ -6926,9 +6933,13 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
         expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
         if is_guest:
-            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time(),source=ref_instance,expiry_time=expiry_time,is_tagged=is_tagged,external_seen=True,mute_status=mute_status)
+            collabcard_state_filter.update(follow_status=status, state=state, is_guest=is_guest,
+                                           updated_at=time.time(), source=ref_instance, expiry_time=expiry_time,
+                                           is_tagged=is_tagged, external_seen=True, mute_status=mute_status)
         else:
-            collabcard_state_filter.update(follow_status=status,updated_at=time.time(),expiry_time=expiry_time,is_tagged=is_tagged,external_seen=True,mute_status=mute_status)
+            collabcard_state_filter.update(follow_status=status, updated_at=time.time(),
+                                           expiry_time=expiry_time, is_tagged=is_tagged,
+                                           external_seen=True, mute_status=mute_status)
 
     else:
         # collabcard_state_instance = collabcardState()
@@ -6959,14 +6970,17 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
                                        mute_status=mute_status, is_tagged=is_tagged,
                                        function_called="collabcard_follow_internal")
 
-
     if status:
-        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
+        member_state = 0
+        member_instance = Members.objects.filter(member_id=user_instance, community_id=card_instance.community)
+        if member_instance.exists():
+            member_state = member_instance[0].state
+        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance, member_state=member_state)
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=member_id)
 
     # function to set activity of chatroom
-    update_activity_in_chatroom(card_instance,user_instance)
+    update_activity_in_chatroom(card_instance, user_instance)
 
 
 def set_state_for_event_cards(collabcard, community_instance, user_instance, status, explicit_call, current_member_id):
@@ -8220,7 +8234,8 @@ def create_user(user_name, email, id, apple_id=False):
 
         user = User()
         user.username = user_name
-        user.email = email
+        if email is not None:
+            user.email = email
         user.save()
     else:
         user = user[0]
@@ -8238,7 +8253,8 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
     if not userinfo.exists():
         userinfo = Userinfo()
         userinfo.user_id = user
-        userinfo.email = email
+        if email is not None:
+            user.email = email
         userinfo.name = user_name
         if profile_picture is not None:
             userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
@@ -9428,6 +9444,7 @@ def skip_community(request):
         engage.updated_at = time.time()
         engage.member_state = member_states.PROFILE_UNAVAILABLE
         engage.click_state = click_states.SKIP_COMMUNITY
+        engage.rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
         engage.save()
 
     set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
@@ -11784,16 +11801,16 @@ def fetch_community_manager_rights(request):
                                                           user=user_instance).values_list('right__id',
                                                                                           flat=True))
         if admin_rights.exists():
+            is_member = len(user_rights) == 0
 
-            if len(user_rights) == 0:
-                rights_context = get_default_manager_rights_list()
-
-            else:
-                for right in admin_rights:
-                    right = right.right
-                    right_dict = get_right_dict(right)
+            for right in admin_rights:
+                right = right.right
+                right_dict = get_right_dict(right)
+                if is_member:
+                    right_dict["is_selected"] = True if right.id in manager_rights.DEFAULT_MANAGER_RIGHTS else False
+                else:
                     right_dict["is_selected"] = True if right.id in user_rights else False
-                    rights_context.append(right_dict)
+                rights_context.append(right_dict)
         else:
             context = get_error_context(False, "user does not have any manager rights")
             return JsonResponse(context)
@@ -11892,6 +11909,9 @@ def update_community_manager_rights(request):
                     custom_title = "Community Manager"
                 else:
                     custom_title = member_instance.custom_title
+            elif not is_member_already_promoter and custom_title:
+                if custom_title == 'Member':
+                    custom_title = "Community Manager"
             elif is_member_already_promoter:
                 prev_custom_title = member_instance.custom_title
                 if prev_custom_title != custom_title:
@@ -11925,7 +11945,10 @@ def update_community_manager_rights(request):
 
             if not is_member_already_promoter:
                 Member_Engage.objects.filter(member_id=user_instance,
-                                             community_id=community_id).update(member_state=member_states.ADMIN)
+                                             community_id=community_id).update(
+                                                 member_state=member_states.ADMIN,
+                                                 rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS))
+
                 save_moderation_history(user=user_instance, community=community_instance,
                                         moderation_by=current_user_instance,
                                         type=moderation_history_types.MADE_COMMUNITY_MANAGER)
@@ -12754,9 +12777,9 @@ def update_community_rights(request):
     if not community_id:
         context = get_error_context(False, "send community_id in body")
         return JsonResponse(context)
-    if not selected_rights:
-        context = get_error_context(False, "send rights in body")
-        return JsonResponse(context)
+    # if not selected_rights:
+    #     context = get_error_context(False, "send rights in body")
+    #     return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
     current_user_instance = User.objects.get(pk=current_user_id)
@@ -12765,6 +12788,16 @@ def update_community_rights(request):
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     # checking if the logged in user is Manager of the community or not
     if admin.exists():
+
+        if selected_rights is None:
+            all_rights = memberRights.objects.all()
+            for right in all_rights:
+                # if right is removed, the right is disabled for all the members
+                communityRightsSettings.objects.filter(community=community_instance, right=right).delete()
+                remove_right_for_all_members(community=community_instance, right=right)
+
+            return JsonResponse({'success': True})
+
         existing_rights = set(communityRightsSettings.objects.filter(community=community_instance).values_list("right__id", flat=True))
         rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
                                                                     existing_rights=existing_rights)
