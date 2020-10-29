@@ -12949,6 +12949,8 @@ class SyncConversation(APIView):
 
         return JsonResponse(context)
 
+def sync_conversation_version_1(request):
+    return JsonResponse({'conversations': []})
 
 def fetch_user_meta(request):
 
@@ -13219,6 +13221,8 @@ class SyncChatroomsVersion1(APIView):
         chatroom_obj = GetChatroomInstanceSerializer(cards, context=context, many=True)
 
         return JsonResponse({'chatrooms': chatroom_obj.data})
+
+
 
 
 # =========================== block member ========================================================
