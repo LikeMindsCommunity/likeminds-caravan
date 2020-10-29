@@ -13034,21 +13034,22 @@ def sync_members(request):
     if members_type == "removed_members":
 
         if chatroom_id:
-            removed_members = collabcardState.objects.filter(card=chatroom_id).filter(~Q(removed=None)).order_by('id')
+            removed_members = collabcardState.objects.filter(card=chatroom_id).filter(~Q(remove=None)).order_by('id')
             max_last_updated = 0
             members = []
+            removed_members = pagination(removed_members,page,paginate_by=paginate_by)
             user_set = set()
             for data in removed_members:
                 key = data.user.id
                 if key not in user_set:
-                    community_profile = get_user_profile(data.user,current_user_id=member_id,send_profile=False,remove=True)
+                    community_profile = get_user_profile(data.user,data.community.id,current_user_id=member_id,send_profile=False,remove=True)
                     if max_last_updated < data.updated_at:
                         max_last_updated = data.updated_at
                     members.append(community_profile)
                     user_set.add(key)
 
             context = {
-                'members': member_list,
+                'members': members,
                 'max_last_updated': max_last_updated
             }
             return JsonResponse(context)
@@ -13089,8 +13090,9 @@ def sync_members(request):
 
         if chatroom_id:
             guest_filter = collabcardState.objects.filter(is_guest=True,card=chatroom_id,remove=None).order_by('id')
+
         elif community_id:
-            guest_filter = collabcardState.objects.filter(is_guest=True,community=community_id).order_by('id')
+            guest_filter = collabcardState.objects.filter(is_guest=True,community=community_id).distinct('user').order_by('user')
         else:
             if not last_updated:
                 guest_filter = collabcardState.objects.filter(is_guest=True).order_by('id')
