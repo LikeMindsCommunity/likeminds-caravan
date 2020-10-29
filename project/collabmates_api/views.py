@@ -13034,21 +13034,21 @@ def sync_members(request):
     if members_type == "removed_members":
 
         if chatroom_id:
-            removed_members = collabcardState.objects.filter(card=chatroom_id).filter(~Q(removed=None)).order_by('id')
+            removed_members = collabcardState.objects.filter(card=chatroom_id).filter(~Q(remove=None)).order_by('id')
             max_last_updated = 0
             members = []
             user_set = set()
             for data in removed_members:
                 key = data.user.id
                 if key not in user_set:
-                    community_profile = get_user_profile(data.user,current_user_id=member_id,send_profile=False,remove=True)
+                    community_profile = get_user_profile(data.user,data.community.id,current_user_id=member_id,send_profile=False,remove=True)
                     if max_last_updated < data.updated_at:
                         max_last_updated = data.updated_at
                     members.append(community_profile)
                     user_set.add(key)
 
             context = {
-                'members': member_list,
+                'members': members,
                 'max_last_updated': max_last_updated
             }
             return JsonResponse(context)
