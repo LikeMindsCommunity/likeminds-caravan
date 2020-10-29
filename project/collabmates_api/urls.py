@@ -215,6 +215,7 @@ urlpatterns = [
     path('v1/sync_conversation', api_views.SyncConversationVersion1.as_view(), name='sync_conversation_v1'),
     path('sync_members', api_views.sync_members, name='sync_members'),
     path('sync_chatrooms', api_views.sync_chatrooms, name='sync_chatrooms'),
+    path('fetch_user_meta', api_views.fetch_user_meta, name='fetch_user_meta'),
 
 
     #######################################################################################

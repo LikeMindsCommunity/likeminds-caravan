@@ -12950,7 +12950,25 @@ class SyncConversationVersion1(APIView):
         return JsonResponse(context)
 
 
+def fetch_user_meta(request):
 
+    '''api to send community ids list'''
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False,"send x-member-id in header")
+        return JsonResponse(context)
+
+    community_list = list(Members.objects.filter(member_id=member_id).values_list("community_id",flat=True).order_by('-updated_at'))
+
+    community_ids = []
+
+    for community_id in community_list:
+        temp = {}
+        temp['id'] = community_id
+        community_ids.append(temp)
+
+    return JsonResponse({'community_ids':community_ids})
 
 def sync_members(request):
 
