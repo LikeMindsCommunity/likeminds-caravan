@@ -12875,7 +12875,7 @@ def sync_conversation(request):
     return JsonResponse(context)
 
 
-class SyncConversationVersion1(APIView):
+class SyncConversation(APIView):
 
     def get(self, request, *args, **kwargs):
 
