@@ -547,7 +547,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
 
     collabcard_serializer['member'] = collabcard_member[0]
 
-    is_removed = removedMembers.objects.filter(community=card_instance.community,member_id=collabcard_serializer['member']['id'])
+    is_removed = removedMembers.objects.filter(community=card_instance.community, member_id=collabcard_serializer['member']['id'])
 
     if collabcard_serializer['member']['state'] == 0 and is_removed.exists():
         temp = get_removed_member_custom_text(is_removed[0])
@@ -635,7 +635,7 @@ def get_draft_chatroom_instance(draft_instance, member_id):
     return draft_serializer
 
 
-def get_status_of_collabcard(member_id, card,state_instance=None):
+def get_status_of_collabcard(member_id, card, state_instance=None):
     '''function to get the state of collabcard'''
 
     collabcard_status = {
@@ -645,9 +645,8 @@ def get_status_of_collabcard(member_id, card,state_instance=None):
         'is_guest': False,
         'remove': False,
         'state_instance': None,
-        'expiry_time':None,
-        'is_tagged':False
-
+        'expiry_time': None,
+        'is_tagged': False
     }
 
     if not member_id:
@@ -674,6 +673,7 @@ def get_status_of_collabcard(member_id, card,state_instance=None):
         collabcard_status['state_instance'] = state_instance
         collabcard_status['expiry_time'] = state_instance.expiry_time
         collabcard_status['is_tagged'] = state_instance.is_tagged
+
     return collabcard_status
 
 def get_member_images_of_chatroom(conversation_filter):
@@ -1143,7 +1143,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
             community_profile['custom_intro_text'] = """Created this community on %s""" % (
                 time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
 
-    if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE):
+    if member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
 
         answer_filter = communityAnswers.objects.filter(community=community_id).filter(
             member=member_instance.member_id).order_by('id')
@@ -1215,7 +1215,8 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
     elif current_user_is_owner and item_member_state == member_states.ADMIN:
         menu = [remove_from_community, edit_CM_rights]
 
-    elif current_user_is_owner and item_member_state == member_states.MEMBER:
+    elif current_user_is_owner and (item_member_state == member_states.MEMBER or
+                                    item_member_state == member_states.PROFILE_UNAVAILABLE):
         menu = [remove_from_community, edit_permissions, give_CM_rights]
 
     elif current_user_is_promoter and item_member_state == member_states.ADMIN:
@@ -1234,7 +1235,8 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
             # if not item_member_is_owner:
             menu.append(block_member)
 
-    elif current_user_is_promoter and item_member_state == member_states.MEMBER:
+    elif current_user_is_promoter and (item_member_state == member_states.MEMBER or
+                                       item_member_state == member_states.PROFILE_UNAVAILABLE):
         if current_user_admin_rights:
             if current_user_admin_rights["approve"]:
                 menu.append(remove_from_community)
@@ -1307,7 +1309,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
 
         if member_filter.exists():
 
-            if user_admin_rights and not user_admin_rights["approve"]:
+            if user_admin_rights and not user_admin_rights["approve"] and not not profile_detail_api:
                 if member_filter[0].state == member_states.PENDING_MEMBER:
                     continue
 
