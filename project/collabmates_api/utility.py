@@ -64,6 +64,13 @@ def pagination(queryset, page_number, paginate_by=10):
 
     return [] if (max_page < int(page_number) or not queryset.exists()) else paginator.get_page(page_number)
 
+def list_pagination(list, page_number, paginate_by=10):
+    '''function to create pagination and return a query set for page number'''
+    paginator = Paginator(list, paginate_by)
+    max_page = len(paginator.page_range)
+
+    return [] if max_page < int(page_number) else paginator.get_page(page_number)
+
 
 def get_paginated_queryset_with_maxpages(queryset,page_number,paginate_by=10):
 
