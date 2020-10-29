@@ -80,7 +80,7 @@ from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_part
 from cms.models import NewAnswer,userAcquition
 
 from .user_moderation_rights import *
-from .rest_api import CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
+from .rest_api import CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -442,6 +442,95 @@ def your_communities(request, user_id):
 
 
     return JsonResponse({'your_communities': my_community})
+
+
+class YourCommunitiesV1(APIView):
+    '''This function is used to see your communities based on user id'''
+
+    def get(self, request, *args, **kwargs):
+
+        current_user_id = get_member_id_from_headers(request)
+        member_id = current_user_id
+
+        query_params = request.query_params
+
+        page_number = query_params.get('page', 1)
+        page_number = int(page_number)
+
+        my_community = []
+
+        user = User.objects.get(id=member_id)
+
+        notification_list = [
+            'mail_has_installed_app',
+        ]
+        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
+
+        communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
+        communities = pagination(communities, page_number, paginate_by=6)
+        current_time = time.time()
+        context = {"current_user_id": current_user_id}
+        for each_community in communities:
+            community = CommunitySerializerV1(each_community.community_id, context=context).data
+
+            if each_community.member_state == member_states.ADMIN:
+                has_approve_right = check_admin_approve_right(user, each_community.community_id)
+                if has_approve_right:
+                    community['pending_members_count'] = each_community.pending_members
+                else:
+                    community['pending_members_count'] = 0
+                community['pending_chatroom_count'] = each_community.pending_chatrooms
+                community['open_reports_count'] = each_community.open_reports
+
+            actions = get_home_screen_community_actions(each_community.community_id)
+            community['member_state'] = each_community.member_state
+
+            if each_community.pending_members > 0 and each_community.member_state == member_states.ADMIN:
+                pending_members = {
+                    'title': """Pending Members""",
+                    'route': """route://member_approve?community_id=%s&community_name=%s""" % (
+                    str(community['id']), community['name'])
+                }
+                actions.append(pending_members)
+
+            if each_community.member_state == member_states.ADMIN:
+                management_tools = {
+                    'title': """Management tools""",
+                    'route': """route://management_tools?community_id=%s&community_name=%s""" % (
+                        str(community['id']), community['name'])
+                }
+                actions.append(management_tools)
+
+            if each_community.member_state == member_states.ADMIN or each_community.member_state == member_states.MEMBER or each_community.member_state == member_states.PROFILE_UNAVAILABLE:
+                community['collabcard_unseen'] = each_community.last_unseen_count
+            else:
+                community['collabcard_unseen'] = 0
+
+            community['click_state'] = each_community.click_state
+
+            community['actions'] = actions
+
+            #  active count of chatrooms in communities
+            temp = get_active_chatroom_member_images(community_instance=each_community.community_id, member_id=member_id)
+
+            active_chatroom_count = temp['count']
+            community['active_chatroom_count'] = active_chatroom_count
+
+            if community['collabcard_unseen'] > 0:
+
+                if each_community.new_chatroom_users:
+                    community['new_chatroom_users'] = json.loads(each_community.new_chatroom_users)
+
+            else:
+                active_chatroom_users = temp['member_list']
+                if active_chatroom_users:
+                    community['active_chatroom_users'] = active_chatroom_users
+
+            community['member_right_states'] = json.loads(each_community.rights_list) if each_community.rights_list else []
+
+            my_community.append(community)
+
+        return JsonResponse({'your_communities': my_community})
 
 
 def my_chatrooms(request):
