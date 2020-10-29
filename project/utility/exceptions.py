@@ -16,7 +16,7 @@ def handler404(request, exception=None):
     to_mails_list = ['mahesh61437mahe@gmail.com']
 
     if not requested_path[0:6] == 'static':
-        send_email.delay(subject, template, to_mails_list)
+        send_email(subject, template, to_mails_list)
     template = loader.get_template('__404__.html')
 
     return HttpResponse(template.render())
@@ -30,7 +30,7 @@ def handler500(request, exception=None):
                                               'subject': subject
                                               })
     to_mails_list = ['mahesh61437mahe@gmail.com']
-    send_email.delay(subject, template, to_mails_list)
+    send_email(subject, template, to_mails_list)
 
     template = loader.get_template('500.html')
     return HttpResponse(template.render())
