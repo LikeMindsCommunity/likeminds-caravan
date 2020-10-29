@@ -381,19 +381,17 @@ def your_communities(request, user_id):
             community['pending_chatroom_count'] = each_community.pending_chatrooms
             community['open_reports_count'] = each_community.open_reports
 
-
         actions = get_home_screen_community_actions(each_community.community_id)
         #member_state = members_state(request,{'community_id':each_community.community_id.id,'member_id':member_id})
         community['member_state'] = each_community.member_state
 
-
-        if each_community.pending_members > 0 and each_community.member_state == member_states.ADMIN:
-            pending_members = {
-                'title': """Pending Members""",
-                'route': """route://member_approve?community_id=%s&community_name=%s""" % (
-                str(community['id']), community['name'])
-            }
-            actions.append(pending_members)
+        # if each_community.pending_members > 0 and each_community.member_state == member_states.ADMIN:
+        #     pending_members = {
+        #         'title': """Pending Members""",
+        #         'route': """route://member_approve?community_id=%s&community_name=%s""" % (
+        #         str(community['id']), community['name'])
+        #     }
+        #     actions.append(pending_members)
 
         if each_community.member_state == member_states.ADMIN:
             management_tools = {
