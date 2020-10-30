@@ -223,11 +223,13 @@ def send_report_mail_to_team(subject, report_instance_id):
     template = get_template("mails/send_report_mail_to_team.html").render(context)
 
     if is_beta:
-        to = ['himanshu@likeminds.community',]
+        to = [
+            # 'himanshu@likeminds.community',
+              'mahesh61437mahe@gamil.com']
     else:
         to = settings.TEAM
 
-    print(subject,context,to)
+    print(subject, context, to)
 
     send_email(subject, template, to)
     # print(template)

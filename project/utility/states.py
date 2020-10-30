@@ -59,6 +59,10 @@ class ModerationHistoryTypes:
     MANAGER_PERMISSION_EDITED = 4
     MADE_COMMUNITY_MANAGER = 5
     REMOVED_AS_COMMUNITY_MANAGER = 6
+    REMOVED_FROM_COMMUNITY = 7
+    LEFT_COMMUNITY = 8
+    STARTED_COMMUNITY = 9
+    TRANSFERRED_OWNERSHIP = 10
     APPLIED_PUBLIC_LINK_TEXT = "Applied via public link from "
     APPLIED_PRIVATE_LINK_TEXT = "Applied via private link from "
     APPROVED_FROM_TEXT = "Approved from "
@@ -66,6 +70,10 @@ class ModerationHistoryTypes:
     MANAGER_PERMISSION_EDITED_TEXT = "Management permission edited by "
     MADE_COMMUNITY_MANAGER_TEXT = "Made community manager by "
     REMOVED_AS_COMMUNITY_MANAGER_TEXT = "Removed as community manager by "
+    REMOVED_MEMBER_FROM_COMMUNITY_TEXT = "Removed from community by "
+    LEFT_COMMUNITY_TEXT = "Left community"
+    STARTED_COMMUNITY_TEXT = "Started this community"
+    TRANSFERRED_OWNERSHIP_TEXT = "Transferred ownership to "
 
 
 moderation_history_types = ModerationHistoryTypes()

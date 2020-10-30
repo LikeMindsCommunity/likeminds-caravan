@@ -2162,6 +2162,9 @@ def remove_from_member(request):
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', None)
 
+    current_user_instance = User.objects.get(pk=member_id)
+    community_instance = Community.objects.get(pk=community_id)
+
     is_promoter = Members.objects.filter(state=member_states.ADMIN, community_id=community_id, member_id=member_id)
     is_promoter = is_promoter.exists()
     if member_ids:
@@ -2176,8 +2179,15 @@ def remove_from_member(request):
                     member_state = member_filter[0].state
                     if member_state == member_states.MEMBER or member_state == member_states.KNOWN_NOMINATED_PROMOTER \
                             or member_state == member_states.PROFILE_UNAVAILABLE:
-                        remove_members(community_id, member_filter[0].member_id.id,
+
+                        user_instance = member_filter[0].member_id
+
+                        remove_members(community_id, user_instance.id,
                                        removed_state=deleted_members.REMOVED)
+
+                        save_moderation_history(user=user_instance, community=community_instance,
+                                                moderation_by=current_user_instance,
+                                                type=moderation_history_types.REMOVED_FROM_COMMUNITY)
 
                         check_reports_and_update_action.delay(action_taken_by=member_id,
                                                               action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
@@ -2213,7 +2223,13 @@ def remove_from_member(request):
                     Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
         if is_member.exists():
+            user_instance = User.objects.get(pk=member_id)
             remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
+
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.LEFT_COMMUNITY)
+
             check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
@@ -2517,6 +2533,10 @@ def create_community_version_1(request):
         give_all_member_rights(user=user_instance, community=community_instance)
         # give all community setting rights
         give_all_community_setting_rights(community=community_instance)
+
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=user_instance,
+                                type=moderation_history_types.STARTED_COMMUNITY)
 
         # send community created mail to the team
         email_context = {
@@ -11952,6 +11972,7 @@ def update_community_manager_rights(request):
                 save_moderation_history(user=user_instance, community=community_instance,
                                         moderation_by=current_user_instance,
                                         type=moderation_history_types.MADE_COMMUNITY_MANAGER)
+
                 send_notification_for_new_promoter.delay(promoter_id=current_user_id, member_id=user_id,
                                                          community_id=community_id, custom_title=custom_title)
             elif custom_title_changed:
@@ -12130,6 +12151,10 @@ def transfer_community_ownership(request):
         parent_cm_list = json.dumps([str(user_id)])
         admin.update(is_owner=False, custom_title="Community Manager",
                      parent_cm=user_instance, parent_cm_list=parent_cm_list)
+
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=current_user_instance,
+                                type=moderation_history_types.TRANSFERRED_OWNERSHIP)
 
         update_parent_cm_list.delay(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
         send_notification_for_ownership_transfered.delay(prev_owner_id=current_user_id,
