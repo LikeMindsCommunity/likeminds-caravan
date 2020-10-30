@@ -484,7 +484,11 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         message = {}
         typ = kwargs['type'] if 'type' in kwargs else 0
 
-        if typ == 2:
+        if card.is_pending:
+            title = community_name
+            sub_title = str(card_creater_name) + " has created a new chat room " + str(collabcard_title)
+            route = 'route://chatroom_detail?chatroom_id=' + str(kwargs['card_id'])
+        elif typ == 2:
             title = community_name
             sub_title = str(card_creater_name) + " created a new event: " + str(collabcard_title) + ". Join now!"
             route = 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
@@ -492,10 +496,6 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
             route = 'route://poll_chatroom?chatroom_id='+str(kwargs['card_id'])
-        elif card.is_pending:
-            title = community_name
-            sub_title = str(card_creater_name) + " has created a new chat room " + str(collabcard_title)
-            route = 'route://chatroom_detail?chatroom_id=' + str(kwargs['card_id'])
         else:
             title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
@@ -508,19 +508,22 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             'route': route
         }
         # message['payload']['unread_new_chatroom'] = {}
-        if typ not in [2, 3]:
-            message['payload']['unread_new_chatroom'] = custom_payload
+        if not  card.is_pending:
+            if typ not in [2, 3]:
+                message['payload']['unread_new_chatroom'] = custom_payload
 
         notification_meta(notification_list_member, message)
 
-        # functionality to send notification to tagged users
-        new_title_text = re.sub(r'\|route://member/[0-9]+>>|<<', '', card.title)
-        for member_id in tagged_users_list:
-            if not str(member_id) == str(card_creater_id):
+        if not card.is_pending:
+            # functionality to send notification to tagged users
+            new_title_text = re.sub(r'\|route://member/[0-9]+>>|<<', '', card.title)
+            for member_id in tagged_users_list:
+                if not str(member_id) == str(card_creater_id):
 
-                send_notification_to_tagged_users(card_id=kwargs['card_id'], answerer_name=card_creater_name,
-                                                  answer=new_title_text,
-                                                  user_id=member_id, user_names=user_names)
+                    send_notification_to_tagged_users(card_id=kwargs['card_id'],
+                                                      answerer_name=card_creater_name,
+                                                      answer=new_title_text,
+                                                      user_id=member_id, user_names=user_names)
 
 
     except (Exception, psycopg2.Error) as error:
@@ -2189,7 +2192,7 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
 
         notification_list.append(user_details)
 
-    if report_type != 2:  # will remove check after implementing conversation delete
+    if report_type in [0, 1]:  # will remove check after implementing conversation delete
         notification_meta(notification_list, message)
 
 

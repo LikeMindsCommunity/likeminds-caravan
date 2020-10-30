@@ -351,6 +351,11 @@ def get_moderation_history_title(moderation_history):
     return history
 
 
+def check_user_rejoin(user, community):
+    """ function to see if user already has moderation history to check rejoining in community"""
+    return moderationHistory.objects.filter(user=user, community=community).exists()
+
+
 def save_moderation_history(user, community, moderation_by, type):
     """ function to save moderation history """
     moderationHistory(user=user, community=community, moderation_by=moderation_by, type=type).save()

@@ -1198,7 +1198,12 @@ def join_promoter_created_community_version_1(res, request):
                 shared_user_instance = None
                 if 'shared_by' in res:
                     print("saving history 2 ---  ", res['shared_by'])
+
                     history_type = moderation_history_types.APPLIED_PRIVATE_LINK
+                    if check_user_rejoin(user=user_instance, community=community):
+                        history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
+                        update_followed_for_rejoined_member(user_instance, community)
+
                     shared_user_instance = User.objects.get(pk=res['shared_by'])
                     save_moderation_history(user=user_instance, community=community_instance,
                                             moderation_by=shared_user_instance, type=history_type)
@@ -2261,7 +2266,7 @@ def remove_members(community_id, member_id, removed_state):
         instance.save()
         # saving collabcard state in update status
         update_chatroom = collabcardState.objects.filter(community=community_instance, user=member_id).update(
-            remove=instance,updated_at=time.time())
+            remove=instance, updated_at=time.time())
         update_conversations = card_answers.objects.filter(user=member_id, community=community_instance).update(
             remove=instance)
 
@@ -2278,7 +2283,7 @@ def remove_members(community_id, member_id, removed_state):
 
     # removing the created chatrooms
     intro_chatroom = Collabcard.objects.filter(community=community_id, user=member_id,
-                                                 type=card_types.CARD_INTRO)
+                                               type=card_types.CARD_INTRO)
     if intro_chatroom.exists():
         create_chatroom_delete_backup(intro_chatroom[0], user_instance, removing_member=True)
         intro_chatroom.delete()
@@ -2292,6 +2297,37 @@ def remove_members(community_id, member_id, removed_state):
     filter_data = questionFilters.objects.filter(community=community_id, member=member_id).delete()
 
     update_last_unseen_in_engage_on_card_creation.delay(community_id,is_seen=False)
+
+
+def update_followed_for_rejoined_member(user, community):
+
+
+    removedMembers.objects.filter(community=community, member=user).delete()
+    # saving collabcard state in update status
+    card_answers.objects.filter(user=user, community=community).update(remove=None)
+
+    card_states = collabcardState.objects.filter(community=community, user=user)
+    card_states.update(remove=None, updated_at=time.time())
+    followed_filter = card_states.filter(follow_status=True).order_by('id')
+
+    for instance in followed_filter:
+
+        engage_filter = conversationEngage.objects.filter(card=instance.card, user=user)
+
+        if not engage_filter.exists():
+
+            engage_instance = conversationEngage()
+
+            engage_instance.card = instance.card
+            engage_instance.user = instance.user
+            engage_instance.created_at = instance.created_at
+            engage_instance.updated_at = instance.updated_at
+
+            engage_instance.save()
+
+            print("card id",str(instance.card.id))
+
+    print("existing chatroom followed for users")
 
 
 
@@ -4383,9 +4419,16 @@ def approve_or_decline_private_community(req_dict, request):
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
 
             accepted_user = User.objects.get(pk=req_dict['member_id'])
+
+            history_type = moderation_history_types.APPROVED_FROM
+            if check_user_rejoin(user=accepted_user, community=community):
+                history_type = moderation_history_types.REJOINED_COMMUNITY_PUBLIC_LINK
+
+                update_followed_for_rejoined_member(accepted_user, community)
+
             save_moderation_history(user=accepted_user, community=community,
                                     moderation_by=current_user_instance,
-                                    type=moderation_history_types.APPROVED_FROM)
+                                    type=history_type)
 
             # updating pending members count
             update_pending_member_count_in_engage(req_dict['community_id'])
@@ -11899,8 +11942,6 @@ def update_community_manager_rights(request):
         for right_id in removed_rights:
             right = adminRights.objects.get(pk=right_id)
             userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
-        # giving all of the members rights to promoter
-        give_all_member_rights(user=user_instance, community=community_instance)
 
         is_owner = False
         if int(user_id) == int(current_user_id):
@@ -11960,10 +12001,14 @@ def update_community_manager_rights(request):
                                     moderation_by=current_user_instance,
                                     type=moderation_history_types.MANAGER_PERMISSION_EDITED)
             # updating pending chatroom count and open reports count
-            # bcz the neccessary rights might have been added or removed
+            # bcz the necessary rights might have been added or removed
             update_pending_chatrooms_and_report_count.delay(community_id)
 
             if not is_member_already_promoter:
+
+                # giving all of the members rights to promoter
+                give_all_member_rights(user=user_instance, community=community_instance)
+
                 Member_Engage.objects.filter(member_id=user_instance,
                                              community_id=community_id).update(
                                                  member_state=member_states.ADMIN,
@@ -12156,7 +12201,7 @@ def transfer_community_ownership(request):
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.TRANSFERRED_OWNERSHIP)
 
-        update_parent_cm_list.delay(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
+        update_parent_cm_list(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
         send_notification_for_ownership_transfered.delay(prev_owner_id=current_user_id,
                                                          new_owner_id=user_id, community_id=community_id)
         return JsonResponse({'success': True})
@@ -12169,8 +12214,7 @@ def transfer_community_ownership(request):
 @shared_task
 def update_parent_cm_list(community_id, new_owner_id, prev_owner_id):
 
-    all_promoters = Members.objects.filter(community_id=community_id,
-                                           is_owner=False, state__in=member_states.ADMIN)
+    all_promoters = Members.objects.filter(community_id=community_id, is_owner=False, state=member_states.ADMIN)
 
     for member in all_promoters:
         member_instance = Members.objects.get(pk=member.id)  # id is members table primary key
@@ -12426,7 +12470,6 @@ def fetch_moderation_history(request):
 
     if parent_cm_list:
         is_child = current_user_id in parent_cm_list
-
     history_list = []
     moderations = moderationHistory.objects.select_related("user", "community", 'moderation_by').filter(user=user_id,
                                                            community_id=community_id).order_by("id")
@@ -12435,7 +12478,7 @@ def fetch_moderation_history(request):
         history_list.append(history)
 
     context = {"moderations": history_list}
-    print("child ===  ",is_child)
+    print("child ===  ", is_child)
     if is_child:
         edit_type = 0
         context["edit_type"] = edit_type
@@ -12709,7 +12752,7 @@ def fetch_management_tools(request):
     if not has_right_0 and not has_right_1 and not has_right_2:
         return JsonResponse(tools)
 
-    # had to do this multiple duplicate checks cause to send in tool order as per design
+    # cause to do this multiple duplicate checks is to send lkst in tool order as per design
     if has_right_1:
         member_request_tool = get_tool_member_requests(user_id=current_user_id, community_id=community_id)
 
@@ -12740,7 +12783,8 @@ def fetch_management_tools(request):
         tool_edit_directory_questions["route"] = f"route://edit_community_directory?community_id={community_id}&community_name={community_name}"
         tool_edit_community_details["route"] = f"route://edit_community?community_id={community_id}&community_name={community_name}"
 
-        management_tools.append(tool_edit_directory_questions)
+        if has_right_1:
+            management_tools.append(tool_edit_directory_questions)
         management_tools.append(tool_edit_community_details)
 
     if has_right_0 or has_right_1:
@@ -13026,6 +13070,7 @@ def fetch_user_meta(request):
 
     return JsonResponse({'community_ids':community_ids})
 
+
 def sync_members(request):
 
     '''api to sync members'''
@@ -13197,7 +13242,6 @@ def sync_members(request):
         'members': member_list
     }
     return JsonResponse(context)
-
 
 
 def sync_chatrooms(request):

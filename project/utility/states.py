@@ -63,6 +63,8 @@ class ModerationHistoryTypes:
     LEFT_COMMUNITY = 8
     STARTED_COMMUNITY = 9
     TRANSFERRED_OWNERSHIP = 10
+    REJOINED_COMMUNITY_PUBLIC_LINK = 11
+    REJOINED_COMMUNITY_PRIVATE_LINK = 12
     APPLIED_PUBLIC_LINK_TEXT = "Applied via public link from "
     APPLIED_PRIVATE_LINK_TEXT = "Applied via private link from "
     APPROVED_FROM_TEXT = "Approved from "
@@ -74,7 +76,8 @@ class ModerationHistoryTypes:
     LEFT_COMMUNITY_TEXT = "Left community"
     STARTED_COMMUNITY_TEXT = "Started this community"
     TRANSFERRED_OWNERSHIP_TEXT = "Transferred ownership to "
-
+    REJOINED_COMMUNITY_PUBLIC_LINK_TEXT = "Rejoined via public link from  "
+    REJOINED_COMMUNITY_PRIVATE_LINK_TEXT = "Rejoined via private link from "
 
 moderation_history_types = ModerationHistoryTypes()
 
