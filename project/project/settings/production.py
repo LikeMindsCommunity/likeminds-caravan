@@ -54,4 +54,4 @@ GOOGLE_OAUTH_CLIENT_ID="645716458793-rprdna1adps5s7pigsrjasko3ot3ljfl.apps.googl
 
 GHUPSHUP_KEY = "45314393fb4505a15ff19d175d0c92f1"
 
-ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com'),('Priyanshu','priyanshu@likeminds.community')]
+ADMINS = [('mahesh', 'mahesh@likeminds.community'),('Priyanshu','priyanshu@likeminds.community')]

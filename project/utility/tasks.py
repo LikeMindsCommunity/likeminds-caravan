@@ -232,13 +232,12 @@ def send_mail_for_report_abuse(user_name, collabcard_message, report_tag, commun
     }
     template = get_template("mails/report_abuse.html").render(context)
     if not is_beta:
-        to = "nipun@collabmates.com"
+        to = ["nipun@likeminds.community"]
     else:
-        to = "mahesh61437mahe@gmail.com"
-    to = [to]
+        to = ["nipun@likeminds.community", "mahesh@likeminds.community"]
+    to = to
     send_email(subject, template, to)
     print("Executed")
-
 
 
 def send_mail_for_query_and_feedback(mail_dict):

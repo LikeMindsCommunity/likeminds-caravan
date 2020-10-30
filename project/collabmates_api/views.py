@@ -12191,6 +12191,14 @@ def transfer_community_ownership(request):
                                member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
                                                                custom_title=previous_owner_title, parent_cm=None,
                                                                parent_cm_list=None)
+
+        Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
+                                     rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS),
+                                     member_state=member_states.ADMIN, click_state=click_states.DEFAULT
+                                     )
+        conversationEngage.objects.filter(user=user_instance, community=community_instance).update(
+                                          rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS))
+
         give_all_manager_rights(user_instance, community_instance)  # for new owner
         # current owner
         parent_cm_list = json.dumps([str(user_id)])
@@ -12202,6 +12210,8 @@ def transfer_community_ownership(request):
                                 type=moderation_history_types.TRANSFERRED_OWNERSHIP)
 
         update_parent_cm_list(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
+        # updating pending chatroom count and open reports count
+        update_pending_chatrooms_and_report_count.delay(community_id)
         send_notification_for_ownership_transfered.delay(prev_owner_id=current_user_id,
                                                          new_owner_id=user_id, community_id=community_id)
         return JsonResponse({'success': True})
