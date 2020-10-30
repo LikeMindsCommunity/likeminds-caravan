@@ -1200,7 +1200,7 @@ def join_promoter_created_community_version_1(res, request):
                     print("saving history 2 ---  ", res['shared_by'])
 
                     history_type = moderation_history_types.APPLIED_PRIVATE_LINK
-                    if check_user_rejoin(user=user_instance, community=community):
+                    if check_user_rejoin(user=user_instance, community=community_instance):
                         history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
                         update_followed_for_rejoined_member(user_instance, community)
 
