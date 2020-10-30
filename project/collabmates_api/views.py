@@ -5341,7 +5341,7 @@ def get_answer_bubble_context_for_web(ans):
 
 
 def get_chatroom_actions(card_status, request, creator, promoter=False, current_user_instance=None,
-                         community_instance=None, is_parent=False):
+                         community_instance=None, is_child=False):
 
     ''' function to get chatroom actions '''
 
@@ -5400,7 +5400,7 @@ def get_chatroom_actions(card_status, request, creator, promoter=False, current_
                 continue
 
         elif action['id'] == chatroom_actions.ACTION_DELETE:
-            if is_parent and not creator:
+            if is_child and not creator:
                 continue
             if promoter and not creator:
                 if check_admin_delete_right(user=current_user_instance, community=community_instance):
@@ -5527,7 +5527,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     }
 
     is_promoter = False
-    is_parent = False
+    is_child = False
     member_instance = Members.objects.filter(member_id=user_id,
                                              community_id=card_instance.community).filter(Q(state=member_states.ADMIN))
     if member_instance.exists():
@@ -5535,7 +5535,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         parent_cm_list = member_instance[0].parent_cm_list
         parent_list = json.loads(parent_cm_list) if parent_cm_list else []
 
-        is_parent = str(card_instance.user.id) in parent_list
+        is_child = str(card_instance.user.id) in parent_list
 
     is_card_creator = False
     if user_id and int(user_id) == card_instance.user.id:
@@ -5543,7 +5543,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     # sending the chatroom actions
     chatroom_actions = get_chatroom_actions(card_status, request, creator=is_card_creator, promoter=is_promoter,
                                             current_user_instance=user_id,
-                                            community_instance=card_instance.community, is_parent=is_parent
+                                            community_instance=card_instance.community, is_child=is_child
                                             )
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
@@ -5704,7 +5704,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     }
 
     is_promoter = False
-    is_parent = False
+    is_child = False
     member_instance = Members.objects.filter(member_id=user_id,
                                              community_id=card_instance.community).filter(Q(state=member_states.ADMIN))
     if member_instance.exists():
@@ -5712,7 +5712,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         parent_cm_list = member_instance[0].parent_cm_list
         parent_list = json.loads(parent_cm_list) if parent_cm_list else []
 
-        is_parent = str(card_instance.user.id) in parent_list
+        is_child = str(card_instance.user.id) in parent_list
 
     # sending the chatroom actions
     is_card_creator = False
@@ -5720,7 +5720,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         is_card_creator = True
     chatroom_actions = get_chatroom_actions(card_status, request, creator=is_card_creator, promoter=is_promoter,
                                             current_user_instance=user_id,
-                                            community_instance=card_instance.community, is_parent=is_parent
+                                            community_instance=card_instance.community, is_child=is_child
                                             )
 
     # latest_conversations = save_the_latest_conversation(card_instance, user_id)
