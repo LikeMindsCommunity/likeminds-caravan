@@ -2144,17 +2144,19 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
     community_name = community_instance.name
 
     sub_title_prefix = ""
-
+    reported_on_user = None
     if report_type == 0:
         reported_on_user = User.objects.get(pk=reported_on_user_id)
         sub_title_prefix = reported_on_user.userinfo.name
 
     elif report_type == 1:
         card_instance = Collabcard.objects.get(pk=card_id)
+        reported_on_user = card_instance.user
         sub_title_prefix = card_instance.header
 
     elif report_type == 2:
         conversation_instance = card_answers.objects.get(pk=conversation_id)
+        reported_on_user = conversation_instance.user
         chatroom_name = conversation_instance.card.header
         sub_title_prefix = f"A message in ‘{chatroom_name}'"
 
@@ -2173,13 +2175,32 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
         'route': route
     }
 
+    is_promoter = False
+    parent_cm_list = []
+
+    if reported_on_user:
+        member_instance = Members.objects.filter(community_id=community_instance, member_id=reported_on_user)
+        if member_instance.exists():
+            member_instance = member_instance[0]
+            if member_instance.is_owner:
+                return
+            elif member_instance.state == member_states.ADMIN:
+                is_promoter = True
+                parent_cm_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
+                parent_cm_list = set(parent_cm_list)
+
     if report_type == 0:
-        admin_ids = list(userAdminRights.objects.filter(community=community_instance,
+        admin_ids = set(userAdminRights.objects.filter(community=community_instance,
                          right__state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS).values_list("user__id",
                                                                                                        flat=True))
     else:
-        admin_ids = list(userAdminRights.objects.filter(community=community_instance,
+        admin_ids = set(userAdminRights.objects.filter(community=community_instance,
                          right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS).values_list("user__id", flat=True))
+
+    if is_promoter:
+        admin_ids = list(admin_ids & parent_cm_list)
+    else:
+        admin_ids = list(admin_ids)
 
     users = User.objects.filter(id__in=admin_ids)
 
