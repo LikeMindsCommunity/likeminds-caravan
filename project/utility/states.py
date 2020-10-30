@@ -14,6 +14,12 @@ class ManagerRights:
     MANAGER_RIGHT_VIEW_CONTACT_INFO_TITLE = "View member contact info"
     MANAGER_RIGHT_ADD_MANAGERS_TITLE = "Add community managers"
 
+    DEFAULT_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
+                              MANAGER_RIGHT_EDIT_COMMUNITY]
+    ALL_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
+                          MANAGER_RIGHT_EDIT_COMMUNITY, MANAGER_RIGHT_VIEW_CONTACT_INFO,
+                          MANAGER_RIGHT_ADD_MANAGERS]
+
 
 manager_rights = ManagerRights()
 
@@ -34,6 +40,12 @@ class MemberRights:
     MEMBER_RIGHT_INVITE_PRIVATE_LINK_TITLE = "Invite members via private link"
     MEMBER_RIGHT_AUTO_APPROVE_TITLE = "Auto-approve created chat rooms"
 
+    DEFAULT_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
+                             MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
+                             MEMBER_RIGHT_AUTO_APPROVE]
+    ALL_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
+                         MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
+                         MEMBER_RIGHT_INVITE_PRIVATE_LINK, MEMBER_RIGHT_AUTO_APPROVE]
 
 member_rights = MemberRights()
 
@@ -47,6 +59,12 @@ class ModerationHistoryTypes:
     MANAGER_PERMISSION_EDITED = 4
     MADE_COMMUNITY_MANAGER = 5
     REMOVED_AS_COMMUNITY_MANAGER = 6
+    REMOVED_FROM_COMMUNITY = 7
+    LEFT_COMMUNITY = 8
+    STARTED_COMMUNITY = 9
+    TRANSFERRED_OWNERSHIP = 10
+    REJOINED_COMMUNITY_PUBLIC_LINK = 11
+    REJOINED_COMMUNITY_PRIVATE_LINK = 12
     APPLIED_PUBLIC_LINK_TEXT = "Applied via public link from "
     APPLIED_PRIVATE_LINK_TEXT = "Applied via private link from "
     APPROVED_FROM_TEXT = "Approved from "
@@ -54,7 +72,12 @@ class ModerationHistoryTypes:
     MANAGER_PERMISSION_EDITED_TEXT = "Management permission edited by "
     MADE_COMMUNITY_MANAGER_TEXT = "Made community manager by "
     REMOVED_AS_COMMUNITY_MANAGER_TEXT = "Removed as community manager by "
-
+    REMOVED_MEMBER_FROM_COMMUNITY_TEXT = "Removed from community by "
+    LEFT_COMMUNITY_TEXT = "Left community"
+    STARTED_COMMUNITY_TEXT = "Started this community"
+    TRANSFERRED_OWNERSHIP_TEXT = "Transferred ownership to "
+    REJOINED_COMMUNITY_PUBLIC_LINK_TEXT = "Rejoined via public link from  "
+    REJOINED_COMMUNITY_PRIVATE_LINK_TEXT = "Rejoined via private link from "
 
 moderation_history_types = ModerationHistoryTypes()
 

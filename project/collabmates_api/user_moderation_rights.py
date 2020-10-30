@@ -310,7 +310,7 @@ def get_moderation_history_title(moderation_history):
     user_id = moderation_history.moderation_by.id
     user_name = moderation_history.moderation_by.userinfo.name
     community_id = moderation_history.community.id
-    title = None
+    title = ""
     if moderation_history.type == moderation_history_types.APPLIED_PUBLIC_LINK:
         title = moderation_history_types.APPLIED_PUBLIC_LINK_TEXT
 
@@ -332,11 +332,28 @@ def get_moderation_history_title(moderation_history):
     elif moderation_history.type == moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER:
         title = moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER_TEXT
 
+    elif moderation_history.type == moderation_history_types.REMOVED_FROM_COMMUNITY:
+        title = moderation_history_types.REMOVED_MEMBER_FROM_COMMUNITY_TEXT
+
+    elif moderation_history.type == moderation_history_types.TRANSFERRED_OWNERSHIP:
+        title = moderation_history_types.TRANSFERRED_OWNERSHIP_TEXT
+
     title = title + f"<<{user_name}|route://member_profile/{user_id}?community_id={community_id}&member_id={user_id}>>"
+
+    if moderation_history.type == moderation_history_types.STARTED_COMMUNITY:
+        title = moderation_history_types.STARTED_COMMUNITY_TEXT
+
+    elif moderation_history.type == moderation_history_types.LEFT_COMMUNITY:
+        title = moderation_history_types.LEFT_COMMUNITY_TEXT
 
     history = {"title": title, "moderation_time": moderation_history.moderation_time}
 
     return history
+
+
+def check_user_rejoin(user, community):
+    """ function to see if user already has moderation history to check rejoining in community"""
+    return moderationHistory.objects.filter(user=user, community=community).exists()
 
 
 def save_moderation_history(user, community, moderation_by, type):
