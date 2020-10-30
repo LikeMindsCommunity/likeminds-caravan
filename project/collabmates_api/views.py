@@ -1191,7 +1191,7 @@ def join_promoter_created_community_version_1(res, request):
             # insert private link dropoff here
             time_in_hrs = 2
 
-            if True:
+            if validate_time:
                 is_private_link = True
                 # saving moderation history
                 print("saving history 1")
