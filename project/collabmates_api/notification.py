@@ -508,7 +508,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             'route': route
         }
         # message['payload']['unread_new_chatroom'] = {}
-        if not  card.is_pending:
+        if not card.is_pending:
             if typ not in [2, 3]:
                 message['payload']['unread_new_chatroom'] = custom_payload
 
