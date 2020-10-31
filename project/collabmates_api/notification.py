@@ -2206,9 +2206,6 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
         admin_ids = list(admin_ids & parent_cm_list)
     else:
         admin_ids = list(admin_ids)
-        
-    print("admin_ids >>>>>>>>>   ", admin_ids)
-    print("parent_cm_list >>>>>>>>>   ", parent_cm_list)
 
     users = User.objects.filter(id__in=admin_ids)
 
@@ -2222,7 +2219,6 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
         notification_list.append(user_details)
 
     if report_type in [0, 1]:  # will remove check after implementing conversation delete
-        print("sending notifications >>>>>>>>>   ", notification_list)
         notification_meta(notification_list, message)
 
 
