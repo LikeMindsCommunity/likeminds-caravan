@@ -338,6 +338,12 @@ def get_moderation_history_title(moderation_history):
     elif moderation_history.type == moderation_history_types.TRANSFERRED_OWNERSHIP:
         title = moderation_history_types.TRANSFERRED_OWNERSHIP_TEXT
 
+    elif moderation_history.type == moderation_history_types.REJOINED_COMMUNITY_PUBLIC_LINK:
+        title = moderation_history_types.REJOINED_COMMUNITY_PUBLIC_LINK_TEXT
+
+    elif moderation_history.type == moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK:
+        title = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK_TEXT
+
     title = title + f"<<{user_name}|route://member_profile/{user_id}?community_id={community_id}&member_id={user_id}>>"
 
     if moderation_history.type == moderation_history_types.STARTED_COMMUNITY:
