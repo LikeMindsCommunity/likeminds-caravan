@@ -8969,6 +8969,9 @@ def verify_otp(request):
             mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
         elif user_id:
             mobile_filter = userMobiles.objects.filter(user = user_id)
+        else:
+            context = get_error_context(False, "send mobile no or user_id in params")
+            return JsonResponse(context)
         verified = {'success': False}
 
         if mobile_filter.exists():
