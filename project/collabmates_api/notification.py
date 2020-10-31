@@ -541,7 +541,8 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['chatroom_name'] = get_title_from_collabcard(chatroom_instance)+" (New Chatroom)"
     unread_conversation['chatroom_title'] = chatroom_instance.title
     unread_conversation['chatroom_user_name'] = user_instance.userinfo.name
-    unread_conversation['chatroom_user_image'] = user_instance.userinfo.image_link
+    chatroom_user_image = user_instance.userinfo.image_link
+    unread_conversation['chatroom_user_image'] = chatroom_user_image if chatroom_user_image else ''
     unread_conversation['chatroom_id'] = chatroom_instance.id
     unread_conversation['community_id'] = str(chatroom_instance.community.id)
     unread_conversation['community_image'] = chatroom_instance.community.image_link
