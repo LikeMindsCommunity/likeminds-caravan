@@ -8702,8 +8702,8 @@ def custom_login(request, res, login_type="custom"):
     user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type,user_acquired=user_acquired)
 
 
-    # if 'image_url' not in profile:
-    #     save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
+    if 'image_url' not in profile:
+        save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
 
     if is_request_web(request):
         phone_no = str(country_code) + str(mobile_no)
