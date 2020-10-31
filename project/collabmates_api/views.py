@@ -12357,9 +12357,15 @@ def update_community_member_rights(request):
             right = memberRights.objects.get(pk=right_id)
             userMemberRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
 
+        custom_title_changed = False
         if custom_title:
-            Members.objects.filter(member_id=user_instance,
-                                   community_id=community_instance).update(custom_title=custom_title)
+            member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+            if member_instance.exists():
+                prev_custom_title = member_instance[0].custom_title
+                if prev_custom_title != custom_title:
+                    custom_title_changed = True
+
+                member_instance.update(custom_title=custom_title)
 
         final_rights = [right["state"] for right in selected_rights if right["is_selected"]]
         rights_list = json.dumps(final_rights)
@@ -12381,6 +12387,11 @@ def update_community_member_rights(request):
 
         if len(rights_added) > 0:
             send_notification_for_right_given_to_member.delay(user_id, community_id, list(rights_added))
+
+        if custom_title_changed:
+            send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
+                                                             community_id=community_id,
+                                                             custom_title=custom_title)
 
         return JsonResponse({'success': True})
     else:
