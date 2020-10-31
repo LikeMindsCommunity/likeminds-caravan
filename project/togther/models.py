@@ -80,6 +80,7 @@ class Members(models.Model):
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="approved_by_user")
     parent_cm = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="parent_cm_user")
     parent_cm_list = models.TextField(null=True)  # it has the user id's of parent's hierarchy
+    became_member_at = models.BigIntegerField(default=0)
 
     def __str__(self):
         return self.member_id.userinfo.name + "__" + self.community_id.name
@@ -202,7 +203,10 @@ class Collabcard(models.Model):
     deleted_by_text = models.CharField(max_length=512, null=True)
     reason = models.CharField(max_length=512, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
+
+    member_state = models.IntegerField(null=True)
     disable_poll_announcement_mail = models.BooleanField(default=False)
+
 
 class draftChatroom(models.Model):
     title = models.TextField()
