@@ -2184,8 +2184,9 @@ def remove_from_member(request):
                     member_state = member_filter[0].state
                     is_owner = member_filter[0].is_owner
                     eligible_member_states = [member_states.ADMIN, member_states.MEMBER,
-                                              member_states.PROFILE_UNAVAILABLE, member_states.KNOWN_NOMINATED_PROMOTER]
-                    if not is_owner:
+                                              member_states.PROFILE_UNAVAILABLE,
+                                              member_states.KNOWN_NOMINATED_PROMOTER]
+                    if not is_owner and member_state in eligible_member_states:
 
                         user_instance = member_filter[0].member_id
 
@@ -5376,9 +5377,9 @@ def get_chatroom_actions(card_status, request, creator, promoter=False, current_
         final_dict = collabcard_action_user_unfollow
 
     final = final_dict.copy()
-
+    admin_has_delete_right = check_admin_delete_right(user=current_user_instance, community=community_instance)
     if promoter and not creator:
-        if check_admin_delete_right(user=current_user_instance, community=community_instance):
+        if admin_has_delete_right:
             final.append(delete_chatroom)
 
     actions = []
@@ -5408,12 +5409,12 @@ def get_chatroom_actions(card_status, request, creator, promoter=False, current_
             if is_child and not creator:
                 continue
             if promoter and not creator:
-                if check_admin_delete_right(user=current_user_instance, community=community_instance):
+                if not admin_has_delete_right:
                     continue
 
         elif action['id'] == chatroom_actions.ACTION_REPORT:
             if promoter and not creator:
-                if check_admin_delete_right(user=current_user_instance, community=community_instance):
+                if admin_has_delete_right:
                     continue
 
         actions.append(action)
@@ -11191,11 +11192,12 @@ def push_report_v1(request):
 
         update_report_count_for_all_promoters.delay(community_id)
 
-        send_notification_for_reports.delay(report_id=report_instance.id, community_id=community_id,
-                                            reported_by_user_id=member_id, card_id=collabcard_id,
-                                            conversation_id=conversation_id,
-                                            reported_on_user_id=reported_member_instance.id,
-                                            report_type=report_type, reason=reason, tag_id=tag_id)
+        if report_type in [report_Types.REPORT_MEMBER, report_Types.REPORT_CHATROOM] and not is_owner:
+            send_notification_for_reports.delay(report_id=report_instance.id, community_id=community_id,
+                                                reported_by_user_id=member_id, card_id=collabcard_id,
+                                                conversation_id=conversation_id,
+                                                reported_on_user_id=reported_member_instance.id,
+                                                report_type=report_type, reason=reason, tag_id=tag_id)
 
         if report_type == 1 and is_owner:
             subject = '[Chatroom reported] LikeMinds App'
