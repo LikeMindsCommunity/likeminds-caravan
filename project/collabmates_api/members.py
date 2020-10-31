@@ -6,6 +6,8 @@ from django.db.models import Q,Subquery
 from django.db import connection
 from .serializers import *
 from .utility import *
+from .user_moderation_rights import check_admin_approve_right
+
 
 
 def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
@@ -149,10 +151,13 @@ def get_all_members(request, req_dict=None):
     is_promoter = False
     member_instance = Members.objects.filter(community_id=community_instance, member_id=current_user_id)
     if member_instance.exists():
-        is_promoter = member_instance[0].state == member_states.ADMIN
+        member_instance = member_instance[0]
+        is_promoter = member_instance.state == member_states.ADMIN
         if is_promoter:
             promoter_instance = current_user_instance
-        is_owner = member_instance[0].is_owner
+        is_owner = member_instance.is_owner
+    else:
+        member_instance = None
 
     community = CommunitySerializer(community_instance, promoter_id=promoter_instance, is_owner=is_owner,
                                     current_user_id=current_user_id, current_user_instance=current_user_instance)
@@ -162,7 +167,8 @@ def get_all_members(request, req_dict=None):
         filter_list = json.loads(filter_list)
         member_set = get_filtered_users(filter_list, member_list)
         total_filtered_members = len(member_set)
-        members = get_member_instances_with_filter(member_set, current_user_id, community_id, page=page)
+        members = get_member_instances_with_filter(member_set, current_user_id, community_id, page=page,
+                                                   member_instance=member_instance)
 
 
     else:
@@ -262,7 +268,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
     return members
 
 
-def get_member_instances_with_filter(member_set, current_user_id, community_id, page=1):
+def get_member_instances_with_filter(member_set, current_user_id, community_id, page=1, member_instance=None):
 
 
     #sending first user if he is the part of list
@@ -273,19 +279,32 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
     user_admin_rights = None
     is_promoter = False
 
+    if member_instance is not None:
+        is_owner = member_instance.is_owner
+        is_promoter = member_instance.state == member_states.ADMIN
+
     if int(page) == 1:
 
-        current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
-        if current_filter.exists():
-
-            current_user_filter = current_filter[0]
-            is_owner = current_user_filter.is_owner
-            is_promoter = current_user_filter.state == member_states.ADMIN
+        if member_instance is not None:
+            current_user_filter = member_instance
 
             if member_set and current_user_id and int(current_user_id) in member_set:
                 current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
                                                  send_profile=True, all_members_api=True, is_promoter=is_promoter,
                                                  is_owner=is_owner)
+
+        else:
+            current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
+            if current_filter.exists():
+
+                current_user_filter = current_filter[0]
+                is_owner = current_user_filter.is_owner
+                is_promoter = current_user_filter.state == member_states.ADMIN
+
+                if member_set and current_user_id and int(current_user_id) in member_set:
+                    current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
+                                                     send_profile=True, all_members_api=True, is_promoter=is_promoter,
+                                                     is_owner=is_owner)
 
 
     #logic for pagination of members for filters
@@ -440,13 +459,13 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1):
     state = 0
     state_filter = Members.objects.filter(member_id=current_user_id,community_id=community_id)
     if state_filter.exists():
-        state= state_filter[0].state
+        state = state_filter[0].state
+    is_promoter = state == member_states.ADMIN
+    if is_promoter:
+        is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
 
-    if state == member_states.ADMIN:
-        member_list = get_paginated_member_queryset(page=page,community_id=community_id,promoter=True)
+    member_list = get_paginated_member_queryset(page=page,community_id=community_id,promoter=is_promoter)
 
-    else:
-        member_list = get_paginated_member_queryset(page=page,community_id=community_id,promoter=False)
 
     return member_list
 

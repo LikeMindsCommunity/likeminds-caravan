@@ -67,7 +67,7 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
         celerybeatask.terminate_task(task_name)
         day = 2
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -83,7 +83,7 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
         celerybeatask.terminate_task(task_name)
         day = 4
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -100,7 +100,7 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
         celerybeatask.terminate_task(task_name)
         day = 6
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -117,7 +117,7 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
         celerybeatask.terminate_task(task_name)
         day = 8
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -135,7 +135,7 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
         celerybeatask.terminate_task(task_name)
         day = 10
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -223,11 +223,14 @@ def send_report_mail_to_team(subject, report_instance_id):
     template = get_template("mails/send_report_mail_to_team.html").render(context)
 
     if is_beta:
-        to = ['himanshu@likeminds.community',]
+        to = ['himanshu@likeminds.community',
+              'growth@likeminds.community',
+              "nipun@likeminds.community",
+              'mahesh@likeminds.community']
     else:
         to = settings.TEAM
 
-    print(subject,context,to)
+    print(subject, context, to)
 
     send_email(subject, template, to)
     # print(template)
