@@ -2182,8 +2182,10 @@ def remove_from_member(request):
                 member_filter = Members.objects.filter(community_id=community_id, member_id=member)
                 if member_filter.exists():
                     member_state = member_filter[0].state
-                    if member_state == member_states.MEMBER or member_state == member_states.KNOWN_NOMINATED_PROMOTER \
-                            or member_state == member_states.PROFILE_UNAVAILABLE:
+                    is_owner = member_filter[0].is_owner
+                    eligible_member_states = [member_states.ADMIN, member_states.MEMBER,
+                                              member_states.PROFILE_UNAVAILABLE, member_states.KNOWN_NOMINATED_PROMOTER]
+                    if not is_owner:
 
                         user_instance = member_filter[0].member_id
 
@@ -2201,6 +2203,9 @@ def remove_from_member(request):
 
                         send_notification_for_removed_member.delay(admin_id=member_id,
                                                                    removed_user_id=member, community_id=community_id)
+                    else:
+                        return JsonResponse(
+                            {'success': False, 'error_message': "Cannot the Owner of this community"})
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'error_message': "You are not the promoter of this community"})
@@ -12205,6 +12210,9 @@ def transfer_community_ownership(request):
         previous_owner_title = "Owner"
         if admin[0].custom_title:
             previous_owner_title = admin[0].custom_title
+
+            if previous_owner_title == "Community Manager" or previous_owner_title == "Member":
+                previous_owner_title = "Owner"
 
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
