@@ -2145,6 +2145,7 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
 
     sub_title_prefix = ""
     reported_on_user = None
+    print("report_type >>>>>   ", report_type)
     if report_type == 0:
         reported_on_user = User.objects.get(pk=reported_on_user_id)
         sub_title_prefix = reported_on_user.userinfo.name
@@ -2202,6 +2203,9 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
     else:
         admin_ids = list(admin_ids)
 
+    print("parent_cm_list >>>>>>>>>   ", parent_cm_list)
+    print("admin ids >>>>>>>>>   ", admin_ids)
+
     users = User.objects.filter(id__in=admin_ids)
 
     for user in users:
@@ -2214,6 +2218,7 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
         notification_list.append(user_details)
 
     if report_type in [0, 1]:  # will remove check after implementing conversation delete
+        print("sending notifications >>>>>>>>>   ", notification_list)
         notification_meta(notification_list, message)
 
 
