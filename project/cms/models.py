@@ -265,6 +265,7 @@ class userAcquition(models.Model):
     shared = models.ForeignKey(User, on_delete=models.CASCADE,null=True,related_name="shared_by")
     device_id = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
+    platform = models.TextField(null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
