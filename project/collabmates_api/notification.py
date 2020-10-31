@@ -2195,7 +2195,10 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
                          right__state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS).values_list("user__id",
                                                                                   flat=True)
         print("admin ids >>>>>>>>>   ", admin_ids)
+        admin_ids = list(admin_ids)
+        print("list admin ids >>>>>>>>>   ", admin_ids)
         admin_ids = set(admin_ids)
+        print("set admin ids >>>>>>>>>   ", admin_ids)
     else:
         admin_ids = set(userAdminRights.objects.filter(community=community_instance,
                         right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS).values_list("user__id", flat=True))
