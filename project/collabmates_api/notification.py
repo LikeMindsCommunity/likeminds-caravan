@@ -2191,23 +2191,23 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
                 parent_cm_list = set(parent_cm_list)
 
     if report_type == 0:
-        admin_ids = userAdminRights.objects.filter(community=community_instance,
+        admin_ids = list(userAdminRights.objects.filter(community=community_instance,
                          right__state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS).values_list("user__id",
-                                                                                  flat=True)
-        print("admin ids >>>>>>>>>   ", admin_ids)
-        admin_ids = list(admin_ids)
-        print("list admin ids >>>>>>>>>   ", admin_ids)
+                                                                                  flat=True))
         admin_ids = set(admin_ids)
-        print("set admin ids >>>>>>>>>   ", admin_ids)
     else:
-        admin_ids = set(userAdminRights.objects.filter(community=community_instance,
+        admin_ids = list(userAdminRights.objects.filter(community=community_instance,
                         right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS).values_list("user__id", flat=True))
+        admin_ids = set(admin_ids)
+
+    admin_ids = {str(admin_id) for admin_id in admin_ids}
 
     if is_promoter:
         admin_ids = list(admin_ids & parent_cm_list)
     else:
         admin_ids = list(admin_ids)
-
+        
+    print("admin_ids >>>>>>>>>   ", admin_ids)
     print("parent_cm_list >>>>>>>>>   ", parent_cm_list)
 
     users = User.objects.filter(id__in=admin_ids)
