@@ -208,12 +208,12 @@ def save_community_setting_rights(community, rights_list):
 start_time = time.time()
 print(">>>>>> started >>>>>>>>   ", start_time)
 
-save_rights()
-update_community_owners()
-update_custom_title_for_all()
+# save_rights()
+# update_community_owners()
+# update_custom_title_for_all()
 fill_rights()
-fill_parent_for_admins()
-fill_community_setting_rights()
+# fill_parent_for_admins()
+# fill_community_setting_rights()
 
 end_time = time.time()
 print(">>>>>> end >>>>>>>>  ", end_time)
