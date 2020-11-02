@@ -158,16 +158,16 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
     for member in members:
         if level == 1:
             template = 'mails/level_1_email.html'
-            subject = str(member.userinfo.name) + ", reminding you to invite the inner circle!"
+            subject = str(member.member_id.userinfo.name) + ", reminding you to invite the inner circle!"
         elif level == 2:
             template = 'mails/level_2_email.html'
-            subject = str(member.userinfo.name) + ", reminding you to set up your directory!"
+            subject = str(member.member_id.userinfo.name) + ", reminding you to set up your directory!"
         elif level == 3:
             template = 'mails/level_3_email.html'
-            subject = str(member.userinfo.name) + ", reminding you to get 10 member profiles in directory!"
+            subject = str(member.member_id.userinfo.name) + ", reminding you to get 10 member profiles in directory!"
         else:
             template = 'mails/level_4_email.html'
-            subject = str(member.userinfo.name) + ", let’s get your community off to a great start!"
+            subject = str(member.member_id.userinfo.name) + ", let’s get your community off to a great start!"
 
         notification_list = [
             'send_8am_level_mails_to_admin_mailer'
@@ -177,7 +177,7 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
             # subject = str(member.userinfo.name) + " is waiting for your response! "
             email_context = {
                 'subject': subject,
-                'member_name': member.userinfo.name,
+                'member_name': member.member_id.userinfo.name,
                 'date_of_unlock':days,
                 'community_name': community_instance.name,
                 'android_app_download_link': android_app_download_link,
@@ -187,10 +187,10 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
                 'blog_link_1':'http://bit.ly/lmcm_guide',
                 'app_image': APP_LOGO,
                 'cta_url': url + '/community/' + str(community_id),
-                'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(member.member_id) + '&code=send_8am_level_mails_to_admin_mailer'
+                'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(member.member_id_id) + '&code=send_8am_level_mails_to_admin_mailer'
             }
             template = get_template(template).render(email_context)
-            email = get_user_email(member.member_id)
+            email = get_user_email(member.member_id_id)
             to = [email]
             # to = ['himanshu@likeminds.community']
             send_email(subject, template, to)
