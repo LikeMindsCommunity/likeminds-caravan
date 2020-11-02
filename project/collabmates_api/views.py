@@ -8791,8 +8791,8 @@ def custom_login(request, res, login_type="custom"):
     user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type,user_acquired=user_acquired)
 
 
-    # if 'image_url' not in profile:
-    #     save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
+    if 'image_url' not in profile:
+        save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
 
     if is_request_web(request):
         phone_no = str(country_code) + str(mobile_no)
@@ -8885,7 +8885,7 @@ def save_userAcquition_analytics(user_instance,user_acquired):
         instance.utm_source = user_acquired['utm_source'] if 'utm_source' in user_acquired   else ''
         instance.utm_campaign = user_acquired['utm_campaign'] if 'utm_campaign' in user_acquired   else ''
         instance.utm_content = user_acquired['utm_content'] if 'utm_content' in user_acquired   else ''
-
+        instance.platform = user_acquired['platform'] if 'platform' in user_acquired else ''
 
         instance.device_id = user_acquired['device_id'] if 'device_id' in user_acquired   else ''
 
