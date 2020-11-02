@@ -1157,20 +1157,23 @@ def create_notification_flag(member_id, notification_list, card_id=None, communi
         if card_id == None and community_id == None:
             p, created = memberNotificationFlag.objects.get_or_create(code=notification, member=member)
             if created:
-                p.update(flag=flag)
+                p.flag=flag
+                p.save()
 
         elif card_id != None and community_id == None:
             card = Collabcard.objects.get(pk=card_id)
             p, created = memberNotificationFlag.objects.get_or_create(code=notification, card=card, member=member)
             if created:
-                p.update(flag=flag)
+                p.flag=flag
+                p.save()
 
         elif community_id != None and card_id == None:
             community = Community.objects.get(pk=card_id)
             p, created = memberNotificationFlag.objects.get_or_create(code=notification, community=community,
                                                                       member=member)
             if created:
-                p.update(flag=flag)
+                p.flag=flag
+                p.save()
 
 
 def add_relative_time_to_epoch(epoch_time, minutes=0, hours=0, days=0):
