@@ -12421,12 +12421,11 @@ def update_community_member_rights(request):
             member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
             if member_instance.exists():
                 prev_custom_title = member_instance[0].custom_title
-                if prev_custom_title != custom_title:
-                    custom_title_changed = True
-
                 custom_title = custom_title.strip()
                 if len(custom_title) <= 0:
                     custom_title = None
+                elif prev_custom_title != custom_title:
+                    custom_title_changed = True
 
                 member_instance.update(custom_title=custom_title)
 
