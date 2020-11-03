@@ -1145,7 +1145,6 @@ def check_notification_flag(member_id,notification_list,card_id=None,community_i
 
     return flag
 
-
 def create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=None):
     '''
     function to add notification flag
