@@ -176,14 +176,14 @@ class ChatroomStates:
 
 chatroom_states = ChatroomStates()
 
-class MultipleSelectPoll:
+class MultiSelectPollStates:
     #class to save states of multiple select poll
     EXACTLY = 0
     AT_MAX = 1
     AT_MOST = 1
     AT_LEAST = 2
 
-multiple_select_poll = MultipleSelectPoll()
+multi_select_poll_states = MultiSelectPollStates()
 
 # member state
 class MemberStates:

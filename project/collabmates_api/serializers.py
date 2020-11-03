@@ -726,18 +726,21 @@ def CollabcardPollsSerializer(poll, user, card):
         'is_selected': is_poll_selected(poll, user, card) if user else False
     }
 
+    is_multi_select = False
+    if card.multiple_select_no is not None or card.multiple_select_state is not None:
+        is_multi_select = True
+
     if card.poll_type == poll_types.POLL_TYPE_INSTANT:
-        poll_detail = poll_percentage(card, poll)
+        poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
         polls['poll_count'] = poll_detail[0]
         polls['no_votes'] = poll_detail[0]
         polls['percentage'] = int(poll_detail[1])
 
-    elif card.poll_type == poll_types.POLL_TYPE_DEFERRED:
-        if card.end_date // 1000 <= time.time():
-            poll_detail = poll_percentage(card, poll)
-            polls['poll_count'] = poll_detail[0]
-            polls['no_votes'] = poll_detail[0]
-            polls['percentage'] = int(poll_detail[1])
+    elif card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date // 1000 <= time.time():
+        poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
+        polls['poll_count'] = poll_detail[0]
+        polls['no_votes'] = poll_detail[0]
+        polls['percentage'] = int(poll_detail[1])
 
     if poll.sub_text:
         polls['sub_text'] = poll.sub_text
@@ -764,9 +767,11 @@ def is_poll_selected(poll, user, card):
     return MemberPoll.exists()
 
 
-def poll_percentage(card, poll, current_user_id=None):
+def poll_percentage(card, poll, is_multi_select=False):
     """ function to calculate the percentage of particular poll for a card """
     total_polls = MemberPollVotes.objects.filter(card=card)
+    if is_multi_select:
+        total_polls = total_polls.distinct("user")
     selected_polls = total_polls.filter(poll=poll).count()
     total_polls = total_polls.count()
 
