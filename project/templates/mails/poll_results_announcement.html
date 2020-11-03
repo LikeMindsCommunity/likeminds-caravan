@@ -17,7 +17,7 @@ strong{
             You had voted in {{card_instance.header}}. Curious to see what others think? Here are the results:
         </p>
         <p>
-            <b>“{{card_instance.title}}”</b> by <b>{{card_creator_name}}</b>
+            <b>“{{card_instance.title}}”</b> {% if is_multi_select %} {{ multi_select_text }} {% endif %} by <b>{{card_creator_name}}</b>
         </p>
         <ul style="color:#718297;line-height: 1.5;font-size:16px;">
             {% for option in poll_options %}
@@ -28,7 +28,8 @@ strong{
             To see who said what and participate in the discussion, open the chatroom in your app.
         </p>
         <p class="cta-wrapper" style="text-align: center;">
-            <a href="https://likeminds.community/download_the_app" class="cta">Open in the App</a>
+            <a href="https://likeminds.community/collabcard/{{card_instance.id}}" class="cta">
+                Open in the Chatroom</a>
         </p>
 
         <p>Warmly,</p>
