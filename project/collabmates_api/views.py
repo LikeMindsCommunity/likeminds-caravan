@@ -1329,6 +1329,10 @@ def join_promoter_created_community_version_1(res, request):
         shared_user = User.objects.get(pk=res['shared_by'])
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=shared_user, type=history_type)
+    else:
+        history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=None, type=history_type)
 
 
 def update_community_toast(user_instance, community_instance):
@@ -4461,7 +4465,6 @@ def approve_or_decline_private_community(req_dict, request):
             history_type = moderation_history_types.APPROVED_FROM
             if check_user_rejoin(user=accepted_user, community=community):
                 history_type = moderation_history_types.REJOINED_COMMUNITY_PUBLIC_LINK
-
                 update_followed_for_rejoined_member(accepted_user, community)
 
             save_moderation_history(user=accepted_user, community=community,
@@ -12026,17 +12029,28 @@ def update_community_manager_rights(request):
 
             is_member_already_promoter = member_instance.state == member_states.ADMIN
             custom_title_changed = False
+
             if not custom_title:
                 if not is_member_already_promoter:
                     custom_title = "Community Manager"
                 else:
                     custom_title = member_instance.custom_title
+
             elif not is_member_already_promoter and custom_title:
-                if custom_title == 'Member':
+                custom_title = custom_title.strip()
+
+                if len(custom_title) <= 0:
+                    custom_title = None
+                elif custom_title == 'Member':
                     custom_title = "Community Manager"
-            elif is_member_already_promoter:
+
+            elif is_member_already_promoter and custom_title:
+                custom_title = custom_title.strip()
                 prev_custom_title = member_instance.custom_title
-                if prev_custom_title != custom_title:
+
+                if len(custom_title) <= 0:
+                    custom_title = None
+                elif prev_custom_title != custom_title:
                     custom_title_changed = True
 
             parent_cm = current_user_instance
@@ -12409,6 +12423,10 @@ def update_community_member_rights(request):
                 prev_custom_title = member_instance[0].custom_title
                 if prev_custom_title != custom_title:
                     custom_title_changed = True
+
+                custom_title = custom_title.strip()
+                if len(custom_title) <= 0:
+                    custom_title = None
 
                 member_instance.update(custom_title=custom_title)
 
