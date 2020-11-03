@@ -1212,7 +1212,8 @@ class moderationHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     type = models.IntegerField(null=True)
-    moderation_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='moderation_by_user')
+    moderation_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='moderation_by_user',
+                                      null=True)
     moderation_time = models.BigIntegerField(default=0)
 
     def __str__(self):
