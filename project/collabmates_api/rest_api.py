@@ -2,15 +2,24 @@ from rest_framework.views import APIView
 from django.http import JsonResponse
 from rest_framework import serializers, fields
 from togther.models import *
+from django.contrib.auth.models import User
 from collections import OrderedDict
 import json
 import time
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
-                          get_removed_member_custom_text, get_collabcard_files)
+                          get_removed_member_custom_text, get_collabcard_files, get_user_profile)
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, chatroom_states)
-from utility.utils import get_time_text
+from utility.utils import (get_time_text, generate_private_link, eligibility_count,
+                           get_members_count_in_community)
+from django.conf import settings
+from .user_moderation_rights import check_member_invite_private_right, check_admin_approve_right
+from .static_files import *
+from django.db.models import F, When, Q
+
+url = settings.URL
+
 
 def get_error_context(success, error_message):
     '''function to get error context for apis'''
@@ -30,11 +39,359 @@ class reportsView(APIView):
         return JsonResponse(serialized_obj.data, safe=False)
 
 
-class communitySerializer(serializers.ModelSerializer):
+class YourCommunitySerializer(serializers.ModelSerializer):
+
+    name = serializers.CharField(write_only=True)
+    purpose = serializers.CharField(write_only=True)
+    location = serializers.CharField(write_only=True)
+    about = serializers.CharField(write_only=True)
+    image_url = serializers.CharField(write_only=True)
+    members_count = serializers.IntegerField(write_only=True)
+    active_chatroom_users = serializers.ListField(write_only=True)
+    member_right_states = serializers.ListField(write_only=True)
+    actions = serializers.ListField(write_only=True)
+    share_url = serializers.CharField(write_only=True)
+    state = serializers.IntegerField(write_only=True)
+    date = serializers.CharField(write_only=True)
+    image_url_round = serializers.CharField(write_only=True)
+
+    is_member = serializers.CharField(write_only=True)
+    private_link = serializers.CharField(write_only=True)
+    private_link_text_admin = serializers.CharField(write_only=True)
+    private_link_members_directory = serializers.CharField(write_only=True)
+    private_link_text_members_directory = serializers.CharField(write_only=True)
+    private_link_text_member = serializers.CharField(write_only=True)
+    members_directory_link_for_members = serializers.CharField(write_only=True)
+
+    share_text_admin = serializers.CharField(write_only=True)
+    share_text_member = serializers.CharField(write_only=True)
+    share_text_anonymous = serializers.CharField(write_only=True)
+    type = serializers.IntegerField(write_only=True)
+    sub_type = serializers.IntegerField(write_only=True)
+    min_referrer_member = serializers.IntegerField(write_only=True)
+    open_reports_count = serializers.IntegerField(write_only=True)
+    pending_chatroom_count = serializers.IntegerField(write_only=True)
+    active_chatroom_count = serializers.IntegerField(write_only=True)
+    collabcard_unseen = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Member_Engage
+        fields = ('id', 'last_unseen_conversation', 'last_unseen_count',
+                  'pending_members', 'pending_chatrooms', 'open_reports_count', 'member_state',
+                  'click_state', 'new_chatroom_users', 'active_chatroom_count',
+                  'collabcard_unseen', 'actions', 'name', 'purpose', 'location', 'about',
+                  'active_chatroom_users', 'member_right_states', 'pending_chatroom_count',
+                  'image_url', 'image_url_round', 'share_url', 'date', 'members_count', 'state',
+                  'private_link', 'private_link_text_admin', 'private_link_members_directory',
+                  'private_link_text_members_directory', 'private_link_text_member',
+                  'members_directory_link_for_members', 'type', 'sub_type', 'share_text_admin',
+                  'share_text_member', 'share_text_anonymous', 'min_referrer_member', "is_member")
+
+    def __init__(self, *args, **kwargs):
+        super(YourCommunitySerializer, self).__init__(*args, **kwargs)
+        self.current_user_id = self.context.get('current_user_id', None)  # optional
+        self.promoter_id = self.context.get('promoter_id', None)
+        self.is_owner = self.context.get('is_owner', False)
+        self.current_user_instance = self.context.get('current_user_instance', None)
+        self.user = User.objects.get(id=self.current_user_id)
+
+    def get_active_chatroom_member_images(self, community_instance, member_id):
+
+        current_time = time.time()
+        state_filter = collabcardState.objects.filter(community=community_instance,
+                                                      user=member_id).filter(
+            Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-expiry_time', '-card')
+        temp = {}
+        member_list = []
+        user_set = set()
+        temp['count'] = state_filter.count()
+        for data in state_filter:
+            card_instance = data.card
+            user_id = card_instance.user.id
+            user_instance = card_instance.user
+
+            if user_id not in user_set:
+                member_filter = Members.objects.filter(member_id=user_instance, community_id=data.community)
+                if member_filter.exists():
+                    image_url = user_instance.userinfo.image_link if user_instance.userinfo.image_link else ''
+                    member_instance = member_filter[0]
+                    if member_instance.image_url:
+                        image_url = member_instance.image_url
+                else:
+                    image_url = REMOVED_USER_URL
+
+                member = get_user_profile(user_instance, community_instance, send_profile=False)
+                member['image_url'] = image_url
+                member_list.append(member)
+
+        current_time = time.time()
+        state_filter = collabcardState.objects.filter(community=community_instance,
+                                                      user=member_id).filter(
+            Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-expiry_time', '-card')
+        temp = {}
+        member_list = []
+        user_set = set()
+        temp['count'] = state_filter.count()
+        for data in state_filter:
+            card_instance = data.card
+            user_id = card_instance.user.id
+            user_instance = card_instance.user
+
+            if user_id not in user_set:
+                member_filter = Members.objects.filter(member_id=user_instance, community_id=data.community)
+                if member_filter.exists():
+                    image_url = user_instance.userinfo.image_link if user_instance.userinfo.image_link else ''
+                    member_instance = member_filter[0]
+                    if member_instance.image_url:
+                        image_url = member_instance.image_url
+                else:
+                    image_url = REMOVED_USER_URL
+
+                member = get_user_profile(user_instance, community_instance, send_profile=False)
+                member['image_url'] = image_url
+                member_list.append(member)
+
+                user_set.add(user_id)
+
+            if len(member_list) > 3:
+                break
+        temp['member_list'] = member_list
+        return temp
+
+    def get_home_screen_community_actions(self, community_instance):
+
+        actions = []
+
+        community_details = {
+            'title': "View community details",
+            'route': """route://community?community_id=%s""" % (str(community_instance.id))
+        }
+
+        actions.append(community_details)
+
+        member_directory = {
+            'title': "View member directory",
+            'route': """route://members_directory?community_id=%s&community_name=%s""" % (
+            str(community_instance.id), community_instance.name)
+        }
+
+        actions.append(member_directory)
+
+        invite_members = {
+            'title': "Invite members to this community",
+            'route': """route://community?community_id=%s&share=true""" % (
+                str(community_instance.id))
+        }
+
+        actions.append(invite_members)
+
+        return actions
+
+    def to_representation(self, community_engage):
+        data = super(YourCommunitySerializer, self).to_representation(community_engage)
+
+        fields = self._readable_fields
+
+        for field in fields:
+
+            if field.field_name == "pending_members_count" and community_engage.member_state == member_states.ADMIN:
+                has_approve_right = check_admin_approve_right(self.user, community_engage.community_id)
+                if has_approve_right:
+                    data['pending_members_count'] = community_engage.pending_members
+                else:
+                    data['pending_members_count'] = 0
+
+            if field.field_name == "pending_chatroom_count" and community_engage.member_state == member_states.ADMIN:
+                data['pending_chatroom_count'] = community_engage.pending_chatrooms
+
+            if field.field_name == "open_reports_count" and community_engage.member_state == member_states.ADMIN:
+                data['open_reports_count'] = community_engage.open_reports
+
+            if field.field_name == "last_unseen_count":
+                data['collabcard_unseen'] = community_engage.last_unseen_count
+
+
+        community_data = CommunitySerializerV1(community_engage.community_id, context=self.context).data
+        data.update(**community_data)
+
+        temp = self.get_active_chatroom_member_images(community_instance=community_engage.community_id,
+                                                      member_id=self.current_user_id)
+
+        active_chatroom_count = temp['count']
+        data['active_chatroom_count'] = active_chatroom_count
+
+        if data['collabcard_unseen'] > 0:
+            if community_engage.new_chatroom_users:
+                data['new_chatroom_users'] = json.loads(community_engage.new_chatroom_users)
+        else:
+            active_chatroom_users = temp['member_list']
+            if active_chatroom_users:
+                data['active_chatroom_users'] = active_chatroom_users
+
+        data['member_right_states'] = json.loads(community_engage.rights_list) if community_engage.rights_list else []
+
+        actions = self.get_home_screen_community_actions(community_engage.community_id)
+
+        if community_engage.member_state == member_states.ADMIN:
+            management_tools = {
+                'title': """Management tools""",
+                'route': """route://management_tools?community_id=%s&community_name=%s""" % (
+                    str(data['id']), data['name'])
+            }
+            actions.append(management_tools)
+
+        if community_engage.member_state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
+            data['collabcard_unseen'] = community_engage.last_unseen_count
+        else:
+            data['collabcard_unseen'] = 0
+
+        data['click_state'] = community_engage.click_state
+
+        data['actions'] = actions
+
+        return data
+
+
+class CommunitySerializerV1(serializers.ModelSerializer):
+
+    share_url = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
+
+    date = serializers.ReadOnlyField(source='active_since')
+    image_url_round = serializers.ReadOnlyField(source='image_link_round')
+
+    is_member = serializers.CharField(write_only=True)
+    private_link = serializers.CharField(write_only=True)
+    private_link_text_admin = serializers.CharField(write_only=True)
+    private_link_members_directory = serializers.CharField(write_only=True)
+    private_link_text_members_directory = serializers.CharField(write_only=True)
+    private_link_text_member = serializers.CharField(write_only=True)
+    members_directory_link_for_members = serializers.CharField(write_only=True)
+
+    share_text_admin = serializers.CharField(write_only=True)
+    share_text_member = serializers.CharField(write_only=True)
+    share_text_anonymous = serializers.CharField(write_only=True)
+    min_referrer_member = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Community
-        fields = '__all__'
+        fields = ('id', 'name', 'purpose', 'location', 'about', 'image_url', 'image_url_round',
+                  'share_url', 'date', 'members_count', 'state', 'private_link', 'private_link_text_admin',
+                  'private_link_members_directory', 'private_link_text_members_directory',
+                  'private_link_text_member', 'members_directory_link_for_members', 'type',
+                  'sub_type', 'share_text_admin', 'share_text_member', 'share_text_anonymous',
+                  'min_referrer_member', "is_member")
+
+    def __init__(self, *args, **kwargs):
+        super(CommunitySerializerV1, self).__init__(*args, **kwargs)
+        self.current_user_id = self.context.get('current_user_id', None)  # optional
+        self.promoter_id = self.context.get('promoter_id', None)
+        self.is_owner = self.context.get('is_owner', False)
+        self.current_user_instance = self.context.get('current_user_instance', None)
+
+    def get_state(self, community):
+        return int(community.hide_community)
+
+    def get_share_url(self, community):
+        share_url = url + '/community/' + str(community.id)
+        if self.current_user_id:
+            share_url = share_url + f"?shared_by={self.current_user_id}"
+
+        return share_url
+
+    def get_manager_share_url(self, community):
+        url_dict = {}
+        private_link = generate_private_link(community_instance=community,
+                                             promoter_instance=self.promoter_id)
+        if self.current_user_id:
+            private_link = private_link + f"&shared_by={self.current_user_id}"
+        url_dict['private_link'] = private_link
+        if url_dict['members_count'] <= 10:
+            url_dict[
+                'private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
+                community.name, private_link)
+        else:
+            url_dict[
+                'private_link_text_admin'] = """Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
+                community.name, private_link)
+        private_link_members_directory = private_link + "&source=members_directory"
+        url_dict['private_link_members_directory'] = private_link_members_directory
+
+        if self.is_owner:
+            private_link_text_members_directory = f"I have created a community directory for {community.name} on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}"
+
+        else:
+            private_link_text_members_directory = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
+
+        url_dict['private_link_text_members_directory'] = private_link_text_members_directory
+
+        return url_dict
+
+    def get_member_share_url(self, community):
+        url_dict = {}
+        if check_member_invite_private_right(self.current_user_instance, community):
+            private_link = generate_private_link(community_instance=community,
+                                                 promoter_instance=self.current_user_instance)
+            if self.current_user_id:
+                private_link = private_link + f"&shared_by={self.current_user_id}"
+
+            url_dict['private_link_text_member'] = f"Join {community.name} on LikeMinds with my exclusive link. For security, this is valid only for next 24 hours: {private_link}"
+
+            private_link_members_directory = private_link + "&source=members_directory"
+            url_dict['members_directory_link_for_members'] = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
+        return url_dict
+
+    def to_representation(self, community):
+        data = super(CommunitySerializerV1, self).to_representation(community)
+
+        fields = self._readable_fields
+
+        for field in fields:
+
+            if field.field_name == "location":
+                if data['location'] is None:
+                    data['location'] = ""
+
+            elif field.field_name == "image_url":
+                if community.image_link:
+                    data['image_url'] = community.image_link
+                elif community.image_url:
+                    data['image_url'] = community.image_url.url
+                else:
+                    data['image_url'] = '/media/media/community/default.jpeg'
+
+                if data['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
+                    data['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+                elif not community.image_link:
+                    data['image_url'] = url + data['image_url']
+
+            elif data[field.field_name] is None:
+                del data[field.field_name]
+
+        if self.promoter_id or self.is_owner:
+            url_dict = self.get_manager_share_url(community)
+            data.update(**url_dict)
+
+        elif self.current_user_instance:
+            url_dict = self.get_member_share_url(community)
+            data.update(**url_dict)
+
+        data[
+            'share_text_admin'] = """I am building %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
+            data['name'], data['purpose'], data['share_url'])
+
+        data[
+            'share_text_member'] = """I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
+            data['name'], data['purpose'], data['share_url'])
+
+        data[
+            'share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
+            data['name'])
+
+        data['min_referrer_member'] = eligibility_count
+        data["is_member"] = ''
+
+        return data
 
 
 class GetChatroomInstanceSerializer(serializers.ModelSerializer):
@@ -316,7 +673,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         return data
 
 
-
 class CardStateSerializer(serializers.ModelSerializer):
     chatroom_expiry_time = serializers.SerializerMethodField()
     class Meta:
@@ -326,8 +682,6 @@ class CardStateSerializer(serializers.ModelSerializer):
 
     def get_chatroom_expiry_time(self, obj):
         return obj.expiry_time
-
-
 
 
 class membersSerializer(serializers.ModelSerializer):

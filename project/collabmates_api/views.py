@@ -80,7 +80,8 @@ from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_part
 from cms.models import NewAnswer,userAcquition
 
 from .user_moderation_rights import *
-from .rest_api import CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
+from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
+                       YourCommunitySerializer)
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -440,6 +441,37 @@ def your_communities(request, user_id):
 
 
     return JsonResponse({'your_communities': my_community})
+
+
+class YourCommunitiesV1(APIView):
+    '''This function is used to see your communities based on user id'''
+
+    def get(self, request, *args, **kwargs):
+
+        current_user_id = get_member_id_from_headers(request)
+        member_id = current_user_id
+
+        query_params = request.query_params
+
+        page_number = query_params.get('page', 1)
+        page_number = int(page_number)
+
+        my_community = []
+
+        user = User.objects.get(id=member_id)
+
+        notification_list = [
+            'mail_has_installed_app',
+        ]
+        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
+
+        communities = Member_Engage.objects.filter(member_id=user).select_related("community_id").order_by('-updated_at')
+        communities = pagination(communities, page_number, paginate_by=6)
+        current_time = time.time()
+        context = {"current_user_id": current_user_id}
+        community_data = YourCommunitySerializer(communities, context=context, many=True).data
+
+        return JsonResponse({'your_communities': community_data})
 
 
 def my_chatrooms(request):
