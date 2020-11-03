@@ -627,7 +627,7 @@ def send_poll_results_announcement_mail(card_id, task_name):
     card_creator_id = card_creator.id
     card_creator_name = card_creator.userinfo.name
 
-    card_polls = CollabcardPolls.objects.filter(card=card_instance)
+    card_polls = CollabcardPolls.objects.filter(card=card_instance).order_by("id")
 
     voted_members = set(MemberPollVotes.objects.filter(card=card_id).values_list("user", flat=True))
     followed_members = set(collabcardState.objects.filter(
