@@ -653,7 +653,7 @@ def send_poll_results_announcement_mail(card_id, task_name):
         elif multiple_select_state == multi_select_poll_states.AT_LEAST:
             multi_select_text = f"(Select atleast {multiple_select_no} options)"
         elif multiple_select_state == multi_select_poll_states.AT_MAX:
-            multi_select_text = f"(Select at max {multiple_select_no} options)"
+            multi_select_text = f"(Select at most {multiple_select_no} options)"
 
 
     polls_list = []
