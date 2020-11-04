@@ -11,7 +11,6 @@ def handler404(request, exception=None):
 
     requested_path = exception.args[0].get('path')
     info_logger.info(f"404 Page Not Found exception ---->  {requested_path}")
-
     # subject = "404 Page Not Found exception in Main server"
     # template = "mails/exceptions/page_not_found_exception.html"
     # template = get_template(template).render({"exception": exception,
@@ -21,9 +20,9 @@ def handler404(request, exception=None):
     #
     # if not requested_path[0:6] == 'static':
     #     send_email(subject, template, to_mails_list)
-    # template = loader.get_template('__404__.html')
-    #
-    # return HttpResponse(template.render())
+    template = loader.get_template('__404__.html')
+
+    return HttpResponse(template.render())
 
 
 
