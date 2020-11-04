@@ -263,7 +263,7 @@ def save_name_initial_image(user_id, user_name):
     width, length = 216, 216
 
     name_initial = user_name[0]
-    font = ImageFont.truetype("/static/fonts/Roboto-Medium.ttf", 140, encoding="unic")
+    font = ImageFont.truetype("static/fonts/Roboto-Medium.ttf", 140, encoding="unic")
 
     canvas = Image.new(mode='RGBA', size=(width, length), color=colour_codes[chosen_color])
     draw = ImageDraw.Draw(canvas)
