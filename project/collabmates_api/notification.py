@@ -1729,15 +1729,15 @@ def schedule_poll_end_notification(community_name, community_id, typ, date_time,
     celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                             date_time=date_time, interval=False, crontab=True)
 
-    if typ == 3:
-        task_name = str(card_id) + "_poll_results_announcement_after_6_hours"
-        task_path = "collabmates_api.tasks.send_poll_results_announcement_mail"
-        celerybeatask.terminate_task(task_name)
-
-        args = [card_id, task_name]
-        date_time = date_time + 300  # + 21600  # date time + 6 hours . change the value for testing
-        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
-                                                date_time=date_time, interval=False, crontab=True)
+    # if typ == 3:
+    #     task_name = str(card_id) + "_poll_results_announcement_after_6_hours"
+    #     task_path = "collabmates_api.tasks.send_poll_results_announcement_mail"
+    #     celerybeatask.terminate_task(task_name)
+    #
+    #     args = [card_id, task_name]
+    #     date_time = date_time + 300  # + 21600  # date time + 6 hours . change the value for testing
+    #     celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+    #                                             date_time=date_time, interval=False, crontab=True)
 
 
 @app.task
