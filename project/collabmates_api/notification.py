@@ -1334,7 +1334,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     if day == 0 and members.exists():
         # get tomorrow 9 am
-        start_time = datetime.fromtimestamp(start_time)
+        # start_time = datetime.fromtimestamp(start_time)
         start_time = datetime.fromtimestamp(start_time+(24*60*60))
         start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=3)
         # start_time = start_time + timedelta(minutes=2)

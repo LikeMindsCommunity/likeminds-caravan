@@ -176,7 +176,7 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
                 'ios_app_download_link': ios_app_download_link,
                 'playstore_image': GOOGLE_PLAYSTORE,
                 'applestore_image': APPLE_APPSTORE,
-                'blog_link_1':'https://www.notion.so/f53c4dee5b15436183ac01fbc0e84063',
+                'blog_link_1':'https://rebrand.ly/jjxwp',
                 'app_image': APP_LOGO,
                 'cta_url': url + '/community/' + str(community_id),
                 'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(member.member_id) + '&code=send_8am_level_mails_to_admin_mailer'
