@@ -124,7 +124,11 @@ def get_all_members(request, req_dict=None):
         collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
 
     current_user_id = get_member_id_from_headers(request)
-    current_user_instance = User.objects.get(pk=current_user_id)
+    try:
+        current_user_instance = User.objects.get(pk=current_user_id)
+    except Exception as e:
+        current_user_instance = None
+        print(e.args)
 
 
     is_filter = request.GET.get('is_filter', False)
