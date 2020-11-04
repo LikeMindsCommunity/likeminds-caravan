@@ -522,13 +522,12 @@ def get_chatroom_name(user_name, card):
     return chatroom_name
 
 
-def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None):
+def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None, send_profile=True):
 
     if not current_user_id:
         current_user_id = member_id
 
     collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=member_id)
-    collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
 
     # get chatroom status
     status = get_status_of_collabcard(member_id, card_instance,state_instance)
@@ -544,7 +543,9 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     if not expiry_time or expiry_time >= int(time.time()):
         collabcard_serializer['active'] = True
 
-
+    # if send_profile:
+    collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id,
+                                            send_profile=send_profile)
     collabcard_serializer['member'] = collabcard_member[0]
 
     is_removed = removedMembers.objects.filter(community=card_instance.community, member_id=collabcard_serializer['member']['id'])
@@ -555,7 +556,6 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-
 
     # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
@@ -749,7 +749,7 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['image_url'] = poll.image_url
 
     if poll.user:
-        member_profile = get_members_profile([poll.user.id], card_instance.community.id)
+        member_profile = get_members_profile([poll.user.id], card_instance.community.id, send_profile=False)
         polls['member'] = member_profile[0]
 
     # if card.end_date // 1000 <= time.time():
@@ -1860,16 +1860,16 @@ def get_community_preview(community_instance, user_instance):
 def get_chatroom_preview(card_instance, member_id, active=None):
     """ function to get chatrooms """
 
-    chatroom_instance = get_chatroom_instance(card_instance, member_id)
+    chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False)
     conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                       state=chatroom_states.ANSWER).order_by('id')
     chatroom_instance['total_response_count'] = conversation_filter.count()
 
-    if card_instance.internal_link:
-        chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
-                                                           community_instance=card_instance.preview_community,
-                                                           chatroom_instance=card_instance.preview_chatroom,
-                                                           send_preview_text=False)
+    # if card_instance.internal_link:
+    #     chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
+    #                                                        community_instance=card_instance.preview_community,
+    #                                                        chatroom_instance=card_instance.preview_chatroom,
+    #                                                        send_preview_text=False)
 
     last_response_members = get_member_images_of_chatroom(conversation_filter)
     chatroom_instance['members_images'] = last_response_members['members_images']
