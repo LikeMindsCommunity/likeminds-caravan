@@ -942,3 +942,23 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         return data
 
 
+class UserinfoSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    class Meta:
+        model = Userinfo
+        fields = ('id', 'name', 'image_url')
+
+    def get_image_url(self, userinfo):
+        return userinfo.image_link
+
+    def to_representation(self, userinfo):
+        data = super(UserinfoSerializer, self).to_representation(userinfo)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'id':
+                data['id'] = userinfo.user_id.id
+
+        return data
+
