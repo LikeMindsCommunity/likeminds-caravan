@@ -15,7 +15,7 @@ from utility.utils import (android_app_download_link, ios_app_download_link,
                            android_app_download_link,ios_app_download_link,check_notification_flag)
 from utility.states import (collabcard_states, member_states, community_states,
                             card_types, chatroom_states, chatroom_actions, member_rights, manager_rights,
-                            moderation_history_types, report_Action_Types, report_Types)
+                            moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
@@ -627,7 +627,7 @@ def send_poll_results_announcement_mail(card_id, task_name):
     card_creator_id = card_creator.id
     card_creator_name = card_creator.userinfo.name
 
-    card_polls = CollabcardPolls.objects.filter(card=card_instance)
+    card_polls = CollabcardPolls.objects.filter(card=card_instance).order_by("id")
 
     voted_members = set(MemberPollVotes.objects.filter(card=card_id).values_list("user", flat=True))
     followed_members = set(collabcardState.objects.filter(
@@ -639,6 +639,22 @@ def send_poll_results_announcement_mail(card_id, task_name):
 
     if card_creator_id not in final_users_list:
         final_users_list.add(card_creator_id)
+
+    is_multi_select = False
+    multi_select_text = ""
+    if card_instance.multiple_select_no is not None or card_instance.multiple_select_state is not None:
+        is_multi_select = True
+
+    if is_multi_select:
+        multiple_select_state = card_instance.multiple_select_state
+        multiple_select_no = card_instance.multiple_select_no if card_instance.multiple_select_no else 0
+        if multiple_select_state == multi_select_poll_states.EXACTLY:
+            multi_select_text = f"(Select exactly {multiple_select_no} options)"
+        elif multiple_select_state == multi_select_poll_states.AT_LEAST:
+            multi_select_text = f"(Select atleast {multiple_select_no} options)"
+        elif multiple_select_state == multi_select_poll_states.AT_MAX:
+            multi_select_text = f"(Select at most {multiple_select_no} options)"
+
 
     polls_list = []
     for poll in card_polls:
@@ -664,6 +680,8 @@ def send_poll_results_announcement_mail(card_id, task_name):
                 'card_creator_name': card_creator_name,
                 'community_owner_name': community_owner_name,
                 'community_name': community_instance.name,
+                'is_multi_select': is_multi_select,
+                'multi_select_text': multi_select_text,
                 'android_app_download_link': android_app_download_link,
                 'ios_app_download_link': ios_app_download_link,
                 'playstore_image': GOOGLE_PLAYSTORE,

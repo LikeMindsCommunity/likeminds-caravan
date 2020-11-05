@@ -65,8 +65,9 @@ class ModerationHistoryTypes:
     TRANSFERRED_OWNERSHIP = 10
     REJOINED_COMMUNITY_PUBLIC_LINK = 11
     REJOINED_COMMUNITY_PRIVATE_LINK = 12
+    APPLIED_PUBLIC_LINK_WEBSITE = 13
     APPLIED_PUBLIC_LINK_TEXT = "Applied via public link from "
-    APPLIED_PRIVATE_LINK_TEXT = "Applied via private link from "
+    APPLIED_PRIVATE_LINK_TEXT = "Joined via private link from "
     APPROVED_FROM_TEXT = "Approved from "
     MEMBER_PERMISSION_EDITED_TEXT = "Member permission edited by "
     MANAGER_PERMISSION_EDITED_TEXT = "Management permission edited by "
@@ -78,6 +79,7 @@ class ModerationHistoryTypes:
     TRANSFERRED_OWNERSHIP_TEXT = "Transferred ownership to "
     REJOINED_COMMUNITY_PUBLIC_LINK_TEXT = "Rejoined via public link from  "
     REJOINED_COMMUNITY_PRIVATE_LINK_TEXT = "Rejoined via private link from "
+    APPLIED_PUBLIC_LINK_WEBSITE_TEXT = "Applied via community website"
 
 moderation_history_types = ModerationHistoryTypes()
 
@@ -176,14 +178,14 @@ class ChatroomStates:
 
 chatroom_states = ChatroomStates()
 
-class MultipleSelectPoll:
+class MultiSelectPollStates:
     #class to save states of multiple select poll
     EXACTLY = 0
     AT_MAX = 1
     AT_MOST = 1
     AT_LEAST = 2
 
-multiple_select_poll = MultipleSelectPoll()
+multi_select_poll_states = MultiSelectPollStates()
 
 # member state
 class MemberStates:

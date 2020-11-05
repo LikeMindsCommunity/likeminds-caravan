@@ -80,7 +80,8 @@ from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_part
 from cms.models import NewAnswer,userAcquition
 
 from .user_moderation_rights import *
-from .rest_api import CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
+from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
+                       YourCommunitySerializer)
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -440,6 +441,37 @@ def your_communities(request, user_id):
 
 
     return JsonResponse({'your_communities': my_community})
+
+
+class YourCommunitiesV1(APIView):
+    '''This function is used to see your communities based on user id'''
+
+    def get(self, request, *args, **kwargs):
+
+        current_user_id = get_member_id_from_headers(request)
+        member_id = current_user_id
+
+        query_params = request.query_params
+
+        page_number = query_params.get('page', 1)
+        page_number = int(page_number)
+
+        my_community = []
+
+        user = User.objects.get(id=member_id)
+
+        notification_list = [
+            'mail_has_installed_app',
+        ]
+        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
+
+        communities = Member_Engage.objects.filter(member_id=user).select_related("community_id").order_by('-updated_at')
+        communities = pagination(communities, page_number, paginate_by=6)
+        current_time = time.time()
+        context = {"current_user_id": current_user_id}
+        community_data = YourCommunitySerializer(communities, context=context, many=True).data
+
+        return JsonResponse({'your_communities': community_data})
 
 
 def my_chatrooms(request):
@@ -1297,6 +1329,10 @@ def join_promoter_created_community_version_1(res, request):
         shared_user = User.objects.get(pk=res['shared_by'])
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=shared_user, type=history_type)
+    else:
+        history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=None, type=history_type)
 
 
 def update_community_toast(user_instance, community_instance):
@@ -4429,7 +4465,6 @@ def approve_or_decline_private_community(req_dict, request):
             history_type = moderation_history_types.APPROVED_FROM
             if check_user_rejoin(user=accepted_user, community=community):
                 history_type = moderation_history_types.REJOINED_COMMUNITY_PUBLIC_LINK
-
                 update_followed_for_rejoined_member(accepted_user, community)
 
             save_moderation_history(user=accepted_user, community=community,
@@ -6660,6 +6695,11 @@ def create_conversation(request):
     if ('has_files' in res and res['has_files']):
          has_files = True
 
+    is_ios = False
+    if not has_files:
+        is_ios = is_platform_ios(request)
+        if is_ios:
+            has_files = True
 
     ans = card_answers()
     ans.answer = res['text']
@@ -6718,7 +6758,7 @@ def create_conversation(request):
     user_id = str(user_instance.id)
     save_the_latest_conversation(card_instance, user_id)
 
-    update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'],has_files=has_files)
+    update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'],has_files=has_files,is_ios=is_ios)
 
     conversation = get_conversation_instance_for_db_synching(ans,current_user_id=member_id)
     return JsonResponse({'success': True, 'id': ans.id,'conversation':conversation})
@@ -6747,10 +6787,13 @@ def conversation_tagging(request, res, card_instance, user_instance, member_id):
 
 
 @shared_task
-def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, res_text,has_files=False):
+def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, res_text,has_files=False,is_ios=False):
     update_my_chatrooms_for_users(chatroom_id=card_instance_id)
     update_activity_in_chatroom_for_conversation_creation(card_instance_id, user_id=user_id)
     if not has_files:
+        send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
+
+    if has_files and is_ios:
         send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
 
 
@@ -8698,9 +8741,7 @@ def custom_login(request, res, login_type="custom"):
     if 'user_acquired' in res:
         user_acquired = res['user_acquired']
 
-
     user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type,user_acquired=user_acquired)
-
 
     if 'image_url' not in profile:
         save_name_initial_image.delay(user_id=user_instance.id, user_name=name)
@@ -8809,9 +8850,6 @@ def save_userAcquition_analytics(user_instance,user_acquired):
             instance.shared = shared_user_instance
 
         instance.save()
-
-
-
 
 
 @csrf_exempt
@@ -9175,8 +9213,6 @@ def verify_otp_on_mobile(phone_no, otp,international=False):
     info_logger.info(context)
     info_logger.info("\n\n")
     return context
-
-
 
 
 def send_otp_on_email(email):
@@ -11994,17 +12030,28 @@ def update_community_manager_rights(request):
 
             is_member_already_promoter = member_instance.state == member_states.ADMIN
             custom_title_changed = False
+
             if not custom_title:
                 if not is_member_already_promoter:
                     custom_title = "Community Manager"
                 else:
                     custom_title = member_instance.custom_title
+
             elif not is_member_already_promoter and custom_title:
-                if custom_title == 'Member':
+                custom_title = custom_title.strip()
+
+                if len(custom_title) <= 0:
+                    custom_title = None
+                elif custom_title == 'Member':
                     custom_title = "Community Manager"
-            elif is_member_already_promoter:
+
+            elif is_member_already_promoter and custom_title:
+                custom_title = custom_title.strip()
                 prev_custom_title = member_instance.custom_title
-                if prev_custom_title != custom_title:
+
+                if len(custom_title) <= 0:
+                    custom_title = None
+                elif prev_custom_title != custom_title:
                     custom_title_changed = True
 
             parent_cm = current_user_instance
@@ -12375,7 +12422,10 @@ def update_community_member_rights(request):
             member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
             if member_instance.exists():
                 prev_custom_title = member_instance[0].custom_title
-                if prev_custom_title != custom_title:
+                custom_title = custom_title.strip()
+                if len(custom_title) <= 0:
+                    custom_title = None
+                elif prev_custom_title != custom_title:
                     custom_title_changed = True
 
                 member_instance.update(custom_title=custom_title)
@@ -13048,10 +13098,14 @@ class SyncConversation(APIView):
 
         chatroom_status = query_params.get('chatroom_status', '')
 
-        chatroom_id = query_params.get('chatroom_id','')
-        community_id = query_params.get('community_id','')
+        chatroom_id = query_params.get('chatroom_id', '')
+        community_id = query_params.get('community_id', '')
 
-        if  chatroom_id:
+        # .select_related('card', 'user', 'remove',
+        #                 'community', 'deleted_by_user', 'reply',
+        #                 'preview_community', 'preview_chatroom')
+
+        if chatroom_id:
             #sending all the conversations in a particular chatroom
             conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
         elif community_id:
@@ -13062,7 +13116,7 @@ class SyncConversation(APIView):
             if chatroom_status == "followed":
 
                 followed_rooms = list(collabcardState.objects.filter(
-                    user=member_id,follow_status=True).values_list(
+                    user=member_id, follow_status=True).values_list(
                     "card_id", flat=True))
                 if last_updated:
                     conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated,
@@ -13070,16 +13124,15 @@ class SyncConversation(APIView):
                 else:
                     conversation_filter = card_answers.objects.filter(card__id__in=followed_rooms).order_by('id')
             else:
-                unfollowed_rooms = list(collabcardState.objects.filter(
-                    user=member_id,follow_status=False).values_list(
-                    "card_id", flat=True))
+                unfollowed_rooms = list(collabcardState.objects.filter(user=member_id,follow_status=False).values_list(
+                                        "card_id", flat=True))
                 if last_updated:
                     conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).filter(
-                        card__id__in=unfollowed_rooms)
+                        card__id__in=unfollowed_rooms).order_by('id')
                 else:
                     conversation_filter = card_answers.objects.filter(card__id__in=unfollowed_rooms).order_by('id')
 
-
+        conversation_filter = conversation_filter.select_related('preview_community', 'preview_chatroom')
 
         conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
 

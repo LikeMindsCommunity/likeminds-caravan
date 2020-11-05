@@ -1,7 +1,7 @@
 from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings,
-                            Community)
+                            Community, removedMembers)
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -307,8 +307,13 @@ def check_admin_edit_community_right(user, community):
 
 def get_moderation_history_title(moderation_history):
 
-    user_id = moderation_history.moderation_by.id
-    user_name = moderation_history.moderation_by.userinfo.name
+    if moderation_history.moderation_by:
+        user_id = moderation_history.moderation_by.id
+        user_name = moderation_history.moderation_by.userinfo.name
+    else:
+        user_id = 0
+        user_name = ''
+
     community_id = moderation_history.community.id
     title = ""
     if moderation_history.type == moderation_history_types.APPLIED_PUBLIC_LINK:
@@ -352,6 +357,9 @@ def get_moderation_history_title(moderation_history):
     elif moderation_history.type == moderation_history_types.LEFT_COMMUNITY:
         title = moderation_history_types.LEFT_COMMUNITY_TEXT
 
+    elif moderation_history.type == moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE:
+        title = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE_TEXT
+
     history = {"title": title, "moderation_time": moderation_history.moderation_time}
 
     return history
@@ -359,7 +367,8 @@ def get_moderation_history_title(moderation_history):
 
 def check_user_rejoin(user, community):
     """ function to see if user already has moderation history to check rejoining in community"""
-    return moderationHistory.objects.filter(user=user, community=community).exists()
+    return removedMembers.objects.filter(community=community, member_id=user).exists()
+    # return moderationHistory.objects.filter(user=user, community=community).exists()
 
 
 def save_moderation_history(user, community, moderation_by, type):

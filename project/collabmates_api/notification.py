@@ -1416,7 +1416,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     if day == 0 and members.exists():
         # get tomorrow 9 am
-        start_time = datetime.fromtimestamp(start_time)
+        # start_time = datetime.fromtimestamp(start_time)
         start_time = datetime.fromtimestamp(start_time+(24*60*60))
         start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=3)
         # start_time = start_time + timedelta(minutes=2)
@@ -1729,15 +1729,15 @@ def schedule_poll_end_notification(community_name, community_id, typ, date_time,
     celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                             date_time=date_time, interval=False, crontab=True)
 
-    if typ == 3:
-        task_name = str(card_id) + "_poll_results_announcement_after_6_hours"
-        task_path = "collabmates_api.tasks.send_poll_results_announcement_mail"
-        celerybeatask.terminate_task(task_name)
-
-        args = [card_id, task_name]
-        date_time = date_time + 300  # + 21600  # date time + 6 hours . change the value for testing
-        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
-                                                date_time=date_time, interval=False, crontab=True)
+    # if typ == 3:
+    #     task_name = str(card_id) + "_poll_results_announcement_after_6_hours"
+    #     task_path = "collabmates_api.tasks.send_poll_results_announcement_mail"
+    #     celerybeatask.terminate_task(task_name)
+    #
+    #     args = [card_id, task_name]
+    #     date_time = date_time + 300  # + 21600  # date time + 6 hours . change the value for testing
+    #     celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+    #                                             date_time=date_time, interval=False, crontab=True)
 
 
 @app.task
