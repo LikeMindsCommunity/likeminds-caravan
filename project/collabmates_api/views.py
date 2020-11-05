@@ -13099,14 +13099,10 @@ class SyncConversation(APIView):
 
         if chatroom_id:
             #sending all the conversations in a particular chatroom
-            conversation_filter = card_answers.objects.filter(card=chatroom_id).select_related('card', 'user', 'remove',
-                        'community', 'deleted_by_user',
-                        'preview_community', 'preview_chatroom').order_by('id')
+            conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
         elif community_id:
             #sending all the conversation in a particular community
-            conversation_filter = card_answers.objects.filter(community=community_id).select_related('card', 'user', 'remove',
-                        'community', 'deleted_by_user',
-                        'preview_community', 'preview_chatroom').order_by('id')
+            conversation_filter = card_answers.objects.filter(community=community_id).order_by('id')
         else:
             #sending all the conversations
             if chatroom_status == "followed":
@@ -13116,25 +13112,19 @@ class SyncConversation(APIView):
                     "card_id", flat=True))
                 if last_updated:
                     conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated,
-                                                                      card__id__in=followed_rooms).select_related('card', 'user', 'remove',
-                        'community', 'deleted_by_user',
-                        'preview_community', 'preview_chatroom').order_by('id')
+                                                                      card__id__in=followed_rooms).order_by('id')
                 else:
-                    conversation_filter = card_answers.objects.filter(card__id__in=followed_rooms).select_related('card', 'user', 'remove',
-                        'community', 'deleted_by_user',
-                        'preview_community', 'preview_chatroom').order_by('id')
+                    conversation_filter = card_answers.objects.filter(card__id__in=followed_rooms).order_by('id')
             else:
                 unfollowed_rooms = list(collabcardState.objects.filter(user=member_id,follow_status=False).values_list(
                                         "card_id", flat=True))
                 if last_updated:
                     conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).filter(
-                        card__id__in=unfollowed_rooms).select_related('card', 'user', 'remove',
-                        'community', 'deleted_by_user',
-                        'preview_community', 'preview_chatroom').order_by('id')
+                        card__id__in=unfollowed_rooms).order_by('id')
                 else:
-                    conversation_filter = card_answers.objects.filter(card__id__in=unfollowed_rooms).select_related('card', 'user', 'remove',
-                        'community', 'deleted_by_user',
-                        'preview_community', 'preview_chatroom').order_by('id')
+                    conversation_filter = card_answers.objects.filter(card__id__in=unfollowed_rooms).order_by('id')
+
+        conversation_filter = conversation_filter.select_related('preview_community', 'preview_chatroom')
 
         conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
 
