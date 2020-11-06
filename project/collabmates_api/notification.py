@@ -536,6 +536,8 @@ def get_custom_data_for_new_chatroom_created(card):
 
     """ function to get data for custom notification """
 
+    time.sleep(5)
+
     unread_conversation = {}
     chatroom_instance = card
     user_instance = chatroom_instance.user
