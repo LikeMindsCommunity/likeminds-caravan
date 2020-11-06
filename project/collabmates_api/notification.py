@@ -28,6 +28,7 @@ from django.shortcuts import get_object_or_404
 import traceback
 
 from datetime import datetime,timedelta
+from .serializers import get_answer_files, get_collabcard_files
 # file to store configuration of the system
 
 
@@ -530,9 +531,10 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
 
         print("Error while connecting to PostgreSQL", error)
 
+
 def get_custom_data_for_new_chatroom_created(card):
 
-    '''function to get data for custom notification'''
+    """ function to get data for custom notification """
 
     unread_conversation = {}
     chatroom_instance = card
@@ -541,6 +543,11 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['chatroom_name'] = get_title_from_collabcard(chatroom_instance)+" (New Chatroom)"
     unread_conversation['chatroom_title'] = chatroom_instance.title
     unread_conversation['chatroom_user_name'] = user_instance.userinfo.name
+
+    collabcard_files = get_collabcard_files(card_id=card.id)
+    unread_conversation['images'] = collabcard_files[0]
+    unread_conversation['pdf'] = collabcard_files[1]
+
     chatroom_user_image = user_instance.userinfo.image_link
     unread_conversation['chatroom_user_image'] = chatroom_user_image if chatroom_user_image else ''
     unread_conversation['chatroom_id'] = chatroom_instance.id
@@ -548,14 +555,12 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['community_image'] = chatroom_instance.community.image_link
     #unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
     unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s&community_name=%s"""%(str(chatroom_instance.community.id),str(chatroom_instance.community.name))
-    unread_conversation['route_child']="""route://collabcard?collabcard_id=%s"""%(str(chatroom_instance.id))
+    unread_conversation['route_child'] = """route://collabcard?collabcard_id=%s"""%(str(chatroom_instance.id))
     unread_conversation['chatroom_name_ios'] = get_title_from_collabcard(chatroom_instance)
 
+    print(">>>>>>>>>   ", unread_conversation)
 
     return unread_conversation
-
-
-
 
 
 @shared_task
@@ -643,7 +648,7 @@ def send_follow_notification(card_id,user_id,answer):
 
 def get_custom_data_for_new_conversation_created(user_id):
 
-    '''function to send notification for new conversation posted to followed users'''
+    """function to send notification for new conversation posted to followed users"""
 
     # time.sleep(2)
     followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,draft_id=None).order_by('-updated_at','-id')
@@ -667,23 +672,24 @@ def get_custom_data_for_new_conversation_created(user_id):
         if conversation.unseen_count > 1:
             chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
 
-
-
-
         temp['community_name'] = conversation.card.community.name
         temp['chatroom_name'] = chatroom_name
         temp['chatroom_title'] = conversation.card.title
         temp['chatroom_user_name'] = conversation.user.userinfo.name
         temp['chatroom_user_image'] = conversation.user.userinfo.image_link
-        temp['chatroom_id'] =  conversation.card.id
+        temp['chatroom_id'] = conversation.card.id
+
+        if conversation.has_files:
+            answer_files = get_answer_files(conversation.id)
+            temp['images'] = answer_files['image']
+            temp['pdf'] = answer_files['pdf']
+
         temp['notification_id'] = str(conversation.card.id)+"_followed"
         temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s"""%(str(conversation.card.community.id),str(conversation.card.community.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(conversation.card.community.id)
         temp['community_image'] = conversation.card.community.image_link
         temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
-
-
 
         last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
@@ -696,17 +702,17 @@ def get_custom_data_for_new_conversation_created(user_id):
 
         unread_conversation.append(temp)
 
+    print(">>>>>>>>>   ", unread_conversation)
+
     return unread_conversation
 
 
 def get_custom_data_for_new_conversation_created_ios(user_id):
 
-    '''function to send custom data in case of ios'''
-
+    """ function to send custom data in case of ios """
 
     # time.sleep(2)
     followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,draft_id=None).order_by('-updated_at','-id')
-
 
     temp = {}
 
@@ -721,7 +727,6 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         # if conversation.unseen_count > 1:
         #     chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
 
-
         temp['community_name'] = conversation.card.community.name
         temp['chatroom_name'] = chatroom_name
         temp['chatroom_title'] = conversation.card.title
@@ -729,6 +734,12 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         temp['chatroom_user_image'] = conversation.user.userinfo.image_link
         temp['chatroom_id'] =  conversation.card.id
         temp['notification_id'] = str(conversation.card.id)+"_followed"
+
+        if conversation.has_files:
+            answer_files = get_answer_files(conversation.id)
+            temp['images'] = answer_files['image']
+            temp['pdf'] = answer_files['pdf']
+
         temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s"""%(str(conversation.card.community.id),str(conversation.card.community.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(conversation.card.community.id)
@@ -741,8 +752,6 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         card_instance  = conversation.card
         temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance,user_id)
 
-
-
         last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
         if last_instance:
@@ -753,9 +762,10 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
             temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_instance.id))
-
+    print(">>>>>>>>>   ", temp)
 
     return temp
+
 
 def get_last_conversation_unique_names(card_instance,user_id):
 
