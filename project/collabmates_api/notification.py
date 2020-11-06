@@ -536,7 +536,7 @@ def get_custom_data_for_new_chatroom_created(card):
 
     """ function to get data for custom notification """
 
-    time.sleep(5)
+    time.sleep(10)
 
     unread_conversation = {}
     chatroom_instance = card
@@ -681,11 +681,6 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['chatroom_user_image'] = conversation.user.userinfo.image_link
         temp['chatroom_id'] = conversation.card.id
 
-        if conversation.has_files:
-            answer_files = get_answer_files(conversation.id)
-            temp['images'] = answer_files['image']
-            temp['pdf'] = answer_files['pdf']
-
         temp['notification_id'] = str(conversation.card.id)+"_followed"
         temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s"""%(str(conversation.card.community.id),str(conversation.card.community.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
@@ -701,6 +696,11 @@ def get_custom_data_for_new_conversation_created(user_id):
             temp['chatroom_last_conversation_user_name'] = last_instance.user.userinfo.name
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
+
+            if last_instance.has_files:
+                answer_files = get_answer_files(last_conversation.id)
+                temp['images'] = answer_files['image']
+                temp['pdf'] = answer_files['pdf']
 
         unread_conversation.append(temp)
 
@@ -737,11 +737,6 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         temp['chatroom_id'] =  conversation.card.id
         temp['notification_id'] = str(conversation.card.id)+"_followed"
 
-        if conversation.has_files:
-            answer_files = get_answer_files(conversation.id)
-            temp['images'] = answer_files['image']
-            temp['pdf'] = answer_files['pdf']
-
         temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s"""%(str(conversation.card.community.id),str(conversation.card.community.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(conversation.card.community.id)
@@ -762,6 +757,11 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
             temp['chatroom_last_conversation_user_name'] = last_instance.user.userinfo.name
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
+
+            if last_instance.has_files:
+                answer_files = get_answer_files(last_instance.id)
+                temp['images'] = answer_files['image']
+                temp['pdf'] = answer_files['pdf']
 
             temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_instance.id))
     print(">>>>>>>>>   ", temp)
