@@ -698,9 +698,10 @@ def get_custom_data_for_new_conversation_created(user_id):
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
             if last_instance.has_files:
-                answer_files = get_answer_files(last_conversation.id)
+                answer_files = get_answer_files(last_instance)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
+
 
         unread_conversation.append(temp)
 
