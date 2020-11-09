@@ -23,8 +23,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from dashboard.views import admin_login
 
-
-handler404 = 'utility.exceptions.handler404'
+# handler404 = 'utility.exceptions.handler404'
 # handler500 = 'utility.exceptions.handler500'
 
 urlpatterns = [

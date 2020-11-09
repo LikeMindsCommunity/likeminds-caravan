@@ -66,12 +66,13 @@ def get_active_chatrooms_count_in_community(community_id,user_id,current_time):
 
     '''function to get active chatrooms based on community and user'''
 
-
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql="""select count(distinct(card_id))  from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
-        and (expiry_time is null or expiry_time > %s)"""%(str(community_id),str(user_id),str(current_time))
+        sql = """select count(distinct(card_id))  from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
+              and (expiry_time is null or expiry_time > %s)
+              and card_id in (select id from togther_collabcard where community_id=%s and is_pending=false and is_deleted=false)
+              """ % (str(community_id), str(user_id), str(current_time), str(community_id))
 
         curr.execute(sql)
         count = curr.fetchone()

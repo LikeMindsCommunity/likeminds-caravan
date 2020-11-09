@@ -3,6 +3,7 @@ from . import views
 from collabmates_api import views as api_views
 # from collabmates_api.notification import send_poll_notification_manually
 from django.views.decorators.csrf import csrf_exempt
+from collabmates_api import rest_api as rest_views
 
 #for testing email templates only remove.  in prod/beta
 from django.views.generic import TemplateView
@@ -14,6 +15,7 @@ urlpatterns = [
 
     #path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
+    path('v1/your_communities/<int:user_id>', api_views.YourCommunitiesV1.as_view(), name="your_communities_v1"),
 
     path('community/<int:community_id>', api_views.community, name="community"),
 
@@ -137,14 +139,15 @@ urlpatterns = [
 
     path('member_activity', api_views.member_activity, name='member_activity'),
 
-    path('invite_members', api_views.invite_members, name='invite_members'),
+    # path('invite_members', api_views.invite_members, name='invite_members'),
     path('get_profile', api_views.get_profile, name='get_profile'),
     path('config', api_views.config, name='config'),
     path('onboarding', api_views.onboarding, name='onboarding'),
     path('push_onboarding', api_views.push_onboarding, name='push_onboarding'),
 
     path('fetch_report_tags', api_views.fetch_report_tags, name='fetch_report_tags'),
-    path('push_report', api_views.push_report, name='push_report'),
+    path('push_report', api_views.push_report_v1, name='push_report'),
+
 
     path('community_collabcard_id', api_views.community_collabcard_id, name='community_collabcard_id'),
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
@@ -165,7 +168,8 @@ urlpatterns = [
     path('sync_email', api_views.sync_email, name='sync_email'),
 
     path('test_notification_api',api_views.test_notification_api,name='test_notification_api'),
-    path('unread_conversation_notification', api_views.unread_conversation_notification, name='unread_conversation_notification'),
+    path('unread_conversation_notification', api_views.unread_conversation_notification,
+         name='unread_conversation_notification'),
 
     path('create_poll', api_views.create_poll, name='create_poll'),
     path('create_poll_draft', api_views.create_poll_draft_collabcard, name='create_poll_draft'),
@@ -178,22 +182,50 @@ urlpatterns = [
     path('edit_conversation', api_views.edit_conversation, name='edit_conversation'),
     path('fetch_preview', api_views.fetch_preview, name='fetch_preview'),
 
-
     ############################ static apis #####################################
 
     path('fetch_intro_examples', api_views.fetch_intro_examples, name='fetch_intro_examples'),
 
-    ##############################################################################
+    # ==================== moderation rights ========================================
 
+    path('fetch_community_manager_rights', api_views.fetch_community_manager_rights,
+         name='fetch_community_manager_rights'),
+    path('update_community_manager_rights', api_views.update_community_manager_rights,
+         name='update_community_manager_rights'),
+    path('remove_community_manager', api_views.remove_community_manager, name='remove_community_manager'),
+    path('transfer_ownership', api_views.transfer_community_ownership, name='transfer_ownership'),
+
+    path('fetch_member_rights', api_views.fetch_community_member_rights, name='fetch_member_rights'),
+    path('update_member_rights', api_views.update_community_member_rights, name='update_member_rights'),
+    path('fetch_moderation_history', api_views.fetch_moderation_history, name='fetch_moderation_history'),
+    path('fetch_reports', api_views.fetch_reports, name='fetch_reports'),
+    path('close_report', api_views.close_report, name='close_report'),
+
+    path('fetch_pending_chatroom', api_views.fetch_pending_chatroom, name='fetch_pending_chatroom'),
+    path('action_pending_chatroom', api_views.action_pending_chatroom, name='action_pending_chatroom'),
+
+    path('fetch_management_tools', api_views.fetch_management_tools, name='fetch_management_tools'),
+    path('fetch_community_setting_rights', api_views.fetch_community_setting_rights,
+         name='fetch_community_setting_rights'),
+    path('update_community_rights', api_views.update_community_rights, name='update_community_rights'),
+    path('block_member', api_views.block_member, name='block_member'),
 
     ############################ synching client db apis ##################################
 
-    path('sync_conversation', api_views.sync_conversation, name='sync_conversation'),
+    path('v1/sync_conversation', api_views.sync_conversation_version_1, name='sync_conversation_version_1'),
+    path('sync_conversation', api_views.SyncConversation.as_view(), name='sync_conversation'),
     path('sync_members', api_views.sync_members, name='sync_members'),
-    path('block_member', api_views.block_member, name='block_member'),
+    path('sync_chatrooms', api_views.sync_chatrooms, name='sync_chatrooms'),
+
+    path('fetch_user_meta', api_views.fetch_user_meta, name='fetch_user_meta'),
+
+    path('v1/sync_chatrooms', api_views.SyncChatroomsVersion1.as_view(), name='sync_chatrooms_v1'),
+
+
 
     #######################################################################################
 
+    path('block_member', api_views.block_member, name='block_member'),
 ]
 
 app_name = 'collabmates_api'

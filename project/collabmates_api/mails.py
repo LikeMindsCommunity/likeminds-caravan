@@ -58,19 +58,16 @@ def send_feedback_mail_to_webmaster(feedback_id):
 @shared_task
 def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,day=0,counter=0):
 
-    celerybeatask = CeleryBeatTask()
-    community_levels = communityLevels.objects.filter(state = community_level_states.PENDING,community_id=community_id)
-
-
-
     if day == 0:
         counter = counter + 1
         start_time = get_next_day_time(start_time,hours=8,minutes=0)
         start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 2
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -81,10 +78,12 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         send_8am_level_mails_to_admin_mailer(community_id, day, level)
         counter = counter + 1
         start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 4
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -95,10 +94,13 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         send_8am_level_mails_to_admin_mailer(community_id, day, level)
         counter = counter + 1
         start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
+
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 6
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -109,10 +111,13 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         send_8am_level_mails_to_admin_mailer(community_id, day, level)
         counter = counter + 1
         start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
+
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 8
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -124,10 +129,13 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         send_8am_level_mails_to_admin_mailer(community_id, day, level)
         counter = counter + 1
         start_time = add_relative_time_to_epoch(start_time, minutes=0, hours=0, days=2)
+        # start_time = add_relative_time_to_epoch(start_time, minutes=2, hours=0, days=0)
+
         celerybeatask = CeleryBeatTask()
         task_name = str(community_id) + "_send_8am_level_mails_to_admin"
+        celerybeatask.terminate_task(task_name)
         day = 10
-        args = [community_id, start_time, day,level,day,counter]
+        args = [community_id, start_time, level,day,counter]
         task_path = "collabmates_api.mails.send_8am_level_mails_to_admin_scheduler"
         kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -150,39 +158,39 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
     for member in members:
         if level == 1:
             template = 'mails/level_1_email.html'
-            subject = str(member.userinfo.name) + ", reminding you to invite the inner circle!"
+            subject = str(member.member_id.userinfo.name) + ", reminding you to invite the inner circle!"
         elif level == 2:
             template = 'mails/level_2_email.html'
-            subject = str(member.userinfo.name) + ", reminding you to set up your directory!"
+            subject = str(member.member_id.userinfo.name) + ", reminding you to set up your directory!"
         elif level == 3:
             template = 'mails/level_3_email.html'
-            subject = str(member.userinfo.name) + ", reminding you to get 10 member profiles in directory!"
+            subject = str(member.member_id.userinfo.name) + ", reminding you to get 10 member profiles in directory!"
         else:
             template = 'mails/level_4_email.html'
-            subject = str(member.userinfo.name) + ", let’s get your community off to a great start!"
+            subject = str(member.member_id.userinfo.name) + ", let’s get your community off to a great start!"
 
         notification_list = [
             'send_8am_level_mails_to_admin_mailer'
         ]
 
         if check_notification_flag(member.member_id.id, notification_list, card_id=None, community_id=None):
-            subject = str(member.userinfo.name) + " is waiting for your response! "
+            # subject = str(member.userinfo.name) + " is waiting for your response! "
             email_context = {
                 'subject': subject,
-                'member_name': member.userinfo.name,
+                'member_name': member.member_id.userinfo.name,
                 'date_of_unlock':days,
                 'community_name': community_instance.name,
                 'android_app_download_link': android_app_download_link,
                 'ios_app_download_link': ios_app_download_link,
                 'playstore_image': GOOGLE_PLAYSTORE,
                 'applestore_image': APPLE_APPSTORE,
-                'blog_link_1':'https://rebrand.ly/jjxwp',
+                'blog_link_1':'http://bit.ly/lmcm_guide',
                 'app_image': APP_LOGO,
                 'cta_url': url + '/community/' + str(community_id),
-                'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(member.member_id) + '&code=send_8am_level_mails_to_admin_mailer'
+                'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(member.member_id_id) + '&code=send_8am_level_mails_to_admin_mailer'
             }
             template = get_template(template).render(email_context)
-            email = get_user_email(member.member_id)
+            email = get_user_email(member.member_id_id)
             to = [email]
             # to = ['himanshu@likeminds.community']
             send_email(subject, template, to)
@@ -215,11 +223,14 @@ def send_report_mail_to_team(subject, report_instance_id):
     template = get_template("mails/send_report_mail_to_team.html").render(context)
 
     if is_beta:
-        to = ['himanshu@likeminds.community',]
+        to = ['himanshu@likeminds.community',
+              'growth@likeminds.community',
+              "nipun@likeminds.community",
+              'mahesh@likeminds.community']
     else:
         to = settings.TEAM
 
-    print(subject,context,to)
+    print(subject, context, to)
 
     send_email(subject, template, to)
     # print(template)

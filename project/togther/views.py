@@ -23,7 +23,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, 
+                           is_request_pc, android_app_download_link,
                            is_IG_community, ios_app_download_link,is_member_verified,
                            feedback_community_id,decode_option,get_members_count_in_community,
                            )

@@ -1,7 +1,116 @@
 import enum
 
+#  these rights can be treated as right_id mapping to enums
+class ManagerRights:
 
-# member state
+    MANAGER_RIGHT_DELETE_ROOMS = 0
+    MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS = 1
+    MANAGER_RIGHT_EDIT_COMMUNITY = 2
+    MANAGER_RIGHT_VIEW_CONTACT_INFO = 3
+    MANAGER_RIGHT_ADD_MANAGERS = 4
+    MANAGER_RIGHT_DELETE_ROOMS_TITLE = "Delete chat rooms/messages"
+    MANAGER_RIGHT_APPROVE_MEMBERS_TITLE = "Approve/remove members"
+    MANAGER_RIGHT_EDIT_COMMUNITY_TITLE = "Edit community details"
+    MANAGER_RIGHT_VIEW_CONTACT_INFO_TITLE = "View member contact info"
+    MANAGER_RIGHT_ADD_MANAGERS_TITLE = "Add community managers"
+
+    DEFAULT_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
+                              MANAGER_RIGHT_EDIT_COMMUNITY]
+    ALL_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
+                          MANAGER_RIGHT_EDIT_COMMUNITY, MANAGER_RIGHT_VIEW_CONTACT_INFO,
+                          MANAGER_RIGHT_ADD_MANAGERS]
+
+
+manager_rights = ManagerRights()
+
+
+class MemberRights:
+
+    MEMBER_RIGHT_CREATE_ROOMS = 0
+    MEMBER_RIGHT_CREATE_POLL = 1
+    MEMBER_RIGHT_CREATE_EVENT = 2
+    MEMBER_RIGHT_RESPOND_IN_ROOM = 3
+    MEMBER_RIGHT_INVITE_PRIVATE_LINK = 4
+    MEMBER_RIGHT_AUTO_APPROVE = 5
+
+    MEMBER_RIGHT_CREATE_ROOMS_TITLE = "Create chat rooms"
+    MEMBER_RIGHT_CREATE_POLL_TITLE = "Create polls"
+    MEMBER_RIGHT_CREATE_EVENT_TITLE = "Create events"
+    MEMBER_RIGHT_RESPOND_IN_ROOM_TITLE = "Respond in chat rooms"
+    MEMBER_RIGHT_INVITE_PRIVATE_LINK_TITLE = "Invite members via private link"
+    MEMBER_RIGHT_AUTO_APPROVE_TITLE = "Auto-approve created chat rooms"
+
+    DEFAULT_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
+                             MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
+                             MEMBER_RIGHT_AUTO_APPROVE]
+    ALL_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
+                         MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
+                         MEMBER_RIGHT_INVITE_PRIVATE_LINK, MEMBER_RIGHT_AUTO_APPROVE]
+
+member_rights = MemberRights()
+
+
+class ModerationHistoryTypes:
+
+    APPLIED_PUBLIC_LINK = 0
+    APPLIED_PRIVATE_LINK = 1
+    APPROVED_FROM = 2
+    MEMBER_PERMISSION_EDITED = 3
+    MANAGER_PERMISSION_EDITED = 4
+    MADE_COMMUNITY_MANAGER = 5
+    REMOVED_AS_COMMUNITY_MANAGER = 6
+    REMOVED_FROM_COMMUNITY = 7
+    LEFT_COMMUNITY = 8
+    STARTED_COMMUNITY = 9
+    TRANSFERRED_OWNERSHIP = 10
+    REJOINED_COMMUNITY_PUBLIC_LINK = 11
+    REJOINED_COMMUNITY_PRIVATE_LINK = 12
+    APPLIED_PUBLIC_LINK_WEBSITE = 13
+    APPLIED_PUBLIC_LINK_TEXT = "Applied via public link from "
+    APPLIED_PRIVATE_LINK_TEXT = "Joined via private link from "
+    APPROVED_FROM_TEXT = "Approved from "
+    MEMBER_PERMISSION_EDITED_TEXT = "Member permission edited by "
+    MANAGER_PERMISSION_EDITED_TEXT = "Management permission edited by "
+    MADE_COMMUNITY_MANAGER_TEXT = "Made community manager by "
+    REMOVED_AS_COMMUNITY_MANAGER_TEXT = "Removed as community manager by "
+    REMOVED_MEMBER_FROM_COMMUNITY_TEXT = "Removed from community by "
+    LEFT_COMMUNITY_TEXT = "Left community"
+    STARTED_COMMUNITY_TEXT = "Started this community"
+    TRANSFERRED_OWNERSHIP_TEXT = "Transferred ownership to "
+    REJOINED_COMMUNITY_PUBLIC_LINK_TEXT = "Rejoined via public link from  "
+    REJOINED_COMMUNITY_PRIVATE_LINK_TEXT = "Rejoined via private link from "
+    APPLIED_PUBLIC_LINK_WEBSITE_TEXT = "Applied via community website"
+
+moderation_history_types = ModerationHistoryTypes()
+
+
+class ReportActionTypes:
+
+    EDIT_MEMBER_PERMISSION = 0
+    REMOVE_FROM_COMMUNITY = 1
+    LEFT_THE_COMMUNITY = 2
+    RESPONSE_DELETED_BY_CM = 3
+    RESPONSE_DELETED_BY_CREATOR = 4
+    CHATROOM_DELETED_BY_CM = 5
+    CHATROOM_DELETED_BY_CREATOR = 6
+
+
+report_Action_Types = ReportActionTypes()
+
+
+class ReportTypes:
+
+    REPORT_MEMBER = 0
+    REPORT_CHATROOM = 1
+    REPORT_CONVERSATION = 2
+    REPORT_COMMUNITY = 3
+    REPORT_LINK = 4
+
+
+report_Types = ReportTypes()
+
+
+# chatroom actions
 class ChatroomActions:
 
     ACTION_RENAME = 1
@@ -69,14 +178,14 @@ class ChatroomStates:
 
 chatroom_states = ChatroomStates()
 
-class MultipleSelectPoll:
+class MultiSelectPollStates:
     #class to save states of multiple select poll
     EXACTLY = 0
     AT_MAX = 1
     AT_MOST = 1
     AT_LEAST = 2
 
-multiple_select_poll = MultipleSelectPoll()
+multi_select_poll_states = MultiSelectPollStates()
 
 # member state
 class MemberStates:

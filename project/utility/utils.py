@@ -22,6 +22,7 @@ import time
 from datetime import datetime,date,timedelta
 import dateutil.relativedelta
 from .states import *
+from django.core.exceptions import MultipleObjectsReturned
 # cache details
 # from django.core.cache import cache
 # custom_cache=cache
@@ -127,12 +128,12 @@ def get_members_count_in_community(community_id):
 
 
 #community related functions
-def generate_private_link(community_instance,promoter_instance):
+def generate_private_link(community_instance, promoter_instance):
 
     '''function to generate private links of community'''
 
     community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
-    unique_code_list = list(community_expire_filter.values_list('unique_code',flat=True))
+    unique_code_list = list(community_expire_filter.values_list('unique_code', flat=True))
 
 
 
@@ -144,7 +145,7 @@ def generate_private_link(community_instance,promoter_instance):
         expireInstance.promoter = promoter_instance
         expireInstance.created_at = time.time()
         expireInstance.unique_code = unique_code
-        expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj="+ str(unique_code)
+        expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj=" + str(unique_code)
         expireInstance.expire_duration = 86400
         expireInstance.save()
 
@@ -175,7 +176,7 @@ def generate_random(unique_code_list):
 
   '''function to generate a random number'''
 
-  randInt = randint(1,100000)
+  randInt = randint(1, 100000)
 
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
@@ -1117,15 +1118,26 @@ def check_notification_flag(member_id,notification_list,card_id=None,community_i
 
     for notification in notification_list:
         if card_id == None and community_id == None:
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification,member=member)
+            try:
+                p, created = memberNotificationFlag.objects.get_or_create(code=notification, member=member)
+            except MultipleObjectsReturned:
+                created = False
+                p = memberNotificationFlag.objects.filter(code=notification, member=member).first()
 
         elif card_id != None and community_id == None:
             card = Collabcard.objects.get(pk=card_id)
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification,card=card,member=member)
-
+            try:
+                p, created = memberNotificationFlag.objects.get_or_create(code=notification, card=card, member=member)
+            except MultipleObjectsReturned:
+                created = False
+                p = memberNotificationFlag.objects.filter(code=notification, card=card, member=member).first()
         elif community_id != None and card_id == None:
             community = Community.objects.get(pk=card_id)
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification,community=community,member=member)
+            try:
+                p, created = memberNotificationFlag.objects.get_or_create(code=notification, community=community, member=member)
+            except MultipleObjectsReturned:
+                created = False
+                p = memberNotificationFlag.objects.filter(code=notification, community=community, member=member).first()
         
         if p.flag == False:
             flag = False
@@ -1161,6 +1173,7 @@ def create_notification_flag(member_id, notification_list, card_id=None, communi
             if created:
                 p.flag=flag
                 p.save()
+
 
 def add_relative_time_to_epoch(epoch_time, minutes=0, hours=0, days=0):
     epoch_time = datetime.fromtimestamp(epoch_time)
