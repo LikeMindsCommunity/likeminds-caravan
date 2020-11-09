@@ -492,7 +492,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         elif typ == 2:
             title = community_name
             sub_title = str(card_creater_name) + " created a new event: " + str(collabcard_title) + ". Join now!"
-            route = 'route://event_chatroom?collabcard_id='+str(kwargs['card_id'])
+            route = 'route://event_chatroom?chatroom_id='+str(kwargs['card_id'])
         elif typ == 3:
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
@@ -1816,7 +1816,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
             route = 'route://poll_chatroom?chatroom_id=' + str(card_id) + '&poll_end=true'
         else:
             sub_title = 'Your event is starting in 30 minutes'
-            route = 'route://event_chatroom?collabcard_id=' + str(card_id) + '&event_attend=true'
+            route = 'route://event_chatroom?chatroom_id=' + str(card_id) + '&event_attend=true'
 
         message = {}
         message['payload'] = {
