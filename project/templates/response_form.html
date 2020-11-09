@@ -626,7 +626,7 @@ You are one step away from being a part of this amazing community. Are you sure 
                                 values_list.push(values_dict)
                             }
                         {% else %}
-                            var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/;
+                            var mailformat = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})/i;
                             if(value.match(mailformat)){
                                 values_dict['value'] = value;
                                 values_list.push(values_dict)
