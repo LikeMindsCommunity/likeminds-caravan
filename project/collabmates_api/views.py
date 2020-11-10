@@ -8836,7 +8836,7 @@ def save_userAcquition_analytics(user_instance,user_acquired):
 
         instance.utm_source = user_acquired['utm_source'] if 'utm_source' in user_acquired   else ''
         instance.utm_campaign = user_acquired['utm_campaign'] if 'utm_campaign' in user_acquired   else ''
-        instance.utm_content = user_acquired['utm_content'] if 'utm_content' in user_acquired   else ''
+        instance.utm_medium = user_acquired['utm_medium'] if 'utm_medium' in user_acquired   else ''
         instance.platform = user_acquired['platform'] if 'platform' in user_acquired else ''
 
         instance.device_id = user_acquired['device_id'] if 'device_id' in user_acquired   else ''
