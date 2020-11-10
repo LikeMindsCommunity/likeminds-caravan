@@ -46,19 +46,28 @@ url=settings.URL
 server_key=settings.FCM_SERVER_KEY
 
 #notifications for different mobile os versions
-def send_test_notification(token_list,message):
-    result = ""
+def send_test_notification(request):
+
+    platform = request.GET.get('platform')
+    fcm_token = request.GET.get('fcm_token')
+
     message = {}
-    # message['payload']={
-    #     'title': 'title',
-    #     'sub_title': 'sub_title',
-    #     'route': 'route://community?community_id=49016'
-    # }
-    # message['payload']['sub_title'] = sub_titlee
-    push_service = FCMNotification(api_key=server_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'])
-    print(result)
+    message['payload'] = {
+        'title': "Testing Notification",
+        'sub_title': "checking",
+        'route': "route://collabcard?collabcard_id="+str(4779)
+    }
+    token_list = []
+    token_list.append(fcm_token)
+    # if platform == "android":
+    #     res = send_notification_for_android(token_list,message)
+    # else:
+    res = send_notification_for_ios(token_list, message)
+
+    context = {
+        'res':res
+    }
+    return JsonResponse(context)
 
     
 def send_notification_for_android(token_list,message):
@@ -71,6 +80,7 @@ def send_notification_for_android(token_list,message):
                                                   data_message=message['payload'])
 
     print(result)
+    return result
    
 
 def send_notification_for_ios(token_list, message):
@@ -93,6 +103,7 @@ def send_notification_for_ios(token_list, message):
                                                   extra_kwargs=extra_kwargs)
 
     print(result)
+    return result
 
 
 def get_title_from_collabcard(card):
