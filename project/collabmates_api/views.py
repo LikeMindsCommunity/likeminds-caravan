@@ -6936,7 +6936,7 @@ def collabcard_follow(request, function_dict=None):
     card_instance = collabcard
     user_instance = User.objects.get(id=member_id)
 
-    #user cant unfollow hit own collabcard
+    #user cant unfollow his own collabcard
     if not status and collabcard.user.id == user_instance.id:
         return JsonResponse({'success':True})
 
