@@ -9880,6 +9880,8 @@ def config(request):
     user_detail = get_mixpanel_statistics(member_id)
     context['user_detail'] = user_detail
 
+    context['updatePriority'] = 0
+
     return JsonResponse(context)
 
 
