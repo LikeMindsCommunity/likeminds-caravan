@@ -7300,9 +7300,7 @@ def collabcard_attend(request):
 
         state = collabcard_states.COLLABCARD_STATE_SEEN
         try:
-            state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
-            state_instance.state = state
-            state_instance.save()
+            collabcardState.objects.filter(card=card_instance, user=user_instance).update(state=state)
 
         except:
             # collabcard_state_instance = collabcardState()
