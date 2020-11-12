@@ -1374,7 +1374,6 @@ def is_joining_time_valid(community_instance, time_stamp, unique_code):
 def auto_join_community(community_instance, user_instance, shared_user_instance=None):
     # updating the member instance
     if not is_member_verified(community_instance, user_instance):
-        print('if not is_member_verified')
         member_instance = Members()
         member_instance.member_id = user_instance
         member_instance.community_id = community_instance
@@ -1403,7 +1402,6 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
 
     # updating the member engage instance
     if not is_member_engage(community_instance, user_instance):
-        print('if not is_member_engage')
 
         engage = Member_Engage()
         engage.member_id = user_instance
@@ -1412,7 +1410,6 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
         engage.member_state = member_states.MEMBER
         engage.rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
         engage.save()
-    print('inside')
 
 
 def post_introduction_card_for_community(community_id, member_id, request):
