@@ -1229,16 +1229,17 @@ def join_promoter_created_community_version_1(res, request):
                 print("saving history 1")
                 shared_user_instance = None
                 if 'shared_by' in res:
-                    print("saving history 2 ---  ", res['shared_by'])
+                    if res['shared_by'] != '':
+                        print("saving history 2 ---  ", res['shared_by'])
 
-                    history_type = moderation_history_types.APPLIED_PRIVATE_LINK
-                    if check_user_rejoin(user=user_instance, community=community_instance):
-                        history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
-                        update_followed_for_rejoined_member(user_instance, community_instance)
+                        history_type = moderation_history_types.APPLIED_PRIVATE_LINK
+                        if check_user_rejoin(user=user_instance, community=community_instance):
+                            history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
+                            update_followed_for_rejoined_member(user_instance, community_instance)
 
-                    shared_user_instance = User.objects.get(pk=res['shared_by'])
-                    save_moderation_history(user=user_instance, community=community_instance,
-                                            moderation_by=shared_user_instance, type=history_type)
+                        shared_user_instance = User.objects.get(pk=res['shared_by'])
+                        save_moderation_history(user=user_instance, community=community_instance,
+                                                moderation_by=shared_user_instance, type=history_type)
 
                 auto_join_community(community_instance, user_instance, shared_user_instance)
                 set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
@@ -1297,8 +1298,6 @@ def join_promoter_created_community_version_1(res, request):
         update_pending_member_count_in_engage(community_instance)
         return JsonResponse({'success': True})
     else:
-
-        # creating a member instance
         member_instance = Members()
         member_instance.member_id = user_instance
         member_instance.community_id = community_instance
@@ -1320,19 +1319,22 @@ def join_promoter_created_community_version_1(res, request):
 
         update_community_toast(user_instance, community_instance)
 
-    if 'shared_by' in res:
-        if is_private_link:
-            history_type = moderation_history_types.APPLIED_PRIVATE_LINK
-        else:
-            history_type = moderation_history_types.APPLIED_PUBLIC_LINK
+        if 'shared_by' in res:
+            try:
+                history_type = moderation_history_types.APPLIED_PUBLIC_LINK
+                shared_user = User.objects.get(pk=res['shared_by'])
+                member_instance.joined_by = shared_user
+                member_instance.save()
+            except User.DoesNotExist:
+                history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+                shared_user=None
 
-        shared_user = User.objects.get(pk=res['shared_by'])
-        save_moderation_history(user=user_instance, community=community_instance,
-                                moderation_by=shared_user, type=history_type)
-    else:
-        history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
-        save_moderation_history(user=user_instance, community=community_instance,
-                                moderation_by=None, type=history_type)
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=shared_user, type=history_type)
+        else:
+            history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=None, type=history_type)
 
 
 def update_community_toast(user_instance, community_instance):
@@ -1372,6 +1374,7 @@ def is_joining_time_valid(community_instance, time_stamp, unique_code):
 def auto_join_community(community_instance, user_instance, shared_user_instance=None):
     # updating the member instance
     if not is_member_verified(community_instance, user_instance):
+        print('if not is_member_verified')
         member_instance = Members()
         member_instance.member_id = user_instance
         member_instance.community_id = community_instance
@@ -1400,6 +1403,8 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
 
     # updating the member engage instance
     if not is_member_engage(community_instance, user_instance):
+        print('if not is_member_engage')
+
         engage = Member_Engage()
         engage.member_id = user_instance
         engage.community_id = community_instance
@@ -1407,6 +1412,7 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
         engage.member_state = member_states.MEMBER
         engage.rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
         engage.save()
+    print('inside')
 
 
 def post_introduction_card_for_community(community_id, member_id, request):
