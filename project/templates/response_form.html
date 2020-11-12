@@ -178,7 +178,7 @@
                 <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">DONE</button>
             </div>
 
-                  {% if footer %}
+                  {% if footer.aj %}
                     <div class="h60"></div>
                     <div class="taC pF b60 l0 r0 bg0 z1 p8 bs">
                         <div class="mxw960 mA cF taL">
@@ -809,7 +809,7 @@ You are one step away from being a part of this amazing community. Are you sure 
 
 
 
-                var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}',"aj_expired":'{{footer.aj_expired}}',"source":'{{source}}'}
+                var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}',"aj_expired":'{{footer.aj_expired}}',"source":'{{source}}',"shared_by":'{{footer.shared_by}}'}
                 $.ajax({
                     url:url,
                     type:"POST",
