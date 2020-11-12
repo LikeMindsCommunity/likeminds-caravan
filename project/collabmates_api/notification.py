@@ -1973,7 +1973,7 @@ def send_notification_for_new_promoter(promoter_id, member_id, community_id, cus
 
     message['payload'] = {
         "title": community_name,
-        "sub_title": f"{promoter_name} has added you as {custom_title} of the community.",
+        "sub_title": f"{promoter_name} has added you in the management team of the community and assigned you the title of {custom_title}",
         'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
     }
 
@@ -2006,7 +2006,7 @@ def send_notification_for_custom_title_changed(promoter_id, member_id, community
 
     message['payload'] = {
         "title": community_name,
-        "sub_title": f"{promoter_name} has made you {custom_title} of the community.",
+        "sub_title": f"{promoter_name} has assigned you the title of {custom_title}",
         'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
     }
 
