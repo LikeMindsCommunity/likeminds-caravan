@@ -1320,14 +1320,15 @@ def join_promoter_created_community_version_1(res, request):
         update_community_toast(user_instance, community_instance)
 
         if 'shared_by' in res:
-            if is_private_link:
-                history_type = moderation_history_types.APPLIED_PRIVATE_LINK
-            else:
+            try:
                 history_type = moderation_history_types.APPLIED_PUBLIC_LINK
-            shared_user = get_object_or_404(User, pk=res['shared_by'])
-            # shared_user = User.objects.get(pk=res['shared_by'])shared_by
-            member_instance.joined_by = shared_user
-            member_instance.save()
+                shared_user = User.objects.get(pk=res['shared_by'])
+                member_instance.joined_by = shared_user
+                member_instance.save()
+            except User.DoesNotExist:
+                history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+                shared_user=None
+
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=shared_user, type=history_type)
         else:
