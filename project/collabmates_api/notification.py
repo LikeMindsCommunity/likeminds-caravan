@@ -46,19 +46,28 @@ url=settings.URL
 server_key=settings.FCM_SERVER_KEY
 
 #notifications for different mobile os versions
-def send_test_notification(token_list,message):
-    result = ""
+def send_test_notification(request):
+
+    platform = request.GET.get('platform')
+    fcm_token = request.GET.get('fcm_token')
+
     message = {}
-    # message['payload']={
-    #     'title': 'title',
-    #     'sub_title': 'sub_title',
-    #     'route': 'route://community?community_id=49016'
-    # }
-    # message['payload']['sub_title'] = sub_titlee
-    push_service = FCMNotification(api_key=server_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'])
-    print(result)
+    message['payload'] = {
+        'title': "Testing Notification",
+        'sub_title': "checking",
+        'route': "route://collabcard?collabcard_id="+str(4779)
+    }
+    token_list = []
+    token_list.append(fcm_token)
+    # if platform == "android":
+    #     res = send_notification_for_android(token_list,message)
+    # else:
+    res = send_notification_for_ios(token_list, message)
+
+    context = {
+        'res':res
+    }
+    return JsonResponse(context)
 
     
 def send_notification_for_android(token_list,message):
@@ -71,6 +80,7 @@ def send_notification_for_android(token_list,message):
                                                   data_message=message['payload'])
 
     print(result)
+    return result
    
 
 def send_notification_for_ios(token_list, message):
@@ -93,6 +103,7 @@ def send_notification_for_ios(token_list, message):
                                                   extra_kwargs=extra_kwargs)
 
     print(result)
+    return result
 
 
 def get_title_from_collabcard(card):
@@ -492,7 +503,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         elif typ == 2:
             title = community_name
             sub_title = str(card_creater_name) + " created a new event: " + str(collabcard_title) + ". Join now!"
-            route = 'route://event_chatroom?collabcard_id='+str(kwargs['card_id'])
+            route = 'route://event_chatroom?chatroom_id='+str(kwargs['card_id'])
         elif typ == 3:
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
@@ -1816,7 +1827,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
             route = 'route://poll_chatroom?chatroom_id=' + str(card_id) + '&poll_end=true'
         else:
             sub_title = 'Your event is starting in 30 minutes'
-            route = 'route://event_chatroom?collabcard_id=' + str(card_id) + '&event_attend=true'
+            route = 'route://event_chatroom?chatroom_id=' + str(card_id) + '&event_attend=true'
 
         message = {}
         message['payload'] = {
