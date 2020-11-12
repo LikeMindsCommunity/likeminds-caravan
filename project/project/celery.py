@@ -9,8 +9,8 @@ load_dotenv()
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.development')
 
-# app = Celery('project')
-app = Celery('project', backend='amqp', broker=os.getenv('BETA_BROKER_URL'))
+app = Celery('project')
+# app = Celery('project', backend='amqp', broker=os.getenv('BETA_BROKER_URL'))
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
 # - namespace='CELERY' means all celery-related configuration keys
