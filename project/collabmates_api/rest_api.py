@@ -401,10 +401,10 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     card_creation_time = serializers.SerializerMethodField()
     poll_type_text = serializers.SerializerMethodField()
     submit_type_text = serializers.SerializerMethodField()
-    image_url_round = serializers.SerializerMethodField()
+    #image_url_round = serializers.SerializerMethodField()
     chatroom_category = serializers.SerializerMethodField()
     is_anonymous = serializers.SerializerMethodField()
-    member = serializers.SerializerMethodField()
+    member_id = serializers.SerializerMethodField()
     expiry_time = serializers.SerializerMethodField()
     created_at = serializers.SerializerMethodField()
     community_name = serializers.ReadOnlyField(source='community.name')
@@ -428,16 +428,16 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Collabcard
         fields = ('id', 'title', 'community_id', 'answer_text',
-                  'share_link', 'image_count', 'pdf_count', 'type', 'date_time', 'duration',
-                  'is_deleted', 'is_pending', 'answers_count', 'attending_count', 'polls_count',
+                  'image_count', 'pdf_count', 'type', 'date_time',
+                  'is_deleted', 'is_pending', 'attending_count', 'polls_count',
                   'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
                   'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state', 'multiple_select',
                   'multiple_select_no', 'polls', 'location', 'location_lat', 'location_long',
                   'start_date', 'end_date', 'about', 'co_hosts', 'online_link', 'updated_member',
-                  'community', 'og_tags', 'created_at', 'image_url_round',  'is_deleted', 'is_anonymous',
+                  'community', 'og_tags', 'created_at',  'is_deleted', 'is_anonymous',
                   'deleted_by_member_state', 'expiry_time', 'poll_type_text', 'submit_type_text', 'date',
-                  'chatroom_category', 'deleted_by', 'member', 'created_at',
-                  'internal_link', 'images', 'pdf', 'preview', 'member', 'deleted_by', 'header',
+                  'chatroom_category', 'deleted_by', 'member_id', 'created_at',
+                  'internal_link', 'images', 'pdf', 'preview','deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time'
                   )
@@ -470,8 +470,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_card_creation_time(self, card):
         return time.strftime('%I:%M %p', time.localtime(card.date_epoch))
 
-    def get_image_url_round(self, card):
-        return card.community.image_link_round
+    # def get_image_url_round(self, card):
+    #     return card.community.image_link_round
 
     def get_expiry_time(self, card):
         if card.type == card_types.CARD_POLL:
@@ -495,18 +495,28 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_deleted_by_member_state(self, card):
         return card.deleted_by_user_state
 
-    def get_member(self, card):
-        member_profile = get_members_profile([card.user.id], card.community.id)[0]
-        self._set_removed_member_custom_text(card, member_profile)
-        return member_profile
+    def get_member_id(self, card):
+        # member_profile = get_members_profile([card.user.id], card.community.id)[0]
+        # self._set_removed_member_custom_text(card, member_profile)
+        return card.user.id
 
     def get_deleted_by(self, card):
-        if card.deleted_by_user is None:
-            return None
-        member_ids = [card.deleted_by_user]
-        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
-                                   current_user_id=self.current_user_id)
-        return temp[0]
+        # if card.deleted_by_user is None:
+        #     return None
+        # member_ids = [card.deleted_by_user]
+        # temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
+        #                            current_user_id=self.current_user_id)
+        return card.deleted_by_user.id
+
+    def get_co_hosts(self,co_hosts):
+
+        co_host_list =[]
+        for member in co_hosts:
+            temp = {}
+            temp['member_id'] = member
+            co_host_list.append(temp)
+
+        return co_host_list
 
     def to_representation(self, card):
         data = super(GetChatroomInstanceSerializer, self).to_representation(card)
@@ -545,11 +555,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 else:
                     del data['has_been_named']
 
-            elif field.field_name == "updated_member" and data['updated_member'] is not None:
-                member_ids = [data['updated_member']]
-                temp = get_members_profile(member_ids=member_ids, community_id=data['community'],
-                                           current_user_id=self.user)
-                data['updated_member'] = temp[0]
+            # elif field.field_name == "updated_member" and data['updated_member'] is not None:
+            #     member_ids = [data['updated_member']]
+            #     temp = get_members_profile(member_ids=member_ids, community_id=data['community'],
+            #                                current_user_id=self.user)
+            #     data['updated_member'] = temp[0]
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
                 data['preview'] = get_preview_for_url(member_id=self.current_user_id,
@@ -627,11 +637,12 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     del data["co_hosts"]
                 else:
                     co_host_list = json.loads(data['co_hosts'])
-                    data['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=data['community'],
-                                                           current_user_id=self.user)
+                    # data['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=data['community'],
+                    #                                        current_user_id=self.user)
+                    data['co_hosts'] = self.get_co_hosts(co_host_list)
 
-            elif field.field_name == "updated_time":
-                data["updated_time"] = get_time_text(data["updated_time"])
+            # elif field.field_name == "updated_time":
+            #     data["updated_time"] = get_time_text(data["updated_time"])
 
             elif field.field_name in ['image_count', 'pdf_count']:
                 card_files = get_collabcard_files(data['id'])

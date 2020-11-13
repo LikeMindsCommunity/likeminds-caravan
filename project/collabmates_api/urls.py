@@ -216,11 +216,10 @@ urlpatterns = [
     path('v1/sync_conversation', api_views.sync_conversation_version_1, name='sync_conversation_version_1'),
     path('sync_conversation', api_views.SyncConversation.as_view(), name='sync_conversation'),
     path('sync_members', api_views.sync_members, name='sync_members'),
-    path('sync_chatrooms', api_views.sync_chatrooms, name='sync_chatrooms'),
 
     path('fetch_user_meta', api_views.fetch_user_meta, name='fetch_user_meta'),
 
-    path('v1/sync_chatrooms', api_views.SyncChatroomsVersion1.as_view(), name='sync_chatrooms_v1'),
+    path('sync_chatrooms', api_views.SyncChatrooms.as_view(), name='sync_chatrooms'),
 
 
 
