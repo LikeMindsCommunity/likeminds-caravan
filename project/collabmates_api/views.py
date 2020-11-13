@@ -13382,7 +13382,11 @@ class SyncChatrooms(APIView):
 
         context = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
         chatroom_obj = GetChatroomInstanceSerializer(cards, context=context, many=True)
-
+        #print(chatroom_obj.data)
+        #
+        # for i in chatroom_obj.data:
+        #     print(i)
+        #     print("\n\n")
         return JsonResponse({'chatrooms': chatroom_obj.data})
 
 

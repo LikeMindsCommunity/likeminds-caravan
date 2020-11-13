@@ -409,7 +409,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     created_at = serializers.SerializerMethodField()
     community_name = serializers.ReadOnlyField(source='community.name')
     deleted_by_member_state = serializers.ReadOnlyField(source='deleted_by_user_state')
-    deleted_by = serializers.ReadOnlyField(source='deleted_by_user')
+    deleted_by = serializers.SerializerMethodField()
 
     images = serializers.ListField(write_only=True)
     pdf = serializers.ListField(write_only=True)
@@ -497,7 +497,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
     def get_member_id(self, card):
         # member_profile = get_members_profile([card.user.id], card.community.id)[0]
-        # self._set_removed_member_custom_text(card, member_profile)
+        #self._set_removed_member_custom_text(card, member_profile)
         return card.user.id
 
     def get_deleted_by(self, card):
@@ -506,14 +506,17 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         # member_ids = [card.deleted_by_user]
         # temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
         #                            current_user_id=self.current_user_id)
-        return card.deleted_by_user.id
+        deleted_by = None
+        if card.deleted_by_user:
+            deleted_by = card.deleted_by_user.id
+        return deleted_by
 
     def get_co_hosts(self,co_hosts):
 
         co_host_list =[]
         for member in co_hosts:
             temp = {}
-            temp['member_id'] = member
+            temp['id'] = member
             co_host_list.append(temp)
 
         return co_host_list
@@ -524,6 +527,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         fields = self._readable_fields
 
         for field in fields:
+
+            # if field.field_name == "id":
+            #     print(data['id'])
 
             if field.field_name == 'header':
                 if not data['header']:
@@ -639,7 +645,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     co_host_list = json.loads(data['co_hosts'])
                     # data['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=data['community'],
                     #                                        current_user_id=self.user)
-                    data['co_hosts'] = self.get_co_hosts(co_host_list)
+                    data['co_hosts_id'] = self.get_co_hosts(co_host_list)
 
             # elif field.field_name == "updated_time":
             #     data["updated_time"] = get_time_text(data["updated_time"])
