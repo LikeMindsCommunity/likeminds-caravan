@@ -13394,7 +13394,7 @@ class SyncChatrooms(APIView):
                 max_last_updated = data.updated_at
 
         if max_last_updated:
-            return JsonResponse({'chatrooms': chatroom_obj.data,'max_last_updated':max_last_updated})
+            return JsonResponse({'chatrooms': chatroom_obj.data,'max_last_updated':max_last_updated * 1000})
 
         return JsonResponse({'chatrooms': chatroom_obj.data})
 
