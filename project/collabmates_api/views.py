@@ -13374,22 +13374,28 @@ class SyncChatrooms(APIView):
         last_updated = query_params.get('last_updated', None)
 
         if not last_updated:
-            state_filter = list(collabcardState.objects.filter(user=member_id).order_by('id').values_list("card__id",
-                                                                                                          flat=True))
+            state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
+            state_list = list(state_filter.values_list("card__id",flat=True))
         else:
-            state_filter = list(collabcardState.objects.filter(user=member_id,
-                                updated_at__gt=last_updated).order_by('id').values_list("card__id", flat=True))
+            state_filter = collabcardState.objects.filter(user=member_id,
+                                updated_at__gt=last_updated).order_by('id')
+            state_list = list(state_filter.values_list("card__id", flat=True))
 
-        cards_list = list_pagination(state_filter, page, paginate_by=paginate_by)
+        cards_list = list_pagination(state_list, page, paginate_by=paginate_by)
         cards = Collabcard.objects.filter(pk__in=cards_list)
 
         context = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
         chatroom_obj = GetChatroomInstanceSerializer(cards, context=context, many=True)
-        #print(chatroom_obj.data)
-        #
-        # for i in chatroom_obj.data:
-        #     print(i)
-        #     print("\n\n")
+
+        state_filter = pagination(state_filter,page,paginate_by=paginate_by)
+        max_last_updated = 0
+        for data in state_filter:
+            if data.updated_at > max_last_updated:
+                max_last_updated = data.updated_at
+
+        if max_last_updated:
+            return JsonResponse({'chatrooms': chatroom_obj.data,'max_last_updated':max_last_updated})
+
         return JsonResponse({'chatrooms': chatroom_obj.data})
 
 

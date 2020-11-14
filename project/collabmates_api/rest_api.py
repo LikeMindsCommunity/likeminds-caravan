@@ -646,6 +646,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     # data['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=data['community'],
                     #                                        current_user_id=self.user)
                     data['co_hosts_id'] = self.get_co_hosts(co_host_list)
+                    del data['co_hosts']
 
             # elif field.field_name == "updated_time":
             #     data["updated_time"] = get_time_text(data["updated_time"])
