@@ -13373,7 +13373,11 @@ class SyncChatrooms(APIView):
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
 
-        if community_id:
+        if chatroom_id:
+            state_filter = collabcardState.objects.filter(card=chatroom_id,user=member_id).order_by('id')
+            state_list = list(state_filter.values_list("card__id", flat=True))
+
+        elif community_id:
             state_filter = collabcardState.objects.filter(community=community_id).order_by('id')
             state_list = list(state_filter.values_list("card__id", flat=True))
         else:
