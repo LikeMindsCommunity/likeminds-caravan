@@ -13370,13 +13370,21 @@ class SyncChatrooms(APIView):
 
         last_updated = query_params.get('last_updated', None)
 
-        if not last_updated:
-            state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
-            state_list = list(state_filter.values_list("card__id",flat=True))
-        else:
-            state_filter = collabcardState.objects.filter(user=member_id,
-                                updated_at__gt=last_updated).order_by('id')
+        chatroom_id = query_params.get('chatroom_id', '')
+        community_id = query_params.get('community_id', '')
+
+        if community_id:
+            state_filter = collabcardState.objects.filter(community=community_id).order_by('id')
             state_list = list(state_filter.values_list("card__id", flat=True))
+        else:
+
+            if not last_updated:
+                state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
+                state_list = list(state_filter.values_list("card__id",flat=True))
+            else:
+                state_filter = collabcardState.objects.filter(user=member_id,
+                                    updated_at__gt=last_updated).order_by('id')
+                state_list = list(state_filter.values_list("card__id", flat=True))
 
         cards_list = list_pagination(state_list, page, paginate_by=paginate_by)
         cards = Collabcard.objects.filter(pk__in=cards_list)
