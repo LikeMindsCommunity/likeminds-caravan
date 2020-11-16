@@ -682,7 +682,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         collabcard_status['state_instance'] = state_instance
         collabcard_status['expiry_time'] = state_instance.expiry_time
         collabcard_status['is_tagged'] = state_instance.is_tagged
-        collabcard_status['attending_status'] = state_instance[0].attending_status
+        collabcard_status['attending_status'] = state_instance.attending_status
 
     return collabcard_status
 
