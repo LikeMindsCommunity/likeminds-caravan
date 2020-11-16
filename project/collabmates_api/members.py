@@ -408,6 +408,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
         user_context = get_members_profile([user_instance.id],community_id,current_user_id)
         user_context = user_context[0]
         user_context['collabcard_state'] = instance.state
+        user_context['attending_status'] = instance.attending_status
         user_context['is_guest'] = instance.is_guest
 
         #if the user is the guest in that chatroom
