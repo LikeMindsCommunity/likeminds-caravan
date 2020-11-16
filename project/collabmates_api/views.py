@@ -13587,8 +13587,18 @@ class SyncCommunities(APIView):
 
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
+        if chatroom_id:
+            community_list = []
+            state_filter = Collabcard.objects.filter(id=chatroom_id)
+            if state_filter.exists():
+                temp = CommunitySerializer(state_filter[0].community,current_user_id=member_id)
+                community_list.append(temp)
+                return JsonResponse({'communities':community_list})
+            else:
+                context = get_error_context(False,"in-correct chatroom id")
+                return JsonResponse(context)
 
-        if community_id:
+        elif community_id:
             engage_filter = Member_Engage.objects.filter(member_id=member_id,community_id=community_id).order_by('id')
         else:
             if last_updated:
