@@ -363,6 +363,7 @@ class collabcardState(models.Model):
 
     mute_status = models.BooleanField(default=False)
     follow_status = models.BooleanField(default=False)
+    attending_status = models.BooleanField(default=False, null=True)
     is_guest = models.BooleanField(default=False)
     is_tagged = models.BooleanField(default=False)
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')

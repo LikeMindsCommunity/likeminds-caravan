@@ -3414,7 +3414,8 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 
 def create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
                                    expire_at=None, external_seen=True, is_guest=False, source=None, follow_status=False,
-                                   mute_status=False, is_tagged=False, external_follow=False ,**kwargs):
+                                   mute_status=False, is_tagged=False, external_follow=False,
+                                   attending_status=False, **kwargs):
     '''function to create chatroom state instance'''
     # if not expire_at:
     #     expire_at = get_expiry_time_of_chatroom()
@@ -3430,7 +3431,7 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.external_seen = external_seen
         collabcard_state_instance.expiry_time = expire_at
-
+        collabcard_state_instance.attending_status = attending_status
         collabcard_state_instance.follow_status = follow_status
         collabcard_state_instance.mute_status = mute_status
         collabcard_state_instance.is_tagged=is_tagged
@@ -7015,7 +7016,7 @@ def collabcard_follow(request, function_dict=None):
             if state == collabcard_states.COLLABCARD_STATE_ATTENDING:
                 state = collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING
 
-            collabcard_state_filter.update(follow_status = status, updated_at=time.time(),
+            collabcard_state_filter.update(follow_status=status, updated_at=time.time(),
                                            is_tagged=False, external_seen=True, external_follow=status,
                                            state=state
                                            )
@@ -7274,6 +7275,7 @@ def collabcard_attend(request):
         try:
             state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
             state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
+            state_instance.attending_status = True
             state_instance.save()
 
         except:
@@ -7290,20 +7292,19 @@ def collabcard_attend(request):
                                            state=collabcard_states.COLLABCARD_STATE_ATTENDING,
                                            expire_at=None, external_seen=True, is_guest=False, source=None,
                                            follow_status=True, mute_status=False, is_tagged=False,
-                                           function_called="collabcard_attend")
-
-
+                                           function_called="collabcard_attend", attending_status = True)
 
         func_dict = {'member_id': member_id, 'collabcard_id': card_instance.id, 'status': True,
                      'source': "Event attend"}
         collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_ATTENDING)
 
-
     else:
 
         state = collabcard_states.COLLABCARD_STATE_SEEN
         try:
-            collabcardState.objects.filter(card=card_instance, user=user_instance).update(state=state)
+            collabcardState.objects.filter(card=card_instance,
+                                           user=user_instance).update(state=state,
+                                                                      attending_status=False)
 
         except:
             # collabcard_state_instance = collabcardState()
@@ -11783,6 +11784,7 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
     conversation_instance.deleted_by_text = deleted_by_text
     conversation_instance.tag = tag_instance
     conversation_instance.reason = reason
+    conversation_instance.last_updated = int(round(time.time() * 1000))
     conversation_instance.save()
 
     if int(current_user_instance.id) == int(conversation_instance.user.id):
