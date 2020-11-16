@@ -13412,6 +13412,36 @@ class SyncChatrooms(APIView):
 
 
 
+class SyncCommunities(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+        member_id = get_member_id_from_headers(request)
+        if not member_id:
+            context = get_error_context(False, "send member id in headers")
+            return JsonResponse(context)
+        query_params = request.query_params
+
+        page = query_params.get('page', 1)
+        page = int(page)
+
+        paginate_by = query_params.get('page_size', 200)
+
+        last_updated = query_params.get('last_updated', None)
+
+        chatroom_id = query_params.get('chatroom_id', '')
+        community_id = query_params.get('community_id', '')
+
+        member_filter = Members.objects.order_by('-id')
+        member_filter = pagination(member_filter,page,paginate_by=paginate_by)
+        community_list = []
+        for data in member_filter:
+            temp = CommunitySerializer(data.community_id,current_user_id=member_id)
+            community_list.append(temp)
+
+
+        return JsonResponse({'communities':community_list})
+
 
 # =========================== block member ========================================================
 
