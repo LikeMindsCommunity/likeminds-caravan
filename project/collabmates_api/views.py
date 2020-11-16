@@ -5915,8 +5915,27 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
             context = adding_guest_in_chatroom(request, context, card_instance, aj, source_id,
                                                card_instance.community.id, current_user_id=user_id)
 
+    chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
+    # if the user is seeing this chatroom from external link or notification
+    if not chatroom_state.exists() and user_instance:
+        expire_at = get_expiry_time_of_chatroom()
+        create_chatroom_state_instance(card_instance, user_instance, state=0,
+                                       external_seen=True, expire_at=expire_at,
+                                       function_called="get_chatroom_internal_version_1")
+    elif user_instance:
+        instance = chatroom_state[0]
+        if not instance.external_seen:
+            instance.external_seen = True
+            instance.expiry_time = get_expiry_time_of_chatroom()
+            instance.save()
+
+    if chatroom_state.exists():
+        state_instance = chatroom_state[0]
+    else:
+        state_instance = None
+
     card_status = {}
-    status = get_status_of_collabcard(user_id, card_instance, None)
+    status = get_status_of_collabcard(user_id, card_instance, state_instance)
     card_status['state'] = status['state']
     card_status['mute_status'] = status['mute_status']
     card_status['follow_status'] = status['follow_status']
@@ -5960,8 +5979,9 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
         if placeholder:
             context['placeholder'] = placeholder
 
-    return context
+    save_the_latest_conversation(card_instance, user_id)
 
+    return context
 
 
 def save_the_latest_conversation(card_instance, user_id):
@@ -6018,6 +6038,7 @@ def save_the_latest_conversation(card_instance, user_id):
 
     latest_conversations = {'last_conversation': latest_conversation}
     return latest_conversations
+
 
 def is_chatroom_join_expired(aj, source_id):
     '''function to check weather joining time of chatroom is valid or not'''
