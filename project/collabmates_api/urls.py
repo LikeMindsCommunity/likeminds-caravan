@@ -55,6 +55,7 @@ urlpatterns = [
 
     path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
     path('v1/fetch_chatroom', api_views.fetch_chatroom_version_1, name="fetch_chatroom_version_1"),
+    path('v2/fetch_chatroom', api_views.fetch_chatroom_version_2, name="fetch_chatroom_version_2"),
 
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
     path('v1/fetch_chatroom_feed', api_views.fetch_chatroom_feed_version_1, name="fetch_chatroom_feed_version_1"),
