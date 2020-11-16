@@ -196,7 +196,7 @@ class Collabcard(models.Model):
     preview_chatroom = models.ForeignKey('self', on_delete=models.PROTECT, null=True,
                                          related_name='chatroom_preview_chatroom')
     is_pending = models.BooleanField(default=False)  # for pending chat rooms which has to be approved
-    is_deleted = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)  # for internal check, not to be sent in API's
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='chatroom_deleted_by_user')
     # deleted_by_user_state = models.IntegerField(null=True)  # state in community member or manager
@@ -321,7 +321,7 @@ class card_answers(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
     is_guest = models.BooleanField(default=False)
     og_tags = models.TextField(null=True)
-    is_deleted = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)  # for internal check, not to be sent in API's
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='conversation_deleted_by_user')
     # deleted_by_user_state = models.IntegerField(null=True)  # state in community member or manager
