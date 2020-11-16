@@ -4701,6 +4701,7 @@ def collabcard(request, card_id):
             card['state'] = collabcard_status['state']
             card['mute_status'] = collabcard_status['mute_status']
             card['follow_status'] = collabcard_status['follow_status']
+            card['attending_status'] = collabcard_status['attending_status']
             # print('-->',collabcard_status)
 
         # get tine stamp for card
@@ -4757,6 +4758,7 @@ def get_collabcard_details_for_web(request, card_instance, card, current_user_id
         current_user['collabcard_state'] = collabcard_status['state']
         current_user['mute_status'] = collabcard_status['mute_status']
         current_user['follow_status'] = collabcard_status['follow_status']
+        current_user['attending_status'] = collabcard_status['attending_status']
         is_logged = True
 
     if type(answers) is list:
@@ -4930,6 +4932,7 @@ def get_normal_chatroom_context(request, card_instance):
         current_user['collabcard_state'] = collabcard_status['state']
         current_user['mute_status'] = collabcard_status['mute_status']
         current_user['follow_status'] = collabcard_status['follow_status']
+        current_user['attending_status'] = collabcard_status['attending_status']
 
     chatroom_dict = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id=None,
                                           scroll_direction=None, is_ios=False)
@@ -5565,6 +5568,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'state': card['state'],
         'mute_status': card['mute_status'],
         'follow_status': card['follow_status'],
+        'attending_status': card['attending_status'],
         'is_guest': card['is_guest'],
         'type': card['type'],
         'is_tagged':card['is_tagged'],
@@ -5742,6 +5746,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         'state': card['state'],
         'mute_status': card['mute_status'],
         'follow_status': card['follow_status'],
+        'attending_status': card['attending_status'],
         'is_guest': card['is_guest'],
         'type': card['type'],
         'is_tagged':card['is_tagged'],
@@ -13212,7 +13217,9 @@ def sync_members(request):
     if members_type == "members":
         if chatroom_id:
 
-            chatroom_particpants = collabcardState.objects.filter(card=chatroom_id,follow_status=True,is_guest=False,remove=None).order_by('id')
+            chatroom_particpants = collabcardState.objects.filter(card=chatroom_id, is_guest=False,
+                                                                  remove=None).filter(Q(follow_status=True) |
+                                                                                        Q(attending_status=True)).order_by('id')
             max_last_updated = 0
 
             member_list = []
