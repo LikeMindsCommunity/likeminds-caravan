@@ -193,7 +193,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         'type': card.type,
         'date_time': card.date_time,
         'duration': card.duration,
-        "is_deleted": card.is_deleted,
+        # "is_deleted": card.is_deleted,
         "is_pending": card.is_pending,
         'answers_count': card.answers_count,
         'attending_count': card.attending_count,
@@ -293,7 +293,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         member_ids = [card.deleted_by_user]
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id, current_user_id=user)
         collabcard['deleted_by'] = temp[0]
-        collabcard['deleted_by_member_state'] = card.deleted_by_user_state
+        # collabcard['deleted_by_member_state'] = card.deleted_by_user_state
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
