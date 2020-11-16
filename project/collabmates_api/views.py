@@ -3637,7 +3637,7 @@ def chatroom_delete(request):
 def update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
                                     card_creator, reason=None, tag_id=None):
 
-    deleted_by_user_state = 1 if is_promoter else 4
+    # deleted_by_user_state = 1 if is_promoter else 4
     deleted_by_text = ""
     if card_creator:
         deleted_by_text = "creator"
@@ -3657,7 +3657,7 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
 
     collabcard_instance.is_deleted = True
     collabcard_instance.deleted_by_user = current_user_instance
-    collabcard_instance.deleted_by_user_state = deleted_by_user_state
+    # collabcard_instance.deleted_by_user_state = deleted_by_user_state
     collabcard_instance.deleted_by_text = deleted_by_text
     collabcard_instance.tag = tag_instance
     collabcard_instance.reason = reason
@@ -5352,7 +5352,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             member_ids = [ans.deleted_by_user]
             temp = get_members_profile(member_ids=member_ids, community_id=community_id, current_user_id=current_user_id)
             context['deleted_by'] = temp[0]
-            context['deleted_by_member_state'] = ans.deleted_by_user_state
+            # context['deleted_by_member_state'] = ans.deleted_by_user_state
 
         if is_ios and ans.internal_link:
             context['answer'] = context['answer'] + f"\n{ans.internal_link}"
@@ -11770,7 +11770,7 @@ def delete_conversation(request):
 def update_conversation_delete_status(conversation_instance, current_user_instance, is_promoter,
                                       conversation_creator, reason=None, tag_id=None):
 
-    deleted_by_user_state = 1 if is_promoter else 4
+    # deleted_by_user_state = 1 if is_promoter else 4
     deleted_by_text = ""
     if conversation_creator:
         deleted_by_text = "creator"
@@ -11785,7 +11785,7 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
 
     conversation_instance.is_deleted = True
     conversation_instance.deleted_by_user = current_user_instance
-    conversation_instance.deleted_by_user_state = deleted_by_user_state
+    # conversation_instance.deleted_by_user_state = deleted_by_user_state
     conversation_instance.deleted_by_text = deleted_by_text
     conversation_instance.tag = tag_instance
     conversation_instance.reason = reason
