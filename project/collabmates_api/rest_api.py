@@ -408,7 +408,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     expiry_time = serializers.SerializerMethodField()
     created_at = serializers.SerializerMethodField()
     community_name = serializers.ReadOnlyField(source='community.name')
-    deleted_by_member_state = serializers.ReadOnlyField(source='deleted_by_user_state')
+    # deleted_by_member_state = serializers.ReadOnlyField(source='deleted_by_user_state')
     deleted_by = serializers.SerializerMethodField()
 
     images = serializers.ListField(write_only=True)
@@ -429,13 +429,13 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         model = Collabcard
         fields = ('id', 'title', 'community_id', 'answer_text',
                   'image_count', 'pdf_count', 'type', 'date_time',
-                  'is_deleted', 'is_pending', 'attending_count', 'polls_count',
+                  'is_pending', 'attending_count', 'polls_count',
                   'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
                   'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state', 'multiple_select',
                   'multiple_select_no', 'polls', 'location', 'location_lat', 'location_long',
                   'start_date', 'end_date', 'about', 'co_hosts', 'online_link', 'updated_member',
-                  'community', 'og_tags', 'created_at',  'is_deleted', 'is_anonymous',
-                  'deleted_by_member_state', 'expiry_time', 'poll_type_text', 'submit_type_text', 'date',
+                  'community', 'og_tags', 'created_at', 'is_anonymous',
+                  'expiry_time', 'poll_type_text', 'submit_type_text', 'date',
                   'chatroom_category', 'deleted_by', 'member_id', 'created_at',
                   'internal_link', 'images', 'pdf', 'preview','deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
@@ -492,8 +492,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_chatroom_category(self, card):
         return get_category_of_chatroom(card.type)
 
-    def get_deleted_by_member_state(self, card):
-        return card.deleted_by_user_state
+    # def get_deleted_by_member_state(self, card):
+    #     return card.deleted_by_user_state
 
     def get_member_id(self, card):
         # member_profile = get_members_profile([card.user.id], card.community.id)[0]
@@ -889,7 +889,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     class Meta:
         model = card_answers
         fields = ("id", 'answer', 'card', 'user', 'created_at', 'community', 'state',
-                  'og_tags', 'is_deleted', 'deleted_by_user', 'deleted_by_user_state',
+                  'og_tags', 'deleted_by_user',
                   'is_edited', 'reply', 'internal_link', 'has_files', 'date', 'images',
                   'pdf', 'location', 'reply_conversation', 'preview', 'member_id')
 
@@ -937,12 +937,12 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                     data['location'] = answer_files['location']
 
             elif field.field_name == "deleted_by_user":
-                if not data['is_deleted']:
+                if not obj.is_deleted:
                     del data['deleted_by_user']
 
-            elif field.field_name == "deleted_by_user_state":
-                if not data['is_deleted']:
-                    del data['deleted_by_user_state']
+            # elif field.field_name == "deleted_by_user_state":
+            #     if not data['is_deleted']:
+            #         del data['deleted_by_user_state']
 
             elif field.field_name == "reply" and data['reply'] is not None and self.fetch_reply:
                 context = {"fetch_reply": False, "current_user_id": self.current_user_id}
