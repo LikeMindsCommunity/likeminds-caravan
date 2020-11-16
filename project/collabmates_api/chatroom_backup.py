@@ -1,6 +1,7 @@
 import time
 from togther.models import (deletedChatrooms, Report_Tags, collabcardState, CollabcardStateBackup,
                             conversationEngage)
+from django.db.models import Q
 
 
 def create_chatroom_delete_backup(card_instance, current_user_instance, tag_id=None, reason=None, card_creator=False,
@@ -74,7 +75,9 @@ def create_card_backup(card_instance, current_user_instance, card_creator, promo
 
 
 def create_chatroom_participants_backup(card_instance=None, deleted_card_instance=None):
-    participants_list = collabcardState.objects.filter(card=card_instance).filter(follow_status=True).distinct("user")
+    participants_list = collabcardState.objects.filter(
+        card=card_instance).filter(Q(follow_status=True) |
+                                   Q(attending_status=True)).distinct("user")
     for participant in participants_list:
         create_collbacard_state_backup(collabcard_state_instance=participant,
                                        deleted_card_instance=deleted_card_instance, card_instance=card_instance)
@@ -94,6 +97,7 @@ def create_collbacard_state_backup(collabcard_state_instance, deleted_card_insta
     backup_instance.seen_status = False
     backup_instance.mute_status = collabcard_state_instance.mute_status
     backup_instance.follow_status = collabcard_state_instance.follow_status
+    backup_instance.attending_status = collabcard_state_instance.attending_status
     backup_instance.is_guest = collabcard_state_instance.is_guest
     backup_instance.source = collabcard_state_instance.source
     backup_instance.save()

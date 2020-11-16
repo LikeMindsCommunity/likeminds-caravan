@@ -694,7 +694,7 @@ class CardStateSerializer(serializers.ModelSerializer):
     chatroom_expiry_time = serializers.SerializerMethodField()
     class Meta:
         model = collabcardState
-        fields = ('state', 'mute_status', 'follow_status', 'is_guest',
+        fields = ('state', 'mute_status', 'follow_status', 'is_guest', 'attending_status',
                   'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time')
 
     def get_chatroom_expiry_time(self, obj):
