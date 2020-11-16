@@ -13259,7 +13259,11 @@ class SyncConversation(APIView):
 
         if chatroom_id:
             #sending all the conversations in a particular chatroom
-            conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
+            seen_conversation = request.GET.get('seen_conversation')
+            if not seen_conversation:
+                conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
+            else:
+                conversation_filter = card_answers.objects.filter(card=chatroom_id,id__gt=seen_conversation).order_by('id')
         elif community_id:
             #sending all the conversation in a particular community
             conversation_filter = card_answers.objects.filter(community=community_id).order_by('id')
@@ -13558,7 +13562,7 @@ class SyncChatrooms(APIView):
                 max_last_updated = data.updated_at
 
         if max_last_updated:
-            return JsonResponse({'chatrooms': chatroom_obj.data,'max_last_updated':max_last_updated * 1000})
+            return JsonResponse({'chatrooms': chatroom_obj.data,'max_last_updated':max_last_updated})
 
         return JsonResponse({'chatrooms': chatroom_obj.data})
 
@@ -13584,10 +13588,13 @@ class SyncCommunities(APIView):
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
 
-        if last_updated:
-            engage_filter = Member_Engage.objects.filter(member_id=member_id,updated_at__gt = last_updated).order_by('id')
+        if community_id:
+            engage_filter = Member_Engage.objects.filter(member_id=member_id,community_id=community_id).order_by('id')
         else:
-            engage_filter = Member_Engage.objects.filter(member_id=member_id).order_by('id')
+            if last_updated:
+                engage_filter = Member_Engage.objects.filter(member_id=member_id,updated_at__gt = last_updated).order_by('id')
+            else:
+                engage_filter = Member_Engage.objects.filter(member_id=member_id).order_by('id')
 
         engage_filter = pagination(engage_filter,page,paginate_by=paginate_by)
         community_list = []
