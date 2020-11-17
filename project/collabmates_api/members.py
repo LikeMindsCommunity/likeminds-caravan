@@ -378,7 +378,6 @@ def get_filtered_users(filter_list,member_list):
 
 def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1,member_set=None):
 
-
     card_instance = Collabcard.objects.get(id=card_id)
     is_event_card = card_instance.type == card_types.CARD_EVENT
     state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
@@ -387,11 +386,10 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
     collabcard_state_list = collabcardState.objects.filter(card=card_id, remove=None).order_by('-user_id')
 
     if is_event_card:
-        collabcard_state_list = collabcard_state_list.filter(Q(state=state_list[0]) | Q(state=state_list[1])
-                                                             | Q(follow_status=True))
+        collabcard_state_list = collabcard_state_list.filter(Q(state=state_list[0]) | Q(state=state_list[1]) |
+                                                             Q(follow_status=True) | Q(attending_status=True))
     else:
         collabcard_state_list = collabcard_state_list.filter(follow_status=True)
-
 
     show_removed = False
     paginated_data = get_paginated_queryset_with_maxpages(collabcard_state_list,page_no,paginate_by=10)
@@ -410,6 +408,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
         user_context = get_members_profile([user_instance.id],community_id,current_user_id)
         user_context = user_context[0]
         user_context['collabcard_state'] = instance.state
+        user_context['attending_status'] = instance.attending_status
         user_context['is_guest'] = instance.is_guest
 
         #if the user is the guest in that chatroom

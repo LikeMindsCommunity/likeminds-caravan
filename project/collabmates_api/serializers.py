@@ -193,7 +193,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         'type': card.type,
         'date_time': card.date_time,
         'duration': card.duration,
-        "is_deleted": card.is_deleted,
+        # "is_deleted": card.is_deleted,
         "is_pending": card.is_pending,
         'answers_count': card.answers_count,
         'attending_count': card.attending_count,
@@ -286,14 +286,16 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
     # FOR PURPOSE CARD
     if card.updated_member:
         member_ids = [card.updated_member]
-        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id, current_user_id=user)
+        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
+                                   current_user_id=user, send_profile=False)
         collabcard['updated_member'] = temp[0]
 
     if card.is_deleted:
         member_ids = [card.deleted_by_user]
-        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id, current_user_id=user)
+        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
+                                   current_user_id=user, send_profile=False)
         collabcard['deleted_by'] = temp[0]
-        collabcard['deleted_by_member_state'] = card.deleted_by_user_state
+        # collabcard['deleted_by_member_state'] = card.deleted_by_user_state
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
@@ -534,6 +536,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_serializer['state'] = status['state']
     collabcard_serializer['mute_status'] = status['mute_status']
     collabcard_serializer['follow_status'] = status['follow_status']
+    collabcard_serializer['attending_status'] = status['attending_status']
     collabcard_serializer['is_guest'] = status['is_guest']
     collabcard_serializer['active'] = False
     collabcard_serializer['is_tagged'] = status['is_tagged']
@@ -652,7 +655,8 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         'remove': False,
         'state_instance': None,
         'expiry_time': None,
-        'is_tagged': False
+        'is_tagged': False,
+        'attending_status': False,
     }
 
     if not member_id:
@@ -670,6 +674,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
             collabcard_status['state_instance'] = collabcard_state[0]
             collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
             collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
+            collabcard_status['attending_status'] = collabcard_state[0].attending_status
     else:
         collabcard_status['state'] = state_instance.state
         collabcard_status['mute_status'] = state_instance.mute_status
@@ -679,6 +684,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         collabcard_status['state_instance'] = state_instance
         collabcard_status['expiry_time'] = state_instance.expiry_time
         collabcard_status['is_tagged'] = state_instance.is_tagged
+        collabcard_status['attending_status'] = state_instance.attending_status
 
     return collabcard_status
 
@@ -1476,7 +1482,7 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
                                               chatroom_instance=conversation.preview_chatroom)
 
     if conversation.reply and fetch_reply:
-        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
+        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False,current_user_id=current_user_id)
 
 
     return temp
@@ -1549,7 +1555,8 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
                                                  chatroom_instance=conversation.preview_chatroom)
 
     if conversation.reply and fetch_reply:
-        temp['reply_conversation'] = get_conversation_instance_for_db_synching(conversation,fetch_reply=False,current_user_id=current_user_id)
+        temp['reply_conversation'] = get_conversation_instance_for_db_synching(conversation.reply, fetch_reply=False,
+                                                                               current_user_id=current_user_id)
 
 
     return temp

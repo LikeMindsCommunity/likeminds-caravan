@@ -196,7 +196,7 @@ class Collabcard(models.Model):
     preview_chatroom = models.ForeignKey('self', on_delete=models.PROTECT, null=True,
                                          related_name='chatroom_preview_chatroom')
     is_pending = models.BooleanField(default=False)  # for pending chat rooms which has to be approved
-    is_deleted = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)  # for internal check, not to be sent in API's
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='chatroom_deleted_by_user')
     # deleted_by_user_state = models.IntegerField(null=True)  # state in community member or manager
@@ -206,6 +206,7 @@ class Collabcard(models.Model):
 
     member_state = models.IntegerField(null=True)
     disable_poll_announcement_mail = models.BooleanField(default=False)
+    has_files = models.BooleanField(default=False)
 
 
 class draftChatroom(models.Model):
@@ -321,10 +322,10 @@ class card_answers(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
     is_guest = models.BooleanField(default=False)
     og_tags = models.TextField(null=True)
-    is_deleted = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)  # for internal check, not to be sent in API's
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='conversation_deleted_by_user')
-    deleted_by_user_state = models.IntegerField(null=True)  # state in community member or manager
+    # deleted_by_user_state = models.IntegerField(null=True)  # state in community member or manager
     is_edited = models.BooleanField(default=False)
     reply = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='replied_conversation')
     internal_link = models.TextField(null=True)
@@ -348,7 +349,6 @@ class card_answers(models.Model):
         super(card_answers, self).save(*args, **kwargs)
 
 
-
 class collabcardState(models.Model):
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
@@ -360,9 +360,9 @@ class collabcardState(models.Model):
     # if got removed saving the previous state
     remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
 
-
     mute_status = models.BooleanField(default=False)
     follow_status = models.BooleanField(default=False)
+    attending_status = models.BooleanField(default=False, null=True)
     is_guest = models.BooleanField(default=False)
     is_tagged = models.BooleanField(default=False)
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
@@ -374,9 +374,6 @@ class collabcardState(models.Model):
 
     class Meta:
         unique_together = (('card', 'user'),)
-
-
-
 
 
 class conversationMemberState(models.Model):
@@ -775,6 +772,7 @@ class CollabcardStateBackup(models.Model):
     remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
     mute_status = models.BooleanField(default=False)
     follow_status = models.BooleanField(default=False)
+    attending_status = models.BooleanField(default=False)
     is_guest = models.BooleanField(default=False)
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer_backup')
 

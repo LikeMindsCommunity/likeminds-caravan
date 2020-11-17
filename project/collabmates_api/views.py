@@ -3068,6 +3068,9 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     card.member_state = res['member_state']
     card.date_epoch = time.time()  # card creation time
+
+    #adding has_files key
+    card.has_files = res['has_files'] if('has_files' in res) else False
     card.save()
     # add ownerflag here
 
@@ -3225,7 +3228,9 @@ def create_card_internal(user_id, community_id, res):
 def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
     '''function to send mail and notifications for chatroom creations'''
     # pass
-    send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
+    #sending the mails and notification of simple chatrooms without files
+    if not card_instance.has_files:
+        send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
                                                       type=card_instance.type,
                                                       date_time=card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time,
@@ -3414,7 +3419,8 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 
 def create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
                                    expire_at=None, external_seen=True, is_guest=False, source=None, follow_status=False,
-                                   mute_status=False, is_tagged=False, external_follow=False ,**kwargs):
+                                   mute_status=False, is_tagged=False, external_follow=False,
+                                   attending_status=False, **kwargs):
     '''function to create chatroom state instance'''
     # if not expire_at:
     #     expire_at = get_expiry_time_of_chatroom()
@@ -3430,7 +3436,7 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.external_seen = external_seen
         collabcard_state_instance.expiry_time = expire_at
-
+        collabcard_state_instance.attending_status = attending_status
         collabcard_state_instance.follow_status = follow_status
         collabcard_state_instance.mute_status = mute_status
         collabcard_state_instance.is_tagged=is_tagged
@@ -3636,12 +3642,12 @@ def chatroom_delete(request):
 def update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
                                     card_creator, reason=None, tag_id=None):
 
-    deleted_by_user_state = 1 if is_promoter else 4
-    deleted_by_text = ""
-    if card_creator:
-        deleted_by_text = "creator"
-    elif is_promoter:
-        deleted_by_text = "community manager"
+    # deleted_by_user_state = 1 if is_promoter else 4
+    # deleted_by_text = ""
+    # if card_creator:
+    #     deleted_by_text = "creator"
+    # elif is_promoter:
+    #     deleted_by_text = "community manager"
 
     tag_instance = None
     if tag_id:
@@ -3656,10 +3662,11 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
 
     collabcard_instance.is_deleted = True
     collabcard_instance.deleted_by_user = current_user_instance
-    collabcard_instance.deleted_by_user_state = deleted_by_user_state
-    collabcard_instance.deleted_by_text = deleted_by_text
+    # collabcard_instance.deleted_by_user_state = deleted_by_user_state
+    # collabcard_instance.deleted_by_text = deleted_by_text
     collabcard_instance.tag = tag_instance
     collabcard_instance.reason = reason
+    collabcard_instance.updated_time = time.time()
     collabcard_instance.save()
 
     if int(current_user_instance.id) == int(collabcard_instance.user.id):
@@ -3677,75 +3684,77 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
 
 def fetch_deleted_chatroom(request):
     """ function to fetch deleted chatrooms of a user"""
-    if request.method == 'GET':
-        member_id = get_member_id_from_headers(request)
-        user_instance = User.objects.get(pk=member_id)
+    # logic has to be updated according to new flow of card deletion
+    return JsonResponse({"deleted_chatrooms": []})
 
-        deleted_chatrooms = CollabcardStateBackup.objects.select_related('card', 'card__tag').filter(
-                            user=user_instance, seen_status=False)
+    # if request.method == 'GET':
+        # member_id = get_member_id_from_headers(request)
+        # user_instance = User.objects.get(pk=member_id)
 
-        toast_title = ''
-        title = ''
-        sub_title = ''
-        deleted_chatrooms_count = deleted_chatrooms.count()
-        if deleted_chatrooms_count == 1:
-            chatroom = deleted_chatrooms[0]
-            toast_title = f'Your followed chatroom "{chatroom.card.header}"'
-
-            deleted_by = ''
-            if chatroom.card.deleted_by_promoter:
-                deleted_by = f"was deleted by a {chatroom.card.deleted_by_text}"
-            if chatroom.card.deleted_by_creator:
-                deleted_by = f"was deleted by its {chatroom.card.deleted_by_text}"
-
-            toast_title = toast_title + deleted_by
-            title = 'Chat room deleted'
-
-            sub_title = f'Chat room "{chatroom.card.header}" {deleted_by} citing following reason:'
-
-        elif deleted_chatrooms_count > 0:
-            toast_title = f'{deleted_chatrooms_count} of your followed chatroom were removed'
-            title = 'Chat rooms deleted'
-            sub_title = toast_title
-
-        chatrooms_list = []
-        for chatroom in deleted_chatrooms:
-
-            content = {
-                "header": chatroom.card.header,
-                "deleted_by_text": f"Removed by {chatroom.card.deleted_by_text}",
-            }
-
-            member_ids = [chatroom.card.deleted_by_user]
-            content["deleted_by"] = get_members_profile(member_ids=member_ids, community_id=chatroom.card.community,
-                                                        current_user_id=user_instance)
-
-            if chatroom.card.tag is not None:
-                tag_dict = {}
-                tag_dict['id'] = chatroom.card.tag.tag_id
-                tag_dict['name'] = chatroom.card.tag.tag_name
-                content["tag"] = tag_dict
-
-            if chatroom.card.reason is not None:
-                content["reason"] = chatroom.card.reason
-
-            chatrooms_list.append(content)
-
-        final_dict = {
-            "toast_title": toast_title,
-            "toast_action": "Why",
-            "title": title,
-            "sub_title": sub_title,
-            "deleted_chatrooms": chatrooms_list,
-            "deleted_chatrooms_count": deleted_chatrooms_count,
-        }
-
-        # updating deleted chatroom seen status to True to not show them again
-        updated_chatrooms = CollabcardStateBackup.objects.filter(user=user_instance).update(seen_status=True)
-
-        return JsonResponse({"deleted_chatrooms": final_dict})
-
-    return JsonResponse({"success": False})
+        # deleted_chatrooms = CollabcardStateBackup.objects.select_related('card', 'card__tag').filter(
+        #                     user=user_instance, seen_status=False)
+        #
+        # toast_title = ''
+        # title = ''
+        # sub_title = ''
+        # deleted_chatrooms_count = deleted_chatrooms.count()
+        # if deleted_chatrooms_count == 1:
+        #     chatroom = deleted_chatrooms[0]
+        #     toast_title = f'Your followed chatroom "{chatroom.card.header}"'
+        #
+        #     deleted_by = ''
+        #     if chatroom.card.deleted_by_promoter:
+        #         deleted_by = f"was deleted by a {chatroom.card.deleted_by_text}"
+        #     if chatroom.card.deleted_by_creator:
+        #         deleted_by = f"was deleted by its {chatroom.card.deleted_by_text}"
+        #
+        #     toast_title = toast_title + deleted_by
+        #     title = 'Chat room deleted'
+        #
+        #     sub_title = f'Chat room "{chatroom.card.header}" {deleted_by} citing following reason:'
+        #
+        # elif deleted_chatrooms_count > 0:
+        #     toast_title = f'{deleted_chatrooms_count} of your followed chatroom were removed'
+        #     title = 'Chat rooms deleted'
+        #     sub_title = toast_title
+        #
+        # chatrooms_list = []
+        # for chatroom in deleted_chatrooms:
+        #
+        #     content = {
+        #         "header": chatroom.card.header,
+        #         "deleted_by_text": f"Removed by {chatroom.card.deleted_by_text}",
+        #     }
+        #
+        #     member_ids = [chatroom.card.deleted_by_user]
+        #     content["deleted_by"] = get_members_profile(member_ids=member_ids, community_id=chatroom.card.community,
+        #                                                 current_user_id=user_instance)
+        #
+        #     if chatroom.card.tag is not None:
+        #         tag_dict = {}
+        #         tag_dict['id'] = chatroom.card.tag.tag_id
+        #         tag_dict['name'] = chatroom.card.tag.tag_name
+        #         content["tag"] = tag_dict
+        #
+        #     if chatroom.card.reason is not None:
+        #         content["reason"] = chatroom.card.reason
+        #
+        #     chatrooms_list.append(content)
+        #
+        # final_dict = {
+        #     "toast_title": toast_title,
+        #     "toast_action": "Why",
+        #     "title": title,
+        #     "sub_title": sub_title,
+        #     "deleted_chatrooms": chatrooms_list,
+        #     "deleted_chatrooms_count": deleted_chatrooms_count,
+        # }
+        #
+        # # updating deleted chatroom seen status to True to not show them again
+        # updated_chatrooms = CollabcardStateBackup.objects.filter(user=user_instance).update(seen_status=True)
+        #
+        # return JsonResponse({"deleted_chatrooms": final_dict})
+    # return JsonResponse({"success": False})
 
 
 def update_activity_in_chatroom(card_instance, user_instance):
@@ -4700,6 +4709,7 @@ def collabcard(request, card_id):
             card['state'] = collabcard_status['state']
             card['mute_status'] = collabcard_status['mute_status']
             card['follow_status'] = collabcard_status['follow_status']
+            card['attending_status'] = collabcard_status['attending_status']
             # print('-->',collabcard_status)
 
         # get tine stamp for card
@@ -4756,6 +4766,7 @@ def get_collabcard_details_for_web(request, card_instance, card, current_user_id
         current_user['collabcard_state'] = collabcard_status['state']
         current_user['mute_status'] = collabcard_status['mute_status']
         current_user['follow_status'] = collabcard_status['follow_status']
+        current_user['attending_status'] = collabcard_status['attending_status']
         is_logged = True
 
     if type(answers) is list:
@@ -4929,6 +4940,7 @@ def get_normal_chatroom_context(request, card_instance):
         current_user['collabcard_state'] = collabcard_status['state']
         current_user['mute_status'] = collabcard_status['mute_status']
         current_user['follow_status'] = collabcard_status['follow_status']
+        current_user['attending_status'] = collabcard_status['attending_status']
 
     chatroom_dict = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id=None,
                                           scroll_direction=None, is_ios=False)
@@ -5104,7 +5116,6 @@ def fetch_chatroom(request):
     return JsonResponse(context)
 
 
-
 def fetch_chatroom_version_1(request):
 
     is_ios = is_platform_ios(request)
@@ -5176,6 +5187,54 @@ def fetch_chatroom_version_1(request):
     return JsonResponse(context)
 
 
+def fetch_chatroom_version_2(request):
+
+    is_ios = is_platform_ios(request)
+    card_id = request.GET.get('chatroom_id', '')
+    if not card_id:
+        context = get_error_context(False, "send chat_room_id as a get params")
+        return JsonResponse(context)
+
+    conversation_id = request.GET.get('conversation_id')
+    scroll_direction = request.GET.get('scroll_direction')
+
+    card_filter = Collabcard.objects.filter(id=card_id)
+
+    if card_filter.exists():
+        card_instance = card_filter[0]
+    else:
+        context = get_error_context(False, "Chat_room does not exist. Might have been deleted")
+        return JsonResponse(context)
+
+    page = request.GET.get('page', 1)
+    current_user_id = get_member_id_from_headers(request)
+
+    context = get_chatroom_internal_version_2(request, card_instance, current_user_id, page, conversation_id,
+                                              scroll_direction, is_ios=is_ios)
+
+    if str(current_user_id) == str(card_instance.user.id):
+        notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity', card=card_instance,
+                                                                  member_id=current_user_id)
+        if notification_flag.exists():
+            flag = notification_flag[0]
+            flag.flag = True
+            flag.save()
+
+    if card_instance.type == card_types.CARD_POLL and card_instance.end_date // 1000 <= time.time():
+        if not card_instance.disable_poll_announcement_mail:
+
+            notification_flag = memberNotificationFlag.objects.filter(code='poll_results_announcement_mail',
+                                                                      card=card_instance, member=current_user_id)
+            if notification_flag.exists():
+                memberNotificationFlag.objects.filter(code='poll_results_announcement_mail',
+                                                      card=card_instance, member=current_user_id).update(flag=True)
+            else:
+                current_user_instance = User.objects.get(pk=current_user_id)
+                memberNotificationFlag(code='poll_results_announcement_mail',
+                                       card=card_instance, member=current_user_instance,
+                                       flag=True).save()
+
+    return JsonResponse(context)
 
 
 def conversation_meta(request):
@@ -5348,7 +5407,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             member_ids = [ans.deleted_by_user]
             temp = get_members_profile(member_ids=member_ids, community_id=community_id, current_user_id=current_user_id)
             context['deleted_by'] = temp[0]
-            context['deleted_by_member_state'] = ans.deleted_by_user_state
+            # context['deleted_by_member_state'] = ans.deleted_by_user_state
 
         if is_ios and ans.internal_link:
             context['answer'] = context['answer'] + f"\n{ans.internal_link}"
@@ -5564,6 +5623,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'state': card['state'],
         'mute_status': card['mute_status'],
         'follow_status': card['follow_status'],
+        'attending_status': card['attending_status'],
         'is_guest': card['is_guest'],
         'type': card['type'],
         'is_tagged':card['is_tagged'],
@@ -5741,6 +5801,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         'state': card['state'],
         'mute_status': card['mute_status'],
         'follow_status': card['follow_status'],
+        'attending_status': card['attending_status'],
         'is_guest': card['is_guest'],
         'type': card['type'],
         'is_tagged':card['is_tagged'],
@@ -5836,6 +5897,98 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     return context
 
 
+def get_chatroom_internal_version_2(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios=False):
+
+
+    '''version 1 function for sending chatroom instance without conversations'''
+    source_id = request.GET.get('source_id')
+    aj = request.GET.get('aj')
+
+    is_guest = False
+    context = {}
+
+    if aj:
+        is_guest = True
+
+    user_instance = None
+    if user_id:
+        user_instance = User.objects.get(id=user_id)
+
+    if not conversation_id and not scroll_direction:
+
+        if is_guest:
+            context = adding_guest_in_chatroom(request, context, card_instance, aj, source_id,
+                                               card_instance.community.id, current_user_id=user_id)
+
+    chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
+    # if the user is seeing this chatroom from external link or notification
+    if not chatroom_state.exists() and user_instance:
+        expire_at = get_expiry_time_of_chatroom()
+        create_chatroom_state_instance(card_instance, user_instance, state=0,
+                                       external_seen=True, expire_at=expire_at,
+                                       function_called="get_chatroom_internal_version_1")
+    elif user_instance:
+        instance = chatroom_state[0]
+        if not instance.external_seen:
+            instance.external_seen = True
+            instance.expiry_time = get_expiry_time_of_chatroom()
+            instance.save()
+
+    if chatroom_state.exists():
+        state_instance = chatroom_state[0]
+    else:
+        state_instance = None
+
+    card_status = {}
+    status = get_status_of_collabcard(user_id, card_instance, state_instance)
+    card_status['state'] = status['state']
+    card_status['mute_status'] = status['mute_status']
+    card_status['follow_status'] = status['follow_status']
+    card_status['attending_status'] = status['attending_status']
+    card_status['is_guest'] = status['is_guest']
+    card_status['active'] = False
+    card_status['is_tagged'] = status['is_tagged']
+    card_status['type'] = card_instance.type
+
+    expiry_time = status['expiry_time']
+
+    if not expiry_time or expiry_time >= int(time.time()):
+        card_status['active'] = True
+
+    is_promoter = False
+    is_child = False
+    member_instance = Members.objects.filter(member_id=user_id,
+                                             community_id=card_instance.community).filter(Q(state=member_states.ADMIN))
+    if member_instance.exists():
+        is_promoter = True
+        parent_cm_list = member_instance[0].parent_cm_list
+        parent_list = json.loads(parent_cm_list) if parent_cm_list else []
+
+        is_child = str(card_instance.user.id) in parent_list
+
+    # sending the chatroom actions
+    is_card_creator = False
+    if user_id and int(user_id) == card_instance.user.id:
+        is_card_creator = True
+
+    chatroom_actions = get_chatroom_actions(card_status, request, creator=is_card_creator, promoter=is_promoter,
+                                            current_user_instance=user_id,
+                                            community_instance=card_instance.community, is_child=is_child
+                                            )
+
+    context['chatroom_actions'] = chatroom_actions
+
+    conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
+    if not conversation_member_filter.exists():
+        placeholder = create_introduction_card_placeholder(card_instance, user_id)
+        if placeholder:
+            context['placeholder'] = placeholder
+
+    save_the_latest_conversation(card_instance, user_id)
+
+    return context
+
+
 def save_the_latest_conversation(card_instance, user_id):
     '''function to save the latest seen conversation'''
 
@@ -5890,6 +6043,7 @@ def save_the_latest_conversation(card_instance, user_id):
 
     latest_conversations = {'last_conversation': latest_conversation}
     return latest_conversations
+
 
 def is_chatroom_join_expired(aj, source_id):
     '''function to check weather joining time of chatroom is valid or not'''
@@ -7015,7 +7169,7 @@ def collabcard_follow(request, function_dict=None):
             if state == collabcard_states.COLLABCARD_STATE_ATTENDING:
                 state = collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING
 
-            collabcard_state_filter.update(follow_status = status, updated_at=time.time(),
+            collabcard_state_filter.update(follow_status=status, updated_at=time.time(),
                                            is_tagged=False, external_seen=True, external_follow=status,
                                            state=state
                                            )
@@ -7274,6 +7428,7 @@ def collabcard_attend(request):
         try:
             state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
             state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
+            state_instance.attending_status = True
             state_instance.save()
 
         except:
@@ -7290,20 +7445,19 @@ def collabcard_attend(request):
                                            state=collabcard_states.COLLABCARD_STATE_ATTENDING,
                                            expire_at=None, external_seen=True, is_guest=False, source=None,
                                            follow_status=True, mute_status=False, is_tagged=False,
-                                           function_called="collabcard_attend")
-
-
+                                           function_called="collabcard_attend", attending_status = True)
 
         func_dict = {'member_id': member_id, 'collabcard_id': card_instance.id, 'status': True,
                      'source': "Event attend"}
         collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_ATTENDING)
 
-
     else:
 
         state = collabcard_states.COLLABCARD_STATE_SEEN
         try:
-            collabcardState.objects.filter(card=card_instance, user=user_instance).update(state=state)
+            collabcardState.objects.filter(card=card_instance,
+                                           user=user_instance).update(state=state,
+                                                                      attending_status=False)
 
         except:
             # collabcard_state_instance = collabcardState()
@@ -8082,13 +8236,25 @@ def upload_files(request):
     elif 'collabcard_id' in body and body['collabcard_id']:
         attachment_type = body['type']
         collabcard_id = body['collabcard_id']
-        collabcard = Collabcard.objects.get(id=collabcard_id)
+        card_instance = Collabcard.objects.get(id=collabcard_id)
+        card_instance.has_files = True
+        card_instance.save()
 
         file = Card_Attachment()
-        file.collabcard = collabcard
+        file.collabcard = card_instance
         file.type = attachment_type
         file.file_url = body['url']
         file.save()
+
+        #updating updated_at for synching apis
+        collabcardState.objects.filter(user=member_id,card=card_instance).update(updated_at=time.time())
+        files_count = body['files_count'] if 'files_count' in body else 0
+        uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
+        if uploaded_files_count == int(files_count):
+            user_instance = User.objects.get(id=member_id)
+            send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
+
+
 
     elif 'answer_id' in body and body['answer_id']:
         attachment_type = body['type']
@@ -11764,12 +11930,12 @@ def delete_conversation(request):
 def update_conversation_delete_status(conversation_instance, current_user_instance, is_promoter,
                                       conversation_creator, reason=None, tag_id=None):
 
-    deleted_by_user_state = 1 if is_promoter else 4
-    deleted_by_text = ""
-    if conversation_creator:
-        deleted_by_text = "creator"
-    elif is_promoter:
-        deleted_by_text = "community manager"
+    # deleted_by_user_state = 1 if is_promoter else 4
+    # deleted_by_text = ""
+    # if conversation_creator:
+    #     deleted_by_text = "creator"
+    # elif is_promoter:
+    #     deleted_by_text = "community manager"
 
     tag_instance = None
     if tag_id:
@@ -11779,10 +11945,11 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
 
     conversation_instance.is_deleted = True
     conversation_instance.deleted_by_user = current_user_instance
-    conversation_instance.deleted_by_user_state = deleted_by_user_state
-    conversation_instance.deleted_by_text = deleted_by_text
+    # conversation_instance.deleted_by_user_state = deleted_by_user_state
+    # conversation_instance.deleted_by_text = deleted_by_text
     conversation_instance.tag = tag_instance
     conversation_instance.reason = reason
+    conversation_instance.last_updated = int(round(time.time() * 1000))
     conversation_instance.save()
 
     if int(current_user_instance.id) == int(conversation_instance.user.id):
@@ -13034,7 +13201,7 @@ def block_member(request):
 
 ############################## client db synching apis #################################################
 
-
+## need to remove
 def sync_conversation(request):
 
     member_id = get_member_id_from_headers(request)
@@ -13109,7 +13276,11 @@ class SyncConversation(APIView):
 
         if chatroom_id:
             #sending all the conversations in a particular chatroom
-            conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
+            seen_conversation = request.GET.get('seen_conversation')
+            if not seen_conversation:
+                conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
+            else:
+                conversation_filter = card_answers.objects.filter(card=chatroom_id,id__gt=seen_conversation).order_by('id')
         elif community_id:
             #sending all the conversation in a particular community
             conversation_filter = card_answers.objects.filter(community=community_id).order_by('id')
@@ -13157,6 +13328,8 @@ class SyncConversation(APIView):
 
         return JsonResponse(context)
 
+
+## need to remove ##3
 def sync_conversation_version_1(request):
     return JsonResponse({'conversations': []})
 
@@ -13208,7 +13381,9 @@ def sync_members(request):
     if members_type == "members":
         if chatroom_id:
 
-            chatroom_particpants = collabcardState.objects.filter(card=chatroom_id,follow_status=True,is_guest=False,remove=None).order_by('id')
+            chatroom_particpants = collabcardState.objects.filter(card=chatroom_id, is_guest=False,
+                                                                  remove=None).filter(Q(follow_status=True) |
+                                                                                        Q(attending_status=True)).order_by('id')
             max_last_updated = 0
 
             member_list = []
@@ -13354,51 +13529,7 @@ def sync_members(request):
     return JsonResponse(context)
 
 
-def sync_chatrooms(request):
-
-    '''api to sync chatrooms'''
-
-    member_id = get_member_id_from_headers(request)
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
-
-    page = request.GET.get('page', 1)
-    page = int(page)
-    paginate_by = request.GET.get('page_size', 200)
-
-    last_updated = request.GET.get('last_updated')
-
-    chatrooms = []
-
-    if not last_updated:
-        state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
-    else:
-        state_filter = collabcardState.objects.filter(user=member_id, updated_at__gt=last_updated).order_by('id')
-
-    state_filter = pagination(state_filter, page, paginate_by=paginate_by)
-    for data in state_filter:
-        card_instance = data.card
-        chatroom_instance = get_chatroom_instance(card_instance, member_id, current_user_id=member_id)
-        if card_instance.internal_link:
-            chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
-                                                               preview_url=card_instance.internal_link,
-                                                               community_instance=card_instance.preview_community,
-                                                               chatroom_instance=card_instance.preview_chatroom,
-                                                               send_preview_text=False)
-
-        chatroom_instance['chatroom_expiry_time'] = data.expiry_time
-
-        # last_response_members = get_member_images_of_chatroom(conversation_filter)
-        # chatroom_instance['members_images'] = last_response_members['members_images']
-        # chatroom_instance['last_response_members'] = last_response_members['last_response_members']
-
-        chatrooms.append(chatroom_instance)
-
-    return JsonResponse({'chatrooms':chatrooms})
-
-
-class SyncChatroomsVersion1(APIView):
+class SyncChatrooms(APIView):
 
     def get(self, request, *args, **kwargs):
 
@@ -13415,22 +13546,98 @@ class SyncChatroomsVersion1(APIView):
 
         last_updated = query_params.get('last_updated', None)
 
-        if not last_updated:
-            state_filter = list(collabcardState.objects.filter(user=member_id).order_by('id').values_list("card__id",
-                                                                                                          flat=True))
-        else:
-            state_filter = list(collabcardState.objects.filter(user=member_id,
-                                updated_at__gt=last_updated).order_by('id').values_list("card__id", flat=True))
+        chatroom_id = query_params.get('chatroom_id', '')
+        community_id = query_params.get('community_id', '')
 
-        cards_list = list_pagination(state_filter, page, paginate_by=paginate_by)
+        if chatroom_id:
+            state_filter = collabcardState.objects.filter(card=chatroom_id,user=member_id).order_by('id')
+            state_list = list(state_filter.values_list("card__id", flat=True))
+
+        elif community_id:
+            state_filter = collabcardState.objects.filter(community=community_id).order_by('id')
+            state_list = list(state_filter.values_list("card__id", flat=True))
+        else:
+
+            if not last_updated:
+                state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
+                state_list = list(state_filter.values_list("card__id",flat=True))
+            else:
+                state_filter = collabcardState.objects.filter(user=member_id,
+                                    updated_at__gt=last_updated).order_by('id')
+                state_list = list(state_filter.values_list("card__id", flat=True))
+
+        cards_list = list_pagination(state_list, page, paginate_by=paginate_by)
         cards = Collabcard.objects.filter(pk__in=cards_list)
 
         context = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
         chatroom_obj = GetChatroomInstanceSerializer(cards, context=context, many=True)
 
+        state_filter = pagination(state_filter,page,paginate_by=paginate_by)
+        max_last_updated = 0
+        for data in state_filter:
+            if data.updated_at > max_last_updated:
+                max_last_updated = data.updated_at
+
+        if max_last_updated:
+            return JsonResponse({'chatrooms': chatroom_obj.data,'max_last_updated':max_last_updated})
+
         return JsonResponse({'chatrooms': chatroom_obj.data})
 
 
+
+class SyncCommunities(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+        member_id = get_member_id_from_headers(request)
+        if not member_id:
+            context = get_error_context(False, "send member id in headers")
+            return JsonResponse(context)
+        query_params = request.query_params
+
+        page = query_params.get('page', 1)
+        page = int(page)
+
+        paginate_by = query_params.get('page_size', 200)
+
+        last_updated = query_params.get('last_updated', None)
+
+        chatroom_id = query_params.get('chatroom_id', '')
+        community_id = query_params.get('community_id', '')
+        if chatroom_id:
+            community_list = []
+            state_filter = Collabcard.objects.filter(id=chatroom_id)
+            if state_filter.exists():
+                temp = CommunitySerializer(state_filter[0].community,current_user_id=member_id)
+                community_list.append(temp)
+                return JsonResponse({'communities':community_list})
+            else:
+                context = get_error_context(False,"in-correct chatroom id")
+                return JsonResponse(context)
+
+        elif community_id:
+            engage_filter = Member_Engage.objects.filter(member_id=member_id,community_id=community_id).order_by('id')
+        else:
+            if last_updated:
+                engage_filter = Member_Engage.objects.filter(member_id=member_id,updated_at__gt = last_updated).order_by('id')
+            else:
+                engage_filter = Member_Engage.objects.filter(member_id=member_id).order_by('id')
+
+        engage_filter = pagination(engage_filter,page,paginate_by=paginate_by)
+        community_list = []
+        max_last_updated = 0
+        for data in engage_filter:
+            temp = CommunitySerializer(data.community_id,current_user_id=member_id)
+
+            if max_last_updated < data.updated_at:
+                max_last_updated = data.updated_at
+
+            community_list.append(temp)
+
+        if max_last_updated:
+            context = {'communities': community_list,'max_last_updated':max_last_updated}
+            return JsonResponse(context)
+        return JsonResponse({'communities':community_list})
 
 
 # =========================== block member ========================================================

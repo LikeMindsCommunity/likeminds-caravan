@@ -57,6 +57,7 @@ urlpatterns = [
 
     path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
     path('v1/fetch_chatroom', api_views.fetch_chatroom_version_1, name="fetch_chatroom_version_1"),
+    path('v2/fetch_chatroom', api_views.fetch_chatroom_version_2, name="fetch_chatroom_version_2"),
 
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
     path('v1/fetch_chatroom_feed', api_views.fetch_chatroom_feed_version_1, name="fetch_chatroom_feed_version_1"),
@@ -218,11 +219,12 @@ urlpatterns = [
     path('v1/sync_conversation', api_views.sync_conversation_version_1, name='sync_conversation_version_1'),
     path('sync_conversation', api_views.SyncConversation.as_view(), name='sync_conversation'),
     path('sync_members', api_views.sync_members, name='sync_members'),
-    path('sync_chatrooms', api_views.sync_chatrooms, name='sync_chatrooms'),
 
     path('fetch_user_meta', api_views.fetch_user_meta, name='fetch_user_meta'),
 
-    path('v1/sync_chatrooms', api_views.SyncChatroomsVersion1.as_view(), name='sync_chatrooms_v1'),
+    path('sync_chatrooms', api_views.SyncChatrooms.as_view(), name='sync_chatrooms'),
+
+    path('sync_communities', api_views.SyncCommunities.as_view(), name='sync_communities'),
 
 
 
