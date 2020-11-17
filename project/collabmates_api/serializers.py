@@ -1482,7 +1482,7 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
                                               chatroom_instance=conversation.preview_chatroom)
 
     if conversation.reply and fetch_reply:
-        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False)
+        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False,current_user_id=current_user_id)
 
 
     return temp
