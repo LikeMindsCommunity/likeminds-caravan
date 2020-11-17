@@ -8246,6 +8246,8 @@ def upload_files(request):
         file.file_url = body['url']
         file.save()
 
+        #updating updated_at for synching apis
+        collabcardState.objects.filter(user=member_id,card=card_instance).update(updated_at=time.time())
         files_count = body['files_count'] if 'files_count' in body else 0
         uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
         if uploaded_files_count == int(files_count):
