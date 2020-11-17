@@ -2096,10 +2096,15 @@ def send_notification_for_right_given_to_member(user_id, community_id, rights_ad
         sub_title = f"The Community Manager has reactivated your privilege to {right_title}"
 
         if right.state == member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM:
-            sub_title = f"The Community Manager has reactivated your privilege to respond inside chat rooms."
+            sub_title = "The Community Manager has reactivated your privilege to respond inside chat rooms."
             route = f"route://community_collabcard?community_id={community_id}&community_name={community_name}"
+
         elif right.state == member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK:
-            sub_title = f"You have earned the privilege to invite new members to the community via private links!"
+            sub_title = "You have earned the privilege to invite new members to the community via private links!"
+            route = f"route://community?community_id={community_id}&share=true"
+
+        elif right.state == member_rights.MEMBER_RIGHT_AUTO_APPROVE:
+            sub_title = "You have earned the privilege to have your chat rooms auto-approved. Your chat rooms will be instantenously posted."
             route = f"route://community?community_id={community_id}&share=true"
 
         message['payload'] = {
