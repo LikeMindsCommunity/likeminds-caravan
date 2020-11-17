@@ -609,6 +609,10 @@ def send_poll_results_announcement_mail(card_id, task_name):
     """ function to send poll reuslts annoucement mail for users who missed or didn't see the poll results yet """
 
     card_instance = Collabcard.objects.get(pk=card_id)
+
+    if card_instance.is_deleted or card_instance.is_pending:
+        return
+
     community_instance = card_instance.community
     community_id = community_instance.id
     community_owner = Members.objects.filter(community_id=community_instance,
@@ -631,7 +635,7 @@ def send_poll_results_announcement_mail(card_id, task_name):
 
     voted_members = set(MemberPollVotes.objects.filter(card=card_id).values_list("user", flat=True))
     followed_members = set(collabcardState.objects.filter(
-        card=card_id, mute_status=False).filter(Q(follow_status=True) | Q(external_follow=True)).values_list("user", flat=True))
+        card=card_id, mute_status=False, external_follow=True).values_list("user", flat=True))
     print("voted members ====   ", voted_members)
     print("followed members ====   ", followed_members)
     final_users_list = voted_members | followed_members

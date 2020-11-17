@@ -1229,16 +1229,17 @@ def join_promoter_created_community_version_1(res, request):
                 print("saving history 1")
                 shared_user_instance = None
                 if 'shared_by' in res:
-                    print("saving history 2 ---  ", res['shared_by'])
+                    if res['shared_by'] != '':
+                        print("saving history 2 ---  ", res['shared_by'])
 
-                    history_type = moderation_history_types.APPLIED_PRIVATE_LINK
-                    if check_user_rejoin(user=user_instance, community=community_instance):
-                        history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
-                        update_followed_for_rejoined_member(user_instance, community_instance)
+                        history_type = moderation_history_types.APPLIED_PRIVATE_LINK
+                        if check_user_rejoin(user=user_instance, community=community_instance):
+                            history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
+                            update_followed_for_rejoined_member(user_instance, community_instance)
 
-                    shared_user_instance = User.objects.get(pk=res['shared_by'])
-                    save_moderation_history(user=user_instance, community=community_instance,
-                                            moderation_by=shared_user_instance, type=history_type)
+                        shared_user_instance = User.objects.get(pk=res['shared_by'])
+                        save_moderation_history(user=user_instance, community=community_instance,
+                                                moderation_by=shared_user_instance, type=history_type)
 
                 auto_join_community(community_instance, user_instance, shared_user_instance)
                 set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
@@ -1297,8 +1298,6 @@ def join_promoter_created_community_version_1(res, request):
         update_pending_member_count_in_engage(community_instance)
         return JsonResponse({'success': True})
     else:
-
-        # creating a member instance
         member_instance = Members()
         member_instance.member_id = user_instance
         member_instance.community_id = community_instance
@@ -1320,19 +1319,22 @@ def join_promoter_created_community_version_1(res, request):
 
         update_community_toast(user_instance, community_instance)
 
-    if 'shared_by' in res:
-        if is_private_link:
-            history_type = moderation_history_types.APPLIED_PRIVATE_LINK
-        else:
-            history_type = moderation_history_types.APPLIED_PUBLIC_LINK
+        if 'shared_by' in res:
+            try:
+                history_type = moderation_history_types.APPLIED_PUBLIC_LINK
+                shared_user = User.objects.get(pk=res['shared_by'])
+                member_instance.joined_by = shared_user
+                member_instance.save()
+            except User.DoesNotExist:
+                history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+                shared_user=None
 
-        shared_user = User.objects.get(pk=res['shared_by'])
-        save_moderation_history(user=user_instance, community=community_instance,
-                                moderation_by=shared_user, type=history_type)
-    else:
-        history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
-        save_moderation_history(user=user_instance, community=community_instance,
-                                moderation_by=None, type=history_type)
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=shared_user, type=history_type)
+        else:
+            history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=None, type=history_type)
 
 
 def update_community_toast(user_instance, community_instance):
@@ -1400,6 +1402,7 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
 
     # updating the member engage instance
     if not is_member_engage(community_instance, user_instance):
+
         engage = Member_Engage()
         engage.member_id = user_instance
         engage.community_id = community_instance
@@ -3372,14 +3375,14 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
     if not answer:
 
         user_name = user_instance.userinfo.name
-        member_ids = [user_instance.id]
-        community_profile = get_user_profile(user_instance.id, card_instance.community.id, current_user_id,
-                                             send_profile=False)
-        if community_profile:
-            community_profile = community_profile
-            user_route = "route://member_profile/" + str(user_instance.id) + "?member=" + quote(str(community_profile))
-        else:
-            user_route = "route://member_profile/" + str(user_instance.id)
+        # member_ids = [user_instance.id]
+        # community_profile = get_user_profile(user_instance.id, card_instance.community.id, current_user_id,
+        #                                      send_profile=False)
+        # if community_profile:
+        #     community_profile = community_profile
+        #     user_route = "route://member_profile/" + str(user_instance.id) + "?member=" + quote(str(community_profile))
+        # else:
+        user_route = "route://member_profile/" + str(user_instance.id) + "?member_id="+str(user_instance.id)
         user_name = "<<" + user_name + "|" + user_route + "&community_id=" + str(card_instance.community.id) + ">>"
 
         if state == chatroom_states.CHATROOM_HEADER:
@@ -6908,7 +6911,7 @@ def update_answer_text(card_id):
 
 @csrf_exempt
 def collabcard_follow(request, function_dict=None):
-    '''Api to follow collabcard by members Post API'''
+    """ Api to follow collabcard by members Post API """
 
 
     current_member_id = get_member_id_from_headers(request)
@@ -6936,7 +6939,7 @@ def collabcard_follow(request, function_dict=None):
     card_instance = collabcard
     user_instance = User.objects.get(id=member_id)
 
-    #user cant unfollow hit own collabcard
+    #user cant unfollow his own collabcard
     if not status and collabcard.user.id == user_instance.id:
         return JsonResponse({'success':True})
 
@@ -7000,7 +7003,7 @@ def collabcard_follow(request, function_dict=None):
 
         if status:
             expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
-            collabcard_state_filter.update(follow_status = status,updated_at=time.time(),expiry_time=expiry_time,external_seen=True,external_follow=status)
+            collabcard_state_filter.update(follow_status=status, updated_at=time.time(),expiry_time=expiry_time,external_seen=True,external_follow=status)
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
@@ -7008,7 +7011,14 @@ def collabcard_follow(request, function_dict=None):
                                        member_state=member_state['state'])
 
         else:
-            collabcard_state_filter.update(follow_status = status, updated_at=time.time(),is_tagged=False,external_seen=True,external_follow=status)
+            state = collabcard_state_filter[0].state
+            if state == collabcard_states.COLLABCARD_STATE_ATTENDING:
+                state = collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING
+
+            collabcard_state_filter.update(follow_status = status, updated_at=time.time(),
+                                           is_tagged=False, external_seen=True, external_follow=status,
+                                           state=state
+                                           )
 
             #deleting the conversation engage
             delete_status = conversationEngage.objects.filter(card=collabcard,user=user_instance).delete()
@@ -7293,15 +7303,7 @@ def collabcard_attend(request):
 
         state = collabcard_states.COLLABCARD_STATE_SEEN
         try:
-            state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
-
-            if state_instance.follow_status:
-                state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
-                state = collabcard_states.COLLABCARD_STATE_SEEN
-            else:
-                state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
-                state = collabcard_states.COLLABCARD_STATE_SEEN
-            state_instance.save()
+            collabcardState.objects.filter(card=card_instance, user=user_instance).update(state=state)
 
         except:
             # collabcard_state_instance = collabcardState()
@@ -7318,7 +7320,7 @@ def collabcard_attend(request):
                                            follow_status=True, mute_status=False, is_tagged=False,
                                            function_called="collabcard_attend")
 
-    update_event_answer_text(collabcard_id)  # function to update the text when a user attends an event
+    update_event_answer_text(card_instance)  # function to update the text when a user attends an event
 
     # if not str(member_id) == str(card_instance.user.id) and status:
     # send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
@@ -7326,16 +7328,14 @@ def collabcard_attend(request):
     return JsonResponse({'success': True})
 
 
-def update_event_answer_text(card_id):
-    '''function to update the answer text of card when an event is created'''
-
-    collabcard_instance = Collabcard.objects.get(id=card_id)
+def update_event_answer_text(collabcard_instance):
+    """function to update the answer text of card when an event is created"""
 
     if collabcard_instance.type == 2:
 
         # getting the number of people interestes in event
         event_list_members = collabcardState.objects.filter(card=collabcard_instance).filter(
-            Q(state=collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) | Q(
+                Q(state=collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) | Q(
                 state=collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING)).order_by('id')
         members_count = event_list_members.count()
         ans_text = ''
@@ -8836,7 +8836,7 @@ def save_userAcquition_analytics(user_instance,user_acquired):
 
         instance.utm_source = user_acquired['utm_source'] if 'utm_source' in user_acquired   else ''
         instance.utm_campaign = user_acquired['utm_campaign'] if 'utm_campaign' in user_acquired   else ''
-        instance.utm_content = user_acquired['utm_content'] if 'utm_content' in user_acquired   else ''
+        instance.utm_medium = user_acquired['utm_medium'] if 'utm_medium' in user_acquired   else ''
         instance.platform = user_acquired['platform'] if 'platform' in user_acquired else ''
 
         instance.device_id = user_acquired['device_id'] if 'device_id' in user_acquired   else ''
@@ -9882,6 +9882,8 @@ def config(request):
     ##mixpanel changes
     user_detail = get_mixpanel_statistics(member_id)
     context['user_detail'] = user_detail
+
+    context['updatePriority'] = 0
 
     return JsonResponse(context)
 

@@ -261,7 +261,7 @@ class userAcquition(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE,null=True)
     utm_source = models.TextField(null=True)
     utm_campaign = models.TextField(null=True)
-    utm_content = models.TextField(null=True)
+    utm_medium = models.TextField(null=True)
     shared = models.ForeignKey(User, on_delete=models.CASCADE,null=True,related_name="shared_by")
     device_id = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)

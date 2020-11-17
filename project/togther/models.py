@@ -1217,7 +1217,7 @@ class moderationHistory(models.Model):
     moderation_time = models.BigIntegerField(default=0)
 
     def __str__(self):
-        return self.user.userinfo.name + "__" + self.community_id.name
+        return self.user.userinfo.name + "__" + self.community.name
 
     def save(self, *args, **kwargs):
         if self.moderation_time <= 0:

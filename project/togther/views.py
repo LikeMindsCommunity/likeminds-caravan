@@ -53,6 +53,7 @@ if not url and not settings.IS_BETA:
 #url='http://localhost:8000'
 
 api_url = url + '/api/'
+# api_url = 'http://127.0.0.1:8000/api/'
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
 
@@ -231,6 +232,9 @@ def community(request, community_id):
     ios_private_link = ""
 
     source = request.GET.get('source')
+    shared_by = request.GET.get('shared_by')
+    if not(shared_by):
+        shared_by = ''
     if aj and is_request_android(request) and not source:
 
         private_link = "https://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
@@ -274,12 +278,11 @@ def community(request, community_id):
     if state == 0:
 
         if aj and source:
-            params = str(community_id)+"-"+str(aj)+"-"+str(source)
-
+            params = str(community_id)+"-"+str(aj) + "-" + str(shared_by)+"-"+str(source)
         elif aj:
-            params = str(community_id) + "-" + str(aj) + "-private_link"
+            params = str(community_id) + "-" + str(aj) +"-"+str(shared_by) + "-private_link"
         else:
-            params = community_id
+            params = str(community_id) +"-"+str(shared_by)
         return redirect('community_questions',params=params)
 
     community_instance = Community.objects.get(id=community_id)
@@ -314,16 +317,22 @@ def community_questions(request,params):
     chatroom_deleted = None
     if params.find("-") == -1:
         community_id = params
+        url_details['shared_by'] = ''
     else:
         params = params.split("-")
 
-        if len(params) == 3:
+        if len(params) == 4:
             community_id = params[0]
             user_directory = True
             url_details['community_id'] = params[0]
             url_details['aj'] = params[1]
-            url_details['source'] = params[2]
-        elif len(params) == 2:                  #deleted card
+            url_details['source'] = params[3]
+            url_details['shared_by'] = params[2]
+        elif len(params) == 2:
+            community_id = params[0]
+            url_details['community_id'] = params[0]
+            url_details['shared_by'] = params[1]
+        elif len(params) == 3:                  #deleted card
             community_id = params[0]
             chatroom_deleted = params[1]
         else:
@@ -382,7 +391,6 @@ def community_questions(request,params):
                     'firebase_config': settings.FIREBASE_CONFIG,
                      'user_directory': user_directory,
                      'analytics':analytics
-
                    }
 
         members_count = get_members_count_in_community(community_instance)
@@ -397,6 +405,7 @@ def community_questions(request,params):
         if user_directory:
             footer = private_link_app_invite(community_instance, url_details['aj'], admin)
             footer['aj']=url_details['aj']
+            footer['shared_by']=url_details['shared_by']
             context['footer'] = footer
 
             context['source'] = url_details['source']
@@ -406,12 +415,14 @@ def community_questions(request,params):
                     community_id) + "?aj=" + str(url_details['aj'])
 
                 context['ios_private_link'] = ios_private_link
-
+        else:
+            context['footer'] = {'shared_by':url_details['shared_by']}
 
         if chatroom_deleted:
 
             footer = {
-                'toast':"Oops Your chatroom is deleted. Don't worry you can still view and participate in other chatrooms after joining the community"
+                'toast':"Oops Your chatroom is deleted. Don't worry you can still view and participate in other chatrooms after joining the community",
+                'shared_by': url_details['shared_by']
                       }
             context['footer'] = footer
 
@@ -447,6 +458,7 @@ def community_questions(request,params):
         json_dict = {"community_id": community_id, "timestamp": time.time()}
         json_dict['questions'] = response_list
         json_dict['user_id'] = request.user.id
+        json_dict['shared_by'] = request.POST.get('shared_by')
 
         if state['state'] == 0:
             join_url = api_url + 'v1/join_community'
