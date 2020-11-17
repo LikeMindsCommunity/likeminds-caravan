@@ -411,8 +411,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     # deleted_by_member_state = serializers.ReadOnlyField(source='deleted_by_user_state')
     deleted_by = serializers.SerializerMethodField()
 
-    images = serializers.ListField(write_only=True)
-    pdf = serializers.ListField(write_only=True)
+    images = serializers.SerializerMethodField()
+    pdf = serializers.SerializerMethodField()
     preview = serializers.DictField(write_only=True)
     polls = serializers.ListField(write_only=True)
     share_url = serializers.CharField(write_only=True)
@@ -520,6 +520,29 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             co_host_list.append(temp)
 
         return co_host_list
+
+    def get_images(self,card):
+
+        images = []
+        if card.has_files:
+            files = Card_Attachment.objects.filter(collabcard=card,type="image")
+            for file in files:
+                img = {'image_url': file.file_url}
+                images.append(img)
+
+        return images
+
+    def get_pdf(self, card):
+
+        pdf = []
+        if card.has_files:
+            files = Card_Attachment.objects.filter(collabcard=card, type="pdf")
+            for file in files:
+                img = {'image_url': file.file_url}
+                pdf.append(img)
+
+        return pdf
+
 
     def to_representation(self, card):
         data = super(GetChatroomInstanceSerializer, self).to_representation(card)
@@ -650,11 +673,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
             # elif field.field_name == "updated_time":
             #     data["updated_time"] = get_time_text(data["updated_time"])
-
-            elif field.field_name in ['image_count', 'pdf_count']:
-                card_files = get_collabcard_files(data['id'])
-                data['images'] = card_files[0]
-                data['pdf'] = card_files[1]
+            #
+            # elif field.field_name in ['image_count', 'pdf_count']:
+            #     card_files = get_collabcard_files(data['id'])
+            #     data['images'] = card_files[0]
+            #     data['pdf'] = card_files[1]
 
             elif field.field_name == 'share_link':
                 share = get_share_url_text(card, self.user)
