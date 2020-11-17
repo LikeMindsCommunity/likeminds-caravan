@@ -3068,6 +3068,9 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     card.member_state = res['member_state']
     card.date_epoch = time.time()  # card creation time
+
+    #adding has_files key
+    card.has_files = res['has_files'] if('has_files' in res) else False
     card.save()
     # add ownerflag here
 
@@ -3225,7 +3228,9 @@ def create_card_internal(user_id, community_id, res):
 def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
     '''function to send mail and notifications for chatroom creations'''
     # pass
-    send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
+    #sending the mails and notification of simple chatrooms without files
+    if not card_instance.has_files:
+        send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
                                                       type=card_instance.type,
                                                       date_time=card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time,
@@ -8231,13 +8236,23 @@ def upload_files(request):
     elif 'collabcard_id' in body and body['collabcard_id']:
         attachment_type = body['type']
         collabcard_id = body['collabcard_id']
-        collabcard = Collabcard.objects.get(id=collabcard_id)
+        card_instance = Collabcard.objects.get(id=collabcard_id)
+        card_instance.has_files = True
+        card_instance.save()
 
         file = Card_Attachment()
-        file.collabcard = collabcard
+        file.collabcard = card_instance
         file.type = attachment_type
         file.file_url = body['url']
         file.save()
+
+        files_count = body['files_count'] if 'files_count' in body else 0
+        uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
+        if uploaded_files_count == int(files_count):
+            user_instance = User.objects.get(id=member_id)
+            send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
+
+
 
     elif 'answer_id' in body and body['answer_id']:
         attachment_type = body['type']
