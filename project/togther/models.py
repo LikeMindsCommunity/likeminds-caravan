@@ -206,6 +206,7 @@ class Collabcard(models.Model):
 
     member_state = models.IntegerField(null=True)
     disable_poll_announcement_mail = models.BooleanField(default=False)
+    has_files = models.BooleanField(default=False)
 
 
 class draftChatroom(models.Model):
