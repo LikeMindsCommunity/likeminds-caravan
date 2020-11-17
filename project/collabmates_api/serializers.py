@@ -1555,7 +1555,8 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
                                                  chatroom_instance=conversation.preview_chatroom)
 
     if conversation.reply and fetch_reply:
-        temp['reply_conversation'] = get_conversation_instance_for_db_synching(conversation,fetch_reply=False,current_user_id=current_user_id)
+        temp['reply_conversation'] = get_conversation_instance_for_db_synching(conversation.reply, fetch_reply=False,
+                                                                               current_user_id=current_user_id)
 
 
     return temp
