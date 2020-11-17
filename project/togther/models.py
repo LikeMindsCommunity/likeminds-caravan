@@ -199,8 +199,6 @@ class Collabcard(models.Model):
     is_deleted = models.BooleanField(default=False)  # for internal check, not to be sent in API's
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='chatroom_deleted_by_user')
-    # deleted_by_user_state = models.IntegerField(null=True)  # state in community member or manager
-    # deleted_by_text = models.CharField(max_length=512, null=True)
     reason = models.CharField(max_length=512, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
 
