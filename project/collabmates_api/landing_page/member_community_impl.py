@@ -11,21 +11,21 @@ from collabmates_api.views import get_home_screen_community_actions, get_active_
 
 class MemberCommunityImpl(MemberCommunityManager):
     member_id = None
-    communities = []
+    communities = list()
 
     def __init__(self, member_id: str):
         self.member_id = member_id
 
-    def get_member_id(self) -> int:
+    def get_member_id(self) -> str:
         return self.member_id
 
     def set_member_id(self, member_id: str) -> None:
         self.member_id = member_id
 
-    def get_communities(self) -> []:
+    def get_communities(self) -> list:
         return self.communities
 
-    def set_communities(self, communities: []) -> None:
+    def set_communities(self, communities: list) -> None:
         self.communities = communities
 
     def extract_member_communities(self) -> None:
@@ -33,16 +33,15 @@ class MemberCommunityImpl(MemberCommunityManager):
         self._add_additional_information()
 
     @staticmethod
-    def _get_member_communities(member_id: int) -> {}:
+    def _get_member_communities(member_id: str) -> list:
         """TODO: move to model definition file"""
         return Member_Engage.objects.filter(member_id=member_id).order_by('-updated_at')
 
     def _add_additional_information(self) -> None:
-        member_communities_additional_info = []
+        member_communities_additional_info = list()
 
         for community in self.get_communities():
             member_community = self._community_serializer(community.community_id, self.get_member_id())
-
             self._add_admin_info(member_community, community)
             self._add_community_actions(member_community, community)
             self._add_unseen_count_info(member_community, community)
@@ -55,11 +54,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         self.set_communities(member_communities_additional_info)
 
     @staticmethod
-    def _community_serializer(community_id: int, member_id: int) -> {}:
+    def _community_serializer(community_id: int, member_id: str) -> dict:
         """TODO: move to model definition file"""
         return CommunitySerializer(community_id, current_user_id=member_id)
 
-    def _add_admin_info(self, member_community: {}, community: {}) -> None:
+    def _add_admin_info(self, member_community: dict, community: {}) -> None:
         user = self._get_user_info(self.get_member_id())
 
         if community.member_state == member_states.ADMIN:
@@ -73,28 +72,28 @@ class MemberCommunityImpl(MemberCommunityManager):
                 member_community['pending_members_count'] = 0
 
     @staticmethod
-    def _get_user_info(member_id: int) -> {}:
+    def _get_user_info(member_id: str) -> {}:
         """TODO: move to model definition file"""
         return User.objects.get(id=member_id)
 
-    def _add_community_actions(self, member_community: {}, community: {}) -> None:
+    def _add_community_actions(self, member_community: dict, community: {}) -> None:
         actions = get_home_screen_community_actions(community.community_id)
-        self._add_admin_actions(actions, community)
+        self._add_admin_actions(member_community, actions, community)
         member_community['actions'] = actions
 
     @staticmethod
-    def _add_admin_actions(actions: {}, community: {}) -> None:
+    def _add_admin_actions(member_community: dict, actions: list, community: {}) -> None:
 
         if community.member_state == member_states.ADMIN:
             management_tools = {
                 'title': """Management tools""",
                 'route': """route://management_tools?community_id=%s&community_name=%s""" % (
-                    str(community['id']), community['name'])
+                    str(member_community['id']), member_community['name'])
             }
             actions.append(management_tools)
 
     @staticmethod
-    def _add_unseen_count_info(member_community: {}, community: {}) -> None:
+    def _add_unseen_count_info(member_community: dict, community: {}) -> None:
         if community.member_state == member_states.ADMIN or \
                 community.member_state == member_states.MEMBER or \
                 community.member_state == member_states.PROFILE_UNAVAILABLE:
@@ -103,7 +102,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             member_community['collabcard_unseen'] = 0
 
     @staticmethod
-    def _add_active_chatroom_info(member_community: {}, community: {}, member_id: int) -> None:
+    def _add_active_chatroom_info(member_community: dict, community: {}, member_id: str) -> None:
         active_chatroom = get_active_chatroom_member_images(community_instance=community.community_id,
                                                             member_id=member_id)
         active_chatroom_count = active_chatroom['count']
@@ -118,12 +117,12 @@ class MemberCommunityImpl(MemberCommunityManager):
                 member_community['active_chatroom_users'] = active_chatroom_users
 
     @staticmethod
-    def _add_member_rights_info(member_community: {}, community: {}) -> None:
+    def _add_member_rights_info(member_community: dict, community: {}) -> None:
         member_community['member_right_states'] = json.loads(community.rights_list) \
             if community.rights_list \
             else []
 
     @staticmethod
-    def _add_additional_keys(member_community: {}, community: {}) -> None:
+    def _add_additional_keys(member_community: dict, community: {}) -> None:
         member_community['member_state'] = community.member_state
         member_community['click_state'] = community.click_state

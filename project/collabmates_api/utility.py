@@ -7,7 +7,8 @@ def get_member_id_from_headers(request):
     headers = request.META
 
     member_id = None
-    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
+    if 'HTTP_X_MEMBER_ID' in headers and \
+            'HTTP_X_VERSION_CODE' in headers:
         member_id = headers['HTTP_X_MEMBER_ID']
     elif 'HTTP_X_MEMBER_ID' in headers:
         member_id = headers['HTTP_X_MEMBER_ID']
