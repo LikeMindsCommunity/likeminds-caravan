@@ -13,5 +13,7 @@ class ViewsManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_member_communities(self) -> JsonResponse:
-        """Get communities of the member"""
+        """
+        Get communities of the member
+        """
         raise NotImplementedError

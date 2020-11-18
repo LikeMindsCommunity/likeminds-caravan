@@ -6,22 +6,32 @@ from utility.states import member_states
 from collabmates_api.landing_page.member_community_manager import MemberCommunityManager
 from collabmates_api.serializers import CommunitySerializer
 from collabmates_api.user_moderation_rights import check_admin_approve_right
+from collabmates_api.utility import pagination
 from collabmates_api.views import get_home_screen_community_actions, get_active_chatroom_member_images
 from utility.utils import create_notification_flag
 
 
 class MemberCommunityImpl(MemberCommunityManager):
     member_id = None
-    communities = list()
+    page = None
+    communities = None
 
-    def __init__(self, member_id: str):
+    def __init__(self, member_id: str, page: int):
         self.member_id = member_id
+        self.page = page
+        self.communities = list()
 
     def get_member_id(self) -> str:
         return self.member_id
 
     def set_member_id(self, member_id: str) -> None:
         self.member_id = member_id
+
+    def get_page(self) -> int:
+        return self.page
+
+    def set_page(self, page: int) -> None:
+        self.page = page
 
     def get_communities(self) -> list:
         return self.communities
@@ -31,13 +41,20 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def extract_member_communities(self) -> None:
         self._send_app_install_notification(self.get_member_id())
-        self.set_communities(self._get_member_communities(self.get_member_id()))
-        self._add_additional_information()
+
+        communities = self._find_member_communities(self.get_member_id())
+        communities = self._paged_queryset(communities, self.get_page())
+
+        self._add_additional_information(communities)
 
     @staticmethod
     def _send_app_install_notification(member_id: str) -> None:
-        """TODO: move to notification module"""
-        """event when user installed the app"""
+        """
+        TODO: move to notification module
+        """
+        """
+        event when user installed the app
+        """
 
         notification_list = [
             'mail_has_installed_app'
@@ -45,14 +62,20 @@ class MemberCommunityImpl(MemberCommunityManager):
         create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
     @staticmethod
-    def _get_member_communities(member_id: str) -> list:
-        """TODO: move to model definition file"""
+    def _find_member_communities(member_id: str) -> list:
+        """
+        TODO: move to model definition file
+        """
         return Member_Engage.objects.filter(member_id=member_id).order_by('-updated_at')
 
-    def _add_additional_information(self) -> None:
+    @staticmethod
+    def _paged_queryset(communities: list, page: int):
+        return pagination(communities, page, paginate_by=6)
+
+    def _add_additional_information(self, communities: list) -> None:
         member_communities_additional_info = list()
 
-        for community in self.get_communities():
+        for community in communities:
             member_community = self._community_serializer(community.community_id, self.get_member_id())
 
             self._add_admin_info(member_community, community)
@@ -68,11 +91,13 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def _community_serializer(community_id: int, member_id: str) -> dict:
-        """TODO: move to model definition file"""
+        """
+        TODO: move to model definition file
+        """
         return CommunitySerializer(community_id, current_user_id=member_id)
 
     def _add_admin_info(self, member_community: dict, community: {}) -> None:
-        user = self._get_user_info(self.get_member_id())
+        user = self._extract_user(self.get_member_id())
 
         if community.member_state == member_states.ADMIN:
 
@@ -85,8 +110,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                 member_community['pending_members_count'] = 0
 
     @staticmethod
-    def _get_user_info(member_id: str) -> {}:
-        """TODO: move to model definition file"""
+    def _extract_user(member_id: str) -> {}:
+        """
+        TODO: move to model definition file
+        """
         return User.objects.get(id=member_id)
 
     def _add_community_actions(self, member_community: dict, community: {}) -> None:

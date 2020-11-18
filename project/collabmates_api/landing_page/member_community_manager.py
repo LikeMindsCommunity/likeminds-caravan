@@ -11,5 +11,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def extract_member_communities(self) -> None:
-        """Get communities of the member"""
+        """
+        Get communities of the member
+        """
         raise NotImplementedError
