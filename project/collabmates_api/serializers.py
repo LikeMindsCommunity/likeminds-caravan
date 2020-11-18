@@ -1444,7 +1444,7 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
         "id": conversation.id,
         "answer": conversation.answer,
         "state": conversation.state,
-        'is_deleted': conversation.is_deleted,
+        # 'is_deleted': conversation.is_deleted,
         'is_edited': conversation.is_edited,
         'created_at' : conversation.created_at,
         'has_files': conversation.has_files,
@@ -1461,6 +1461,9 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
 
     if conversation.og_tags:
         temp['og_tags'] = json.loads(conversation.og_tags)
+
+    if conversation.is_deleted:
+        temp['deleted_by'] = conversation.deleted_by_user.id
 
 
     # if member is removed from community
@@ -1481,9 +1484,8 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
                                               community_instance=conversation.preview_community,
                                               chatroom_instance=conversation.preview_chatroom)
 
-    if conversation.reply and fetch_reply:
-        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False,current_user_id=current_user_id)
-
+    if conversation.reply:
+        temp['reply_conversation'] = conversation.reply.id
 
     return temp
 
@@ -1527,7 +1529,7 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
         "id": conversation.id,
         "answer": conversation.answer,
         "state": conversation.state,
-        'is_deleted': conversation.is_deleted,
+        # 'is_deleted': conversation.is_deleted,
         'is_edited': conversation.is_edited,
         'created_at': time.strftime('%H:%M', time.localtime(conversation.created_at)),
         'has_files': conversation.has_files,
@@ -1546,6 +1548,9 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
     if conversation.og_tags:
         temp['og_tags'] = json.loads(conversation.og_tags)
 
+    if conversation.is_deleted:
+        temp['deleted_by'] = conversation.deleted_by_user.id
+
 
     temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
 
@@ -1554,9 +1559,8 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
                                                  community_instance=conversation.preview_community,
                                                  chatroom_instance=conversation.preview_chatroom)
 
-    if conversation.reply and fetch_reply:
-        temp['reply_conversation'] = get_conversation_instance_for_db_synching(conversation.reply, fetch_reply=False,
-                                                                               current_user_id=current_user_id)
+    if conversation.reply:
+        temp['reply_conversation'] = conversation.reply.id
 
 
     return temp
