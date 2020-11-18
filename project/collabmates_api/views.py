@@ -5705,6 +5705,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance)
 
+    context['total_participants'] = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).count()
+
     # updating the activity of chatroom
     # update_activity_in_chatroom(card_instance,user_instance=user_id)
 
