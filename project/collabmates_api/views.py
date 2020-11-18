@@ -8274,7 +8274,7 @@ def upload_files(request):
         current_time_ms = int(round(time.time() * 1000))
 
         #updating the last updated when posting answer
-        card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms)
+        card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms,has_files=True)
 
         conversation = get_conversation_instance_for_db_synching(answer_instance,current_user_id=member_id)
 
@@ -10460,6 +10460,10 @@ def edit_community_data(community_instance, user_instance, edit_field):
             member_directory_route = """route://members_directory?community_id=%s&community_name=%s"""%(str(community_instance.id),quote(community_instance.name))
             bubble_text = "<<" + user_name + """ edited member directory. Tap to view.""" + "|" + member_directory_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
+
+        #setting the updation time of edited community
+        Member_Engage.objects.filter(community_id=community_instance,
+                                     member_id=user_instance).update(updated_at=time.time())
 
 
 def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
