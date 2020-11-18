@@ -913,7 +913,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     class Meta:
         model = card_answers
         fields = ("id", 'answer', 'card', 'user', 'created_at', 'community', 'state',
-                  'og_tags', 'deleted_by',
+                  'og_tags', 'deleted_by', 'deleted_by_user',
                   'is_edited', 'reply', 'internal_link', 'has_files', 'date', 'images',
                   'pdf', 'location', 'reply_conversation', 'preview', 'member_id')
 
@@ -962,13 +962,15 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
             elif field.field_name == "deleted_by":
                 if not obj.is_deleted:
-                    del data['deleted_by_user']
+                    del data['deleted_by']
                 else:
-                    data['deleted_by'] = obj.deleted_by_user.id
+                    data['deleted_by'] = data['deleted_by_user']
+
+                del data['deleted_by_user']
+
 
             # elif field.field_name == "deleted_by_user_state":
             #     if not data['is_deleted']:
-            #         del data['deleted_by_user_state']
 
             elif field.field_name == "reply" and data['reply'] is not None and self.fetch_reply:
                 # context = {"fetch_reply": False, "current_user_id": self.current_user_id}
