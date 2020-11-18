@@ -8274,7 +8274,7 @@ def upload_files(request):
         current_time_ms = int(round(time.time() * 1000))
 
         #updating the last updated when posting answer
-        card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms)
+        card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms,has_files=True)
 
         conversation = get_conversation_instance_for_db_synching(answer_instance,current_user_id=member_id)
 
