@@ -538,8 +538,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         if card.has_files:
             files = Card_Attachment.objects.filter(collabcard=card, type="pdf")
             for file in files:
-                img = {'image_url': file.file_url}
-                pdf.append(img)
+                temp = {'pdf_file': file.file_url}
+                pdf.append(temp)
 
         return pdf
 
@@ -905,14 +905,15 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     images = serializers.ListField(write_only=True)
     pdf = serializers.ListField(write_only=True)
     location = serializers.ListField(write_only=True)
-    reply_conversation = serializers.DictField(write_only=True)
+    reply_conversation = serializers.IntegerField(write_only=True)
+    deleted_by = serializers.IntegerField(write_only=True)
     preview = serializers.DictField(write_only=True)
     member_id = serializers.CharField(write_only=True)
 
     class Meta:
         model = card_answers
         fields = ("id", 'answer', 'card', 'user', 'created_at', 'community', 'state',
-                  'og_tags', 'deleted_by_user',
+                  'og_tags', 'deleted_by', 'deleted_by_user',
                   'is_edited', 'reply', 'internal_link', 'has_files', 'date', 'images',
                   'pdf', 'location', 'reply_conversation', 'preview', 'member_id')
 
@@ -959,18 +960,23 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 if 'location' in answer_files:
                     data['location'] = answer_files['location']
 
-            elif field.field_name == "deleted_by_user":
+            elif field.field_name == "deleted_by":
                 if not obj.is_deleted:
-                    del data['deleted_by_user']
+                    del data['deleted_by']
+                else:
+                    data['deleted_by'] = data['deleted_by_user']
+
+                del data['deleted_by_user']
+
 
             # elif field.field_name == "deleted_by_user_state":
             #     if not data['is_deleted']:
-            #         del data['deleted_by_user_state']
 
             elif field.field_name == "reply" and data['reply'] is not None and self.fetch_reply:
-                context = {"fetch_reply": False, "current_user_id": self.current_user_id}
-                reply_instance = card_answers.objects.get(pk=data['reply'])
-                data['reply_conversation'] = CardAnswersDBSyncSerializer(reply_instance, context=context).data
+                # context = {"fetch_reply": False, "current_user_id": self.current_user_id}
+                # reply_instance = card_answers.objects.get(pk=data['reply'])
+                data['reply_conversation'] = data['reply']
+                del data['reply']
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
                 data['preview'] = get_preview_for_url(member_id=self.current_user_id,

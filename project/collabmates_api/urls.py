@@ -15,8 +15,6 @@ urlpatterns = [
     path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
 
     #path('communities', api_views.communities, name="communities"),
-    path('member/community/', include('collabmates_api.landing_page.urls')),
-
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
     path('v1/your_communities/<int:user_id>', api_views.YourCommunitiesV1.as_view(), name="your_communities_v1"),
 

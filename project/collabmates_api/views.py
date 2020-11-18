@@ -5341,7 +5341,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
         # usr = UserinfoSerializer(user[0])
         # #usr['is_clickable']=feedback
 
-        usr = get_members_profile([ans.user.id], community_id, current_user_id)
+        usr = get_members_profile([ans.user.id], community_id, current_user_id, send_profile=False)
         user_context = usr[0]
 
         if ans.is_guest:
@@ -5378,7 +5378,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'pdf': attachements['pdf'],
             'date': date,
             'state': ans.state,
-            'is_deleted': ans.is_deleted,
+            # 'is_deleted': ans.is_deleted,
             'is_edited': ans.is_edited,
             'member_id':ans.user.id,
             'community_id':community_id,
@@ -5394,19 +5394,22 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
         if 'location' in attachements:
             context['location'] = attachements['location']
 
-        if ans.reply and fetch_reply:
-            context['reply_conversation'] = get_answer_data([ans.reply], community_id,
-                                                            current_user_id, fetch_reply=False)[0]
+        if ans.reply:
+            context['reply_conversation'] = ans.reply.id
+
+        if ans.is_deleted:
+            context['deleted_by'] = ans.deleted_by_user.id
 
         if ans.internal_link:
             context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
                                                      community_instance=ans.preview_community,
                                                      chatroom_instance=ans.preview_chatroom,
                                                      send_preview_text=False)
-        if ans.is_deleted:
-            member_ids = [ans.deleted_by_user]
-            temp = get_members_profile(member_ids=member_ids, community_id=community_id, current_user_id=current_user_id)
-            context['deleted_by'] = temp[0]
+        # if ans.is_deleted:
+        #     member_ids = [ans.deleted_by_user]
+        #     temp = get_members_profile(member_ids=member_ids, community_id=community_id,
+        #                                current_user_id=current_user_id, send_profile=False)
+        #     context['deleted_by'] = temp[0]
             # context['deleted_by_member_state'] = ans.deleted_by_user_state
 
         if is_ios and ans.internal_link:
@@ -8274,7 +8277,7 @@ def upload_files(request):
         current_time_ms = int(round(time.time() * 1000))
 
         #updating the last updated when posting answer
-        card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms)
+        card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms,has_files=True)
 
         conversation = get_conversation_instance_for_db_synching(answer_instance,current_user_id=member_id)
 
@@ -10461,6 +10464,10 @@ def edit_community_data(community_instance, user_instance, edit_field):
             bubble_text = "<<" + user_name + """ edited member directory. Tap to view.""" + "|" + member_directory_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
 
+        #setting the updation time of edited community
+        Member_Engage.objects.filter(community_id=community_instance,
+                                     member_id=user_instance).update(updated_at=time.time())
+
 
 def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
     '''function to edit the announcement bubbles text'''
@@ -11985,7 +11992,11 @@ def edit_conversation(request):
         return JsonResponse(context)
 
     conversation = card_answers.objects.get(pk=conversation_id)
-    if int(conversation.user.id) == int(member_id):
+
+    if conversation.is_deleted:
+        context = get_error_context(False, "Cannot edit deleted conversation")
+        return JsonResponse(context)
+    elif int(conversation.user.id) == int(member_id):
         conversation.answer = edited_answer
         conversation.is_edited = True
         conversation.last_updated = int(round(time.time() * 1000))
@@ -11995,7 +12006,9 @@ def edit_conversation(request):
                                     "you are not the conversation creator.Only conversation creator can edit his/her message")
         return JsonResponse(context)
 
-    return JsonResponse({'success': True})
+    conversation = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+
+    return JsonResponse({'success': True, 'conversation': conversation})
 
 
 def fetch_preview(request):
