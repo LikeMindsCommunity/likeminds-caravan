@@ -10295,6 +10295,10 @@ def edit_community_data(community_instance, user_instance, edit_field):
             bubble_text = "<<" + user_name + """ edited member directory. Tap to view.""" + "|" + member_directory_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
 
+        #setting the updation time of edited community
+        Member_Engage.objects.filter(community_id=community_instance,
+                                     member_id=user_instance).update(updated_at=time.time())
+
 
 def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
     '''function to edit the announcement bubbles text'''
