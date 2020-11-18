@@ -7,6 +7,7 @@ from collabmates_api.landing_page.member_community_manager import MemberCommunit
 from collabmates_api.serializers import CommunitySerializer
 from collabmates_api.user_moderation_rights import check_admin_approve_right
 from collabmates_api.views import get_home_screen_community_actions, get_active_chatroom_member_images
+from utility.utils import create_notification_flag
 
 
 class MemberCommunityImpl(MemberCommunityManager):
@@ -29,8 +30,19 @@ class MemberCommunityImpl(MemberCommunityManager):
         self.communities = communities
 
     def extract_member_communities(self) -> None:
+        self._send_app_install_notification(self.get_member_id())
         self.set_communities(self._get_member_communities(self.get_member_id()))
         self._add_additional_information()
+
+    @staticmethod
+    def _send_app_install_notification(member_id: str) -> None:
+        """TODO: move to notification module"""
+        """event when user installed the app"""
+
+        notification_list = [
+            'mail_has_installed_app'
+        ]
+        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
     @staticmethod
     def _get_member_communities(member_id: str) -> list:
@@ -42,6 +54,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         for community in self.get_communities():
             member_community = self._community_serializer(community.community_id, self.get_member_id())
+
             self._add_admin_info(member_community, community)
             self._add_community_actions(member_community, community)
             self._add_unseen_count_info(member_community, community)
