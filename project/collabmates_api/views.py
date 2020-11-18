@@ -12051,7 +12051,11 @@ def delete_conversation(request):
         context = get_error_context(False, "Only conversation creator or community manager can delete messages")
         return JsonResponse(context)
 
-    return JsonResponse({'success': True})
+    conversation = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+
+    return JsonResponse({'success': True, 'conversation': conversation})
+
+    # return JsonResponse({'success': True})
 
 
 def update_conversation_delete_status(conversation_instance, current_user_instance, is_promoter,
