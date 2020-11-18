@@ -221,7 +221,7 @@ def get_weekly_records(community,day=1):
 
 
     #active members
-    all_members = Members.objects.filter(community_id=community_id).values('member_id').distinct()
+    all_members = Members.objects.filter(community_id=community_id,state__in=[1,4]).values('member_id').distinct()
     active_counter = 0
     for m in all_members:
         user_id = m['member_id']
