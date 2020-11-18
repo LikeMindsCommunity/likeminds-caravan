@@ -538,8 +538,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         if card.has_files:
             files = Card_Attachment.objects.filter(collabcard=card, type="pdf")
             for file in files:
-                img = {'image_url': file.file_url}
-                pdf.append(img)
+                temp = {'pdf_file': file.file_url}
+                pdf.append(temp)
 
         return pdf
 
