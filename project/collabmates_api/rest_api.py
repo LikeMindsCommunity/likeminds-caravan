@@ -974,6 +974,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 # context = {"fetch_reply": False, "current_user_id": self.current_user_id}
                 # reply_instance = card_answers.objects.get(pk=data['reply'])
                 data['reply_conversation'] = data['reply']
+                del data['reply']
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
                 data['preview'] = get_preview_for_url(member_id=self.current_user_id,
