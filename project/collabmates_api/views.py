@@ -5705,6 +5705,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance)
 
+    context['total_participants'] = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).count()
+
     # updating the activity of chatroom
     # update_activity_in_chatroom(card_instance,user_instance=user_id)
 
@@ -10656,8 +10658,11 @@ def get_tagging_list(request):
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id')
     current_member_id = get_member_id_from_headers(request)
-
-    tagging_list = get_tagging_list_internal(community_id, chatroom_id, current_member_id)
+    if not is_request_web(request):
+        tagging_list = get_tagging_list_internal(community_id, chatroom_id, current_member_id)
+    else:
+        #sending tagging options for web
+        tagging_list = get_tagging_list_internal_web(chatroom_id,current_user_id=current_member_id)
 
     return JsonResponse({'members': tagging_list})
 

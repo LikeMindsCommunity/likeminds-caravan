@@ -1271,7 +1271,7 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
     return menu
 
 
-def get_user_profile(user_id, community_id, current_user_id=None, send_profile=True,remove=False):
+def get_user_profile(user_id, community_id=None, current_user_id=None, send_profile=True,remove=False):
 
 
     if isinstance(user_id,User):
