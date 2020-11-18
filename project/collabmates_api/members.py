@@ -86,6 +86,49 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
     tagging_list = tagging_list + guest_list
     return tagging_list
 
+def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
+
+    '''function to return tagging list of members in chatroom'''
+    if not chatroom_id:
+        return []
+
+    tagging_list = []
+    try:
+        card_instance  = Collabcard.objects.get(id = chatroom_id)
+    except Exception as e:
+        return []
+
+    state_filter = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None)
+    user_set = set()
+    for data in state_filter:
+        user_instance = data.user
+        user_id = user_instance.id
+        if current_user_id and int(current_user_id) == user_id:
+            continue
+        temp = get_user_profile(user_instance,send_profile=False)
+        temp['is_participant'] = True
+        tagging_list.append(temp)
+        user_set.add(user_id)
+
+    community = card_instance.community
+    member_filter = Members.objects.filter(community_id=community)
+    for member in member_filter:
+        user_instance = member.member_id
+        user_id = user_instance.id
+
+        if current_user_id and int(current_user_id) == user_id:
+            continue
+
+        if user_id not in user_set:
+            temp = get_user_profile(user_instance,send_profile=False)
+            temp['is_participant'] = False
+            tagging_list.append(temp)
+            user_set.add(user_id)
+
+    return tagging_list
+
+
+
 
 def get_pending_members_of_community(community_id, requested_member_id):
 

@@ -10656,8 +10656,11 @@ def get_tagging_list(request):
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id')
     current_member_id = get_member_id_from_headers(request)
-
-    tagging_list = get_tagging_list_internal(community_id, chatroom_id, current_member_id)
+    if not is_request_web(request):
+        tagging_list = get_tagging_list_internal(community_id, chatroom_id, current_member_id)
+    else:
+        #sending tagging options for web
+        tagging_list = get_tagging_list_internal_web(chatroom_id,current_user_id=current_member_id)
 
     return JsonResponse({'members': tagging_list})
 
