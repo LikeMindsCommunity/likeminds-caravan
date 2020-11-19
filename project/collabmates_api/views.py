@@ -1319,7 +1319,7 @@ def join_promoter_created_community_version_1(res, request):
 
         update_community_toast(user_instance, community_instance)
 
-        if 'shared_by' in res:
+        if 'shared_by' in res and res['shared_by']:
             try:
                 history_type = moderation_history_types.APPLIED_PUBLIC_LINK
                 shared_user = User.objects.get(pk=res['shared_by'])
