@@ -1317,7 +1317,7 @@ def join_promoter_created_community_version_1(res, request):
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
-        update_community_toast(user_instance, community_instance)
+        update_community_toast(user_instance, community_instance,message="Your request for joining this community is pending")
 
         if 'shared_by' in res and res['shared_by']:
             try:
@@ -1337,7 +1337,7 @@ def join_promoter_created_community_version_1(res, request):
                                     moderation_by=None, type=history_type)
 
 
-def update_community_toast(user_instance, community_instance):
+def update_community_toast(user_instance, community_instance,message=''):
     # setting the toast messages to show on community detail page
     toast_filter = communityToast.objects.filter(community=community_instance, user=user_instance)
     if not toast_filter.exists():
@@ -1345,13 +1345,13 @@ def update_community_toast(user_instance, community_instance):
         toast.community = community_instance
         toast.user = user_instance
         toast.created_at = time.time()
-        toast.toast_message = "Your request for joining this community is pending"
+        toast.toast_message = message
         toast.save()
     else:
         toast = toast_filter[0]
         toast.community = community_instance
         toast.user = user_instance
-        toast.toast_message = "Your request for joining this community is pending"
+        toast.toast_message = message
         toast.save()
 
 
@@ -9755,10 +9755,11 @@ def skip_community(request):
         engage.save()
 
     set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
+    update_community_toast(user_instance,community_instance,message="Please complete your profile for full access")
 
     # sleeping for 2 hours to remind user to complete profile via notification
     try:
-        community_instance = Community.objects.get(id=community_id)
+        #community_instance = Community.objects.get(id=community_id)
         community_state = get_state_of_community(community_instance)
         send_notification_to_incomplete_profile.delay(member_id, community_id, community_state, community_instance.name,
                                                       time_in_hrs=2)
