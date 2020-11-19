@@ -2951,10 +2951,8 @@ def create_card(request, req_dict=None):
         return context
 
     #sending the local chatroom object
-    card_id = context['card_instance'].id
-    card_filter = Collabcard.objects.filter(id=card_id)
     member_data = {'member_id': user_id, 'current_user_id': user_id, 'state_instance': None}
-    chatroom_obj = GetChatroomInstanceSerializer(card_filter, context=member_data, many=True)
+    chatroom_obj = GetChatroomInstanceSerializer(context['card_instance'], context=member_data, many=False)
 
 
     context = {'success': True, 'collabcard': context['collabcard'],'chatroom_local':chatroom_obj.data}
@@ -2973,7 +2971,11 @@ def create_poll(request):
     res['type'] = card_types.CARD_POLL  # poll chatroom type is 3
     context = create_card_internal(member_id, community_id, res)
 
-    return JsonResponse({'success': True, 'collabcard': context['collabcard']})
+    #sending local
+    member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
+    chatroom_obj = GetChatroomInstanceSerializer(context['card_instance'], context=member_data, many=False)
+
+    return JsonResponse({'success': True, 'collabcard': context['collabcard'],'chatroom_local':chatroom_obj.data})
 
 
 def create_chatroom_instance(res, community_instance, user_instance, has_auto_approve_right=False):
