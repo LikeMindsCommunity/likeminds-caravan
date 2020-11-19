@@ -2950,7 +2950,14 @@ def create_card(request, req_dict=None):
     if req_dict:
         return context
 
-    context = {'success': True, 'collabcard': context['collabcard']}
+    #sending the local chatroom object
+    card_id = context['card_instance'].id
+    card_filter = Collabcard.objects.filter(id=card_id)
+    member_data = {'member_id': user_id, 'current_user_id': user_id, 'state_instance': None}
+    chatroom_obj = GetChatroomInstanceSerializer(card_filter, context=member_data, many=True)
+
+
+    context = {'success': True, 'collabcard': context['collabcard'],'chatroom_local':chatroom_obj.data}
     return JsonResponse(context)
 
 
