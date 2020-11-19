@@ -70,7 +70,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def _paged_queryset(communities: list, page: int):
-        return pagination(communities, page, paginate_by=6)
+        result_per_page = 6
+        return pagination(communities, page, paginate_by=result_per_page)
 
     def _add_additional_information(self, communities: list) -> None:
         member_communities_additional_info = list()
