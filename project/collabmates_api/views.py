@@ -1279,6 +1279,8 @@ def join_promoter_created_community_version_1(res, request):
             communityLevels.objects.filter(community=community_instance).update(
                 level_click_state=level_click_states.COMMUNITY_JOINED)
 
+            communityToast.objects.filter(community=community_instance,user=user_instance).delete()
+
         elif member_state == member_states.PROFILE_UNAVAILABLE:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
