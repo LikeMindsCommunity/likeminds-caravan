@@ -51,7 +51,6 @@ urlpatterns = [
     path('ask_approval', api_views.ask_approval, name="ask_approval"),
 
     path('create_collabcard', api_views.create_card, name="create_card"),
-    path('v1/create_collabcard', api_views.create_collabcard_version_1, name="create_collabcard_version_1"),
 
     path('create_draft_collabcard', api_views.create_draft_collabcard, name="create_draft_collabcard"),
 
