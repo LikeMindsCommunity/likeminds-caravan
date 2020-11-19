@@ -12013,53 +12013,70 @@ def delete_conversation(request):
     current_user_instance = User.objects.get(pk=member_id)
 
     conversation_id = request.POST.get('conversation_id', None)
+    conversation_ids = request.POST.get('conversation_ids', None)
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', None)
 
-    if not conversation_id:
-        context = get_error_context(False, "send the conversation_id in post params")
+    if not conversation_ids and not conversation_id:
+        context = get_error_context(False, "send the conversation id or ids in post params")
         return JsonResponse(context)
 
     if not member_id:
         context = get_error_context(False, "send the member_id in headers")
         return JsonResponse(context)
 
-    conversation = card_answers.objects.get(pk=conversation_id)
-    community_id = conversation.community.id
-    current_member = Members.objects.filter(member_id=member_id, community_id=community_id,
-                                            state=member_states.ADMIN)  # who is viewing
-    is_promoter = False
-    if current_member.exists():
-        is_promoter = True
+    # conversation = card_answers.objects.get(pk=conversation_id)
+    # community_id = conversation.community.id
+    # current_member = Members.objects.filter(member_id=member_id, community_id=community_id,
+    #                                         state=member_states.ADMIN)  # who is viewing
+    # is_promoter = False
+    # if current_member.exists():
+    #     is_promoter = True
 
-    conversation_creator = int(conversation.user.id) == int(member_id)
+    # conversation_creator = int(conversation.user.id) == int(member_id)
 
-    if conversation_creator or is_promoter:
+    # if conversation_creator or is_promoter:
 
-        if is_promoter and not conversation_creator:
-            # calling inside to avoid a query hit in non manager case
-            if not check_admin_delete_right(user=member_id, community=community_id):
-                context = get_error_context(False, "You do not have right to delete messages")
-                return JsonResponse(context)
+        # if is_promoter and not conversation_creator:
+        #     # calling inside to avoid a query hit in non manager case
+        #     if not check_admin_delete_right(user=member_id, community=community_id):
+        #         context = get_error_context(False, "You do not have right to delete messages")
+        #         return JsonResponse(context)
 
         # conversation.is_deleted = True
         # conversation.save()
-        update_conversation_delete_status(conversation, current_user_instance, is_promoter,
-                                          conversation_creator=conversation_creator, reason=reason, tag_id=tag_id)
+        # update_conversation_delete_status(conversation, current_user_instance, is_promoter,
+        #                                   conversation_creator=conversation_creator, reason=reason, tag_id=tag_id)
 
-    else:
-        context = get_error_context(False, "Only conversation creator or community manager can delete messages")
+    # else:
+    #     context = get_error_context(False, "Only conversation creator or community manager can delete messages")
+    #     return JsonResponse(context)
+    try:
+        if conversation_ids is not None:
+            conversation_ids = json.loads(conversation_ids)
+        else:
+            conversation_ids = [conversation_id]
+        
+    except Exception as e:
+        context = get_error_context(False, e)
         return JsonResponse(context)
 
-    conversation = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+    conversation_list = []
+    for conversation_id in conversation_ids:
+        conversation = card_answers.objects.get(pk=conversation_id)
 
-    return JsonResponse({'success': True, 'conversation': conversation})
+        update_conversation_delete_status(conversation, current_user_instance, reason=reason, tag_id=tag_id)
+
+        conversation_dict = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+        conversation_list.append(conversation_dict)
+
+    return JsonResponse({'success': True, 'conversations': conversation_list})
 
     # return JsonResponse({'success': True})
 
 
-def update_conversation_delete_status(conversation_instance, current_user_instance, is_promoter,
-                                      conversation_creator, reason=None, tag_id=None):
+def update_conversation_delete_status(conversation_instance, current_user_instance, is_promoter=False,
+                                      conversation_creator=False, reason=None, tag_id=None):
 
     # deleted_by_user_state = 1 if is_promoter else 4
     # deleted_by_text = ""
