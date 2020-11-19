@@ -1279,7 +1279,7 @@ def join_promoter_created_community_version_1(res, request):
             communityLevels.objects.filter(community=community_instance).update(
                 level_click_state=level_click_states.COMMUNITY_JOINED)
 
-            communityToast.objects.filter(community=community_instance,user=user_instance).delete()
+
 
         elif member_state == member_states.PROFILE_UNAVAILABLE:
 
@@ -1290,6 +1290,7 @@ def join_promoter_created_community_version_1(res, request):
                 member_state=member_states.MEMBER, click_state=click_states.DEFAULT)
             post_introduction_card_for_community(community_id, member_id, request)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
+            communityToast.objects.filter(community=community_instance, user=user_instance).delete()
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
