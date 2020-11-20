@@ -207,6 +207,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None,previe
 
     if user and int(user) == card.user.id:
         collabcard['has_been_named'] = card.has_been_named
+        collabcard['member_id'] = card.user.id
 
     if card.community.image_link_round:
         collabcard['image_url_round'] = card.community.image_link_round
