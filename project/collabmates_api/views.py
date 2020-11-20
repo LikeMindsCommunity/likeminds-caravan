@@ -2312,6 +2312,15 @@ def remove_members(community_id, member_id, removed_state):
         instance = removedMembers(community=community_instance, member=user_instance,
                                   removed_state=removed_state, created_at=time.time())
         instance.save()
+
+        #updating the toast messages in case of removed and left
+        #toast_filter = communityToast.objects.filter(community=community_instance,user=user_instance)
+        if removed_state == deleted_members.LEFT:
+            update_community_toast(user_instance,community_instance,message="You left the community.")
+        elif removed_state == deleted_members.REMOVED:
+            update_community_toast(user_instance,community_instance,message="You are no longer a member of this community.")
+
+
         # saving collabcard state in update status
         update_chatroom = collabcardState.objects.filter(community=community_instance, user=member_id).update(
             remove=instance, updated_at=time.time())
