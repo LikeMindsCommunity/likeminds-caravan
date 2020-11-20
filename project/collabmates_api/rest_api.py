@@ -439,7 +439,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'chatroom_category', 'deleted_by', 'member_id', 'created_at',
                   'internal_link', 'images', 'pdf', 'preview','deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
-                  'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time'
+                  'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time','share_link'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -681,6 +681,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
             elif field.field_name == 'share_link':
                 share = get_share_url_text(card, self.user)
+                data["share_url"] = share['share_url']
                 data["share_url"] = share['share_url']
                 data["creator_share_url"] = share['creator_share_url']
                 data["link_created_at"] = share['link_created_at']
