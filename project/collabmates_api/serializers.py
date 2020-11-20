@@ -1348,8 +1348,10 @@ def report_serializer(report_instance, current_user_id):
     report["community_name"] = community_instance.name
 
     if report_instance.conversation is not None:
-        report["conversation"] = get_conversation_instance_for_db_synching(report_instance.conversation,
-                                                                           current_user_id=current_user_id)
+        # report["conversation"] = get_conversation_instance_for_db_synching(report_instance.conversation,
+        #                                                                    current_user_id=current_user_id)
+        member_profile = get_members_profile([conversation.user.id], conversation.community.id,
+                                             current_user_id=current_user_id, send_profile=False, remove=remove)
         report["chatroom"] = get_chatroom_instance(report_instance.conversation.card, current_user_id)
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.conversation.card)
 
