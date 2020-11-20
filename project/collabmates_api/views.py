@@ -3849,6 +3849,36 @@ def set_chatroom_active(request):
     return JsonResponse({"success": True})
 
 
+def fetch_share_url(request):
+
+    '''api to share the url of community and chatroom'''
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+    chatroom_id = request.GET.get('chatroom_id')
+    if chatroom_id:
+        try:
+            card_instance = Collabcard.objects.get(id=chatroom_id)
+        except Exception as e:
+            context = get_error_context(False,e.args)
+            return JsonResponse(context)
+
+        share = get_share_url_text(card_instance, member_id)
+        chatroom_share = {}
+
+        chatroom_share['share_url'] = share['share_url']
+        chatroom_share['creator_share_url'] = share['creator_share_url']
+        chatroom_share['link_created_at'] = share['link_created_at']
+
+        return JsonResponse({'chatroom_share':chatroom_share,'success':True})
+
+    context = get_error_context(False,"send correct chatroom id")
+    return JsonResponse(context)
+
+
 # api to deprecate
 @csrf_exempt
 def collabcard_poll(request):

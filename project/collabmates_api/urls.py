@@ -98,6 +98,7 @@ urlpatterns = [
     path('chatroom_mute', api_views.chatroom_mute, name='chatroom_mute'),
     path('chatroom_rename', api_views.chatroom_rename, name='chatroom_rename'),
     path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
+    path('fetch_share_url', api_views.fetch_share_url, name='fetch_share_url'),
     path('set_chatroom_active', api_views.set_chatroom_active, name='set_chatroom_active'),
 
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
