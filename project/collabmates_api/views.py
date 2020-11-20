@@ -1323,7 +1323,7 @@ def join_promoter_created_community_version_1(res, request):
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
         update_community_toast(user_instance, community_instance)
-g
+
         if 'shared_by' in res:
             try:
                 history_type = moderation_history_types.APPLIED_PUBLIC_LINK
