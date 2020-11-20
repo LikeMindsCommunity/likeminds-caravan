@@ -290,13 +290,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None,previe
                                    current_user_id=user, send_profile=False)
         collabcard['updated_member'] = temp[0]
 
-    if card.is_deleted and not preview:
-        member_ids = [card.deleted_by_user]
-        temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
-                                   current_user_id=user, send_profile=False)
-        collabcard['deleted_by'] = temp[0]
-    elif card.is_deleted and  preview:
-        #sending preview objects in harmony with local chatroom db
+    if card.is_deleted:
         member_ids = [card.deleted_by_user]
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
                                    current_user_id=user, send_profile=False)
@@ -304,6 +298,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None,previe
         member_obj['community_id'] = card.community.id
         member_obj['chatroom_id'] = card.id
         collabcard['deleted_by_member'] = member_obj
+        collabcard['deleted_by'] = card.deleted_by_user.id
 
 
     if card.updated_time:
