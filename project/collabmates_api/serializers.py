@@ -1675,6 +1675,7 @@ def get_preview_for_url(member_id=None, preview_url=None,
     route = None
     aj = None
     source_id = None
+    shared_by = None
     chatroom_id = None
     community_id = None
 
@@ -1703,6 +1704,8 @@ def get_preview_for_url(member_id=None, preview_url=None,
             aj = query_items['aj']
         if 'source_id' in query_items:
             source_id = query_items['source_id']
+        if 'shared_by' in query_items:
+            shared_by = query_items['shared_by']
 
     context = {"preview_type": preview_type}
     if send_preview_text:
@@ -1772,6 +1775,9 @@ def get_preview_for_url(member_id=None, preview_url=None,
 
     if source_id:
         route = route + f"&source_id={source_id}"
+
+    if shared_by:
+        route = route + f"&shared_by={shared_by}"
 
     context["action_route"] = route
 
