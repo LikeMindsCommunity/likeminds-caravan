@@ -3644,7 +3644,8 @@ def chatroom_delete(request):
         # updating collabcard delete status
         update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
                                         card_creator, reason, tag_id)
-        create_chatroom_participants_backup(card_instance=collabcard_instance)
+        #create_chatroom_participants_backup(card_instance=collabcard_instance)
+        conversationEngage.objects.filter(card=collabcard_instance).delete()
         if disallow_create_chatroom or disallow_create_chatroom == "true":
             remove_creation_rights_for_user(card_creator, community_instance)
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
