@@ -3650,7 +3650,8 @@ def chatroom_delete(request):
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
         ##setting the updated time of deleted chatroom
-        collabcardState.objects.filter(card=collabcard_instance).update(updated_at=time.time())
+        current_time = time.time()
+        collabcardState.objects.filter(card=collabcard_instance).update(updated_at=current_time)
 
         if is_promoter:
             send_notification_for_chatroom_deleted.delay(member_id, chatroom_id, community_id)
