@@ -301,7 +301,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None,previe
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
                                    current_user_id=user, send_profile=False)
         member_obj = temp[0]
-        member_obj['community_id'] = card.community_id.id
+        member_obj['community_id'] = card.community.id
         member_obj['chatroom_id'] = card.id
         collabcard['deleted_by_member'] = member_obj
 
