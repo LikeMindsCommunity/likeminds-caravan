@@ -1237,7 +1237,12 @@ def join_promoter_created_community_version_1(res, request):
                             history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
                             update_followed_for_rejoined_member(user_instance, community_instance)
 
-                        shared_user_instance = User.objects.get(pk=res['shared_by'])
+                        try:
+                            shared_user_instance = User.objects.get(pk=res['shared_by'])
+                        except:
+                            shared_user_instance = None
+                            history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+                            
                         save_moderation_history(user=user_instance, community=community_instance,
                                                 moderation_by=shared_user_instance, type=history_type)
 
@@ -1318,16 +1323,16 @@ def join_promoter_created_community_version_1(res, request):
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
         update_community_toast(user_instance, community_instance)
-
+g
         if 'shared_by' in res:
             try:
                 history_type = moderation_history_types.APPLIED_PUBLIC_LINK
                 shared_user = User.objects.get(pk=res['shared_by'])
                 member_instance.joined_by = shared_user
                 member_instance.save()
-            except User.DoesNotExist:
+            except:
                 history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
-                shared_user=None
+                shared_user = None
 
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=shared_user, type=history_type)
