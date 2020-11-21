@@ -367,7 +367,7 @@ def your_communities(request, user_id):
     create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-    communities = pagination(communities, page_number, paginate_by=6)
+    communities = pagination(communities, page_number, paginate_by=10)
     current_time = time.time()
     for each_community in communities:
 
@@ -466,7 +466,7 @@ class YourCommunitiesV1(APIView):
         create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
         communities = Member_Engage.objects.filter(member_id=user).select_related("community_id").order_by('-updated_at')
-        communities = pagination(communities, page_number, paginate_by=6)
+        communities = pagination(communities, page_number, paginate_by=10)
         current_time = time.time()
         context = {"current_user_id": current_user_id}
         community_data = YourCommunitySerializer(communities, context=context, many=True).data
@@ -1237,7 +1237,12 @@ def join_promoter_created_community_version_1(res, request):
                             history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
                             update_followed_for_rejoined_member(user_instance, community_instance)
 
-                        shared_user_instance = User.objects.get(pk=res['shared_by'])
+                        try:
+                            shared_user_instance = User.objects.get(pk=res['shared_by'])
+                        except:
+                            shared_user_instance = None
+                            history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+                            
                         save_moderation_history(user=user_instance, community=community_instance,
                                                 moderation_by=shared_user_instance, type=history_type)
 
@@ -1279,6 +1284,8 @@ def join_promoter_created_community_version_1(res, request):
             communityLevels.objects.filter(community=community_instance).update(
                 level_click_state=level_click_states.COMMUNITY_JOINED)
 
+
+
         elif member_state == member_states.PROFILE_UNAVAILABLE:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -1288,6 +1295,7 @@ def join_promoter_created_community_version_1(res, request):
                 member_state=member_states.MEMBER, click_state=click_states.DEFAULT)
             post_introduction_card_for_community(community_id, member_id, request)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
+            communityToast.objects.filter(community=community_instance, user=user_instance).delete()
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -1317,7 +1325,7 @@ def join_promoter_created_community_version_1(res, request):
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
-        update_community_toast(user_instance, community_instance)
+        update_community_toast(user_instance, community_instance,message="Your request for joining this community is pending")
 
         if 'shared_by' in res and res['shared_by']:
             try:
@@ -1325,9 +1333,9 @@ def join_promoter_created_community_version_1(res, request):
                 shared_user = User.objects.get(pk=res['shared_by'])
                 member_instance.joined_by = shared_user
                 member_instance.save()
-            except User.DoesNotExist:
+            except:
                 history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
-                shared_user=None
+                shared_user = None
 
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=shared_user, type=history_type)
@@ -1337,7 +1345,7 @@ def join_promoter_created_community_version_1(res, request):
                                     moderation_by=None, type=history_type)
 
 
-def update_community_toast(user_instance, community_instance):
+def update_community_toast(user_instance, community_instance,message=''):
     # setting the toast messages to show on community detail page
     toast_filter = communityToast.objects.filter(community=community_instance, user=user_instance)
     if not toast_filter.exists():
@@ -1345,13 +1353,13 @@ def update_community_toast(user_instance, community_instance):
         toast.community = community_instance
         toast.user = user_instance
         toast.created_at = time.time()
-        toast.toast_message = "Your request for joining this community is pending"
+        toast.toast_message = message
         toast.save()
     else:
         toast = toast_filter[0]
         toast.community = community_instance
         toast.user = user_instance
-        toast.toast_message = "Your request for joining this community is pending"
+        toast.toast_message = message
         toast.save()
 
 
@@ -2309,6 +2317,15 @@ def remove_members(community_id, member_id, removed_state):
         instance = removedMembers(community=community_instance, member=user_instance,
                                   removed_state=removed_state, created_at=time.time())
         instance.save()
+
+        #updating the toast messages in case of removed and left
+        #toast_filter = communityToast.objects.filter(community=community_instance,user=user_instance)
+        if removed_state == deleted_members.LEFT:
+            update_community_toast(user_instance,community_instance,message="You left the community.")
+        elif removed_state == deleted_members.REMOVED:
+            update_community_toast(user_instance,community_instance,message="You are no longer a member of this community.")
+
+
         # saving collabcard state in update status
         update_chatroom = collabcardState.objects.filter(community=community_instance, user=member_id).update(
             remove=instance, updated_at=time.time())
@@ -3632,10 +3649,15 @@ def chatroom_delete(request):
         # updating collabcard delete status
         update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
                                         card_creator, reason, tag_id)
-        create_chatroom_participants_backup(card_instance=collabcard_instance)
+        #create_chatroom_participants_backup(card_instance=collabcard_instance)
+        conversationEngage.objects.filter(card=collabcard_instance).delete()
         if disallow_create_chatroom or disallow_create_chatroom == "true":
             remove_creation_rights_for_user(card_creator, community_instance)
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
+
+        ##setting the updated time of deleted chatroom
+        current_time = time.time()
+        collabcardState.objects.filter(card=collabcard_instance).update(updated_at=current_time)
 
         if is_promoter:
             send_notification_for_chatroom_deleted.delay(member_id, chatroom_id, community_id)
@@ -3844,6 +3866,36 @@ def set_chatroom_active(request):
 
 
     return JsonResponse({"success": True})
+
+
+def fetch_share_url(request):
+
+    '''api to share the url of community and chatroom'''
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+    chatroom_id = request.GET.get('chatroom_id')
+    if chatroom_id:
+        try:
+            card_instance = Collabcard.objects.get(id=chatroom_id)
+        except Exception as e:
+            context = get_error_context(False,e.args)
+            return JsonResponse(context)
+
+        share = get_share_url_text(card_instance, member_id)
+        chatroom_share = {}
+
+        chatroom_share['share_url'] = share['share_url']
+        chatroom_share['creator_share_url'] = share['creator_share_url']
+        chatroom_share['link_created_at'] = share['link_created_at']
+
+        return JsonResponse({'chatroom_share':chatroom_share,'success':True})
+
+    context = get_error_context(False,"send correct chatroom id")
+    return JsonResponse(context)
 
 
 # api to deprecate
@@ -9755,10 +9807,11 @@ def skip_community(request):
         engage.save()
 
     set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
+    update_community_toast(user_instance,community_instance,message="Please complete your profile for full access")
 
     # sleeping for 2 hours to remind user to complete profile via notification
     try:
-        community_instance = Community.objects.get(id=community_id)
+        #community_instance = Community.objects.get(id=community_id)
         community_state = get_state_of_community(community_instance)
         send_notification_to_incomplete_profile.delay(member_id, community_id, community_state, community_instance.name,
                                                       time_in_hrs=2)
@@ -11906,61 +11959,34 @@ def delete_conversation(request):
     member_id = get_member_id_from_headers(request)
     current_user_instance = User.objects.get(pk=member_id)
 
-    conversation_id = request.POST.get('conversation_id', None)
-    tag_id = request.POST.get('tag_id', None)
-    reason = request.POST.get('reason', None)
+    req_body = json.loads(request.body)
 
-    if not conversation_id:
-        context = get_error_context(False, "send the conversation_id in post params")
+    conversation_ids = req_body.get('conversation_ids', None)
+    tag_id = req_body.get('tag_id', None)
+    reason = req_body.get('reason', None)
+
+    if not conversation_ids:
+        context = get_error_context(False, "send the conversation_ids in post params")
         return JsonResponse(context)
 
     if not member_id:
         context = get_error_context(False, "send the member_id in headers")
         return JsonResponse(context)
 
-    conversation = card_answers.objects.get(pk=conversation_id)
-    community_id = conversation.community.id
-    current_member = Members.objects.filter(member_id=member_id, community_id=community_id,
-                                            state=member_states.ADMIN)  # who is viewing
-    is_promoter = False
-    if current_member.exists():
-        is_promoter = True
+    conversation_list = []
+    for conversation_id in conversation_ids:
+        conversation = card_answers.objects.get(pk=conversation_id)
 
-    conversation_creator = int(conversation.user.id) == int(member_id)
+        update_conversation_delete_status(conversation, current_user_instance, reason=reason, tag_id=tag_id)
 
-    if conversation_creator or is_promoter:
+        conversation_dict = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+        conversation_list.append(conversation_dict)
 
-        if is_promoter and not conversation_creator:
-            # calling inside to avoid a query hit in non manager case
-            if not check_admin_delete_right(user=member_id, community=community_id):
-                context = get_error_context(False, "You do not have right to delete messages")
-                return JsonResponse(context)
-
-        # conversation.is_deleted = True
-        # conversation.save()
-        update_conversation_delete_status(conversation, current_user_instance, is_promoter,
-                                          conversation_creator=conversation_creator, reason=reason, tag_id=tag_id)
-
-    else:
-        context = get_error_context(False, "Only conversation creator or community manager can delete messages")
-        return JsonResponse(context)
-
-    conversation = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
-
-    return JsonResponse({'success': True, 'conversation': conversation})
-
-    # return JsonResponse({'success': True})
+    return JsonResponse({'success': True, 'conversations': conversation_list})
 
 
-def update_conversation_delete_status(conversation_instance, current_user_instance, is_promoter,
-                                      conversation_creator, reason=None, tag_id=None):
-
-    # deleted_by_user_state = 1 if is_promoter else 4
-    # deleted_by_text = ""
-    # if conversation_creator:
-    #     deleted_by_text = "creator"
-    # elif is_promoter:
-    #     deleted_by_text = "community manager"
+def update_conversation_delete_status(conversation_instance, current_user_instance,
+                                      reason=None, tag_id=None):
 
     tag_instance = None
     if tag_id:
@@ -11970,8 +11996,6 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
 
     conversation_instance.is_deleted = True
     conversation_instance.deleted_by_user = current_user_instance
-    # conversation_instance.deleted_by_user_state = deleted_by_user_state
-    # conversation_instance.deleted_by_text = deleted_by_text
     conversation_instance.tag = tag_instance
     conversation_instance.reason = reason
     conversation_instance.last_updated = int(round(time.time() * 1000))

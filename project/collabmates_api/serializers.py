@@ -180,7 +180,7 @@ def get_logged_in_user(user_instance):
     return context
 
 
-def CollabcardSerializer(card, user, community=None, current_user_id=None):
+def CollabcardSerializer(card, user, community=None, current_user_id=None,preview=False):
     # function to serialize a community object
     collabcard = {
         'id': card.id,
@@ -207,6 +207,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
 
     if user and int(user) == card.user.id:
         collabcard['has_been_named'] = card.has_been_named
+        collabcard['member_id'] = card.user.id
 
     if card.community.image_link_round:
         collabcard['image_url_round'] = card.community.image_link_round
@@ -294,8 +295,12 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None):
         member_ids = [card.deleted_by_user]
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
                                    current_user_id=user, send_profile=False)
-        collabcard['deleted_by'] = temp[0]
-        # collabcard['deleted_by_member_state'] = card.deleted_by_user_state
+        member_obj = temp[0]
+        member_obj['community_id'] = card.community.id
+        member_obj['chatroom_id'] = card.id
+        collabcard['deleted_by_member'] = member_obj
+        collabcard['deleted_by'] = card.deleted_by_user.id
+
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
@@ -524,12 +529,12 @@ def get_chatroom_name(user_name, card):
     return chatroom_name
 
 
-def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None, send_profile=True):
+def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None, send_profile=True,preview=False):
 
     if not current_user_id:
         current_user_id = member_id
 
-    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=member_id)
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=member_id,preview=preview)
 
     # get chatroom status
     status = get_status_of_collabcard(member_id, card_instance,state_instance)
@@ -1348,6 +1353,7 @@ def report_serializer(report_instance, current_user_id):
     report["community_name"] = community_instance.name
 
     if report_instance.conversation is not None:
+        report["conversation"] = conversationSerializer(report_instance.conversation, current_user_id=current_user_id)
         report["chatroom"] = get_chatroom_instance(report_instance.conversation.card, current_user_id)
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.conversation.card)
 
@@ -1674,6 +1680,7 @@ def get_preview_for_url(member_id=None, preview_url=None,
     route = None
     aj = None
     source_id = None
+    shared_by = None
     chatroom_id = None
     community_id = None
 
@@ -1702,6 +1709,8 @@ def get_preview_for_url(member_id=None, preview_url=None,
             aj = query_items['aj']
         if 'source_id' in query_items:
             source_id = query_items['source_id']
+        if 'shared_by' in query_items:
+            shared_by = query_items['shared_by']
 
     context = {"preview_type": preview_type}
     if send_preview_text:
@@ -1771,6 +1780,9 @@ def get_preview_for_url(member_id=None, preview_url=None,
 
     if source_id:
         route = route + f"&source_id={source_id}"
+
+    if shared_by:
+        route = route + f"&shared_by={shared_by}"
 
     context["action_route"] = route
 
@@ -1878,16 +1890,10 @@ def get_community_preview(community_instance, user_instance):
 def get_chatroom_preview(card_instance, member_id, active=None):
     """ function to get chatrooms """
 
-    chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False)
+    chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False,preview=True)
     conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                       state=chatroom_states.ANSWER)
     chatroom_instance['total_response_count'] = conversation_filter.count()
-
-    # if card_instance.internal_link:
-    #     chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
-    #                                                        community_instance=card_instance.preview_community,
-    #                                                        chatroom_instance=card_instance.preview_chatroom,
-    #                                                        send_preview_text=False)
 
     last_response_members = get_member_images_of_chatroom_v1(conversation_filter)
     # chatroom_instance['members_images'] = last_response_members['members_images']

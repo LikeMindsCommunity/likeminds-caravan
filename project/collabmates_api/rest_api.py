@@ -682,6 +682,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             elif field.field_name == 'share_link':
                 share = get_share_url_text(card, self.user)
                 data["share_url"] = share['share_url']
+                data["share_url"] = share['share_url']
                 data["creator_share_url"] = share['creator_share_url']
                 data["link_created_at"] = share['link_created_at']
 
