@@ -367,7 +367,7 @@ def your_communities(request, user_id):
     create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-    communities = pagination(communities, page_number, paginate_by=6)
+    communities = pagination(communities, page_number, paginate_by=10)
     current_time = time.time()
     for each_community in communities:
 
@@ -466,7 +466,7 @@ class YourCommunitiesV1(APIView):
         create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
         communities = Member_Engage.objects.filter(member_id=user).select_related("community_id").order_by('-updated_at')
-        communities = pagination(communities, page_number, paginate_by=6)
+        communities = pagination(communities, page_number, paginate_by=10)
         current_time = time.time()
         context = {"current_user_id": current_user_id}
         community_data = YourCommunitySerializer(communities, context=context, many=True).data
@@ -1237,7 +1237,12 @@ def join_promoter_created_community_version_1(res, request):
                             history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
                             update_followed_for_rejoined_member(user_instance, community_instance)
 
-                        shared_user_instance = User.objects.get(pk=res['shared_by'])
+                        try:
+                            shared_user_instance = User.objects.get(pk=res['shared_by'])
+                        except:
+                            shared_user_instance = None
+                            history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+                            
                         save_moderation_history(user=user_instance, community=community_instance,
                                                 moderation_by=shared_user_instance, type=history_type)
 
@@ -1328,9 +1333,9 @@ def join_promoter_created_community_version_1(res, request):
                 shared_user = User.objects.get(pk=res['shared_by'])
                 member_instance.joined_by = shared_user
                 member_instance.save()
-            except User.DoesNotExist:
+            except:
                 history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
-                shared_user=None
+                shared_user = None
 
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=shared_user, type=history_type)
