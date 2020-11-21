@@ -1332,12 +1332,14 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
                                                   profile_detail_api=profile_detail_api, user_admin_rights=user_admin_rights,
                                                   is_owner=is_owner, is_promoter=is_promoter
                                                   )
+            community_profile['community_id'] = community_id
             member_profile_list.append(community_profile)
 
         else:
             temp = get_user_profile(id, community_id, current_user_id=current_user_id,
                                     send_profile=send_profile, remove=remove)
             temp['state'] = 0
+            temp['community_id'] = community_id
             member_profile_list.append(temp)
 
     return member_profile_list
