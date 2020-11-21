@@ -367,7 +367,7 @@ def your_communities(request, user_id):
     create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-    communities = pagination(communities, page_number, paginate_by=6)
+    communities = pagination(communities, page_number, paginate_by=10)
     current_time = time.time()
     for each_community in communities:
 
@@ -466,7 +466,7 @@ class YourCommunitiesV1(APIView):
         create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
         communities = Member_Engage.objects.filter(member_id=user).select_related("community_id").order_by('-updated_at')
-        communities = pagination(communities, page_number, paginate_by=6)
+        communities = pagination(communities, page_number, paginate_by=10)
         current_time = time.time()
         context = {"current_user_id": current_user_id}
         community_data = YourCommunitySerializer(communities, context=context, many=True).data
