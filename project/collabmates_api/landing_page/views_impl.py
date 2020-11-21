@@ -29,4 +29,4 @@ class ViewsImpl(ViewsManager):
         member_community_manager.extract_member_communities()
         communities = member_community_manager.get_communities()
 
-        return JsonResponse({"member_communities": communities})
+        return JsonResponse({"your_communities": communities})
