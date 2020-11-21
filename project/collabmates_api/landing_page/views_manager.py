@@ -12,7 +12,7 @@ class ViewsManager(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @abc.abstractmethod
-    def get_member_communities(self) -> JsonResponse:
+    def get_member_communities(self, user_id: int) -> JsonResponse:
         """
         Get communities of the member
         """

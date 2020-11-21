@@ -9,7 +9,7 @@ from collabmates_api.views import get_error_context
 
 class ViewsImpl(ViewsManager):
 
-    def get_member_communities(self) -> JsonResponse:
+    def get_member_communities(self, user_id: int) -> JsonResponse:
 
         request = self
 
