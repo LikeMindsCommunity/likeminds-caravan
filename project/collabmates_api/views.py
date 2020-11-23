@@ -13538,8 +13538,8 @@ def sync_members(request):
         max_last_updated = 0
         for guest_instance in guest_filter:
 
-            if max_last_updated < guest_instance.created_at:
-                max_last_updated = guest_instance.created_at
+            if max_last_updated < guest_instance.updated_at:
+                max_last_updated = guest_instance.updated_at
 
             member_data = get_guest_member_instance(guest_instance)
             member_list.append(member_data)
