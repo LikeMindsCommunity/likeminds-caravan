@@ -54,14 +54,15 @@ class YourCommunitySerializer(serializers.ModelSerializer):
     actions = serializers.ListField(write_only=True)
     open_reports_count = serializers.IntegerField(write_only=True)
     pending_chatroom_count = serializers.IntegerField(write_only=True)
+    pending_members_count = serializers.IntegerField(write_only=True)
     collabcard_unseen = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Member_Engage
-        fields = ('id', 'pending_members', 'pending_chatrooms', 'open_reports_count', 'member_state',
+        fields = ('id', 'open_reports_count', 'member_state',
                   'click_state', 'collabcard_unseen', 'actions', 'name', 'purpose', 'about',
                   'member_right_states', 'pending_chatroom_count', 'image_url', 'members_count',
-                  'type', 'sub_type')
+                  'type', 'sub_type', 'pending_members_count')
 
     def __init__(self, *args, **kwargs):
         super(YourCommunitySerializer, self).__init__(*args, **kwargs)
@@ -169,22 +170,28 @@ class YourCommunitySerializer(serializers.ModelSerializer):
     def to_representation(self, community_engage):
         data = super(YourCommunitySerializer, self).to_representation(community_engage)
 
-        fields = self._readable_fields
+        # fields = self._readable_fields
+        #
+        # # for field in fields:
 
-        for field in fields:
+        if community_engage.member_state == member_states.ADMIN:
+            has_approve_right = check_admin_approve_right(self.user, community_engage.community_id)
 
-            if field.field_name == "pending_members_count" and community_engage.member_state == member_states.ADMIN:
-                has_approve_right = check_admin_approve_right(self.user, community_engage.community_id)
-                if has_approve_right:
-                    data['pending_members_count'] = community_engage.pending_members
-                else:
-                    data['pending_members_count'] = 0
+            if has_approve_right:
+                data['pending_members_count'] = community_engage.pending_members
+            else:
+                data['pending_members_count'] = 0
 
-            if field.field_name == "pending_chatroom_count" and community_engage.member_state == member_states.ADMIN:
-                data['pending_chatroom_count'] = community_engage.pending_chatrooms
+            data['pending_chatroom_count'] = community_engage.pending_chatrooms
+            data['open_reports_count'] = community_engage.open_reports
 
-            if field.field_name == "open_reports_count" and community_engage.member_state == member_states.ADMIN:
-                data['open_reports_count'] = community_engage.open_reports
+        else:
+            if 'pending_members_count' in data:
+                del data['pending_members_count']
+            if 'pending_chatroom_count' in data:
+                del data['pending_chatroom_count']
+            if 'open_reports_count' in data:
+                del data['open_reports_count']
 
         community_data = CommunitySerializerV1(community_engage.community_id).data
         data.update(**community_data)
@@ -291,6 +298,8 @@ class CommunitySerializerV1(serializers.ModelSerializer):
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
+
+        data['members_count'] = get_members_count_in_community(community)
 
         return data
 
