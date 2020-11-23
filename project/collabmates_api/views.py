@@ -13615,67 +13615,8 @@ class SyncChatrooms(APIView):
 
 
 
+
 class SyncCommunities(APIView):
-
-    def get(self, request, *args, **kwargs):
-
-        member_id = get_member_id_from_headers(request)
-        if not member_id:
-            context = get_error_context(False, "send member id in headers")
-            return JsonResponse(context)
-        query_params = request.query_params
-
-        page = query_params.get('page', 1)
-        page = int(page)
-
-        paginate_by = query_params.get('page_size', 200)
-
-        last_updated = query_params.get('last_updated', None)
-
-        chatroom_id = query_params.get('chatroom_id', '')
-        community_id = query_params.get('community_id', '')
-        if chatroom_id:
-            community_list = []
-            state_filter = Collabcard.objects.filter(id=chatroom_id)
-            if state_filter.exists():
-                temp = CommunitySerializer(state_filter[0].community,current_user_id=member_id)
-                community_list.append(temp)
-                return JsonResponse({'communities':community_list})
-            else:
-                context = get_error_context(False,"in-correct chatroom id")
-                return JsonResponse(context)
-
-        elif community_id:
-            engage_filter = Member_Engage.objects.filter(member_id=member_id,
-                                                         community_id=community_id).order_by('id')
-        else:
-            if last_updated:
-                engage_filter = Member_Engage.objects.filter(member_id=member_id,
-                                                             updated_at__gt = last_updated).order_by('id')
-            else:
-                engage_filter = Member_Engage.objects.filter(member_id=member_id).order_by('id')
-                
-        engage_filter.select_related("community_id")
-
-        engage_filter = pagination(engage_filter, page, paginate_by=paginate_by)
-
-        community_list = []
-        max_last_updated = 0
-        for data in engage_filter:
-            temp = CommunitySerializer(data.community_id, current_user_id=member_id)
-
-            if max_last_updated < data.updated_at:
-                max_last_updated = data.updated_at
-
-            community_list.append(temp)
-
-        if max_last_updated:
-            context = {'communities': community_list, 'max_last_updated': max_last_updated}
-            return JsonResponse(context)
-        return JsonResponse({'communities': community_list})
-
-
-class SyncCommunitiesV1(APIView):
 
     def get(self, request, *args, **kwargs):
 
@@ -13720,13 +13661,13 @@ class SyncCommunitiesV1(APIView):
         engage_filter = pagination(engage_filter, page, paginate_by=paginate_by)
         temp = YourCommunitySerializer(engage_filter, context=context, many=True)
 
-        # max_last_updated = 0
-        # for data in engage_filter:
-        #     if max_last_updated < data.updated_at:
-        #         max_last_updated = data.updated_at
-        #
-        # if max_last_updated:
-        #     context = {'communities': temp.data, 'max_last_updated': max_last_updated}
+        max_last_updated = 0
+        for data in engage_filter:
+            if max_last_updated < data.updated_at:
+                max_last_updated = data.updated_at
+
+        if max_last_updated:
+            context = {'communities': temp.data, 'max_last_updated': max_last_updated}
         #     return JsonResponse(context)
 
         return JsonResponse({'communities': temp.data})
