@@ -15,11 +15,8 @@ urlpatterns = [
     path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
 
     #path('communities', api_views.communities, name="communities"),
-
+  
     path('your_communities/<int:user_id>/', include('collabmates_api.landing_page.urls')),
-
-    path('v1/your_communities/<int:user_id>', api_views.YourCommunitiesV1.as_view(), name="your_communities_v1"),
-
 
     path('community/<int:community_id>', api_views.community, name="community"),
 
@@ -228,6 +225,7 @@ urlpatterns = [
     path('sync_chatrooms', api_views.SyncChatrooms.as_view(), name='sync_chatrooms'),
 
     path('sync_communities', api_views.SyncCommunities.as_view(), name='sync_communities'),
+    path('v1/sync_communities', api_views.SyncCommunitiesV1.as_view(), name='sync_communities_v1'),
 
 
 
