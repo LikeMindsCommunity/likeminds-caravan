@@ -15,7 +15,13 @@ urlpatterns = [
     path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
 
     #path('communities', api_views.communities, name="communities"),
-    path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
+
+    path('your_communities/<int:user_id>/', include('collabmates_api.landing_page.urls')),
+
+    # TODO remove this flow after #2912 BE PR merge
+    # path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
+    path('v1/your_communities/<int:user_id>', api_views.YourCommunitiesV1.as_view(), name="your_communities_v1"),
+
 
     path('community/<int:community_id>', api_views.community, name="community"),
 
