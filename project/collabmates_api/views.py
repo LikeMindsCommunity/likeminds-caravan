@@ -81,7 +81,7 @@ from cms.models import NewAnswer,userAcquition
 
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
-                       YourCommunitySerializer,CommunityHomeSerializer)
+                       YourCommunitySerializer)
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
