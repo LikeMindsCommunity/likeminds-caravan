@@ -3559,6 +3559,8 @@ def chatroom_rename(request):
             card_instance = collabcard_filter[0]
             user_instance = User.objects.get(id=member_id)
 
+            collabcardState.objects.filter(card=card_instance,user=user_instance).update(updated_at=time.time())
+
             send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
 
     else:
