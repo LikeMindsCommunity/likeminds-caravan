@@ -344,6 +344,7 @@ def get_active_chatroom_member_images(community_instance,member_id):
     temp['member_list'] = member_list
     return temp
 
+
 def my_chatrooms(request):
     '''functions to get chatrooms for users'''
 

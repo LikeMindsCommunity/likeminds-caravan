@@ -17,7 +17,7 @@ urlpatterns = [
     #path('communities', api_views.communities, name="communities"),
 
     path('your_communities/<int:user_id>/', include('collabmates_api.landing_page.urls')),
-    
+
     path('v1/your_communities/<int:user_id>', api_views.YourCommunitiesV1.as_view(), name="your_communities_v1"),
 
 
