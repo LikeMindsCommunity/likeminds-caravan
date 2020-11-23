@@ -49,7 +49,6 @@ class YourCommunitySerializer(serializers.ModelSerializer):
     sub_type = serializers.IntegerField(write_only=True)
 
     members_count = serializers.IntegerField(write_only=True)
-    # active_chatroom_users = serializers.ListField(write_only=True)
     member_right_states = serializers.ListField(write_only=True)
     actions = serializers.ListField(write_only=True)
     open_reports_count = serializers.IntegerField(write_only=True)
@@ -169,10 +168,7 @@ class YourCommunitySerializer(serializers.ModelSerializer):
 
     def to_representation(self, community_engage):
         data = super(YourCommunitySerializer, self).to_representation(community_engage)
-
-        # fields = self._readable_fields
-        #
-        # # for field in fields:
+        fields = self._readable_fields
 
         if community_engage.member_state == member_states.ADMIN:
             has_approve_right = check_admin_approve_right(self.user, community_engage.community_id)
@@ -216,6 +212,10 @@ class YourCommunitySerializer(serializers.ModelSerializer):
         data['click_state'] = community_engage.click_state
 
         data['actions'] = actions
+
+        for field in fields:
+            if data[field.field_name] is None:
+                del data[field.field_name]
 
         return data
 
