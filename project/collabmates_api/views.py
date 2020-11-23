@@ -13691,11 +13691,9 @@ class SyncCommunitiesV1(APIView):
         context = {"current_user_id": member_id}
 
         if chatroom_id:
-            # community_list = []
             state_filter = Collabcard.objects.filter(id=chatroom_id).select_related('community')
             if state_filter.exists():
                 temp = CommunitySerializerV1([state_filter[0].community], context=context, many=True)
-                # community_list.append(temp)
                 return JsonResponse({'communities': temp.data})
             else:
                 context = get_error_context(False, "in-correct chatroom id")
@@ -13715,14 +13713,14 @@ class SyncCommunitiesV1(APIView):
         engage_filter = pagination(engage_filter, page, paginate_by=paginate_by)
         temp = YourCommunitySerializer(engage_filter, context=context, many=True)
 
-        max_last_updated = 0
-        for data in engage_filter:
-            if max_last_updated < data.updated_at:
-                max_last_updated = data.updated_at
-
-        if max_last_updated:
-            context = {'communities': temp.data, 'max_last_updated': max_last_updated}
-            return JsonResponse(context)
+        # max_last_updated = 0
+        # for data in engage_filter:
+        #     if max_last_updated < data.updated_at:
+        #         max_last_updated = data.updated_at
+        #
+        # if max_last_updated:
+        #     context = {'communities': temp.data, 'max_last_updated': max_last_updated}
+        #     return JsonResponse(context)
 
         return JsonResponse({'communities': temp.data})
 
