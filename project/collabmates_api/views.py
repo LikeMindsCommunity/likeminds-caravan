@@ -81,7 +81,7 @@ from cms.models import NewAnswer,userAcquition
 
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
-                       YourCommunitySerializer)
+                       YourCommunitySerializer,CommunityHomeSerializer)
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -1977,6 +1977,7 @@ def edit_member_profile(request):
 
             if collabcard_id and question_instance.question_state == question_states.INTRODUCTION:
                 Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
+                collabcardState.objects.filter(card=collabcard_id,user=member_id).update(updated_at=time.time())
 
     update_hidden_fields_in_questions(user_instance, community_instance)
     form_response = FormResponseSerilaizer(community_id, member_id, bl=True, current_user_id=member_id)
@@ -5729,6 +5730,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         if not instance.external_seen:
             instance.external_seen = True
             instance.expiry_time = get_expiry_time_of_chatroom()
+            instance.updated_at = time.time()
             instance.save()
 
 
@@ -5998,6 +6000,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
         if not instance.external_seen:
             instance.external_seen = True
             instance.expiry_time = get_expiry_time_of_chatroom()
+            instance.updated_at = time.time()
             instance.save()
 
     if chatroom_state.exists():
@@ -7029,7 +7032,7 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
 
 
     update_status = collabcardState.objects.filter(card=card_instance, follow_status=True, remove=None).filter(~Q(user=user_id)).update(
-        expiry_time=None)
+        expiry_time=None,updated_at = time.time())
 
     print(update_status)
 
@@ -7051,6 +7054,7 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
         for data in seen_filter:
             expiry_time = get_expiry_time_of_chatroom(data)
             data.expiry_time = expiry_time
+            data.updated_at = time.time()
             data.save()
 
     # print(update_status)
