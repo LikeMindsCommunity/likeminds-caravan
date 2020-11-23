@@ -13671,18 +13671,23 @@ class SyncCommunities(APIView):
                 return JsonResponse(context)
 
         elif community_id:
-            engage_filter = Member_Engage.objects.filter(member_id=member_id,community_id=community_id).order_by('id')
+            engage_filter = Member_Engage.objects.filter(member_id=member_id,
+                                                         community_id=community_id).order_by('id')
         else:
             if last_updated:
-                engage_filter = Member_Engage.objects.filter(member_id=member_id,updated_at__gt = last_updated).order_by('id')
+                engage_filter = Member_Engage.objects.filter(member_id=member_id,
+                                                             updated_at__gt = last_updated).order_by('id')
             else:
                 engage_filter = Member_Engage.objects.filter(member_id=member_id).order_by('id')
+                
+        engage_filter.select_related("community_id")
 
-        engage_filter = pagination(engage_filter,page,paginate_by=paginate_by)
+        engage_filter = pagination(engage_filter, page, paginate_by=paginate_by)
+
         community_list = []
         max_last_updated = 0
         for data in engage_filter:
-            temp = CommunitySerializer(data.community_id,current_user_id=member_id)
+            temp = CommunitySerializer(data.community_id, current_user_id=member_id)
 
             if max_last_updated < data.updated_at:
                 max_last_updated = data.updated_at
@@ -13690,9 +13695,9 @@ class SyncCommunities(APIView):
             community_list.append(temp)
 
         if max_last_updated:
-            context = {'communities': community_list,'max_last_updated':max_last_updated}
+            context = {'communities': community_list, 'max_last_updated': max_last_updated}
             return JsonResponse(context)
-        return JsonResponse({'communities':community_list})
+        return JsonResponse({'communities': community_list})
 
 
 # =========================== block member ========================================================
