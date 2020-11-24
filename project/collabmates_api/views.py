@@ -6988,8 +6988,7 @@ def create_conversation(request):
     user_id = str(user_instance.id)
     save_the_latest_conversation(card_instance, user_id)
 
-    #for checking api
-    update_activity_in_chatroom_for_conversation_creation(card_instance.id, user_id=user_id)
+
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'],has_files=has_files,is_ios=is_ios)
 
     conversation = get_conversation_instance_for_db_synching(ans,current_user_id=member_id)
@@ -7020,8 +7019,11 @@ def conversation_tagging(request, res, card_instance, user_instance, member_id):
 
 @shared_task
 def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, res_text,has_files=False,is_ios=False):
+
     update_my_chatrooms_for_users(chatroom_id=card_instance_id)
-    #update_activity_in_chatroom_for_conversation_creation(card_instance_id, user_id=user_id)
+    update_activity_in_chatroom_for_conversation_creation(card_instance_id, user_id=user_id)
+    #adding the sleep of 2 seconds for table updation for testing
+    time.sleep(2)
     if not has_files:
         send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
 
