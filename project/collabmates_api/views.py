@@ -13668,7 +13668,7 @@ class SyncCommunities(APIView):
 
         if max_last_updated:
             context = {'communities': temp.data, 'max_last_updated': max_last_updated}
-        #     return JsonResponse(context)
+            return JsonResponse(context)
 
         return JsonResponse({'communities': temp.data})
 
