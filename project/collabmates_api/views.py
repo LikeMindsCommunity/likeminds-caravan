@@ -3868,8 +3868,33 @@ def fetch_share_url(request):
         return JsonResponse({'chatroom_share':chatroom_share,'success':True})
 
     if community_id:
+        try:
+            community_instance = Community.objects.get(id=community_id)
+            user_instance = User.objects.get(id=member_id)
+        except Exception as e:
+            context = get_error_context(False,e.args)
+            return JsonResponse(context)
 
-       pass
+
+        community_share = {}
+        member_filter = Members.objects.filter(member_id=user_instance,community_id=community_instance)
+        if member_filter.exists():
+            member_instance = member_filter[0]
+            if member_instance == member_states.ADMIN:
+                private_link = generate_private_link(community_instance=community,
+                                                     promoter_instance=member_instance)
+                private_link = private_link + f"&shared_by={member_id}"
+                community_share['private_link'] = private_link
+
+                members_count = get_members_count_in_community(community_id)
+                if members_count <= 10:
+                    community_share['private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
+            community_instance.name, private_link)
+
+
+
+
+
 
 
 
@@ -7019,7 +7044,7 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
     if state_filter.exists():
         expiry_time = get_expiry_time_of_chatroom(state_filter[0])
-        state_filter.update(expiry_time=expiry_time)
+        state_filter.update(expiry_time=expiry_time,updated_at=time.time())
 
     # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
