@@ -3877,6 +3877,7 @@ def fetch_share_url(request):
 
 
         community_share = {}
+        community_share['share_url'] = url + '/community/' + community_id +  f"?shared_by={member_id}"
         member_filter = Members.objects.filter(member_id=user_instance,community_id=community_instance)
         if member_filter.exists():
             member_instance = member_filter[0]
@@ -3887,17 +3888,34 @@ def fetch_share_url(request):
                 community_share['private_link'] = private_link
 
                 members_count = get_members_count_in_community(community_id)
+
                 if members_count <= 10:
-                    community_share['private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
-            community_instance.name, private_link)
+                    community_share['private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (community_instance.name, private_link)
+                else:
+                    community_share['private_link_text_admin'] = """Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
+                        community_instance.name, private_link)
 
+                private_link_members_directory = private_link + "&source=members_directory"
+                if member_instance.is_owner:
+                    private_link_text_members_directory = f"I have created a community directory for {community.name} on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}"
+                else:
+                    private_link_text_members_directory = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
 
+                community_share['private_link_text_members_directory'] = private_link_text_members_directory
+            else:
+                if check_member_invite_private_right(user_instance, community_instance):
+                    private_link = generate_private_link(community_instance=community_instance,
+                                                         promoter_instance=user_instance)
 
+                    private_link = private_link + f"&shared_by={member_id}"
 
+                    community_share[
+                        'private_link_text_member'] = f"Join {community_instance.name} on LikeMinds with my exclusive link. For security, this is valid only for next 24 hours: {private_link}"
 
+                    private_link_members_directory = private_link + "&source=members_directory"
+                    community_share['members_directory_link_for_members'] = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
 
-
-
+            return JsonResponse({'community_share': community_share, 'success': True})
 
     context = get_error_context(False,"send correct chatroom id")
     return JsonResponse(context)
