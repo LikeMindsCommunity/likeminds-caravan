@@ -3559,7 +3559,7 @@ def chatroom_rename(request):
             card_instance = collabcard_filter[0]
             user_instance = User.objects.get(id=member_id)
 
-            collabcardState.objects.filter(card=card_instance,user=user_instance).update(updated_at=time.time())
+            collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
 
             send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
 
@@ -3850,6 +3850,7 @@ def fetch_share_url(request):
         return JsonResponse(context)
 
     chatroom_id = request.GET.get('chatroom_id')
+    community_id = request.GET.get('community_id')
     if chatroom_id:
         try:
             card_instance = Collabcard.objects.get(id=chatroom_id)
@@ -3865,6 +3866,13 @@ def fetch_share_url(request):
         chatroom_share['link_created_at'] = share['link_created_at']
 
         return JsonResponse({'chatroom_share':chatroom_share,'success':True})
+
+    if community_id:
+
+       pass
+
+
+
 
     context = get_error_context(False,"send correct chatroom id")
     return JsonResponse(context)
