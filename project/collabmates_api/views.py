@@ -8403,7 +8403,7 @@ def upload_files(request):
 
     #sending the chatroom local object
     if chatroom_local:
-        context['chatoom_local'] = chatroom_local.data
+        context['chatroom_local'] = chatroom_local.data
 
 
     return JsonResponse(context)
