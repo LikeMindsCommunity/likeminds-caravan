@@ -3726,7 +3726,6 @@ def set_chatroom_active(request):
     if state_filter.exists():
         info_logger.info("state of data exists")
         instance = state_filter[0]
-        expiry_time = instance.expiry_time
         instance.updated_at = time.time()
         instance.expiry_time = updated_time
         instance.save()
@@ -7227,7 +7226,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
     if collabcard_state_filter.exists():
         if collabcard_state_filter[0].follow_status == status:
             if collabcard_state_filter[0].is_tagged:
-                collabcard_state_filter.update(is_tagged=False,mute_status=False)
+                collabcard_state_filter.update(is_tagged=False,mute_status=False,updated_at=time.time())
             print("follow hit")
             return
 
@@ -7462,7 +7461,7 @@ def collabcard_attend(request):
         try:
             collabcardState.objects.filter(card=card_instance,
                                            user=user_instance).update(state=state,
-                                                                      attending_status=False)
+                                                                      attending_status=False,updated_at=time.time())
 
         except:
             # collabcard_state_instance = collabcardState()
@@ -11815,6 +11814,7 @@ def submit_poll(request):
             'source': "submit poll"
         }
         collabcard_follow_internal(function_dict)
+        collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
         return JsonResponse({"success": True})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
@@ -11855,6 +11855,8 @@ def add_poll(request):
             collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None
             collabcardpolls_instance.save()
             poll_list.append(CollabcardPollsSerializer(collabcardpolls_instance, user_instance, card_instance))
+
+        collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
         return JsonResponse({"success": True, "polls": poll_list})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
