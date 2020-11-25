@@ -2838,7 +2838,7 @@ def create_card(request, req_dict=None):
     if req_dict:
         return context
 
-    #sending the local chatroom object
+    #sending the local chatroom object for syncing in local db of clients
     member_data = {'member_id': user_id, 'current_user_id': user_id, 'state_instance': None}
     chatroom_obj = GetChatroomInstanceSerializer(context['card_instance'], context=member_data, many=False)
 
