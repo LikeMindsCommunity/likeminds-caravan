@@ -8164,7 +8164,8 @@ def upload_files(request):
         file = Card_Attachment()
         file.collabcard = card_instance
         file.type = attachment_type
-        file.file_url = body['url']
+        file.file_url = body['url'] if 'index' in body else 1
+        file.index = body['index']
         file.save()
 
         #updating updated_at for synching apis
@@ -8188,6 +8189,7 @@ def upload_files(request):
         file.answer = answer_instance
         file.type = attachment_type
         file.file_url = body['url'] if 'url' in body else None
+        file.index = body['index'] if 'index' in body else 1
         file.location_name = body['location_name'] if 'location_name' in body else None
         file.location_lat = body['location_lat'] if 'location_lat' in body else None
         file.location_long = body['location_long'] if 'location_long' in body else None
@@ -8224,6 +8226,7 @@ def upload_files(request):
         instance = draftChatroomFiles()
         instance.draft = draft_instance
         instance.file_url = body['url']
+        instance.index = body['index']
         instance.type = attachment_type
         instance.save()
 
