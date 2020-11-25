@@ -1180,7 +1180,7 @@ def join_promoter_created_community_version_1(res, request):
 
             if 'value' not in question or not question['value']:
                 continue
-g
+                
             question_instance = communityQuestions.objects.get(id=question['id'])
 
             if question_instance.is_hidden:
