@@ -432,7 +432,6 @@ def my_chatrooms(request):
 
         my_chatrooms.append(chatroom)
 
-    #in_active_chatroom = get_inactive_chatrooms_count(member_id,current_time)
 
     return JsonResponse({"my_chatrooms": my_chatrooms})
 
@@ -3547,12 +3546,7 @@ def chatroom_delete(request):
 def update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
                                     card_creator, reason=None, tag_id=None):
 
-    # deleted_by_user_state = 1 if is_promoter else 4
-    # deleted_by_text = ""
-    # if card_creator:
-    #     deleted_by_text = "creator"
-    # elif is_promoter:
-    #     deleted_by_text = "community manager"
+
 
     tag_instance = None
     if tag_id:
@@ -3567,8 +3561,6 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
 
     collabcard_instance.is_deleted = True
     collabcard_instance.deleted_by_user = current_user_instance
-    # collabcard_instance.deleted_by_user_state = deleted_by_user_state
-    # collabcard_instance.deleted_by_text = deleted_by_text
     collabcard_instance.tag = tag_instance
     collabcard_instance.reason = reason
     collabcard_instance.updated_time = time.time()
@@ -3592,74 +3584,6 @@ def fetch_deleted_chatroom(request):
     # logic has to be updated according to new flow of card deletion
     return JsonResponse({"deleted_chatrooms": []})
 
-    # if request.method == 'GET':
-        # member_id = get_member_id_from_headers(request)
-        # user_instance = User.objects.get(pk=member_id)
-
-        # deleted_chatrooms = CollabcardStateBackup.objects.select_related('card', 'card__tag').filter(
-        #                     user=user_instance, seen_status=False)
-        #
-        # toast_title = ''
-        # title = ''
-        # sub_title = ''
-        # deleted_chatrooms_count = deleted_chatrooms.count()
-        # if deleted_chatrooms_count == 1:
-        #     chatroom = deleted_chatrooms[0]
-        #     toast_title = f'Your followed chatroom "{chatroom.card.header}"'
-        #
-        #     deleted_by = ''
-        #     if chatroom.card.deleted_by_promoter:
-        #         deleted_by = f"was deleted by a {chatroom.card.deleted_by_text}"
-        #     if chatroom.card.deleted_by_creator:
-        #         deleted_by = f"was deleted by its {chatroom.card.deleted_by_text}"
-        #
-        #     toast_title = toast_title + deleted_by
-        #     title = 'Chat room deleted'
-        #
-        #     sub_title = f'Chat room "{chatroom.card.header}" {deleted_by} citing following reason:'
-        #
-        # elif deleted_chatrooms_count > 0:
-        #     toast_title = f'{deleted_chatrooms_count} of your followed chatroom were removed'
-        #     title = 'Chat rooms deleted'
-        #     sub_title = toast_title
-        #
-        # chatrooms_list = []
-        # for chatroom in deleted_chatrooms:
-        #
-        #     content = {
-        #         "header": chatroom.card.header,
-        #         "deleted_by_text": f"Removed by {chatroom.card.deleted_by_text}",
-        #     }
-        #
-        #     member_ids = [chatroom.card.deleted_by_user]
-        #     content["deleted_by"] = get_members_profile(member_ids=member_ids, community_id=chatroom.card.community,
-        #                                                 current_user_id=user_instance)
-        #
-        #     if chatroom.card.tag is not None:
-        #         tag_dict = {}
-        #         tag_dict['id'] = chatroom.card.tag.tag_id
-        #         tag_dict['name'] = chatroom.card.tag.tag_name
-        #         content["tag"] = tag_dict
-        #
-        #     if chatroom.card.reason is not None:
-        #         content["reason"] = chatroom.card.reason
-        #
-        #     chatrooms_list.append(content)
-        #
-        # final_dict = {
-        #     "toast_title": toast_title,
-        #     "toast_action": "Why",
-        #     "title": title,
-        #     "sub_title": sub_title,
-        #     "deleted_chatrooms": chatrooms_list,
-        #     "deleted_chatrooms_count": deleted_chatrooms_count,
-        # }
-        #
-        # # updating deleted chatroom seen status to True to not show them again
-        # updated_chatrooms = CollabcardStateBackup.objects.filter(user=user_instance).update(seen_status=True)
-        #
-        # return JsonResponse({"deleted_chatrooms": final_dict})
-    # return JsonResponse({"success": False})
 
 
 def update_activity_in_chatroom(card_instance, user_instance):
@@ -5396,12 +5320,6 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
                                                      community_instance=ans.preview_community,
                                                      chatroom_instance=ans.preview_chatroom,
                                                      send_preview_text=False)
-        # if ans.is_deleted:
-        #     member_ids = [ans.deleted_by_user]
-        #     temp = get_members_profile(member_ids=member_ids, community_id=community_id,
-        #                                current_user_id=current_user_id, send_profile=False)
-        #     context['deleted_by'] = temp[0]
-            # context['deleted_by_member_state'] = ans.deleted_by_user_state
 
         if is_ios and ans.internal_link:
             context['answer'] = context['answer'] + f"\n{ans.internal_link}"
