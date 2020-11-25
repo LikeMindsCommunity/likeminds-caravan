@@ -18,10 +18,6 @@ urlpatterns = [
   
     path('your_communities/<int:user_id>/', include('collabmates_api.landing_page.urls')),
 
-    # TODO remove this flow after #2912 BE PR merge
-    # path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
-
-
     path('community/<int:community_id>', api_views.community, name="community"),
 
     path('similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
