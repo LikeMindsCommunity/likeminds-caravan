@@ -3461,6 +3461,8 @@ def chatroom_rename(request):
             card_instance = collabcard_filter[0]
             user_instance = User.objects.get(id=member_id)
 
+            collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
+
             send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
 
     else:
@@ -3750,6 +3752,7 @@ def fetch_share_url(request):
         return JsonResponse(context)
 
     chatroom_id = request.GET.get('chatroom_id')
+    community_id = request.GET.get('community_id')
     if chatroom_id:
         try:
             card_instance = Collabcard.objects.get(id=chatroom_id)
@@ -3765,6 +3768,38 @@ def fetch_share_url(request):
         chatroom_share['link_created_at'] = share['link_created_at']
 
         return JsonResponse({'chatroom_share':chatroom_share,'success':True})
+
+    if community_id:
+        try:
+            community_instance = Community.objects.get(id=community_id)
+            user_instance = User.objects.get(id=member_id)
+        except Exception as e:
+            context = get_error_context(False,e.args)
+            return JsonResponse(context)
+
+
+        community_share = {}
+        member_filter = Members.objects.filter(member_id=user_instance,community_id=community_instance)
+        if member_filter.exists():
+            member_instance = member_filter[0]
+            if member_instance == member_states.ADMIN:
+                private_link = generate_private_link(community_instance=community,
+                                                     promoter_instance=member_instance)
+                private_link = private_link + f"&shared_by={member_id}"
+                community_share['private_link'] = private_link
+
+                members_count = get_members_count_in_community(community_id)
+                if members_count <= 10:
+                    community_share['private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
+            community_instance.name, private_link)
+
+
+
+
+
+
+
+
 
     context = get_error_context(False,"send correct chatroom id")
     return JsonResponse(context)
@@ -6855,6 +6890,8 @@ def create_conversation(request):
     user_id = str(user_instance.id)
     save_the_latest_conversation(card_instance, user_id)
 
+    update_my_chatrooms_for_users(chatroom_id=card_instance.id)
+    update_activity_in_chatroom_for_conversation_creation(card_instance.id, user_id=user_id)
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'],has_files=has_files,is_ios=is_ios)
 
     conversation = get_conversation_instance_for_db_synching(ans,current_user_id=member_id)
@@ -6885,8 +6922,11 @@ def conversation_tagging(request, res, card_instance, user_instance, member_id):
 
 @shared_task
 def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, res_text,has_files=False,is_ios=False):
-    update_my_chatrooms_for_users(chatroom_id=card_instance_id)
-    update_activity_in_chatroom_for_conversation_creation(card_instance_id, user_id=user_id)
+
+    # update_my_chatrooms_for_users(chatroom_id=card_instance_id)
+    # update_activity_in_chatroom_for_conversation_creation(card_instance_id, user_id=user_id)
+    #adding the sleep of 2 seconds for table updation for testing
+    #time.sleep(2)
     if not has_files:
         send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
 
@@ -6911,7 +6951,7 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
     if state_filter.exists():
         expiry_time = get_expiry_time_of_chatroom(state_filter[0])
-        state_filter.update(expiry_time=expiry_time)
+        state_filter.update(expiry_time=expiry_time,updated_at=time.time())
 
     # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
@@ -8135,9 +8175,8 @@ def upload_files(request):
     member_id = get_member_id_from_headers(request)
 
     conversation = None
-    context = {
-        'success': True,
-    }
+    chatroom_local = None
+
 
     context = {
         'success': True,
@@ -8194,6 +8233,9 @@ def upload_files(request):
         if uploaded_files_count == int(files_count):
             user_instance = User.objects.get(id=member_id)
             send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
+
+        member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
+        chatroom_local = GetChatroomInstanceSerializer(card_instance, context=member_data, many=False)
 
 
 
@@ -8260,6 +8302,10 @@ def upload_files(request):
     # sending the conversation instance if present
     if conversation:
         context['conversation'] = conversation
+
+    #sending the chatroom local object
+    if chatroom_local:
+        context['chatroom_local'] = chatroom_local.data
 
 
     return JsonResponse(context)
@@ -13438,8 +13484,8 @@ def sync_members(request):
         max_last_updated = 0
         for guest_instance in guest_filter:
 
-            if max_last_updated < guest_instance.created_at:
-                max_last_updated = guest_instance.created_at
+            if max_last_updated < guest_instance.updated_at:
+                max_last_updated = guest_instance.updated_at
 
             member_data = get_guest_member_instance(guest_instance)
             member_list.append(member_data)
@@ -13515,62 +13561,8 @@ class SyncChatrooms(APIView):
 
 
 
+
 class SyncCommunities(APIView):
-
-    def get(self, request, *args, **kwargs):
-
-        member_id = get_member_id_from_headers(request)
-        if not member_id:
-            context = get_error_context(False, "send member id in headers")
-            return JsonResponse(context)
-        query_params = request.query_params
-
-        page = query_params.get('page', 1)
-        page = int(page)
-
-        paginate_by = query_params.get('page_size', 200)
-
-        last_updated = query_params.get('last_updated', None)
-
-        chatroom_id = query_params.get('chatroom_id', '')
-        community_id = query_params.get('community_id', '')
-        if chatroom_id:
-            community_list = []
-            state_filter = Collabcard.objects.filter(id=chatroom_id)
-            if state_filter.exists():
-                temp = CommunitySerializer(state_filter[0].community,current_user_id=member_id)
-                community_list.append(temp)
-                return JsonResponse({'communities':community_list})
-            else:
-                context = get_error_context(False,"in-correct chatroom id")
-                return JsonResponse(context)
-
-        elif community_id:
-            engage_filter = Member_Engage.objects.filter(member_id=member_id,community_id=community_id).order_by('id')
-        else:
-            if last_updated:
-                engage_filter = Member_Engage.objects.filter(member_id=member_id,updated_at__gt = last_updated).order_by('id')
-            else:
-                engage_filter = Member_Engage.objects.filter(member_id=member_id).order_by('id')
-
-        engage_filter = pagination(engage_filter,page,paginate_by=paginate_by)
-        community_list = []
-        max_last_updated = 0
-        for data in engage_filter:
-            temp = CommunitySerializer(data.community_id,current_user_id=member_id)
-
-            if max_last_updated < data.updated_at:
-                max_last_updated = data.updated_at
-
-            community_list.append(temp)
-
-        if max_last_updated:
-            context = {'communities': community_list,'max_last_updated':max_last_updated}
-            return JsonResponse(context)
-        return JsonResponse({'communities':community_list})
-
-
-class SyncCommunitiesV1(APIView):
 
     def get(self, request, *args, **kwargs):
 
@@ -13615,14 +13607,14 @@ class SyncCommunitiesV1(APIView):
         engage_filter = pagination(engage_filter, page, paginate_by=paginate_by)
         temp = YourCommunitySerializer(engage_filter, context=context, many=True)
 
-        # max_last_updated = 0
-        # for data in engage_filter:
-        #     if max_last_updated < data.updated_at:
-        #         max_last_updated = data.updated_at
-        #
-        # if max_last_updated:
-        #     context = {'communities': temp.data, 'max_last_updated': max_last_updated}
-        #     return JsonResponse(context)
+        max_last_updated = 0
+        for data in engage_filter:
+            if max_last_updated < data.updated_at:
+                max_last_updated = data.updated_at
+
+        if max_last_updated:
+            context = {'communities': temp.data, 'max_last_updated': max_last_updated}
+            return JsonResponse(context)
 
         return JsonResponse({'communities': temp.data})
 
