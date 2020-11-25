@@ -127,9 +127,6 @@ def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
 
     return tagging_list
 
-
-
-
 def get_pending_members_of_community(community_id, requested_member_id):
 
     """ functions to get pending members of the community """
