@@ -3817,6 +3817,12 @@ def fetch_share_url(request):
                     private_link_members_directory = private_link + "&source=members_directory"
                     community_share['members_directory_link_for_members'] = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
 
+            community_share['share_text_admin'] = """I am building %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
+        community_instance.name, community_instance.purpose, community_share['share_url'])
+            community_share['share_text_member'] = """I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
+        community_instance.name, community_instance.purpose, community_share['share_url'])
+            community_share['share_text_anonymous'] =  """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
+        community_instance.name)
             return JsonResponse({'community_share': community_share, 'success': True})
 
     context = get_error_context(False,"send correct chatroom id")
