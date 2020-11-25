@@ -9572,7 +9572,8 @@ def limit_access(request):
     try:
         user_instance = User.objects.get(id=member_id)
     except:
-        return {}
+        context = get_error_context(False,"send correct user id")
+        return JsonResponse(context)
     context = {}
 
     context['header_image'] = LIMIT_ACCESS_HEADER_IMAGE
