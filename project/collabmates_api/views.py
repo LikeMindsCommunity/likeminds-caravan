@@ -11855,6 +11855,8 @@ def add_poll(request):
             collabcardpolls_instance.image_url = poll['image_url'] if ('image_url' in poll) else None
             collabcardpolls_instance.save()
             poll_list.append(CollabcardPollsSerializer(collabcardpolls_instance, user_instance, card_instance))
+
+        collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
         return JsonResponse({"success": True, "polls": poll_list})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
