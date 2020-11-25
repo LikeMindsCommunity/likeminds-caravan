@@ -7227,7 +7227,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
     if collabcard_state_filter.exists():
         if collabcard_state_filter[0].follow_status == status:
             if collabcard_state_filter[0].is_tagged:
-                collabcard_state_filter.update(is_tagged=False,mute_status=False)
+                collabcard_state_filter.update(is_tagged=False,mute_status=False,updated_at=time.time())
             print("follow hit")
             return
 
@@ -7462,7 +7462,7 @@ def collabcard_attend(request):
         try:
             collabcardState.objects.filter(card=card_instance,
                                            user=user_instance).update(state=state,
-                                                                      attending_status=False)
+                                                                      attending_status=False,updated_at=time.time())
 
         except:
             # collabcard_state_instance = collabcardState()
@@ -11815,6 +11815,7 @@ def submit_poll(request):
             'source': "submit poll"
         }
         collabcard_follow_internal(function_dict)
+        collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
         return JsonResponse({"success": True})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
