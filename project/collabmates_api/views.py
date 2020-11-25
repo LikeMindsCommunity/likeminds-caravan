@@ -8273,9 +8273,8 @@ def upload_files(request):
     member_id = get_member_id_from_headers(request)
 
     conversation = None
-    context = {
-        'success': True,
-    }
+    chatroom_local = None
+
 
     context = {
         'success': True,
@@ -8332,6 +8331,9 @@ def upload_files(request):
         if uploaded_files_count == int(files_count):
             user_instance = User.objects.get(id=member_id)
             send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
+
+        member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
+        chatroom_local = GetChatroomInstanceSerializer(card_instance, context=member_data, many=False)
 
 
 
@@ -8398,6 +8400,10 @@ def upload_files(request):
     # sending the conversation instance if present
     if conversation:
         context['conversation'] = conversation
+
+    #sending the chatroom local object
+    if chatroom_local:
+        context['chatoom_local'] = chatroom_local.data
 
 
     return JsonResponse(context)
