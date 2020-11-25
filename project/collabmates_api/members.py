@@ -86,6 +86,46 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
     tagging_list = tagging_list + guest_list
     return tagging_list
 
+def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
+
+    '''function to return tagging list of members in chatroom'''
+    if not chatroom_id:
+        return []
+
+    tagging_list = []
+    try:
+        card_instance  = Collabcard.objects.get(id = chatroom_id)
+    except Exception as e:
+        return []
+
+    state_filter = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None)
+    user_set = set()
+    for data in state_filter:
+        user_instance = data.user
+        user_id = user_instance.id
+        if current_user_id and int(current_user_id) == user_id:
+            continue
+        temp = get_user_profile(user_instance,send_profile=False)
+        temp['is_participant'] = True
+        tagging_list.append(temp)
+        user_set.add(user_id)
+
+    community = card_instance.community
+    member_filter = Members.objects.filter(community_id=community)
+    for member in member_filter:
+        user_instance = member.member_id
+        user_id = user_instance.id
+
+        if current_user_id and int(current_user_id) == user_id:
+            continue
+
+        if user_id not in user_set:
+            temp = get_user_profile(user_instance,send_profile=False)
+            temp['is_participant'] = False
+            tagging_list.append(temp)
+            user_set.add(user_id)
+
+    return tagging_list
 
 def get_pending_members_of_community(community_id, requested_member_id):
 
@@ -378,7 +418,6 @@ def get_filtered_users(filter_list,member_list):
 
 def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1,member_set=None):
 
-
     card_instance = Collabcard.objects.get(id=card_id)
     is_event_card = card_instance.type == card_types.CARD_EVENT
     state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
@@ -387,11 +426,10 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
     collabcard_state_list = collabcardState.objects.filter(card=card_id, remove=None).order_by('-user_id')
 
     if is_event_card:
-        collabcard_state_list = collabcard_state_list.filter(Q(state=state_list[0]) | Q(state=state_list[1])
-                                                             | Q(follow_status=True))
+        collabcard_state_list = collabcard_state_list.filter(Q(state=state_list[0]) | Q(state=state_list[1]) |
+                                                             Q(follow_status=True) | Q(attending_status=True))
     else:
         collabcard_state_list = collabcard_state_list.filter(follow_status=True)
-
 
     show_removed = False
     paginated_data = get_paginated_queryset_with_maxpages(collabcard_state_list,page_no,paginate_by=10)
@@ -410,6 +448,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
         user_context = get_members_profile([user_instance.id],community_id,current_user_id)
         user_context = user_context[0]
         user_context['collabcard_state'] = instance.state
+        user_context['attending_status'] = instance.attending_status
         user_context['is_guest'] = instance.is_guest
 
         #if the user is the guest in that chatroom

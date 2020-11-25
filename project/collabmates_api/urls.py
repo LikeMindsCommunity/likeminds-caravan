@@ -15,8 +15,8 @@ urlpatterns = [
     path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
 
     #path('communities', api_views.communities, name="communities"),
-    path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
-    path('v1/your_communities/<int:user_id>', api_views.YourCommunitiesV1.as_view(), name="your_communities_v1"),
+  
+    path('your_communities/<int:user_id>/', include('collabmates_api.landing_page.urls')),
 
     path('community/<int:community_id>', api_views.community, name="community"),
 
@@ -49,12 +49,14 @@ urlpatterns = [
     path('ask_approval', api_views.ask_approval, name="ask_approval"),
 
     path('create_collabcard', api_views.create_card, name="create_card"),
+
     path('create_draft_collabcard', api_views.create_draft_collabcard, name="create_draft_collabcard"),
 
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
 
     path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
     path('v1/fetch_chatroom', api_views.fetch_chatroom_version_1, name="fetch_chatroom_version_1"),
+    path('v2/fetch_chatroom', api_views.fetch_chatroom_version_2, name="fetch_chatroom_version_2"),
 
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
     path('v1/fetch_chatroom_feed', api_views.fetch_chatroom_feed_version_1, name="fetch_chatroom_feed_version_1"),
@@ -96,6 +98,7 @@ urlpatterns = [
     path('chatroom_mute', api_views.chatroom_mute, name='chatroom_mute'),
     path('chatroom_rename', api_views.chatroom_rename, name='chatroom_rename'),
     path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
+    path('fetch_share_url', api_views.fetch_share_url, name='fetch_share_url'),
     path('set_chatroom_active', api_views.set_chatroom_active, name='set_chatroom_active'),
 
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
@@ -216,11 +219,12 @@ urlpatterns = [
     path('v1/sync_conversation', api_views.sync_conversation_version_1, name='sync_conversation_version_1'),
     path('sync_conversation', api_views.SyncConversation.as_view(), name='sync_conversation'),
     path('sync_members', api_views.sync_members, name='sync_members'),
-    path('sync_chatrooms', api_views.sync_chatrooms, name='sync_chatrooms'),
 
     path('fetch_user_meta', api_views.fetch_user_meta, name='fetch_user_meta'),
 
-    path('v1/sync_chatrooms', api_views.SyncChatroomsVersion1.as_view(), name='sync_chatrooms_v1'),
+    path('sync_chatrooms', api_views.SyncChatrooms.as_view(), name='sync_chatrooms'),
+
+    path('sync_communities', api_views.SyncCommunities.as_view(), name='sync_communities'),
 
 
 

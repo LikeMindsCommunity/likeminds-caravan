@@ -40,7 +40,8 @@ def is_request_web(request):
     '''function to tell if the request is web or not'''
 
     platform_code = get_platform_code_from_headers(request)
-    if platform_code == 0 or platform_code == "Web":
+    platform_code = str(platform_code)
+    if platform_code == "0" or platform_code.lower() == "web":
         return True
 
     return False
