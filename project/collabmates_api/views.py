@@ -3726,7 +3726,6 @@ def set_chatroom_active(request):
     if state_filter.exists():
         info_logger.info("state of data exists")
         instance = state_filter[0]
-        expiry_time = instance.expiry_time
         instance.updated_at = time.time()
         instance.expiry_time = updated_time
         instance.save()
