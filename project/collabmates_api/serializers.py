@@ -193,7 +193,6 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None,previe
         'type': card.type,
         'date_time': card.date_time,
         'duration': card.duration,
-        # "is_deleted": card.is_deleted,
         "is_pending": card.is_pending,
         'answers_count': card.answers_count,
         'attending_count': card.attending_count,
@@ -1457,7 +1456,6 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
         "id": conversation.id,
         "answer": conversation.answer,
         "state": conversation.state,
-        # 'is_deleted': conversation.is_deleted,
         'is_edited': conversation.is_edited,
         'created_at' : conversation.created_at,
         'has_files': conversation.has_files,
@@ -1538,11 +1536,10 @@ def get_answer_files(answer_id):
 
 def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=None):
 
-    temp = {
+    conversation_dict = {
         "id": conversation.id,
         "answer": conversation.answer,
         "state": conversation.state,
-        # 'is_deleted': conversation.is_deleted,
         'is_edited': conversation.is_edited,
         'created_at': time.strftime('%H:%M', time.localtime(conversation.created_at)),
         'has_files': conversation.has_files,
@@ -1552,31 +1549,31 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
     }
 
     if conversation.has_files:
-        answer_files = get_answer_files(temp['id'])
-        temp['images'] = answer_files['image']
-        temp['pdf'] = answer_files['pdf']
+        answer_files = get_answer_files(conversation_dict['id'])
+        conversation_dict['images'] = answer_files['image']
+        conversation_dict['pdf'] = answer_files['pdf']
         if 'location' in answer_files:
-            temp['location'] = answer_files['location']
+            conversation_dict['location'] = answer_files['location']
 
     if conversation.og_tags:
-        temp['og_tags'] = json.loads(conversation.og_tags)
+        conversation_dict['og_tags'] = json.loads(conversation.og_tags)
 
     if conversation.is_deleted:
-        temp['deleted_by'] = conversation.deleted_by_user.id
+        conversation_dict['deleted_by'] = conversation.deleted_by_user.id
 
 
-    temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
+    conversation_dict['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
 
     if conversation.internal_link:
-        temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
+        conversation_dict['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
                                                  community_instance=conversation.preview_community,
                                                  chatroom_instance=conversation.preview_chatroom)
 
     if conversation.reply:
-        temp['reply_conversation'] = conversation.reply.id
+        conversation_dict['reply_conversation'] = conversation.reply.id
 
 
-    return temp
+    return conversation_dict
 
 
 
@@ -1903,7 +1900,6 @@ def get_chatroom_preview(card_instance, member_id, active=None):
     chatroom_instance['total_response_count'] = conversation_filter.count()
 
     last_response_members = get_member_images_of_chatroom_v1(conversation_filter)
-    # chatroom_instance['members_images'] = last_response_members['members_images']
     chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
     return chatroom_instance

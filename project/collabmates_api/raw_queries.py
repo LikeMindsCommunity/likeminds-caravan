@@ -25,8 +25,7 @@ def update_conversation_engage_for_chatrooms(card_id,user_id,last_conversation_i
         conn = get_connection()
         curr = conn.cursor()
 
-        # second_last_conversation = get_second_last_conversation_of_chatroom(card_id,user_id)
-        # print(second_last_conversation)
+
         sql="""update togther_conversationengage set last_conversation_id = %s ,unseen_count = %s where card_id=%s and user_id = %s"""
         paramter_list = [last_conversation_id,unseen_count,card_id,user_id]
         curr.execute(sql,paramter_list)
