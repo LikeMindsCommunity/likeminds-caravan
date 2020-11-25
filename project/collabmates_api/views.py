@@ -1249,11 +1249,8 @@ def join_promoter_created_community_version_1(res, request):
 
             # updating the community level 3 state
 
-
             communityLevels.objects.filter(community=community_instance).update(
                 level_click_state=level_click_states.COMMUNITY_JOINED)
-
-
 
         elif member_state == member_states.PROFILE_UNAVAILABLE:
 
@@ -1265,6 +1262,10 @@ def join_promoter_created_community_version_1(res, request):
             post_introduction_card_for_community(community_id, member_id, request)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
             communityToast.objects.filter(community=community_instance, user=user_instance).delete()
+
+            # give default members rights
+            give_default_member_rights(user=user_instance, community=community_instance)
+
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
