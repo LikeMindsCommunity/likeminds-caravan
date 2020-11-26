@@ -349,7 +349,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'chatroom_category', 'deleted_by', 'member_id', 'created_at',
                   'internal_link', 'images', 'pdf', 'preview','deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
-                  'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time'
+                  'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
+                  'poll_type'
                   )
 
     def __init__(self, *args, **kwargs):
