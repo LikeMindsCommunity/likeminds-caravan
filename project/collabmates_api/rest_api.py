@@ -412,11 +412,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         return polls
 
 
-
-
-    # def get_deleted_by_member_state(self, card):
-    #     return card.deleted_by_user_state
-
     def get_member_id(self, card):
         # member_profile = get_members_profile([card.user.id], card.community.id)[0]
         #self._set_removed_member_custom_text(card, member_profile)
@@ -538,8 +533,10 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     del data["poll_type"]
 
             elif field.field_name == "expiry_time":
-                if data['type'] != card_types.CARD_POLL:
+                if data['type'] == card_types.CARD_POLL:
                     data["expiry_time"] = card.end_date
+                else:
+                    del data['expiry_time']
 
             elif field.field_name == "polls":
                 if data['type'] != card_types.CARD_POLL:
