@@ -1588,6 +1588,9 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
                                          send_profile=send_profile)
 
     community_profile['state'] = member_instance.state
+    community_profile['is_owner'] = member_instance.is_owner
+    if member_instance.custom_title and not member_instance.custom_title == 'Member':
+        community_profile['custom_title'] = member_instance.custom_title
 
     # sending image  url of members
     if member_instance.image_url:
