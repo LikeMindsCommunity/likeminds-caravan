@@ -327,7 +327,7 @@
             var msg = $('#comment_inp').val();
             if(msg == ''){return}
             var html= `
-                        <div class="dT wp100 pb12 bs">
+                        <div class="dT wp100 pb12 bs" >
                             <div class="dTc vB taR">
 <!--                                <div class="dIb message sent vM wbBa mxwp100">-->
 <!--                                    ${msg}-->
@@ -393,7 +393,7 @@
             var msg = $('#mediaComment').val() || '';
             // debugger;
             if(type == 'pdf'){
-                var html = `<div class="dT wp100 pb12 bs">
+                var html = `<div class="dT wp100 pb12 bs" id="here-`+answerID+`">
                                 <div class="dTc vB taR">`;
                             for (var i = 0; i < files.length; i++) {
                                 html = html + `
@@ -422,11 +422,11 @@
                 $('#comments').append(html);
                 $('#mediaComment').val('');
             }else if(type == 'image'){
-                var html = `<div class="dT wp100 pb12 bs">
+                var html = `<div class="dT wp100 pb12 bs" id="here-`+answerID+`">
                                 <div class="dTc vB taR">`;
                             for (var i = 0; i < $('#allMedia img').length; i++) {
                                 html = html + `
-                                    <div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fpdf.png?alt=media&token=0e7542ec-3e74-4e06-8b73-569b92adacf6" class="h48"></div><div class="dTc vM">Document</div></div>
+                                    <div class="dT wp100"><div class="dTc vM"><img  src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fgallery.png?alt=media&token=21371dca-1e32-40b5-bd6a-8fb0dbe6acd1" class="h48"></div><div class="dTc vM">Image</div></div>
                                     <div class="commentStatus_${i}"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
                                     <br>
                                 `;
@@ -450,18 +450,20 @@
             // debugger;
             var answerID;
             $.ajax({
-                url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
-                data: JSON.stringify({"title":msg}),
+                url: '/api/create_conversation',
+                headers: { 'x-member-id': member_id },
+                data: JSON.stringify({"text":msg,"member_id":member_id,"chatroom_id":collabcard_id,"has_files":true}),
                 type: 'POST',
                 dataType: 'json',
                 success: function(data){
                     // debugger;
+                    console.log(data);
                     for (var i = 0; i < files.length; i++) {
                         if(files[i]){
                             var metadata = { contentType: files[i].type };
                             var name = +new Date; //files[i].name;
                             answerID = data.id;
-                            firebaseUpload(member_id, answerID, files[i], type, name, metadata, i)
+                            firebaseUpload(member_id, answerID, files[i], type, name, metadata, i,files.length)
                         }
                     }
                     $('[data-type="'+ $('#filesType').html() +'"]')[0].value = "";
@@ -484,7 +486,7 @@
 
         }
 
-        function firebaseUpload(member_id, answerID, file, type, name, metadata, index){
+        function firebaseUpload(member_id, answerID, file, type, name, metadata, index,files_count){
             var storageRef = firebase.storage().ref();
             var uploadTask = storageRef.child('files/collabcard/{{ collabcard.id }}/conversation/'+ answerID +'/'+name).put(file, metadata);
 
@@ -513,13 +515,14 @@
                     console.log('File available at', downloadURL);
                     // debugger;
                     $.ajax({
-                        url: '/api/upload_files?member_id='+member_id+"&type="+ type +"&answer_id="+answerID+"&url="+encodeURI(downloadURL),
+                        url: '/api/upload_files?member_id='+member_id+"&type="+ type +"&answer_id="+answerID+"&url="+encodeURI(downloadURL)+"&files_count="+files_count,
                         success: function(data){
                             // debugger;
                             $('.commentStatus_'+ index +' .cStatus').text('sent sucessfully');
                             $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
                                 $(this).remove(); 
                             });
+                           $('#here-'+answerID).hide()
                         },
                         error: function(data){
                             // debugger;

@@ -22,6 +22,7 @@ import time
 from datetime import datetime,date,timedelta
 import dateutil.relativedelta
 from .states import *
+from django.core.exceptions import MultipleObjectsReturned
 # cache details
 # from django.core.cache import cache
 # custom_cache=cache
@@ -1117,22 +1118,32 @@ def check_notification_flag(member_id,notification_list,card_id=None,community_i
 
     for notification in notification_list:
         if card_id == None and community_id == None:
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification,member=member)
+            try:
+                p, created = memberNotificationFlag.objects.get_or_create(code=notification, member=member)
+            except MultipleObjectsReturned:
+                created = False
+                p = memberNotificationFlag.objects.filter(code=notification, member=member).first()
 
         elif card_id != None and community_id == None:
             card = Collabcard.objects.get(pk=card_id)
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification,card=card,member=member)
-
+            try:
+                p, created = memberNotificationFlag.objects.get_or_create(code=notification, card=card, member=member)
+            except MultipleObjectsReturned:
+                created = False
+                p = memberNotificationFlag.objects.filter(code=notification, card=card, member=member).first()
         elif community_id != None and card_id == None:
             community = Community.objects.get(pk=card_id)
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification,community=community,member=member)
+            try:
+                p, created = memberNotificationFlag.objects.get_or_create(code=notification, community=community, member=member)
+            except MultipleObjectsReturned:
+                created = False
+                p = memberNotificationFlag.objects.filter(code=notification, community=community, member=member).first()
         
         if p.flag == False:
             flag = False
             break
 
     return flag
-
 
 def create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=None):
     '''
@@ -1143,16 +1154,25 @@ def create_notification_flag(member_id, notification_list, card_id=None, communi
 
     for notification in notification_list:
         if card_id == None and community_id == None:
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification, member=member,flag=flag)
+            p, created = memberNotificationFlag.objects.get_or_create(code=notification, member=member)
+            if created:
+                p.flag=flag
+                p.save()
 
         elif card_id != None and community_id == None:
             card = Collabcard.objects.get(pk=card_id)
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification, card=card, member=member,flag=flag)
+            p, created = memberNotificationFlag.objects.get_or_create(code=notification, card=card, member=member)
+            if created:
+                p.flag=flag
+                p.save()
 
         elif community_id != None and card_id == None:
             community = Community.objects.get(pk=card_id)
             p, created = memberNotificationFlag.objects.get_or_create(code=notification, community=community,
-                                                                      member=member,flag=flag)
+                                                                      member=member)
+            if created:
+                p.flag=flag
+                p.save()
 
 
 def add_relative_time_to_epoch(epoch_time, minutes=0, hours=0, days=0):

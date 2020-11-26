@@ -1,0 +1,40 @@
+{% extends 'mails/base.html' %}
+{% block extracss %}
+<style>
+strong{
+    color:#00897b;
+}
+.row{
+    display: flex;
+}
+</style>
+{% endblock %}
+{% block mail %}
+<div class="username">Hi, {{member_name}}!</div>
+<div class="row">
+    <div class="text">
+        <p>
+            You had voted in {{card_instance.header}}. Curious to see what others think? Here are the results:
+        </p>
+        <p>
+            <b>“{{card_instance.header}}”</b> {% if is_multi_select %} {{ multi_select_text }} {% endif %} by <b>{{card_creator_name}}</b>
+        </p>
+        <ul style="color:#718297;line-height: 1.5;font-size:16px;">
+            {% for option in poll_options %}
+                <li>{{option.text}} : {{option.percentage}}%</li>
+            {% endfor %}
+        </ul>
+        <p>
+            To see who said what and participate in the discussion, open the chatroom in your app.
+        </p>
+        <p class="cta-wrapper" style="text-align: center;">
+            <a href="https://likeminds.community/collabcard/{{card_instance.id}}" class="cta">
+                OPEN CHAT ROOM</a>
+        </p>
+
+        <p>Warmly,</p>
+        <p>{{community_owner_name}}</p>
+
+    </div>
+</div>
+{% endblock %}
