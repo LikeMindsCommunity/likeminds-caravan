@@ -8,7 +8,7 @@ import json
 import time
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
-                          get_removed_member_custom_text, get_collabcard_files, get_user_profile)
+                          get_removed_member_custom_text, get_collabcard_files, get_user_profile,get_answer_text_for_poll)
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, chatroom_states)
 from utility.utils import (get_time_text, generate_private_link, eligibility_count,
@@ -324,7 +324,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
     pdf = serializers.SerializerMethodField()
     preview = serializers.DictField(write_only=True)
-    polls = serializers.ListField(write_only=True)
+    polls = serializers.SerializerMethodField()
     share_url = serializers.CharField(write_only=True)
     creator_share_url = serializers.CharField(write_only=True)
     link_created_at = serializers.CharField(write_only=True)
@@ -335,13 +335,14 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     is_tagged = serializers.BooleanField(write_only=True)
     chatroom_expiry_time = serializers.CharField(write_only=True)
 
+
     class Meta:
         model = Collabcard
         fields = ('id', 'title', 'community_id', 'answer_text',
                   'image_count', 'pdf_count', 'type', 'date_time',
                   'is_pending', 'attending_count', 'polls_count',
                   'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
-                  'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state', 'multiple_select',
+                  'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state',
                   'multiple_select_no', 'polls', 'location', 'location_lat', 'location_long',
                   'start_date', 'end_date', 'about', 'co_hosts', 'online_link', 'updated_member',
                   'community', 'og_tags', 'created_at', 'is_anonymous',
@@ -349,7 +350,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'chatroom_category', 'deleted_by', 'member_id', 'created_at',
                   'internal_link', 'images', 'pdf', 'preview','deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
-                  'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time'
+                  'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
+                  'poll_type'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -402,8 +404,14 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_chatroom_category(self, card):
         return get_category_of_chatroom(card.type)
 
-    # def get_deleted_by_member_state(self, card):
-    #     return card.deleted_by_user_state
+    def get_polls(self,card):
+        polls = []
+        card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
+        for poll in card_polls:
+            polls.append(CollabcardPollsSerializer(poll, self.user, card))
+
+        return polls
+
 
     def get_member_id(self, card):
         # member_profile = get_members_profile([card.user.id], card.community.id)[0]
@@ -526,17 +534,13 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     del data["poll_type"]
 
             elif field.field_name == "expiry_time":
-                if data['type'] != card_types.CARD_POLL:
+                if data['type'] == card_types.CARD_POLL:
                     data["expiry_time"] = card.end_date
+                else:
+                    del data['expiry_time']
 
             elif field.field_name == "polls":
                 if data['type'] != card_types.CARD_POLL:
-                    polls = []
-                    card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
-                    for poll in card_polls:
-                        polls.append(CollabcardPollsSerializer(poll, self.user, card))
-                    data['polls'] = polls
-                else:
                     del data['polls']
 
             elif field.field_name == "poll_type_text":
@@ -581,9 +585,12 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     data['co_hosts_id'] = self.get_co_hosts(co_host_list)
                     del data['co_hosts']
 
-            # elif field.field_name == "updated_time":
-            #     data["updated_time"] = get_time_text(data["updated_time"])
-            #
+            elif field.field_name == "answer_text":
+                if data['type'] == card_types.CARD_POLL:
+                    data['answer_text'] = get_answer_text_for_poll(card, self.current_user_id)
+                else:
+                    del data['answer_text']
+
             # elif field.field_name in ['image_count', 'pdf_count']:
             #     card_files = get_collabcard_files(data['id'])
             #     data['images'] = card_files[0]

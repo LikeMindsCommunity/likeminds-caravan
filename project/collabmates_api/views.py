@@ -5462,7 +5462,10 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     # user has not done the scrolling
     conversations_filter = card_answers.objects.select_related('reply', 'preview_community',
-                                                                  'preview_chatroom').filter(card=card_instance).order_by('id')
+                                                               'preview_chatroom').filter(card=card_instance).order_by('id')
+    if is_ios:
+        conversations_filter = conversations_filter.filter(is_deleted=False)
+        
     total_response_count = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).count()
 
     if not conversation_id and not scroll_direction:
@@ -9572,7 +9575,8 @@ def limit_access(request):
     try:
         user_instance = User.objects.get(id=member_id)
     except:
-        return {}
+        context = get_error_context(False,"send correct user id")
+        return JsonResponse(context)
     context = {}
 
     context['header_image'] = LIMIT_ACCESS_HEADER_IMAGE
