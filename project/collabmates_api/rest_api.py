@@ -8,7 +8,7 @@ import json
 import time
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
-                          get_removed_member_custom_text, get_collabcard_files, get_user_profile)
+                          get_removed_member_custom_text, get_collabcard_files, get_user_profile,get_answer_text_for_poll)
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, chatroom_states)
 from utility.utils import (get_time_text, generate_private_link, eligibility_count,
@@ -335,6 +335,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     is_tagged = serializers.BooleanField(write_only=True)
     chatroom_expiry_time = serializers.CharField(write_only=True)
 
+
     class Meta:
         model = Collabcard
         fields = ('id', 'title', 'community_id', 'answer_text',
@@ -584,9 +585,12 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     data['co_hosts_id'] = self.get_co_hosts(co_host_list)
                     del data['co_hosts']
 
-            # elif field.field_name == "updated_time":
-            #     data["updated_time"] = get_time_text(data["updated_time"])
-            #
+            elif field.field_name == "answer_text":
+                if data['type'] == card_types.CARD_POLL:
+                    data['answer_text'] = get_answer_text_for_poll(card, self.current_user_id)
+                else:
+                    del data['answer_text']
+
             # elif field.field_name in ['image_count', 'pdf_count']:
             #     card_files = get_collabcard_files(data['id'])
             #     data['images'] = card_files[0]
