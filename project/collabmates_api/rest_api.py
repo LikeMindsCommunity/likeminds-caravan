@@ -530,7 +530,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     data["expiry_time"] = card.end_date
 
             elif field.field_name == "polls":
-                if data['type'] != card_types.CARD_POLL:
+                if data['type'] == card_types.CARD_POLL:
                     polls = []
                     card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
                     for poll in card_polls:
