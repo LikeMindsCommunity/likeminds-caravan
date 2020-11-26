@@ -324,7 +324,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
     pdf = serializers.SerializerMethodField()
     preview = serializers.DictField(write_only=True)
-    polls = serializers.ListField(write_only=True)
+    polls = serializers.SerializerMethodField()
     share_url = serializers.CharField(write_only=True)
     creator_share_url = serializers.CharField(write_only=True)
     link_created_at = serializers.CharField(write_only=True)
@@ -401,6 +401,17 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
     def get_chatroom_category(self, card):
         return get_category_of_chatroom(card.type)
+
+    def get_polls(self,card):
+        polls = []
+        card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
+        for poll in card_polls:
+            polls.append(CollabcardPollsSerializer(poll, self.user, card))
+
+        return polls
+
+
+
 
     # def get_deleted_by_member_state(self, card):
     #     return card.deleted_by_user_state
@@ -530,13 +541,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     data["expiry_time"] = card.end_date
 
             elif field.field_name == "polls":
-                if data['type'] == card_types.CARD_POLL:
-                    polls = []
-                    card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
-                    for poll in card_polls:
-                        polls.append(CollabcardPollsSerializer(poll, self.user, card))
-                    data['polls'] = polls
-                else:
+                if data['type'] != card_types.CARD_POLL:
                     del data['polls']
 
             elif field.field_name == "poll_type_text":
