@@ -7361,6 +7361,7 @@ def collabcard_attend(request):
             state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
             state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
             state_instance.attending_status = True
+            state_instance.updated_at = time.time()
             state_instance.save()
 
         except:
@@ -7389,7 +7390,8 @@ def collabcard_attend(request):
         try:
             collabcardState.objects.filter(card=card_instance,
                                            user=user_instance).update(state=state,
-                                                                      attending_status=False,updated_at=time.time())
+                                                                      attending_status=False,
+                                                                      updated_at=time.time())
 
         except:
             # collabcard_state_instance = collabcardState()
