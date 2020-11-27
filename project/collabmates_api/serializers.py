@@ -746,6 +746,10 @@ def CollabcardPollsSerializer(poll, user, card):
     if card.multiple_select_no is not None or card.multiple_select_state is not None:
         is_multi_select = True
 
+    print("card.end_date --> ", card.end_date // 1000)
+    print("time --> ", time.time() // 1000)
+    print("check ---> ", ((card.end_date // 1000) <= (time.time() // 1000)))
+
     if card.poll_type == poll_types.POLL_TYPE_INSTANT:
         poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
         polls['poll_count'] = poll_detail[0]
@@ -753,6 +757,7 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['percentage'] = int(poll_detail[1])
 
     elif card.poll_type == poll_types.POLL_TYPE_DEFERRED and ((card.end_date // 1000) <= (time.time() // 1000)):
+
         poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
         polls['poll_count'] = poll_detail[0]
         polls['no_votes'] = poll_detail[0]
