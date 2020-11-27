@@ -17,6 +17,11 @@ import ast
 from .static_files import *
 from .static_text import months_semi
 from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
+import logging
+
+error_logger = logging.getLogger("error_logger")
+info_logger = logging.getLogger("info_logger")
+
 from datetime import datetime, date
 
 
@@ -753,6 +758,7 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['percentage'] = int(poll_detail[1])
 
     elif card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date // 1000 <= time.time():
+
         poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
         polls['poll_count'] = poll_detail[0]
         polls['no_votes'] = poll_detail[0]

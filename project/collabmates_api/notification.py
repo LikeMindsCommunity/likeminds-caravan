@@ -1742,7 +1742,7 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
 def schedule_poll_end_notification(community_name, community_id, typ, date_time, card_id):
     task_name = str(card_id) + "_poll_expiry_or_event_remainder_notification"
     print("date---time>>>", date_time)
-    date_time = date_time/1000
+    date_time = date_time/1000  # + 60
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
     # celerybeatask = CeleryBeatTask()
@@ -1791,8 +1791,10 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
                 notification_list.append(temp)
 
-
         else:
+
+            collabcardState.objects.filter(card=card_id).update(updated_at=time.time())
+
             members = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
             notification_list = []
             for member in members:

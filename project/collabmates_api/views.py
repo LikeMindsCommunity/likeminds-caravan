@@ -2892,7 +2892,14 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.start_date = res['start_date'] if ('start_date' in res) else 0
     if res['type'] == card_types.CARD_POLL:
         # for saving poll expiry time
-        card.end_date = res['expiry_time'] if ('expiry_time' in res) else 0
+        expiry_time = res['expiry_time'] if ('expiry_time' in res) else 0
+        if expiry_time > 0:
+            # rounding off epoch time into exact minute
+            # removing any extra seconds
+            expiry_time = expiry_time // 1000
+            expiry_time = expiry_time - (expiry_time % 60)
+
+        card.end_date = expiry_time * 1000
     else:
         card.end_date = res['end_date'] if ('end_date' in res) else 0
     card.about = res['about'] if ('about' in res) else None
@@ -7354,18 +7361,10 @@ def collabcard_attend(request):
             state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
             state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
             state_instance.attending_status = True
+            state_instance.updated_at = time.time()
             state_instance.save()
 
         except:
-            # collabcard_state_instance = collabcardState()
-            # collabcard_state_instance.card = card_instance
-            # collabcard_state_instance.community = card_instance.community
-            # collabcard_state_instance.user = user_instance
-            # collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
-            # collabcard_state_instance.created_at = time.time()
-            # collabcard_state_instance.updated_at = time.time()
-            # collabcard_state_instance.save()
-
             create_chatroom_state_instance(card_instance, user_instance,
                                            state=collabcard_states.COLLABCARD_STATE_ATTENDING,
                                            expire_at=None, external_seen=True, is_guest=False, source=None,
@@ -7382,17 +7381,10 @@ def collabcard_attend(request):
         try:
             collabcardState.objects.filter(card=card_instance,
                                            user=user_instance).update(state=state,
-                                                                      attending_status=False,updated_at=time.time())
+                                                                      attending_status=False,
+                                                                      updated_at=time.time())
 
         except:
-            # collabcard_state_instance = collabcardState()
-            # collabcard_state_instance.card = card_instance
-            # collabcard_state_instance.community = card_instance.community
-            # collabcard_state_instance.user = user_instance
-            # collabcard_state_instance.state = state
-            # collabcard_state_instance.created_at = time.time()
-            # collabcard_state_instance.updated_at = time.time()
-            # collabcard_state_instance.save()
             create_chatroom_state_instance(card_instance, user_instance,
                                            state=state,
                                            expire_at=None, external_seen=True, is_guest=False, source=None,
@@ -7400,10 +7392,8 @@ def collabcard_attend(request):
                                            function_called="collabcard_attend")
 
     update_event_answer_text(card_instance)  # function to update the text when a user attends an event
-
-    # if not str(member_id) == str(card_instance.user.id) and status:
-    # send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
-
+    collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
+    
     return JsonResponse({'success': True})
 
 
@@ -13090,7 +13080,7 @@ def update_community_rights(request):
 
 @csrf_exempt
 def block_member(request):
-    """ function to blocka member in community """
+    """ function to block member in community """
     if request.method == 'GET':
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
 
@@ -13503,11 +13493,9 @@ class SyncChatrooms(APIView):
                 max_last_updated = data.updated_at
 
         if max_last_updated:
-            return JsonResponse({'chatrooms': chatroom_obj.data,'max_last_updated':max_last_updated})
+            return JsonResponse({'chatrooms': chatroom_obj.data, 'max_last_updated': max_last_updated})
 
         return JsonResponse({'chatrooms': chatroom_obj.data})
-
-
 
 
 class SyncCommunities(APIView):
@@ -13566,41 +13554,6 @@ class SyncCommunities(APIView):
 
         return JsonResponse({'communities': temp.data})
 
-
-# =========================== block member ========================================================
-
-@csrf_exempt
-def block_member(request):
-
-    if request.method == 'GET':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
-
-    current_user_id = get_member_id_from_headers(request)
-    community_id = request.POST.get('community_id', None)
-    blocked_user_id = request.POST.get('user_id', None)
-
-    if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not blocked_user_id:
-        context = get_error_context(False, "send user_id in POST params")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in POST params")
-        return JsonResponse(context)
-
-    community_instance = Community.objects.get(pk=community_id)
-    current_user_instance = User.objects.get(pk=current_user_id)
-    blocked_user_instance = User.objects.get(pk=blocked_user_id)
-
-    try:
-        blockedMembers(blocked_by=current_user_instance,
-                       blocked_member=blocked_user_instance, community=community_instance).save()
-    except:
-        info_logger.info("member already blocked by this user")
-
-
-    return JsonResponse({'success': True})
 
 
 

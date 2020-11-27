@@ -404,7 +404,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_chatroom_category(self, card):
         return get_category_of_chatroom(card.type)
 
-    def get_polls(self,card):
+    def get_polls(self, card):
+
         polls = []
         card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
         for poll in card_polls:
