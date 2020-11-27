@@ -761,7 +761,7 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['no_votes'] = poll_detail[0]
         polls['percentage'] = int(poll_detail[1])
 
-    elif card.poll_type == poll_types.POLL_TYPE_DEFERRED and (card.end_date // 1000) <= time.time():
+    elif card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date <= time.time():
 
         poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
         polls['poll_count'] = poll_detail[0]
