@@ -7365,15 +7365,6 @@ def collabcard_attend(request):
             state_instance.save()
 
         except:
-            # collabcard_state_instance = collabcardState()
-            # collabcard_state_instance.card = card_instance
-            # collabcard_state_instance.community = card_instance.community
-            # collabcard_state_instance.user = user_instance
-            # collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
-            # collabcard_state_instance.created_at = time.time()
-            # collabcard_state_instance.updated_at = time.time()
-            # collabcard_state_instance.save()
-
             create_chatroom_state_instance(card_instance, user_instance,
                                            state=collabcard_states.COLLABCARD_STATE_ATTENDING,
                                            expire_at=None, external_seen=True, is_guest=False, source=None,
@@ -7394,14 +7385,6 @@ def collabcard_attend(request):
                                                                       updated_at=time.time())
 
         except:
-            # collabcard_state_instance = collabcardState()
-            # collabcard_state_instance.card = card_instance
-            # collabcard_state_instance.community = card_instance.community
-            # collabcard_state_instance.user = user_instance
-            # collabcard_state_instance.state = state
-            # collabcard_state_instance.created_at = time.time()
-            # collabcard_state_instance.updated_at = time.time()
-            # collabcard_state_instance.save()
             create_chatroom_state_instance(card_instance, user_instance,
                                            state=state,
                                            expire_at=None, external_seen=True, is_guest=False, source=None,
@@ -7410,9 +7393,7 @@ def collabcard_attend(request):
 
     update_event_answer_text(card_instance)  # function to update the text when a user attends an event
     collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
-    # if not str(member_id) == str(card_instance.user.id) and status:
-    # send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
-
+    
     return JsonResponse({'success': True})
 
 
