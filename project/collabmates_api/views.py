@@ -2892,9 +2892,12 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.start_date = res['start_date'] if ('start_date' in res) else 0
     if res['type'] == card_types.CARD_POLL:
         # for saving poll expiry time
-        expiry_time = (res['expiry_time'] // 1000)*1000 if ('expiry_time' in res) else 0
-        card.end_date = expiry_time
+        expiry_time = res['expiry_time'] if ('expiry_time' in res) else 0
+        if expiry_time > 0:
+            expiry_time = expiry_time // 1000
+            expiry_time = expiry_time - (expiry_time % 60)
 
+        card.end_date = expiry_time
     else:
         card.end_date = res['end_date'] if ('end_date' in res) else 0
     card.about = res['about'] if ('about' in res) else None
