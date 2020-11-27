@@ -2897,7 +2897,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
             expiry_time = expiry_time // 1000
             expiry_time = expiry_time - (expiry_time % 60)
 
-        card.end_date = expiry_time
+        card.end_date = expiry_time * 1000
     else:
         card.end_date = res['end_date'] if ('end_date' in res) else 0
     card.about = res['about'] if ('about' in res) else None
