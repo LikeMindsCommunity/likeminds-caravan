@@ -17,6 +17,11 @@ import ast
 from .static_files import *
 from .static_text import months_semi
 from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
+import logging
+
+error_logger = logging.getLogger("error_logger")
+info_logger = logging.getLogger("info_logger")
+
 from datetime import datetime, date
 
 
@@ -746,9 +751,9 @@ def CollabcardPollsSerializer(poll, user, card):
     if card.multiple_select_no is not None or card.multiple_select_state is not None:
         is_multi_select = True
 
-    print("card.end_date --> ", card.end_date // 1000)
-    print("time --> ", time.time() // 1000)
-    print("check ---> ", ((card.end_date // 1000) <= (time.time() // 1000)))
+    info_logger.info("card.end_date --> ", card.end_date // 1000)
+    info_logger.info("time --> ", time.time() // 1000)
+    info_logger.info("check ---> ", ((card.end_date // 1000) <= (time.time() // 1000)))
 
     if card.poll_type == poll_types.POLL_TYPE_INSTANT:
         poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
