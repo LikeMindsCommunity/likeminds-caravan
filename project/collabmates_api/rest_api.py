@@ -406,10 +406,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
     def get_polls(self, card):
 
-        print("card.end_date --> ", card.end_date // 1000)
-        print("time --> ", time.time() // 1000)
-        print("check ---> ", ((card.end_date // 1000) <= (time.time() // 1000)))
-
         polls = []
         card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
         for poll in card_polls:

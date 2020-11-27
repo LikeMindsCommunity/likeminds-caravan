@@ -2894,6 +2894,8 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         # for saving poll expiry time
         expiry_time = res['expiry_time'] if ('expiry_time' in res) else 0
         if expiry_time > 0:
+            # rounding off epoch time into exact minute
+            # removing any extra seconds
             expiry_time = expiry_time // 1000
             expiry_time = expiry_time - (expiry_time % 60)
 
