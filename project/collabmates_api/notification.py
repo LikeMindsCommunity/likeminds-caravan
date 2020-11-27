@@ -1793,6 +1793,9 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
 
         else:
+
+            collabcardState.objects.filter(card=card_id).update(updated_at=time.time())
+
             members = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
             notification_list = []
             for member in members:
