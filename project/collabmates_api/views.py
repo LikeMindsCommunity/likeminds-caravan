@@ -7361,6 +7361,7 @@ def collabcard_attend(request):
             state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
             state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
             state_instance.attending_status = True
+            state_instance.updated_at = time.time()
             state_instance.save()
 
         except:
@@ -7389,7 +7390,8 @@ def collabcard_attend(request):
         try:
             collabcardState.objects.filter(card=card_instance,
                                            user=user_instance).update(state=state,
-                                                                      attending_status=False,updated_at=time.time())
+                                                                      attending_status=False,
+                                                                      updated_at=time.time())
 
         except:
             # collabcard_state_instance = collabcardState()
@@ -7407,7 +7409,7 @@ def collabcard_attend(request):
                                            function_called="collabcard_attend")
 
     update_event_answer_text(card_instance)  # function to update the text when a user attends an event
-
+    collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
     # if not str(member_id) == str(card_instance.user.id) and status:
     # send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
