@@ -408,7 +408,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         polls = []
         card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
         for poll in card_polls:
-            polls.append(CollabcardPollsSerializer(poll, self.user, card))
+            poll_serializer = CollabcardPollsSerializer(poll, self.current_user_id, card)
+            polls.append(poll_serializer)
 
         return polls
 
