@@ -52,8 +52,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            is_member_present, generate_private_link, generate_random, get_time_text,
                            community_default_image_round, decode_option, get_user_communities_by_rank_web,
                            user_onbaord, get_time_text_for_my_chatrooms, get_members_count_in_community,
-                           check_notification_flag, create_notification_flag, is_request_ios
-
+                           check_notification_flag, create_notification_flag, is_request_ios,
                            )
 
 from .notification import *
@@ -692,6 +691,7 @@ def get_leave_community_text():
 
     return leave_community
 
+
 def get_home_screen_community_actions(community_instance):
 
     actions = []
@@ -804,6 +804,7 @@ def community(request, community_id, req_dict=None):
         context['menu'] = menu
 
     return JsonResponse(context)
+
 
 def get_redirection_links_for_android_ios(request,community_id):
 
@@ -943,10 +944,29 @@ def questions(request):
     community['managed_by'] = managed_by
 
     # private link share flow
-    aj = request.GET.get('aj')
+    aj = request.GET.get('aj', None)
+    shared_by = request.GET.get('shared_by', None)
     user_instance = User.objects.get(id=member_id)
 
-    auto_join = private_link_app_invite(community_instance, aj, created_by)
+    is_valid_private_link = False
+    auto_join = {}
+    title = f"You are joining {community['name']}"
+    shared_by_user = None
+
+    try:
+        shared_by_user = User.objects.get(pk=shared_by)
+        shared_by_user_name = shared_by_user.userinfo.name
+        title = f"{shared_by_user_name} invited you the join this community"
+    except:
+        info_logger.info(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
+
+    if aj and shared_by_user:
+        try:
+            auto_join = private_link_app_invite(community_instance, aj, created_by, shared_by_user)
+            is_valid_private_link = True
+        except:
+            info_logger.info(f"aj is not valid. aj ---> {aj}")
+
     # add code to send join dropoff notfication
     if not is_member_verified(community_instance, user_instance):
         time_in_hrs = 2
@@ -972,23 +992,20 @@ def questions(request):
             questions.append(serialized_question)
     # questions = sorted(questions, key=lambda i: i['rank'])
 
-    context = {'questions': questions, 'community': community}
-    if aj:
+    context = {'header': "Join community", 'title':title,
+               'questions': questions, 'community': community}
+    if is_valid_private_link:
         context.update(auto_join)
     return JsonResponse(context)
 
 
-
-
-
-def private_link_app_invite(community_instance, unique_code, created_by):
+def private_link_app_invite(community_instance, unique_code, created_by=None, shared_by_user=None):
     '''function to send private link for app invite on playstore'''
 
     expiry_filter = communityExpiryCodes.objects.filter(community=community_instance, unique_code=unique_code)
-
+    shared_by_user_name = shared_by_user.userinfo.name
     auto_join = {
-        'toast': """The private invite link has expired. Continue to join the community and wait for admin’s approval. Or, ask %s to resend a private invite link.""" % (
-            created_by),
+        'toast': f"The private invite link has expired. Continue to join the community and wait for admin’s approval. Or, ask {shared_by_user_name} to resend a private invite link.",
         'aj_expired': True
     }
 
@@ -1041,7 +1058,6 @@ def join_promoter_created_community_version_1(res, request):
 
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
-    is_private_link = False
 
     member_id = get_member_id_from_headers(request)
     if not member_id:
@@ -1065,7 +1081,7 @@ def join_promoter_created_community_version_1(res, request):
 
             if 'value' not in question or not question['value']:
                 continue
-
+                
             question_instance = communityQuestions.objects.get(id=question['id'])
 
             if question_instance.is_hidden:
@@ -1085,55 +1101,39 @@ def join_promoter_created_community_version_1(res, request):
 
     update_hidden_fields_in_questions(user_instance, community_instance)
 
+    aj = res.get('aj', None)
+    shared_by = res.get("shared_by", None)
+    timestamp = res.get('timestamp', time.time())
+
+    valid_link_dict = validate_private_link(aj, shared_by, community_instance, timestamp)
+
+    is_valid_private_link = valid_link_dict['valid_link']
+    shared_user_instance = valid_link_dict['shared_user_instance']
+
     # saving data directly
-    if 'aj' in res:
-        if res['aj']:
-            validate_time = is_joining_time_valid(community_instance, res['timestamp'], res['aj'])
-            info_logger.info(validate_time)
-            # insert private link dropoff here
-            time_in_hrs = 2
+    if is_valid_private_link:
 
-            if validate_time:
-                is_private_link = True
-                # saving moderation history
-                print("saving history 1")
-                shared_user_instance = None
-                if 'shared_by' in res:
-                    if res['shared_by'] != '':
-                        print("saving history 2 ---  ", res['shared_by'])
+        history_type = moderation_history_types.APPLIED_PRIVATE_LINK
 
-                        history_type = moderation_history_types.APPLIED_PRIVATE_LINK
-                        if check_user_rejoin(user=user_instance, community=community_instance):
-                            history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
-                            update_followed_for_rejoined_member(user_instance, community_instance)
+        if check_user_rejoin(user=user_instance, community=community_instance):
+            history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
+            update_followed_for_rejoined_member(user_instance, community_instance)
 
-                        try:
-                            shared_user_instance = User.objects.get(pk=res['shared_by'])
-                        except:
-                            shared_user_instance = None
-                            history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
-                            
-                        save_moderation_history(user=user_instance, community=community_instance,
-                                                moderation_by=shared_user_instance, type=history_type)
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=shared_user_instance, type=history_type)
 
-                auto_join_community(community_instance, user_instance, shared_user_instance)
-                set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
-                post_introduction_card_for_community(community_id, member_id, request)
+        auto_join_community(community_instance, user_instance, shared_user_instance)
+        set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
+        post_introduction_card_for_community(community_id, member_id, request)
 
-                # saving create community action level3
-                update_community_actions(community_instance)
+        # saving create community action level3
+        update_community_actions(community_instance)
 
-                # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
+        # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
-                log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
-                info_logger.info(log)
-                return
-            # else:
-            # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
-    # else:
-    #     #send notification for public dropoff
-    #     time_in_hrs=2
-    # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
+        log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
+        info_logger.info(log)
+        return
 
     if is_member:
         member_state = member_list[0].state
@@ -1150,11 +1150,8 @@ def join_promoter_created_community_version_1(res, request):
 
             # updating the community level 3 state
 
-
             communityLevels.objects.filter(community=community_instance).update(
                 level_click_state=level_click_states.COMMUNITY_JOINED)
-
-
 
         elif member_state == member_states.PROFILE_UNAVAILABLE:
 
@@ -1166,6 +1163,10 @@ def join_promoter_created_community_version_1(res, request):
             post_introduction_card_for_community(community_id, member_id, request)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
             communityToast.objects.filter(community=community_instance, user=user_instance).delete()
+
+            # give default members rights
+            give_default_member_rights(user=user_instance, community=community_instance)
+
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -1197,18 +1198,13 @@ def join_promoter_created_community_version_1(res, request):
 
         update_community_toast(user_instance, community_instance,message="Your request for joining this community is pending")
 
-        if 'shared_by' in res and res['shared_by']:
-            try:
-                history_type = moderation_history_types.APPLIED_PUBLIC_LINK
-                shared_user = User.objects.get(pk=res['shared_by'])
-                member_instance.joined_by = shared_user
-                member_instance.save()
-            except:
-                history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
-                shared_user = None
+        if shared_user_instance:
+            history_type = moderation_history_types.APPLIED_PUBLIC_LINK
+            member_instance.joined_by = shared_user_instance
+            member_instance.save()
 
             save_moderation_history(user=user_instance, community=community_instance,
-                                    moderation_by=shared_user, type=history_type)
+                                    moderation_by=shared_user_instance, type=history_type)
         else:
             history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
             save_moderation_history(user=user_instance, community=community_instance,
@@ -1231,6 +1227,37 @@ def update_community_toast(user_instance, community_instance,message=''):
         toast.user = user_instance
         toast.toast_message = message
         toast.save()
+
+
+def validate_private_link(aj, shared_by, community, timestamp=time.time()):
+
+    context = {"valid_link": False, "shared_user_instance": None}
+
+    if aj is None and shared_by is None:
+        return context
+
+    try:
+        # trying to check if aj and shared by are both valid integers
+        validate_time = False
+        if aj is not None:
+            aj = int(aj)
+            validate_time = is_joining_time_valid(community, timestamp, aj)
+
+        try:
+            shared_by = int(shared_by)
+            shared_user_instance = User.objects.get(pk=shared_by)
+        except Exception as e:
+            shared_user_instance = None
+
+        context['shared_user_instance'] = shared_user_instance
+        context['valid_link'] = validate_time and shared_user_instance
+
+    except Exception as e:
+        info_logger.info(f"aj and shared by validation failed. aj -> {aj}, shared by -> {shared_by}")
+
+    finally:
+        print(">>>>  7")
+        return context
 
 
 def is_joining_time_valid(community_instance, time_stamp, unique_code):

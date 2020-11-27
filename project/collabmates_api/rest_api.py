@@ -224,7 +224,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
 
     class Meta:
         model = Community
-        fields = ('id', 'name', 'purpose', 'location', 'about', 'image_url', 'members_count',
+        fields = ('id', 'name', 'purpose', 'about', 'image_url', 'members_count',
                   'type', 'sub_type')
 
     def __init__(self, *args, **kwargs):
