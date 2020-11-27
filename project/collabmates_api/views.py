@@ -5998,10 +5998,10 @@ def save_the_latest_conversation(card_instance, user_id):
     return latest_conversations
 
 
-def is_chatroom_join_expired(aj, source_id):
+def is_chatroom_join_expired(aj, source_id,chatroom_id=None):
     '''function to check weather joining time of chatroom is valid or not'''
 
-    expiry_filter = chatroomExpiryCodes.objects.filter(unique_code=aj, source=source_id)
+    expiry_filter = chatroomExpiryCodes.objects.filter(unique_code=aj, source=source_id,card_id=chatroom_id)
     if expiry_filter.exists():
         expiry_instance = expiry_filter[0]
         time_stamp = int(time.time())
@@ -6015,7 +6015,7 @@ def is_chatroom_join_expired(aj, source_id):
 
 def adding_guest_in_chatroom(request, context, card_instance, aj, source_id, community_id, current_user_id,
                              guest_header=False):
-    aj_expired = is_chatroom_join_expired(aj, source_id)
+    aj_expired = is_chatroom_join_expired(aj, source_id,card_instance.id)
     status = is_member_verified(community_id, current_user_id)
     state_filter = collabcardState.objects.filter(card=card_instance, user=current_user_id, is_guest=True)
 
