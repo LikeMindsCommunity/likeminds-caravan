@@ -418,9 +418,9 @@ def get_collabcard_files(card_id, draft=False):
     '''function to return pdf and image files of a collabcard'''
 
     if not draft:
-        files = Card_Attachment.objects.filter(collabcard=card_id)
+        files = Card_Attachment.objects.filter(collabcard=card_id).order_by('index')
     else:
-        files = draftChatroomFiles.objects.filter(draft=card_id)
+        files = draftChatroomFiles.objects.filter(draft=card_id).order_by('index')
     img_list = []
     pdf = []
     for file in files:
@@ -1509,7 +1509,7 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
 def get_answer_files(answer_id):
     '''function to return pdf and image files of a collabcard'''
 
-    attachments = answerAttachment.objects.filter(answer=answer_id)
+    attachments = answerAttachment.objects.filter(answer=answer_id).order_by("index")
     img_list = []
     pdf = []
     files = {}
