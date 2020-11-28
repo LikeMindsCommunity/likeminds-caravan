@@ -13290,30 +13290,50 @@ def sync_members(request):
     member_list = []
 
     chatroom_id = request.GET.get('chatroom_id', '')
-    community_id = request.GET.get('community_id', '')
+    community_id = request.GET.get('community_id', None)
 
     if members_type == "members":
         if chatroom_id:
 
+            try:
+                card_instance = Collabcard.objects.get(pk=chatroom_id)
+                community_instance = card_instance.community
+            except:
+                context = get_error_context(False, "Incorrect chatroom id")
+                return JsonResponse(context, status=400)
+
             chatroom_particpants = collabcardState.objects.filter(card=chatroom_id, is_guest=False,
                                                                   remove=None).filter(Q(follow_status=True) |
-                                                                                        Q(attending_status=True)).order_by('id')
+                                                                                      Q(attending_status=True)).order_by('id')
+            participants_list = list(chatroom_particpants.values_list("user__id", flat=True))
             max_last_updated = 0
 
             member_list = []
-            chatroom_particpants = pagination(chatroom_particpants,page,paginate_by=paginate_by)
+            chatroom_particpants = list_pagination(participants_list, page, paginate_by=paginate_by)
 
-            for data in chatroom_particpants:
-                user_profile = get_user_profile(data.user, community_id,
-                                                     current_user_id=member_id,
-                                                     send_profile=False)
-                if max_last_updated < data.updated_at:
-                    max_last_updated = data.updated_at
-                member_list.append(user_profile)
+            chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
+                                             community_id=community_instance)
 
-            context ={
+            # for data in chatroom_particpants:
+            #     user_profile = get_user_profile(data.user, community_id,
+            #                                          current_user_id=member_id,
+            #                                          send_profile=False)
+            #     if max_last_updated < data.updated_at:
+            #         max_last_updated = data.updated_at
+            #     member_list.append(user_profile)
+
+            for member_instance in chatroom_members:
+
+                if max_last_updated < member_instance.updated_at:
+                    max_last_updated = member_instance.updated_at
+
+                member_data = get_member_instance_for_db_synching(member_instance, member_instance.community_id.id,
+                                                                  current_user_id=member_id, send_profile=False)
+                member_list.append(member_data)
+
+            context = {
                 'members': member_list,
-                'max_last_updated':max_last_updated
+                'max_last_updated': max_last_updated
             }
             return JsonResponse(context)
 
