@@ -705,7 +705,7 @@ class Referal(models.Model):
 class Location_Info(models.Model):
     """ saving location details of a geography tag """
 
-    # tag = models.ForeignKey(Tags_lpig, on_delete=models.PROTECT)
+    # tag = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
     tag_name = models.CharField(max_length=512, null=True, unique=True)
     city = models.CharField(max_length=512, null=True, default='')
     district = models.CharField(max_length=512, null=True, default='')
