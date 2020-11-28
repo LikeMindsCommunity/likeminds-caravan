@@ -169,9 +169,11 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
     '''function to update the unseen  collabcard in engage'''
 
-    total_chatrooms = collabcardState.objects.filter(community=community,user=user).distinct('card_id').count()
+    total_chatrooms = collabcardState.objects.filter(community=community, user=user,
+                                                     card__is_deleted=False).distinct('card_id').count()
     print("total_chatrooms--",total_chatrooms)
-    seen_chatrooms = collabcardState.objects.filter(community=community,user=user,external_seen=True).distinct('card').count()
+    seen_chatrooms = collabcardState.objects.filter(community=community, user=user, external_seen=True,
+                                                    card__is_deleted=False).distinct('card').count()
 
     print("seen_chatrooms--", seen_chatrooms)
     diff = total_chatrooms - seen_chatrooms
@@ -242,7 +244,9 @@ def get_new_chatroom_members(member_id, community_id):
 
 def fetch_new_chatroom_creater_images(member_id,community_id):
 
-    unseen_chatrooms = collabcardState.objects.filter(user=member_id,community_id=community_id,external_seen=False).distinct('card')
+    unseen_chatrooms = collabcardState.objects.filter(user=member_id, community_id=community_id,
+                                                      external_seen=False,
+                                                      card__is_deleted=False).distinct('card')
 
     member_set = set()
     member_list = []

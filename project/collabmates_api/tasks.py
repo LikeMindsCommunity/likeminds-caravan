@@ -735,11 +735,13 @@ def update_pending_chatroom_count_for_promoters(community_id):
     pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True, is_deleted=False).count()
 
     Member_Engage.objects.filter(member_id__in=user_list,
-                                 community_id=community).update(pending_chatrooms=pending_chatrooms)
+                                 community_id=community).update(pending_chatrooms=pending_chatrooms,
+                                                                updated_at=time.time())
     member_state_list = [member_states.MEMBER, member_states.KNOWN_NOMINATED_PROMOTER, member_states.PROFILE_UNAVAILABLE]
     Member_Engage.objects.filter(community_id=community,
                                  member_state__in=member_state_list).update(pending_chatrooms=0,
-                                                                            open_reports=0)
+                                                                            open_reports=0,
+                                                                            updated_at=time.time())
 
 
 def get_users_with_right(community, right_state):
@@ -789,7 +791,8 @@ def update_report_count_in_member_engage(user, community, is_owner=False, parent
                                                     is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
                                                     parent_cm_list=parent_cm_list, return_reports_count=True)
 
-    Member_Engage.objects.filter(member_id=user, community_id=community).update(open_reports=report_count)
+    Member_Engage.objects.filter(member_id=user, community_id=community).update(open_reports=report_count,
+                                                                                updated_at=time.time())
 
 
 
