@@ -3533,6 +3533,8 @@ def chatroom_delete(request):
         conversationEngage.objects.filter(card=collabcard_instance).delete()
         if disallow_create_chatroom or disallow_create_chatroom == "true":
             remove_creation_rights_for_user(card_creator, community_instance)
+
+        # updates last seen count after card is deleted
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
         ##setting the updated time of deleted chatroom
