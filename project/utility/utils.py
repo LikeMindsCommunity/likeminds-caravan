@@ -61,9 +61,7 @@ else:
     feedback_collabcard_id = 517
 
 # count for a particular community to show tutorial
-tutorial_count=3
-
-
+tutorial_count = 3
 
 #member related functions
 def is_member_engage(community,member):
