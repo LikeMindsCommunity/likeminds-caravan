@@ -214,12 +214,10 @@ def get_all_members(request, req_dict=None):
         members = get_member_instances_with_filter(member_set, current_user_id, community_id, page=page,
                                                    member_instance=member_instance)
 
-
     else:
         member_list = get_member_query_set(current_user_id, community_id, page=page)
         members = get_member_instances_without_filter(member_list, current_user_id, community_id,page=page)
         total_filtered_members = community['members_count']
-
 
     context = {'members': members,'community':community}
 
@@ -262,20 +260,16 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
 
     #fetching the user profile to show his name at top
 
+    current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
+
+    if current_filter.exists():
+        current_user_filter = current_filter[0]
+        is_owner = current_user_filter.is_owner
+        is_promoter = current_user_filter.state == member_states.ADMIN
+
     if int(page) == 1:
 
-        current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
-
         if current_filter.exists():
-
-            current_user_filter = current_filter[0]
-            is_owner = current_user_filter.is_owner
-            is_promoter = current_user_filter.state == member_states.ADMIN
-
-            # if member_set and current_user_id and int(current_user_id) in member_set:
-            #     current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
-            # elif not member_set:
-
             current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
                                              send_profile=True, all_members_api=True, is_promoter=is_promoter,
                                              is_owner=is_owner)
