@@ -193,7 +193,7 @@ class Collabcard(models.Model):
     preview_type = models.TextField(null=True)
     preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
                                           related_name='chatroom_preview_community')
-    preview_chatroom = models.ForeignKey('self', on_delete=models.PROTECT, null=True,
+    preview_chatroom = models.ForeignKey('self', on_delete=models.CASCADE, null=True,
                                          related_name='chatroom_preview_chatroom')
     is_pending = models.BooleanField(default=False)  # for pending chat rooms which has to be approved
     is_deleted = models.BooleanField(default=False)  # for internal check, not to be sent in API's
@@ -250,7 +250,7 @@ class draftChatroom(models.Model):
     preview_type = models.TextField(null=True)
     preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
                                           related_name='draft_chatroom_preview_community')
-    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
+    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True,
                                          related_name='draft_chatroom_preview_chatroom')
 
 
@@ -324,12 +324,12 @@ class card_answers(models.Model):
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='conversation_deleted_by_user')
     is_edited = models.BooleanField(default=False)
-    reply = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='replied_conversation')
+    reply = models.ForeignKey('self', on_delete=models.CASCADE, null=True, related_name='replied_conversation')
     internal_link = models.TextField(null=True)
     preview_type = models.TextField(null=True)
     preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
                                           related_name='conversation_preview_community')
-    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
+    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True,
                                          related_name='conversation_preview_chatroom')
 
     has_files = models.BooleanField(default=False)
@@ -700,7 +700,7 @@ class Referal(models.Model):
 class Location_Info(models.Model):
     """ saving location details of a geography tag """
 
-    # tag = models.ForeignKey(Tags_lpig, on_delete=models.PROTECT)
+    # tag = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
     tag_name = models.CharField(max_length=512, null=True, unique=True)
     city = models.CharField(max_length=512, null=True, default='')
     district = models.CharField(max_length=512, null=True, default='')

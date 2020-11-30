@@ -286,7 +286,8 @@ def get_active_chatroom_member_images(community_instance,member_id):
 
     current_time = time.time()
     state_filter = collabcardState.objects.filter(community=community_instance,
-                                                  user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-expiry_time','-card')
+                                                  user=member_id,
+                                                  card__is_deleted=False).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-expiry_time','-card')
     temp = {}
     member_list = []
     user_set = set()
@@ -312,7 +313,8 @@ def get_active_chatroom_member_images(community_instance,member_id):
 
     current_time = time.time()
     state_filter = collabcardState.objects.filter(community=community_instance,
-                                                  user=member_id).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-expiry_time','-card')
+                                                  user=member_id,
+                                                  card__is_deleted=False).filter(Q(expiry_time=None)|Q(expiry_time__gt=current_time)).order_by('-expiry_time','-card')
     temp = {}
     member_list = []
     user_set = set()
@@ -5188,7 +5190,7 @@ def conversation_meta(request):
         'conversations': chatroom
     }
     #saving the latest conversation
-    save_the_latest_conversation(card_instance,user_id)
+    save_the_latest_conversation(card_instance, user_id)
     return JsonResponse(context)
 
 
@@ -5971,10 +5973,11 @@ def save_the_latest_conversation(card_instance, user_id):
     return latest_conversations
 
 
-def is_chatroom_join_expired(aj, source_id):
+def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
     '''function to check weather joining time of chatroom is valid or not'''
 
-    expiry_filter = chatroomExpiryCodes.objects.filter(unique_code=aj, source=source_id)
+    expiry_filter = chatroomExpiryCodes.objects.filter(unique_code=aj, source=source_id,
+                                                       card_id=chatroom_id)
     if expiry_filter.exists():
         expiry_instance = expiry_filter[0]
         time_stamp = int(time.time())
@@ -5988,7 +5991,7 @@ def is_chatroom_join_expired(aj, source_id):
 
 def adding_guest_in_chatroom(request, context, card_instance, aj, source_id, community_id, current_user_id,
                              guest_header=False):
-    aj_expired = is_chatroom_join_expired(aj, source_id)
+    aj_expired = is_chatroom_join_expired(aj, source_id, card_instance.id)
     status = is_member_verified(community_id, current_user_id)
     state_filter = collabcardState.objects.filter(card=card_instance, user=current_user_id, is_guest=True)
 
@@ -13290,30 +13293,50 @@ def sync_members(request):
     member_list = []
 
     chatroom_id = request.GET.get('chatroom_id', '')
-    community_id = request.GET.get('community_id', '')
+    community_id = request.GET.get('community_id', None)
 
     if members_type == "members":
         if chatroom_id:
 
+            try:
+                card_instance = Collabcard.objects.get(pk=chatroom_id)
+                community_instance = card_instance.community
+            except:
+                context = get_error_context(False, "Incorrect chatroom id")
+                return JsonResponse(context, status=400)
+
             chatroom_particpants = collabcardState.objects.filter(card=chatroom_id, is_guest=False,
                                                                   remove=None).filter(Q(follow_status=True) |
-                                                                                        Q(attending_status=True)).order_by('id')
+                                                                                      Q(attending_status=True)).order_by('id')
+            participants_list = list(chatroom_particpants.values_list("user__id", flat=True))
             max_last_updated = 0
 
             member_list = []
-            chatroom_particpants = pagination(chatroom_particpants,page,paginate_by=paginate_by)
+            chatroom_particpants = list_pagination(participants_list, page, paginate_by=paginate_by)
 
-            for data in chatroom_particpants:
-                user_profile = get_user_profile(data.user, community_id,
-                                                     current_user_id=member_id,
-                                                     send_profile=False)
-                if max_last_updated < data.updated_at:
-                    max_last_updated = data.updated_at
-                member_list.append(user_profile)
+            chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
+                                             community_id=community_instance)
 
-            context ={
+            # for data in chatroom_particpants:
+            #     user_profile = get_user_profile(data.user, community_id,
+            #                                          current_user_id=member_id,
+            #                                          send_profile=False)
+            #     if max_last_updated < data.updated_at:
+            #         max_last_updated = data.updated_at
+            #     member_list.append(user_profile)
+
+            for member_instance in chatroom_members:
+
+                if max_last_updated < member_instance.updated_at:
+                    max_last_updated = member_instance.updated_at
+
+                member_data = get_member_instance_for_db_synching(member_instance, member_instance.community_id.id,
+                                                                  current_user_id=member_id, send_profile=False)
+                member_list.append(member_data)
+
+            context = {
                 'members': member_list,
-                'max_last_updated':max_last_updated
+                'max_last_updated': max_last_updated
             }
             return JsonResponse(context)
 
