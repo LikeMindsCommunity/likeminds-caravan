@@ -187,7 +187,8 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
 
     if not is_seen:
-        Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=unseen_count)
+        Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=unseen_count,
+                                                                                    updated_at=time.time())
     else:
         Member_Engage.objects.filter(community_id=community, member_id=user).update(
             last_unseen_count=unseen_count,
@@ -198,19 +199,20 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         member_instances = fetch_new_chatroom_creater_images(user,community)
         if len(member_instances) > 0:
             Member_Engage.objects.filter(community_id=community, member_id=user).update(
-                new_chatroom_users=json.dumps(member_instances))
+                new_chatroom_users=json.dumps(member_instances),
+                updated_at=time.time())
         else:
             Member_Engage.objects.filter(community_id=community, member_id=user).update(
-                new_chatroom_users=None)
-
-
+                new_chatroom_users=None,
+                updated_at=time.time())
 
 
 def get_new_chatroom_members(member_id, community_id):
 
     """ to get the member objects for new chatrooms created """
 
-    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
+    last_instance = collabcardState.objects.filter(user=member_id, community=community_id,
+                                                   card__is_deleted=False).filter(~Q(state=0)).last()
 
     if last_instance:
         last_card = last_instance.card

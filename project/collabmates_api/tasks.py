@@ -791,8 +791,10 @@ def update_report_count_in_member_engage(user, community, is_owner=False, parent
                                                     is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
                                                     parent_cm_list=parent_cm_list, return_reports_count=True)
 
-    Member_Engage.objects.filter(member_id=user, community_id=community).update(open_reports=report_count,
-                                                                                updated_at=time.time())
+    Member_Engage.objects.filter(member_id=user,
+                                 community_id=community).update(open_reports=report_count,
+                                                                updated_at=time.time())
+
 
 
 

@@ -18,6 +18,13 @@ import logging
 # url='http://localhost:8000'
 error_logger=logging.getLogger("error_logger")
 info_logger=logging.getLogger("info_logger")
+
+if url is None:
+    if settings.IS_BETA:
+        url = 'https://beta.likeminds.community'
+    else:
+        url = 'https://www.likeminds.community'
+
 api_url = url + '/api/'
 
 def dashboard(request):
