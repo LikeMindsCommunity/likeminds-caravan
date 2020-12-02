@@ -12086,7 +12086,7 @@ def update_community_manager_rights(request):
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     if admin.exists():
 
-        is_owner = admin[0].is_owner
+        # is_owner = admin[0].is_owner
 
         if int(user_id) == int(current_user_id):
             # if user id and current_user_id are same..its probably the owner
