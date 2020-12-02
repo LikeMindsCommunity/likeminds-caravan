@@ -12094,7 +12094,7 @@ def update_community_manager_rights(request):
             if not custom_title:
                 custom_title = admin[0].custom_title
             Members.objects.filter(community_id=community_instance,
-                                   member_id=user_instance).update(state=member_states.ADMIN, is_owner=is_owner,
+                                   member_id=user_instance).update(state=member_states.ADMIN,
                                                                    custom_title=custom_title)
             return JsonResponse({'success': True})
 
@@ -12113,7 +12113,7 @@ def update_community_manager_rights(request):
             right = adminRights.objects.get(pk=right_id)
             userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
 
-        if int(user_id) != int(current_user_id)::
+        if int(user_id) != int(current_user_id):
             member = Members.objects.filter(member_id=user_instance,
                                             community_id=community_instance)
             member_instance = None
@@ -12165,7 +12165,7 @@ def update_community_manager_rights(request):
 
             final_parent_list = json.dumps(member_parent_list)
             # updating parent cm list
-            member.update(state=member_states.ADMIN, is_owner=is_owner, custom_title=custom_title,
+            member.update(state=member_states.ADMIN, is_owner=False, custom_title=custom_title,
                           parent_cm=parent_cm, parent_cm_list=final_parent_list)
             # savig moderation history for permission edited
             save_moderation_history(user=user_instance, community=community_instance,
@@ -12182,8 +12182,8 @@ def update_community_manager_rights(request):
 
                 Member_Engage.objects.filter(member_id=user_instance,
                                              community_id=community_id).update(
-                                                 member_state=member_states.ADMIN,
-                                                 rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS))
+                                             member_state=member_states.ADMIN,
+                                             rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS))
 
                 save_moderation_history(user=user_instance, community=community_instance,
                                         moderation_by=current_user_instance,
