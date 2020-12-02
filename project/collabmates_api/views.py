@@ -12088,7 +12088,9 @@ def update_community_manager_rights(request):
 
         is_owner = admin[0].is_owner
 
-        if is_owner:
+        if int(user_id) == int(current_user_id):
+            # if user id and current_user_id are same..its probably the owner
+            # bcz no other can edit their own custom title or rights
             if not custom_title:
                 custom_title = admin[0].custom_title
             Members.objects.filter(community_id=community_instance,
@@ -12111,8 +12113,7 @@ def update_community_manager_rights(request):
             right = adminRights.objects.get(pk=right_id)
             userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
 
-        # is_owner = False
-        if not is_owner:
+        if int(user_id) != int(current_user_id)::
             member = Members.objects.filter(member_id=user_instance,
                                             community_id=community_instance)
             member_instance = None
