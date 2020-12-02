@@ -415,6 +415,7 @@ class conversationEngage(models.Model):
 
     rights_list = models.TextField(null=True)
 
+
 class temp_admin(models.Model):
     name = models.CharField(max_length=200)
     contact_number = models.CharField(max_length=200, null=True)
@@ -431,6 +432,7 @@ class Card_Attachment(models.Model):
     attachment = models.FileField(upload_to="media/collabcard_files", default='')
     file_url = models.CharField(max_length=500, null=True)
     type = models.CharField(max_length=50, default='')
+    index = models.IntegerField(default=1)
 
 
 class draftChatroomFiles(models.Model):
@@ -442,6 +444,7 @@ class draftChatroomFiles(models.Model):
     type = models.CharField(max_length=50, default='')
 
     created_at = models.BigIntegerField(default=0)
+    index = models.IntegerField(default=1)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
@@ -462,6 +465,8 @@ class answerAttachment(models.Model):
     location_long = models.FloatField(null=True)
 
     created_at = models.BigIntegerField(default=0)
+
+    index = models.IntegerField(default=1)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:

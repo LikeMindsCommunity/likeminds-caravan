@@ -246,7 +246,9 @@ def get_new_chatroom_members(member_id, community_id):
 
 def fetch_new_chatroom_creater_images(member_id,community_id):
 
-    unseen_chatrooms = collabcardState.objects.filter(user=member_id,community_id=community_id,external_seen=False).distinct('card')
+    unseen_chatrooms = collabcardState.objects.filter(user=member_id, community_id=community_id,
+                                                      external_seen=False,
+                                                      card__is_deleted=False).distinct('card')
 
     member_set = set()
     member_list = []

@@ -224,7 +224,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
 
     class Meta:
         model = Community
-        fields = ('id', 'name', 'purpose', 'location', 'about', 'image_url', 'members_count',
+        fields = ('id', 'name', 'purpose', 'about', 'image_url', 'members_count',
                   'type', 'sub_type')
 
     def __init__(self, *args, **kwargs):
@@ -445,7 +445,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         images = []
         if card.has_files:
-            files = Card_Attachment.objects.filter(collabcard=card,type="image")
+            files = Card_Attachment.objects.filter(collabcard=card, type="image").order_by('index')
             for file in files:
                 img = {'image_url': file.file_url}
                 images.append(img)
@@ -456,7 +456,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         pdf = []
         if card.has_files:
-            files = Card_Attachment.objects.filter(collabcard=card, type="pdf")
+            files = Card_Attachment.objects.filter(collabcard=card, type="pdf").order_by('index')
             for file in files:
                 temp = {'pdf_file': file.file_url}
                 pdf.append(temp)
