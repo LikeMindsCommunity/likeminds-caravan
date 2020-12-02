@@ -3564,7 +3564,7 @@ def chatroom_delete(request):
         # checking is_owner bcz, owner will be by default a CM
         member_is_promoter = Members.objects.filter(community_id=community_instance,
                                                     member_id=card_creator,
-                                                    is_owner=True).exists()
+                                                    state=member_states.ADMIN).exists()
 
         if (disallow_create_chatroom or disallow_create_chatroom == "true") and not member_is_promoter:
             remove_creation_rights_for_user(card_creator, community_instance)
@@ -12924,7 +12924,7 @@ def action_pending_chatroom(request):
     # checking is_owner bcz, owner will be by default a CM
     member_is_promoter = Members.objects.filter(community_id=community_instance,
                                                 member_id=chatroom_creator,
-                                                is_owner=True).exists()
+                                                state=member_states.ADMIN).exists()
 
     if pre_approve is not None and not member_is_promoter:
         if pre_approve == "true" or pre_approve is True:
