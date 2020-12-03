@@ -7,6 +7,11 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from .static_text import *
 
+import  logging
+
+error_logger = logging.getLogger("error_logger")
+info_logger = logging.getLogger("info_logger")
+
 
 def give_all_member_rights(user, community):
     """function to give a member all the rights """
@@ -576,7 +581,7 @@ def remove_all_member_rights(community, user):
     try:
         userMemberRights.objects.filter(user=user, community=community).delete()
     except:
-        print("rights does not exist")
+        info_logger.info("member rights does not exist to delete")
 
 
 def remove_all_manager_rights(community, user):
@@ -584,6 +589,6 @@ def remove_all_manager_rights(community, user):
     try:
         userAdminRights.objects.filter(user=user, community=community).delete()
     except:
-        print("rights does not exist")
+        info_logger.info("manager rights does not exist to delete")
 
 
