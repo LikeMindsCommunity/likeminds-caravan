@@ -2144,6 +2144,9 @@ def remove_from_member(request):
                                                 moderation_by=current_user_instance,
                                                 type=moderation_history_types.REMOVED_FROM_COMMUNITY)
 
+                        remove_all_member_rights(community_instance, user_instance)
+                        remove_all_manager_rights(community_instance, user_instance)
+
                         check_reports_and_update_action.delay(action_taken_by=member_id,
                                                               action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
                                                               user=member, community=community_id,
@@ -2191,6 +2194,10 @@ def remove_from_member(request):
             check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
+
+            remove_all_member_rights(community_instance, user_instance)
+            remove_all_manager_rights(community_instance, user_instance)
+
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False,
@@ -2287,10 +2294,9 @@ def update_followed_for_rejoined_member(user, community):
 
             engage_instance.save()
 
-            print("card id",str(instance.card.id))
+            print("card id", str(instance.card.id))
 
     print("existing chatroom followed for users")
-
 
 
 def fetch_community_profile(request):
@@ -2425,6 +2431,7 @@ def fetch_common_communities(request):
 
         communities.append(community_serializer)
     return JsonResponse({'communities': communities, 'total_count': total_count})
+
 
 def get_conversation_users(instance):
 
@@ -3567,7 +3574,11 @@ def chatroom_delete(request):
                                                     state=member_states.ADMIN).exists()
 
         if (disallow_create_chatroom or disallow_create_chatroom == "true") and not member_is_promoter:
-            remove_creation_rights_for_user(card_creator, community_instance)
+            remove_member_create_room_right(card_creator, community_instance)
+
+            save_moderation_history(user=card_creator, community=community_instance,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
         # updates last seen count after card is deleted
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
@@ -12118,11 +12129,13 @@ def update_community_manager_rights(request):
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+
+    member_is_owner = Members.objects.filter(member_id=user_instance, community_id=community_instance,
+                                             state=member_states.ADMIN,
+                                             is_owner=True).exists()  # who's rights are being updated
     if admin.exists():
 
-        # is_owner = admin[0].is_owner
-
-        if int(user_id) == int(current_user_id):
+        if (int(user_id) == int(current_user_id)) or member_is_owner:
             # if user id and current_user_id are same..its probably the owner
             # bcz no other can edit their own custom title or rights
             if not custom_title:
@@ -12132,7 +12145,7 @@ def update_community_manager_rights(request):
                                                                    custom_title=custom_title)
             return JsonResponse({'success': True})
 
-        # had to get added and ermoved rights for many other purposes ex: notifications
+        # had to get added and removed rights for many other purposes ex: notifications
         existing_rights = set(userAdminRights.objects.filter(community=community_instance,
                                                              user=user_instance).values_list("right__id", flat=True))
         # getting list of rights added and rights removed when compared to existing rights
@@ -12278,15 +12291,12 @@ def remove_community_manager(request):
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     if admin.exists():
-        # admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance,
-        #                                               right__id=manager_rights.MANAGER_RIGHT_APPROVE_MEMBERS)
-        # if admin_rights.exists():
         # deleting all manager rights
         userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
         # updating member state of manager to member
 
-        member_instance = Members.objects.filter(community_id=community_instance,
-                                                 member_id=user_instance)
+        # member_instance = Members.objects.filter(community_id=community_instance,
+        #                                          member_id=user_instance)
         custom_title = "Member"
         # if member_instance.exists():
             # custom_title = member_instance[0].custom_title
@@ -12413,8 +12423,8 @@ def transfer_community_ownership(request):
         admin.update(is_owner=False, custom_title="Community Manager",
                      parent_cm=user_instance, parent_cm_list=parent_cm_list)
 
-        save_moderation_history(user=user_instance, community=community_instance,
-                                moderation_by=current_user_instance,
+        save_moderation_history(user=current_user_instance, community=community_instance,
+                                moderation_by=user_instance,
                                 type=moderation_history_types.TRANSFERRED_OWNERSHIP)
 
         update_parent_cm_list(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
@@ -12530,6 +12540,11 @@ def update_community_member_rights(request):
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+    member_is_promoter = Members.objects.filter(member_id=user_instance, community_id=community_instance,
+                                                state=member_states.ADMIN).exists()
+
+    if member_is_promoter:
+        return JsonResponse({'success': True})
 
     if admin.exists():
         # had to get added and removed rights for many other purposes ex: notifications
@@ -12841,7 +12856,7 @@ def fetch_pending_chatroom(request):
         context = get_error_context(False, "You are not a CM of this community")
         return JsonResponse(context)
 
-    pending_chatrooms = Collabcard.objects.filter(community=community_id,
+    pending_chatrooms = Collabcard.objects.filter(community=community_id, user=current_user_id,
                                                   is_pending=True, is_deleted=False).order_by('id')
 
     chatrooms = []
@@ -12931,6 +12946,11 @@ def action_pending_chatroom(request):
             give_member_auto_approve_right(user=chatroom_creator, community=community_instance)
         else:
             remove_member_create_room_right(user=chatroom_creator, community=community_instance)
+
+        current_user_instance = User.objects.get(pk=current_user_id)
+        save_moderation_history(user=chatroom_creator, community=community_instance,
+                                moderation_by=current_user_instance,
+                                type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
     return JsonResponse({'success': True})
 
