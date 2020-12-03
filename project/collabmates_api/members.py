@@ -224,9 +224,12 @@ def get_all_members(request, req_dict=None):
     ##sending total members and pending members count
     context['total_members'] = community['members_count']
     context['total_filtered_members'] = total_filtered_members
+
     if promoter_instance:
-        context['total_pending_members'] = Members.objects.filter(community_id=community_id,
-                                                                  state=member_states.PENDING_MEMBER).count()
+        user_engage = Member_Engage.objects.filter(community_id=community_instance,
+                                                   member_id=promoter_instance)
+        if user_engage.exists():
+            context['total_pending_members'] = user_engage[0].pending_members
 
     return context
 
