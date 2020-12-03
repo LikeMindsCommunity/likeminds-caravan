@@ -1127,7 +1127,7 @@ def join_promoter_created_community_version_1(res, request):
 
                 # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
-                log = """>>>>>>>>>>  Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
+                log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
                 info_logger.info(log)
                 return
             # else:
@@ -1170,7 +1170,7 @@ def join_promoter_created_community_version_1(res, request):
             communityToast.objects.filter(community=community_instance, user=user_instance).delete()
             # give default members rights
             give_default_member_rights(user=user_instance, community=community_instance)
-            log = """>>>>>>>>>>  update profile skip member community_id=%s for user=%s""" % (community_id, member_id)
+            log = """UPDATING_SKIPPED_MEMBER_PROFILE - community_id=%s for user=%s""" % (community_id, member_id)
             info_logger.info(log)
         else:
 
@@ -2132,7 +2132,7 @@ def remove_from_member(request):
                         remove_all_member_rights(community_instance, user_instance)
                         remove_all_manager_rights(community_instance, user_instance)
                         info_logger.info(
-                            f">>>>>>>>>>>>  remove member current user id = {member_id}, user id = {member}"
+                            f"REMOVE_MEMBER_API (REMOVED CASE) -current user id = {member_id}, user id = {member}"
                             f", community id = {community_id}")
 
                     else:
@@ -2175,7 +2175,7 @@ def remove_from_member(request):
             check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
-            info_logger.info(f">>>>>>>>>>>>  remove member(Left)  current user id = {member_id}, user id = {member_id}"
+            info_logger.info(f"REMOVE_MEMBER_API (Left CASE) - current user id = {member_id}, user id = {member_id}"
                              f", community id = {community_id}")
             remove_all_member_rights(community_instance, user_instance)
             remove_all_manager_rights(community_instance, user_instance)
@@ -3555,7 +3555,8 @@ def chatroom_delete(request):
                                                     member_id=card_creator,
                                                     state=member_states.ADMIN).exists()
 
-        if (disallow_create_chatroom or disallow_create_chatroom == "true") and not member_is_promoter:
+        if (disallow_create_chatroom or disallow_create_chatroom == "true") and\
+                not member_is_promoter:
             remove_member_create_room_right(card_creator, community_instance)
 
             save_moderation_history(user=card_creator, community=community_instance,
@@ -3575,7 +3576,7 @@ def chatroom_delete(request):
 
         context = get_error_context(False, str(e))
         return JsonResponse(context)
-    info_logger.info(f">>>>>>>>>>>>   chatroom delete current user id = {member_id}, card creator id = {card_creator.id}, disallow_create_chatroom = {disallow_create_chatroom}")
+    info_logger.info(f"DELETE_CHATROOM_API - current user id = {member_id}, card creator id = {card_creator.id}, disallow_create_chatroom = {disallow_create_chatroom}")
     return JsonResponse({'success': True})
 
 
@@ -4433,7 +4434,7 @@ def approve_or_decline_private_community(req_dict, request):
             save_moderation_history(user=accepted_user, community=community,
                                     moderation_by=current_user_instance,
                                     type=history_type)
-            info_logger.info(f">>>>>>  join request accept current user id = {current_user_id}, user id = {accepted_user.id}"
+            info_logger.info(f"JOIN_REQUEST_ACCEPETED current user id = {current_user_id}, user id = {accepted_user.id}"
                              f", commuinty id = {community.id}")
             # updating pending members count
             update_pending_member_count_in_engage(req_dict['community_id'])
@@ -12115,7 +12116,7 @@ def update_community_manager_rights(request):
         if member_is_owner:
             # if user id and current_user_id are same..its probably the owner
             # bcz no other can edit their own custom title or rights
-            log = f">>>>>>>>>>  update CM rights for owner community_id = {community_id}" \
+            log = f"UPDATING_CM_RIGHTS_FOR_OWNER - community_id = {community_id}" \
                   f" current_user id = {current_user_id} user = {user_id}"
             info_logger.info(log)
             if not custom_title:
@@ -12222,7 +12223,7 @@ def update_community_manager_rights(request):
                 send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                                  community_id=community_id,
                                                                  custom_title=custom_title)
-        info_logger.info(f">>>>>>>>>>>>  update CM rights current user id = {current_user_id},"
+        info_logger.info(f"UPDATING_CM_RIGHTS current user id = {current_user_id},"
                          f" user id = {user_id}, community id = {community_id}")
 
         return JsonResponse({'success': True})
@@ -12300,7 +12301,7 @@ def remove_community_manager(request):
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
-        info_logger.info(f">>>>>>>>>>>>  remove CM  current user id = {current_user_id}, user id = {user_id}"
+        info_logger.info(f"REMOVE_COMMUNITY_MANAGER_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
 
         return JsonResponse({'success': True})
@@ -12421,7 +12422,7 @@ def transfer_community_ownership(request):
         update_pending_chatrooms_and_report_count.delay(community_id)
         send_notification_for_ownership_transfered.delay(prev_owner_id=current_user_id,
                                                          new_owner_id=user_id, community_id=community_id)
-        info_logger.info(f">>>>>>>>>>>>  tranfer owner ship  current user id = {current_user_id}, user id = {user_id}"
+        info_logger.info(f"TRANSFER_OWNERSHIP_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
         return JsonResponse({'success': True})
 
@@ -12529,7 +12530,7 @@ def update_community_member_rights(request):
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
 
-    info_logger.info(f">>>>>>>>>>>>  update member rights  current user id = {current_user_id}, user id = {user_id}"
+    info_logger.info(f"UPDATING_MEMBER_RIGHTS - current user id = {current_user_id}, user id = {user_id}"
                      f", community id = {community_id}")
 
     admin = Members.objects.filter(member_id=current_user_instance,
@@ -12538,7 +12539,7 @@ def update_community_member_rights(request):
                                                 state=member_states.ADMIN).exists()
 
     if member_is_promoter:
-        log = """>>>>>>>>>>  update member rights for CM community_id=%s for user=%s""" % (community_id, user_id)
+        log = """UPDATING_MEMBER_RIGHTS_FOR_CM = community_id=%s for user=%s""" % (community_id, user_id)
         info_logger.info(log)
         return JsonResponse({'success': True})
 
@@ -12941,8 +12942,10 @@ def action_pending_chatroom(request):
                                                 member_id=chatroom_creator,
                                                 state=member_states.ADMIN).exists()
 
-    if pre_approve is not None and not member_is_promoter:
-        if pre_approve == "true" or pre_approve is True:
+    if pre_approve is not None and\
+            not member_is_promoter:
+        if pre_approve == "true" or\
+                pre_approve is True:
             give_member_auto_approve_right(user=chatroom_creator, community=community_instance)
         else:
             remove_member_create_room_right(user=chatroom_creator, community=community_instance)
@@ -12951,7 +12954,7 @@ def action_pending_chatroom(request):
         save_moderation_history(user=chatroom_creator, community=community_instance,
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.MEMBER_PERMISSION_EDITED)
-    info_logger.info(f">>>>>>>>>>>>  pending chatroom current user id = {current_user_id}, card creator id = {chatroom_creator.id}, disallow_create_chatroom = {pre_approve},"
+    info_logger.info(f"ACTION_PENDING_CHATROOM - current user id = {current_user_id}, card creator id = {chatroom_creator.id}, disallow_create_chatroom = {pre_approve},"
                      f"card id = {chatroom_id}, community id = {community_instance.id}")
 
     return JsonResponse({'success': True})
@@ -13145,7 +13148,7 @@ def update_community_rights(request):
             remove_right_for_all_members(community=community_instance, right=right)
 
         info_logger.info(
-            f">>>>>>>>>>>>  update community settings current user id = {current_user_id}"
+            f"UPDATING_COMMUNITY_SETTINGS - current user id = {current_user_id}"
             f"community id = {community_id}")
 
         return JsonResponse({'success': True})
