@@ -3533,8 +3533,20 @@ def chatroom_delete(request):
                                         card_creator, reason, tag_id)
         #create_chatroom_participants_backup(card_instance=collabcard_instance)
         conversationEngage.objects.filter(card=collabcard_instance).delete()
-        if disallow_create_chatroom or disallow_create_chatroom == "true":
-            remove_creation_rights_for_user(card_creator, community_instance)
+
+
+        # checking is_owner bcz, owner will be by default a CM
+        member_is_promoter = Members.objects.filter(community_id=community_instance,
+                                                    member_id=card_creator,
+                                                    state=member_states.ADMIN).exists()
+
+        if (disallow_create_chatroom or disallow_create_chatroom == "true") and not member_is_promoter:
+            remove_member_create_room_right(card_creator, community_instance)
+
+            save_moderation_history(user=card_creator, community=community_instance,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
         ##setting the updated time of deleted chatroom
@@ -12078,8 +12090,23 @@ def update_community_manager_rights(request):
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+
+    # member_is_owner = Members.objects.filter(member_id=user_instance, community_id=community_instance,
+    #                                          state=member_states.ADMIN,
+    #                                          is_owner=True).exists()  # who's rights are being updated
     if admin.exists():
-        # had to get added and ermoved rights for many other purposes ex: notifications
+
+        if (int(user_id) == int(current_user_id)):  # or member_is_owner:
+            # if user id and current_user_id are same..its probably the owner
+            # bcz no other can edit their own custom title or rights
+            if not custom_title:
+                custom_title = admin[0].custom_title
+            Members.objects.filter(community_id=community_instance,
+                                   member_id=user_instance).update(state=member_states.ADMIN,
+                                                                   custom_title=custom_title)
+            return JsonResponse({'success': True})
+
+        # had to get added and removed rights for many other purposes ex: notifications
         existing_rights = set(userAdminRights.objects.filter(community=community_instance,
                                                              user=user_instance).values_list("right__id", flat=True))
         # getting list of rights added and rights removed when compared to existing rights
@@ -12094,17 +12121,7 @@ def update_community_manager_rights(request):
             right = adminRights.objects.get(pk=right_id)
             userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
 
-        is_owner = False
-        if int(user_id) == int(current_user_id):
-            # if user id and current_user_id are same..its probably the owner
-            # bcz no other can edit their own custom title or rights
-            is_owner = admin[0].is_owner
-            if not custom_title:
-                custom_title = admin[0].custom_title
-            Members.objects.filter(community_id=community_instance,
-                                   member_id=user_instance).update(state=member_states.ADMIN, is_owner=is_owner,
-                                                                   custom_title=custom_title)
-        else:
+        if int(user_id) != int(current_user_id):
             member = Members.objects.filter(member_id=user_instance,
                                             community_id=community_instance)
             member_instance = None
@@ -12156,7 +12173,7 @@ def update_community_manager_rights(request):
 
             final_parent_list = json.dumps(member_parent_list)
             # updating parent cm list
-            member.update(state=member_states.ADMIN, is_owner=is_owner, custom_title=custom_title,
+            member.update(state=member_states.ADMIN, is_owner=False, custom_title=custom_title,
                           parent_cm=parent_cm, parent_cm_list=final_parent_list)
             # savig moderation history for permission edited
             save_moderation_history(user=user_instance, community=community_instance,
@@ -12173,8 +12190,8 @@ def update_community_manager_rights(request):
 
                 Member_Engage.objects.filter(member_id=user_instance,
                                              community_id=community_id).update(
-                                                 member_state=member_states.ADMIN,
-                                                 rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS))
+                                             member_state=member_states.ADMIN,
+                                             rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS))
 
                 save_moderation_history(user=user_instance, community=community_instance,
                                         moderation_by=current_user_instance,
@@ -12191,6 +12208,8 @@ def update_community_manager_rights(request):
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
+
+
 
 
 def get_added_and_removed_rights(selected_rights, existing_rights):
@@ -12875,15 +12894,28 @@ def action_pending_chatroom(request):
 
     send_notification_for_pending_chatroom_approved_or_rejected.delay(chatroom.id, is_approved=is_approved)
     # deleting the old instance even if value = true or false
+    # adding pending chatroom files to new chatroomg
+    Card_Attachment.objects.filter(collabcard__id=chatroom_id).update(collabcard=chatroom)
+    
     Collabcard.objects.filter(pk=chatroom_id).delete()
 
     update_pending_chatroom_count_for_promoters.delay(community_instance.id)
 
-    if pre_approve is not None:
+    # checking is_owner bcz, owner will be by default a CM
+    member_is_promoter = Members.objects.filter(community_id=community_instance,
+                                                member_id=chatroom_creator,
+                                                state=member_states.ADMIN).exists()
+
+    if pre_approve is not None and not member_is_promoter:
         if pre_approve == "true" or pre_approve is True:
             give_member_auto_approve_right(user=chatroom_creator, community=community_instance)
         else:
             remove_member_create_room_right(user=chatroom_creator, community=community_instance)
+
+        current_user_instance = User.objects.get(pk=current_user_id)
+        save_moderation_history(user=chatroom_creator, community=community_instance,
+                                moderation_by=current_user_instance,
+                                type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
     return JsonResponse({'success': True})
 
