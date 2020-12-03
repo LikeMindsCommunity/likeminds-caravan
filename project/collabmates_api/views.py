@@ -12933,6 +12933,9 @@ def action_pending_chatroom(request):
 
     send_notification_for_pending_chatroom_approved_or_rejected.delay(chatroom.id, is_approved=is_approved)
     # deleting the old instance even if value = true or false
+    # adding pending chatroom files to new chatroomg
+    Card_Attachment.objects.filter(collabcard__id=chatroom_id).update(collabcard=chatroom)
+
     Collabcard.objects.filter(pk=chatroom_id).delete()
 
     update_pending_chatroom_count_for_promoters.delay(community_instance.id)
