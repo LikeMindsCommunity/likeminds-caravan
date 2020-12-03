@@ -3547,9 +3547,8 @@ def chatroom_delete(request):
         # updating collabcard delete status
         update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
                                         card_creator, reason, tag_id)
-        #create_chatroom_participants_backup(card_instance=collabcard_instance)
-        conversationEngage.objects.filter(card=collabcard_instance).delete()
 
+        conversationEngage.objects.filter(card=collabcard_instance).delete()
 
         # checking is_owner bcz, owner will be by default a CM
         member_is_promoter = Members.objects.filter(community_id=community_instance,
@@ -3565,7 +3564,7 @@ def chatroom_delete(request):
 
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
-        ##setting the updated time of deleted chatroom
+        # setting the updated time of deleted chatroom
         current_time = time.time()
         collabcardState.objects.filter(card=collabcard_instance).update(updated_at=current_time)
 

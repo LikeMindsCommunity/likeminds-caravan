@@ -231,10 +231,6 @@ def get_all_members(request, req_dict=None):
         if user_engage.exists():
             context['total_pending_members'] = user_engage[0].pending_members
 
-    # if promoter_instance:
-    #     context['total_pending_members'] = Members.objects.filter(community_id=community_id,
-    #                                                               state=member_states.PENDING_MEMBER).count()
-
     return context
 
 
