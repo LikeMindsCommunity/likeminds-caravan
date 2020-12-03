@@ -571,4 +571,19 @@ def save_community_setting_rights(community, rights_list):
             print(">>>> member  --  ", community.id, right.id)
 
 
+def remove_all_member_rights(community, user):
+
+    try:
+        userMemberRights.objects.filter(user=user, community=community).delete()
+    except:
+        print("rights already exists")
+
+
+def remove_all_manager_rights(community, user):
+
+    try:
+        userAdminRights.objects.filter(user=user, community=community).delete()
+    except:
+        print("rights already exists")
+
 

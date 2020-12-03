@@ -1168,6 +1168,8 @@ def join_promoter_created_community_version_1(res, request):
             post_introduction_card_for_community(community_id, member_id, request)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
             communityToast.objects.filter(community=community_instance, user=user_instance).delete()
+            # give default members rights
+            give_default_member_rights(user=user_instance, community=community_instance)
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -2124,6 +2126,10 @@ def remove_from_member(request):
 
                         send_notification_for_removed_member.delay(admin_id=member_id,
                                                                    removed_user_id=member, community_id=community_id)
+
+                        remove_all_member_rights(community_instance, user_instance)
+                        remove_all_manager_rights(community_instance, user_instance)
+
                     else:
                         return JsonResponse(
                             {'success': False, 'error_message': "Cannot the Owner of this community"})
@@ -2164,6 +2170,10 @@ def remove_from_member(request):
             check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
+
+            remove_all_member_rights(community_instance, user_instance)
+            remove_all_manager_rights(community_instance, user_instance)
+
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False,
@@ -12389,8 +12399,8 @@ def transfer_community_ownership(request):
         admin.update(is_owner=False, custom_title="Community Manager",
                      parent_cm=user_instance, parent_cm_list=parent_cm_list)
 
-        save_moderation_history(user=user_instance, community=community_instance,
-                                moderation_by=current_user_instance,
+        save_moderation_history(user=current_user_instance, community=community_instance,
+                                moderation_by=user_instance,
                                 type=moderation_history_types.TRANSFERRED_OWNERSHIP)
 
         update_parent_cm_list(community_id=community_id, new_owner_id=user_id, prev_owner_id=current_user_id)
@@ -12506,6 +12516,11 @@ def update_community_member_rights(request):
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+    member_is_promoter = Members.objects.filter(member_id=user_instance, community_id=community_instance,
+                                                state=member_states.ADMIN).exists()
+
+    if member_is_promoter:
+        return JsonResponse({'success': True})
 
     if admin.exists():
         # had to get added and removed rights for many other purposes ex: notifications
