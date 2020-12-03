@@ -576,7 +576,7 @@ def remove_all_member_rights(community, user):
     try:
         userMemberRights.objects.filter(user=user, community=community).delete()
     except:
-        print("rights already exists")
+        print("rights does not exist")
 
 
 def remove_all_manager_rights(community, user):
@@ -584,6 +584,6 @@ def remove_all_manager_rights(community, user):
     try:
         userAdminRights.objects.filter(user=user, community=community).delete()
     except:
-        print("rights already exists")
+        print("rights does not exist")
 
 

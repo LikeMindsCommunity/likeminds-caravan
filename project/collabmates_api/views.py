@@ -1127,7 +1127,7 @@ def join_promoter_created_community_version_1(res, request):
 
                 # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
-                log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
+                log = """>>>>>>>>>>  Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
                 info_logger.info(log)
                 return
             # else:
@@ -1170,6 +1170,8 @@ def join_promoter_created_community_version_1(res, request):
             communityToast.objects.filter(community=community_instance, user=user_instance).delete()
             # give default members rights
             give_default_member_rights(user=user_instance, community=community_instance)
+            log = """>>>>>>>>>>  update profile skip member community_id=%s for user=%s""" % (community_id, member_id)
+            info_logger.info(log)
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -2129,6 +2131,9 @@ def remove_from_member(request):
 
                         remove_all_member_rights(community_instance, user_instance)
                         remove_all_manager_rights(community_instance, user_instance)
+                        info_logger.info(
+                            f">>>>>>>>>>>>  remove member current user id = {member_id}, user id = {member}"
+                            f", community id = {community_id}")
 
                     else:
                         return JsonResponse(
@@ -2170,7 +2175,8 @@ def remove_from_member(request):
             check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
-
+            info_logger.info(f">>>>>>>>>>>>  remove member(Left)  current user id = {member_id}, user id = {member_id}"
+                             f", community id = {community_id}")
             remove_all_member_rights(community_instance, user_instance)
             remove_all_manager_rights(community_instance, user_instance)
 
@@ -3570,7 +3576,7 @@ def chatroom_delete(request):
 
         context = get_error_context(False, str(e))
         return JsonResponse(context)
-
+    info_logger.info(f">>>>>>>>>>>>   chatroom delete current user id = {member_id}, card creator id = {card_creator.id}, disallow_create_chatroom = {disallow_create_chatroom}")
     return JsonResponse({'success': True})
 
 
@@ -4428,7 +4434,8 @@ def approve_or_decline_private_community(req_dict, request):
             save_moderation_history(user=accepted_user, community=community,
                                     moderation_by=current_user_instance,
                                     type=history_type)
-
+            info_logger.info(f">>>>>>  join request accept current user id = {current_user_id}, user id = {accepted_user.id}"
+                             f", commuinty id = {community.id}")
             # updating pending members count
             update_pending_member_count_in_engage(req_dict['community_id'])
 
@@ -12101,14 +12108,17 @@ def update_community_manager_rights(request):
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
 
-    # member_is_owner = Members.objects.filter(member_id=user_instance, community_id=community_instance,
-    #                                          state=member_states.ADMIN,
-    #                                          is_owner=True).exists()  # who's rights are being updated
+    member_is_owner = Members.objects.filter(member_id=user_instance, community_id=community_instance,
+                                             state=member_states.ADMIN,
+                                             is_owner=True).exists()  # who's rights are being updated
     if admin.exists():
 
-        if (int(user_id) == int(current_user_id)):  # or member_is_owner:
+        if member_is_owner:
             # if user id and current_user_id are same..its probably the owner
             # bcz no other can edit their own custom title or rights
+            log = f">>>>>>>>>>  update CM rights for owner community_id = {community_id}" \
+                  f" current_user id = {current_user_id} user = {user_id}"
+            info_logger.info(log)
             if not custom_title:
                 custom_title = admin[0].custom_title
             Members.objects.filter(community_id=community_instance,
@@ -12213,6 +12223,8 @@ def update_community_manager_rights(request):
                 send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                                  community_id=community_id,
                                                                  custom_title=custom_title)
+        info_logger.info(f">>>>>>>>>>>>  update CM rights current user id = {current_user_id},"
+                         f" user id = {user_id}, community id = {community_id}")
 
         return JsonResponse({'success': True})
     else:
@@ -12289,6 +12301,8 @@ def remove_community_manager(request):
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
+        info_logger.info(f">>>>>>>>>>>>  remove CM  current user id = {current_user_id}, user id = {user_id}"
+                         f", community id = {community_id}")
 
         return JsonResponse({'success': True})
         # else:
@@ -12408,6 +12422,8 @@ def transfer_community_ownership(request):
         update_pending_chatrooms_and_report_count.delay(community_id)
         send_notification_for_ownership_transfered.delay(prev_owner_id=current_user_id,
                                                          new_owner_id=user_id, community_id=community_id)
+        info_logger.info(f">>>>>>>>>>>>  tranfer owner ship  current user id = {current_user_id}, user id = {user_id}"
+                         f", community id = {community_id}")
         return JsonResponse({'success': True})
 
     else:
@@ -12514,12 +12530,17 @@ def update_community_member_rights(request):
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
 
+    info_logger.info(f">>>>>>>>>>>>  update member rights  current user id = {current_user_id}, user id = {user_id}"
+                     f", community id = {community_id}")
+
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     member_is_promoter = Members.objects.filter(member_id=user_instance, community_id=community_instance,
                                                 state=member_states.ADMIN).exists()
 
     if member_is_promoter:
+        log = """>>>>>>>>>>  update member rights for CM community_id=%s for user=%s""" % (community_id, user_id)
+        info_logger.info(log)
         return JsonResponse({'success': True})
 
     if admin.exists():
@@ -12931,6 +12952,8 @@ def action_pending_chatroom(request):
         save_moderation_history(user=chatroom_creator, community=community_instance,
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+    info_logger.info(f">>>>>>>>>>>>  pending chatroom current user id = {current_user_id}, card creator id = {chatroom_creator.id}, disallow_create_chatroom = {pre_approve},"
+                     f"card id = {chatroom_id}, community id = {community_instance.id}")
 
     return JsonResponse({'success': True})
 
@@ -13121,6 +13144,10 @@ def update_community_rights(request):
             right = memberRights.objects.get(pk=right_id)
             communityRightsSettings.objects.filter(community=community_instance, right=right).delete()
             remove_right_for_all_members(community=community_instance, right=right)
+
+        info_logger.info(
+            f">>>>>>>>>>>>  update community settings current user id = {current_user_id}"
+            f"community id = {community_id}")
 
         return JsonResponse({'success': True})
     else:
