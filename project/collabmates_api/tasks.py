@@ -731,24 +731,17 @@ def update_pending_chatroom_count_for_promoters(community_id):
         community = community_id
     user_list = get_users_with_right(community, manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
 
-    for user_id in user_list:
-        update_pending_chatroom_count_in_member_engage(user_id, community)
+    pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True, is_deleted=False).count()
+
+    Member_Engage.objects.filter(member_id__in=user_list,
+                                 community_id=community).update(pending_chatrooms=pending_chatrooms,
+                                                                updated_at=time.time())
 
     member_state_list = [member_states.MEMBER, member_states.KNOWN_NOMINATED_PROMOTER, member_states.PROFILE_UNAVAILABLE]
     Member_Engage.objects.filter(community_id=community,
                                  member_state__in=member_state_list).update(pending_chatrooms=0,
                                                                             open_reports=0,
                                                                             updated_at=time.time())
-
-
-def update_pending_chatroom_count_in_member_engage(user_id, community_id):
-
-    pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True,
-                                                  is_deleted=False).exculde(user__id=user_id).count()
-
-    Member_Engage.objects.filter(member_id=user_id,
-                                 community_id=community_id).update(pending_chatrooms=pending_chatrooms,
-                                                                updated_at=time.time())
 
 
 def get_users_with_right(community, right_state):
