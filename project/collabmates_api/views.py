@@ -12856,8 +12856,8 @@ def fetch_pending_chatroom(request):
         context = get_error_context(False, "You are not a CM of this community")
         return JsonResponse(context)
 
-    pending_chatrooms = Collabcard.objects.filter(community=community_id, user=current_user_id,
-                                                  is_pending=True, is_deleted=False).order_by('id')
+    pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True,
+                                                  is_deleted=False).order_by('id')
 
     chatrooms = []
     context = {}
