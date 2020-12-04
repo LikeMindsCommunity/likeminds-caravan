@@ -5975,7 +5975,6 @@ def save_the_latest_conversation(card_instance, user_id):
 
     latest_card = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
 
-
     # status = is_member_verified(card_instance.community,user_id)
     latest_conversation = None
     if latest_card:
@@ -5983,7 +5982,6 @@ def save_the_latest_conversation(card_instance, user_id):
         conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
         conversation_instance = latest_card
         latest_conversation = conversation_instance
-
 
         state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
         if state_filter.exists():
@@ -6002,12 +6000,6 @@ def save_the_latest_conversation(card_instance, user_id):
 
             update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                      last_conversation_id=conversation_instance.id, unseen_count=0)
-
-
-
-
-
-
 
         else:
             if conversation_instance.id != conversation_member_filter[0].conversation.id:
@@ -6876,7 +6868,8 @@ def create_conversation(request):
         ans.og_tags = json.dumps(decode_meta_from_url(res['share_link']))
         ans.save()
 
-    #saving those answers which don't have files
+    # saving those answer data in firebase, if any attachments are not there
+    has_files = 'has_files' in res and res['has_files']
     if not has_files:
         update_last_answer_id(card_instance.id, ans.id)
 
@@ -13325,10 +13318,6 @@ class SyncConversation(APIView):
 
         return JsonResponse(context)
 
-
-## need to remove ##3
-def sync_conversation_version_1(request):
-    return JsonResponse({'conversations': []})
 
 def fetch_user_meta(request):
 

@@ -849,6 +849,8 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     deleted_by = serializers.SerializerMethodField()
     images = serializers.ListField(write_only=True)
     pdf = serializers.ListField(write_only=True)
+    videos = serializers.ListField(write_only=True)
+    audios = serializers.ListField(write_only=True)
     location = serializers.ListField(write_only=True)
     reply_conversation = serializers.IntegerField(write_only=True)
     preview = serializers.DictField(write_only=True)
@@ -857,9 +859,9 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     class Meta:
         model = card_answers
         fields = ("id", 'answer', 'card', 'user', 'created_at', 'community', 'state',
-                  'og_tags', 'deleted_by',
-                  'is_edited', 'reply', 'internal_link', 'has_files', 'date', 'images',
-                  'pdf', 'location', 'reply_conversation', 'preview', 'member_id')
+                  'og_tags', 'deleted_by', 'is_edited', 'reply', 'internal_link',
+                  'has_files', 'date', 'images', 'pdf', 'audios', 'videos',
+                  'location', 'reply_conversation', 'preview', 'member_id')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)
@@ -906,12 +908,12 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 answer_files = get_answer_files(data['id'])
                 data['images'] = answer_files['image']
                 data['pdf'] = answer_files['pdf']
+                data['videos'] = answer_files['videos']
+                data['audios'] = answer_files['audios']
                 if 'location' in answer_files:
                     data['location'] = answer_files['location']
 
             elif field.field_name == "reply" and data['reply'] is not None and self.fetch_reply:
-                # context = {"fetch_reply": False, "current_user_id": self.current_user_id}
-                # reply_instance = card_answers.objects.get(pk=data['reply'])
                 data['reply_conversation'] = data['reply']
                 del data['reply']
 
