@@ -341,8 +341,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Collabcard
         fields = ('id', 'title', 'community_id', 'answer_text',
-                  'image_count', 'pdf_count', 'type', 'date_time',
-                  'is_pending', 'attending_count', 'polls_count',
+                  'image_count', 'pdf_count', 'video_count', 'audio_count', 'type',
+                  'date_time', 'is_pending', 'attending_count', 'polls_count',
                   'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
                   'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state',
                   'multiple_select_no', 'polls', 'location', 'location_lat', 'location_long',

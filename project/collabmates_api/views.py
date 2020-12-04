@@ -2918,6 +2918,8 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.type = card_type
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+    card.video_count = res['video_count'] if ('video_count' in res) else 0
+    card.audio_count = res['audio_count'] if ('audio_count' in res) else 0
     card.date_time = res['date_time'] if ('date_time' in res) else 0
     card.duration = res['duration'] if ('duration' in res) else 0
 
@@ -3228,6 +3230,8 @@ def create_draft_collabcard(request, res=None):
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
     card.date_time = res['date_time'] if ('date_time' in res) else 0
+    card.video_count = res['video_count'] if ('video_count' in res) else 0
+    card.audio_count = res['audio_count'] if ('audio_count' in res) else 0
     card.duration = res['duration'] if ('duration' in res) else 0
 
     # for event card
