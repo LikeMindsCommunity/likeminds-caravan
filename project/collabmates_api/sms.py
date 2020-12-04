@@ -1,6 +1,6 @@
 from django.conf import settings
 import requests
-import urllib
+import urllib,requests,logging
 from celery import shared_task
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
@@ -8,7 +8,9 @@ from project.celery import app
 
 
 gupshup_id = settings.GUPSHUP_ID
+msg91_auth_key = settings.MSG91_AUTH_KEY
 gupshup_pass = settings.GUPSHUP_PASS
+info_logger = logging.getLogger("info_logger")
 
 def send_sms(number,msg):
 
@@ -82,3 +84,36 @@ Download app : {2}'''.format(new_user_name,community_name,download_url)
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
 
+
+def send_retry_otp(phone_no):
+    ''' Send otp from msg91 - retry case'''
+
+    url = 'https://api.msg91.com/api/v5/otp?authkey=%s&template_id=5fc9e35a9c1377348e75e8aa&mobile=%s&invisible=0&otp_expiry=10'%(msg91_auth_key,phone_no)
+
+    r = requests.get(url)
+    context = {}
+    if r.text['type'] == 'success':
+        context['success'] = True
+        info_logger.info("MSG91 mobile generate otp success")
+    else:
+        info_logger.info("MSG91 mobile generate otp fail")
+        context['success'] = False
+        context['error_message'] = r.text['message']
+
+
+def verify_retry_otp(phone_no,otp):
+    ''' Verify otp from msg91 '''
+    url = 'https://api.msg91.com/api/v5/otp/verify?authkey=%s&mobile=%s&otp=%s'%(msg91_auth_key,str(phone_no),str(otp))
+
+    r = requests.get(url)
+
+    context = {}
+    if r.text['type'] == 'success':
+        context['success'] = True
+        info_logger.info("MSG91 mobile generate otp success")
+    else:
+        info_logger.info("MSG91 mobile generate otp fail")
+        context['success'] = False
+        context['error_message'] = r.text['message']
+
+    return context

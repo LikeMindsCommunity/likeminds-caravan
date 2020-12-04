@@ -9029,6 +9029,14 @@ def generate_otp(request):
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
 
+    #check got retry
+    retry = request.GET.get('retry')
+    
+    if retry == '1':
+        retry = True
+    else:
+        retry = False
+
     info_logger.info("\n\n")
     info_logger.info("country code")
     info_logger.info(country_code)
@@ -9054,8 +9062,10 @@ def generate_otp(request):
         if country_code != '91':
             international = True
 
-
-        context = send_otp_on_mobile(phone_no,international=international)
+        if retry:
+            context = send_retry_otp(phone_no)
+        else:
+            context = send_otp_on_mobile(phone_no,international=international)
         backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
 
         if not backup_filter.exists():
@@ -9074,7 +9084,11 @@ def generate_otp(request):
             international = False
             if str(instance.country_code) != '91':
                 international = True
-            context = send_otp_on_mobile(phone_no,international=international)
+
+            if retry:
+                context = send_retry_otp(phone_no)
+            else:
+                context = send_otp_on_mobile(phone_no,international=international)
 
             info_logger.info(instance.user.id)
             info_logger.info(context)
@@ -9160,11 +9174,16 @@ def verify_otp(request):
             for instance in mobile_filter:
                 phone_no = str(instance.country_code) + str(instance.mobile_no)
                 verified = verify_otp_on_mobile(phone_no, otp)
-                print()
+                verified_msg = verify_retry_otp(phone_no, otp)
 
                 if verified['success']:
+                    context['success'] = verified['success']
                     break
-            context['success'] = verified['success']
+
+                if verified_msg['success']:
+                    context['success'] = verified_msg['success']
+                    break
+
             user_instance = mobile_filter[0].user
             login(request, user=user_instance, backend="django.contrib.auth.backends.ModelBackend")
             context['profile_exists'] = True
@@ -9173,7 +9192,14 @@ def verify_otp(request):
 
         else:
             verified = verify_otp_on_mobile(phone_no, otp)
-            context['success'] = verified['success']
+            verified_msg = verify_retry_otp(phone_no, otp)
+
+            if verified['success']:
+                context['success'] = verified['success']
+
+            if verified_msg['success']:
+                context['success'] = verified_msg['success']
+
             if not context['success']:
                 context['error_message'] = "Incorrect OTP"
             # when new phone number
@@ -9222,7 +9248,13 @@ def verify_otp(request):
 
 
         verified = verify_otp_on_mobile(phone_no, otp,international=international)
-        context['success'] = verified['success']
+        verified_msg = verify_retry_otp(phone_no, otp)
+
+        if verified['success']:
+            context['success'] = verified['success']
+
+        if verified_msg['success']:
+            context['success'] = verified_msg['success']
 
         # saving data for existing user migrations
         if member_id and context['success']:
@@ -9258,8 +9290,13 @@ def verify_otp(request):
                 international = True
 
             context = verify_otp_on_mobile(phone_no, otp,international=international)
+            context_msg = verify_retry_otp(phone_no, otp)
+
             if context['success']:
                 break
+            if context_msg['success']:
+                break
+            
 
         context['profile_exists'] = mobile_filter.exists()
         if mobile_filter.exists():
