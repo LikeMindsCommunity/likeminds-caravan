@@ -13,17 +13,22 @@ from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
                            is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email,
                            android_app_download_link,ios_app_download_link,check_notification_flag)
-
+from utility.states import (collabcard_states, member_states, community_states,
+                            card_types, chatroom_states, chatroom_actions, member_rights, manager_rights,
+                            moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from togther.models import Collabcard
-from utility.encryption import encrypt,decrypt
+from utility.encryption import encrypt, decrypt
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
+from .user_moderation_rights import (get_related_reports_for_user, check_admin_delete_right,
+                                     check_admin_approve_right, check_admin_edit_community_right)
+import json
 # from datetime import datetime,
 # url = 'https://beta.likeminds.community'
 url = settings.URL
-
+from .serializers import CollabcardPollsSerializer
 from .notification import get_title_from_collabcard 
 # def send_email(subject,template,to):
 #     fail_silently=True
@@ -345,7 +350,6 @@ def send_welcome_mail(user_id):
         return
 
 
-
 @shared_task
 def send_verification_mail_for_email_sync(user_name,verification_link,email):
 
@@ -562,7 +566,7 @@ def send_community_confirmation_email(user_id, community_id):
 
 
 @app.task
-def send_community_confirmation_email_2(user_id, community_id,task_name,*args,**kwargs):
+def send_community_confirmation_email_2(user_id, community_id, task_name, *args, **kwargs):
     print("here")
     user_instance = User.objects.get(pk=user_id)
     community_instance = Community.objects.get(id=community_id)
@@ -597,5 +601,200 @@ def send_community_confirmation_email_2(user_id, community_id,task_name,*args,**
         print(email_context)
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
+
+
+@app.task
+def send_poll_results_announcement_mail(card_id, task_name):
+    """ function to send poll reuslts annoucement mail for users who missed or didn't see the poll results yet """
+
+    card_instance = Collabcard.objects.get(pk=card_id)
+
+    if card_instance.is_deleted or card_instance.is_pending:
+        return
+
+    community_instance = card_instance.community
+    community_id = community_instance.id
+    community_owner = Members.objects.filter(community_id=community_instance,
+                                             state=member_states.ADMIN, is_owner=True)
+
+    if community_owner.exists():
+        community_owner_instance = community_owner[0].member_id
+    else:
+        community_owner = Members.objects.filter(community_id=community_instance,
+                                                 state=member_states.ADMIN).order_by("id")
+        community_owner_instance = community_owner[0].member_id
+
+    community_owner_name = community_owner_instance.userinfo.name
+
+    card_creator = card_instance.user
+    card_creator_id = card_creator.id
+    card_creator_name = card_creator.userinfo.name
+
+    card_polls = CollabcardPolls.objects.filter(card=card_instance).order_by("id")
+
+    voted_members = set(MemberPollVotes.objects.filter(card=card_id).values_list("user", flat=True))
+    followed_members = set(collabcardState.objects.filter(
+        card=card_id, mute_status=False, external_follow=True).values_list("user", flat=True))
+    print("voted members ====   ", voted_members)
+    print("followed members ====   ", followed_members)
+    final_users_list = voted_members | followed_members
+    print("final_users_list ====   ", final_users_list)
+
+    if card_creator_id not in final_users_list:
+        final_users_list.add(card_creator_id)
+
+    is_multi_select = False
+    multi_select_text = ""
+    if card_instance.multiple_select_no is not None or card_instance.multiple_select_state is not None:
+        is_multi_select = True
+
+    if is_multi_select:
+        multiple_select_state = card_instance.multiple_select_state
+        multiple_select_no = card_instance.multiple_select_no if card_instance.multiple_select_no else 0
+        if multiple_select_state == multi_select_poll_states.EXACTLY:
+            multi_select_text = f"(Select exactly {multiple_select_no} options)"
+        elif multiple_select_state == multi_select_poll_states.AT_LEAST:
+            multi_select_text = f"(Select atleast {multiple_select_no} options)"
+        elif multiple_select_state == multi_select_poll_states.AT_MAX:
+            multi_select_text = f"(Select at most {multiple_select_no} options)"
+
+
+    polls_list = []
+    for poll in card_polls:
+        poll_dict = CollabcardPollsSerializer(poll=poll, user=None, card=card_instance)
+        polls_list.append(poll_dict)
+
+    for user_id in final_users_list:
+        user_instance = User.objects.get(pk=user_id)
+        email = get_user_email(user_id)
+
+        notification_name = 'poll_results_announcement_mail'
+
+        first_name = user_instance.userinfo.name.split(" ")[0]
+        notification_flag = memberNotificationFlag.objects.filter(code=notification_name, card=card_instance,
+                                                                  member=user_instance, flag=True).exists()
+        subject = f'{first_name}, results for {card_instance.header}'
+        if not notification_flag:
+            email_context = {
+                'subject': subject,
+                'card_instance': card_instance,
+                'poll_options': polls_list,
+                'member_name': first_name,
+                'card_creator_name': card_creator_name,
+                'community_owner_name': community_owner_name,
+                'community_name': community_instance.name,
+                'is_multi_select': is_multi_select,
+                'multi_select_text': multi_select_text,
+                'android_app_download_link': android_app_download_link,
+                'ios_app_download_link': ios_app_download_link,
+                'playstore_image': GOOGLE_PLAYSTORE,
+                'applestore_image': APPLE_APPSTORE,
+                'app_image': APP_LOGO,
+                'cta_url': url + '/community/' + str(community_id),
+                'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
+                    user_id) + '&code=poll_results_announcement_mail',
+            }
+            template = get_template("mails/poll_results_announcement.html").render(email_context)
+
+            to = [email]
+            fail_silently = False
+            msg = EmailMultiAlternatives(subject,
+                                         template,
+                                         f"{community_instance.name}<hello@likeminds.community>",
+                                         to)
+            msg.attach_alternative(template, "text/html")
+            msg.send(fail_silently)
+
+    card_instance.disable_poll_announcement_mail = True
+    card_instance.save()
+
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+
+
+@shared_task
+def update_pending_chatrooms_and_report_count(community_id):
+    """ function to update pending chatrooms and open reports count count for all promoters in community """
+    community = Community.objects.get(pk=community_id)
+
+    update_pending_chatroom_count_for_promoters(community)
+    update_report_count_for_all_promoters(community)
+
+
+@shared_task
+def update_pending_chatroom_count_for_promoters(community_id):
+    """ function to update pending chatrooms count for all promoters in community """
+
+    if not isinstance(community_id, Community):
+        community = Community.objects.get(pk=community_id)
+    else:
+        community = community_id
+    user_list = get_users_with_right(community, manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
+
+    pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True, is_deleted=False).count()
+
+    Member_Engage.objects.filter(member_id__in=user_list,
+                                 community_id=community).update(pending_chatrooms=pending_chatrooms,
+                                                                updated_at=time.time())
+
+    member_state_list = [member_states.MEMBER, member_states.KNOWN_NOMINATED_PROMOTER, member_states.PROFILE_UNAVAILABLE]
+    Member_Engage.objects.filter(community_id=community,
+                                 member_state__in=member_state_list).update(pending_chatrooms=0,
+                                                                            open_reports=0,
+                                                                            updated_at=time.time())
+
+
+def get_users_with_right(community, right_state):
+    user_list = list(userAdminRights.objects.filter(community=community,
+                                                    right__state=right_state).distinct("user").values_list("user__id"))
+    return user_list
+
+
+@shared_task
+def update_report_count_for_all_promoters(community_id=None, report_id=None):
+    """ function to update open reports count for all promoters in community """
+
+    if community_id is None and report_id is None:
+        return
+
+    if community_id is None:
+        report_instance = Report.objects.get(pk=report_id)
+        community = report_instance.community
+
+    elif not isinstance(community_id, Community):
+        community = Community.objects.get(pk=community_id)
+    else:
+        community = community_id
+
+    promoters = Members.objects.filter(community_id=community, state=member_states.ADMIN)
+    for promoter in promoters:
+        is_owner = promoter.is_owner
+        parent_cm_list = json.loads(promoter.parent_cm_list) if promoter.parent_cm_list else []
+
+        update_report_count_in_member_engage(promoter.member_id, community,
+                                             is_owner=is_owner, parent_cm_list=parent_cm_list)
+
+
+def update_report_count_in_member_engage(user, community, is_owner=False, parent_cm_list=None):
+
+    if parent_cm_list is None:
+        parent_cm_list = []
+
+    has_right_0 = check_admin_delete_right(user=user, community=community)
+    has_right_1 = check_admin_approve_right(user=user, community=community)
+    has_right_2 = check_admin_edit_community_right(user=user, community=community)
+
+    if not has_right_0 and not has_right_1 and has_right_2:
+        report_count = 0
+    else:
+        report_count = get_related_reports_for_user(user_id=user, community_id=community, has_right_0=has_right_0,
+                                                    is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                    parent_cm_list=parent_cm_list, return_reports_count=True)
+
+    Member_Engage.objects.filter(member_id=user,
+                                 community_id=community).update(open_reports=report_count,
+                                                                updated_at=time.time())
+
+
 
 

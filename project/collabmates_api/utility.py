@@ -40,7 +40,8 @@ def is_request_web(request):
     '''function to tell if the request is web or not'''
 
     platform_code = get_platform_code_from_headers(request)
-    if platform_code == 0 or platform_code == "Web":
+    platform_code = str(platform_code)
+    if platform_code == "0" or platform_code.lower() == "web":
         return True
 
     return False
@@ -63,6 +64,13 @@ def pagination(queryset, page_number, paginate_by=10):
     max_page = len(paginator.page_range)
 
     return [] if (max_page < int(page_number) or not queryset.exists()) else paginator.get_page(page_number)
+
+def list_pagination(list, page_number, paginate_by=10):
+    '''function to create pagination and return a query set for page number'''
+    paginator = Paginator(list, paginate_by)
+    max_page = len(paginator.page_range)
+
+    return [] if max_page < int(page_number) else paginator.get_page(page_number)
 
 
 def get_paginated_queryset_with_maxpages(queryset,page_number,paginate_by=10):

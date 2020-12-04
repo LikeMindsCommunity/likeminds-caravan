@@ -80,6 +80,7 @@ class Members(models.Model):
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="approved_by_user")
     parent_cm = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="parent_cm_user")
     parent_cm_list = models.TextField(null=True)  # it has the user id's of parent's hierarchy
+    became_member_at = models.BigIntegerField(default=0)
 
     def __str__(self):
         return self.member_id.userinfo.name + "__" + self.community_id.name
@@ -195,13 +196,16 @@ class Collabcard(models.Model):
     preview_chatroom = models.ForeignKey('self', on_delete=models.PROTECT, null=True,
                                          related_name='chatroom_preview_chatroom')
     is_pending = models.BooleanField(default=False)  # for pending chat rooms which has to be approved
-    is_deleted = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)  # for internal check, not to be sent in API's
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='chatroom_deleted_by_user')
-    deleted_by_user_state = models.IntegerField(null=True)  # state in community member or manager
-    deleted_by_text = models.CharField(max_length=512, null=True)
     reason = models.CharField(max_length=512, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
+
+    member_state = models.IntegerField(null=True)
+    disable_poll_announcement_mail = models.BooleanField(default=False)
+    has_files = models.BooleanField(default=False)
+
 
 class draftChatroom(models.Model):
     title = models.TextField()
@@ -316,10 +320,9 @@ class card_answers(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
     is_guest = models.BooleanField(default=False)
     og_tags = models.TextField(null=True)
-    is_deleted = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)  # for internal check, not to be sent in API's
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='conversation_deleted_by_user')
-    deleted_by_user_state = models.IntegerField(default=0)  # state in community member or manager
     is_edited = models.BooleanField(default=False)
     reply = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='replied_conversation')
     internal_link = models.TextField(null=True)
@@ -331,6 +334,16 @@ class card_answers(models.Model):
 
     has_files = models.BooleanField(default=False)
 
+    last_updated = models.BigIntegerField(default=0)
+
+
+    #saving the last updated in milliseconds
+    def save(self, *args, **kwargs):
+        if self.last_updated == 0:
+            self.last_updated = int(round(time.time() * 1000))
+
+
+        super(card_answers, self).save(*args, **kwargs)
 
 
 class collabcardState(models.Model):
@@ -344,9 +357,9 @@ class collabcardState(models.Model):
     # if got removed saving the previous state
     remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
 
-
     mute_status = models.BooleanField(default=False)
     follow_status = models.BooleanField(default=False)
+    attending_status = models.BooleanField(default=False, null=True)
     is_guest = models.BooleanField(default=False)
     is_tagged = models.BooleanField(default=False)
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer')
@@ -358,9 +371,6 @@ class collabcardState(models.Model):
 
     class Meta:
         unique_together = (('card', 'user'),)
-
-
-
 
 
 class conversationMemberState(models.Model):
@@ -405,6 +415,7 @@ class conversationEngage(models.Model):
 
     rights_list = models.TextField(null=True)
 
+
 class temp_admin(models.Model):
     name = models.CharField(max_length=200)
     contact_number = models.CharField(max_length=200, null=True)
@@ -421,6 +432,7 @@ class Card_Attachment(models.Model):
     attachment = models.FileField(upload_to="media/collabcard_files", default='')
     file_url = models.CharField(max_length=500, null=True)
     type = models.CharField(max_length=50, default='')
+    index = models.IntegerField(default=1)
 
 
 class draftChatroomFiles(models.Model):
@@ -432,6 +444,7 @@ class draftChatroomFiles(models.Model):
     type = models.CharField(max_length=50, default='')
 
     created_at = models.BigIntegerField(default=0)
+    index = models.IntegerField(default=1)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
@@ -452,6 +465,8 @@ class answerAttachment(models.Model):
     location_long = models.FloatField(null=True)
 
     created_at = models.BigIntegerField(default=0)
+
+    index = models.IntegerField(default=1)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
@@ -547,6 +562,8 @@ class Member_Engage(models.Model):
     last_unseen_conversation = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True)
     last_unseen_count = models.IntegerField(default=0, null=True)
     pending_members = models.IntegerField(default=0, null=True)
+    pending_chatrooms = models.IntegerField(default=0, null=True)
+    open_reports = models.IntegerField(default=0, null=True)
     updated_at = models.BigIntegerField(default=0, null=True)
     member_referral = models.CharField(default='', max_length=1024)
     member_state = models.IntegerField(null=True)
@@ -688,7 +705,7 @@ class Referal(models.Model):
 class Location_Info(models.Model):
     """ saving location details of a geography tag """
 
-    # tag = models.ForeignKey(Tags_lpig, on_delete=models.PROTECT)
+    # tag = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
     tag_name = models.CharField(max_length=512, null=True, unique=True)
     city = models.CharField(max_length=512, null=True, default='')
     district = models.CharField(max_length=512, null=True, default='')
@@ -757,6 +774,7 @@ class CollabcardStateBackup(models.Model):
     remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
     mute_status = models.BooleanField(default=False)
     follow_status = models.BooleanField(default=False)
+    attending_status = models.BooleanField(default=False)
     is_guest = models.BooleanField(default=False)
     source = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='referrer_backup')
 
@@ -1161,6 +1179,7 @@ class userFeedback(models.Model):
 
 
 
+
 class adminRights(models.Model):
     title = models.TextField(null=True)
     sub_title = models.TextField(null=True)
@@ -1193,11 +1212,12 @@ class moderationHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     type = models.IntegerField(null=True)
-    moderation_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='moderation_by_user')
+    moderation_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='moderation_by_user',
+                                      null=True)
     moderation_time = models.BigIntegerField(default=0)
 
     def __str__(self):
-        return self.user.userinfo.name + "__" + self.community_id.name
+        return self.user.userinfo.name + "__" + self.community.name
 
     def save(self, *args, **kwargs):
         if self.moderation_time <= 0:
@@ -1233,6 +1253,8 @@ class userDevices(models.Model):
 
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(null=True)
+
+    device_id = models.TextField(null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at <= 0:
