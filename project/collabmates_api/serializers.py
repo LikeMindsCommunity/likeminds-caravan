@@ -1592,6 +1592,7 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
         conversation_dict['pdf'] = answer_files['pdf']
         conversation_dict['videos'] = answer_files['videos']
         conversation_dict['audios'] = answer_files['audios']
+
         if 'location' in answer_files:
             conversation_dict['location'] = answer_files['location']
 
