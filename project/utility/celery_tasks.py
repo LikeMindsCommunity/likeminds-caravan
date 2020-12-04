@@ -295,7 +295,6 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
     if last_conversation:
         second_last = card_answers.objects.filter(card_id=chatroom_id,state=0).filter(~Q(user=last_conversation.user)).last()
 
-
     last_conversations = get_latest_conversation_members(chatroom_id)
 
     member_conversations = last_conversations[0]
@@ -316,9 +315,6 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
         second_last_conversation_user = user_conversations[1]
     elif len(user_conversations) == 1:
         last_conversation_user = user_conversations[0]
-
-
-
 
     length = len(conversations)
     for user in user_list:
