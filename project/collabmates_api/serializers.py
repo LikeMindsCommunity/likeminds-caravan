@@ -1472,8 +1472,8 @@ def report_tag_serializer(tag_instance):
 
     return tag_dict
 
-## chatroom conversation data
 
+# ------------------------------- chatroom conversation data ------------------------------------
 
 
 def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
@@ -1492,6 +1492,7 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
         answer_files = get_answer_files(temp['id'])
         temp['images'] = answer_files['image']
         temp['videos'] = answer_files['videos']
+        temp['audios'] = answer_files['audios']
         temp['pdf'] = answer_files['pdf']
         if 'location' in answer_files:
             temp['location'] = answer_files['location']
@@ -1502,13 +1503,10 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     if conversation.is_deleted:
         temp['deleted_by'] = conversation.deleted_by_user.id
 
-
     # if member is removed from community
     remove = False
     if conversation.remove:
         remove = True
-    #temp['member'] = get_user_profile(conversation.user, conversation.community.id, send_profile=False, remove=remove)
-
 
     member_profile = get_members_profile([conversation.user.id], conversation.community.id, current_user_id=current_user_id,send_profile=False,remove=remove)
     temp['member'] = member_profile [0]
@@ -1567,8 +1565,7 @@ def get_answer_files(answer_id):
     return files
 
 
-
-# ====================== client db synching serializers ==============================================================
+# =================================== client db synching serializers ======================================
 
 
 def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=None):
