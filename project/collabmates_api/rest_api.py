@@ -483,7 +483,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             files = Card_Attachment.objects.filter(collabcard=card, type="video").order_by('index')
             for file in files:
                 video_file = {'video_url': file.file_url, 'index': file.index}
-                videos.append(temp)
+                videos.append(video_file)
 
         return videos
 

@@ -1579,7 +1579,7 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
         'has_files': conversation.has_files,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,
-        'member_id':conversation.user.id
+        'member_id': conversation.user.id
     }
 
     if conversation.has_files:
