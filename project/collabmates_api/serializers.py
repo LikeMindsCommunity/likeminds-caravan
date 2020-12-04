@@ -423,20 +423,34 @@ def get_collabcard_files(card_id, draft=False):
         files = draftChatroomFiles.objects.filter(draft=card_id).order_by('index')
     img_list = []
     pdf = []
+    video_list = []
+    audio_list = []
     for file in files:
         if file.type == 'image':
             if file.file_url:
-                img = {'image_url': file.file_url}
+                img = {'image_url': file.file_url, 'index': file.index}
             else:
-                img = {'image_url': url + file.attachment.url}
+                img = {'image_url': url + file.attachment.url, 'index': file.index}
             img_list.append(img)
+        elif file.type == 'video':
+            if file.file_url:
+                video_url = {'video_url': file.file_url, 'index': file.index}
+            else:
+                video_url = {'video_url': url + file.attachment.url, 'index': file.index}
+            video_list.append(video_url)
+        elif file.type == 'audio':
+            if file.file_url:
+                audio_url = {'audio_url': file.file_url, 'index': file.index}
+            else:
+                audio_url = {'audio_url': url + file.attachment.url, 'index': file.index}
+            audio_list.append(audio_url)
         elif file.type == 'pdf':
             if file.file_url:
-                pdf_url = {'pdf_file': file.file_url}
+                pdf_url = {'pdf_file': file.file_url, 'index': file.index}
             else:
-                pdf_url = {'pdf_file': url + file.attachment.url}
+                pdf_url = {'pdf_file': url + file.attachment.url, 'index': file.index}
             pdf.append(pdf_url)
-    return (img_list, pdf)
+    return img_list, pdf, audio_list, video_list
 
 
 def get_share_url_text(card, user_id):
@@ -579,6 +593,9 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
     collabcard_serializer['images'] = collabcard_files[0]
     collabcard_serializer['pdf'] = collabcard_files[1]
+    collabcard_serializer['audios'] = collabcard_files[2]
+    collabcard_serializer['videos'] = collabcard_files[3]
+
 
     # # get time stamp for card
     # time_text = get_time_text(card_instance.date_epoch)
@@ -650,6 +667,8 @@ def get_draft_chatroom_instance(draft_instance, member_id):
 
     draft_serializer['images'] = draft_files[0]
     draft_serializer['pdf'] = draft_files[1]
+    draft_serializer['audios'] = draft_files[2]
+    draft_serializer['videos'] = draft_files[3]
     return draft_serializer
 
 
@@ -1453,8 +1472,8 @@ def report_tag_serializer(tag_instance):
 
     return tag_dict
 
-## chatroom conversation data
 
+# ------------------------------- chatroom conversation data ------------------------------------
 
 
 def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
@@ -1472,6 +1491,8 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     if conversation.has_files:
         answer_files = get_answer_files(temp['id'])
         temp['images'] = answer_files['image']
+        temp['videos'] = answer_files['videos']
+        temp['audios'] = answer_files['audios']
         temp['pdf'] = answer_files['pdf']
         if 'location' in answer_files:
             temp['location'] = answer_files['location']
@@ -1482,13 +1503,10 @@ def conversationSerializer(conversation, fetch_reply=True,current_user_id=None):
     if conversation.is_deleted:
         temp['deleted_by'] = conversation.deleted_by_user.id
 
-
     # if member is removed from community
     remove = False
     if conversation.remove:
         remove = True
-    #temp['member'] = get_user_profile(conversation.user, conversation.community.id, send_profile=False, remove=remove)
-
 
     member_profile = get_members_profile([conversation.user.id], conversation.community.id, current_user_id=current_user_id,send_profile=False,remove=remove)
     temp['member'] = member_profile [0]
@@ -1512,32 +1530,42 @@ def get_answer_files(answer_id):
     attachments = answerAttachment.objects.filter(answer=answer_id).order_by("index")
     img_list = []
     pdf = []
+    videos = []
+    audios = []
     files = {}
     for file in attachments:
         if file.type == 'image':
             if file.file_url:
-                img = {'image_url': file.file_url}
+                img = {'image_url': file.file_url, 'index': file.index}
                 img_list.append(img)
+        elif file.type == 'video':
+            if file.file_url:
+                video_url = {'video_url': file.file_url, 'index': file.index}
+                videos.append(video_url)
+        elif file.type == 'audio':
+            if file.file_url:
+                audio_url = {'audio_url': file.file_url, 'index': file.index}
+                audios.append(audio_url)
         elif file.type == 'pdf':
             if file.file_url:
-                pdf_url = {'pdf_file': file.file_url}
+                pdf_url = {'pdf_file': file.file_url, 'index': file.index}
                 pdf.append(pdf_url)
         elif file.type == "location":
             location = {
                 'location_name': file.location_name,
                 'location_lat': file.location_lat,
                 'location_long': file.location_long
-
             }
             files['location'] = location
 
     files['image'] = img_list
     files['pdf'] = pdf
+    files['videos'] = videos
+    files['audios'] = audios
     return files
 
 
-
-# ====================== client db synching serializers ==============================================================
+# =================================== client db synching serializers ======================================
 
 
 def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,current_user_id=None):
@@ -1551,13 +1579,17 @@ def get_conversation_instance_for_db_synching(conversation,fetch_reply=True,curr
         'has_files': conversation.has_files,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,
-        'member_id':conversation.user.id
+        'member_id': conversation.user.id
     }
 
     if conversation.has_files:
+
         answer_files = get_answer_files(conversation_dict['id'])
         conversation_dict['images'] = answer_files['image']
         conversation_dict['pdf'] = answer_files['pdf']
+        conversation_dict['videos'] = answer_files['videos']
+        conversation_dict['audios'] = answer_files['audios']
+
         if 'location' in answer_files:
             conversation_dict['location'] = answer_files['location']
 

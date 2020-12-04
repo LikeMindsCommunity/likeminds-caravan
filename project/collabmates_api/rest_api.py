@@ -323,6 +323,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
     images = serializers.SerializerMethodField()
     pdf = serializers.SerializerMethodField()
+    videos = serializers.SerializerMethodField()
+    audios = serializers.SerializerMethodField()
     preview = serializers.DictField(write_only=True)
     polls = serializers.SerializerMethodField()
     share_url = serializers.CharField(write_only=True)
@@ -348,7 +350,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'community', 'og_tags', 'created_at', 'is_anonymous',
                   'expiry_time', 'poll_type_text', 'submit_type_text', 'date',
                   'chatroom_category', 'deleted_by', 'member_id', 'created_at',
-                  'internal_link', 'images', 'pdf', 'preview','deleted_by', 'header',
+                  'internal_link', 'images', 'pdf', 'audios', 'videos', 'preview','deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
                   'poll_type'
@@ -447,7 +449,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         if card.has_files:
             files = Card_Attachment.objects.filter(collabcard=card, type="image").order_by('index')
             for file in files:
-                img = {'image_url': file.file_url}
+                img = {'image_url': file.file_url, 'index': file.index}
                 images.append(img)
 
         return images
@@ -458,10 +460,32 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         if card.has_files:
             files = Card_Attachment.objects.filter(collabcard=card, type="pdf").order_by('index')
             for file in files:
-                temp = {'pdf_file': file.file_url}
+                temp = {'pdf_file': file.file_url, 'index': file.index}
                 pdf.append(temp)
 
         return pdf
+
+    def get_audios(self,card):
+
+        audios = []
+        if card.has_files:
+            files = Card_Attachment.objects.filter(collabcard=card, type="audio").order_by('index')
+            for file in files:
+                audio_file = {'audio_url': file.file_url, 'index': file.index}
+                audios.append(audio_file)
+
+        return audios
+
+    def get_videos(self, card):
+
+        videos = []
+        if card.has_files:
+            files = Card_Attachment.objects.filter(collabcard=card, type="video").order_by('index')
+            for file in files:
+                video_file = {'video_url': file.file_url, 'index': file.index}
+                videos.append(video_file)
+
+        return videos
 
 
     def to_representation(self, card):
