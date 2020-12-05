@@ -415,6 +415,12 @@ def draftChatroomSerializer(card, user, community=None):
 
     chatroom['polls'] = polls
 
+    draft_files = get_collabcard_files(card_id=card, draft=True)
+    chatroom['images'] = draft_files[0]
+    chatroom['pdf'] = draft_files[1]
+    chatroom['audios'] = draft_files[2]
+    chatroom['videos'] = draft_files[3]
+
     return chatroom
 
 
@@ -422,9 +428,9 @@ def get_collabcard_files(card_id, draft=False):
     '''function to return pdf and image files of a collabcard'''
 
     if not draft:
-        files = Card_Attachment.objects.filter(collabcard=card_id).order_by('index')
+        files = Card_Attachment.objects.filter(collabcard=card_id)
     else:
-        files = draftChatroomFiles.objects.filter(draft=card_id).order_by('index')
+        files = draftChatroomFiles.objects.filter(draft=card_id)
     img_list = []
     pdf = []
     video_list = []
