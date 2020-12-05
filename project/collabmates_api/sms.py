@@ -18,7 +18,7 @@ def send_sms(number,msg):
     msg = urllib.parse.quote(msg)
 
     generated_url = SMSGUPSHUP_SMS_URI.format(number,msg,gupshup_id,gupshup_pass)
-    print(generated_url)
+    info_logger.info(generated_url)
     key = settings.GHUPSHUP_KEY
     context = {}
     success = False
@@ -26,7 +26,6 @@ def send_sms(number,msg):
     # generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
     #     phone_no, key)
     response = requests.get(generated_url)
-    print(response.content)
 
     if response.status_code == 200:
         success = True
@@ -94,6 +93,7 @@ def send_retry_otp(phone_no):
     r = requests.get(url)
     context = {}
     result = json.loads(r.text)
+
     context = {}
     if result['type'] == 'success':
         context['success'] = True
