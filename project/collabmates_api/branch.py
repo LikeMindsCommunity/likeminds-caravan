@@ -36,7 +36,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         "feature": "CommunityPublic",
         "data": {
             # '$deeplink_path':'likeminds://%s'%(base_url),
-            '$android_deeplink_path': 'Likeminds://%s' % base_url,
+            '$android_deeplink_path': 'likeminds://%s' % base_url,
             # '$ios_deeplink_path':'Likeminds://%s'%(base_url),
             '$deep_link': 'collabmates://%s' % base_url,
             '$og_title': '%s on LikeMinds' % community.name,
