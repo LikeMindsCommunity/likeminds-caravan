@@ -126,9 +126,9 @@ def get_members_count_in_community(community_id):
 
 
 #community related functions
-def generate_private_link(community_instance, promoter_instance,just_aj=False):
+def generate_private_link(community_instance, promoter_instance, just_aj=False):
 
-    '''function to generate private links of community'''
+    """function to generate private links of community"""
 
     community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
     unique_code_list = list(community_expire_filter.values_list('unique_code', flat=True))
