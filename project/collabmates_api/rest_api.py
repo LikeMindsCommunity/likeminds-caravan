@@ -626,18 +626,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             data['chatroom_expiry_time'] = status_dict['chatroom_expiry_time']
             self.state_instance = None  # making None for the next object
 
-        if card.image_count > 0 and len(data['images']) == 0:
-            data['images'] = self.get_images(card)
-
-        if card.pdf_count > 0 and len(data['pdf']) == 0:
-            data['pdf'] = self.get_pdf(card)
-
-        if card.video_count > 0 and len(data['videos']) == 0:
-            data['videos'] = self.get_videos(card)
-
-        if card.audio_count > 0 and len(data['audios']) == 0:
-            data['audios'] = self.get_audios(card)
-
         return data
 
 
