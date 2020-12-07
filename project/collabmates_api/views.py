@@ -52,8 +52,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            is_member_present, generate_private_link, generate_random, get_time_text,
                            community_default_image_round, decode_option, get_user_communities_by_rank_web,
                            user_onbaord, get_time_text_for_my_chatrooms, get_members_count_in_community,
-                           check_notification_flag, create_notification_flag, is_request_ios
-
+                           check_notification_flag, create_notification_flag, is_request_ios,
                            )
 
 from .notification import *
@@ -694,6 +693,7 @@ def get_leave_community_text():
 
     return leave_community
 
+
 def get_home_screen_community_actions(community_instance):
 
     actions = []
@@ -776,11 +776,6 @@ def community(request, community_id, req_dict=None):
 
     community_state = get_state_of_community(community)
 
-    if member_id and (community_state == community_states.PILOT or community_state == community_states.PILOT_ACTIVE):
-        serialized_object['share_url'] = serialized_object['share_url'] + "?ref_id=" + str(member_id)
-
-    elif community_state == community_states.PRIVATE or community_state == community_states.HIDDEN or community_state == community_states.WHATSAPP:
-        serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
@@ -806,6 +801,7 @@ def community(request, community_id, req_dict=None):
         context['menu'] = menu
 
     return JsonResponse(context)
+
 
 def get_redirection_links_for_android_ios(request,community_id):
 
@@ -945,10 +941,29 @@ def questions(request):
     community['managed_by'] = managed_by
 
     # private link share flow
-    aj = request.GET.get('aj')
+    aj = request.GET.get('aj', None)
+    shared_by = request.GET.get('shared_by', None)
     user_instance = User.objects.get(id=member_id)
 
-    auto_join = private_link_app_invite(community_instance, aj, created_by)
+    is_valid_private_link = False
+    auto_join = {}
+    title = f"You are joining {community['name']}"
+    shared_by_user = None
+
+    try:
+        shared_by_user = User.objects.get(pk=shared_by)
+        shared_by_user_name = shared_by_user.userinfo.name
+        title = f"{shared_by_user_name} invited you to join this community"
+    except:
+        info_logger.info(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
+
+    if aj and shared_by_user:
+        try:
+            auto_join = private_link_app_invite(community_instance, aj, created_by, shared_by_user)
+            is_valid_private_link = True
+        except:
+            info_logger.info(f"aj is not valid. aj ---> {aj}")
+
     # add code to send join dropoff notfication
     if not is_member_verified(community_instance, user_instance):
         time_in_hrs = 2
@@ -974,23 +989,20 @@ def questions(request):
             questions.append(serialized_question)
     # questions = sorted(questions, key=lambda i: i['rank'])
 
-    context = {'questions': questions, 'community': community}
-    if aj:
+    context = {'header': "Join community", 'title':title,
+               'questions': questions, 'community': community}
+    if is_valid_private_link:
         context.update(auto_join)
     return JsonResponse(context)
 
 
-
-
-
-def private_link_app_invite(community_instance, unique_code, created_by):
+def private_link_app_invite(community_instance, unique_code, created_by=None, shared_by_user=None):
     '''function to send private link for app invite on playstore'''
 
     expiry_filter = communityExpiryCodes.objects.filter(community=community_instance, unique_code=unique_code)
-
+    shared_by_user_name = shared_by_user.userinfo.name
     auto_join = {
-        'toast': """The private invite link has expired. Continue to join the community and wait for admin’s approval. Or, ask %s to resend a private invite link.""" % (
-            created_by),
+        'toast': f"The private invite link has expired. Continue to join the community and wait for admin’s approval. Or, ask {shared_by_user_name} to resend a private invite link.",
         'aj_expired': True
     }
 
@@ -1043,7 +1055,6 @@ def join_promoter_created_community_version_1(res, request):
 
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
-    is_private_link = False
 
     member_id = get_member_id_from_headers(request)
     if not member_id:
@@ -1067,7 +1078,7 @@ def join_promoter_created_community_version_1(res, request):
 
             if 'value' not in question or not question['value']:
                 continue
-
+                
             question_instance = communityQuestions.objects.get(id=question['id'])
 
             if question_instance.is_hidden:
@@ -1087,55 +1098,39 @@ def join_promoter_created_community_version_1(res, request):
 
     update_hidden_fields_in_questions(user_instance, community_instance)
 
+    aj = res.get('aj', None)
+    shared_by = res.get("shared_by", None)
+    timestamp = res.get('timestamp', time.time())
+
+    valid_link_dict = validate_private_link(aj, shared_by, community_instance, timestamp)
+
+    is_valid_private_link = valid_link_dict['valid_link']
+    shared_user_instance = valid_link_dict['shared_user_instance']
+
     # saving data directly
-    if 'aj' in res:
-        if res['aj']:
-            validate_time = is_joining_time_valid(community_instance, res['timestamp'], res['aj'])
-            info_logger.info(validate_time)
-            # insert private link dropoff here
-            time_in_hrs = 2
+    if is_valid_private_link:
 
-            if validate_time:
-                is_private_link = True
-                # saving moderation history
-                print("saving history 1")
-                shared_user_instance = None
-                if 'shared_by' in res:
-                    if res['shared_by'] != '':
-                        print("saving history 2 ---  ", res['shared_by'])
+        history_type = moderation_history_types.APPLIED_PRIVATE_LINK
 
-                        history_type = moderation_history_types.APPLIED_PRIVATE_LINK
-                        if check_user_rejoin(user=user_instance, community=community_instance):
-                            history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
-                            update_followed_for_rejoined_member(user_instance, community_instance)
+        if check_user_rejoin(user=user_instance, community=community_instance):
+            history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
+            update_followed_for_rejoined_member(user_instance, community_instance)
 
-                        try:
-                            shared_user_instance = User.objects.get(pk=res['shared_by'])
-                        except:
-                            shared_user_instance = None
-                            history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
-                            
-                        save_moderation_history(user=user_instance, community=community_instance,
-                                                moderation_by=shared_user_instance, type=history_type)
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=shared_user_instance, type=history_type)
 
-                auto_join_community(community_instance, user_instance, shared_user_instance)
-                set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
-                post_introduction_card_for_community(community_id, member_id, request)
+        auto_join_community(community_instance, user_instance, shared_user_instance)
+        set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
+        post_introduction_card_for_community(community_id, member_id, request)
 
-                # saving create community action level3
-                update_community_actions(community_instance)
+        # saving create community action level3
+        update_community_actions(community_instance)
 
-                # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
+        # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
-                log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
-                info_logger.info(log)
-                return
-            # else:
-            # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
-    # else:
-    #     #send notification for public dropoff
-    #     time_in_hrs=2
-    # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
+        log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
+        info_logger.info(log)
+        return
 
     if is_member:
         member_state = member_list[0].state
@@ -1152,11 +1147,8 @@ def join_promoter_created_community_version_1(res, request):
 
             # updating the community level 3 state
 
-
             communityLevels.objects.filter(community=community_instance).update(
                 level_click_state=level_click_states.COMMUNITY_JOINED)
-
-
 
         elif member_state == member_states.PROFILE_UNAVAILABLE:
 
@@ -1172,6 +1164,7 @@ def join_promoter_created_community_version_1(res, request):
             give_default_member_rights(user=user_instance, community=community_instance)
             log = """UPDATING_SKIPPED_MEMBER_PROFILE - community_id=%s for user=%s""" % (community_id, member_id)
             info_logger.info(log)
+
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -1203,18 +1196,13 @@ def join_promoter_created_community_version_1(res, request):
 
         update_community_toast(user_instance, community_instance,message="Your request for joining this community is pending")
 
-        if 'shared_by' in res and res['shared_by']:
-            try:
-                history_type = moderation_history_types.APPLIED_PUBLIC_LINK
-                shared_user = User.objects.get(pk=res['shared_by'])
-                member_instance.joined_by = shared_user
-                member_instance.save()
-            except:
-                history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
-                shared_user = None
+        if shared_user_instance:
+            history_type = moderation_history_types.APPLIED_PUBLIC_LINK
+            member_instance.joined_by = shared_user_instance
+            member_instance.save()
 
             save_moderation_history(user=user_instance, community=community_instance,
-                                    moderation_by=shared_user, type=history_type)
+                                    moderation_by=shared_user_instance, type=history_type)
         else:
             history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
             save_moderation_history(user=user_instance, community=community_instance,
@@ -1237,6 +1225,37 @@ def update_community_toast(user_instance, community_instance,message=''):
         toast.user = user_instance
         toast.toast_message = message
         toast.save()
+
+
+def validate_private_link(aj, shared_by, community, timestamp=time.time()):
+
+    context = {"valid_link": False, "shared_user_instance": None}
+
+    if aj is None and shared_by is None:
+        return context
+
+    try:
+        # trying to check if aj and shared by are both valid integers
+        validate_time = False
+        if aj is not None:
+            aj = int(aj)
+            validate_time = is_joining_time_valid(community, timestamp, aj)
+
+        try:
+            shared_by = int(shared_by)
+            shared_user_instance = User.objects.get(pk=shared_by)
+        except Exception as e:
+            shared_user_instance = None
+
+        context['shared_user_instance'] = shared_user_instance
+        context['valid_link'] = validate_time and shared_user_instance
+
+    except Exception as e:
+        info_logger.info(f"aj and shared by validation failed. aj -> {aj}, shared by -> {shared_by}")
+
+    finally:
+        print(">>>>  7")
+        return context
 
 
 def is_joining_time_valid(community_instance, time_stamp, unique_code):
@@ -2121,6 +2140,9 @@ def remove_from_member(request):
                                                 moderation_by=current_user_instance,
                                                 type=moderation_history_types.REMOVED_FROM_COMMUNITY)
 
+                        remove_all_member_rights(community_instance, user_instance)
+                        remove_all_manager_rights(community_instance, user_instance)
+
                         check_reports_and_update_action.delay(action_taken_by=member_id,
                                                               action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
                                                               user=member, community=community_id,
@@ -2175,8 +2197,10 @@ def remove_from_member(request):
             check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
+
             info_logger.info(f"REMOVE_MEMBER_API (Left CASE) - current user id = {member_id}, user id = {member_id}"
                              f", community id = {community_id}")
+
             remove_all_member_rights(community_instance, user_instance)
             remove_all_manager_rights(community_instance, user_instance)
 
@@ -2276,10 +2300,9 @@ def update_followed_for_rejoined_member(user, community):
 
             engage_instance.save()
 
-            print("card id",str(instance.card.id))
+            print("card id", str(instance.card.id))
 
     print("existing chatroom followed for users")
-
 
 
 def fetch_community_profile(request):
@@ -2414,6 +2437,7 @@ def fetch_common_communities(request):
 
         communities.append(community_serializer)
     return JsonResponse({'communities': communities, 'total_count': total_count})
+
 
 def get_conversation_users(instance):
 
@@ -2900,6 +2924,8 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.type = card_type
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+    card.video_count = res['video_count'] if ('video_count' in res) else 0
+    card.audio_count = res['audio_count'] if ('audio_count' in res) else 0
     card.date_time = res['date_time'] if ('date_time' in res) else 0
     card.duration = res['duration'] if ('duration' in res) else 0
 
@@ -3210,6 +3236,8 @@ def create_draft_collabcard(request, res=None):
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
     card.date_time = res['date_time'] if ('date_time' in res) else 0
+    card.video_count = res['video_count'] if ('video_count' in res) else 0
+    card.audio_count = res['audio_count'] if ('audio_count' in res) else 0
     card.duration = res['duration'] if ('duration' in res) else 0
 
     # for event card
@@ -3557,12 +3585,14 @@ def chatroom_delete(request):
 
         if (disallow_create_chatroom or disallow_create_chatroom == "true") and\
                 not member_is_promoter:
+
             remove_member_create_room_right(card_creator, community_instance)
 
             save_moderation_history(user=card_creator, community=community_instance,
                                     moderation_by=current_user_instance,
                                     type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
+        # updates last seen count after card is deleted
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
         # setting the updated time of deleted chatroom
@@ -3689,6 +3719,7 @@ def set_chatroom_active(request):
         instance = state_filter[0]
         instance.updated_at = time.time()
         instance.expiry_time = updated_time
+        instance.manual_set_active = updated_time
         instance.save()
     else:
         info_logger.info("data does not exists")
@@ -4657,6 +4688,8 @@ def collabcard(request, card_id):
         card['images'] = files[0]
         card['member'] = usr
         card['pdf'] = files[1]
+        card['audios'] = files[2]
+        card['videos'] = files[3]
         if user_id:
             collabcard_status = get_status_of_collabcard(member_id=user_id, card=card_instance)
             card['state'] = collabcard_status['state']
@@ -5328,6 +5361,8 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'created_at': time_text,
             'member': user_context,
             'images': attachements['image'],
+            'audios': attachements['audios'],
+            'videos': attachements['videos'],
             'pdf': attachements['pdf'],
             'date': date,
             'state': ans.state,
@@ -5954,7 +5989,6 @@ def save_the_latest_conversation(card_instance, user_id):
 
     latest_card = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
 
-
     # status = is_member_verified(card_instance.community,user_id)
     latest_conversation = None
     if latest_card:
@@ -5963,10 +5997,11 @@ def save_the_latest_conversation(card_instance, user_id):
         conversation_instance = latest_card
         latest_conversation = conversation_instance
 
-
         state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
         if state_filter.exists():
             expiry_time = get_expiry_time_of_chatroom(state_filter[0])
+            if state_filter[0].manual_set_active and state_filter[0].manual_set_active > expiry_time:
+                expiry_time = state_filter[0].manual_set_active
         else:
             expiry_time = get_expiry_time_of_chatroom()
         if not conversation_member_filter.exists():
@@ -5982,12 +6017,6 @@ def save_the_latest_conversation(card_instance, user_id):
             update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                      last_conversation_id=conversation_instance.id, unseen_count=0)
 
-
-
-
-
-
-
         else:
             if conversation_instance.id != conversation_member_filter[0].conversation.id:
                 conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
@@ -6001,12 +6030,12 @@ def save_the_latest_conversation(card_instance, user_id):
     latest_conversations = {'last_conversation': latest_conversation}
     return latest_conversations
 
-
 def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
     '''function to check weather joining time of chatroom is valid or not'''
 
     expiry_filter = chatroomExpiryCodes.objects.filter(unique_code=aj, source=source_id,
                                                        card_id=chatroom_id)
+
     if expiry_filter.exists():
         expiry_instance = expiry_filter[0]
         time_stamp = int(time.time())
@@ -6020,6 +6049,7 @@ def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
 
 def adding_guest_in_chatroom(request, context, card_instance, aj, source_id, community_id, current_user_id,
                              guest_header=False):
+
     aj_expired = is_chatroom_join_expired(aj, source_id, card_instance.id)
     status = is_member_verified(community_id, current_user_id)
     state_filter = collabcardState.objects.filter(card=card_instance, user=current_user_id, is_guest=True)
@@ -6853,7 +6883,8 @@ def create_conversation(request):
         ans.og_tags = json.dumps(decode_meta_from_url(res['share_link']))
         ans.save()
 
-    #saving those answers which don't have files
+    # saving those answer data in firebase, if any attachments are not there
+    has_files = 'has_files' in res and res['has_files']
     if not has_files:
         update_last_answer_id(card_instance.id, ans.id)
 
@@ -7629,6 +7660,8 @@ def community_collabcard_meta(request):
         card_dict['member'] = usr
         card_dict['images'] = files[0]
         card_dict['pdf'] = files[1]
+        card_dict['audios'] = files[2]
+        card_dict['videos'] = files[3]
         card_list.append(card_dict)
 
     if community_instance:
@@ -7660,6 +7693,8 @@ def get_last_conversation(conversation_filter, member_id, chatroom_id):
         if 'location' in conversation_files:
             conversation['location'] = conversation_files['location']
         conversation['images'] = conversation_files['image']
+        conversation['audios'] = conversation_files['audios']
+        conversation['videos'] = conversation_files['videos']
         conversation['pdf'] = conversation_files['pdf']
 
         return (conversation, unseen_count)
@@ -7671,6 +7706,8 @@ def get_last_conversation(conversation_filter, member_id, chatroom_id):
         if 'location' in conversation_files:
             conversation['location'] = conversation_files['location']
         conversation['images'] = conversation_files['image']
+        conversation['audios'] = conversation_files['audios']
+        conversation['videos'] = conversation_files['videos']
         conversation['pdf'] = conversation_files['pdf']
 
         return (conversation, unseen_count)
@@ -8134,15 +8171,13 @@ def chatroom_feed_header(community_id, member_id):
 
 @csrf_exempt
 def upload_files(request):
-    '''function to upload files'''
+    """function to upload files"""
     body = request.GET
-
 
     member_id = get_member_id_from_headers(request)
 
     conversation = None
     chatroom_local = None
-
 
     context = {
         'success': True,
@@ -8150,7 +8185,6 @@ def upload_files(request):
 
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
-
 
     if 'community_id' in body and body['community_id']:
         # if image to be updated in community
@@ -8190,6 +8224,7 @@ def upload_files(request):
         file.collabcard = card_instance
         file.type = attachment_type
         file.file_url = body['url']
+        file.index = body['index'] if 'index' in body else 1
         file.save()
 
         #updating updated_at for synching apis
@@ -8203,8 +8238,6 @@ def upload_files(request):
         member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
         chatroom_local = GetChatroomInstanceSerializer(card_instance, context=member_data, many=False)
 
-
-
     elif 'answer_id' in body and body['answer_id']:
         attachment_type = body['type']
         answer_id = body['answer_id']
@@ -8213,6 +8246,7 @@ def upload_files(request):
         file.answer = answer_instance
         file.type = attachment_type
         file.file_url = body['url'] if 'url' in body else None
+        file.index = body['index'] if 'index' in body else 1
         file.location_name = body['location_name'] if 'location_name' in body else None
         file.location_lat = body['location_lat'] if 'location_lat' in body else None
         file.location_long = body['location_long'] if 'location_long' in body else None
@@ -8249,6 +8283,7 @@ def upload_files(request):
         instance = draftChatroomFiles()
         instance.draft = draft_instance
         instance.file_url = body['url']
+        instance.index = body['index'] if 'index' in body else 1
         instance.type = attachment_type
         instance.save()
 
@@ -9004,9 +9039,16 @@ def generate_otp(request):
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
 
-    info_logger.info("\n\n")
-    info_logger.info("country code")
-    info_logger.info(country_code)
+    #check got retry
+    retry = request.GET.get('retry')
+    
+    if retry == '1':
+        retry = True
+    else:
+        retry = False
+
+    country_code_msg = "\n\n country code %s" % country_code
+    info_logger.info(country_code_msg)
 
     info_logger.info("mobile number")
     info_logger.info(mobile_no)
@@ -9029,8 +9071,10 @@ def generate_otp(request):
         if country_code != '91':
             international = True
 
-
-        context = send_otp_on_mobile(phone_no,international=international)
+        if retry:
+            context = send_retry_otp(phone_no)
+        else:
+            context = send_otp_on_mobile(phone_no, international=international)
         backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
 
         if not backup_filter.exists():
@@ -9049,7 +9093,11 @@ def generate_otp(request):
             international = False
             if str(instance.country_code) != '91':
                 international = True
-            context = send_otp_on_mobile(phone_no,international=international)
+
+            if retry:
+                context = send_retry_otp(phone_no)
+            else:
+                context = send_otp_on_mobile(phone_no, international=international)
 
             info_logger.info(instance.user.id)
             info_logger.info(context)
@@ -9121,66 +9169,6 @@ def verify_otp(request):
     phone_no = str(country_code) + str(mobile_no)
     context = {}
 
-    if is_request_web(request):
-        if mobile_no:
-            mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
-        elif user_id:
-            mobile_filter = userMobiles.objects.filter(user = user_id)
-        else:
-            context = get_error_context(False, "send mobile no or user_id in params")
-            return JsonResponse(context)
-        verified = {'success': False}
-
-        if mobile_filter.exists():
-            for instance in mobile_filter:
-                phone_no = str(instance.country_code) + str(instance.mobile_no)
-                verified = verify_otp_on_mobile(phone_no, otp)
-                print()
-
-                if verified['success']:
-                    break
-            context['success'] = verified['success']
-            user_instance = mobile_filter[0].user
-            login(request, user=user_instance, backend="django.contrib.auth.backends.ModelBackend")
-            context['profile_exists'] = True
-            context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
-            context['access'] = is_user_community_part(context['user']['id'])
-
-        else:
-            verified = verify_otp_on_mobile(phone_no, otp)
-            context['success'] = verified['success']
-            if not context['success']:
-                context['error_message'] = "Incorrect OTP"
-            # when new phone number
-            context['profile_exists'] = False
-
-        if context['success']:
-            request.session['verified_mobile_no'] = phone_no
-        else:
-            request.session['verified_mobile_no'] = ""
-
-        if user_id:
-            print("in user id")
-            user_instance = User.objects.get(pk=user_id)
-            context['profile_exists'] = True
-            verified['success'] = {'success': True}
-
-            # insert code to verify email and code
-
-            if verified['success']['success'] or str(otp) == "9999":
-                context['success'] = True
-                save_user_mobile_number(user_instance, country_code, mobile_no)
-                login(request, user=user_instance, backend="django.contrib.auth.backends.ModelBackend")
-                print("loggedin")
-        return JsonResponse(context)
-
-        # else:
-        #     mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
-        #     if mobile_filter.exists():
-        #         user_instance=mobile_filter[0].user
-        #         login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
-        #         print("loggedin")
-    # verifying  mobile number
 
     if mobile_no:
 
@@ -9197,7 +9185,10 @@ def verify_otp(request):
 
 
         verified = verify_otp_on_mobile(phone_no, otp,international=international)
-        context['success'] = verified['success']
+        verified_msg = verify_retry_otp(phone_no, otp)
+        context['success'] = False
+        if verified['success'] or verified_msg['success']:
+            context['success'] = True
 
         # saving data for existing user migrations
         if member_id and context['success']:
@@ -9233,8 +9224,11 @@ def verify_otp(request):
                 international = True
 
             context = verify_otp_on_mobile(phone_no, otp,international=international)
-            if context['success']:
+            context_msg = verify_retry_otp(phone_no, otp)
+
+            if context['success'] or context_msg['success']:
                 break
+            
 
         context['profile_exists'] = mobile_filter.exists()
         if mobile_filter.exists():
@@ -12112,13 +12106,13 @@ def update_community_manager_rights(request):
                                              state=member_states.ADMIN,
                                              is_owner=True).exists()  # who's rights are being updated
     if admin.exists():
-
         if member_is_owner:
             # if user id and current_user_id are same..its probably the owner
             # bcz no other can edit their own custom title or rights
             log = f"UPDATING_CM_RIGHTS_FOR_OWNER - community_id = {community_id}" \
                   f" current_user id = {current_user_id} user = {user_id}"
             info_logger.info(log)
+
             if not custom_title:
                 custom_title = admin[0].custom_title
             Members.objects.filter(community_id=community_instance,
@@ -12276,15 +12270,12 @@ def remove_community_manager(request):
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     if admin.exists():
-        # admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance,
-        #                                               right__id=manager_rights.MANAGER_RIGHT_APPROVE_MEMBERS)
-        # if admin_rights.exists():
         # deleting all manager rights
         userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
         # updating member state of manager to member
 
-        member_instance = Members.objects.filter(community_id=community_instance,
-                                                 member_id=user_instance)
+        # member_instance = Members.objects.filter(community_id=community_instance,
+        #                                          member_id=user_instance)
         custom_title = "Member"
         # if member_instance.exists():
             # custom_title = member_instance[0].custom_title
@@ -12539,8 +12530,10 @@ def update_community_member_rights(request):
                                                 state=member_states.ADMIN).exists()
 
     if member_is_promoter:
+
         log = """UPDATING_MEMBER_RIGHTS_FOR_CM = community_id=%s for user=%s""" % (community_id, user_id)
         info_logger.info(log)
+
         return JsonResponse({'success': True})
 
     if admin.exists():
@@ -12853,8 +12846,8 @@ def fetch_pending_chatroom(request):
         context = get_error_context(False, "You are not a CM of this community")
         return JsonResponse(context)
 
-    pending_chatrooms = Collabcard.objects.filter(community=community_id,
-                                                  is_pending=True, is_deleted=False).order_by('id')
+    pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True,
+                                                  is_deleted=False).order_by('id')
 
     chatrooms = []
     context = {}
@@ -12947,6 +12940,7 @@ def action_pending_chatroom(request):
             not member_is_promoter:
         if pre_approve == "true" or\
                 pre_approve is True:
+
             give_member_auto_approve_right(user=chatroom_creator, community=community_instance)
         else:
             remove_member_create_room_right(user=chatroom_creator, community=community_instance)
@@ -12955,6 +12949,7 @@ def action_pending_chatroom(request):
         save_moderation_history(user=chatroom_creator, community=community_instance,
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+
     info_logger.info(f"ACTION_PENDING_CHATROOM - current user id = {current_user_id}, card creator id = {chatroom_creator.id}, disallow_create_chatroom = {pre_approve},"
                      f"card id = {chatroom_id}, community id = {community_instance.id}")
 
@@ -13322,10 +13317,6 @@ class SyncConversation(APIView):
 
         return JsonResponse(context)
 
-
-## need to remove ##3
-def sync_conversation_version_1(request):
-    return JsonResponse({'conversations': []})
 
 def fetch_user_meta(request):
 

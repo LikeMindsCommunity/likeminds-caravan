@@ -1,21 +1,24 @@
 from django.conf import settings
 import requests
-import urllib
+import urllib, requests, logging, json
 from celery import shared_task
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
+from .utilities.constants import MSG91_SENDOTP_URI, MSG91_VERIFYOTP_URI, SMSGUPSHUP_SMS_URI
 
 
 gupshup_id = settings.GUPSHUP_ID
+msg91_auth_key = settings.MSG91_AUTH_KEY
 gupshup_pass = settings.GUPSHUP_PASS
+info_logger = logging.getLogger("info_logger")
 
 def send_sms(number,msg):
 
     msg = urllib.parse.quote(msg)
 
-    generated_url  = 'http://enterprise.smsgupshup.com/GatewayAPI/rest?method=SendMessage&send_to={0}&msg={1}&msg_type=TEXT&userid={2}&auth_scheme=plain&password={3}&v=1.1&format=text'.format(number,msg,gupshup_id,gupshup_pass)
-    print(generated_url)
+    generated_url = SMSGUPSHUP_SMS_URI.format(number,msg,gupshup_id,gupshup_pass)
+    info_logger.info(generated_url)
     key = settings.GHUPSHUP_KEY
     context = {}
     success = False
@@ -23,7 +26,6 @@ def send_sms(number,msg):
     # generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
     #     phone_no, key)
     response = requests.get(generated_url)
-    print(response.content)
 
     if response.status_code == 200:
         success = True
@@ -82,3 +84,40 @@ Download app : {2}'''.format(new_user_name,community_name,download_url)
     celerybeatask = CeleryBeatTask()
     celerybeatask.terminate_task(task_name)
 
+
+def send_retry_otp(phone_no):
+    ''' Send otp from msg91 - retry case'''
+    template_id = '5fc9e35a9c1377348e75e8aa'
+    url = MSG91_SENDOTP_URI%(msg91_auth_key,template_id,phone_no)
+
+    r = requests.get(url)
+    context = {}
+    result = json.loads(r.text)
+
+    context = {}
+    if result['type'] == 'success':
+        context['success'] = True
+        info_logger.info("MSG91 mobile generate otp success")
+    else:
+        info_logger.info("MSG91 mobile generate otp fail")
+        context['success'] = False
+        context['error_message'] = result['message']
+    return context
+
+
+def verify_retry_otp(phone_no, otp):
+    ''' Verify otp from msg91 '''
+    url = MSG91_VERIFYOTP_URI%(msg91_auth_key,str(phone_no),str(otp))
+
+    r = requests.get(url)
+    result = json.loads(r.text)
+    context = {}
+    if result['type'] == 'success':
+        context['success'] = True
+        info_logger.info("MSG91 mobile generate otp success")
+    else:
+        info_logger.info("MSG91 mobile generate otp fail")
+        context['success'] = False
+        context['error_message'] = result['message']
+
+    return context

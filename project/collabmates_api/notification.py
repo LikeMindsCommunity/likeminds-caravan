@@ -560,6 +560,8 @@ def get_custom_data_for_new_chatroom_created(card):
     collabcard_files = get_collabcard_files(card_id=card.id)
     unread_conversation['images'] = collabcard_files[0]
     unread_conversation['pdf'] = collabcard_files[1]
+    unread_conversation['audios'] = collabcard_files[2]
+    unread_conversation['videos'] = collabcard_files[3]
 
     chatroom_user_image = user_instance.userinfo.image_link
     unread_conversation['chatroom_user_image'] = chatroom_user_image if chatroom_user_image else ''
@@ -712,7 +714,8 @@ def get_custom_data_for_new_conversation_created(user_id):
                 answer_files = get_answer_files(last_instance)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
-
+                temp['videos'] = answer_files['videos']
+                temp['audios'] = answer_files['audios']
 
         unread_conversation.append(temp)
 
@@ -774,6 +777,8 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
                 answer_files = get_answer_files(last_instance.id)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
+                temp['videos'] = answer_files['videos']
+                temp['audios'] = answer_files['audios']
 
             temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_instance.id))
     print(">>>>>>>>>   ", temp)

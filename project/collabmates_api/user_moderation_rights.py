@@ -262,12 +262,15 @@ def check_all_member_rights(user=None, community=None):
     return rights
 
 
-def remove_creation_rights_for_user(user, community):
-    user_rights = userMemberRights.objects.filter(user=user, community=community).filter(
-                                                  Q(right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS) |
-                                                  Q(right__state=member_rights.MEMBER_RIGHT_CREATE_POLL) |
-                                                  Q(right__state=member_rights.MEMBER_RIGHT_CREATE_EVENT))
-    user_rights.delete()
+def remove_member_create_room_right(user, community):
+
+    create_rights = [member_rights.MEMBER_RIGHT_CREATE_ROOMS, member_rights.MEMBER_RIGHT_CREATE_POLL,
+                     member_rights.MEMBER_RIGHT_CREATE_EVENT]
+    try:
+        userMemberRights.objects.filter(user=user, community=community,
+                                        right__state__in=create_rights).delete()
+    except:
+        print("rights not exists")
 
 
 def check_admin_delete_right(user, community):
@@ -419,17 +422,6 @@ def check_member_auto_approve_right(user, community):
     if user_rights.exists():
         return True
     return False
-
-
-def remove_member_create_room_right(user, community):
-
-    create_rights = [member_rights.MEMBER_RIGHT_CREATE_ROOMS, member_rights.MEMBER_RIGHT_CREATE_POLL,
-                     member_rights.MEMBER_RIGHT_CREATE_EVENT]
-    try:
-        userMemberRights.objects.filter(user=user, community=community,
-                                        right__state__in=create_rights).delete()
-    except:
-        print("rights not exists")
 
 
 def give_member_auto_approve_right(user, community):
@@ -590,5 +582,6 @@ def remove_all_manager_rights(community, user):
         userAdminRights.objects.filter(user=user, community=community).delete()
     except:
         info_logger.info("manager rights does not exist to delete")
+
 
 

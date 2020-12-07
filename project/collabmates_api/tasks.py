@@ -350,7 +350,6 @@ def send_welcome_mail(user_id):
         return
 
 
-
 @shared_task
 def send_verification_mail_for_email_sync(user_name,verification_link,email):
 
@@ -737,6 +736,7 @@ def update_pending_chatroom_count_for_promoters(community_id):
     Member_Engage.objects.filter(member_id__in=user_list,
                                  community_id=community).update(pending_chatrooms=pending_chatrooms,
                                                                 updated_at=time.time())
+
     member_state_list = [member_states.MEMBER, member_states.KNOWN_NOMINATED_PROMOTER, member_states.PROFILE_UNAVAILABLE]
     Member_Engage.objects.filter(community_id=community,
                                  member_state__in=member_state_list).update(pending_chatrooms=0,
@@ -794,6 +794,7 @@ def update_report_count_in_member_engage(user, community, is_owner=False, parent
     Member_Engage.objects.filter(member_id=user,
                                  community_id=community).update(open_reports=report_count,
                                                                 updated_at=time.time())
+
 
 
 

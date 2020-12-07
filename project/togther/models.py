@@ -155,6 +155,8 @@ class Collabcard(models.Model):
     og_tags = models.CharField(max_length=2048, default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
+    video_count = models.IntegerField(default=0, null=True)
+    audio_count = models.IntegerField(default=0, null=True)
     type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
     date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
     duration = models.BigIntegerField(default=0)  # for saving duration of event
@@ -216,6 +218,8 @@ class draftChatroom(models.Model):
     og_tags = models.CharField(max_length=2048, default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
+    video_count = models.IntegerField(default=0, null=True)
+    audio_count = models.IntegerField(default=0, null=True)
     type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
     date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
     duration = models.BigIntegerField(default=0)  # for saving duration of event
@@ -369,6 +373,8 @@ class collabcardState(models.Model):
     external_seen = models.BooleanField(default=True)
     external_follow = models.BooleanField(default=False)
 
+    manual_set_active = models.BigIntegerField(null=True)
+
     class Meta:
         unique_together = (('card', 'user'),)
 
@@ -415,6 +421,7 @@ class conversationEngage(models.Model):
 
     rights_list = models.TextField(null=True)
 
+
 class temp_admin(models.Model):
     name = models.CharField(max_length=200)
     contact_number = models.CharField(max_length=200, null=True)
@@ -431,6 +438,7 @@ class Card_Attachment(models.Model):
     attachment = models.FileField(upload_to="media/collabcard_files", default='')
     file_url = models.CharField(max_length=500, null=True)
     type = models.CharField(max_length=50, default='')
+    index = models.IntegerField(default=1)
 
 
 class draftChatroomFiles(models.Model):
@@ -442,6 +450,7 @@ class draftChatroomFiles(models.Model):
     type = models.CharField(max_length=50, default='')
 
     created_at = models.BigIntegerField(default=0)
+    index = models.IntegerField(default=1)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
@@ -462,6 +471,8 @@ class answerAttachment(models.Model):
     location_long = models.FloatField(null=True)
 
     created_at = models.BigIntegerField(default=0)
+
+    index = models.IntegerField(default=1)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
