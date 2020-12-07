@@ -126,9 +126,9 @@ def get_members_count_in_community(community_id):
 
 
 #community related functions
-def generate_private_link(community_instance, promoter_instance):
+def generate_private_link(community_instance, promoter_instance, just_send_aj=False):
 
-    '''function to generate private links of community'''
+    """function to generate private links of community"""
 
     community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
     unique_code_list = list(community_expire_filter.values_list('unique_code', flat=True))
@@ -147,7 +147,10 @@ def generate_private_link(community_instance, promoter_instance):
         expireInstance.expire_duration = 86400
         expireInstance.save()
 
-        return expireInstance.private_link
+        if just_send_aj:
+            return expireInstance.unique_code
+        else:
+            return expireInstance.private_link
 
     else:
 
@@ -165,9 +168,14 @@ def generate_private_link(community_instance, promoter_instance):
             expireInstance.expire_duration = 86400
             expireInstance.save()
 
-            return expireInstance.private_link
-
-    return community_expire_filter[0].private_link
+            if just_send_aj:
+                return expireInstance.unique_code
+            else:
+                return expireInstance.private_link
+    if just_send_aj:
+        return community_expire_filter[0].unique_code
+    else:
+        return community_expire_filter[0].private_link
 
 
 def generate_random(unique_code_list):

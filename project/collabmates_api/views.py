@@ -776,11 +776,6 @@ def community(request, community_id, req_dict=None):
 
     community_state = get_state_of_community(community)
 
-    if member_id and (community_state == community_states.PILOT or community_state == community_states.PILOT_ACTIVE):
-        serialized_object['share_url'] = serialized_object['share_url'] + "?ref_id=" + str(member_id)
-
-    elif community_state == community_states.PRIVATE or community_state == community_states.HIDDEN or community_state == community_states.WHATSAPP:
-        serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
