@@ -22,6 +22,7 @@ from .user_moderation_rights import check_member_invite_private_right, check_adm
 import logging
 from .branch import create_community_branch_links
 from collabmates_api.utilities.constants import *
+
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
 
@@ -98,10 +99,12 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         new_dict['private_link_members_directory'] = branch_links[2]['url']
 
         if is_owner:
-            private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (community.name, branch_links[2]['url'])
+            private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
+            community.name, branch_links[2]['url'])
 
         else:
-            private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_2 % (community.name, branch_links[2]['url'])
+            private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_2 % (
+            community.name, branch_links[2]['url'])
 
         new_dict[
             'private_link_text_members_directory'] = private_link_text_members_directory
@@ -117,7 +120,8 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
 
             private_link_members_directory = branch_links[1]['url']
             new_dict[
-                'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (community.name, branch_links[2]['url'] )
+                'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
+            community.name, branch_links[2]['url'])
 
     if community.type:
         new_dict['type'] = community.type
@@ -998,8 +1002,10 @@ def CommunityQuestionsSerializer(community_question_instance):
         'field': community_question_instance.field
     }
 
-    if context['value'] and (context['state'] == question_states.CHOICE_SINGLE or context[
-        'state'] == question_states.CHOICE_MULTIPLE) and context['field']:
+    if context['value'] and \
+            (context['state'] == question_states.CHOICE_SINGLE or
+             context['state'] == question_states.CHOICE_MULTIPLE) and \
+            context['field']:
         dropdown_list = json.loads(context['value'])
 
         dropdown_list = sorted(dropdown_list, key=lambda i: i['value'])
@@ -1181,10 +1187,10 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
             str(community_id), str(member_id))
 
-        community_profile[
-            'member_since'] = "Member of " + member_instance.community_id.name + " since " + time.strftime('%b %d %Y',
-                                                                                                           time.localtime(
-                                                                                                               member_instance.created_at))
+        community_profile['member_since'] = "Member of %s since %s" % (
+            member_instance.community_id.name,
+            time.strftime('%b %d %Y', time.localtime(member_instance.created_at)))
+
     elif member_instance.state == member_states.PENDING_MEMBER:
         community_profile['member_since'] = "Verification pending for " + member_instance.community_id.name
 
@@ -1676,8 +1682,7 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
 
             community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
                 time.strftime("%d %B %Y", locale_time))
-            community_profile[
-                'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
+            community_profile['custom_click_text'] = CUSTOM_CLICK_TEXT % (
                 member_instance.member_id.userinfo.name,
                 time.strftime("%d %B %Y", locale_time))
 
@@ -1937,7 +1942,7 @@ def get_community_preview(community_instance, user_instance):
 def get_chatroom_preview(card_instance, member_id, active=None):
     """ function to get chatrooms """
 
-    chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False,preview=True)
+    chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False, preview=True)
     conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                       state=chatroom_states.ANSWER)
     chatroom_instance['total_response_count'] = conversation_filter.count()
@@ -1965,4 +1970,4 @@ def get_member_images_of_chatroom_v1(conversation_filter):
 
     return temp
 
-#=========================================================================#
+# =========================================================================#
