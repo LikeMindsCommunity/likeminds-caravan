@@ -373,6 +373,8 @@ class collabcardState(models.Model):
     external_seen = models.BooleanField(default=True)
     external_follow = models.BooleanField(default=False)
 
+    manual_set_active = models.BigIntegerField(null=True)
+
     class Meta:
         unique_together = (('card', 'user'),)
 
