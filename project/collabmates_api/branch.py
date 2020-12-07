@@ -12,7 +12,6 @@ info_logger = logging.getLogger("info_logger")
 
 
 def create_community_branch_links(community_id, shared_by_id, aj=None):
-
     """
     This will return 2 links in case of member and 3 in case of a owner or promoter
     For public
@@ -34,24 +33,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
     else:
         base_url = '%s/community?community_id=%s' % (host_url, str(community.id))
 
-    long_url_item = {
-        "channel": "AppBackend",
-        "feature": "CommunityPublic",
-        "data": {
-            # '$deeplink_path':'likeminds://%s'%(base_url),
-            '$android_deeplink_path': 'likeminds://%s' % base_url,
-            # '$ios_deeplink_path':'Likeminds://%s'%(base_url),
-            '$deep_link': 'collabmates://%s' % base_url,
-            '$og_title': '%s on LikeMinds' % community.name,
-            '$og_description': community.purpose,
-            '$og_image_url': get_community_image(community),
-            '$og_image_width': 554,
-            '$og_image_height': 554,
-            '$og_url': 'likeminds.community',
-            '$uri_redirect_mode': 1,
-            '$fallback_url': 'https://%s' % base_url,
-        }
-    }
+    long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPublic")
     data.append(long_url_item)
 
     if aj:
@@ -62,24 +44,8 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         else:
             base_url = '%s/community?community_id=%s&aj=%s' % (
                 host_url, str(community.id), str(aj))
-        long_url_item = {
-            "channel": "AppBackend",
-            "feature": "CommunityPrivate",
-            "data": {
-                # '$deeplink_path':'likeminds://%s'%(base_url),
-                '$android_deeplink_path': 'likeminds://%s' % base_url,
-                # '$ios_deeplink_path':'likeminds://%s'%(base_url),
-                '$deep_link': 'collabmates://%s' % base_url,
-                '$og_title': '%s on LikeMinds' % community.name,
-                '$og_description': community.purpose,
-                '$og_image_url': get_community_image(community),
-                '$og_image_width': 554,
-                '$og_image_height': 554,
-                '$og_url': 'likeminds.community',
-                '$uri_redirect_mode': 1,
-                '$fallback_url': 'https://%s' % base_url,
-            }
-        }
+
+        long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPrivate")
         data.append(long_url_item)
 
         if shared_by_id:
@@ -88,24 +54,8 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         else:
             base_url = '%s/community?community_id=%s&aj=%s&source=members_directory' % (
                 host_url, str(community.id), str(aj))
-        long_url_item = {
-            "channel": "AppBackend",
-            "feature": "Community Members Directory",
-            "data": {
-                # '$deeplink_path':'likeminds://%s'%(base_url),
-                '$android_deeplink_path': 'likeminds://%s' % base_url,
-                # '$ios_deeplink_path':'likeminds://%s'%(base_url),
-                '$deep_link': 'collabmates://%s' % base_url,
-                '$og_title': '%s on LikeMinds' % community.name,
-                '$og_description': community.purpose,
-                '$og_image_url': get_community_image(community),
-                '$og_image_width': 554,
-                '$og_image_height': 554,
-                '$og_url': 'likeminds.community',
-                '$uri_redirect_mode': 1,
-                '$fallback_url': 'https://%s' % base_url,
-            }
-        }
+
+        long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory")
         data.append(long_url_item)
 
     else:
@@ -116,29 +66,15 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         else:
             base_url = '%s/community?community_id=%s&source=members_directory' % (
                 host_url, str(community.id))
-        long_url_item = {
-            "channel": "AppBackend",
-            "feature": "Community Members Directory",
-            "data": {
-                # '$deeplink_path':'likeminds://%s'%(base_url),
-                '$android_deeplink_path': 'likeminds://%s' % base_url,
-                # '$ios_deeplink_path':'likeminds://%s'%(base_url),
-                '$deep_link': 'collabmates://%s' % base_url,
-                '$og_title': '%s on LikeMinds' % community.name,
-                '$og_description': community.purpose,
-                '$og_image_url': get_community_image(community),
-                '$og_image_width': 554,
-                '$og_image_height': 554,
-                '$og_url': 'likeminds.community',
-                '$uri_redirect_mode': 1,
-                '$fallback_url': 'https://%s' % base_url,
-            }
-        }
+
+        long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory")
         data.append(long_url_item)
+
+    # API request
     r = requests.post(url=api_endpoint, json=data)
     data = r.json()
 
-    # handeling errors by brach . it return 'error in case the url is made'
+    # handle errors by branch . it return 'error in case the url is made'
     if r.status_code != 200:
         data = [{}, {}, {}]
         info_logger.info("Branch failed, sending normal links")
@@ -174,3 +110,25 @@ def get_community_image(community):
         return community.image_url.url
     else:
         return APP_LOGO
+
+
+def create_link_item(base_url, community, channel, feature):
+    link_item = {
+        "channel": channel,
+        "feature": feature,
+        "data": {
+            # '$deeplink_path':'likeminds://%s'%(base_url),
+            '$android_deeplink_path': 'likeminds://%s' % base_url,
+            # '$ios_deeplink_path':'likeminds://%s'%(base_url),
+            '$deep_link': 'collabmates://%s' % base_url,
+            '$og_title': '%s on LikeMinds' % community.name,
+            '$og_description': community.purpose,
+            '$og_image_url': get_community_image(community),
+            '$og_image_width': 554,
+            '$og_image_height': 554,
+            '$og_url': 'likeminds.community',
+            '$uri_redirect_mode': 1,
+            '$fallback_url': 'https://%s' % base_url,
+        }
+    }
+    return link_item
