@@ -126,7 +126,7 @@ def get_members_count_in_community(community_id):
 
 
 #community related functions
-def generate_private_link(community_instance, promoter_instance, just_aj=False):
+def generate_private_link(community_instance, promoter_instance, just_send_aj=False):
 
     """function to generate private links of community"""
 
@@ -147,7 +147,7 @@ def generate_private_link(community_instance, promoter_instance, just_aj=False):
         expireInstance.expire_duration = 86400
         expireInstance.save()
 
-        if just_aj:
+        if just_send_aj:
             return expireInstance.unique_code
         else:
             return expireInstance.private_link
@@ -168,11 +168,11 @@ def generate_private_link(community_instance, promoter_instance, just_aj=False):
             expireInstance.expire_duration = 86400
             expireInstance.save()
 
-            if just_aj:
+            if just_send_aj:
                 return expireInstance.unique_code
             else:
                 return expireInstance.private_link
-    if just_aj:
+    if just_send_aj:
         return community_expire_filter[0].unique_code
     else:
         return community_expire_filter[0].private_link

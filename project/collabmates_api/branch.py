@@ -53,6 +53,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         }
     }
     data.append(long_url_item)
+
     if aj:
         # if the user is owner or promoter
         if shared_by_id:
@@ -106,6 +107,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
             }
         }
         data.append(long_url_item)
+
     else:
         # adding memberdirectory usrl when user is part of the community
         if shared_by_id:
@@ -140,6 +142,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
     if r.status_code != 200:
         data = [{}, {}, {}]
         info_logger.info("Branch failed, sending normal links")
+
     if aj:
         if 'url' not in data[0]:
             data[0]['url'] = '%s/community?community_id=%s&shared_by=%s' % (

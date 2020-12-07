@@ -48,7 +48,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     if promoter_id or is_owner:
         # public and private links
         aj = private_link = generate_private_link(community_instance=community, promoter_instance=promoter_id,
-                                                  just_aj=True)
+                                                  just_send_aj=True)
         branch_links = create_community_branch_links(community.id, current_user_id, aj)
     else:
         # only public link
