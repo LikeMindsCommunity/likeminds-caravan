@@ -3711,6 +3711,7 @@ def set_chatroom_active(request):
         instance = state_filter[0]
         instance.updated_at = time.time()
         instance.expiry_time = updated_time
+        instance.manual_set_active = updated_time
         instance.save()
     else:
         info_logger.info("data does not exists")
@@ -5990,6 +5991,8 @@ def save_the_latest_conversation(card_instance, user_id):
         state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
         if state_filter.exists():
             expiry_time = get_expiry_time_of_chatroom(state_filter[0])
+            if state_filter[0].manual_set_active and state_filter[0].manual_set_active > expiry_time:
+                expiry_time = state_filter[0].manual_set_active
         else:
             expiry_time = get_expiry_time_of_chatroom()
         if not conversation_member_filter.exists():
@@ -6017,7 +6020,6 @@ def save_the_latest_conversation(card_instance, user_id):
 
     latest_conversations = {'last_conversation': latest_conversation}
     return latest_conversations
-
 
 def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
     '''function to check weather joining time of chatroom is valid or not'''
