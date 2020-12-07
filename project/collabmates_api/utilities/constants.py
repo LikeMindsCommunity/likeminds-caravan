@@ -1,15 +1,14 @@
-
-#MSG91 API urls
+# MSG91 API urls
 MSG91_SENDOTP_URI = 'https://api.msg91.com/api/v5/otp?authkey=%s&extra_param={"COMPANY_NAME":"LikeMinds"}&template_id=%s&mobile=%s&invisible=0&otp_expiry=10'
 MSG91_VERIFYOTP_URI = 'https://api.msg91.com/api/v5/otp/verify?authkey=%s&mobile=%s&otp=%s'
 
-#SMS Gupshup api
+# SMS Gupshup api
 SMSGUPSHUP_SMS_URI = 'http://enterprise.smsgupshup.com/GatewayAPI/rest?method=SendMessage&send_to={0}&msg={1}&msg_type=TEXT&userid={2}&auth_scheme=plain&password={3}&v=1.1&format=text'
 
-#branch
+# branch
 BRANCH_QUICKLINK_URI = 'https://api2.branch.io/v1/url/bulk/%s'
 
-#community sereialiser links
+# community sereialiser links
 PRIVATE_LINK_TEXT_ADMIN_1 = 'I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s'
 PRIVATE_LINK_TEXT_ADMIN_2 = 'Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s'
 PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 = 'I have created a community directory for %s on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s'
