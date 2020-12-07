@@ -8162,15 +8162,13 @@ def chatroom_feed_header(community_id, member_id):
 
 @csrf_exempt
 def upload_files(request):
-    '''function to upload files'''
+    """function to upload files"""
     body = request.GET
-
 
     member_id = get_member_id_from_headers(request)
 
     conversation = None
     chatroom_local = None
-
 
     context = {
         'success': True,
@@ -8178,7 +8176,6 @@ def upload_files(request):
 
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
-
 
     if 'community_id' in body and body['community_id']:
         # if image to be updated in community
@@ -8231,8 +8228,6 @@ def upload_files(request):
 
         member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
         chatroom_local = GetChatroomInstanceSerializer(card_instance, context=member_data, many=False)
-
-
 
     elif 'answer_id' in body and body['answer_id']:
         attachment_type = body['type']
