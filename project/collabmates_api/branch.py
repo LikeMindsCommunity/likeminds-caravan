@@ -2,14 +2,22 @@ import logging
 import requests
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from urllib.parse import urlparse
 
 from togther.models import Community
 from .static_files import *
 from .utilities.constants import BRANCH_QUICKLINK_URI
 
-host_url = settings.URL
+
 info_logger = logging.getLogger("info_logger")
 
+def strip_scheme(url):
+    parsed = urlparse(url)
+    scheme = "%s://" % parsed.scheme
+    return parsed.geturl().replace(scheme, '', 1)
+
+
+host_url = strip_scheme(settings.URL)
 
 def create_community_branch_links(community_id, shared_by_id, aj=None):
     """
@@ -29,30 +37,30 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
     data = []
 
     if shared_by_id:
-        base_url = '%s/community?community_id=%s&shared_by=%s' % (host_url, str(community.id), str(shared_by_id))
+        base_url = '%s/community/%s?shared_by=%s' % (host_url, str(community.id), str(shared_by_id))
     else:
-        base_url = '%s/community?community_id=%s' % (host_url, str(community.id))
+        base_url = '%s/community/%s' % (host_url, str(community.id))
 
+    print(base_url)
     long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPublic")
     data.append(long_url_item)
-
     if aj:
         # if the user is owner or promoter
         if shared_by_id:
-            base_url = '%s/community?community_id=%s&shared_by=%s&aj=%s' % (
+            base_url = '%s/community/%s?shared_by=%s&aj=%s' % (
                 host_url, str(community.id), str(shared_by_id), str(aj))
         else:
-            base_url = '%s/community?community_id=%s&aj=%s' % (
+            base_url = '%s/community/%s?aj=%s' % (
                 host_url, str(community.id), str(aj))
 
         long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPrivate")
         data.append(long_url_item)
 
         if shared_by_id:
-            base_url = '%s/community?community_id=%s&shared_by=%s&aj=%s&source=members_directory' % (
+            base_url = '%s/community/%s?shared_by=%s&aj=%s&source=members_directory' % (
                 host_url, str(community.id), str(shared_by_id), str(aj))
         else:
-            base_url = '%s/community?community_id=%s&aj=%s&source=members_directory' % (
+            base_url = '%s/community/%s?aj=%s&source=members_directory' % (
                 host_url, str(community.id), str(aj))
 
         long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory")
@@ -61,10 +69,10 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
     else:
         # adding memberdirectory usrl when user is part of the community
         if shared_by_id:
-            base_url = '%s/community?community_id=%s&shared_by=%s&source=members_directory' % (
+            base_url = '%s/community/%s?shared_by=%s&source=members_directory' % (
                 host_url, str(community.id), str(shared_by_id))
         else:
-            base_url = '%s/community?community_id=%s&source=members_directory' % (
+            base_url = '%s/community/%s?source=members_directory' % (
                 host_url, str(community.id))
 
         long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory")
@@ -81,25 +89,24 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
 
     if aj:
         if 'url' not in data[0]:
-            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s' % (
+            data[0]['url'] = '%s/community/%s&shared_by=%s' % (
                 host_url, str(community.id), str(shared_by_id))
 
         if 'url' not in data[1]:
-            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s&aj=%s' % (
+            data[1]['url'] = '%s/community/%s?shared_by=%s&aj=%s' % (
                 host_url, str(community.id), str(shared_by_id), str(aj))
 
         if 'url' not in data[2]:
-            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s&aj=%s&source=members_directory' % (
+            data[2]['url'] = '%s/community/%s?shared_by=%s&aj=%s&source=members_directory' % (
                 host_url, str(community.id), str(shared_by_id), str(aj))
     else:
         if 'url' not in data[0]:
-            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s' % (
+            data[0]['url'] = '%s/community/%s?shared_by=%s' % (
                 host_url, str(community.id), str(shared_by_id))
 
         if 'url' not in data[1]:
-            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s&source=members_directory' % (
+            data[1]['url'] = '%s/community/%s?shared_by=%s&source=members_directory' % (
                 host_url, str(community.id), str(shared_by_id))
-
     return data
 
 
