@@ -14,7 +14,6 @@ from utility.states import (card_types, question_states, member_states, poll_typ
 from .user_moderation_rights import *
 import time
 
-url = settings.URL
 import ast
 from .static_files import *
 from .static_text import months_semi
@@ -25,6 +24,7 @@ from collabmates_api.utilities.constants import *
 
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
+url = settings.URL
 
 from datetime import datetime, date
 

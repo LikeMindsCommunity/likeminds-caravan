@@ -41,9 +41,9 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
     else:
         base_url = '%s/community/%s' % (host_url, str(community.id))
 
-    print(base_url)
     long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPublic")
     data.append(long_url_item)
+
     if aj:
         # if the user is owner or promoter
         if shared_by_id:
@@ -67,7 +67,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         data.append(long_url_item)
 
     else:
-        # adding memberdirectory usrl when user is part of the community
+        # adding member directory urls when user is part of the community
         if shared_by_id:
             base_url = '%s/community/%s?shared_by=%s&source=members_directory' % (
                 host_url, str(community.id), str(shared_by_id))
