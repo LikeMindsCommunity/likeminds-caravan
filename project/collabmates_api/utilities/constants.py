@@ -8,3 +8,14 @@ SMSGUPSHUP_SMS_URI = 'http://enterprise.smsgupshup.com/GatewayAPI/rest?method=Se
 
 #branch
 BRANCH_QUICKLINK_URI = 'https://api2.branch.io/v1/url/bulk/%s'
+
+#community sereialiser links
+PRIVATE_LINK_TEXT_ADMIN_1 = 'I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s'
+PRIVATE_LINK_TEXT_ADMIN_2 = 'Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s'
+PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 = 'I have created a community directory for %s on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s'
+PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_2 = 'Directory for our community %s has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s'
+PRIVATE_LINK_FOR_PERMITTED_USER = 'Join %s on LikeMinds with my exclusive link. For security, this is valid only for next 24 hours: %s'
+MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER = 'Directory for our community %s has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s'
+SHARE_TEXT_ADMIN = 'I am building %s community on LikeMinds.\n %s \nApply to join our community. %s'
+SHARE_TEXT_MEMBER = 'I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s'
+SHARE_TEXT_ANONYMOUS = 'I recently discovered %s community on LikeMinds. You can join this community using this link.'

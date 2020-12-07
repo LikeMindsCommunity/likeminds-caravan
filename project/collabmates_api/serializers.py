@@ -21,7 +21,7 @@ from .static_text import months_semi
 from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
 import logging
 from .branch import create_community_branch_links
-
+from collabmates_api.utilities.constants import *
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
 
@@ -45,7 +45,13 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         'location': community.location if community.location else "",
 
     }
-    if promoter_id or is_owner:
+
+    user_has_share_permission = False
+
+    if current_user_instance:
+        user_has_share_permission = check_member_invite_private_right(current_user_instance, community)
+
+    if promoter_id or is_owner or user_has_share_permission:
         # public and private links
         aj = private_link = generate_private_link(community_instance=community, promoter_instance=promoter_id,
                                                   just_send_aj=True)
@@ -84,20 +90,18 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         new_dict['private_link'] = branch_links[1]['url']
         if new_dict['members_count'] <= 10:
             new_dict[
-                'private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
-                community.name, new_dict['private_link'])
+                'private_link_text_admin'] = PRIVATE_LINK_TEXT_ADMIN_1 % (community.name, branch_links[1]['url'])
         else:
             new_dict[
-                'private_link_text_admin'] = """Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
-                community.name, private_link)
+                'private_link_text_admin'] = PRIVATE_LINK_TEXT_ADMIN_2 % (community.name, branch_links[1]['url'])
 
         new_dict['private_link_members_directory'] = branch_links[2]['url']
 
         if is_owner:
-            private_link_text_members_directory = f"I have created a community directory for {community.name} on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {branch_links[2]['url']}"
+            private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (community.name, branch_links[2]['url'])
 
         else:
-            private_link_text_members_directory = f"Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {branch_links[2]['url']}"
+            private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_2 % (community.name, branch_links[2]['url'])
 
         new_dict[
             'private_link_text_members_directory'] = private_link_text_members_directory
@@ -107,15 +111,13 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         if check_member_invite_private_right(current_user_instance, community):
             private_link = generate_private_link(community_instance=community,
                                                  promoter_instance=current_user_instance)
-            if current_user_id:
-                private_link = private_link + f"&shared_by={current_user_id}"
 
             new_dict[
-                'private_link_text_member'] = f"Join {community.name} on LikeMinds with my exclusive link. For security, this is valid only for next 24 hours: {private_link}"
+                'private_link_text_member'] = PRIVATE_LINK_FOR_PERMITTED_USER % (community.name, branch_links[1]['url'])
 
             private_link_members_directory = branch_links[1]['url']
             new_dict[
-                'members_directory_link_for_members'] = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
+                'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (community.name, branch_links[2]['url'] )
 
     if community.type:
         new_dict['type'] = community.type
@@ -123,8 +125,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         new_dict['sub_type'] = community.sub_type
 
     new_dict[
-        'share_text_admin'] = """I am building %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
-        new_dict['name'], new_dict['purpose'], new_dict['share_url'])
+        'share_text_admin'] = SHARE_TEXT_ADMIN % (new_dict['name'], new_dict['purpose'], new_dict['share_url'])
 
     new_dict[
         'share_text_member'] = """I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
@@ -1936,7 +1937,7 @@ def get_community_preview(community_instance, user_instance):
 def get_chatroom_preview(card_instance, member_id, active=None):
     """ function to get chatrooms """
 
-    chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False, preview=True)
+    chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False,preview=True)
     conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                       state=chatroom_states.ANSWER)
     chatroom_instance['total_response_count'] = conversation_filter.count()
@@ -1964,4 +1965,4 @@ def get_member_images_of_chatroom_v1(conversation_filter):
 
     return temp
 
-# =========================================================================#
+#=========================================================================#
