@@ -1,11 +1,14 @@
+import logging
 import requests
 from django.conf import settings
-from togther.models import Community
 from django.shortcuts import get_object_or_404
+
+from togther.models import Community
 from .static_files import *
 from .utilities.constants import BRANCH_QUICKLINK_URI
 
 host_url = settings.URL
+info_logger = logging.getLogger("info_logger")
 
 
 def create_community_branch_links(community_id, shared_by_id, aj=None):
@@ -31,7 +34,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
     else:
         base_url = '%s/community?community_id=%s' % (host_url, str(community.id))
 
-    d = {
+    long_url_item = {
         "channel": "AppBackend",
         "feature": "CommunityPublic",
         "data": {
@@ -49,7 +52,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
             '$fallback_url': 'https://%s' % base_url,
         }
     }
-    data.append(d)
+    data.append(long_url_item)
     if aj:
         # if the user is owner or promoter
         if shared_by_id:
@@ -58,7 +61,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         else:
             base_url = '%s/community?community_id=%s&aj=%s' % (
                 host_url, str(community.id), str(aj))
-        d = {
+        long_url_item = {
             "channel": "AppBackend",
             "feature": "CommunityPrivate",
             "data": {
@@ -76,7 +79,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
                 '$fallback_url': 'https://%s' % base_url,
             }
         }
-        data.append(d)
+        data.append(long_url_item)
 
         if shared_by_id:
             base_url = '%s/community?community_id=%s&shared_by=%s&aj=%s&source=members_directory' % (
@@ -84,7 +87,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         else:
             base_url = '%s/community?community_id=%s&aj=%s&source=members_directory' % (
                 host_url, str(community.id), str(aj))
-        d = {
+        long_url_item = {
             "channel": "AppBackend",
             "feature": "Community Members Directory",
             "data": {
@@ -102,7 +105,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
                 '$fallback_url': 'https://%s' % base_url,
             }
         }
-        data.append(d)
+        data.append(long_url_item)
     else:
         # adding memberdirectory usrl when user is part of the community
         if shared_by_id:
@@ -111,7 +114,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         else:
             base_url = '%s/community?community_id=%s&source=members_directory' % (
                 host_url, str(community.id))
-        d = {
+        long_url_item = {
             "channel": "AppBackend",
             "feature": "Community Members Directory",
             "data": {
@@ -129,9 +132,35 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
                 '$fallback_url': 'https://%s' % base_url,
             }
         }
-        data.append(d)
+        data.append(long_url_item)
     r = requests.post(url=api_endpoint, json=data)
     data = r.json()
+
+    # handeling errors by brach . it return 'error in case the url is made'
+    if r.status_code != 200:
+        data = [{}, {}, {}]
+        info_logger.info("Branch failed, sending normal links")
+    if aj:
+        if 'url' not in data[0]:
+            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s' % (
+                host_url, str(community.id), str(shared_by_id))
+
+        if 'url' not in data[1]:
+            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s&aj=%s' % (
+                host_url, str(community.id), str(shared_by_id), str(aj))
+
+        if 'url' not in data[2]:
+            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s&aj=%s&source=members_directory' % (
+                host_url, str(community.id), str(shared_by_id), str(aj))
+    else:
+        if 'url' not in data[0]:
+            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s' % (
+                host_url, str(community.id), str(shared_by_id))
+
+        if 'url' not in data[1]:
+            data[0]['url'] = '%s/community?community_id=%s&shared_by=%s&source=members_directory' % (
+                host_url, str(community.id), str(shared_by_id))
+
     return data
 
 
