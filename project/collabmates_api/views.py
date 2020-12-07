@@ -2913,6 +2913,8 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.type = card_type
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+    card.video_count = res['video_count'] if ('video_count' in res) else 0
+    card.audio_count = res['audio_count'] if ('audio_count' in res) else 0
     card.date_time = res['date_time'] if ('date_time' in res) else 0
     card.duration = res['duration'] if ('duration' in res) else 0
 
@@ -3223,6 +3225,8 @@ def create_draft_collabcard(request, res=None):
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
     card.date_time = res['date_time'] if ('date_time' in res) else 0
+    card.video_count = res['video_count'] if ('video_count' in res) else 0
+    card.audio_count = res['audio_count'] if ('audio_count' in res) else 0
     card.duration = res['duration'] if ('duration' in res) else 0
 
     # for event card
@@ -3702,6 +3706,7 @@ def set_chatroom_active(request):
         instance = state_filter[0]
         instance.updated_at = time.time()
         instance.expiry_time = updated_time
+        instance.manual_set_active = updated_time
         instance.save()
     else:
         info_logger.info("data does not exists")
@@ -5981,6 +5986,8 @@ def save_the_latest_conversation(card_instance, user_id):
         state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
         if state_filter.exists():
             expiry_time = get_expiry_time_of_chatroom(state_filter[0])
+            if state_filter[0].manual_set_active and state_filter[0].manual_set_active > expiry_time:
+                expiry_time = state_filter[0].manual_set_active
         else:
             expiry_time = get_expiry_time_of_chatroom()
         if not conversation_member_filter.exists():
@@ -6008,7 +6015,6 @@ def save_the_latest_conversation(card_instance, user_id):
 
     latest_conversations = {'last_conversation': latest_conversation}
     return latest_conversations
-
 
 def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
     '''function to check weather joining time of chatroom is valid or not'''
@@ -12889,10 +12895,11 @@ def action_pending_chatroom(request):
                                                                   function_called="action_pending_chatroom")
 
     send_notification_for_pending_chatroom_approved_or_rejected.delay(chatroom.id, is_approved=is_approved)
-    # deleting the old instance even if value = true or false
-    # adding pending chatroom files to new chatroomg
+    # updating chatroom polls to new chatroom
+    CollabcardPolls.objects.filter(card__id=chatroom_id).update(card=chatroom)
+    # updating chatroom attachments to new chatroom
     Card_Attachment.objects.filter(collabcard__id=chatroom_id).update(collabcard=chatroom)
-
+    # deleting the old instance even if value = true or false
     Collabcard.objects.filter(pk=chatroom_id).delete()
 
     update_pending_chatroom_count_for_promoters.delay(community_instance.id)

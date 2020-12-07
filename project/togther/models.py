@@ -155,6 +155,8 @@ class Collabcard(models.Model):
     og_tags = models.CharField(max_length=2048, default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
+    video_count = models.IntegerField(default=0, null=True)
+    audio_count = models.IntegerField(default=0, null=True)
     type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
     date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
     duration = models.BigIntegerField(default=0)  # for saving duration of event
@@ -216,6 +218,8 @@ class draftChatroom(models.Model):
     og_tags = models.CharField(max_length=2048, default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
+    video_count = models.IntegerField(default=0, null=True)
+    audio_count = models.IntegerField(default=0, null=True)
     type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
     date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
     duration = models.BigIntegerField(default=0)  # for saving duration of event
@@ -368,6 +372,8 @@ class collabcardState(models.Model):
 
     external_seen = models.BooleanField(default=True)
     external_follow = models.BooleanField(default=False)
+
+    manual_set_active = models.BigIntegerField(null=True)
 
     class Meta:
         unique_together = (('card', 'user'),)

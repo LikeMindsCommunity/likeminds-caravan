@@ -341,8 +341,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Collabcard
         fields = ('id', 'title', 'community_id', 'answer_text',
-                  'image_count', 'pdf_count', 'type', 'date_time',
-                  'is_pending', 'attending_count', 'polls_count',
+                  'image_count', 'pdf_count', 'video_count', 'audio_count', 'type',
+                  'date_time', 'is_pending', 'attending_count', 'polls_count',
                   'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
                   'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state',
                   'multiple_select_no', 'polls', 'location', 'location_lat', 'location_long',
@@ -447,7 +447,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         images = []
         if card.has_files:
-            files = Card_Attachment.objects.filter(collabcard=card, type="image").order_by('index')
+            files = Card_Attachment.objects.filter(collabcard=card, type="image")
             for file in files:
                 img = {'image_url': file.file_url, 'index': file.index}
                 images.append(img)
@@ -458,7 +458,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         pdf = []
         if card.has_files:
-            files = Card_Attachment.objects.filter(collabcard=card, type="pdf").order_by('index')
+            files = Card_Attachment.objects.filter(collabcard=card, type="pdf")
             for file in files:
                 temp = {'pdf_file': file.file_url, 'index': file.index}
                 pdf.append(temp)
@@ -469,7 +469,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         audios = []
         if card.has_files:
-            files = Card_Attachment.objects.filter(collabcard=card, type="audio").order_by('index')
+            files = Card_Attachment.objects.filter(collabcard=card, type="audio")
             for file in files:
                 audio_file = {'audio_url': file.file_url, 'index': file.index}
                 audios.append(audio_file)
@@ -480,7 +480,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         videos = []
         if card.has_files:
-            files = Card_Attachment.objects.filter(collabcard=card, type="video").order_by('index')
+            files = Card_Attachment.objects.filter(collabcard=card, type="video")
             for file in files:
                 video_file = {'video_url': file.file_url, 'index': file.index}
                 videos.append(video_file)
