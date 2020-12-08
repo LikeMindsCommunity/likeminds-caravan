@@ -13602,8 +13602,29 @@ class SyncChatrooms(APIView):
 
         if max_last_updated:
             return JsonResponse({'chatrooms': chatroom_obj.data, 'max_last_updated': max_last_updated})
+        else:
+            if last_updated:
+                draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated).order_by('id')
+            else:
+                draft_filter = draftChatroom.objects.order_by('id')
 
-        return JsonResponse({'chatrooms': chatroom_obj.data})
+            chatrooms = []
+            max_last_updated = 0
+            for draft in draft_filter:
+
+                if max_last_updated < draft.date_epoch:
+                    max_last_updated = draft.date_epoch
+                draft_chatroom = draftChatroomSerializer(draft,member_id)
+                chatrooms.append(draft_chatroom)
+
+            if max_last_updated:
+                return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
+
+            return JsonResponse({'chatrooms': []})
+
+
+
+
 
 
 class SyncCommunities(APIView):
