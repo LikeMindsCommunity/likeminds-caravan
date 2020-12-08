@@ -13636,6 +13636,7 @@ def fill_draft_chatrooms(draft_filter,member_id):
         if max_last_updated < draft.date_epoch:
             max_last_updated = draft.date_epoch
         draft_chatroom = draftChatroomSerializer(draft, member_id)
+        draft_chatroom['is_draft'] = True
         chatrooms.append(draft_chatroom)
 
     return max_last_updated,chatrooms
