@@ -483,7 +483,6 @@ def my_chatrooms_version_1(request):
     if page > page_count:
         send_active = False
 
-
     if send_active:
         engage_list = get_active_followed_chatrooms(member_id, current_time, page, limit=10)
         for id in engage_list:
@@ -499,11 +498,11 @@ def my_chatrooms_version_1(request):
     else:
         page = page - page_count
         engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
+
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
-    # instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
-    # instance_list = pagination(instance_list, page, paginate_by=10)
+
     for instance in instance_list:
 
         chatroom = {}
@@ -511,17 +510,13 @@ def my_chatrooms_version_1(request):
         draft_instance = instance.draft
 
         if card_instance:
-            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id)
-            # chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id,
-            #                                             current_user_instance=current_user_instance)
+            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False)
             context = {"current_user_id": member_id}
             chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
                                                           many=False).data
             chatroom['is_draft'] = False
         elif draft_instance:
             chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance, member_id)
-            # chatroom['community'] = CommunitySerializer(draft_instance.community, current_user_id=member_id,
-            #                                             current_user_instance=current_user_instance)
             context = {"current_user_id": member_id}
             chatroom['community'] = CommunitySerializerV1(draft_instance.community, context=context,
                                                           many=False).data
