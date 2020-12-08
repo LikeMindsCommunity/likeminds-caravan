@@ -54,7 +54,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
 
     if promoter_id or is_owner or user_has_share_permission:
         # public and private links
-        aj = private_link = generate_private_link(community_instance=community, promoter_instance=promoter_id,
+        aj = private_link = generate_private_link(community_instance=community, promoter_instance=current_user_instance,
                                                   just_send_aj=True)
         branch_links = create_community_branch_links(community.id, current_user_id, aj)
     else:
