@@ -352,6 +352,7 @@ def my_chatrooms(request):
     member_id = get_member_id_from_headers(request)
     page = request.GET.get('page', 1)
 
+
     active = request.GET.get('active',None)
     if active == "true":
         active = True
@@ -367,6 +368,12 @@ def my_chatrooms(request):
     if not member_id:
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
+    else:
+        try:
+            current_user_instance = User.objects.get(pk=member_id)
+        except User.DoesNotExist:
+            context = get_error_context(False, "User does not exist")
+            return JsonResponse(context)
 
     # if active is True:
     #     engage_list = get_active_followed_chatrooms(member_id,current_time,page,limit=10)
@@ -400,11 +407,11 @@ def my_chatrooms(request):
         draft_instance = instance.draft
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id)
-            chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id)
+            chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id, current_user_instance=current_user_instance)
             chatroom['is_draft'] = False
         elif draft_instance:
             chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance, member_id)
-            chatroom['community'] = CommunitySerializer(draft_instance.community, current_user_id=member_id)
+            chatroom['community'] = CommunitySerializer(draft_instance.community, current_user_id=member_id, current_user_instance=current_user_instance)
             chatroom['is_draft'] = True
 
         last_conversation = instance.last_conversation
@@ -456,6 +463,13 @@ def my_chatrooms_version_1(request):
     if not member_id:
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
+    else:
+        try:
+            current_user_instance = User.objects.get(pk=member_id)
+        except User.DoesNotExist:
+            context = get_error_context(False, "User does not exist")
+            return JsonResponse(context)
+
 
     in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time)
 
@@ -498,11 +512,13 @@ def my_chatrooms_version_1(request):
 
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id)
-            chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id)
+            chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id,
+                                                        current_user_instance=current_user_instance)
             chatroom['is_draft'] = False
         elif draft_instance:
             chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance, member_id)
-            chatroom['community'] = CommunitySerializer(draft_instance.community, current_user_id=member_id)
+            chatroom['community'] = CommunitySerializer(draft_instance.community, current_user_id=member_id,
+                                                        current_user_instance=current_user_instance)
             chatroom['is_draft'] = True
 
         last_conversation = instance.last_conversation
@@ -769,7 +785,8 @@ def community(request, community_id, req_dict=None):
 
     if is_promoter:
         serialized_object = CommunitySerializer(community, promoter_id=current_user_instance,
-                                                is_owner=is_owner, current_user_id=member_id)
+                                                is_owner=is_owner, current_user_id=member_id,
+                                                current_user_instance=current_user_instance)
     else:
         serialized_object = CommunitySerializer(community, current_user_id=member_id,
                                                 current_user_instance=current_user_instance)

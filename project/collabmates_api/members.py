@@ -94,7 +94,7 @@ def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
 
     tagging_list = []
     try:
-        card_instance  = Collabcard.objects.get(id = chatroom_id)
+        card_instance = Collabcard.objects.get(id = chatroom_id)
     except Exception as e:
         return []
 
@@ -531,7 +531,8 @@ def send_participants_of_chatroom(chatroom_id,filter_list,community_id,current_u
 
     promoter_instance = is_member_promoter(community_instance, current_user_id)
 
-    community = CommunitySerializer(community_instance, promoter_id=promoter_instance, current_user_id=current_user_id)
+    community = CommunitySerializer(community_instance, promoter_id=promoter_instance, current_user_id=current_user_id,current_user_instance
+                                    =promoter_instance)
 
     context = {'members': members, 'community': community}
 
