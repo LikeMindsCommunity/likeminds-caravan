@@ -503,6 +503,10 @@ def my_chatrooms_version_1(request):
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
 
+    # instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
+    # instance_list = pagination(instance_list, page, paginate_by=10)
+
+
     for instance in instance_list:
 
         chatroom = {}
@@ -13607,8 +13611,34 @@ class SyncChatrooms(APIView):
 
         if max_last_updated:
             return JsonResponse({'chatrooms': chatroom_obj.data, 'max_last_updated': max_last_updated})
+        else:
+            if last_updated:
+                draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated).order_by('id')
+            else:
+                draft_filter = draftChatroom.objects.order_by('id')
 
-        return JsonResponse({'chatrooms': chatroom_obj.data})
+            max_last_updated, chatrooms = fill_draft_chatrooms(draft_filter,member_id)
+
+            if max_last_updated:
+                return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
+
+            return JsonResponse({'chatrooms': []})
+
+
+
+def fill_draft_chatrooms(draft_filter,member_id):
+
+    '''function to fill draft chatrooms'''
+    chatrooms = []
+    max_last_updated = 0
+    for draft in draft_filter:
+
+        if max_last_updated < draft.date_epoch:
+            max_last_updated = draft.date_epoch
+        draft_chatroom = draftChatroomSerializer(draft, member_id)
+        chatrooms.append(draft_chatroom)
+
+    return max_last_updated,chatrooms
 
 
 class SyncCommunities(APIView):
