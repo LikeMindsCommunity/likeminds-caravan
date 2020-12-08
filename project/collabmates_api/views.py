@@ -13612,11 +13612,14 @@ class SyncChatrooms(APIView):
         if max_last_updated:
             return JsonResponse({'chatrooms': chatroom_obj.data, 'max_last_updated': max_last_updated})
         else:
+            page_count = get_total_pages(len(state_list),limit=int(paginate_by))
+
+            page = page - page_count
             if last_updated:
                 draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated).order_by('id')
             else:
                 draft_filter = draftChatroom.objects.order_by('id')
-
+            draft_filter = pagination(draft_filter,page,paginate_by=paginate_by)
             max_last_updated, chatrooms = fill_draft_chatrooms(draft_filter,member_id)
 
             if max_last_updated:
@@ -13637,6 +13640,7 @@ def fill_draft_chatrooms(draft_filter,member_id):
             max_last_updated = draft.date_epoch
         draft_chatroom = draftChatroomSerializer(draft, member_id)
         draft_chatroom['is_draft'] = True
+        draft_chatroom['updated_at'] = draft.date_epoch
         chatrooms.append(draft_chatroom)
 
     return max_last_updated,chatrooms
