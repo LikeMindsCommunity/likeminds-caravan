@@ -80,12 +80,13 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
 
     # API request
     r = requests.post(url=api_endpoint, json=data)
-    data = r.json()
 
     # handle errors by branch . it return 'error in case the url is made'
     if r.status_code != 200:
         data = [{}, {}, {}]
         info_logger.info("Branch failed, sending normal links")
+    else:
+        data = r.json()
 
     if aj:
         if 'url' not in data[0]:
