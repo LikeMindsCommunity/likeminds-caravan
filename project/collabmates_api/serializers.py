@@ -590,25 +590,25 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     if not expiry_time or expiry_time >= int(time.time()):
         collabcard_serializer['active'] = True
 
-    if send_profile:
-        collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id,
-                                                send_profile=send_profile)
-        collabcard_serializer['member'] = collabcard_member[0]
 
-        is_removed = removedMembers.objects.filter(community=card_instance.community,
+    collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id,
+                                                send_profile=send_profile)
+    collabcard_serializer['member'] = collabcard_member[0]
+
+    is_removed = removedMembers.objects.filter(community=card_instance.community,
                                                    member_id=collabcard_serializer['member']['id'])
 
-        if collabcard_serializer['member']['state'] == 0 and is_removed.exists():
-            temp = get_removed_member_custom_text(is_removed[0])
-            collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-            collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
-            collabcard_serializer['member']['remove_state'] = temp['remove_state']
-            collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-    else:
-        collabcard_member = get_user_profile(user_id=card_instance.user.id, community_id=card_instance.community.id,
-                                             current_user_id=current_user_id,
-                                             send_profile=False, remove=False)
-        collabcard_serializer['member'] = collabcard_member
+    if collabcard_serializer['member']['state'] == 0 and is_removed.exists():
+        temp = get_removed_member_custom_text(is_removed[0])
+        collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+        collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
+        collabcard_serializer['member']['remove_state'] = temp['remove_state']
+        collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
+    # else:
+    #     collabcard_member = get_user_profile(user_id=card_instance.user.id, community_id=card_instance.community.id,
+    #                                          current_user_id=current_user_id,
+    #                                          send_profile=False, remove=False)
+    #     collabcard_serializer['member'] = collabcard_member
 
     # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
