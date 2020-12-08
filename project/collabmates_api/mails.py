@@ -231,4 +231,3 @@ def send_report_mail_to_team(subject, report_instance_id):
 
     send_email(subject, template, to)
     # print(template)
-    
