@@ -7820,7 +7820,6 @@ def get_chatrooms_version_2(chatroom_list, member_id,active = None, is_ios=False
     '''function to get chatrooms'''
 
     chatrooms = []
-    chatroom_list = []
     for data in chatroom_list:
         card_instance = data.card
 
