@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework.utils import json
 
-from togther.models import Member_Engage
+from togther.models import Member_Engage, Community
 from utility.states import member_states
 from collabmates_api.landing_page.member_community_manager import MemberCommunityManager
 from collabmates_api.serializers import CommunitySerializer
@@ -9,6 +9,7 @@ from collabmates_api.user_moderation_rights import check_admin_approve_right
 from collabmates_api.utility import pagination
 from collabmates_api.views import get_home_screen_community_actions, get_active_chatroom_member_images
 from utility.utils import create_notification_flag
+from collabmates_api.rest_api import CommunitySerializerV1
 
 
 class MemberCommunityImpl(MemberCommunityManager):
@@ -95,7 +96,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         """
         TODO: move to model definition file
         """
-        return CommunitySerializer(community_id, current_user_id=member_id)
+        if not isinstance(community_id, Community):
+            community_id = Community.objects.get(pk=community_id)
+
+        context = {"current_user_id": member_id}
+        return CommunitySerializerV1(community_id, context=context, many=False).data
 
     def _add_admin_info(self, member_community: dict, community: {}) -> None:
         user = self._extract_user(self.get_member_id())
