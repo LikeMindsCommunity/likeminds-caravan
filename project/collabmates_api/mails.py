@@ -14,12 +14,12 @@ from utility.celery_beat_tasks import CeleryBeatTask
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link, get_user_email,add_relative_time_to_epoch,
                            get_next_day_time,check_notification_flag)
-from utility.encryption import encrypt,decrypt
+from utility.encryption import encrypt, decrypt
 
-from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
+from .static_files import GOOGLE_PLAYSTORE, APPLE_APPSTORE, APP_LOGO
 from celery import shared_task
 import json
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 
 url = settings.URL
 is_beta = settings.IS_BETA
@@ -37,7 +37,6 @@ def send_feedback_mail_to_webmaster(feedback_id):
     }
 
     if feedback_instance.images:
-
         context['images'] = json.loads(feedback_instance.images)
 
     template = get_template("mails/send_feedback_mail_to_webmaster.html").render(context)
@@ -232,3 +231,4 @@ def send_report_mail_to_team(subject, report_instance_id):
 
     send_email(subject, template, to)
     # print(template)
+    
