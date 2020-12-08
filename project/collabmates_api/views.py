@@ -7771,13 +7771,16 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None, is_ios=False
     '''function to get chatrooms'''
 
     chatrooms = []
+
     for data in chatroom_list:
         card_instance = data.card
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id,state_instance=data,send_profile=False)
+
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
+
 
         if card_instance.internal_link:
             chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
@@ -7788,11 +7791,12 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None, is_ios=False
             if is_ios and card_instance.internal_link:
                 chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
 
-        last_response_members = get_member_images_of_chatroom(conversation_filter)
-        chatroom_instance['members_images'] = last_response_members['members_images']
+        last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
+        #chatroom_instance['members_images'] = last_response_members['members_images']
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
         chatrooms.append(chatroom_instance)
+
         # chatroom_instance = {
         #     'id' : chatroom_instance['id'],
         #     'active': chatroom_instance['active']
@@ -7809,6 +7813,7 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None, is_ios=False
 
 
     return chatrooms
+
 
 
 def get_chatrooms_version_2(chatroom_list, member_id,active = None, is_ios=False):
@@ -7943,8 +7948,7 @@ def fetch_chatroom_feed_version_1(request):
     member_id = get_member_id_from_headers(request)
     #print(member_id)
 
-    chatroom_filter = Collabcard.objects.filter(community=community_id,
-                                                is_pending=False, is_deleted=False).order_by('id')
+
 
     state_filter = collabcardState.objects.filter(community=community_id,
                                                   card__is_pending=False,
