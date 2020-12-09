@@ -65,6 +65,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'utility.slash_middleware.AppendOrRemoveSlashMiddleware',
+    'middleware.api_logger.ApiLogger'
 ]
 
 
@@ -256,6 +257,13 @@ GOOGLE_API_KEY=os.getenv('GOOGLE_API_KEY')
 EMAIL_GHUPSHAP_KEY = "015472e4127a7c6aff548e84b06e4cf3"
 GUPSHUP_ID = '2000193166'
 GUPSHUP_PASS = 'yeDiJFr3B'
+
+
+CORALOGIX_LOGGER = {
+    'PRIVATE_API_KEY': '546fce97-bd5c-bc35-9952-704ab4db8720',
+    'APPLICATION_NAME': 'LikeMinds',
+    'SUBSYSTEM_NAME': 'Backend Application',
+}
 
 MSG91_AUTH_KEY = '348626A9QYSV99f2sb5fc9defeP1'
 

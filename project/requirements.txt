@@ -6,6 +6,7 @@ billiard==3.6.1.0
 celery==4.4.0
 certifi==2019.11.28
 chardet==3.0.4
+coralogix_logger==2.0.3
 defusedxml==0.6.0
 diff-match-patch==20181111
 Django==3.0.2

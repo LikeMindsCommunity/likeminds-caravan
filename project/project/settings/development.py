@@ -51,7 +51,11 @@ FIREBASE_CONFIG = {
     'measurementId': "G-R2PXYC9F4S"
 }
 
-
+CORALOGIX_LOGGER = {
+    'PRIVATE_API_KEY': '546fce97-bd5c-bc35-9952-704ab4db8720',
+    'APPLICATION_NAME': 'LikeMinds',
+    'SUBSYSTEM_NAME': 'Backend Application',
+}
 
 GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"
 
