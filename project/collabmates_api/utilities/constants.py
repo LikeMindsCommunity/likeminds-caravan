@@ -19,3 +19,8 @@ SHARE_TEXT_ADMIN = 'I am building %s community on LikeMinds.\n %s \nApply to joi
 SHARE_TEXT_MEMBER = 'I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s'
 SHARE_TEXT_ANONYMOUS = 'I recently discovered %s community on LikeMinds. You can join this community using this link.'
 CUSTOM_CLICK_TEXT = '%s joined this community via a private community link on %s and hasn’t created their profile for this community yet'
+
+
+INSTAGRAM_LINK = "https://www.instagram.com/"
+
+TWITTER_LINK = "https://twitter.com/"

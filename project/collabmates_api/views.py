@@ -82,6 +82,7 @@ from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
                        YourCommunitySerializer)
 
+from .utilities.constants import INSTAGRAM_LINK, TWITTER_LINK
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -1055,17 +1056,6 @@ def join_community_responses_version_1(request):
     info_logger.info(res)
     info_logger.info("\n")
     community_id = res['community_id']
-
-    community_instance = Community.objects.get(id=community_id)
-    community = community_instance
-
-    community_state = get_state_of_community(community_instance)
-
-    # is_private = False
-    # if community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
-    #     is_private = True
-    #
-    # if is_private:
     info_logger.info("Inside private\n")
     join_promoter_created_community_version_1(res, request)
 
@@ -1117,6 +1107,9 @@ def join_promoter_created_community_version_1(res, request):
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
                 selected_choices = question['value'].split("$#")
                 save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
+
+            if question_instance.question_state == question_states.PROFILE_LINK:
+                save_profile_links_from_handles(question_instance,answer_instance)
 
     update_hidden_fields_in_questions(user_instance, community_instance)
 
@@ -1616,6 +1609,19 @@ def is_option_present(option, dropdown_list):
             return True
     return False
 
+def save_profile_links_from_handles(question_instance,answer_instance):
+
+    '''function to generate profile links from instagram and twitter handles'''
+
+    value_list = json.loads(question_instance.value)
+
+    if value_list and value_list[0]['profile_platform'] == "Instagram":
+        answer_instance.question_answer = INSTAGRAM_LINK + answer_instance.question_answer
+        answer_instance.save()
+
+    elif value_list and value_list[0]['profile_platform'] == "Twitter":
+        answer_instance.question_answer = TWITTER_LINK + answer_instance.question_answer
+        answer_instance.save()
 
 ############# functions for  members of community   ##########################
 
