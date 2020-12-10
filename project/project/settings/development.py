@@ -52,9 +52,10 @@ FIREBASE_CONFIG = {
 }
 
 CORALOGIX_LOGGER = {
-    'PRIVATE_API_KEY': '546fce97-bd5c-bc35-9952-704ab4db8720',
-    'APPLICATION_NAME': 'LikeMinds',
-    'SUBSYSTEM_NAME': 'Backend Application',
+    'PRIVATE_API_KEY': os.getenv('CORALOGIX_LOGGER_PRIVATE_API_KEY'),
+    'APPLICATION_NAME': 'LikeMinds_Beta',
+    'SUBSYSTEM_NAME_API': 'Backend_App_Api',
+    'SUBSYSTEM_NAME_APP': 'Backend_App_System'
 }
 
 GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"

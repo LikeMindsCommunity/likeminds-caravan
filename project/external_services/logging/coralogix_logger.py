@@ -14,7 +14,7 @@ class CoralogixLoggerImpl:
         coralogix_handler = CoralogixLogger(
                 settings.CORALOGIX_LOGGER.get('PRIVATE_API_KEY'),
                 settings.CORALOGIX_LOGGER.get('APPLICATION_NAME'),
-                settings.CORALOGIX_LOGGER.get('SUBSYSTEM_NAME')
+                settings.CORALOGIX_LOGGER.get('SUBSYSTEM_NAME_APP')
             )
         logger.addHandler(coralogix_handler)
         CoralogixLoggerImpl.__instance = logger

@@ -48,9 +48,10 @@ FCM_SERVER_KEY = os.getenv('PROD_FCM_SERVER_KEY')
 GOOGLE_OAUTH_CLIENT_ID = "645716458793-rprdna1adps5s7pigsrjasko3ot3ljfl.apps.googleusercontent.com"
 
 CORALOGIX_LOGGER = {
-    'PRIVATE_API_KEY': '546fce97-bd5c-bc35-9952-704ab4db8720',
-    'APPLICATION_NAME': 'LikeMinds',
-    'SUBSYSTEM_NAME': 'Backend Application',
+    'PRIVATE_API_KEY': os.getenv('CORALOGIX_LOGGER_PRIVATE_API_KEY'),
+    'APPLICATION_NAME': 'LikeMinds_Prod',
+    'SUBSYSTEM_NAME_API': 'Backend_App_Api',
+    'SUBSYSTEM_NAME_APP': 'Backend_App_System'
 }
 
 GHUPSHUP_KEY = "45314393fb4505a15ff19d175d0c92f1"

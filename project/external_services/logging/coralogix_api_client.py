@@ -24,7 +24,7 @@ class CoralogixApiClient(CoralogixApiManager):
         self.METHOD = CORALOGIX_CONSTS.get('LOGGING_API_METHOD')
         self.PRIVATE_API_KEY = settings.CORALOGIX_LOGGER.get('PRIVATE_API_KEY')
         self.APPLICATION_NAME = settings.CORALOGIX_LOGGER.get('APPLICATION_NAME')
-        self.SUBSYSTEM_NAME = settings.CORALOGIX_LOGGER.get('SUBSYSTEM_NAME')
+        self.SUBSYSTEM_NAME = settings.CORALOGIX_LOGGER.get('SUBSYSTEM_NAME_API')
 
     def get_url(self) -> str:
         return self.URL

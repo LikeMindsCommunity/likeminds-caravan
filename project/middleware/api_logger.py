@@ -44,6 +44,7 @@ class ApiLogger(MiddlewareMixin):
     @staticmethod
     def _process_request_headers(request_headers: dict) -> dict:
         headers_dict = {
+            'x-member-id': request_headers.get('HTTP_X_MEMBER_ID', ''),
             'timezone': request_headers.get('TZ', ''),
             'protocol': request_headers.get('SERVER_PROTOCOL', ''),
             'user_agent': request_headers.get('HTTP_USER_AGENT', '')
