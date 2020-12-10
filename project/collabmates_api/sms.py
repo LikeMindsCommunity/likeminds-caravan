@@ -87,7 +87,7 @@ Download app : {2}'''.format(new_user_name,community_name,download_url)
 
 def send_retry_otp(phone_no):
     ''' Send otp from msg91 - retry case'''
-    template_id = '5fc9e35a9c1377348e75e8aa'
+    template_id = '5fcfb2806e0eaa3000589d5c'
     url = MSG91_SENDOTP_URI%(msg91_auth_key,template_id,phone_no)
 
     r = requests.get(url)
