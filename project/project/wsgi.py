@@ -16,6 +16,6 @@ from django.conf import settings
 if not settings.IS_BETA:
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.production')
 else:
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.development')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.beta')
 
 application = get_wsgi_application()
