@@ -18,6 +18,7 @@ def strip_scheme(url):
 
 
 host_url = strip_scheme(settings.URL)
+host_url = 'beta.likeminds.community'
 
 def create_community_branch_links(community_id, shared_by_id, aj=None):
     """
@@ -53,7 +54,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
             base_url = '%s/community/%s?aj=%s' % (
                 host_url, str(community.id), str(aj))
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPrivate")
+        long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPrivate", private=True)
         data.append(long_url_item)
 
         if shared_by_id:
@@ -63,7 +64,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
             base_url = '%s/community/%s?aj=%s&source=members_directory' % (
                 host_url, str(community.id), str(aj))
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory")
+        long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory", private=True)
         data.append(long_url_item)
 
     else:
@@ -120,7 +121,7 @@ def get_community_image(community):
         return APP_LOGO
 
 
-def create_link_item(base_url, community, channel, feature):
+def create_link_item(base_url, community, channel, feature,private=False):
     link_item = {
         "channel": channel,
         "feature": feature,
@@ -136,7 +137,10 @@ def create_link_item(base_url, community, channel, feature):
             '$og_image_height': 554,
             '$og_url': 'likeminds.community',
             '$uri_redirect_mode': 1,
-            '$fallback_url': 'https://%s' % base_url,
         }
     }
+
+    if not private:
+        link_item['data']['$fallback_url'] = 'https://%s' % base_url
+
     return link_item
