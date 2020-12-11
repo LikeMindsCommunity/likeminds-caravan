@@ -8,8 +8,8 @@ from togther.models import Community
 from .static_files import *
 from .utilities.constants import BRANCH_QUICKLINK_URI
 
-
 info_logger = logging.getLogger("info_logger")
+
 
 def strip_scheme(url):
     parsed = urlparse(url)
@@ -18,6 +18,7 @@ def strip_scheme(url):
 
 
 host_url = strip_scheme(settings.URL)
+
 
 def create_community_branch_links(community_id, shared_by_id, aj=None):
     """
@@ -53,7 +54,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
             base_url = '%s/community/%s?aj=%s' % (
                 host_url, str(community.id), str(aj))
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPrivate")
+        long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPrivate", private=True)
         data.append(long_url_item)
 
         if shared_by_id:
@@ -63,7 +64,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
             base_url = '%s/community/%s?aj=%s&source=members_directory' % (
                 host_url, str(community.id), str(aj))
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory")
+        long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory", private=True)
         data.append(long_url_item)
 
     else:
@@ -80,12 +81,13 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
 
     # API request
     r = requests.post(url=api_endpoint, json=data)
-    data = r.json()
 
     # handle errors by branch . it return 'error in case the url is made'
     if r.status_code != 200:
         data = [{}, {}, {}]
         info_logger.info("Branch failed, sending normal links")
+    else:
+        data = r.json()
 
     if aj:
         if 'url' not in data[0]:
@@ -119,7 +121,7 @@ def get_community_image(community):
         return APP_LOGO
 
 
-def create_link_item(base_url, community, channel, feature):
+def create_link_item(base_url, community, channel, feature, private=False):
     link_item = {
         "channel": channel,
         "feature": feature,
@@ -135,7 +137,10 @@ def create_link_item(base_url, community, channel, feature):
             '$og_image_height': 554,
             '$og_url': 'likeminds.community',
             '$uri_redirect_mode': 1,
-            '$fallback_url': 'https://%s' % base_url,
         }
     }
+
+    if not private:
+        link_item['data']['$fallback_url'] = 'https://%s' % base_url
+
     return link_item
