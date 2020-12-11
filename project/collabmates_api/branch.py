@@ -8,8 +8,8 @@ from togther.models import Community
 from .static_files import *
 from .utilities.constants import BRANCH_QUICKLINK_URI
 
-
 info_logger = logging.getLogger("info_logger")
+
 
 def strip_scheme(url):
     parsed = urlparse(url)
@@ -18,7 +18,7 @@ def strip_scheme(url):
 
 
 host_url = strip_scheme(settings.URL)
-host_url = 'beta.likeminds.community'
+
 
 def create_community_branch_links(community_id, shared_by_id, aj=None):
     """
@@ -121,7 +121,7 @@ def get_community_image(community):
         return APP_LOGO
 
 
-def create_link_item(base_url, community, channel, feature,private=False):
+def create_link_item(base_url, community, channel, feature, private=False):
     link_item = {
         "channel": channel,
         "feature": feature,
