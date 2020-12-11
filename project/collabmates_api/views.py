@@ -27,7 +27,8 @@ from random import randint
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage, update_my_chatrooms_for_users,
-                                  set_chatroom_state_for_all_members_on_card_creation
+                                  set_chatroom_state_for_all_members_on_card_creation,
+                                  get_chatroom_user_images_for_web
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -5721,8 +5722,12 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     context['total_participants'] = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).count()
 
-    # updating the activity of chatroom
-    # update_activity_in_chatroom(card_instance,user_instance=user_id)
+    conversation_users_meta = get_chatroom_user_images_for_web(card_instance.id)
+    conversation_users = get_latest_conversation_members(conversation_users_meta['last_conversation_member'],
+                                                         conversation_users_meta['second_last_conversation_member'],
+                                                         conversation_users_meta['last_conversation_user'],
+                                                         conversation_users_meta['second_last_conversation_user'])
+    context['conversation_users'] = conversation_users
 
     return context
 

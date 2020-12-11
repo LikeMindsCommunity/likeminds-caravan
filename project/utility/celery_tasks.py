@@ -388,7 +388,7 @@ def get_latest_conversation_members(chatroom_id):
     return (member_conversarions,user_conversations)
 
 
-def check(chatroom_id):
+def get_chatroom_user_images_for_web(chatroom_id):
     last_conversations = get_latest_conversation_members(chatroom_id)
 
     member_conversations = last_conversations[0]
@@ -410,10 +410,14 @@ def check(chatroom_id):
     elif len(user_conversations) == 1:
         last_conversation_user = user_conversations[0]
 
-    print(last_conversation_member)
-    print(second_last_conversation_member)
-    print(last_conversation_user)
-    print(second_last_conversation_user)
+    conversation_meta = {
+    'last_conversation_member' : last_conversation_member,
+    'second_last_conversation_member': second_last_conversation_member,
+    'last_conversation_user': last_conversation_user,
+    'second_last_conversation_user':second_last_conversation_user
+    }
+    print(conversation_meta)
+    return conversation_meta
 
 
 
