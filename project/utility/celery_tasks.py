@@ -394,6 +394,7 @@ def get_chatroom_user_images_for_web(chatroom_id):
     member_conversations = last_conversations[0]
     user_conversations = last_conversations[1]
 
+
     last_conversation_member = None
     second_last_conversation_member = None
     if len(member_conversations) > 1:
@@ -402,9 +403,10 @@ def get_chatroom_user_images_for_web(chatroom_id):
     elif len(member_conversations) == 1:
         last_conversation_member = member_conversations[0]
 
+
     last_conversation_user = None
     second_last_conversation_user = None
-    if len(member_conversations) > 1:
+    if len(user_conversations) > 1:
         last_conversation_user = user_conversations[0]
         second_last_conversation_user = user_conversations[1]
     elif len(user_conversations) == 1:
