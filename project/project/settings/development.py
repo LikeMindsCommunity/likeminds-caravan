@@ -43,6 +43,8 @@ FIREBASE_CONFIG = {
     'measurementId': "G-R2PXYC9F4S"
 }
 
+USE_INTERNAL_FILE_LOGGER = True
+
 CORALOGIX_LOGGER = {
     'PRIVATE_API_KEY': os.getenv('CORALOGIX_LOGGER_PRIVATE_API_KEY'),
     'APPLICATION_NAME': 'LikeMinds_Development',

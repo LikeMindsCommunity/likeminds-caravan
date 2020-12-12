@@ -6,7 +6,7 @@ from django.conf import settings
 
 from external_services.logging.constants import CORALOGIX_CONSTS
 from external_services.logging.coralogix_api_manager import CoralogixApiManager
-from external_services.logging.coralogix_logger import CoralogixLoggerImpl
+from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.time_utilities import TimeUtilities
 
 
@@ -17,7 +17,7 @@ class CoralogixApiClient(CoralogixApiManager):
     APPLICATION_NAME = None
     SUBSYSTEM_NAME = None
 
-    logger = CoralogixLoggerImpl().get_instance()
+    logger = LoggingWrapper.get_instance()
 
     def __init__(self):
         self.URL = CORALOGIX_CONSTS.get('LOGGING_API_URL')
@@ -49,7 +49,8 @@ class CoralogixApiClient(CoralogixApiManager):
                                             headers=api_payload.get('headers'),
                                             data=json.dumps(api_payload.get('data')))
 
-            if api_response.status_code != int(200):
+            if hasattr(api_response, 'status_code') and \
+                    int(api_response.status_code) != 200:
                 message = "Error response from coralogix api:\n%s" % api_response.content.decode('utf-8')
                 raise Exception(message)
 

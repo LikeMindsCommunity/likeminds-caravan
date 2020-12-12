@@ -87,8 +87,8 @@ from .utilities.constants import INSTAGRAM_LINK, TWITTER_LINK
 
 url = settings.URL
 # url='http://localhost:8000'
-error_logger = logging.getLogger("error_logger")
-info_logger = logging.getLogger("info_logger")
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 
 # /api/communities?category_id=&member_id=

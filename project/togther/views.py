@@ -54,8 +54,8 @@ if not url and not settings.IS_BETA:
 
 api_url = url + '/api/'
 # api_url = 'http://127.0.0.1:8000/api/'
-error_logger = logging.getLogger("error_logger")
-info_logger = logging.getLogger("info_logger")
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 
 def index(request):

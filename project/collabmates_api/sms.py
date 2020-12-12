@@ -1,7 +1,9 @@
 from django.conf import settings
 import requests
-import urllib, requests, logging, json
+import urllib, requests, json
 from celery import shared_task
+
+from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -11,7 +13,7 @@ from .utilities.constants import MSG91_SENDOTP_URI, MSG91_VERIFYOTP_URI, SMSGUPS
 gupshup_id = settings.GUPSHUP_ID
 msg91_auth_key = settings.MSG91_AUTH_KEY
 gupshup_pass = settings.GUPSHUP_PASS
-info_logger = logging.getLogger("info_logger")
+info_logger = LoggingWrapper.get_instance()
 
 def send_sms(number,msg):
 

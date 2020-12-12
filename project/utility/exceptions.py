@@ -1,10 +1,11 @@
+from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.tasks import send_email
 from django.template.loader import get_template
 from django.http import HttpResponse
 from django.template import loader
-import logging
-error_logger = logging.getLogger("error_logger")
-info_logger = logging.getLogger("info_logger")
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 
 def handler404(request, exception=None):

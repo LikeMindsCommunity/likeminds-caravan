@@ -1,14 +1,14 @@
-import logging
 import requests
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from urllib.parse import urlparse
 
+from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
 from .static_files import *
 from .utilities.constants import BRANCH_QUICKLINK_URI
 
-info_logger = logging.getLogger("info_logger")
+info_logger = LoggingWrapper.get_instance()
 
 
 def strip_scheme(url):

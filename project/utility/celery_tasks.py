@@ -1,6 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from collabmates_api.serializers import get_user_profile
+from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
 import time
 from django.db.models import Q
@@ -16,9 +17,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            insert_user_home_town_tags,user_onbaord,is_IG_community,
                            is_member_engage)
 
-import logging
-error_logger = logging.getLogger("error_logger")
-info_logger = logging.getLogger("info_logger")
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 @shared_task
 def update_referral_text_in_engage_table(community_id):
