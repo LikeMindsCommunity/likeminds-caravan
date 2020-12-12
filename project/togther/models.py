@@ -576,6 +576,13 @@ class Member_Engage(models.Model):
     click_state = models.IntegerField(default=0)
     new_chatroom_users = models.TextField(null=True)
     rights_list = models.TextField(null=True)
+    order_time = models.BigIntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.order_time:
+            self.order_time = int(time.time() * 1000)
+        self.order_time = int(time.time() * 1000)
+        super(Member_Engage, self).save(*args, **kwargs)
 
 # community lpig
 
