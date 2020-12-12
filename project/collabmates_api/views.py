@@ -9231,6 +9231,9 @@ def verify_otp(request):
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
 
+            if context['success'] == True:
+                login(request, user=mobile_filter[0].user, backend="django.contrib.auth.backends.ModelBackend")
+
         return JsonResponse(context)
 
     # when the user wants to merge account
@@ -9249,6 +9252,7 @@ def verify_otp(request):
             context_msg = verify_retry_otp(phone_no, otp)
 
             if context['success'] or context_msg['success']:
+                login(request, user=mobile_filter[0].user, backend="django.contrib.auth.backends.ModelBackend")
                 break
             
 

@@ -14,12 +14,12 @@ from utility.celery_beat_tasks import CeleryBeatTask
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link, get_user_email,add_relative_time_to_epoch,
                            get_next_day_time,check_notification_flag)
-from utility.encryption import encrypt,decrypt
+from utility.encryption import encrypt, decrypt
 
-from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
+from .static_files import GOOGLE_PLAYSTORE, APPLE_APPSTORE, APP_LOGO
 from celery import shared_task
-import ast
-from datetime import datetime,timedelta
+import json
+from datetime import datetime, timedelta
 
 url = settings.URL
 is_beta = settings.IS_BETA
@@ -29,17 +29,15 @@ import time
 
 @shared_task
 def send_feedback_mail_to_webmaster(feedback_id):
+
     subject = '[Feedback] from likeMinds user'
     feedback_instance = userFeedback.objects.get(id=feedback_id)
-    # mail_images = ast.literal_eval(mail_images)
     context = {
         'feedback': feedback_instance
     }
-    if feedback_instance.images:
-        print(feedback_instance.images)
 
-        context['images'] = ast.literal_eval(feedback_instance.images)
-        print(context['images'])
+    if feedback_instance.images:
+        context['images'] = json.loads(feedback_instance.images)
 
     template = get_template("mails/send_feedback_mail_to_webmaster.html").render(context)
 
@@ -49,7 +47,6 @@ def send_feedback_mail_to_webmaster(feedback_id):
         to = settings.TEAM
 
     send_email(subject, template, to)
-    print(template)
 
 
 

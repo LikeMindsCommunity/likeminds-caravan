@@ -1,5 +1,5 @@
 # MSG91 API urls
-MSG91_SENDOTP_URI = 'https://api.msg91.com/api/v5/otp?authkey=%s&extra_param={"COMPANY_NAME":"LikeMinds"}&template_id=%s&mobile=%s&invisible=0&otp_expiry=10'
+MSG91_SENDOTP_URI = 'https://api.msg91.com/api/v5/otp?authkey=%s&template_id=%s&mobile=%s&invisible=0&otp_expiry=10'
 MSG91_VERIFYOTP_URI = 'https://api.msg91.com/api/v5/otp/verify?authkey=%s&mobile=%s&otp=%s'
 
 # SMS Gupshup api
