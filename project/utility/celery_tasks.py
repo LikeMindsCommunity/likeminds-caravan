@@ -416,7 +416,6 @@ def get_chatroom_user_images_for_web(chatroom_id):
     'last_conversation_user': last_conversation_user,
     'second_last_conversation_user':second_last_conversation_user
     }
-
     return conversation_meta
 
 
