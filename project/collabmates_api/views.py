@@ -2907,7 +2907,7 @@ def create_card(request, req_dict=None):
 
     #updating the order time for new chatroom creation for your communities api
     current_time_msec = int(time.time() * 1000)
-    Member_Engage.objects.filter(community=community_id).update(order_time=current_time_msec)
+    Member_Engage.objects.filter(community_id=community_id).update(order_time=current_time_msec)
 
     if req_dict:
         return context
