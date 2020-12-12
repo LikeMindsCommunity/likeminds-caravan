@@ -61,7 +61,7 @@ class YourCommunitySerializer(serializers.ModelSerializer):
         fields = ('id', 'open_reports_count', 'member_state',
                   'click_state', 'collabcard_unseen', 'actions', 'name', 'purpose', 'about',
                   'member_right_states', 'pending_chatroom_count', 'image_url', 'members_count',
-                  'type', 'sub_type', 'pending_members_count')
+                  'type', 'sub_type', 'pending_members_count','order_time')
 
     def __init__(self, *args, **kwargs):
         super(YourCommunitySerializer, self).__init__(*args, **kwargs)
