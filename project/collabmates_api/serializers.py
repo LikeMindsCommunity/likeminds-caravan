@@ -351,7 +351,9 @@ def draftChatroomSerializer(card, user, community=None):
         'duration': card.duration,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
-        'card_creation_time': time.strftime('%B %d at %H:%M', time.localtime(card.date_epoch))
+        'card_creation_time': time.strftime('%B %d at %H:%M', time.localtime(card.date_epoch)),
+        'created_at':time.strftime('%H:%M', time.localtime(card.date_epoch)),
+        'community_name':card.community.name
     }
 
     # for poll card
