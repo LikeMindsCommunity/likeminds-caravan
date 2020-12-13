@@ -13621,9 +13621,9 @@ class SyncChatrooms(APIView):
 
             page = page - page_count
             if last_updated:
-                draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated).order_by('id')
+                draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated,user=member_id).order_by('id')
             else:
-                draft_filter = draftChatroom.objects.order_by('id')
+                draft_filter = draftChatroom.objects.filter(user=member_id).order_by('id')
             draft_filter = pagination(draft_filter,page,paginate_by=paginate_by)
             max_last_updated, chatrooms = fill_draft_chatrooms(draft_filter,member_id)
 
