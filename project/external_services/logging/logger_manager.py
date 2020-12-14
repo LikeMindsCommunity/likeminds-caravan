@@ -10,7 +10,7 @@ class LoggerManager(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @abc.abstractmethod
-    def get_instance(self) -> None:
+    def get_instance(self) -> object:
         """
         returns logger instance
         """
