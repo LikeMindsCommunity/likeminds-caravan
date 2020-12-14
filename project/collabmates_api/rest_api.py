@@ -364,15 +364,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         if not self.current_user_id:
             self.current_user_id = self.member_id
 
-    def _set_removed_member_custom_text(self, card, member_profile):
-        is_removed = removedMembers.objects.filter(community=card.community,
-                                                   member_id=member_profile['id'])
-        if member_profile['state'] == 0 and is_removed.exists():
-            temp = get_removed_member_custom_text(is_removed[0])
-            member_profile['custom_intro_text'] = temp['custom_intro_text']
-            member_profile['custom_click_text'] = temp['custom_click_text']
-            member_profile['remove_state'] = temp['remove_state']
-            member_profile['image_url'] = temp['removed_user_image_url']
 
     def get_created_at(self, card):
         return time.strftime('%H:%M', time.localtime(card.date_epoch))
@@ -405,10 +396,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_polls(self, card):
 
         polls = []
-        card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
-        for poll in card_polls:
-            poll_serializer = CollabcardPollsSerializer(poll, self.current_user_id, card)
-            polls.append(poll_serializer)
+        if card.type == card_types.CARD_POLL:
+            card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
+            for poll in card_polls:
+                poll_serializer = CollabcardPollsSerializer(poll, self.current_user_id, card)
+                polls.append(poll_serializer)
 
         return polls
 
@@ -594,13 +586,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     data['answer_text'] = get_answer_text_for_poll(card, self.current_user_id)
                 else:
                     del data['answer_text']
-
-            elif field.field_name == 'share_link':
-                share = get_share_url_text(card, self.user)
-                data["share_url"] = share['share_url']
-                data["share_url"] = share['share_url']
-                data["creator_share_url"] = share['creator_share_url']
-                data["link_created_at"] = share['link_created_at']
 
             elif data[field.field_name] is None:
                 del data[field.field_name]

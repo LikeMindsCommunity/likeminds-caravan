@@ -13588,46 +13588,36 @@ class SyncChatrooms(APIView):
 
         if chatroom_id:
             state_filter = collabcardState.objects.filter(card=chatroom_id,user=member_id).order_by('id')
-            #state_list = list(state_filter.values_list("card__id", flat=True))
 
         elif community_id:
             state_filter = collabcardState.objects.filter(community=community_id).order_by('id')
-            #state_list = list(state_filter.values_list("card__id", flat=True))
+
         else:
 
             if not last_updated:
                 state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
-                #state_list = list(state_filter.values_list("card__id",flat=True))
+
             else:
                 state_filter = collabcardState.objects.filter(user=member_id,
                                     updated_at__gt=last_updated).order_by('id')
-                #state_list = list(state_filter.values_list("card__id", flat=True))
 
-        # cards_list = list_pagination(state_list, page, paginate_by=paginate_by)
-        # cards = Collabcard.objects.filter(pk__in=cards_list)
 
-        # context = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
-        # chatroom_obj = GetChatroomInstanceSerializer(cards, context=context, many=True)
-
-        state_filter = get_paginated_queryset_with_maxpages(state_filter,page,paginate_by=paginate_by)
-        state_filter = state_filter['page_list']
+        pages = get_paginated_queryset_with_maxpages(state_filter,page,paginate_by=paginate_by)
+        state_filter = pages['page_list']
         max_last_updated = 0
         chatrooms = []
         for data in state_filter:
             context = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': data}
             card_instance = data.card
             chatroom_obj = GetChatroomInstanceSerializer(card_instance, context=context, many=False)
-
             if data.updated_at > max_last_updated:
                 max_last_updated = data.updated_at
-
             chatrooms.append(chatroom_obj.data)
 
         if max_last_updated:
             return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
         else:
-            #page_count = get_total_pages(len(state_list),limit=int(paginate_by))
-            page_count = state_filter['last_page']
+            page_count = pages['last_page']
             page = page - page_count
             if last_updated:
                 draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated,user=member_id).order_by('id')
@@ -13638,8 +13628,7 @@ class SyncChatrooms(APIView):
 
             if max_last_updated:
                 return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
-
-            return JsonResponse({'chatrooms': []})
+        return JsonResponse({'chatrooms': []})
 
 
 
