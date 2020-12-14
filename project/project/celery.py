@@ -4,14 +4,17 @@ from celery import Celery
 from celery.schedules import crontab
 from dotenv import load_dotenv
 load_dotenv()
+from django.conf import settings
 # from kombu import Exchange, Queue
 # set the default Django settings module for the 'celery' program.
 # set the default Django settings module for the 'celery' program.
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.beta')
 
-
-app = Celery('project')
+if settings.IS_BETA:
+    app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
+else:
+    app = Celery('project')
 # app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
