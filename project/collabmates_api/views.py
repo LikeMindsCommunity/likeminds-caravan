@@ -505,9 +505,6 @@ def my_chatrooms_version_1(request):
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
 
-    # instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
-    # instance_list = pagination(instance_list, page, paginate_by=10)
-
 
     for instance in instance_list:
 

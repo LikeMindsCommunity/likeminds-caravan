@@ -785,6 +785,7 @@ def get_member_images_of_chatroom(conversation_filter):
 
 def get_member_instances_for_footer_images_in_chatroom(card_instance):
 
+
     conversation_filter = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).distinct('user').order_by('user', '-id')[:5]
     member_images = []
     conversation_members = []

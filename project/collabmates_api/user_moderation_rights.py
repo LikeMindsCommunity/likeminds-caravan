@@ -8,6 +8,11 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from .static_text import *
 
+import  logging
+
+error_logger = logging.getLogger("error_logger")
+info_logger = logging.getLogger("info_logger")
+
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
