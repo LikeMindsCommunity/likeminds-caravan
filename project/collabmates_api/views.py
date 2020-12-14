@@ -6032,7 +6032,9 @@ def save_the_latest_conversation(card_instance, user_id):
             conversation_member_instance.save()
 
             collabcardState.objects.filter(card=card_instance, user=user_instance,
-                                           follow_status=True).update(expiry_time=expiry_time,updated_at=time.time())
+                                           follow_status=True).update(expiry_time=expiry_time,
+                                                                      updated_at=time.time(),
+                                                                      last_seen_conversation=conversation_instance)
 
             update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                      last_conversation_id=conversation_instance.id, unseen_count=0)
@@ -6041,7 +6043,9 @@ def save_the_latest_conversation(card_instance, user_id):
             if conversation_instance.id != conversation_member_filter[0].conversation.id:
                 conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
                 collabcardState.objects.filter(card=card_instance, user=user_instance,
-                                               follow_status=True).update(expiry_time=expiry_time,updated_at=time.time())
+                                               follow_status=True).update(expiry_time=expiry_time,
+                                                                          updated_at=time.time(),
+                                                                          last_seen_conversation=conversation_instance)
 
                 update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                          last_conversation_id=conversation_instance.id,

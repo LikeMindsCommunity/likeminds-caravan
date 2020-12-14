@@ -374,6 +374,7 @@ class collabcardState(models.Model):
     external_follow = models.BooleanField(default=False)
 
     manual_set_active = models.BigIntegerField(null=True)
+    last_seen_conversation = models.ForeignKey(card_answers,null=True,on_delete=models.SET_NULL)
 
     class Meta:
         unique_together = (('card', 'user'),)

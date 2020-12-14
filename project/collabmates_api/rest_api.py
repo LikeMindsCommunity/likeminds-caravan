@@ -334,6 +334,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     is_guest = serializers.BooleanField(write_only=True)
     is_tagged = serializers.BooleanField(write_only=True)
     chatroom_expiry_time = serializers.CharField(write_only=True)
+    last_seen_conversation = serializers.IntegerField(write_only=True)
 
 
     class Meta:
@@ -351,7 +352,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'internal_link', 'images', 'pdf', 'audios', 'videos', 'preview','deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
-                  'poll_type'
+                  'poll_type','last_seen_conversation'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -410,6 +411,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             polls.append(poll_serializer)
 
         return polls
+
 
 
     def get_member_id(self, card):
@@ -624,6 +626,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             data['is_guest'] = status_dict['is_guest']
             data['is_tagged'] = status_dict['is_tagged']
             data['chatroom_expiry_time'] = status_dict['chatroom_expiry_time']
+            if status_dict['last_seen_conversation']:
+                data['last_seen_conversation'] = status_dict['last_seen_conversation']
+
             self.state_instance = None  # making None for the next object
 
         return data
@@ -634,7 +639,7 @@ class CardStateSerializer(serializers.ModelSerializer):
     class Meta:
         model = collabcardState
         fields = ('state', 'mute_status', 'follow_status', 'is_guest', 'attending_status',
-                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time')
+                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time','last_seen_conversation')
 
     def get_chatroom_expiry_time(self, obj):
         return obj.expiry_time
