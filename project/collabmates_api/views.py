@@ -5661,7 +5661,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                             )
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
-    print("latest_conversations--", latest_conversations)
 
     # getting the state of chatroom against the user
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id, remove=None)
