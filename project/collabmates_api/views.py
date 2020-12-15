@@ -4609,6 +4609,13 @@ def collabcard(request, card_id):
     current_user_id = None
     if card_filter.exists():
         card_instance = card_filter[0]
+
+        if card_instance.type == 0:
+
+            if settings.IS_BETA:
+                return redirect("https://betaweb.likeminds.community/collabcard/%s"% card_id )
+            else:
+                return redirect("https://web.likeminds.community/collabcard/%s"% card_id )
     else:
 
         backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
