@@ -1671,6 +1671,7 @@ def edit_user(request):
 
     elif type == 'name':
         userinfo_filter.update(name=value)
+        Members.objects.filter(member_id=user_id).update(updated_at=time.time())
 
     return JsonResponse({'success': True})
 
