@@ -541,13 +541,20 @@ def my_chatrooms_version_1(request):
         last_conversation_user = instance.last_conversation_user
         second_last_conversation_user = instance.second_last_conversation_user
 
-
         conversation_users = get_latest_conversation_members(last_conversation_member,
                                                              second_last_conversation_member,
                                                              last_conversation_user,
                                                              second_last_conversation_user)
         chatroom['conversation_users'] = conversation_users
         chatroom['member_right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
+
+        member_instance = Members.objects.filter(member_id=current_user_instance,
+                                                 community_id=instance.community)
+        if member_instance.exists():
+            chatroom['member_state'] = member_instance[0].state
+        else:
+            chatroom['member_state'] = member_states.GUEST
+
         my_chatrooms.append(chatroom)
 
     context = {'my_chatrooms': my_chatrooms,
@@ -1656,6 +1663,8 @@ def edit_user(request):
     userinfo_filter = Userinfo.objects.filter(user_id=user_id)
     if type == 'image':
         userinfo_filter.update(image_link=value)
+        Members.objects.filter(member_id=user_id, image_url=None).update(image_url=value,
+                                                                         updated_at=time.time())
 
     elif type == 'name':
         userinfo_filter.update(name=value)
