@@ -508,7 +508,10 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
                 data['preview'] = get_preview_for_url(member_id=self.current_user_id,
-                                                      preview_url=data['internal_link'])
+                                                      preview_url=data['internal_link'],
+                                                      community_instance=card.preview_community,
+                                                      chatroom_instance=card.preview_chatroom,
+                                                      send_preview_text=False)
                 del data['internal_link']
 
             elif field.field_name == "multiple_select":
