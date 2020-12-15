@@ -4639,8 +4639,20 @@ def collabcard(request, card_id):
     card = {}
     answers = []
     current_user_id = None
+    aj = request.GET.get('aj')
+    source_id = request.GET.get('source_id')
+
     if card_filter.exists():
         card_instance = card_filter[0]
+
+        if card_instance.type in (card_types.CARD_NORMAL, card_types.CARD_INTRO):
+
+            if settings.IS_BETA:
+                return redirect(
+                    "https://betaweb.likeminds.community/collabcard/%s?source_id=%s&aj=%s" % (card_id, source_id, aj))
+            else:
+                return redirect(
+                    "https://web.likeminds.community/collabcard/%s?source_id=%s&aj=%s" % (card_id, source_id, aj))
     else:
 
         backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
@@ -4652,7 +4664,6 @@ def collabcard(request, card_id):
             return render(request, "__404__.html", {})
 
     card['type'] = card_instance.type
-    aj = request.GET.get('aj')
     if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT or card_instance.type == card_types.CARD_POLL:
         page = request.GET.get('page', 1)
 
