@@ -43,6 +43,11 @@ FIREBASE_CONFIG = {
     'measurementId': "G-R2PXYC9F4S"
 }
 
+AWS_CREDENTIALS = {
+    'ACCESS_KEY': os.getenv('AWS_S3_ACCESS_KEY'),
+    'SECRET_KEY': os.getenv('AWS_S3_SECRET_KEY')
+}
+
 USE_INTERNAL_FILE_LOGGER = False
 
 CORALOGIX_LOGGER = {

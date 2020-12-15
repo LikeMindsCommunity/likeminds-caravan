@@ -33,7 +33,7 @@ urlpatterns = [
          name="edit_questions_version_1"),
     #path('get_onboarding_examples', api_views.get_onboarding_examples,name="get_onboarding_examples"),
 
-
+    path('multimedia/', include('collabmates_api.multimedia_operations.urls')),
 
     path('dismiss', api_views.dismiss,name="dismiss"),
 
