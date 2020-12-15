@@ -420,7 +420,8 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
     state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
-    collabcard_state_list = collabcardState.objects.filter(card=card_id, remove=None).order_by('-user_id')
+    collabcard_state_list = collabcardState.objects.filter(card=card_id, remove=None,
+                                                           is_tagged=False).order_by('-user_id')
 
     if is_event_card:
         collabcard_state_list = collabcard_state_list.filter(Q(state=state_list[0]) | Q(state=state_list[1]) |

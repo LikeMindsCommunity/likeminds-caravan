@@ -974,7 +974,7 @@ def questions(request):
     try:
         shared_by_user = User.objects.get(pk=shared_by)
         shared_by_user_name = shared_by_user.userinfo.name
-        title = f"{shared_by_user_name} invited you to join this community"
+        title = f"{shared_by_user_name} invited you to join {community['name']}"
     except:
         info_logger.info(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
 
