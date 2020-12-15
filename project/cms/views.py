@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.core.paginator import Paginator
 
+from external_services.logging.logging_wrapper import LoggingWrapper
 from .utils import *
 from .models import *
 from .forms import *
@@ -13,11 +14,10 @@ from togther.models import communityType,communitySubtype,communityField
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 url = settings.URL
-import logging
 # uncomment to run it in localhost
 # url='http://localhost:8000'
-error_logger=logging.getLogger("error_logger")
-info_logger=logging.getLogger("info_logger")
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 if url is None:
     if settings.IS_BETA:

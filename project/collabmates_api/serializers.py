@@ -3,6 +3,8 @@ from urllib.parse import parse_qsl, urlsplit
 
 from django.conf import settings
 from django.db.models import Q
+
+from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
 from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_community_id, \
     generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
@@ -18,12 +20,11 @@ import ast
 from .static_files import *
 from .static_text import months_semi
 from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
-import logging
 from .branch import create_community_branch_links
 from collabmates_api.utilities.constants import *
 
-error_logger = logging.getLogger("error_logger")
-info_logger = logging.getLogger("info_logger")
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 url = settings.URL
 
 from datetime import datetime, date
@@ -350,7 +351,10 @@ def draftChatroomSerializer(card, user, community=None):
         'duration': card.duration,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
-        'card_creation_time': time.strftime('%B %d at %H:%M', time.localtime(card.date_epoch))
+        'card_creation_time': time.strftime('%B %d at %H:%M', time.localtime(card.date_epoch)),
+        'created_at':time.strftime('%H:%M', time.localtime(card.date_epoch)),
+        'community_name':card.community.name
+
     }
 
     # for poll card
@@ -782,7 +786,8 @@ def get_member_images_of_chatroom(conversation_filter):
 
 def get_member_instances_for_footer_images_in_chatroom(card_instance):
 
-    conversation_filter = card_answers.objects.filter(card=card_instance).distinct('user').order_by('user', '-id')[:5]
+
+    conversation_filter = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).distinct('user').order_by('user', '-id')[:5]
     member_images = []
     conversation_members = []
     count=0

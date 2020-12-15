@@ -27,7 +27,8 @@ from random import randint
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage, update_my_chatrooms_for_users,
-                                  set_chatroom_state_for_all_members_on_card_creation
+                                  set_chatroom_state_for_all_members_on_card_creation,
+                                  get_chatroom_user_images_for_web
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -82,12 +83,13 @@ from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
                        YourCommunitySerializer)
 
+from .utilities.constants import INSTAGRAM_LINK, TWITTER_LINK
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
 # url='http://localhost:8000'
-error_logger = logging.getLogger("error_logger")
-info_logger = logging.getLogger("info_logger")
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 
 # /api/communities?category_id=&member_id=
@@ -502,6 +504,7 @@ def my_chatrooms_version_1(request):
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
+
 
     for instance in instance_list:
 
@@ -971,16 +974,16 @@ def questions(request):
     try:
         shared_by_user = User.objects.get(pk=shared_by)
         shared_by_user_name = shared_by_user.userinfo.name
-        title = f"{shared_by_user_name} invited you to join this community"
+        title = f"{shared_by_user_name} invited you to join {community['name']}"
     except:
-        info_logger.info(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
+        error_logger.error(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
 
     if aj and shared_by_user:
         try:
             auto_join = private_link_app_invite(community_instance, aj, created_by, shared_by_user)
             is_valid_private_link = True
         except:
-            info_logger.info(f"aj is not valid. aj ---> {aj}")
+            error_logger.error(f"aj is not valid. aj ---> {aj}")
 
     # add code to send join dropoff notfication
     if not is_member_verified(community_instance, user_instance):
@@ -1051,17 +1054,6 @@ def join_community_responses_version_1(request):
     info_logger.info(res)
     info_logger.info("\n")
     community_id = res['community_id']
-
-    community_instance = Community.objects.get(id=community_id)
-    community = community_instance
-
-    community_state = get_state_of_community(community_instance)
-
-    # is_private = False
-    # if community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
-    #     is_private = True
-    #
-    # if is_private:
     info_logger.info("Inside private\n")
     join_promoter_created_community_version_1(res, request)
 
@@ -1113,6 +1105,9 @@ def join_promoter_created_community_version_1(res, request):
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
                 selected_choices = question['value'].split("$#")
                 save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
+
+            if question_instance.question_state == question_states.PROFILE_LINK:
+                save_profile_links_from_handles(question_instance,answer_instance)
 
     update_hidden_fields_in_questions(user_instance, community_instance)
 
@@ -1612,6 +1607,19 @@ def is_option_present(option, dropdown_list):
             return True
     return False
 
+def save_profile_links_from_handles(question_instance,answer_instance):
+
+    '''function to generate profile links from instagram and twitter handles'''
+
+    value_list = json.loads(question_instance.value)
+
+    if value_list and value_list[0]['profile_platform'] == "Instagram":
+        answer_instance.question_answer = INSTAGRAM_LINK + answer_instance.question_answer
+        answer_instance.save()
+
+    elif value_list and value_list[0]['profile_platform'] == "Twitter":
+        answer_instance.question_answer = TWITTER_LINK + answer_instance.question_answer
+        answer_instance.save()
 
 ############# functions for  members of community   ##########################
 
@@ -2894,6 +2902,10 @@ def create_card(request, req_dict=None):
         return JsonResponse(context)
 
     context = create_card_internal(user_id, community_id, res)
+
+    #updating the order time for new chatroom creation for your communities api
+    current_time_msec = int(time.time() * 1000)
+    Member_Engage.objects.filter(community_id=community_id).update(order_time=current_time_msec)
 
     if req_dict:
         return context
@@ -5098,7 +5110,7 @@ def fetch_chatroom(request):
         current_user = UserinfoSerializer(user=current_user_instance)
 
     context = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id,
-                                    scroll_direction, is_ios=is_ios)
+                                    scroll_direction, is_ios=is_ios, fetch_conversation_reply=True)
 
     if str(current_user_id) == str(card_instance.user.id):
         notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity', card=card_instance,
@@ -5109,7 +5121,6 @@ def fetch_chatroom(request):
             flag.save()
 
     if request.accepted_renderer.format == 'html':
-        # if conversation_id:
         context['conversations'] = context['conversations']
         context = {
             'answers': context,
@@ -5265,7 +5276,6 @@ def conversation_meta(request):
     chatroom = get_answer_data(answer, card_instance.community.id,
                                current_user_id=user_id)
 
-
     context = {
         'conversations': chatroom
     }
@@ -5335,15 +5345,12 @@ def mark_read(request):
     return JsonResponse({'success': True})
 
 
-def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None, fetch_reply=True, is_ios=False):
-    '''function to get answer for a particular collabcard '''
+def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None,
+                    fetch_reply=False, is_ios=False):
+    """ function to get answer for a particular collabcard """
 
     answers = []
     for ans in answer_filter:
-        # print("--->",ans)
-        # user = Userinfo.objects.filter(user_id=ans.user.id)
-        # usr = UserinfoSerializer(user[0])
-        # #usr['is_clickable']=feedback
 
         usr = get_members_profile([ans.user.id], community_id, current_user_id, send_profile=False)
         user_context = usr[0]
@@ -5356,7 +5363,6 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
                 temp = get_guest_custom_text(instance)
                 user_context['custom_intro_text'] = temp['custom_intro_text']
                 user_context['custom_click_text'] = temp['custom_click_text']
-
 
         # if the member is removed from the community
         elif ans.remove:
@@ -5402,6 +5408,10 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
         if ans.reply:
             context['reply_conversation'] = ans.reply.id
+            if fetch_reply:
+                reply_obj = get_answer_data([ans.reply], community_id, current_user_id,
+                                            fetch_reply=False, is_ios=is_ios)
+                context['reply_conversation_object'] = reply_obj[0]
 
         if ans.is_deleted:
             context['deleted_by'] = ans.deleted_by_user.id
@@ -5443,7 +5453,6 @@ def get_answer_bubble_context_for_web(ans):
     # elif ans.state == chatroom_states.CHATROOM_COMMUNITY_EDIT:
     #     answer_bubble= str(ans.user.userinfo.name) +  " edited community purpose"
     return answer_bubble
-
 
 
 def get_chatroom_actions(card_status, request, creator, promoter=False, current_user_instance=None,
@@ -5528,8 +5537,8 @@ def get_chatroom_actions(card_status, request, creator, promoter=False, current_
     return actions
 
 
-
-def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios=False):
+def get_chatroom_internal(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios=False,
+                          fetch_conversation_reply=False):
 
     '''internal function to get the chatroom conversation screen functionalities '''
     source_id = request.GET.get('source_id')
@@ -5571,8 +5580,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             conversations = pagination(conversations_filter, page, paginate_by=20)
 
             conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
-                                            is_ios=is_ios)
-
+                                            is_ios=is_ios, fetch_reply=fetch_conversation_reply)
 
             placeholder = create_introduction_card_placeholder(card_instance, user_id)
             if placeholder:
@@ -5590,9 +5598,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
             conversations = get_answer_data(conversations, card_instance.community.id,
                                             current_user_id=user_id, last_seen=conversation_instance,
-                                            is_ios=is_ios)
-
-
+                                            is_ios=is_ios, fetch_reply=fetch_conversation_reply)
     else:
 
         try:
@@ -5611,10 +5617,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         else:
             conversations = conversations_filter
 
-
         conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
-                                        is_ios=is_ios)
-
+                                        is_ios=is_ios, fetch_reply=fetch_conversation_reply)
 
     card = get_chatroom_instance(card_instance, user_id)
     if card_instance.internal_link:
@@ -5657,7 +5661,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                             )
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
-    print("latest_conversations--",latest_conversations)
 
     # getting the state of chatroom against the user
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id, remove=None)
@@ -5674,31 +5677,24 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             instance.updated_at = time.time()
             instance.save()
 
-
-
     # sending the follow telescope
     latest_conversation = conversations_filter.last()
 
-    #icons states for sending following, tagging
-    icon_states =  get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_conversation,
+    # icons states for sending following, tagging
+    icon_states = get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_conversation,
                                                           conversations)
     card['show_follow_telescope'] = icon_states['show_follow_telescope']
     card['show_follow_auto_tag'] = icon_states['show_follow_auto_tag']
     card['show_active'] = icon_states['show_active']
 
-
-
     card['total_response_count'] = total_response_count
-    # print(latest_conversations)
 
     if latest_conversations:
         last_conversation = latest_conversations['last_conversation']
-        # print("***",latest_conversations)
+
         if last_conversation:
-
             serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id,
-                                              is_ios=is_ios)
-
+                                              is_ios=is_ios, fetch_reply=fetch_conversation_reply)
             if serialized_last:
                 card['last_conversation'] = serialized_last[0]
 
@@ -5711,8 +5707,13 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     context['total_participants'] = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None).count()
 
-    # updating the activity of chatroom
-    # update_activity_in_chatroom(card_instance,user_instance=user_id)
+
+    conversation_users_meta = get_chatroom_user_images_for_web(card_instance.id)
+    conversation_users = get_latest_conversation_members(conversation_users_meta['last_conversation_member'],
+                                                         conversation_users_meta['second_last_conversation_member'],
+                                                         conversation_users_meta['last_conversation_user'],
+                                                         conversation_users_meta['second_last_conversation_user'])
+    context['conversation_users'] = conversation_users
 
     return context
 
@@ -6030,7 +6031,9 @@ def save_the_latest_conversation(card_instance, user_id):
             conversation_member_instance.save()
 
             collabcardState.objects.filter(card=card_instance, user=user_instance,
-                                           follow_status=True).update(expiry_time=expiry_time,updated_at=time.time())
+                                           follow_status=True).update(expiry_time=expiry_time,
+                                                                      updated_at=time.time(),
+                                                                      last_seen_conversation=conversation_instance)
 
             update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                      last_conversation_id=conversation_instance.id, unseen_count=0)
@@ -6039,7 +6042,9 @@ def save_the_latest_conversation(card_instance, user_id):
             if conversation_instance.id != conversation_member_filter[0].conversation.id:
                 conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
                 collabcardState.objects.filter(card=card_instance, user=user_instance,
-                                               follow_status=True).update(expiry_time=expiry_time,updated_at=time.time())
+                                               follow_status=True).update(expiry_time=expiry_time,
+                                                                          updated_at=time.time(),
+                                                                          last_seen_conversation=conversation_instance)
 
                 update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                          last_conversation_id=conversation_instance.id,
@@ -13582,37 +13587,65 @@ class SyncChatrooms(APIView):
 
         if chatroom_id:
             state_filter = collabcardState.objects.filter(card=chatroom_id,user=member_id).order_by('id')
-            state_list = list(state_filter.values_list("card__id", flat=True))
 
         elif community_id:
             state_filter = collabcardState.objects.filter(community=community_id).order_by('id')
-            state_list = list(state_filter.values_list("card__id", flat=True))
+
         else:
 
             if not last_updated:
                 state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
-                state_list = list(state_filter.values_list("card__id",flat=True))
+
             else:
                 state_filter = collabcardState.objects.filter(user=member_id,
                                     updated_at__gt=last_updated).order_by('id')
-                state_list = list(state_filter.values_list("card__id", flat=True))
 
-        cards_list = list_pagination(state_list, page, paginate_by=paginate_by)
-        cards = Collabcard.objects.filter(pk__in=cards_list)
 
-        context = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
-        chatroom_obj = GetChatroomInstanceSerializer(cards, context=context, many=True)
-
-        state_filter = pagination(state_filter,page,paginate_by=paginate_by)
+        pages = get_paginated_queryset_with_maxpages(state_filter,page,paginate_by=paginate_by)
+        state_filter = pages['page_list']
         max_last_updated = 0
+        chatrooms = []
         for data in state_filter:
+            context = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': data}
+            card_instance = data.card
+            chatroom_obj = GetChatroomInstanceSerializer(card_instance, context=context, many=False)
             if data.updated_at > max_last_updated:
                 max_last_updated = data.updated_at
+            chatrooms.append(chatroom_obj.data)
 
         if max_last_updated:
-            return JsonResponse({'chatrooms': chatroom_obj.data, 'max_last_updated': max_last_updated})
+            return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
+        else:
+            page_count = pages['last_page']
+            page = page - page_count
+            if last_updated:
+                draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated,user=member_id).order_by('id')
+            else:
+                draft_filter = draftChatroom.objects.filter(user=member_id).order_by('id')
+            draft_filter = pagination(draft_filter,page,paginate_by=paginate_by)
+            max_last_updated, chatrooms = fill_draft_chatrooms(draft_filter,member_id)
 
-        return JsonResponse({'chatrooms': chatroom_obj.data})
+            if max_last_updated:
+                return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
+        return JsonResponse({'chatrooms': []})
+
+
+
+def fill_draft_chatrooms(draft_filter,member_id):
+
+    '''function to fill draft chatrooms'''
+    chatrooms = []
+    max_last_updated = 0
+    for draft in draft_filter:
+
+        if max_last_updated < draft.date_epoch:
+            max_last_updated = draft.date_epoch
+        draft_chatroom = draftChatroomSerializer(draft, member_id)
+        draft_chatroom['is_draft'] = True
+        draft_chatroom['updated_at'] = draft.date_epoch
+        chatrooms.append(draft_chatroom)
+
+    return max_last_updated,chatrooms
 
 
 class SyncCommunities(APIView):

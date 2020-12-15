@@ -1,5 +1,7 @@
 from django.shortcuts import render,redirect
 from django.http import HttpResponse
+
+from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
 from togther.models import card_answers as CardAnswers
 from togther.views import update_user_info
@@ -39,11 +41,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import logout
 from collabmates_api.views import send_email_for_collabcard
 url = settings.URL
-import logging
 # uncomment to run it in localhost
 url='http://likeminds.community'
-error_logger=logging.getLogger("error_logger")
-info_logger=logging.getLogger("info_logger")
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 api_url = url + '/api/'
 
 

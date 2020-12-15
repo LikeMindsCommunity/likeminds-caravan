@@ -2,17 +2,17 @@ from .base import *
 
 DEBUG = False
 
-URL = os.getenv('DEVELOPMENT_URL')
+URL = os.getenv('BETA_URL')
 
-DB_HOST = os.getenv('DEVELOPMENT_DB_HOST')
+DB_HOST = os.getenv('BETA_DB_HOST')
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.getenv('DEVELOPMENT_DB_NAME'),
-        'USER': os.getenv('DEVELOPMENT_DB_USER'),
-        'PASSWORD':os.getenv('DEVELOPMENT_DB_PASSWORD'),
-        'HOST': os.getenv('DEVELOPMENT_DB_HOST'),
+        'NAME': os.getenv('BETA_DB_NAME'),
+        'USER': os.getenv('BETA_DB_USER'),
+        'PASSWORD':os.getenv('BETA_DB_PASSWORD'),
+        'HOST': os.getenv('BETA_DB_HOST'),
         'PORT': '5432',
     }
 }
@@ -22,9 +22,9 @@ TIME_ZONE = 'Asia/Kolkata'
 # variable to check for beta server
 IS_BETA = True
 
-ALLOWED_HOSTS = [os.getenv("DEVELOPMENT_ALLOWED_HOST_2"), os.getenv("DEVELOPMENT_ALLOWED_HOST_3")]
+ALLOWED_HOSTS = [os.getenv("BETA_ALLOWED_HOST_2"), os.getenv("BETA_ALLOWED_HOST_3")]
 
-FCM_SERVER_KEY = os.getenv('DEVELOPMENT_FCM_SERVER_KEY')
+FCM_SERVER_KEY = os.getenv('BETA_FCM_SERVER_KEY')
 
 # variable for google sign in oauth client ID
 # GOOGLE_OAUTH_CLIENT_ID=os.getenv('BETA_GOOGLE_OAUTH_CLIENT_ID')
@@ -43,11 +43,11 @@ FIREBASE_CONFIG = {
     'measurementId': "G-R2PXYC9F4S"
 }
 
-USE_INTERNAL_FILE_LOGGER = True
+USE_INTERNAL_FILE_LOGGER = False
 
 CORALOGIX_LOGGER = {
     'PRIVATE_API_KEY': os.getenv('CORALOGIX_LOGGER_PRIVATE_API_KEY'),
-    'APPLICATION_NAME': 'LikeMinds_Development',
+    'APPLICATION_NAME': 'LikeMinds_Beta',
     'SUBSYSTEM_NAME_API': 'Backend_App_Api',
     'SUBSYSTEM_NAME_APP': 'Backend_App_System'
 }

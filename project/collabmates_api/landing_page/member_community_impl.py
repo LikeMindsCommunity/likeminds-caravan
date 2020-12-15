@@ -67,7 +67,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         """
         TODO: move to model definition file
         """
-        return Member_Engage.objects.filter(member_id=member_id).order_by('-updated_at')
+        return Member_Engage.objects.filter(member_id=member_id).order_by('-order_time')
 
     @staticmethod
     def _paged_queryset(communities: list, page: int):

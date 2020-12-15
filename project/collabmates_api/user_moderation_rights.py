@@ -1,3 +1,4 @@
+from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings,
@@ -11,6 +12,10 @@ import  logging
 
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
+
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 
 def give_all_member_rights(user, community):
