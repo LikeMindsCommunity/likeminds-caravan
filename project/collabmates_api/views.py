@@ -12235,6 +12235,8 @@ def update_community_manager_rights(request):
                                    member_id=user_instance).update(state=member_states.ADMIN,
                                                                    custom_title=custom_title,
                                                                    updated_at=time.time())
+            # updating time for all members of community
+            Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
             return JsonResponse({'success': True})
 
         # had to get added and removed rights for many other purposes ex: notifications
@@ -12331,6 +12333,8 @@ def update_community_manager_rights(request):
                 send_notification_for_new_promoter.delay(promoter_id=current_user_id, member_id=user_id,
                                                          community_id=community_id, custom_title=custom_title)
             elif custom_title_changed:
+                # updating time for all members of community
+                Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
                 send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                                  community_id=community_id,
                                                                  custom_title=custom_title)
@@ -12410,6 +12414,8 @@ def remove_community_manager(request):
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
+        # updating time for all members of community
+        Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
         info_logger.info(f"REMOVE_COMMUNITY_MANAGER_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
 
@@ -12533,6 +12539,8 @@ def transfer_community_ownership(request):
         update_pending_chatrooms_and_report_count.delay(community_id)
         send_notification_for_ownership_transfered.delay(prev_owner_id=current_user_id,
                                                          new_owner_id=user_id, community_id=community_id)
+        # updating time for all members of community
+        Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
         info_logger.info(f"TRANSFER_OWNERSHIP_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
         return JsonResponse({'success': True})
@@ -12706,6 +12714,8 @@ def update_community_member_rights(request):
             send_notification_for_right_given_to_member.delay(user_id, community_id, list(rights_added))
 
         if custom_title_changed:
+            # updating time for all members of community
+            Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
             send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                              community_id=community_id,
                                                              custom_title=custom_title)
