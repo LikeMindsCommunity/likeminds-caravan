@@ -974,16 +974,16 @@ def questions(request):
     try:
         shared_by_user = User.objects.get(pk=shared_by)
         shared_by_user_name = shared_by_user.userinfo.name
-        title = f"{shared_by_user_name} invited you to join this community"
+        title = f"{shared_by_user_name} invited you to join {community['name']}"
     except:
-        info_logger.info(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
+        error_logger.error(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
 
     if aj and shared_by_user:
         try:
             auto_join = private_link_app_invite(community_instance, aj, created_by, shared_by_user)
             is_valid_private_link = True
         except:
-            info_logger.info(f"aj is not valid. aj ---> {aj}")
+            error_logger.error(f"aj is not valid. aj ---> {aj}")
 
     # add code to send join dropoff notfication
     if not is_member_verified(community_instance, user_instance):
