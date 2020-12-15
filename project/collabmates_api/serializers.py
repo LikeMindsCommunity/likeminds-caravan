@@ -354,6 +354,7 @@ def draftChatroomSerializer(card, user, community=None):
         'card_creation_time': time.strftime('%B %d at %H:%M', time.localtime(card.date_epoch)),
         'created_at':time.strftime('%H:%M', time.localtime(card.date_epoch)),
         'community_name':card.community.name
+
     }
 
     # for poll card
@@ -675,16 +676,14 @@ def get_draft_chatroom_instance(draft_instance, member_id):
         draft_serializer['member'] = draft_member[0]
 
     if draft_instance.internal_link:
-        draft_serializer['preview'] = get_preview_for_url(member_id=member_id,
-                                                          preview_url=draft_instance.internal_link,
-                                                          community_instance=draft_instance.preview_community,
-                                                          chatroom_instance=draft_instance.preview_chatroom,
-                                                          send_preview_text=True)
-
-    # status = get_status_of_collabcard(member_id, card_instance)
-    # collabcard_serializer['state'] = status['state']
-    # collabcard_serializer['mute_status'] = status['mute_status']
-    # collabcard_serializer['follow_status'] = status['follow_status']
+        try:
+            draft_serializer['preview'] = get_preview_for_url(member_id=member_id,
+                                                              preview_url=draft_instance.internal_link,
+                                                              community_instance=draft_instance.preview_community,
+                                                              chatroom_instance=draft_instance.preview_chatroom,
+                                                              send_preview_text=True)
+        except Exception as e:
+            error_logger.error(e.args)
 
     draft_files = get_collabcard_files(draft_instance.id, draft=True)
 
@@ -1591,10 +1590,12 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
     temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
 
     if conversation.internal_link:
-        temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
-                                              community_instance=conversation.preview_community,
-                                              chatroom_instance=conversation.preview_chatroom)
-
+        try:
+            temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
+                                                  community_instance=conversation.preview_community,
+                                                  chatroom_instance=conversation.preview_chatroom)
+        except Exception as e:
+            error_logger.error(e.args)
     if conversation.reply:
         temp['reply_conversation'] = conversation.reply.id
 
@@ -1678,9 +1679,12 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
     conversation_dict['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
 
     if conversation.internal_link:
-        conversation_dict['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
-                                                           community_instance=conversation.preview_community,
-                                                           chatroom_instance=conversation.preview_chatroom)
+        try:
+            conversation_dict['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
+                                                               community_instance=conversation.preview_community,
+                                                               chatroom_instance=conversation.preview_chatroom)
+        except Exception as e:
+            error_logger.error(e.args)
 
     if conversation.reply:
         conversation_dict['reply_conversation'] = conversation.reply.id
@@ -2000,7 +2004,7 @@ def get_chatroom_preview(card_instance, member_id, active=None):
                                                       state=chatroom_states.ANSWER)
     chatroom_instance['total_response_count'] = conversation_filter.count()
 
-    last_response_members = get_member_images_of_chatroom_v1(conversation_filter)
+    last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
     chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
     return chatroom_instance

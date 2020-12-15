@@ -1,0 +1,64 @@
+import logging
+
+import boto3
+from botocore.exceptions import ClientError
+from django.conf import settings
+
+from external_services.amazon_s3.s3_client_manager import S3ClientManager
+
+
+class S3ClientImpl(S3ClientManager):
+
+    s3_bucket = None
+    logger = logging.getLogger("info_logger")
+
+    def __init__(self, s3_bucket: dict):
+        self.s3_bucket = s3_bucket
+
+    def get_s3_bucket(self) -> dict:
+        return self.s3_bucket
+
+    def set_s3_bucket(self, s3_bucket: dict) -> None:
+        self.s3_bucket = s3_bucket
+
+    def generate_presigned_post(self, object_name: str, expiration: int) -> dict:
+        return self._generate_presigned_post_internal(self.get_s3_bucket().get('name'),
+                                                      object_name,
+                                                      None,
+                                                      None,
+                                                      expiration)
+
+    def _generate_presigned_post_internal(self,
+                                          bucket_name: str,
+                                          object_name: str,
+                                          fields=None,
+                                          conditions=None,
+                                          expiration=3600) -> dict:
+        """
+        Generate a presigned URL S3 POST request to upload a file
+        :param bucket_name: string
+        :param object_name: string
+        :param fields: Dictionary of prefilled form fields
+        :param conditions: List of conditions to include in the policy
+        :param expiration: Time in seconds for the presigned URL to remain valid
+        :return: Dictionary with the following keys:
+            url: URL to post to
+            fields: Dictionary of form fields and values to submit with the POST
+        :return: None if error.
+        """
+
+        s3_client = boto3.client('s3',
+                                 region_name=self.get_s3_bucket().get('region'),
+                                 aws_access_key_id=settings.AWS_CREDENTIALS.get('ACCESS_KEY'),
+                                 aws_secret_access_key=settings.AWS_CREDENTIALS.get('SECRET_KEY'))
+        try:
+            response = s3_client.generate_presigned_post(bucket_name,
+                                                         object_name,
+                                                         Fields=fields,
+                                                         Conditions=conditions,
+                                                         ExpiresIn=expiration)
+        except ClientError as e:
+            self.logger.error(str(e))
+            return dict()
+
+        return response
