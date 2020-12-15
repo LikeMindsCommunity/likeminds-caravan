@@ -9754,6 +9754,10 @@ def skip_community(request):
 
     set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
     update_community_toast(user_instance,community_instance,message="Please complete your profile for full access")
+    # removing its data from removed members in order to consider it a new user
+    removedMembers.objects.filter(community=community_instance, member=user_instance).delete()
+
+
 
     # sleeping for 2 hours to remind user to complete profile via notification
     try:
