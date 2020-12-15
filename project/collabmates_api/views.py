@@ -4614,7 +4614,6 @@ def collabcard(request, card_id):
         card_instance = card_filter[0]
 
         if card_instance.type in (card_types.CARD_NORMAL, card_types.CARD_INTRO):
-            request.GET.get('message')
 
             if settings.IS_BETA:
                 return redirect(
