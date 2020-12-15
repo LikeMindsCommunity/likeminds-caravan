@@ -1172,7 +1172,10 @@ def join_promoter_created_community_version_1(res, request):
                 member_state=member_states.MEMBER, click_state=click_states.DEFAULT)
             post_introduction_card_for_community(community_id, member_id, request)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
+
             communityToast.objects.filter(community=community_instance, user=user_instance).delete()
+            # removing its data from removed members in order to consider it a new user
+            removedMembers.objects.filter(community=community_instance, member=user_instance).delete()
             # give default members rights
             give_default_member_rights(user=user_instance, community=community_instance)
             log = """UPDATING_SKIPPED_MEMBER_PROFILE - community_id=%s for user=%s""" % (community_id, member_id)
