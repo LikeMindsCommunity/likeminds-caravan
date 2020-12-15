@@ -12023,21 +12023,17 @@ def fetch_preview(request):
 def get_preview_url(preview_url):
     """ get internal link from branch link """
 
-    if settings.URL in preview_url:
+    if settings.URL in preview_url or\
+            settings.WEB_URL in preview_url:
         return preview_url
 
-    elif BRANCH_LINK_PREFIX_ANDROID in preview_url:
+    elif BRANCH_LINK_PREFIX_ANDROID in preview_url or\
+            BRANCH_LINK_PREFIX_IOS in preview_url:
+
         preview_url = "https://" + preview_url.split('//')[1]
         return preview_url
 
-    elif BRANCH_LINK_PREFIX_IOS in preview_url:
-        preview_url = "https://" + preview_url.split('//')[1]
-        return preview_url
-
-    elif preview_url is None:
-        return None
-
-    elif not preview_url:
+    elif preview_url is None or not preview_url:
         return None
 
     else:

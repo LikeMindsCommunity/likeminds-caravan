@@ -3,6 +3,7 @@ from .base import *
 DEBUG = False
 
 URL = os.getenv('DEVELOPMENT_URL')
+WEB_URL = os.getenv('DEVELOPMENT_WEB_URL')
 
 DB_HOST = os.getenv('DEVELOPMENT_DB_HOST')
 
