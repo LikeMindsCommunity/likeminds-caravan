@@ -12225,7 +12225,8 @@ def update_community_manager_rights(request):
                 custom_title = admin[0].custom_title
             Members.objects.filter(community_id=community_instance,
                                    member_id=user_instance).update(state=member_states.ADMIN,
-                                                                   custom_title=custom_title)
+                                                                   custom_title=custom_title,
+                                                                   updated_at=time.time())
             return JsonResponse({'success': True})
 
         # had to get added and removed rights for many other purposes ex: notifications
