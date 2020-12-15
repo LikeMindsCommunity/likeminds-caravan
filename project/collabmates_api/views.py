@@ -83,7 +83,7 @@ from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
                        YourCommunitySerializer)
 
-from .utilities.constants import INSTAGRAM_LINK, TWITTER_LINK
+from .utilities.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -558,7 +558,8 @@ def my_chatrooms_version_1(request):
     return JsonResponse(context)
 
 
-def  get_latest_conversation_members(last_conversation_member,second_last_conversation_member,last_conversation_user,second_last_conversation_user):
+def get_latest_conversation_members(last_conversation_member, second_last_conversation_member,
+                                    last_conversation_user, second_last_conversation_user):
 
     conversation_users = []
     if last_conversation_member:
@@ -1606,6 +1607,7 @@ def is_option_present(option, dropdown_list):
         if data.lower() == option.lower():
             return True
     return False
+
 
 def save_profile_links_from_handles(question_instance,answer_instance):
 
@@ -2743,8 +2745,6 @@ def post_member_directly_link(card_instance, user_instance, community_instance):
     conversation.save()
 
 
-
-
 def get_basic_directory_options(request):
     '''api to get basic diretory options'''
 
@@ -2881,6 +2881,51 @@ def set_community_actions(community_instance):
         instance.max_members = 1 if settings.IS_BETA else 10
         instance.image = IMAGE_LEVEL_4
         instance.save()
+
+
+def set_preview_object(instance, res, user_id):
+
+    if 'internal_link' in res and res['internal_link']:
+        set_preview_with_internal_link(instance, res, user_id)
+
+    if 'preview' in res:
+        set_preview_with_preview_dict(instance, res, user_id)
+
+
+def set_preview_with_internal_link(instance, res, user_id):
+    try:
+        internal_link = get_preview_url(res['internal_link'])
+        instance.internal_link = internal_link
+
+        if 'preview' not in res and internal_link is not None:
+            preview = get_preview_for_url(user_id, internal_link)
+            res['preview'] = preview
+    except:
+        remove_preview_instance(instance)
+
+
+def set_preview_with_preview_dict(instance, res, user_id):
+    try:
+        preview = res['preview']
+        instance.preview_type = preview['preview_type']
+        preview_community = Community.objects.get(pk=preview['community']["id"])
+        instance.preview_community = preview_community
+
+        if 'chatroom' in preview:
+            preview_chatroom = Collabcard.objects.get(pk=preview['chatroom']["id"])
+            instance.preview_chatroom = preview_chatroom
+
+        if 'internal_link' not in res:
+            if 'internal_link' in preview and preview['internal_link']:
+                instance.internal_link = get_preview_url(preview['internal_link'])
+    except:
+        remove_preview_instance(instance)
+
+
+def remove_preview_instance(instance):
+    instance.internal_link = None
+    instance.preview_community = None
+    instance.preview_chatroom = None
 
 
 @csrf_exempt
@@ -3021,26 +3066,8 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         og_tags = decode_meta_from_url(res['share_link'])
         card.og_tags = json.dumps(og_tags)
 
-    if 'internal_link' in res:
-        card.internal_link = res['internal_link']
-        if 'preview' not in res:
-            preview = get_preview_for_url(user_instance.id, res['internal_link'])
-            res['preview'] = preview
+    set_preview_object(card, res, user_instance.id)
 
-    if 'preview' in res:
-        preview = res['preview']
-        card.preview_type = preview['preview_type']
-        preview_community = Community.objects.get(pk=preview['community']["id"])
-        card.preview_community = preview_community
-
-        if 'chatroom' in preview:
-            preview_chatroom = Collabcard.objects.get(pk=preview['chatroom']["id"])
-            card.preview_chatroom = preview_chatroom
-
-        if 'internal_link' not in res:
-            card.internal_link = preview['internal_link']
-
-        # card.internal_link = res['internal_link']
     is_intro_card = card_type == card_types.CARD_INTRO
     if not has_auto_approve_right and not is_intro_card:
         card.is_pending = True
@@ -3121,14 +3148,11 @@ def create_card_internal(user_id, community_id, res):
     user_instance = User.objects.get(id=user_id)
     userinfo_instance = user_instance.userinfo
 
-
-
     try:
         community_instance = Community.objects.get(id=community_id)
     except:
         context = get_error_context(False, "the community id does n't exists")
         return context
-
 
     res["member_state"] = None
     member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
@@ -3201,7 +3225,6 @@ def create_card_internal(user_id, community_id, res):
     }
 
     return context
-
 
 
 def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
@@ -3303,24 +3326,7 @@ def create_draft_collabcard(request, res=None):
         og_tags = decode_meta_from_url(res['share_link'])
         card.og_tags = json.dumps(og_tags)
 
-    if 'internal_link' in res:
-        card.internal_link = res['internal_link']
-        if 'preview' not in res:
-            preview = get_preview_for_url(user_instance.id, res['internal_link'])
-            res['preview'] = preview
-
-    if 'preview' in res:
-        preview = res['preview']
-        card.preview_type = preview['preview_type']
-        preview_community = Community.objects.get(pk=preview['community']["id"])
-        card.preview_community = preview_community
-
-        if 'chatroom' in preview:
-            preview_chatroom = Collabcard.objects.get(pk=preview['chatroom']["id"])
-            card.preview_chatroom = preview_chatroom
-
-        if 'internal_link' not in res:
-            card.internal_link = preview['internal_link']
+    set_preview_object(card, res, user_instance.id)
 
     card.date_epoch = time.time()  # card creation time
     card.save()
@@ -3351,7 +3357,6 @@ def create_draft_collabcard(request, res=None):
         engage_filter.update(updated_at=time.time())
 
     return JsonResponse({'success': True, "chatroom": chatroom})
-
 
 
 def create_chatroom(card_instance, user_instance, state, current_user_id=None, answer=""):
@@ -5417,13 +5422,15 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             context['deleted_by'] = ans.deleted_by_user.id
 
         if ans.internal_link:
-            context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
-                                                     community_instance=ans.preview_community,
-                                                     chatroom_instance=ans.preview_chatroom,
-                                                     send_preview_text=False)
-
-        if is_ios and ans.internal_link:
-            context['answer'] = context['answer'] + f"\n{ans.internal_link}"
+            try:
+                context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
+                                                         community_instance=ans.preview_community,
+                                                         chatroom_instance=ans.preview_chatroom,
+                                                         send_preview_text=False)
+                if is_ios:
+                    context['answer'] = context['answer'] + f"\n{ans.internal_link}"
+            except Exception as e:
+                error_logger.error(e.args)
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
 
@@ -5622,12 +5629,15 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     card = get_chatroom_instance(card_instance, user_id)
     if card_instance.internal_link:
-        card['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
-                                              community_instance=card_instance.preview_community,
-                                              chatroom_instance=card_instance.preview_chatroom,
-                                              send_preview_text=False)
-        if is_ios:
-            card['title'] = card['title'] + f"\n{card_instance.internal_link}"
+        try:
+            card['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
+                                                  community_instance=card_instance.preview_community,
+                                                  chatroom_instance=card_instance.preview_chatroom,
+                                                  send_preview_text=False)
+            if is_ios:
+                card['title'] = card['title'] + f"\n{card_instance.internal_link}"
+        except Exception as e:
+            error_logger.error(e.args)
 
     card_status = {
         'state': card['state'],
@@ -5799,13 +5809,15 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     card = get_chatroom_instance(card_instance, user_id)
 
     if card_instance.internal_link:
-        card['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
-                                              community_instance=card_instance.preview_community,
-                                              chatroom_instance=card_instance.preview_chatroom,
-                                              send_preview_text=False)
-        if is_ios:
-            card['title'] = card['title'] + f"\n{card_instance.internal_link}"
-
+        try:
+            card['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
+                                                  community_instance=card_instance.preview_community,
+                                                  chatroom_instance=card_instance.preview_chatroom,
+                                                  send_preview_text=False)
+            if is_ios:
+                card['title'] = card['title'] + f"\n{card_instance.internal_link}"
+        except Exception as e:
+            error_logger.error(e.args)
 
     card_status = {
         'state': card['state'],
@@ -6857,7 +6869,11 @@ def create_conversation(request):
 
     replied_conversation = None
     if 'replied_conversation_id' in res:
-        replied_conversation = card_answers.objects.get(pk=res['replied_conversation_id'])
+        try:
+            replied_conversation = card_answers.objects.get(pk=res['replied_conversation_id'])
+        except:
+            context = get_error_context(False, "replied_conversation_id is worng")
+            return JsonResponse(context, status=400)
 
     has_files = False
     if ('has_files' in res and res['has_files']):
@@ -6880,21 +6896,7 @@ def create_conversation(request):
     if replied_conversation:
         ans.reply = replied_conversation
 
-    if 'internal_link' in res:
-        ans.internal_link = res['internal_link']
-
-    if 'preview' in res:
-        preview = res['preview']
-        ans.preview_type = preview['preview_type']
-        preview_community = Community.objects.get(pk=preview['community']["id"])
-        ans.preview_community = preview_community
-
-        if 'chatroom' in preview:
-            preview_chatroom = Collabcard.objects.get(pk=preview['chatroom']["id"])
-            ans.preview_chatroom = preview_chatroom
-
-        if 'internal_link' not in res:
-            ans.internal_link = preview['internal_link']
+    set_preview_object(ans, res, member_id)
 
     ans.save()
 
@@ -7749,11 +7751,14 @@ def get_chatrooms(chatroom_list, member_id,active = None, is_ios=False):
         chatroom_instance['total_response_count'] = conversation_filter.count()
 
         if card_instance.internal_link:
-            chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
-                                           community_instance=card_instance.preview_community,
-                                           chatroom_instance=card_instance.preview_chatroom, send_preview_text=False)
-            if is_ios:
-                chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
+            try:
+                chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
+                                               community_instance=card_instance.preview_community,
+                                               chatroom_instance=card_instance.preview_chatroom, send_preview_text=False)
+                if is_ios:
+                    chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
+            except Exception as e:
+                error_logger.error(e.args)
 
         last_response_members = get_member_images_of_chatroom(conversation_filter)
         chatroom_instance['members_images'] = last_response_members['members_images']
@@ -7788,14 +7793,16 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None, is_ios=False
 
 
         if card_instance.internal_link:
-            chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
-                                                               preview_url=card_instance.internal_link,
-                                                               community_instance=card_instance.preview_community,
-                                                               chatroom_instance=card_instance.preview_chatroom,
-                                                               send_preview_text=False)
-            if is_ios and card_instance.internal_link:
-                chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
-
+            try:
+                chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
+                                                                   preview_url=card_instance.internal_link,
+                                                                   community_instance=card_instance.preview_community,
+                                                                   chatroom_instance=card_instance.preview_chatroom,
+                                                                   send_preview_text=False)
+                if is_ios:
+                    chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
+            except Exception as e:
+                error_logger.error(e.args)
         last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
         #chatroom_instance['members_images'] = last_response_members['members_images']
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
@@ -7834,14 +7841,16 @@ def get_chatrooms_version_2(chatroom_list, member_id,active = None, is_ios=False
         chatroom_instance['total_response_count'] = conversation_filter.count()
 
         if card_instance.internal_link:
-            chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
-                                                               preview_url=card_instance.internal_link,
-                                                               community_instance=card_instance.preview_community,
-                                                               chatroom_instance=card_instance.preview_chatroom,
-                                                               send_preview_text=False)
-            if is_ios:
-                chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
-
+            try:
+                chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
+                                                                   preview_url=card_instance.internal_link,
+                                                                   community_instance=card_instance.preview_community,
+                                                                   chatroom_instance=card_instance.preview_chatroom,
+                                                                   send_preview_text=False)
+                if is_ios:
+                    chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
+            except Exception as e:
+                error_logger.error(e.args)
         last_response_members = get_member_images_of_chatroom(conversation_filter)
         chatroom_instance['members_images'] = last_response_members['members_images']
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
@@ -11949,7 +11958,11 @@ def edit_conversation(request):
         context = get_error_context(False, "send the member_id in headers")
         return JsonResponse(context)
 
-    conversation = card_answers.objects.get(pk=conversation_id)
+    try:
+        conversation = card_answers.objects.get(pk=conversation_id)
+    except:
+        context = get_error_context(False, "conversation id does not exist")
+        return JsonResponse(context, status=400)
 
     if conversation.is_deleted:
         context = get_error_context(False, "Cannot edit deleted conversation")
@@ -11982,8 +11995,56 @@ def fetch_preview(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context)
 
-    context = get_preview_for_url(member_id, preview_url)
-    return JsonResponse({"preview": context})
+    preview_url = get_preview_url(preview_url)
+
+    if preview_url is None:
+        context = get_error_context(False, "Branch url failed. Invalid url")
+        return JsonResponse(context, status=400)
+
+    try:
+        context = get_preview_for_url(member_id, preview_url)
+        return JsonResponse({"preview": context})
+    except:
+        context = get_error_context(False, "Branch url failed. Invalid url")
+        return JsonResponse(context, status=400)
+
+
+def get_preview_url(preview_url):
+    """ get internal link from branch link """
+
+    if settings.URL in preview_url:
+        return preview_url
+
+    elif BRANCH_LINK_PREFIX_ANDROID in preview_url:
+        preview_url = "https://" + preview_url.split('//')[1]
+        return preview_url
+
+    elif BRANCH_LINK_PREFIX_IOS in preview_url:
+        preview_url = "https://" + preview_url.split('//')[1]
+        return preview_url
+
+    elif preview_url is None:
+        return None
+
+    elif not preview_url:
+        return None
+
+    else:
+        # API request
+        api_endpoint = BRANCH_DECODE_URI % (preview_url, settings.BRANCH_KEY)
+        headers = {'Accept': 'application/json'}
+        r = requests.get(url=api_endpoint, headers=headers)
+
+        if r.status_code == 200:
+            try:
+                data = r.json()
+                deep_link = data["data"]['$deep_link']
+                return deep_link
+
+            except Exception as e:
+                return None
+
+        return None
 
 
 ############################## static apis for sending text ##############################################
@@ -12913,7 +12974,12 @@ def action_pending_chatroom(request):
         context = get_error_context(False, "send chatroom_id in params")
         return JsonResponse(context)
 
-    chatroom = Collabcard.objects.get(pk=chatroom_id)
+    try:
+        chatroom = Collabcard.objects.get(pk=chatroom_id)
+    except:
+        context = get_error_context(False, "Pending chatroom id does not exist or already approved or rejected")
+        return JsonResponse(context, status=400)
+
     community_instance = chatroom.community
     chatroom_creator = chatroom.user
     has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)

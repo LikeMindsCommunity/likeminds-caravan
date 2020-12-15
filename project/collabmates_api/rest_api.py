@@ -507,8 +507,12 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     del data['has_been_named']
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
-                data['preview'] = get_preview_for_url(member_id=self.current_user_id,
+                try:
+                    data['preview'] = get_preview_for_url(member_id=self.current_user_id,
                                                       preview_url=data['internal_link'])
+                except:
+                    del data['preview']
+
                 del data['internal_link']
 
             elif field.field_name == "multiple_select":
@@ -879,8 +883,11 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 del data['reply']
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
-                data['preview'] = get_preview_for_url(member_id=self.current_user_id,
+                try:
+                    data['preview'] = get_preview_for_url(member_id=self.current_user_id,
                                                       preview_url=data['internal_link'])
+                except:
+                    del data['preview']
                 del data['internal_link']
 
             elif data[field.field_name] is None:

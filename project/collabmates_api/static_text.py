@@ -1,3 +1,6 @@
+from django.conf import settings
+SERVER_URL = settings.URL
+
 # variables
 HOURS_24 = 86400
 #HOURS_24 = 200
@@ -322,5 +325,5 @@ MENU = {
     'pending_member':['Cancel joining request']
 }
 
-
-
+BRANCH_LINK_PREFIX_ANDROID = 'likeminds://' + SERVER_URL[8:]
+BRANCH_LINK_PREFIX_IOS = 'collabmates://' + SERVER_URL[8:]

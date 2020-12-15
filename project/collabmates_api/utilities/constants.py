@@ -7,6 +7,7 @@ SMSGUPSHUP_SMS_URI = 'http://enterprise.smsgupshup.com/GatewayAPI/rest?method=Se
 
 # branch
 BRANCH_QUICKLINK_URI = 'https://api2.branch.io/v1/url/bulk/%s'
+BRANCH_DECODE_URI = 'https://api2.branch.io/v1/url?url=%s&branch_key=%s'
 
 # community sereialiser links
 PRIVATE_LINK_TEXT_ADMIN_1 = 'I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s'
