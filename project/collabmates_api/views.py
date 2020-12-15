@@ -12296,7 +12296,7 @@ def update_community_manager_rights(request):
             final_parent_list = json.dumps(member_parent_list)
             # updating parent cm list
             member.update(state=member_states.ADMIN, is_owner=False, custom_title=custom_title,
-                          parent_cm=parent_cm, parent_cm_list=final_parent_list)
+                          parent_cm=parent_cm, parent_cm_list=final_parent_list, updated_at=time.time())
             # savig moderation history for permission edited
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=current_user_instance,
@@ -12392,7 +12392,8 @@ def remove_community_manager(request):
 
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.MEMBER, custom_title=custom_title,
-                                                               parent_cm=None, parent_cm_list='[]')
+                                                               parent_cm=None, parent_cm_list='[]',
+                                                               updated_at=time.time())
         Member_Engage.objects.filter(member_id=user_instance,
                                      community_id=community_instance).update(member_state=member_states.MEMBER,
                                                                              pending_chatrooms=0,
@@ -12497,7 +12498,8 @@ def transfer_community_ownership(request):
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
                                                                custom_title=previous_owner_title, parent_cm=None,
-                                                               parent_cm_list=None)
+                                                               parent_cm_list=None,
+                                                               updated_at=time.time())
 
         Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                                      rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS),
@@ -12510,7 +12512,8 @@ def transfer_community_ownership(request):
         # current owner
         parent_cm_list = json.dumps([str(user_id)])
         admin.update(is_owner=False, custom_title="Community Manager",
-                     parent_cm=user_instance, parent_cm_list=parent_cm_list)
+                     parent_cm=user_instance, parent_cm_list=parent_cm_list,
+                     updated_at=time.time())
 
         save_moderation_history(user=current_user_instance, community=community_instance,
                                 moderation_by=user_instance,
@@ -12670,7 +12673,7 @@ def update_community_member_rights(request):
                 elif prev_custom_title != custom_title:
                     custom_title_changed = True
 
-                member_instance.update(custom_title=custom_title)
+                member_instance.update(custom_title=custom_title, updated_at=time.time())
 
         final_rights = [right["state"] for right in selected_rights if right["is_selected"]]
         rights_list = json.dumps(final_rights)
