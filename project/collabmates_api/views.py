@@ -13725,11 +13725,23 @@ class SyncChatroomsV1(APIView):
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
 
-        start_time = time.time()
-        chatroom_data = fetch_chatroom_query()
+        if chatroom_id:
+            chatroom_data,chatroom_id_list = fetch_chatroom_id_query(chatroom_id,member_id)
+        elif community_id:
+            chatroom_data,chatroom_id_list = fetch_community_chatroom_query(community_id,page,paginate_by)
+        else:
+            chatroom_data,chatroom_id_list = fetch_chatrooms_query(member_id,paginate_by,page,last_updated)
+
+        poll_data = {}
+        poll_votes = {}
+
+        if chatroom_id_list:
+            poll_data = fetch_chatroom_polls(chatroom_id_list)
+            poll_votes = fetch_member_poll_votes(chatroom_id_list)
+
         chatrooms = []
-        c=0
-        poll_data = fetch_chatroom_poll()
+
+        max_last_updated =0
         for data in chatroom_data:
             chatroom = {}
             chatroom['id'] = data[0]
@@ -13778,17 +13790,17 @@ class SyncChatroomsV1(APIView):
 
                 chatroom['is_poll_anonymous'] = data[26]
                 chatroom['allow_add_option'] = data[27]
-                chatroom['multiple_select_state'] = data[28]
-                chatroom['multiple_select_no'] = data[29]
+                if data[28] is not None:
+                    chatroom['multiple_select_state'] = data[28]
+                if data[29]:
+                    chatroom['multiple_select_no'] = data[29]
                 chatroom['is_anonymous'] = data[30]
                 chatroom['poll_type'] = data[31]
                 chatroom['poll_type_text'] = "Instant poll" if  chatroom['poll_type'] == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
                 chatroom['submit_type_text'] = "Secret voting" if chatroom['is_poll_anonymous'] else "Public voting"
 
-                chatroom['polls'] = self._get_polls(chatroom['id'],poll_data)
+                chatroom['polls'] = self._get_polls_v1(poll_data,chatroom['id'],poll_votes,data[29],member_id)
                 chatroom["expiry_time"] = data[32]
-                c = c+1
-
 
             if chatroom['type'] == card_types.CARD_EVENT:
                 if data[33]:
@@ -13804,25 +13816,23 @@ class SyncChatroomsV1(APIView):
             if data[36]:
                 chatroom['og_tags'] = json.loads(data[36])
 
-            # if data[37]:
-            #     c = c+1
-            #     chatroom['preview'] = get_preview_for_url(member_id=member_id,
-            #                                           preview_url=data[37],
-            #                                           send_preview_text=False)
+            if data[37]:
 
+                chatroom['preview'] = get_preview_for_url(member_id=member_id,
+                                                      preview_url=data[37],
+                                                      send_preview_text=False)
             if data[38]:
                 chatroom['deleted_by'] = data[38]
 
+            if max_last_updated < data[39]:
+                max_last_updated = data[39]
+
             chatrooms.append(chatroom)
 
+        if max_last_updated:
+            return JsonResponse({'chatrooms':chatrooms, 'max_last_updated':max_last_updated})
 
-        end_time = time.time()
-
-        diff = end_time - start_time
-        print(diff)
-        print(c)
-
-        return JsonResponse({'success':chatrooms})
+        return JsonResponse({'chatrooms':chatrooms})
 
     def _get_header(self,header,title):
 
@@ -13864,12 +13874,109 @@ class SyncChatroomsV1(APIView):
 
         return files
 
-    def _get_polls(self, chatroom_id,poll_data):
+    def _get_polls(self, chatroom_id,is_multi,member_id):
 
         polls = []
-        print(poll_data)
-        polls = poll_data[chatroom_id]
+
+        polls_data = CollabcardPolls.objects.filter(card=chatroom_id).order_by('id')
+        voted_members = MemberPollVotes.objects.filter(card=chatroom_id).select_related('user','poll')
+        total_votes = voted_members.count()
+        polls = []
+        for data in polls_data:
+            poll_id = data.id
+            member_set = set()
+            count = 0
+            total_member_set=set()
+            temp = {}
+            temp['id'] = poll_id
+            temp['title'] = data.text
+            temp['is_selected'] = False
+            if total_votes == 0:
+                temp['no_votes'] = 0
+                temp['percentage'] = 0
+                polls.append(temp)
+                continue
+
+            for member in voted_members:
+
+                if member.user.id not in total_member_set:
+                    total_member_set.add(member.user.id)
+
+                if member.poll.id == poll_id:
+                    count = count + 1
+                    if member.user.id not in member_set:
+                        if member.user.id == int(member_id):
+                            temp['is_selected'] = True
+
+                        member_set.add(member.user.id)
+
+            if is_multi:
+                count = len(member_set)
+                total_votes = len(total_member_set)
+
+            temp['no_votes'] = count
+
+            temp['percentage'] = (count / total_votes) * 100
+
+            polls.append(temp)
+
         return polls
+
+    def _get_polls_v1(self,poll_data,chatroom_id,poll_votes,is_multi,member_id):
+
+        chatroom_poll_data = poll_data.get(chatroom_id)
+        chatroom_votes = poll_votes.get(chatroom_id)
+
+        if not chatroom_poll_data:
+            chatroom_poll_data = []
+
+        if not chatroom_votes:
+            chatroom_votes = []
+
+        total_votes = len(chatroom_votes)
+        polls = []
+        for data in chatroom_poll_data:
+
+            poll_id = data['id']
+            member_set = set()
+            count = 0
+            total_member_set = set()
+            temp = {}
+            temp['id'] = poll_id
+            temp['title'] = data['text']
+            temp['is_selected'] = False
+            temp['member_id'] = data['member_id']
+            if total_votes == 0:
+                temp['no_votes'] = 0
+                temp['percentage'] = 0
+                polls.append(temp)
+                continue
+            for member in chatroom_votes:
+
+                if member['user_id'] not in total_member_set:
+                    total_member_set.add(member['user_id'])
+
+                if member['poll_id'] == poll_id:
+                    count = count + 1
+                    if  member['user_id']  not in member_set:
+                        if member['user_id'] == int(member_id):
+                            temp['is_selected'] = True
+                        member_set.add(member['user_id'])
+
+            if is_multi:
+                count = len(member_set)
+                total_votes = len(total_member_set)
+
+            temp['no_votes'] = count
+
+            temp['percentage'] = (count / total_votes) * 100
+
+            polls.append(temp)
+
+        return polls
+
+
+
 
     def _get_co_hosts(self,co_hosts):
 
