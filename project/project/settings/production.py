@@ -64,6 +64,8 @@ CORALOGIX_LOGGER = {
 
 GHUPSHUP_KEY = "45314393fb4505a15ff19d175d0c92f1"
 
+OTP_TEMPLATE_ID = '5fcfb2806e0eaa3000589d5c'
+
 ADMINS = [
     ('mahesh', 'mahesh@likeminds.community'),
     ('Priyanshu', 'priyanshu@likeminds.community'),
