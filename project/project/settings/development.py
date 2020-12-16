@@ -3,6 +3,7 @@ from .base import *
 DEBUG = False
 
 URL = os.getenv('DEVELOPMENT_URL')
+WEB_URL = os.getenv('DEVELOPMENT_WEB_URL')
 
 DB_HOST = os.getenv('DEVELOPMENT_DB_HOST')
 
@@ -41,6 +42,11 @@ FIREBASE_CONFIG = {
     'messagingSenderId': "983690302378",
     'appId':  "1:983690302378:web:b2fa2c58f2351d5c1b91d3",
     'measurementId': "G-R2PXYC9F4S"
+}
+
+AWS_CREDENTIALS = {
+    'ACCESS_KEY': os.getenv('AWS_S3_ACCESS_KEY'),
+    'SECRET_KEY': os.getenv('AWS_S3_SECRET_KEY')
 }
 
 USE_INTERNAL_FILE_LOGGER = True

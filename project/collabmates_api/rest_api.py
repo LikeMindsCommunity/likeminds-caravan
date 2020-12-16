@@ -432,6 +432,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             files = Card_Attachment.objects.filter(collabcard=card, type="image")
             for file in files:
                 img = {'image_url': file.file_url, 'index': file.index}
+                if file.dimensions:
+                    img['dimensions'] = json.loads(file.dimensions)
                 images.append(img)
 
         return images
@@ -507,11 +509,13 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     del data['has_been_named']
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
-                data['preview'] = get_preview_for_url(member_id=self.current_user_id,
-                                                      preview_url=data['internal_link'],
-                                                      community_instance=card.preview_community,
-                                                      chatroom_instance=card.preview_chatroom,
-                                                      send_preview_text=False)
+
+                try:
+                    data['preview'] = get_preview_for_url(member_id=self.current_user_id,
+                                                      preview_url=data['internal_link'])
+                except:
+                    del data['preview']
+
                 del data['internal_link']
 
             elif field.field_name == "multiple_select":
@@ -882,8 +886,11 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 del data['reply']
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
-                data['preview'] = get_preview_for_url(member_id=self.current_user_id,
+                try:
+                    data['preview'] = get_preview_for_url(member_id=self.current_user_id,
                                                       preview_url=data['internal_link'])
+                except:
+                    del data['preview']
                 del data['internal_link']
 
             elif data[field.field_name] is None:
