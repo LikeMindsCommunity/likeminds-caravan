@@ -12229,35 +12229,14 @@ def update_community_manager_rights(request):
                   f" current_user id = {current_user_id} user = {user_id}"
             info_logger.info(log)
 
-            if not custom_title:
-                custom_title = admin[0].custom_title
-            Members.objects.filter(community_id=community_instance,
-                                   member_id=user_instance).update(state=member_states.ADMIN,
-                                                                   custom_title=custom_title,
-                                                                   updated_at=time.time())
-            # updating time for all members of community
-            Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+            save_owner_title(custom_title, admin, community_instance, user_instance)
             return JsonResponse({'success': True})
 
-        # had to get added and removed rights for many other purposes ex: notifications
-        existing_rights = set(userAdminRights.objects.filter(community=community_instance,
-                                                             user=user_instance).values_list("right__id", flat=True))
-        # getting list of rights added and rights removed when compared to existing rights
-        rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
-                                                                    existing_rights=existing_rights)
-
-        for right_id in rights_added:
-            right = adminRights.objects.get(pk=right_id)
-            userAdminRights(user=user_instance, community=community_instance, right=right).save()
-
-        for right_id in removed_rights:
-            right = adminRights.objects.get(pk=right_id)
-            userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
+        save_added_removed_rights_for_manager(community_instance, user_instance, selected_rights)
 
         if int(user_id) != int(current_user_id):
             member = Members.objects.filter(member_id=user_instance,
                                             community_id=community_instance)
-            member_instance = None
             if member.exists():
                 member_instance = member[0]
             else:
@@ -12265,30 +12244,9 @@ def update_community_manager_rights(request):
                 return JsonResponse(context)
 
             is_member_already_promoter = member_instance.state == member_states.ADMIN
-            custom_title_changed = False
 
-            if not custom_title:
-                if not is_member_already_promoter:
-                    custom_title = "Community Manager"
-                else:
-                    custom_title = member_instance.custom_title
-
-            elif not is_member_already_promoter and custom_title:
-                custom_title = custom_title.strip()
-
-                if len(custom_title) <= 0:
-                    custom_title = None
-                elif custom_title == 'Member':
-                    custom_title = "Community Manager"
-
-            elif is_member_already_promoter and custom_title:
-                custom_title = custom_title.strip()
-                prev_custom_title = member_instance.custom_title
-
-                if len(custom_title) <= 0:
-                    custom_title = None
-                elif prev_custom_title != custom_title:
-                    custom_title_changed = True
+            custom_title, custom_title_changed = get_manager_custom_title(member_instance, custom_title,
+                                                                          is_member_already_promoter)
 
             parent_cm = current_user_instance
             if member_instance.parent_cm:
@@ -12296,19 +12254,13 @@ def update_community_manager_rights(request):
 
             admin_parents = json.loads(admin[0].parent_cm_list) if admin[0].parent_cm_list else []
             member_parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
-            # adding admins parents for updating member's parents
-            for parent_id in admin_parents:
-                if parent_id not in member_parent_list:
-                    member_parent_list.append(parent_id)
-            # adding current user as parent
-            if current_user_id not in member_parent_list:
-                member_parent_list.append(current_user_id)
 
-            final_parent_list = json.dumps(member_parent_list)
+            final_parent_list = get_manager_parents_list(admin_parents, member_parent_list,
+                                                         current_user_id)
             # updating parent cm list
             member.update(state=member_states.ADMIN, is_owner=False, custom_title=custom_title,
                           parent_cm=parent_cm, parent_cm_list=final_parent_list, updated_at=time.time())
-            # savig moderation history for permission edited
+            # saving moderation history for permission edited
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=current_user_instance,
                                     type=moderation_history_types.MANAGER_PERMISSION_EDITED)
@@ -12338,6 +12290,10 @@ def update_community_manager_rights(request):
                 send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                                  community_id=community_id,
                                                                  custom_title=custom_title)
+
+            if len(rights_added) > 0:
+                send_notification_for_right_given_to_manager.delay(user_id, community_id, list(rights_added))
+
         info_logger.info(f"UPDATING_CM_RIGHTS current user id = {current_user_id},"
                          f" user id = {user_id}, community id = {community_id}")
 
@@ -12345,7 +12301,6 @@ def update_community_manager_rights(request):
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
-
 
 
 
@@ -12671,13 +12626,7 @@ def update_community_member_rights(request):
         rights_added, rights_removed = get_added_and_removed_rights(selected_rights=selected_rights,
                                                                     existing_rights=existing_rights)
 
-        for right_id in rights_added:
-            right = memberRights.objects.get(pk=right_id)
-            userMemberRights(user=user_instance, community=community_instance, right=right).save()
-
-        for right_id in rights_removed:
-            right = memberRights.objects.get(pk=right_id)
-            userMemberRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
+        update_member_rights(rights_added, rights_removed, community_instance, user_instance)
 
         custom_title_changed = False
         if custom_title:

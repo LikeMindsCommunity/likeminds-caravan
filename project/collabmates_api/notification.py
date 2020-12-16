@@ -2296,4 +2296,79 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
     # notification_meta(notification_list, message)
 
 
+@shared_task
+def send_notification_for_right_given_to_manager(user_id, community_id, rights_added):
+    community_instance = Community.objects.get(pk=community_id)
+    user_instance = User.objects.get(pk=user_id)
+    community_name = community_instance.name
 
+    user_fcm_token = user_instance.userinfo.fcm_token
+    user_mobile_os = user_instance.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        "id": user_id,
+        'fcm_token': user_fcm_token,
+        'mobile_os': user_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    for right_id in rights_added:
+        right = adminRights.objects.get(pk=right_id)
+
+        route = f"route://community?community_id={community_id}&community_name={community_name}"
+        sub_title = "Congratulations! The Community Manager has conferred you privilege to “Add Community Managers”."
+
+        if right.state == manager_rights.MANAGER_RIGHT_DELETE_ROOMS:
+            sub_title = "Congratulations! The Community Manager has conferred you privilege to “Delete Chat room or Responses”"
+
+        elif right.state == manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS:
+            sub_title = "Congratulations! The Community Manager has conferred you privilege to “Approve or Remove Members”"
+
+        elif right.state == manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY:
+            sub_title = "Congratulations! The Community Manager has conferred you privilege to “Edit Community Details”"
+
+        elif right.state == manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO:
+            sub_title = "Congratulations! The Community Manager has conferred you privilege to “View Members Contact Information”"
+
+        message['payload'] = {
+            "title": community_name,
+            "sub_title": sub_title,
+            'route': route
+        }
+
+
+        notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_removed_cm(user_id, community_id):
+    community_instance = Community.objects.get(pk=community_id)
+    user_instance = User.objects.get(pk=user_id)
+    community_name = community_instance.name
+
+    user_fcm_token = user_instance.userinfo.fcm_token
+    user_mobile_os = user_instance.userinfo.mobile_os
+
+    message = {}
+    notification_list = []
+
+    user_details = {
+        "id": user_id,
+        'fcm_token': user_fcm_token,
+        'mobile_os': user_mobile_os,
+    }
+    notification_list.append(user_details)
+
+    sub_title = "You no longer have any community management rights. Consider highlighting this to your Community Manager if you think this was accidental or if you want to know why."
+    route = f"route://community?community_id={community_id}"
+
+    message['payload'] = {
+        "title": community_name,
+        "sub_title": sub_title,
+        'route': route
+    }
+
+    notification_meta(notification_list, message)
