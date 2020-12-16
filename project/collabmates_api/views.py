@@ -8285,6 +8285,7 @@ def upload_files(request):
         file.type = attachment_type
         file.file_url = body['url']
         file.index = body['index'] if 'index' in body else 1
+        file.dimensions = json.dumps(body['dimensions']) if 'dimensions' in body else None
         file.save()
 
         #updating updated_at for synching apis
@@ -8310,6 +8311,7 @@ def upload_files(request):
         file.location_name = body['location_name'] if 'location_name' in body else None
         file.location_lat = body['location_lat'] if 'location_lat' in body else None
         file.location_long = body['location_long'] if 'location_long' in body else None
+        file.dimensions = json.dumps(body['dimensions']) if 'dimensions' in body else None
         file.save()
 
         files_count = body['files_count'] if 'files_count' in body else 0
@@ -8345,6 +8347,7 @@ def upload_files(request):
         instance.file_url = body['url']
         instance.index = body['index'] if 'index' in body else 1
         instance.type = attachment_type
+        file.dimensions = json.dumps(body['dimensions']) if 'dimensions' in body else None
         instance.save()
 
     elif 'draft_poll_id' in body and body['draft_poll_id']:

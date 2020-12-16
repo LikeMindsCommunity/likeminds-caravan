@@ -454,9 +454,13 @@ def get_collabcard_files(card_id, draft=False):
     for file in files:
         if file.type == 'image':
             if file.file_url:
-                img = {'image_url': file.file_url, 'index': file.index}
+                img = {'image_url': file.file_url}
             else:
-                img = {'image_url': url + file.attachment.url, 'index': file.index}
+                img = {'image_url': url + file.attachment.url}
+
+            img['index'] = file.index
+            if file.dimensions:
+                img['dimensions'] = json.loads(file.dimensions)
             img_list.append(img)
         elif file.type == 'video':
             if file.file_url:
@@ -1615,6 +1619,8 @@ def get_answer_files(answer_id):
         if file.type == 'image':
             if file.file_url:
                 img = {'image_url': file.file_url, 'index': file.index}
+                if file.dimensions:
+                    img['dimensions'] = json.loads(file.dimensions)
                 img_list.append(img)
         elif file.type == 'video':
             if file.file_url:
