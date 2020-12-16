@@ -3,6 +3,8 @@ from urllib.parse import parse_qsl, urlsplit
 
 from django.conf import settings
 from django.db.models import Q
+
+from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
 from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_community_id, \
     generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
@@ -18,12 +20,11 @@ import ast
 from .static_files import *
 from .static_text import months_semi
 from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
-import logging
 from .branch import create_community_branch_links
 from collabmates_api.utilities.constants import *
 
-error_logger = logging.getLogger("error_logger")
-info_logger = logging.getLogger("info_logger")
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 url = settings.URL
 
 from datetime import datetime, date
@@ -350,7 +351,10 @@ def draftChatroomSerializer(card, user, community=None):
         'duration': card.duration,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
-        'card_creation_time': time.strftime('%B %d at %H:%M', time.localtime(card.date_epoch))
+        'card_creation_time': time.strftime('%B %d at %H:%M', time.localtime(card.date_epoch)),
+        'created_at':time.strftime('%H:%M', time.localtime(card.date_epoch)),
+        'community_name':card.community.name
+
     }
 
     # for poll card
@@ -590,25 +594,25 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     if not expiry_time or expiry_time >= int(time.time()):
         collabcard_serializer['active'] = True
 
-    if send_profile:
-        collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id,
-                                                send_profile=send_profile)
-        collabcard_serializer['member'] = collabcard_member[0]
 
-        is_removed = removedMembers.objects.filter(community=card_instance.community,
+    collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id,
+                                                send_profile=send_profile)
+    collabcard_serializer['member'] = collabcard_member[0]
+
+    is_removed = removedMembers.objects.filter(community=card_instance.community,
                                                    member_id=collabcard_serializer['member']['id'])
 
-        if collabcard_serializer['member']['state'] == 0 and is_removed.exists():
-            temp = get_removed_member_custom_text(is_removed[0])
-            collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-            collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
-            collabcard_serializer['member']['remove_state'] = temp['remove_state']
-            collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-    else:
-        collabcard_member = get_user_profile(user_id=card_instance.user.id, community_id=card_instance.community.id,
-                                             current_user_id=current_user_id,
-                                             send_profile=False, remove=False)
-        collabcard_serializer['member'] = collabcard_member
+    if collabcard_serializer['member']['state'] == 0 and is_removed.exists():
+        temp = get_removed_member_custom_text(is_removed[0])
+        collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+        collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
+        collabcard_serializer['member']['remove_state'] = temp['remove_state']
+        collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
+    # else:
+    #     collabcard_member = get_user_profile(user_id=card_instance.user.id, community_id=card_instance.community.id,
+    #                                          current_user_id=current_user_id,
+    #                                          send_profile=False, remove=False)
+    #     collabcard_serializer['member'] = collabcard_member
 
     # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
@@ -672,16 +676,14 @@ def get_draft_chatroom_instance(draft_instance, member_id):
         draft_serializer['member'] = draft_member[0]
 
     if draft_instance.internal_link:
-        draft_serializer['preview'] = get_preview_for_url(member_id=member_id,
-                                                          preview_url=draft_instance.internal_link,
-                                                          community_instance=draft_instance.preview_community,
-                                                          chatroom_instance=draft_instance.preview_chatroom,
-                                                          send_preview_text=True)
-
-    # status = get_status_of_collabcard(member_id, card_instance)
-    # collabcard_serializer['state'] = status['state']
-    # collabcard_serializer['mute_status'] = status['mute_status']
-    # collabcard_serializer['follow_status'] = status['follow_status']
+        try:
+            draft_serializer['preview'] = get_preview_for_url(member_id=member_id,
+                                                              preview_url=draft_instance.internal_link,
+                                                              community_instance=draft_instance.preview_community,
+                                                              chatroom_instance=draft_instance.preview_chatroom,
+                                                              send_preview_text=True)
+        except Exception as e:
+            error_logger.error(e.args)
 
     draft_files = get_collabcard_files(draft_instance.id, draft=True)
 
@@ -737,6 +739,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
     return collabcard_status
 
 
+
 def get_member_images_of_chatroom(conversation_filter):
     """ function to give member images of chatrooms """
     unique_members = set()
@@ -744,9 +747,12 @@ def get_member_images_of_chatroom(conversation_filter):
 
     last_conversations_member = []
     count = 0
+
+
     for conversation in conversation_filter:
         community_instance = conversation.card.community
         if conversation.user.id not in unique_members:
+
             member_filter = Members.objects.filter(member_id=conversation.user, community_id=community_instance)
             image_link = conversation.user.userinfo.image_link
             image_url = image_link if image_link else ""
@@ -775,6 +781,48 @@ def get_member_images_of_chatroom(conversation_filter):
     }
 
     return temp
+
+def get_member_instances_for_footer_images_in_chatroom(card_instance):
+
+
+    conversation_filter = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).distinct('user').order_by('user', '-id')[:5]
+    member_images = []
+    conversation_members = []
+    count=0
+    for conversation in conversation_filter:
+
+        community_instance = conversation.community
+        member_filter = Members.objects.filter(member_id=conversation.user, community_id=community_instance)
+        image_link = conversation.user.userinfo.image_link
+        image_url = image_link if image_link else ""
+
+        if member_filter.exists():
+            member_instance = member_filter[0]
+            if member_instance.image_url:
+                image_url = member_instance.image_url
+
+        remove = False
+        if conversation.remove:
+            remove = True
+        member_images.append(image_url)
+
+        member_data = get_user_profile(conversation.user, community_instance, send_profile=False, remove=remove)
+        conversation_members.append(member_data)
+
+        count = count + 1
+
+
+        if count > 5:
+            break
+
+    temp = {
+        'members_images': member_images,
+        'last_response_members': conversation_members
+    }
+
+    return temp
+
+
 
 
 def CollabcardPollsSerializer(poll, user, card):
@@ -1542,10 +1590,12 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
     temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
 
     if conversation.internal_link:
-        temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
-                                              community_instance=conversation.preview_community,
-                                              chatroom_instance=conversation.preview_chatroom)
-
+        try:
+            temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
+                                                  community_instance=conversation.preview_community,
+                                                  chatroom_instance=conversation.preview_chatroom)
+        except Exception as e:
+            error_logger.error(e.args)
     if conversation.reply:
         temp['reply_conversation'] = conversation.reply.id
 
@@ -1629,9 +1679,12 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
     conversation_dict['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
 
     if conversation.internal_link:
-        conversation_dict['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
-                                                           community_instance=conversation.preview_community,
-                                                           chatroom_instance=conversation.preview_chatroom)
+        try:
+            conversation_dict['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
+                                                               community_instance=conversation.preview_community,
+                                                               chatroom_instance=conversation.preview_chatroom)
+        except Exception as e:
+            error_logger.error(e.args)
 
     if conversation.reply:
         conversation_dict['reply_conversation'] = conversation.reply.id
@@ -1951,7 +2004,7 @@ def get_chatroom_preview(card_instance, member_id, active=None):
                                                       state=chatroom_states.ANSWER)
     chatroom_instance['total_response_count'] = conversation_filter.count()
 
-    last_response_members = get_member_images_of_chatroom_v1(conversation_filter)
+    last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
     chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
     return chatroom_instance

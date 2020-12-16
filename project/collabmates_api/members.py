@@ -224,11 +224,13 @@ def get_all_members(request, req_dict=None):
     ##sending total members and pending members count
     context['total_members'] = community['members_count']
     context['total_filtered_members'] = total_filtered_members
+
     if promoter_instance:
         user_engage = Member_Engage.objects.filter(community_id=community_instance,
                                                    member_id=promoter_instance)
         if user_engage.exists():
             context['total_pending_members'] = user_engage[0].pending_members
+
     return context
 
 
@@ -418,7 +420,8 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
     state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
-    collabcard_state_list = collabcardState.objects.filter(card=card_id, remove=None).order_by('-user_id')
+    collabcard_state_list = collabcardState.objects.filter(card=card_id, remove=None,
+                                                           is_tagged=False).order_by('-user_id')
 
     if is_event_card:
         collabcard_state_list = collabcard_state_list.filter(Q(state=state_list[0]) | Q(state=state_list[1]) |

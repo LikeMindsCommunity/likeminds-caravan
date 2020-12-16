@@ -1,6 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from collabmates_api.serializers import get_user_profile
+from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
 import time
 from django.db.models import Q
@@ -16,9 +17,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            insert_user_home_town_tags,user_onbaord,is_IG_community,
                            is_member_engage)
 
-import logging
-error_logger = logging.getLogger("error_logger")
-info_logger = logging.getLogger("info_logger")
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 @shared_task
 def update_referral_text_in_engage_table(community_id):
@@ -388,11 +388,12 @@ def get_latest_conversation_members(chatroom_id):
     return (member_conversarions,user_conversations)
 
 
-def check(chatroom_id):
+def get_chatroom_user_images_for_web(chatroom_id):
     last_conversations = get_latest_conversation_members(chatroom_id)
 
     member_conversations = last_conversations[0]
     user_conversations = last_conversations[1]
+
 
     last_conversation_member = None
     second_last_conversation_member = None
@@ -402,18 +403,24 @@ def check(chatroom_id):
     elif len(member_conversations) == 1:
         last_conversation_member = member_conversations[0]
 
+
     last_conversation_user = None
     second_last_conversation_user = None
-    if len(member_conversations) > 1:
+    if len(user_conversations) > 1:
         last_conversation_user = user_conversations[0]
         second_last_conversation_user = user_conversations[1]
     elif len(user_conversations) == 1:
         last_conversation_user = user_conversations[0]
 
-    print(last_conversation_member)
-    print(second_last_conversation_member)
-    print(last_conversation_user)
-    print(second_last_conversation_user)
+    conversation_meta = {
+    'last_conversation_member' : last_conversation_member,
+    'second_last_conversation_member': second_last_conversation_member,
+    'last_conversation_user': last_conversation_user,
+    'second_last_conversation_user':second_last_conversation_user
+    }
+    return conversation_meta
+
+
 
 
 

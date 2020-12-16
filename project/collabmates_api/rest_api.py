@@ -61,7 +61,7 @@ class YourCommunitySerializer(serializers.ModelSerializer):
         fields = ('id', 'open_reports_count', 'member_state',
                   'click_state', 'collabcard_unseen', 'actions', 'name', 'purpose', 'about',
                   'member_right_states', 'pending_chatroom_count', 'image_url', 'members_count',
-                  'type', 'sub_type', 'pending_members_count')
+                  'type', 'sub_type', 'pending_members_count','order_time')
 
     def __init__(self, *args, **kwargs):
         super(YourCommunitySerializer, self).__init__(*args, **kwargs)
@@ -311,14 +311,12 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     card_creation_time = serializers.SerializerMethodField()
     poll_type_text = serializers.SerializerMethodField()
     submit_type_text = serializers.SerializerMethodField()
-    #image_url_round = serializers.SerializerMethodField()
     chatroom_category = serializers.SerializerMethodField()
     is_anonymous = serializers.SerializerMethodField()
     member_id = serializers.SerializerMethodField()
     expiry_time = serializers.SerializerMethodField()
     created_at = serializers.SerializerMethodField()
     community_name = serializers.ReadOnlyField(source='community.name')
-    # deleted_by_member_state = serializers.ReadOnlyField(source='deleted_by_user_state')
     deleted_by = serializers.SerializerMethodField()
 
     images = serializers.SerializerMethodField()
@@ -336,6 +334,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     is_guest = serializers.BooleanField(write_only=True)
     is_tagged = serializers.BooleanField(write_only=True)
     chatroom_expiry_time = serializers.CharField(write_only=True)
+    last_seen_conversation = serializers.IntegerField(write_only=True)
 
 
     class Meta:
@@ -353,7 +352,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'internal_link', 'images', 'pdf', 'audios', 'videos', 'preview','deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
-                  'poll_type'
+                  'poll_type','last_seen_conversation'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -365,15 +364,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         if not self.current_user_id:
             self.current_user_id = self.member_id
 
-    def _set_removed_member_custom_text(self, card, member_profile):
-        is_removed = removedMembers.objects.filter(community=card.community,
-                                                   member_id=member_profile['id'])
-        if member_profile['state'] == 0 and is_removed.exists():
-            temp = get_removed_member_custom_text(is_removed[0])
-            member_profile['custom_intro_text'] = temp['custom_intro_text']
-            member_profile['custom_click_text'] = temp['custom_click_text']
-            member_profile['remove_state'] = temp['remove_state']
-            member_profile['image_url'] = temp['removed_user_image_url']
 
     def get_created_at(self, card):
         return time.strftime('%H:%M', time.localtime(card.date_epoch))
@@ -383,9 +373,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
     def get_card_creation_time(self, card):
         return time.strftime('%I:%M %p', time.localtime(card.date_epoch))
-
-    # def get_image_url_round(self, card):
-    #     return card.community.image_link_round
 
     def get_expiry_time(self, card):
         if card.type == card_types.CARD_POLL:
@@ -409,25 +396,20 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_polls(self, card):
 
         polls = []
-        card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
-        for poll in card_polls:
-            poll_serializer = CollabcardPollsSerializer(poll, self.current_user_id, card)
-            polls.append(poll_serializer)
+        if card.type == card_types.CARD_POLL:
+            card_polls = CollabcardPolls.objects.filter(card=card).order_by('id')
+            for poll in card_polls:
+                poll_serializer = CollabcardPollsSerializer(poll, self.current_user_id, card)
+                polls.append(poll_serializer)
 
         return polls
 
 
+
     def get_member_id(self, card):
-        # member_profile = get_members_profile([card.user.id], card.community.id)[0]
-        #self._set_removed_member_custom_text(card, member_profile)
         return card.user.id
 
     def get_deleted_by(self, card):
-        # if card.deleted_by_user is None:
-        #     return None
-        # member_ids = [card.deleted_by_user]
-        # temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
-        #                            current_user_id=self.current_user_id)
         deleted_by = None
         if card.deleted_by_user:
             deleted_by = card.deleted_by_user.id
@@ -487,16 +469,12 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         return videos
 
-
     def to_representation(self, card):
         data = super(GetChatroomInstanceSerializer, self).to_representation(card)
 
         fields = self._readable_fields
 
         for field in fields:
-
-            # if field.field_name == "id":
-            #     print(data['id'])
 
             if field.field_name == 'header':
                 if not data['header']:
@@ -528,15 +506,13 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 else:
                     del data['has_been_named']
 
-            # elif field.field_name == "updated_member" and data['updated_member'] is not None:
-            #     member_ids = [data['updated_member']]
-            #     temp = get_members_profile(member_ids=member_ids, community_id=data['community'],
-            #                                current_user_id=self.user)
-            #     data['updated_member'] = temp[0]
-
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
-                data['preview'] = get_preview_for_url(member_id=self.current_user_id,
+                try:
+                    data['preview'] = get_preview_for_url(member_id=self.current_user_id,
                                                       preview_url=data['internal_link'])
+                except:
+                    del data['preview']
+
                 del data['internal_link']
 
             elif field.field_name == "multiple_select":
@@ -606,8 +582,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     del data["co_hosts"]
                 else:
                     co_host_list = json.loads(data['co_hosts'])
-                    # data['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=data['community'],
-                    #                                        current_user_id=self.user)
                     data['co_hosts_id'] = self.get_co_hosts(co_host_list)
                     del data['co_hosts']
 
@@ -616,18 +590,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     data['answer_text'] = get_answer_text_for_poll(card, self.current_user_id)
                 else:
                     del data['answer_text']
-
-            # elif field.field_name in ['image_count', 'pdf_count']:
-            #     card_files = get_collabcard_files(data['id'])
-            #     data['images'] = card_files[0]
-            #     data['pdf'] = card_files[1]
-
-            elif field.field_name == 'share_link':
-                share = get_share_url_text(card, self.user)
-                data["share_url"] = share['share_url']
-                data["share_url"] = share['share_url']
-                data["creator_share_url"] = share['creator_share_url']
-                data["link_created_at"] = share['link_created_at']
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
@@ -653,6 +615,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             data['is_guest'] = status_dict['is_guest']
             data['is_tagged'] = status_dict['is_tagged']
             data['chatroom_expiry_time'] = status_dict['chatroom_expiry_time']
+            if status_dict['last_seen_conversation']:
+                data['last_seen_conversation'] = status_dict['last_seen_conversation']
+
             self.state_instance = None  # making None for the next object
 
         return data
@@ -663,7 +628,7 @@ class CardStateSerializer(serializers.ModelSerializer):
     class Meta:
         model = collabcardState
         fields = ('state', 'mute_status', 'follow_status', 'is_guest', 'attending_status',
-                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time')
+                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time','last_seen_conversation')
 
     def get_chatroom_expiry_time(self, obj):
         return obj.expiry_time
@@ -918,8 +883,11 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 del data['reply']
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
-                data['preview'] = get_preview_for_url(member_id=self.current_user_id,
+                try:
+                    data['preview'] = get_preview_for_url(member_id=self.current_user_id,
                                                       preview_url=data['internal_link'])
+                except:
+                    del data['preview']
                 del data['internal_link']
 
             elif data[field.field_name] is None:

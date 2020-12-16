@@ -65,6 +65,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'utility.slash_middleware.AppendOrRemoveSlashMiddleware',
+    'middleware.api_logger.ApiLogger'
 ]
 
 
@@ -277,18 +278,10 @@ LOGGING = {
         }
     },
     'handlers': {
-        'errors_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'maxBytes': 1024 * 10 * 10 ,#*1024*10, # 10 MB
-            'backupCount': 5,
-            'filename': 'utility/logs/custom.log',
-            'formatter': 'large',
-        },
-        'info_file': {
+        'file_handler': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'maxBytes': 1024 * 10 * 10,#*1024*10, # 10 MB
+            'maxBytes': 1024 * 10 * 10,  # 10 MB
             'backupCount': 5,
             'filename': 'utility/logs/custom.log',
             'formatter': 'large',
@@ -297,25 +290,19 @@ LOGGING = {
             'level':'INFO',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': 'utility/logs/collabmates.log',
-            'maxBytes': 1024*10*10 ,#*1024*10, # 10 MB
+            'maxBytes': 1024 * 10 * 10,  # 10 MB
             'backupCount': 5,
-            'formatter':'tiny',
+            'formatter': 'tiny',
         },
         'mail_admins': {
             'level': 'ERROR',
             'class': 'django.utils.log.AdminEmailHandler',
             'include_html': True,
         },
-
     },
     'loggers': {
-        'error_logger': {
-            'handlers': ['errors_file'],
-            'level': 'WARNING',
-            'propagate': False,
-        },
-        'info_logger': {
-            'handlers': ['info_file'],
+        'file_logger': {
+            'handlers': ['file_handler'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -323,8 +310,6 @@ LOGGING = {
             'handlers': ['console', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
-
-
     },
 }
 
