@@ -7,8 +7,8 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
-from .utilities.constants import *
-
+from .utilities.constants import MSG91_SENDOTP_URI, MSG91_VERIFYOTP_URI, SMSGUPSHUP_SMS_URI, COMMUNITY_JOIN_SMS, \
+    COMMUNITY_JOIN_SMS_REMINDER
 
 gupshup_id = settings.GUPSHUP_ID
 msg91_auth_key = settings.MSG91_AUTH_KEY
@@ -45,7 +45,7 @@ def send_sms(number, msg):
 @shared_task
 def send_community_confirmation_sms(phone_no, community_name, new_user_name, user_id):
     download_url = 'bit.ly/lmsdownload'
-    msg = COMMUNITY_JOIN_SMS_1.format(new_user_name, community_name, download_url)
+    msg = COMMUNITY_JOIN_SMS.format(new_user_name, community_name, download_url)
 
     notification_list = [
         'mail_has_installed_app'
@@ -55,7 +55,7 @@ def send_community_confirmation_sms(phone_no, community_name, new_user_name, use
         task_name = str(user_id) + "_send_community_confirmation_sms"
         celerybeatask.terminate_task(task_name)
         args = [phone_no, community_name, new_user_name, user_id, task_name]
-        task_path = "collabmates_api.sms.send_community_confirmation_sms_2"
+        task_path = "collabmates_api.sms.send_community_confirmation_sms_reminder"
 
         # date_time = time.time() + 80
         date_time = time.time() + (3 * 24 * 60 * 60)
@@ -67,9 +67,9 @@ def send_community_confirmation_sms(phone_no, community_name, new_user_name, use
 
 @app.task
 @shared_task
-def send_community_confirmation_sms_2(phone_no, community_name, new_user_name, user_id, task_name):
+def send_community_confirmation_sms_reminder(phone_no, community_name, new_user_name, user_id, task_name):
     download_url = 'bit.ly/lmsdownload'
-    msg = COMMUNITY_JOIN_SMS_2.format(new_user_name, community_name, download_url)
+    msg = COMMUNITY_JOIN_SMS_REMINDER.format(new_user_name, community_name, download_url)
 
     notification_list = [
         'mail_has_installed_app'
