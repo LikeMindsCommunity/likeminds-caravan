@@ -7,7 +7,8 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
-from .utilities.constants import MSG91_SENDOTP_URI, MSG91_VERIFYOTP_URI, SMSGUPSHUP_SMS_URI
+from .utilities.constants import *
+
 
 gupshup_id = settings.GUPSHUP_ID
 msg91_auth_key = settings.MSG91_AUTH_KEY
@@ -25,8 +26,6 @@ def send_sms(number, msg):
     context = {}
     success = False
 
-    # generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
-    #     phone_no, key)
     response = requests.get(generated_url)
 
     if response.status_code == 200:
@@ -46,17 +45,12 @@ def send_sms(number, msg):
 @shared_task
 def send_community_confirmation_sms(phone_no, community_name, new_user_name, user_id):
     download_url = 'bit.ly/lmsdownload'
-    msg = '''Congratulations, {0}! Your request to join {1} has been approved.
-
-The next step for you is to download the LikeMinds app. The app allows you to get real-time notifications, join other chatrooms, start your own chatroom, attend events, and much more. 
-
-Download app : {2}'''.format(new_user_name, community_name, download_url)
+    msg = COMMUNITY_JOIN_SMS_1.format(new_user_name, community_name, download_url)
 
     notification_list = [
         'mail_has_installed_app'
     ]
     if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
-        print(send_sms(phone_no, msg))
         celerybeatask = CeleryBeatTask()
         task_name = str(user_id) + "_send_community_confirmation_sms"
         celerybeatask.terminate_task(task_name)
@@ -75,9 +69,7 @@ Download app : {2}'''.format(new_user_name, community_name, download_url)
 @shared_task
 def send_community_confirmation_sms_2(phone_no, community_name, new_user_name, user_id, task_name):
     download_url = 'bit.ly/lmsdownload'
-    msg = '''Hi {0}! It’s been 3 days since you’ve been approved to join {1}. Download the LikeMinds app to get real-time notifications, join other relevant chatrooms, start your own chatroom, attend events, and much more. 
-
-Download app : {2}'''.format(new_user_name, community_name, download_url)
+    msg = COMMUNITY_JOIN_SMS_2.format(new_user_name, community_name, download_url)
 
     notification_list = [
         'mail_has_installed_app'
