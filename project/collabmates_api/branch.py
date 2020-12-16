@@ -142,5 +142,7 @@ def create_link_item(base_url, community, channel, feature, private=False):
 
     if not private:
         link_item['data']['$fallback_url'] = 'https://%s' % base_url
+    else:
+        link_item['data']['$desktop_url'] = 'https://%s' % base_url
 
     return link_item
