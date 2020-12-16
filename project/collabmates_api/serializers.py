@@ -453,12 +453,7 @@ def get_collabcard_files(card_id, draft=False):
     audio_list = []
     for file in files:
         if file.type == 'image':
-            if file.file_url:
-                img = {'image_url': file.file_url}
-            else:
-                img = {'image_url': url + file.attachment.url}
-
-            img['index'] = file.index
+            img = {'image_url': file.file_url, 'index': file.index}
             if file.dimensions:
                 img['dimensions'] = json.loads(file.dimensions)
             img_list.append(img)
