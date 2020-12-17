@@ -8379,7 +8379,7 @@ def upload_files(request):
 
     return JsonResponse(context)
 
-g
+
 @csrf_exempt
 def upload_files_version_1(request):
     """function to upload files"""
