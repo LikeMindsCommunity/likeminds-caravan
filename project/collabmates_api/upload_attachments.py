@@ -9,37 +9,57 @@ import ast
 import time
 
 
-def save_community_image(request, body, member_id):
+def save_community_image(body, member_id):
+
     community_id = body['community_id']
-    community = Community.objects.get(id=community_id)
+
+    try:
+        community = Community.objects.get(id=community_id)
+
+    except Community.DoesNotExist:
+        return {'success': False, 'error_message': "community does not exist"}
+
+    if 'url' not in body:
+        return {'success': False, 'error_message': "send uploaded file url"}
+
     community.image_link = body['url']
     community.image_link_round = body['url']
-    upload_community_thumbnail.delay(community_id, body['url'])
     community.save()
+
+    upload_community_thumbnail.delay(community_id, body['url'])
+
     # updating the create community second step
-    createCommunityAction.objects.filter(community=community, step_no="Step 2").update(
-        current_point=10)
+    createCommunityAction.objects.filter(community=community,
+                                         step_no="Step 2").update(current_point=10)
 
     # saving the update image details if the image is updated
-    edit = request.GET.get('edit', False)
+    edit = body.get('edit', False)
     if edit == 'true':
         if not member_id:
             return {'success': False, 'error_message': "Send member id in headers"}
         else:
-            member_instance = User.objects.get(id=member_id)
+            try:
+                member_instance = User.objects.get(id=member_id)
+            except User.DoesNotExist:
+                return {'success': False, 'error_message': "Member does not exist"}
 
-        instance = communityUpdate()
-        instance.updated_field = "image"
-        instance.updated_time = time.time()
-        instance.updated_member = member_instance
-        instance.community = community
-        instance.save()
+        update_community(member_instance, community)
+
     return None
 
 
-def save_chatroom_attachments(card_instance, body):
+def update_community(member_instance, community):
+    instance = communityUpdate()
+    instance.updated_field = "image"
+    instance.updated_time = time.time()
+    instance.updated_member = member_instance
+    instance.community = community
+    instance.save()
+
+
+def save_chatroom_attachments(chatroom_instance, body):
     file = Card_Attachment()
-    file.collabcard = card_instance
+    file.collabcard = chatroom_instance
     file.type = body['type']
     file.file_url = body['url']
     file.index = body['index'] if 'index' in body else 1
@@ -47,10 +67,10 @@ def save_chatroom_attachments(card_instance, body):
     file.save()
 
 
-def save_conversation_attachments(body, answer_instance):
+def save_conversation_attachments(body, conversation_instance):
 
     file = answerAttachment()
-    file.answer = answer_instance
+    file.answer = conversation_instance
     file.type =  body['type']
     file.file_url = body['url'] if 'url' in body else None
     file.index = body['index'] if 'index' in body else 1

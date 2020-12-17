@@ -88,6 +88,7 @@ from .upload_attachments import (save_community_image, save_chatroom_attachments
                                  save_conversation_attachments, save_poll_attachments,
                                  save_draft_attachments, save_draft_poll_attachments,
                                  get_image_dimensions)
+from rest_framework import status as status_codes
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -8378,18 +8379,24 @@ def upload_files(request):
 
     return JsonResponse(context)
 
-
+g
 @csrf_exempt
 def upload_files_version_1(request):
     """function to upload files"""
-    body = json.loads(request.body)
-    context = save_attachments(request, body)
-    return JsonResponse(context)
+    context = save_attachments(request)
+
+    success = context.get('success', False)
+    status = status_codes.HTTP_200_OK if success else status_codes.HTTP_400_BAD_REQUEST
+
+    return JsonResponse(context, status=status)
 
 
-def save_attachments(request, body):
+def save_attachments(request):
     """ save attachments for cards and conversations """
     member_id = get_member_id_from_headers(request)
+
+    if member_id is None:
+        return {'success': False, 'error_message': "Send member id in headers"}
 
     conversation = None
     chatroom_local = None
@@ -8401,23 +8408,32 @@ def save_attachments(request, body):
     if request.user.is_authenticated and is_request_web(request):
         member_id = request.user.id
 
+    body = json.loads(request.body)
+
     if 'community_id' in body and body['community_id']:
-        context = save_community_image(request, body, member_id)
+        context = save_community_image(body, member_id)
         if context is not None:
             return context
 
-    elif 'collabcard_id' in body and body['collabcard_id']:
+    elif 'chatroom_id' in body and body['chatroom_id']:
         chatroom_local = upload_chatroom_attachments(body, member_id)
 
-    elif 'answer_id' in body and body['answer_id']:
+        if 'success' in chatroom_local and not chatroom_local['success']:
+            return chatroom_local
+
+    elif 'conversation_id' in body and body['conversation_id']:
         conversation = upload_conversation_attachments(body, member_id)
+
+        if 'success' in conversation and not conversation['success']:
+            return conversation
 
     elif 'poll_id' in body and body['poll_id']:
 
         try:
             save_poll_attachments(body)
         except:
-            return {'success': False, 'error_message': "Send valid poll id"}
+            return {'success': False,
+                    'error_message': "Send valid poll id"}
 
     elif 'draft_id' in body and body['draft_id']:
         save_draft_attachments(body)
@@ -8427,7 +8443,8 @@ def save_attachments(request, body):
         try:
             save_draft_poll_attachments(body)
         except:
-            return {'success': False, 'error_message': "Send valid draft poll id"}
+            return {'success': False,
+                    'error_message': "Send valid draft poll id"}
 
     else:
         context['success'] = False
@@ -8447,52 +8464,67 @@ def save_attachments(request, body):
 def upload_chatroom_attachments(body, member_id):
     """ function to upload chatroom attachments """
 
-    collabcard_id = body['collabcard_id']
+    chatroom_id = body['chatroom_id']
+    try:
+        chatroom_instance = Collabcard.objects.get(id=chatroom_id)
+        
+    except Collabcard.DoesNotExist:
+        return {'success': False,
+                'error_message': "Send valid chatroom id"}
 
-    card_instance = Collabcard.objects.get(id=collabcard_id)
-    card_instance.has_files = True
-    card_instance.save()
+    chatroom_instance.has_files = True
+    chatroom_instance.save()
 
-    save_chatroom_attachments(card_instance, body)
+    save_chatroom_attachments(chatroom_instance, body)
 
-    # updating updated_at for synching apis
-    collabcardState.objects.filter(user=member_id, card=card_instance).update(updated_at=time.time())
+    # updating updated_at for syncing apis
+    collabcardState.objects.filter(user=member_id, card=chatroom_instance).update(updated_at=time.time())
     files_count = body['files_count'] if 'files_count' in body else 0
-    uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
+
+    uploaded_files_count = Card_Attachment.objects.filter(collabcard=chatroom_instance).count()
+
     if uploaded_files_count == int(files_count):
         user_instance = User.objects.get(id=member_id)
-        send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
+        send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance)
 
-    member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
-    chatroom_local = GetChatroomInstanceSerializer(card_instance, context=member_data, many=False)
+    member_data = {'member_id': member_id,
+                   'current_user_id': member_id,
+                   'state_instance': None}
+    chatroom_local = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
 
     return chatroom_local
 
 
 def upload_conversation_attachments(body, member_id):
     """ function to upload conversation attachments """
-    answer_id = body['answer_id']
-    answer_instance = card_answers.objects.get(id=answer_id)
-    file = answerAttachment()
-    file.answer = answer_instance
+    conversation_id = body['conversation_id']
+    try:
+        conversation_instance = card_answers.objects.get(id=conversation_id)
 
-    save_conversation_attachments(body, answer_instance)
+    except card_answers.DoesNotExist:
+        return {'success': False,
+                'error_message': "Send valid conversation id"}
+
+    file = answerAttachment()
+    file.answer = conversation_instance
+
+    save_conversation_attachments(body, conversation_instance)
 
     files_count = body['files_count'] if 'files_count' in body else 0
 
     current_time_ms = int(round(time.time() * 1000))
 
     # updating the last updated when posting answer
-    card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms, has_files=True)
+    card_answers.objects.filter(id=conversation_instance).update(last_updated=current_time_ms, has_files=True)
 
-    conversation = get_conversation_instance_for_db_synching(answer_instance, current_user_id=member_id)
+    conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
 
     # saving last answer id
-    uploaded_files_count = answerAttachment.objects.filter(answer=answer_instance).count()
+    uploaded_files_count = answerAttachment.objects.filter(answer=conversation_instance).count()
     if uploaded_files_count == int(files_count):
-        update_last_answer_id(answer_instance.card.id, answer_instance.id)
-        send_follow_notification(card_id=answer_instance.card.id, user_id=answer_instance.user.id,
-                                 answer=answer_instance.answer)
+        update_last_answer_id(conversation_instance.card.id, conversation_instance.id)
+        send_follow_notification(card_id=conversation_instance.card.id, user_id=conversation_instance.user.id,
+                                 answer=conversation_instance.answer)
     return conversation
 
 
