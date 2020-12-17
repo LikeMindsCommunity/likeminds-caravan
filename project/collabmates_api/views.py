@@ -12251,7 +12251,9 @@ def update_community_manager_rights(request):
             save_owner_title(custom_title, admin, community_instance, user_instance)
             return JsonResponse({'success': True})
 
-        rights_added, removed_rights = save_added_removed_rights_for_manager(community_instance, user_instance, selected_rights)
+        rights_added, removed_rights = save_added_removed_rights_for_manager(community_instance,
+                                                                             user_instance,
+                                                                             selected_rights)
 
         if int(user_id) != int(current_user_id):
             member = Members.objects.filter(member_id=user_instance,
@@ -12320,7 +12322,6 @@ def update_community_manager_rights(request):
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
-
 
 
 def get_added_and_removed_rights(selected_rights, existing_rights):
@@ -12633,7 +12634,7 @@ def update_community_member_rights(request):
                                                                             selected_rights)
         # saving custom title for member
         custom_title_changed = save_member_custom_title(custom_title, community_instance, user_instance)
-        # saving members rights list in enage table
+        # saving members rights list in engage table
         save_member_rights_in_enage(selected_rights, user_instance, community_instance)
 
         if len(selected_rights) > 0:

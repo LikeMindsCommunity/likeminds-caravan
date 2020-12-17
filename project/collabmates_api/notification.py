@@ -2363,7 +2363,7 @@ def send_notification_for_removed_cm(user_id, community_id):
     notification_list.append(user_details)
 
     sub_title = "You no longer have any community management rights. Consider highlighting this to your Community Manager if you think this was accidental or if you want to know why."
-    route = f"route://community?community_id={community_id}"
+    route = f"route://community?community_id={community_id}&community_name={community_name}"
 
     message['payload'] = {
         "title": community_name,
