@@ -8,7 +8,7 @@ import json
 import ast
 import time
 
-g
+
 def save_community_image(request, body, member_id):
     community_id = body['community_id']
     community = Community.objects.get(id=community_id)
