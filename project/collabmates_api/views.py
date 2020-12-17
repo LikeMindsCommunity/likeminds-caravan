@@ -13852,6 +13852,7 @@ class SyncChatroomsV1(APIView):
 
         if chatroom_id:
             chatroom_data,chatroom_id_list = fetch_chatroom_id_query(chatroom_id,member_id)
+
         elif community_id:
             chatroom_data,chatroom_id_list = fetch_community_chatroom_query(community_id,page,paginate_by)
         else:
@@ -13949,8 +13950,13 @@ class SyncChatroomsV1(APIView):
             if data[38]:
                 chatroom['deleted_by'] = data[38]
 
+
             if max_last_updated < data[39]:
                 max_last_updated = data[39]
+
+
+            chatroom['community_name'] = data[40]
+
 
             chatrooms.append(chatroom)
 

@@ -652,11 +652,14 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
             togther_collabcard.og_tags,
             togther_collabcard.internal_link,
             togther_collabcard.deleted_by_user_id,
-            togther_collabcardState.updated_at
+            togther_collabcardState.updated_at,
+            togther_community.name
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 
-            and togther_collabcardState.user_id=%s  order by id  limit  %s  offset %s """%(str(user_id),str(limit),str(offset))
+            INNER JOIN togther_community
+            ON togther_community.id = togther_collabcard.community_id
+            where togther_collabcardState.user_id=%s  order by id  limit  %s  offset %s """%(str(user_id),str(limit),str(offset))
         else:
             sql = """
                    SELECT 
@@ -702,20 +705,21 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
                    togther_collabcard.og_tags,
                    togther_collabcard.internal_link,
                    togther_collabcard.deleted_by_user_id,
-                   togther_collabcardState.updated_at
+                   togther_collabcardState.updated_at,
+                   togther_community.name
                    from togther_collabcard
                    INNER JOIN togther_collabcardState
                    ON togther_collabcardState.card_id = togther_collabcard.id 
-                   and togther_collabcardState.user_id=%s and togther_collabcardState.updated_at > %s order by id  limit  %s  offset %s""" % (
+                   INNER JOIN togther_community
+                   ON togther_community.id == togther_collabcard.community_id
+                   where togther_collabcardState.user_id=%s
+                   and togther_collabcardState.updated_at > %s order by id  limit  %s  offset %s""" % (
             str(user_id), str(last_updated),str(limit), str(offset))
-
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
         conn.close()
-        for card in data:
-            if card[8] == card_types.CARD_POLL:
-                chatroom_id_list.append(card[0])
+        chatroom_id_list = get_chatroom_id_list(data)
         return data,chatroom_id_list
 
 
@@ -813,7 +817,7 @@ def fetch_chatroom_id_query(chatroom_id,user_id):
         curr = conn.cursor()
 
 
-        chatroom_id_list = []
+
 
         sql = """
             SELECT 
@@ -859,11 +863,14 @@ def fetch_chatroom_id_query(chatroom_id,user_id):
             togther_collabcard.og_tags,
             togther_collabcard.internal_link,
             togther_collabcard.deleted_by_user_id,
-            togther_collabcardState.updated_at
+            togther_collabcardState.updated_at,
+            togther_community.name
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 
-            and togther_collabcardState.user_id=%s and togther_collabcardState.card_id=%s  """ % (
+            INNER JOIN togther_community
+            ON togther_community.id = togther_collabcard.community_id
+            where togther_collabcardState.user_id=%s and togther_collabcardState.card_id=%s  """ % (
             str(user_id),str(chatroom_id))
 
 
@@ -871,8 +878,7 @@ def fetch_chatroom_id_query(chatroom_id,user_id):
         data = curr.fetchall()
         curr.close()
         conn.close()
-        for id in data:
-            chatroom_id_list.append(id[0])
+        chatroom_id_list = get_chatroom_id_list(data)
         return data, chatroom_id_list
 
 
@@ -885,7 +891,7 @@ def fetch_community_chatroom_query(community_id,page,limit):
         conn = get_connection()
         curr = conn.cursor()
 
-        chatroom_id_list = []
+
 
         offset = (int(page) - 1) * int(limit)
         sql = """
@@ -932,10 +938,13 @@ def fetch_community_chatroom_query(community_id,page,limit):
             togther_collabcard.og_tags,
             togther_collabcard.internal_link,
             togther_collabcard.deleted_by_user_id,
-            togther_collabcardState.updated_at
+            togther_collabcardState.updated_at,
+            togther_community.name
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 
+            INNER JOIN togther_community
+            ON togther_community.id = togther_collabcard.community_id
             where  togther_collabcard.community_id=%s order by id limit %s offset %s """ % (
             str(community_id),str(limit),str(offset))
 
@@ -946,15 +955,20 @@ def fetch_community_chatroom_query(community_id,page,limit):
         curr.close()
         conn.close()
 
-
-        for id in data:
-            chatroom_id_list.append(id[0])
-
+        chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
+def get_chatroom_id_list(data):
+
+    chatroom_id_list = []
+    for card in data:
+        if card[8] == card_types.CARD_POLL:
+            chatroom_id_list.append(card[0])
+
+    return chatroom_id_list
 
 if envir:
     if __name__ == "__main__":
