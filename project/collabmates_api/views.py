@@ -1915,6 +1915,9 @@ def edit_member_profile(request):
                 Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
                 collabcardState.objects.filter(card=collabcard_id,user=member_id).update(updated_at=time.time())
 
+            if question_instance.question_state == question_states.PROFILE_LINK:
+                save_profile_links_from_handles(question_instance,answer_instance)
+
     update_hidden_fields_in_questions(user_instance, community_instance)
     form_response = FormResponseSerilaizer(community_id, member_id, bl=True, current_user_id=member_id)
 
@@ -4663,9 +4666,9 @@ def collabcard(request, card_id):
             if settings.IS_BETA:
                 return redirect(
                     "https://betaweb.likeminds.community/collabcard/%s?source_id=%s&aj=%s" % (card_id, source_id, aj))
-            else:
-                return redirect(
-                    "https://web.likeminds.community/collabcard/%s?source_id=%s&aj=%s" % (card_id, source_id, aj))
+            # else:
+            #     return redirect(
+            #         "https://web.likeminds.community/collabcard/%s?source_id=%s&aj=%s" % (card_id, source_id, aj))
     else:
 
         backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
@@ -8285,6 +8288,7 @@ def upload_files(request):
         file.type = attachment_type
         file.file_url = body['url']
         file.index = body['index'] if 'index' in body else 1
+        file.dimensions = get_image_dimensions(body.get('dimensions', None))
         file.save()
 
         #updating updated_at for synching apis
@@ -8310,6 +8314,7 @@ def upload_files(request):
         file.location_name = body['location_name'] if 'location_name' in body else None
         file.location_lat = body['location_lat'] if 'location_lat' in body else None
         file.location_long = body['location_long'] if 'location_long' in body else None
+        file.dimensions = get_image_dimensions(body.get('dimensions', None))
         file.save()
 
         files_count = body['files_count'] if 'files_count' in body else 0
@@ -8345,6 +8350,7 @@ def upload_files(request):
         instance.file_url = body['url']
         instance.index = body['index'] if 'index' in body else 1
         instance.type = attachment_type
+        instance.dimensions = get_image_dimensions(body.get('dimensions', None))
         instance.save()
 
     elif 'draft_poll_id' in body and body['draft_poll_id']:
@@ -8370,6 +8376,21 @@ def upload_files(request):
 
 
     return JsonResponse(context)
+
+
+def get_image_dimensions(img_dimensions):
+
+    if img_dimensions is None:
+        return None
+
+    if isinstance(img_dimensions, str):
+        try:
+            img_dimensions = json.loads(img_dimensions)
+        except:
+            img_dimensions = ast.literal_eval(img_dimensions)
+
+        img_dimensions = json.dumps(img_dimensions)
+    return img_dimensions
 
 
 ############# functions for  login flow   ##########################
