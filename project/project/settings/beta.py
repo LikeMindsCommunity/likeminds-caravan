@@ -3,6 +3,7 @@ from .base import *
 DEBUG = False
 
 URL = os.getenv('BETA_URL')
+WEB_URL = os.getenv('BETA_WEB_URL')
 
 DB_HOST = os.getenv('BETA_DB_HOST')
 
@@ -43,6 +44,11 @@ FIREBASE_CONFIG = {
     'measurementId': "G-R2PXYC9F4S"
 }
 
+AWS_CREDENTIALS = {
+    'ACCESS_KEY': os.getenv('AWS_S3_ACCESS_KEY'),
+    'SECRET_KEY': os.getenv('AWS_S3_SECRET_KEY')
+}
+
 USE_INTERNAL_FILE_LOGGER = False
 
 CORALOGIX_LOGGER = {
@@ -53,5 +59,7 @@ CORALOGIX_LOGGER = {
 }
 
 GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"
+
+OTP_TEMPLATE_ID = '5fd9f7f1e96b780fae01acff'
 
 ADMINS = [('mahesh', 'mahesh@likeminds.community')]

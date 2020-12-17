@@ -7,6 +7,7 @@ SMSGUPSHUP_SMS_URI = 'http://enterprise.smsgupshup.com/GatewayAPI/rest?method=Se
 
 # branch
 BRANCH_QUICKLINK_URI = 'https://api2.branch.io/v1/url/bulk/%s'
+BRANCH_DECODE_URI = 'https://api2.branch.io/v1/url?url=%s&branch_key=%s'
 
 # community sereialiser links
 PRIVATE_LINK_TEXT_ADMIN_1 = 'I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s'
@@ -22,3 +23,12 @@ CUSTOM_CLICK_TEXT = '%s joined this community via a private community link on %s
 INSTAGRAM_LINK = "https://www.instagram.com/"
 TWITTER_LINK = "https://twitter.com/"
 
+COMMUNITY_JOIN_SMS = '''Congratulations, {0}! Your request to join {1} has been approved.
+
+The next step for you is to download the LikeMinds app. The app allows you to get real-time notifications, join other chatrooms, start your own chatroom, attend events, and much more. 
+
+Download app : {2}'''
+
+COMMUNITY_JOIN_SMS_REMINDER = '''Hi {0}! It’s been 3 days since you’ve been approved to join {1}. Download the LikeMinds app to get real-time notifications, join other relevant chatrooms, start your own chatroom, attend events, and much more. 
+
+Download app : {2}'''
