@@ -1,17 +1,14 @@
-from collabmates_api.utilities.request_utilities import RequestUtilities
-from .utility import is_request_web
-from utility.firebase import (upload_image_to_firebase,
-                              upload_community_thumbnail, upload_community_files)
-from togther.models import (Collabcard, Community, collabcardState,
+from utility.firebase import upload_community_thumbnail
+from togther.models import (Collabcard, Community,
                             createCommunityAction, communityUpdate, Card_Attachment,
                             draftPolls, draftChatroom, draftChatroomFiles,
-                            CollabcardPolls, card_answers, answerAttachment,)
+                            CollabcardPolls, answerAttachment)
 from django.contrib.auth.models import User
 import json
 import ast
 import time
 
-
+g
 def save_community_image(request, body, member_id):
     community_id = body['community_id']
     community = Community.objects.get(id=community_id)
@@ -104,3 +101,4 @@ def get_image_dimensions(img_dimensions):
 
         img_dimensions = json.dumps(img_dimensions)
     return img_dimensions
+
