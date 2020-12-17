@@ -3,6 +3,7 @@ from celery import shared_task
 import time
 import logging
 import psycopg2
+from utility.states import card_types
 envir=False
 #from utility.utils import custom_cache
 try:
@@ -655,7 +656,7 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 
-            and togther_collabcardState.user_id=%s  order by id  limit  %s  offset %s"""%(str(user_id),str(limit),str(offset))
+            and togther_collabcardState.user_id=%s  order by id  limit  %s  offset %s """%(str(user_id),str(limit),str(offset))
         else:
             sql = """
                    SELECT 
@@ -712,8 +713,9 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
         data = curr.fetchall()
         curr.close()
         conn.close()
-        for id in data:
-            chatroom_id_list.append(id[0])
+        for card in data:
+            if card[8] == card_types.CARD_POLL:
+                chatroom_id_list.append(card[0])
         return data,chatroom_id_list
 
 
