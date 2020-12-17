@@ -2,7 +2,8 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings,
-                            Community, removedMembers)
+                            Community, removedMembers, Member_Engage, conversationEngage,
+                            )
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -611,6 +612,18 @@ def delete_manager_right(right_id, user_instance, community_instance):
                                    community=community_instance, right=right).delete()
 
 
+def save_added_removed_rights_for_member(community_instance, user_instance, selected_rights):
+    # had to get added and removed rights for many other purposes ex: notifications
+    existing_rights = set(userMemberRights.objects.filter(community=community_instance,
+                                                          user=user_instance).values_list("right__id", flat=True))
+    rights_added, rights_removed = get_added_and_removed_rights(selected_rights=selected_rights,
+                                                                existing_rights=existing_rights)
+
+    update_member_rights(rights_added, rights_removed, community_instance, user_instance)
+
+    return rights_added, rights_removed
+
+
 def update_member_rights(rights_added, rights_removed, community_instance, user_instance):
     """ update member rights from list """
     for right_id in rights_added:
@@ -671,6 +684,7 @@ def get_manager_parents_list(admin_parents, member_parent_list, current_user_id)
     final_parent_list = json.dumps(member_parent_list)
     return final_parent_list
 
+
 def save_owner_title(custom_title, admin, community_instance, user_instance):
     """ function to update only custom title of owner"""
     if not custom_title:
@@ -694,6 +708,8 @@ def save_added_removed_rights_for_manager(community_instance, user_instance, sel
 
     update_manager_rights(rights_added, removed_rights, community_instance, user_instance)
 
+    return rights_added, removed_rights
+
 
 def get_added_and_removed_rights(selected_rights, existing_rights):
 
@@ -702,3 +718,33 @@ def get_added_and_removed_rights(selected_rights, existing_rights):
     removed_rights = existing_rights - selected_rights_list
 
     return rights_added, removed_rights
+
+
+def save_member_custom_title(custom_title, community_instance, user_instance):
+    """ function to update only custom title of owner"""
+
+    custom_title_changed = False
+    if custom_title:
+        member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+        if member_instance.exists():
+            prev_custom_title = member_instance[0].custom_title
+            custom_title = custom_title.strip()
+            if len(custom_title) <= 0:
+                custom_title = None
+            elif prev_custom_title != custom_title:
+                custom_title_changed = True
+
+            member_instance.update(custom_title=custom_title, updated_at=time.time())
+
+    return custom_title_changed
+
+
+def save_member_rights_in_enage(selected_rights, user_instance, community_instance):
+    """ function to save rights list in engage table """
+    final_rights = [right["state"] for right in selected_rights if right["is_selected"]]
+    rights_list = json.dumps(final_rights)
+    Member_Engage.objects.filter(member_id=user_instance,
+                                 community_id=community_instance).update(rights_list=rights_list)
+    conversationEngage.objects.filter(user=user_instance,
+                                      community=community_instance).update(rights_list=rights_list)
+
