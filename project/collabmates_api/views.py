@@ -1915,6 +1915,9 @@ def edit_member_profile(request):
                 Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
                 collabcardState.objects.filter(card=collabcard_id,user=member_id).update(updated_at=time.time())
 
+            if question_instance.question_state == question_states.PROFILE_LINK:
+                save_profile_links_from_handles(question_instance,answer_instance)
+
     update_hidden_fields_in_questions(user_instance, community_instance)
     form_response = FormResponseSerilaizer(community_id, member_id, bl=True, current_user_id=member_id)
 
