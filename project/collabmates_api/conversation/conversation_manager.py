@@ -15,3 +15,4 @@ class ConversationManager(metaclass=abc.ABCMeta):
         create the chatroom in a community
         """
         raise NotImplementedError
+    
