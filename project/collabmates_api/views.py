@@ -84,6 +84,10 @@ from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerialize
                        YourCommunitySerializer)
 
 from .utilities.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
+from .upload_attachments import (save_community_image, save_chatroom_attachments,
+                                 save_conversation_attachments, save_poll_attachments,
+                                 save_draft_attachments, save_draft_poll_attachments,
+                                 get_image_dimensions)
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -3244,9 +3248,9 @@ def create_card_internal(user_id, community_id, res):
 
 
 def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
-    '''function to send mail and notifications for chatroom creations'''
-    # pass
-    #sending the mails and notification of simple chatrooms without files
+    """ function to send mail and notifications for chatroom creations """
+
+    #sending the mails and notification of simple chat rooms without files
     if not card_instance.has_files:
         send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
@@ -3255,9 +3259,6 @@ def send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
                                                       card_id=card_instance.id,
                                                       community_name=card_instance.community.name,
                                                       community_state=card_instance.community.hide_community)
-
-    # if card_instance.type != card_types.CARD_INTRO:  # stopping mail for introduction cards
-    #     send_email_for_collabcard(card_instance.community, user_instance.userinfo, card_instance, card_instance.type)
 
 
 @csrf_exempt
@@ -8340,6 +8341,7 @@ def upload_files(request):
             instance.save()
         except:
             return JsonResponse({'success': False, 'error_message': "Send valid poll id"})
+
     elif 'draft_id' in body and body['draft_id']:
         attachment_type = body['type']
         draft_id = body['draft_id']
@@ -8374,23 +8376,124 @@ def upload_files(request):
     if chatroom_local:
         context['chatroom_local'] = chatroom_local.data
 
-
     return JsonResponse(context)
 
 
-def get_image_dimensions(img_dimensions):
+@csrf_exempt
+def upload_files_version_1(request):
+    """function to upload files"""
+    body = json.loads(request.body)
+    context = save_attachments(request, body)
+    return JsonResponse(context)
 
-    if img_dimensions is None:
-        return None
 
-    if isinstance(img_dimensions, str):
+def save_attachments(request, body):
+    """ save attachments for cards and conversations """
+    member_id = get_member_id_from_headers(request)
+
+    conversation = None
+    chatroom_local = None
+
+    context = {
+        'success': True,
+    }
+
+    if request.user.is_authenticated and is_request_web(request):
+        member_id = request.user.id
+
+    if 'community_id' in body and body['community_id']:
+        context = save_community_image(request, body, member_id)
+        if context is not None:
+            return context
+
+    elif 'collabcard_id' in body and body['collabcard_id']:
+        chatroom_local = upload_chatroom_attachments(body, member_id)
+
+    elif 'answer_id' in body and body['answer_id']:
+        conversation = upload_conversation_attachments(body, member_id)
+
+    elif 'poll_id' in body and body['poll_id']:
+
         try:
-            img_dimensions = json.loads(img_dimensions)
+            save_poll_attachments(body)
         except:
-            img_dimensions = ast.literal_eval(img_dimensions)
+            return {'success': False, 'error_message': "Send valid poll id"}
 
-        img_dimensions = json.dumps(img_dimensions)
-    return img_dimensions
+    elif 'draft_id' in body and body['draft_id']:
+        save_draft_attachments(body)
+
+    elif 'draft_poll_id' in body and body['draft_poll_id']:
+
+        try:
+            save_draft_poll_attachments(body)
+        except:
+            return {'success': False, 'error_message': "Send valid draft poll id"}
+
+    else:
+        context['success'] = False
+        context['error_message'] = "parameters are missing"
+
+    # sending the conversation instance if present
+    if conversation:
+        context['conversation'] = conversation
+
+    # sending the chatroom local object
+    if chatroom_local:
+        context['chatroom_local'] = chatroom_local.data
+
+    return context
+
+
+def upload_chatroom_attachments(body, member_id):
+    """ function to upload chatroom attachments """
+
+    collabcard_id = body['collabcard_id']
+
+    card_instance = Collabcard.objects.get(id=collabcard_id)
+    card_instance.has_files = True
+    card_instance.save()
+
+    save_chatroom_attachments(card_instance, body)
+
+    # updating updated_at for synching apis
+    collabcardState.objects.filter(user=member_id, card=card_instance).update(updated_at=time.time())
+    files_count = body['files_count'] if 'files_count' in body else 0
+    uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
+    if uploaded_files_count == int(files_count):
+        user_instance = User.objects.get(id=member_id)
+        send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
+
+    member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
+    chatroom_local = GetChatroomInstanceSerializer(card_instance, context=member_data, many=False)
+
+    return chatroom_local
+
+
+def upload_conversation_attachments(body, member_id):
+    """ function to upload conversation attachments """
+    answer_id = body['answer_id']
+    answer_instance = card_answers.objects.get(id=answer_id)
+    file = answerAttachment()
+    file.answer = answer_instance
+
+    save_conversation_attachments(body, answer_instance)
+
+    files_count = body['files_count'] if 'files_count' in body else 0
+
+    current_time_ms = int(round(time.time() * 1000))
+
+    # updating the last updated when posting answer
+    card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms, has_files=True)
+
+    conversation = get_conversation_instance_for_db_synching(answer_instance, current_user_id=member_id)
+
+    # saving last answer id
+    uploaded_files_count = answerAttachment.objects.filter(answer=answer_instance).count()
+    if uploaded_files_count == int(files_count):
+        update_last_answer_id(answer_instance.card.id, answer_instance.id)
+        send_follow_notification(card_id=answer_instance.card.id, user_id=answer_instance.user.id,
+                                 answer=answer_instance.answer)
+    return conversation
 
 
 ############# functions for  login flow   ##########################
@@ -12368,8 +12471,6 @@ def update_community_manager_rights(request):
         return JsonResponse(context)
 
 
-
-
 def get_added_and_removed_rights(selected_rights, existing_rights):
 
     selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
@@ -13753,7 +13854,6 @@ class SyncChatrooms(APIView):
             if max_last_updated:
                 return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
         return JsonResponse({'chatrooms': []})
-
 
 
 def fill_draft_chatrooms(draft_filter,member_id):
