@@ -72,14 +72,15 @@ class ConversationImpl(ConversationManager):
         return card_answers.objects.select_related('reply', 'preview_community',
                                                                'preview_chatroom').filter(card=self.get_chatroom_id()).order_by('id')
 
-    def _fetch_upward_conversation_queryset(self, list_size):
+    def _fetch_upward_conversation_queryset(self, list_size, conversation_id):
+
 
         return card_answers.objects.select_related('reply', 'preview_community',
-                                                               'preview_chatroom').filter(card=self.get_chatroom_id()).filter(id__lte=self.get_conversation_id()).order_by('-id')[:list_size]
+                                                               'preview_chatroom').filter(card=self.get_chatroom_id()).filter(id__lte=conversation_id).order_by('-id')[:list_size]
 
-    def _fetch_downward_conversation_queryset(self, list_size):
+    def _fetch_downward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
-                                                               'preview_chatroom').filter(card=self.get_chatroom_id()).filter(id__gt=self.get_conversation_id()).order_by('-id')[:list_size]
+                                                               'preview_chatroom').filter(card=self.get_chatroom_id()).filter(id__gt=conversation_id).order_by('-id')[:list_size]
 
     def _paged_queryset(self, conversation_filter):
         page = self.get_page()
@@ -130,8 +131,8 @@ class ConversationImpl(ConversationManager):
                 conversations = self._create_conversation_list(conversations)
             else:
 
-                upward_conversation = self._fetch_upward_conversation_queryset(10)
-                downward_conversation = self._fetch_downward_conversation_queryset(10)
+                upward_conversation = self._fetch_upward_conversation_queryset(10,last_seen.id)
+                downward_conversation = self._fetch_downward_conversation_queryset(10,last_seen.id)
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
                 conversations = conversations.order_by('id')
@@ -139,11 +140,11 @@ class ConversationImpl(ConversationManager):
 
         else:
             if self.get_scoll_direction() and int(self.get_scoll_direction()) == 0:  # upward scroll
-                upward_list = self._fetch_upward_conversation_queryset(list_size=20)
+                upward_list = self._fetch_upward_conversation_queryset(20,self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
             elif self.get_scoll_direction() and self.get_scoll_direction() == 1:  # downward scroll
-                conversations = self._fetch_downward_conversation_queryset(list_size=20)
+                conversations = self._fetch_downward_conversation_queryset(20,self.get_conversation_id())
             else:
                 conversations = self._fetch_conversation_queryset()
 
