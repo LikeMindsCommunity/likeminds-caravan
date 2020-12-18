@@ -13862,6 +13862,7 @@ class SyncChatroomsV1(APIView):
         poll_votes = {}
 
         if chatroom_id_list:
+
             poll_data = fetch_chatroom_polls(chatroom_id_list)
             poll_votes = fetch_member_poll_votes(chatroom_id_list)
 
@@ -14023,7 +14024,7 @@ class SyncChatroomsV1(APIView):
             total_member_set = set()
             temp = {}
             temp['id'] = poll_id
-            temp['title'] = data['text']
+            temp['text'] = data['text']
             temp['is_selected'] = False
             temp['member'] = data['member']
             if total_votes == 0:
