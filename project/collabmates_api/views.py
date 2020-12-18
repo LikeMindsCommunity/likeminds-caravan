@@ -14052,7 +14052,7 @@ class SyncChatroomsV1(APIView):
 
             temp['no_votes'] = count
 
-            temp['percentage'] = (count / total_votes) * 100
+            temp['percentage'] = int((count / total_votes) * 100)
 
             polls.append(temp)
 
