@@ -754,7 +754,9 @@ def fetch_chatroom_polls(chatroom_id_list):
                 togther_collabcardPolls.user_id = togther_userinfo.user_id_id where
                 togther_collabcardPolls.card_id in %s
             """%(str(chatroom_ids))
+
         curr.execute(sql)
+
         data = curr.fetchall()
         curr.close()
         conn.close()
@@ -999,6 +1001,7 @@ def get_chatroom_id_list(data):
     for card in data:
         if card[8] == card_types.CARD_POLL:
             chatroom_id_list.append(card[0])
+
 
     return chatroom_id_list
 
