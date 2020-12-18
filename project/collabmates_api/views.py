@@ -14076,7 +14076,7 @@ class SyncChatroomsV1(APIView):
             temp['id'] = poll_id
             temp['title'] = data['text']
             temp['is_selected'] = False
-            temp['member_id'] = data['member_id']
+            temp['member'] = data['member']
             if total_votes == 0:
                 temp['no_votes'] = 0
                 temp['percentage'] = 0

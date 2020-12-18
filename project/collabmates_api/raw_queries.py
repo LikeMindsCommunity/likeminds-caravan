@@ -735,7 +735,21 @@ def fetch_chatroom_polls(chatroom_id_list):
         curr = conn.cursor()
 
         chatroom_ids = tuple(chatroom_id_list)
-        sql = """select card_id, id, text, image_url,sub_text, user_id from togther_collabcardPolls where card_id in %s order by id"""%(str(chatroom_ids))
+        sql = """select 
+                togther_collabcardPolls.card_id, 
+                togther_collabcardPolls.id, 
+                togther_collabcardPolls.text, 
+                togther_collabcardPolls.image_url,
+                togther_collabcardPolls.sub_text, 
+                togther_collabcardPolls.user_id,
+                togther_userinfo.name,
+                togther_userinfo.image_link
+                from togther_collabcardPolls 
+                inner join togther_userinfo on 
+                togther_collabcardPolls.user_id = togther_userinfo.user_id_id where
+                togther_collabcardPolls.card_id in %s
+            """%(str(chatroom_ids))
+
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
@@ -752,7 +766,12 @@ def fetch_chatroom_polls(chatroom_id_list):
                     temp['image_url'] = poll[3]
                 if poll[4]:
                     temp['sub_text'] = poll[4]
-                temp['member_id'] = poll[5]
+                temp['member'] = {
+                    'id' : poll[5],
+                    'name': poll[6],
+                    'image_url': poll[7]
+
+                }
                 poll_data[card_id] = [temp]
 
             else:
@@ -764,7 +783,12 @@ def fetch_chatroom_polls(chatroom_id_list):
                     temp['image_url'] = poll[3]
                 if poll[4]:
                     temp['sub_text'] = poll[4]
-                temp['member_id'] = poll[5]
+                temp['member'] = {
+                    'id': poll[5],
+                    'name': poll[6],
+                    'image_url': poll[7]
+
+                }
                 poll_data[card_id].append(temp)
 
         return poll_data
