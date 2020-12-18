@@ -660,7 +660,7 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
             ON togther_collabcardState.card_id = togther_collabcard.id 
             INNER JOIN togther_community
             ON togther_community.id = togther_collabcard.community_id
-            where togther_collabcardState.user_id=%s  order by id  limit  %s  offset %s """%(str(user_id),str(limit),str(offset))
+            where togther_collabcardState.user_id=%s  order by togther_collabcardState.id  limit  %s  offset %s """%(str(user_id),str(limit),str(offset))
         else:
             sql = """
                    SELECT 
@@ -714,7 +714,7 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
                    INNER JOIN togther_community
                    ON togther_community.id = togther_collabcard.community_id
                    where togther_collabcardState.user_id=%s
-                   and togther_collabcardState.updated_at > %s order by id  limit  %s  offset %s""" % (
+                   and togther_collabcardState.updated_at > %s order by togther_collabcardState.id  limit  %s  offset %s""" % (
             str(user_id), str(last_updated),str(limit), str(offset))
 
         curr.execute(sql)
