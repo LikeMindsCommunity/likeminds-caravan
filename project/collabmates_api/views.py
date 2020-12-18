@@ -13850,6 +13850,13 @@ class SyncChatroomsV1(APIView):
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
 
+        draft = query_params.get('draft','')
+
+        if draft and draft == "true":
+            draft_response = self._get_draft_chatrooms(member_id,last_updated,page,paginate_by)
+            return JsonResponse(draft_response)
+
+
         if chatroom_id:
             chatroom_data,chatroom_id_list = fetch_chatroom_id_query(chatroom_id,member_id)
 
@@ -13961,6 +13968,7 @@ class SyncChatroomsV1(APIView):
 
         if max_last_updated:
             return JsonResponse({'chatrooms':chatrooms, 'max_last_updated':max_last_updated})
+        
 
         return JsonResponse({'chatrooms':chatrooms})
 
@@ -14069,5 +14077,20 @@ class SyncChatroomsV1(APIView):
 
         return co_host_list
 
+    def _get_draft_chatrooms(self,member_id, last_updated, page, paginate_by):
 
+        draft_response = {'chatrooms': []}
+
+        if last_updated:
+            draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated,user=member_id).order_by('id')
+        else:
+            draft_filter = draftChatroom.objects.filter(user=member_id).order_by('id')
+
+        draft_filter = pagination(draft_filter,page,paginate_by=paginate_by)
+        max_last_updated, chatrooms = fill_draft_chatrooms(draft_filter,member_id)
+
+        if max_last_updated:
+            draft_response = {'chatrooms': chatrooms, 'max_last_updated': max_last_updated}
+
+        return draft_response
 
