@@ -13926,7 +13926,8 @@ class SyncChatroomsV1(APIView):
                 chatroom['poll_type_text'] = "Instant poll" if  chatroom['poll_type'] == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
                 chatroom['submit_type_text'] = "Secret voting" if chatroom['is_poll_anonymous'] else "Public voting"
 
-                chatroom['polls'] = self._get_polls_v1(poll_data,chatroom['id'],poll_votes,data[29],member_id)
+                polls = self._get_polls_v1(poll_data,chatroom['id'],poll_votes,data[29],member_id)
+                chatroom['polls'] = polls
                 chatroom["expiry_time"] = data[32]
 
             if chatroom['type'] == card_types.CARD_EVENT:
