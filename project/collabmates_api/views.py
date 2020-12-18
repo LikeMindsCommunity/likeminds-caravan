@@ -13845,7 +13845,7 @@ class SyncChatroomsV1(APIView):
 
         paginate_by = query_params.get('page_size', 200)
 
-        last_updated = query_params.get('last_updated', None)
+        last_updated = query_params.get('last_updated', 0)
 
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
