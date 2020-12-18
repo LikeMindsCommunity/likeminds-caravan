@@ -13950,14 +13950,10 @@ class SyncChatroomsV1(APIView):
             if data[38]:
                 chatroom['deleted_by'] = data[38]
 
-
             if max_last_updated < data[39]:
                 max_last_updated = data[39]
 
-
             chatroom['community_name'] = data[40]
-
-
             chatrooms.append(chatroom)
 
         if max_last_updated:
@@ -14005,53 +14001,6 @@ class SyncChatroomsV1(APIView):
 
         return files
 
-    def _get_polls(self, chatroom_id,is_multi,member_id):
-
-        polls = []
-
-        polls_data = CollabcardPolls.objects.filter(card=chatroom_id).order_by('id')
-        voted_members = MemberPollVotes.objects.filter(card=chatroom_id).select_related('user','poll')
-        total_votes = voted_members.count()
-        polls = []
-        for data in polls_data:
-            poll_id = data.id
-            member_set = set()
-            count = 0
-            total_member_set=set()
-            temp = {}
-            temp['id'] = poll_id
-            temp['title'] = data.text
-            temp['is_selected'] = False
-            if total_votes == 0:
-                temp['no_votes'] = 0
-                temp['percentage'] = 0
-                polls.append(temp)
-                continue
-
-            for member in voted_members:
-
-                if member.user.id not in total_member_set:
-                    total_member_set.add(member.user.id)
-
-                if member.poll.id == poll_id:
-                    count = count + 1
-                    if member.user.id not in member_set:
-                        if member.user.id == int(member_id):
-                            temp['is_selected'] = True
-
-                        member_set.add(member.user.id)
-
-            if is_multi:
-                count = len(member_set)
-                total_votes = len(total_member_set)
-
-            temp['no_votes'] = count
-
-            temp['percentage'] = (count / total_votes) * 100
-
-            polls.append(temp)
-
-        return polls
 
     def _get_polls_v1(self,poll_data,chatroom_id,poll_votes,is_multi,member_id):
 
@@ -14105,9 +14054,6 @@ class SyncChatroomsV1(APIView):
             polls.append(temp)
 
         return polls
-
-
-
 
     def _get_co_hosts(self,co_hosts):
 
