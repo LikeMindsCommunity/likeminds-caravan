@@ -606,7 +606,8 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
         curr = conn.cursor()
 
         offset = (int(page) - 1) * int(limit)
-        chatroom_id_list = []
+
+        last_updated = int(last_updated)
         if not last_updated:
             sql="""
             SELECT 
@@ -715,6 +716,7 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
                    where togther_collabcardState.user_id=%s
                    and togther_collabcardState.updated_at > %s order by id  limit  %s  offset %s""" % (
             str(user_id), str(last_updated),str(limit), str(offset))
+
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
@@ -734,7 +736,10 @@ def fetch_chatroom_polls(chatroom_id_list):
         conn = get_connection()
         curr = conn.cursor()
 
-        chatroom_ids = tuple(chatroom_id_list)
+        if len(chatroom_id_list) == 1:
+            chatroom_ids = "(" + str(chatroom_id_list[0]) + ")"
+        else:
+            chatroom_ids = tuple(chatroom_id_list)
         sql = """select 
                 togther_collabcardPolls.card_id, 
                 togther_collabcardPolls.id, 
@@ -749,7 +754,6 @@ def fetch_chatroom_polls(chatroom_id_list):
                 togther_collabcardPolls.user_id = togther_userinfo.user_id_id where
                 togther_collabcardPolls.card_id in %s
             """%(str(chatroom_ids))
-
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
@@ -802,7 +806,11 @@ def fetch_member_poll_votes(chatroom_id_list):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        chatroom_ids = tuple(chatroom_id_list)
+        if len(chatroom_id_list) == 1:
+            chatroom_ids = "("+str(chatroom_id_list[0])+")"
+        else:
+            chatroom_ids = tuple(chatroom_id_list)
+
         sql = """select card_id,poll_id,user_id from togther_memberPollVotes where card_id in %s"""%(str(chatroom_ids))
         curr.execute(sql)
         data = curr.fetchall()
@@ -993,6 +1001,7 @@ def get_chatroom_id_list(data):
             chatroom_id_list.append(card[0])
 
     return chatroom_id_list
+
 
 if envir:
     if __name__ == "__main__":
