@@ -8405,8 +8405,9 @@ def save_attachments(request):
         'success': True,
     }
 
-    if request.user.is_authenticated and is_request_web(request):
-        member_id = request.user.id
+    if is_request_web(request):
+        if request.user.is_authenticated:
+            member_id = request.user.id
 
     body = json.loads(request.body)
 
