@@ -327,3 +327,11 @@ MENU = {
 
 BRANCH_LINK_PREFIX_ANDROID = 'likeminds://' + SERVER_URL[8:]
 BRANCH_LINK_PREFIX_IOS = 'collabmates://' + SERVER_URL[8:]
+
+NOTIFICATION_SUB_TITLE_FOR_CM_REMOVED = "You no longer have any community management rights. Consider highlighting this to your Community Manager if you think this was accidental or if you want to know why."
+ENABLE_MANAGER_RIGHT_VIEW_CONTACT_INFO = "Congratulations! The Community Manager has conferred you privilege to “View Members Contact Information”"
+ENABLE_MANAGER_RIGHT_EDIT_COMMUNITY = "Congratulations! The Community Manager has conferred you privilege to “Edit Community Details”"
+ENABLE_MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS = "Congratulations! The Community Manager has conferred you privilege to “Approve or Remove Members”"
+ENABLE_MANAGER_RIGHT_DELETE_ROOMS = "Congratulations! The Community Manager has conferred you privilege to “Delete Chat room or Responses”"
+ENABLE_MANAGER_ADD_MANAGER_RIGHT = "Congratulations! The Community Manager has conferred you privilege to “Add Community Managers”."
+

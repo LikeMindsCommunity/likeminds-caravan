@@ -2,11 +2,14 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings,
-                            Community, removedMembers)
+                            Community, removedMembers, Member_Engage, conversationEngage,
+                            )
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
 from django.contrib.auth.models import User
 from django.db.models import Q
 from .static_text import *
+import json
+import time
 
 import  logging
 
@@ -589,4 +592,159 @@ def remove_all_manager_rights(community, user):
         info_logger.info("manager rights does not exist to delete")
 
 
+def update_manager_rights(rights_added, rights_removed, community_instance, user_instance):
+    """ update manager rights from list """
+    for right_id in rights_added:
+        save_manager_right(right_id, user_instance, community_instance)
+
+    for right_id in rights_removed:
+        delete_manager_right(right_id, user_instance, community_instance)
+
+
+def save_manager_right(right_id, user_instance, community_instance):
+    right = adminRights.objects.get(pk=right_id)
+    userAdminRights(user=user_instance, community=community_instance, right=right).save()
+
+
+def delete_manager_right(right_id, user_instance, community_instance):
+    right = adminRights.objects.get(pk=right_id)
+    userAdminRights.objects.filter(user=user_instance,
+                                   community=community_instance, right=right).delete()
+
+
+def save_added_removed_rights_for_member(community_instance, user_instance, selected_rights):
+    # had to get added and removed rights for many other purposes ex: notifications
+    existing_rights = set(userMemberRights.objects.filter(community=community_instance,
+                                                          user=user_instance).values_list("right__id", flat=True))
+    rights_added, rights_removed = get_added_and_removed_rights(selected_rights=selected_rights,
+                                                                existing_rights=existing_rights)
+
+    update_member_rights(rights_added, rights_removed, community_instance, user_instance)
+
+    return rights_added, rights_removed
+
+
+def update_member_rights(rights_added, rights_removed, community_instance, user_instance):
+    """ update member rights from list """
+    for right_id in rights_added:
+        save_member_right(right_id, user_instance, community_instance)
+
+    for right_id in rights_removed:
+        delete_member_right(right_id, user_instance, community_instance)
+
+
+def save_member_right(right_id, user_instance, community_instance):
+    right = memberRights.objects.get(pk=right_id)
+    userMemberRights(user=user_instance, community=community_instance, right=right).save()
+
+
+def delete_member_right(right_id, user_instance, community_instance):
+    right = memberRights.objects.get(pk=right_id)
+    userMemberRights.objects.filter(user=user_instance,
+                                    community=community_instance, right=right).delete()
+
+
+def get_manager_custom_title(member_instance, custom_title, is_member_already_promoter):
+    """ function get community managers custom title """
+    custom_title_changed = False
+    if not custom_title:
+        if not is_member_already_promoter:
+            custom_title = "Community Manager"
+        else:
+            custom_title = member_instance.custom_title
+
+    elif not is_member_already_promoter and custom_title:
+        custom_title = custom_title.strip()
+
+        if len(custom_title) <= 0:
+            custom_title = None
+        elif custom_title == 'Member':
+            custom_title = "Community Manager"
+
+    elif is_member_already_promoter and custom_title:
+        custom_title = custom_title.strip()
+        prev_custom_title = member_instance.custom_title
+
+        if len(custom_title) <= 0:
+            custom_title = None
+        elif prev_custom_title != custom_title:
+            custom_title_changed = True
+
+    return custom_title, custom_title_changed
+
+
+def get_manager_parents_list(admin_parents, member_parent_list, current_user_id):
+    for parent_id in admin_parents:
+        if parent_id not in member_parent_list:
+            member_parent_list.append(parent_id)
+    # adding current user as parent
+    if current_user_id not in member_parent_list:
+        member_parent_list.append(current_user_id)
+
+    final_parent_list = json.dumps(member_parent_list)
+    return final_parent_list
+
+
+def save_owner_title(custom_title, admin, community_instance, user_instance):
+    """ function to update only custom title of owner"""
+    if not custom_title:
+        custom_title = admin[0].custom_title
+    Members.objects.filter(community_id=community_instance,
+                           member_id=user_instance).update(state=member_states.ADMIN,
+                                                           custom_title=custom_title,
+                                                           updated_at=time.time())
+    # updating time for all members of community
+    Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+    return
+
+
+def save_added_removed_rights_for_manager(community_instance, user_instance, selected_rights):
+    # had to get added and removed rights for many other purposes ex: notifications
+    existing_rights = set(userAdminRights.objects.filter(community=community_instance,
+                                                         user=user_instance).values_list("right__id", flat=True))
+    # getting list of rights added and rights removed when compared to existing rights
+    rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
+                                                                existing_rights=existing_rights)
+
+    update_manager_rights(rights_added, removed_rights, community_instance, user_instance)
+
+    return rights_added, removed_rights
+
+
+def get_added_and_removed_rights(selected_rights, existing_rights):
+
+    selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
+    rights_added = selected_rights_list - existing_rights
+    removed_rights = existing_rights - selected_rights_list
+
+    return rights_added, removed_rights
+
+
+def save_member_custom_title(custom_title, community_instance, user_instance):
+    """ function to update only custom title of owner"""
+
+    custom_title_changed = False
+    if custom_title:
+        member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+        if member_instance.exists():
+            prev_custom_title = member_instance[0].custom_title
+            custom_title = custom_title.strip()
+            if len(custom_title) <= 0:
+                custom_title = None
+            elif prev_custom_title != custom_title:
+                custom_title_changed = True
+
+            member_instance.update(custom_title=custom_title, updated_at=time.time())
+
+    return custom_title_changed
+
+
+def save_member_rights_in_enage(selected_rights, user_instance, community_instance):
+    """ function to save rights list in engage table """
+    final_rights = [right["state"] for right in selected_rights if right["is_selected"]]
+    rights_list = json.dumps(final_rights)
+    Member_Engage.objects.filter(member_id=user_instance,
+                                 community_id=community_instance).update(rights_list=rights_list)
+    conversationEngage.objects.filter(user=user_instance,
+                                      community=community_instance).update(rights_list=rights_list)
 
