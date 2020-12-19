@@ -752,7 +752,8 @@ def fetch_chatroom_polls(chatroom_id_list):
                 from togther_collabcardPolls 
                 inner join togther_userinfo on 
                 togther_collabcardPolls.user_id = togther_userinfo.user_id_id where
-                togther_collabcardPolls.card_id in %s
+                togther_collabcardPolls.card_id in %s 
+                order by togther_collabcardPolls.id
             """%(str(chatroom_ids))
 
         curr.execute(sql)
