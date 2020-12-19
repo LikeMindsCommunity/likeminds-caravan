@@ -5454,8 +5454,6 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
                                                          community_instance=ans.preview_community,
                                                          chatroom_instance=ans.preview_chatroom,
                                                          send_preview_text=False)
-                if is_ios:
-                    context['answer'] = context['answer'] + f"\n{ans.internal_link}"
             except Exception as e:
                 error_logger.error(e.args)
 
@@ -5661,8 +5659,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                                   community_instance=card_instance.preview_community,
                                                   chatroom_instance=card_instance.preview_chatroom,
                                                   send_preview_text=False)
-            if is_ios:
-                card['title'] = card['title'] + f"\n{card_instance.internal_link}"
         except Exception as e:
             error_logger.error(e.args)
 
@@ -5841,8 +5837,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
                                                   community_instance=card_instance.preview_community,
                                                   chatroom_instance=card_instance.preview_chatroom,
                                                   send_preview_text=False)
-            if is_ios:
-                card['title'] = card['title'] + f"\n{card_instance.internal_link}"
         except Exception as e:
             error_logger.error(e.args)
 
@@ -7782,8 +7776,6 @@ def get_chatrooms(chatroom_list, member_id,active = None, is_ios=False):
                 chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
                                                community_instance=card_instance.preview_community,
                                                chatroom_instance=card_instance.preview_chatroom, send_preview_text=False)
-                if is_ios:
-                    chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
             except Exception as e:
                 error_logger.error(e.args)
 
@@ -7826,8 +7818,6 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None, is_ios=False
                                                                    community_instance=card_instance.preview_community,
                                                                    chatroom_instance=card_instance.preview_chatroom,
                                                                    send_preview_text=False)
-                if is_ios:
-                    chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
             except Exception as e:
                 error_logger.error(e.args)
         last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
@@ -7874,8 +7864,6 @@ def get_chatrooms_version_2(chatroom_list, member_id,active = None, is_ios=False
                                                                    community_instance=card_instance.preview_community,
                                                                    chatroom_instance=card_instance.preview_chatroom,
                                                                    send_preview_text=False)
-                if is_ios:
-                    chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
             except Exception as e:
                 error_logger.error(e.args)
         last_response_members = get_member_images_of_chatroom(conversation_filter)
