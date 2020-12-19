@@ -331,3 +331,4 @@ class LevelClickStates:
     COMMUNITY_JOINED = 2
 
 level_click_states = LevelClickStates()
+
