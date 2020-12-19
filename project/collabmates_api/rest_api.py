@@ -509,6 +509,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     del data['has_been_named']
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
+
                 try:
                     data['preview'] = get_preview_for_url(member_id=self.current_user_id,
                                                       preview_url=data['internal_link'])

@@ -13719,7 +13719,7 @@ class SyncChatrooms(APIView):
         else:
 
             if not last_updated:
-                state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
+                state_filter = collabcardState.objects.filter(user=member_id).prefetch_related('card').order_by('id')
 
             else:
                 state_filter = collabcardState.objects.filter(user=member_id,
@@ -13830,6 +13830,267 @@ class SyncCommunities(APIView):
         return JsonResponse({'communities': temp.data})
 
 
+class SyncChatroomsV1(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+        member_id = get_member_id_from_headers(request)
+        if not member_id:
+            context = get_error_context(False, "send member id in headers")
+            return JsonResponse(context)
+        query_params = request.query_params
+
+        page = query_params.get('page', 1)
+        page = int(page)
+
+        paginate_by = query_params.get('page_size', 200)
+
+        last_updated = query_params.get('last_updated', 0)
+
+        chatroom_id = query_params.get('chatroom_id', '')
+        community_id = query_params.get('community_id', '')
+
+        draft = query_params.get('draft','')
+
+        if draft and draft == "true":
+            draft_response = self._get_draft_chatrooms(member_id,last_updated,page,paginate_by)
+            return JsonResponse(draft_response)
 
 
+        if chatroom_id:
+            chatroom_data,chatroom_id_list = fetch_chatroom_id_query(chatroom_id,member_id)
+
+        elif community_id:
+            chatroom_data,chatroom_id_list = fetch_community_chatroom_query(community_id,page,paginate_by)
+        else:
+            chatroom_data,chatroom_id_list = fetch_chatrooms_query(member_id,paginate_by,page,last_updated)
+
+        poll_data = {}
+        poll_votes = {}
+
+        if chatroom_id_list:
+
+            poll_data = fetch_chatroom_polls(chatroom_id_list)
+            poll_votes = fetch_member_poll_votes(chatroom_id_list)
+
+        chatrooms = []
+
+        max_last_updated =0
+        for data in chatroom_data:
+            chatroom = {}
+            chatroom['id'] = data[0]
+            chatroom['title'] = data[1]
+            chatroom['community_id'] = data[2]
+            chatroom['answer_text'] = data[3]
+            chatroom['image_count'] = data[4]
+            chatroom['pdf_count'] = data[5]
+            chatroom['video_count'] = data[6]
+            chatroom['audio_count'] = data[7]
+            chatroom['type'] = data[8]
+            chatroom['date_time'] = data[9]
+            chatroom['is_pending'] =  data[10]
+            chatroom['attending_count'] = data[11]
+            chatroom['polls_count'] = data[12]
+            chatroom['date_epoch'] = data[13]
+            chatroom['card_creation_time'] = time.strftime('%I:%M %p', time.localtime(chatroom['date_epoch']))
+            chatroom['created_at'] = time.strftime('%H:%M', time.localtime(chatroom['date_epoch']))
+            chatroom['date'] = time.strftime('%d %b %Y', time.localtime(chatroom['date_epoch']))
+            chatroom['member_id'] = data[14]
+
+            if member_id and chatroom['member_id'] == int(member_id):
+                chatroom['has_been_named'] = data[15]
+
+            chatroom['header'] = self._get_header(data[16],chatroom['title'])
+
+            chatroom['state'] = data[17]
+            chatroom['mute_status'] = data[18]
+            chatroom['follow_status'] = data[19]
+            chatroom['is_guest'] = data[20]
+            chatroom['is_tagged'] = data[21]
+
+            if data[22]:
+                chatroom['last_seen_conversation'] = data[22]
+
+            chatroom['chatroom_expiry_time'] = data[23]
+            chatroom['attending_status'] = data[24]
+
+            chatroom_files = self._get_chatroom_files(chatroom['id'],data[25])
+            chatroom['images'] = chatroom_files['images']
+            chatroom['pdf'] = chatroom_files['pdf']
+            chatroom['audios'] = chatroom_files['audios']
+            chatroom['videos'] = chatroom_files['videos']
+
+            if chatroom['type'] == card_types.CARD_POLL:
+
+                chatroom['is_poll_anonymous'] = data[26]
+                chatroom['allow_add_option'] = data[27]
+                if data[28] is not None:
+                    chatroom['multiple_select_state'] = data[28]
+                if data[29]:
+                    chatroom['multiple_select_no'] = data[29]
+                chatroom['is_anonymous'] = data[30]
+                chatroom['poll_type'] = data[31]
+                chatroom['poll_type_text'] = "Instant poll" if  chatroom['poll_type'] == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+                chatroom['submit_type_text'] = "Secret voting" if chatroom['is_poll_anonymous'] else "Public voting"
+
+                polls = self._get_polls_v1(poll_data,chatroom['id'],poll_votes,data[29],member_id)
+                if polls:
+                    chatroom['polls'] = polls
+                chatroom["expiry_time"] = data[32]
+
+            if chatroom['type'] == card_types.CARD_EVENT:
+                if data[33]:
+                    chatroom['about'] = data[33]
+                if data[34]:
+                    chatroom['co_hosts_id'] = self._get_co_hosts(data[34])
+                if data[35]:
+                    chatroom['online_link'] = data[35]
+
+                if data[32] > 0 :
+                    chatroom['end_date'] = data[32]
+
+            if data[36]:
+                chatroom['og_tags'] = json.loads(data[36])
+
+            if data[37]:
+
+                chatroom['preview'] = get_preview_for_url(member_id=member_id,
+                                                      preview_url=data[37],
+                                                      send_preview_text=False)
+            if data[38]:
+                chatroom['deleted_by'] = data[38]
+
+            if max_last_updated < data[39]:
+                max_last_updated = data[39]
+
+            chatroom['community_name'] = data[40]
+            chatrooms.append(chatroom)
+
+        if max_last_updated:
+            return JsonResponse({'chatrooms':chatrooms, 'max_last_updated':max_last_updated})
+        
+
+        return JsonResponse({'chatrooms':chatrooms})
+
+    def _get_header(self,header,title):
+
+        if header:
+            return header
+
+        if len(title) <= 30:
+            return title[:30]
+
+        return title[:27] + "..."
+
+    def _get_chatroom_files(self,chatroom_id,has_files):
+
+        files = {
+            'images' : [],
+            'pdf' : [],
+            'audios' : [],
+            'videos' : []
+        }
+
+        if has_files:
+            files_filter = Card_Attachment.objects.filter(collabcard=chatroom_id).order_by('id')
+
+            for file in files_filter:
+
+                if file.type == "image":
+                   img  = {'image_url': file.file_url, 'index': file.index}
+                   files['images'].append(img)
+                elif file.type == "pdf":
+                    pdf = {'pdf_file': file.file_url, 'index': file.index}
+                    files['pdf'].append(pdf)
+                elif file.type == "audio":
+                    audio_file = {'audio_url': file.file_url, 'index': file.index}
+                    files['audios'].append(audio_file)
+                elif file.type == "video":
+                    video_file = {'video_url': file.file_url, 'index': file.index}
+                    files['videos'].append(video_file)
+
+
+        return files
+
+
+    def _get_polls_v1(self,poll_data,chatroom_id,poll_votes,is_multi,member_id):
+
+        chatroom_poll_data = poll_data.get(chatroom_id)
+        chatroom_votes = poll_votes.get(chatroom_id)
+
+        if not chatroom_poll_data:
+            chatroom_poll_data = []
+
+        if not chatroom_votes:
+            chatroom_votes = []
+
+        total_votes = len(chatroom_votes)
+        polls = []
+        for data in chatroom_poll_data:
+
+            poll_id = data['id']
+            member_set = set()
+            count = 0
+            total_member_set = set()
+            temp = {}
+            temp['id'] = poll_id
+            temp['text'] = data['text']
+            temp['is_selected'] = False
+            temp['member'] = data['member']
+            if total_votes == 0:
+                temp['no_votes'] = 0
+                temp['percentage'] = 0
+                polls.append(temp)
+                continue
+            for member in chatroom_votes:
+
+                if member['user_id'] not in total_member_set:
+                    total_member_set.add(member['user_id'])
+
+                if member['poll_id'] == poll_id:
+                    count = count + 1
+                    if  member['user_id']  not in member_set:
+                        if member['user_id'] == int(member_id):
+                            temp['is_selected'] = True
+                        member_set.add(member['user_id'])
+
+            if is_multi:
+                count = len(member_set)
+                total_votes = len(total_member_set)
+
+            temp['no_votes'] = count
+
+            temp['percentage'] = int((count / total_votes) * 100)
+
+            polls.append(temp)
+
+        return polls
+
+    def _get_co_hosts(self,co_hosts):
+
+        co_hosts = json.loads(co_hosts)
+        co_host_list =[]
+        for member in co_hosts:
+            temp = {}
+            temp['id'] = member
+            co_host_list.append(temp)
+
+        return co_host_list
+
+    def _get_draft_chatrooms(self,member_id, last_updated, page, paginate_by):
+
+        draft_response = {'chatrooms': []}
+
+        if last_updated:
+            draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated,user=member_id).order_by('id')
+        else:
+            draft_filter = draftChatroom.objects.filter(user=member_id).order_by('id')
+
+        draft_filter = pagination(draft_filter,page,paginate_by=paginate_by)
+        max_last_updated, chatrooms = fill_draft_chatrooms(draft_filter,member_id)
+
+        if max_last_updated:
+            draft_response = {'chatrooms': chatrooms, 'max_last_updated': max_last_updated}
+
+        return draft_response
 
