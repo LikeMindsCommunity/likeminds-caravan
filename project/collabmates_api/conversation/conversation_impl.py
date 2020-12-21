@@ -17,9 +17,6 @@ class ConversationImpl(ConversationManager):
     page = None
     paginate_by=None
 
-
-
-
     def __init__(self, member_id: str, chatroom_id: str, scroll_direction: str, conversation_id: str,page: str,paginate_by: str):
 
         self.member_id = member_id
