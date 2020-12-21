@@ -13394,7 +13394,7 @@ class SyncChatrooms(APIView):
         member_id = get_member_id_from_headers(request)
         if not member_id:
             context = get_error_context(False, "send member id in headers")
-            return JsonResponse(context,status=400)
+            return JsonResponse(context,status=status_codes.HTTP_400_BAD_REQUEST)
         query_params = request.query_params
 
         page = query_params.get('page', 1)
