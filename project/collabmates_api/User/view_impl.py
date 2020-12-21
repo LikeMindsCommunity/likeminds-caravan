@@ -23,6 +23,7 @@ class DeleteUserView(APIView):
                     'success':False,
                     'error_message': "send correct request credentials for beta server"
                 }, status=400)
+
             else:
                 api_response = {
                     'success':False,
