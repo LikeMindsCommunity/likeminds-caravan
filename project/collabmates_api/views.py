@@ -6,7 +6,6 @@ from datetime import datetime
 from urllib.parse import unquote, quote, parse_qsl, parse_qs, urlsplit
 import googlemaps
 import requests as rqst
-from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
@@ -809,7 +808,6 @@ def community(request, community_id, req_dict=None):
                                                 current_user_instance=current_user_instance)
 
     community_state = get_state_of_community(community)
-
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
@@ -3640,11 +3638,16 @@ def chatroom_delete(request):
         if (disallow_create_chatroom or disallow_create_chatroom == "true") and\
                 not member_is_promoter:
 
-            remove_member_create_room_right(card_creator, community_instance)
+            remove_member_create_room_right(card_creator, community_instance,
+                                            current_user_id=member_id)
 
             save_moderation_history(user=card_creator, community=community_instance,
                                     moderation_by=current_user_instance,
                                     type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+
+            update_rights_history_for_creation_rights_removed.delay(member_id,
+                                                                    community_instance.id,
+                                                                    card_creator.id)
 
         # updates last seen count after card is deleted
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
@@ -12510,6 +12513,9 @@ def remove_community_manager(request):
                                 type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
         # updating time for all members of community
         Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+
+        restore_member_rights_from_history(user_instance, community_instance)
+
         info_logger.info(f"REMOVE_COMMUNITY_MANAGER_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
         send_notification_for_removed_cm.delay(user_id, community_id)
@@ -12594,16 +12600,24 @@ def transfer_community_ownership(request):
             context = get_error_context(False, "you are not the owner of the community")
             return JsonResponse(context)
 
-        previous_owner_title = "Owner"
+        new_owner = Members.objects.filter(community_id=community_instance,
+                                           member_id=user_instance)
+
+        new_owner_title = "Owner"
+        if new_owner.exists() and new_owner[0].custom_title:
+            new_owner_title = new_owner[0].custom_title
+            if new_owner_title == "Community Manager" or new_owner_title == "Member":
+                new_owner_title = "Owner"
+
+        previous_owner_title = "Community Manager"
         if admin[0].custom_title:
             previous_owner_title = admin[0].custom_title
-
-            if previous_owner_title == "Community Manager" or previous_owner_title == "Member":
-                previous_owner_title = "Owner"
+            if previous_owner_title == "Owner":
+                previous_owner_title = "Community Manager"
 
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
-                                                               custom_title=previous_owner_title, parent_cm=None,
+                                                               custom_title=new_owner_title, parent_cm=None,
                                                                parent_cm_list=None,
                                                                updated_at=time.time())
 
@@ -12617,7 +12631,7 @@ def transfer_community_ownership(request):
         give_all_manager_rights(user_instance, community_instance)  # for new owner
         # current owner
         parent_cm_list = json.dumps([str(user_id)])
-        admin.update(is_owner=False, custom_title="Community Manager",
+        admin.update(is_owner=False, custom_title=previous_owner_title,
                      parent_cm=user_instance, parent_cm_list=parent_cm_list,
                      updated_at=time.time())
 
@@ -12760,7 +12774,7 @@ def update_community_member_rights(request):
         # saving custom title for member
         custom_title_changed = save_member_custom_title(custom_title, community_instance, user_instance)
         # saving members rights list in engage table
-        save_member_rights_in_enage(selected_rights, user_instance, community_instance)
+        save_member_rights_in_engage(selected_rights, user_instance, community_instance)
 
         if len(selected_rights) > 0:
             save_moderation_history(user=user_instance, community=community_instance,
@@ -12782,6 +12796,8 @@ def update_community_member_rights(request):
             send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                              community_id=community_id,
                                                              custom_title=custom_title)
+
+        update_member_rights_history.delay(rights_added, rights_removed, current_user_id, community_id, user_id)
 
         return JsonResponse({'success': True})
     else:
@@ -13139,9 +13155,17 @@ def action_pending_chatroom(request):
         if pre_approve == "true" or\
                 pre_approve is True:
 
-            give_member_auto_approve_right(user=chatroom_creator, community=community_instance)
+            give_member_auto_approve_right(user=chatroom_creator, community=community_instance,
+                                           current_user_instance=current_user_instance)
+            update_rights_history_for_creation_rights_given.delay(current_user_id,
+                                                                  community_instance.id,
+                                                                  chatroom_creator.id)
         else:
-            remove_member_create_room_right(user=chatroom_creator, community=community_instance)
+            remove_member_create_room_right(user=chatroom_creator, community=community_instance,
+                                            current_user_id=current_user_id)
+            update_rights_history_for_creation_rights_removed.delay(current_user_id,
+                                                                    community_instance.id,
+                                                                    chatroom_creator.id)
 
         current_user_instance = User.objects.get(pk=current_user_id)
         save_moderation_history(user=chatroom_creator, community=community_instance,
@@ -13333,7 +13357,7 @@ def update_community_rights(request):
                 communityRightsSettings(community=community_instance, right=right).save()
                 give_right_to_all_members(community=community_instance, right=right)
             except:
-                print("rights already exists")
+                error_logger.error("rights already exists for commnunity {community_id} in community settings")
 
         for right_id in removed_rights:
             # if right is removed, the right is disabled for all the members

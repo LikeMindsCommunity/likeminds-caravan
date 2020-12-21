@@ -1217,6 +1217,7 @@ class userAdminRights(models.Model):
     class Meta:
         unique_together = (('user', 'community', 'right'),)
 
+
 class userMemberRights(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
@@ -1224,6 +1225,7 @@ class userMemberRights(models.Model):
 
     class Meta:
         unique_together = (('user', 'community', 'right'),)
+
 
 class moderationHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -1259,7 +1261,6 @@ class blockedMembers(models.Model):
         unique_together = (('blocked_by', 'blocked_member', 'community'),)
 
 
-
 class userDevices(models.Model):
 
     '''class to store the devices of user when the user installs the app'''
@@ -1278,4 +1279,19 @@ class userDevices(models.Model):
             self.created_at = time.time()
         super(userDevices, self).save(*args, **kwargs)
 
+
+class userMemberRightsHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    right = models.ForeignKey(memberRights, on_delete=models.CASCADE)
+    enabled_by_CM = models.BooleanField(default=False, null=True)
+    updated_CM = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='manager_who_updated')
+    updated_time = models.BigIntegerField(default=0, null=True)
+
+    class Meta:
+        unique_together = (('user', 'community', 'right'),)
+
+    def save(self, *args, **kwargs):
+        self.updated_time = time.time()
+        super(userMemberRightsHistory, self).save(*args, **kwargs)
 
