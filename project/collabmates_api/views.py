@@ -3360,7 +3360,8 @@ def create_draft_collabcard(request, res=None):
         poll_instance.save()
 
     chatroom = draftChatroomSerializer(card, user_instance)
-
+    chatroom['updated_at'] = time.time()
+    chatroom['is_draft'] = True
     engage_filter = conversationEngage.objects.filter(user=user_instance, draft=card)
 
     if not engage_filter.exists():
