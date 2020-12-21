@@ -8,7 +8,7 @@ from collabmates_api import rest_api as rest_views
 #for testing email templates only remove.  in prod/beta
 from django.views.generic import TemplateView
 from .notification import send_test_notification
-
+from .client_testing import delete_user
 urlpatterns = [
     #for testing email templates only. remove in prod/beta
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
@@ -232,6 +232,7 @@ urlpatterns = [
 
     path('block_member', api_views.block_member, name='block_member'),
     path('send_test_notification', send_test_notification, name='send_test_notification'),
+    path('delete_user',delete_user,name='delete_user')
 ]
 
 app_name = 'collabmates_api'
