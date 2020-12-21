@@ -234,7 +234,6 @@ urlpatterns = [
     path('send_test_notification', send_test_notification, name='send_test_notification'),
     path('user/', include('collabmates_api.User.urls'))
 
-    
 ]
 
 app_name = 'collabmates_api'
