@@ -5454,8 +5454,6 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
                                                          community_instance=ans.preview_community,
                                                          chatroom_instance=ans.preview_chatroom,
                                                          send_preview_text=False)
-                if is_ios:
-                    context['answer'] = context['answer'] + f"\n{ans.internal_link}"
             except Exception as e:
                 error_logger.error(e.args)
 
@@ -5661,8 +5659,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                                   community_instance=card_instance.preview_community,
                                                   chatroom_instance=card_instance.preview_chatroom,
                                                   send_preview_text=False)
-            if is_ios:
-                card['title'] = card['title'] + f"\n{card_instance.internal_link}"
         except Exception as e:
             error_logger.error(e.args)
 
@@ -5841,8 +5837,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
                                                   community_instance=card_instance.preview_community,
                                                   chatroom_instance=card_instance.preview_chatroom,
                                                   send_preview_text=False)
-            if is_ios:
-                card['title'] = card['title'] + f"\n{card_instance.internal_link}"
         except Exception as e:
             error_logger.error(e.args)
 
@@ -7782,8 +7776,6 @@ def get_chatrooms(chatroom_list, member_id,active = None, is_ios=False):
                 chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
                                                community_instance=card_instance.preview_community,
                                                chatroom_instance=card_instance.preview_chatroom, send_preview_text=False)
-                if is_ios:
-                    chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
             except Exception as e:
                 error_logger.error(e.args)
 
@@ -7826,8 +7818,6 @@ def get_chatrooms_version_1(chatroom_list, member_id,active = None, is_ios=False
                                                                    community_instance=card_instance.preview_community,
                                                                    chatroom_instance=card_instance.preview_chatroom,
                                                                    send_preview_text=False)
-                if is_ios:
-                    chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
             except Exception as e:
                 error_logger.error(e.args)
         last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
@@ -7874,8 +7864,6 @@ def get_chatrooms_version_2(chatroom_list, member_id,active = None, is_ios=False
                                                                    community_instance=card_instance.preview_community,
                                                                    chatroom_instance=card_instance.preview_chatroom,
                                                                    send_preview_text=False)
-                if is_ios:
-                    chatroom_instance["title"] = chatroom_instance["title"] + f"\n{card_instance.internal_link}"
             except Exception as e:
                 error_logger.error(e.args)
         last_response_members = get_member_images_of_chatroom(conversation_filter)
@@ -12244,41 +12232,20 @@ def update_community_manager_rights(request):
                                              is_owner=True).exists()  # who's rights are being updated
     if admin.exists():
         if member_is_owner:
-            # if user id and current_user_id are same..its probably the owner
-            # bcz no other can edit their own custom title or rights
             log = f"UPDATING_CM_RIGHTS_FOR_OWNER - community_id = {community_id}" \
                   f" current_user id = {current_user_id} user = {user_id}"
             info_logger.info(log)
 
-            if not custom_title:
-                custom_title = admin[0].custom_title
-            Members.objects.filter(community_id=community_instance,
-                                   member_id=user_instance).update(state=member_states.ADMIN,
-                                                                   custom_title=custom_title,
-                                                                   updated_at=time.time())
-            # updating time for all members of community
-            Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+            save_owner_title(custom_title, admin, community_instance, user_instance)
             return JsonResponse({'success': True})
 
-        # had to get added and removed rights for many other purposes ex: notifications
-        existing_rights = set(userAdminRights.objects.filter(community=community_instance,
-                                                             user=user_instance).values_list("right__id", flat=True))
-        # getting list of rights added and rights removed when compared to existing rights
-        rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
-                                                                    existing_rights=existing_rights)
-
-        for right_id in rights_added:
-            right = adminRights.objects.get(pk=right_id)
-            userAdminRights(user=user_instance, community=community_instance, right=right).save()
-
-        for right_id in removed_rights:
-            right = adminRights.objects.get(pk=right_id)
-            userAdminRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
+        rights_added, removed_rights = save_added_removed_rights_for_manager(community_instance,
+                                                                             user_instance,
+                                                                             selected_rights)
 
         if int(user_id) != int(current_user_id):
             member = Members.objects.filter(member_id=user_instance,
                                             community_id=community_instance)
-            member_instance = None
             if member.exists():
                 member_instance = member[0]
             else:
@@ -12286,30 +12253,9 @@ def update_community_manager_rights(request):
                 return JsonResponse(context)
 
             is_member_already_promoter = member_instance.state == member_states.ADMIN
-            custom_title_changed = False
 
-            if not custom_title:
-                if not is_member_already_promoter:
-                    custom_title = "Community Manager"
-                else:
-                    custom_title = member_instance.custom_title
-
-            elif not is_member_already_promoter and custom_title:
-                custom_title = custom_title.strip()
-
-                if len(custom_title) <= 0:
-                    custom_title = None
-                elif custom_title == 'Member':
-                    custom_title = "Community Manager"
-
-            elif is_member_already_promoter and custom_title:
-                custom_title = custom_title.strip()
-                prev_custom_title = member_instance.custom_title
-
-                if len(custom_title) <= 0:
-                    custom_title = None
-                elif prev_custom_title != custom_title:
-                    custom_title_changed = True
+            custom_title, custom_title_changed = get_manager_custom_title(member_instance, custom_title,
+                                                                          is_member_already_promoter)
 
             parent_cm = current_user_instance
             if member_instance.parent_cm:
@@ -12317,19 +12263,13 @@ def update_community_manager_rights(request):
 
             admin_parents = json.loads(admin[0].parent_cm_list) if admin[0].parent_cm_list else []
             member_parent_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
-            # adding admins parents for updating member's parents
-            for parent_id in admin_parents:
-                if parent_id not in member_parent_list:
-                    member_parent_list.append(parent_id)
-            # adding current user as parent
-            if current_user_id not in member_parent_list:
-                member_parent_list.append(current_user_id)
 
-            final_parent_list = json.dumps(member_parent_list)
+            final_parent_list = get_manager_parents_list(admin_parents, member_parent_list,
+                                                         current_user_id)
             # updating parent cm list
             member.update(state=member_states.ADMIN, is_owner=False, custom_title=custom_title,
                           parent_cm=parent_cm, parent_cm_list=final_parent_list, updated_at=time.time())
-            # savig moderation history for permission edited
+            # saving moderation history for permission edited
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=current_user_instance,
                                     type=moderation_history_types.MANAGER_PERMISSION_EDITED)
@@ -12359,6 +12299,10 @@ def update_community_manager_rights(request):
                 send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                                  community_id=community_id,
                                                                  custom_title=custom_title)
+
+            if len(rights_added) > 0:
+                send_notification_for_right_given_to_manager.delay(user_id, community_id, list(rights_added))
+
         info_logger.info(f"UPDATING_CM_RIGHTS current user id = {current_user_id},"
                          f" user id = {user_id}, community id = {community_id}")
 
@@ -12368,19 +12312,11 @@ def update_community_manager_rights(request):
         return JsonResponse(context)
 
 
-
-
 def get_added_and_removed_rights(selected_rights, existing_rights):
 
     selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
-    print(" selected_rights_list >>>>>   ", selected_rights_list)
-    print(" existing_rights >>>>>   ", existing_rights)
     rights_added = selected_rights_list - existing_rights
     removed_rights = existing_rights - selected_rights_list
-
-    print(" rights_added >>>>>   ", rights_added)
-    print(" removed_rights >>>>>   ", removed_rights)
-
     return rights_added, removed_rights
 
 
@@ -12414,15 +12350,15 @@ def remove_community_manager(request):
     if admin.exists():
         # deleting all manager rights
         userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
-        # updating member state of manager to member
 
-        # member_instance = Members.objects.filter(community_id=community_instance,
-        #                                          member_id=user_instance)
+        # updating member state of manager to member
+        member_instance = Members.objects.filter(community_id=community_instance,
+                                                 member_id=user_instance)
         custom_title = "Member"
-        # if member_instance.exists():
-            # custom_title = member_instance[0].custom_title
-            # if custom_title == "Community Manager":
-            #     custom_title = "Member"
+        if member_instance.exists():
+            custom_title = member_instance[0].custom_title
+            if custom_title == "Community Manager":
+                custom_title = "Member"
 
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.MEMBER, custom_title=custom_title,
@@ -12439,11 +12375,8 @@ def remove_community_manager(request):
         Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
         info_logger.info(f"REMOVE_COMMUNITY_MANAGER_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
-
+        send_notification_for_removed_cm.delay(user_id, community_id)
         return JsonResponse({'success': True})
-        # else:
-        #     context = get_error_context(False, "you have no right to remove members")
-        #     return JsonResponse(context)
 
     else:
         context = get_error_context(False, "you are not a admin")
@@ -12662,9 +12595,6 @@ def update_community_member_rights(request):
     if not community_id:
         context = get_error_context(False, "send community_id in body")
         return JsonResponse(context)
-    # if selected_rights is None:
-    #     context = get_error_context(False, "send rights in body")
-    #     return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
     current_user_instance = User.objects.get(pk=current_user_id)
@@ -12686,39 +12616,14 @@ def update_community_member_rights(request):
         return JsonResponse({'success': True})
 
     if admin.exists():
-        # had to get added and removed rights for many other purposes ex: notifications
-        existing_rights = set(userMemberRights.objects.filter(community=community_instance,
-                                                              user=user_instance).values_list("right__id", flat=True))
-        rights_added, rights_removed = get_added_and_removed_rights(selected_rights=selected_rights,
-                                                                    existing_rights=existing_rights)
-
-        for right_id in rights_added:
-            right = memberRights.objects.get(pk=right_id)
-            userMemberRights(user=user_instance, community=community_instance, right=right).save()
-
-        for right_id in rights_removed:
-            right = memberRights.objects.get(pk=right_id)
-            userMemberRights.objects.filter(user=user_instance, community=community_instance, right=right).delete()
-
-        custom_title_changed = False
-        if custom_title:
-            member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
-            if member_instance.exists():
-                prev_custom_title = member_instance[0].custom_title
-                custom_title = custom_title.strip()
-                if len(custom_title) <= 0:
-                    custom_title = None
-                elif prev_custom_title != custom_title:
-                    custom_title_changed = True
-
-                member_instance.update(custom_title=custom_title, updated_at=time.time())
-
-        final_rights = [right["state"] for right in selected_rights if right["is_selected"]]
-        rights_list = json.dumps(final_rights)
-        Member_Engage.objects.filter(member_id=user_instance,
-                                     community_id=community_instance).update(rights_list=rights_list)
-        conversationEngage.objects.filter(user=user_instance,
-                                          community=community_instance).update(rights_list=rights_list)
+        # create or delete member rights
+        rights_added, rights_removed = save_added_removed_rights_for_member(community_instance,
+                                                                            user_instance,
+                                                                            selected_rights)
+        # saving custom title for member
+        custom_title_changed = save_member_custom_title(custom_title, community_instance, user_instance)
+        # saving members rights list in engage table
+        save_member_rights_in_enage(selected_rights, user_instance, community_instance)
 
         if len(selected_rights) > 0:
             save_moderation_history(user=user_instance, community=community_instance,
@@ -13719,7 +13624,7 @@ class SyncChatrooms(APIView):
         else:
 
             if not last_updated:
-                state_filter = collabcardState.objects.filter(user=member_id).order_by('id')
+                state_filter = collabcardState.objects.filter(user=member_id).prefetch_related('card').order_by('id')
 
             else:
                 state_filter = collabcardState.objects.filter(user=member_id,
@@ -13830,6 +13735,267 @@ class SyncCommunities(APIView):
         return JsonResponse({'communities': temp.data})
 
 
+class SyncChatroomsV1(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+        member_id = get_member_id_from_headers(request)
+        if not member_id:
+            context = get_error_context(False, "send member id in headers")
+            return JsonResponse(context)
+        query_params = request.query_params
+
+        page = query_params.get('page', 1)
+        page = int(page)
+
+        paginate_by = query_params.get('page_size', 200)
+
+        last_updated = query_params.get('last_updated', 0)
+
+        chatroom_id = query_params.get('chatroom_id', '')
+        community_id = query_params.get('community_id', '')
+
+        draft = query_params.get('draft','')
+
+        if draft and draft == "true":
+            draft_response = self._get_draft_chatrooms(member_id,last_updated,page,paginate_by)
+            return JsonResponse(draft_response)
 
 
+        if chatroom_id:
+            chatroom_data,chatroom_id_list = fetch_chatroom_id_query(chatroom_id,member_id)
+
+        elif community_id:
+            chatroom_data,chatroom_id_list = fetch_community_chatroom_query(community_id,page,paginate_by)
+        else:
+            chatroom_data,chatroom_id_list = fetch_chatrooms_query(member_id,paginate_by,page,last_updated)
+
+        poll_data = {}
+        poll_votes = {}
+
+        if chatroom_id_list:
+
+            poll_data = fetch_chatroom_polls(chatroom_id_list)
+            poll_votes = fetch_member_poll_votes(chatroom_id_list)
+
+        chatrooms = []
+
+        max_last_updated =0
+        for data in chatroom_data:
+            chatroom = {}
+            chatroom['id'] = data[0]
+            chatroom['title'] = data[1]
+            chatroom['community_id'] = data[2]
+            chatroom['answer_text'] = data[3]
+            chatroom['image_count'] = data[4]
+            chatroom['pdf_count'] = data[5]
+            chatroom['video_count'] = data[6]
+            chatroom['audio_count'] = data[7]
+            chatroom['type'] = data[8]
+            chatroom['date_time'] = data[9]
+            chatroom['is_pending'] =  data[10]
+            chatroom['attending_count'] = data[11]
+            chatroom['polls_count'] = data[12]
+            chatroom['date_epoch'] = data[13]
+            chatroom['card_creation_time'] = time.strftime('%I:%M %p', time.localtime(chatroom['date_epoch']))
+            chatroom['created_at'] = time.strftime('%H:%M', time.localtime(chatroom['date_epoch']))
+            chatroom['date'] = time.strftime('%d %b %Y', time.localtime(chatroom['date_epoch']))
+            chatroom['member_id'] = data[14]
+
+            if member_id and chatroom['member_id'] == int(member_id):
+                chatroom['has_been_named'] = data[15]
+
+            chatroom['header'] = self._get_header(data[16],chatroom['title'])
+
+            chatroom['state'] = data[17]
+            chatroom['mute_status'] = data[18]
+            chatroom['follow_status'] = data[19]
+            chatroom['is_guest'] = data[20]
+            chatroom['is_tagged'] = data[21]
+
+            if data[22]:
+                chatroom['last_seen_conversation'] = data[22]
+
+            chatroom['chatroom_expiry_time'] = data[23]
+            chatroom['attending_status'] = data[24]
+
+            chatroom_files = self._get_chatroom_files(chatroom['id'],data[25])
+            chatroom['images'] = chatroom_files['images']
+            chatroom['pdf'] = chatroom_files['pdf']
+            chatroom['audios'] = chatroom_files['audios']
+            chatroom['videos'] = chatroom_files['videos']
+
+            if chatroom['type'] == card_types.CARD_POLL:
+
+                chatroom['is_poll_anonymous'] = data[26]
+                chatroom['allow_add_option'] = data[27]
+                if data[28] is not None:
+                    chatroom['multiple_select_state'] = data[28]
+                if data[29]:
+                    chatroom['multiple_select_no'] = data[29]
+                chatroom['is_anonymous'] = data[30]
+                chatroom['poll_type'] = data[31]
+                chatroom['poll_type_text'] = "Instant poll" if  chatroom['poll_type'] == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+                chatroom['submit_type_text'] = "Secret voting" if chatroom['is_poll_anonymous'] else "Public voting"
+
+                polls = self._get_polls_v1(poll_data,chatroom['id'],poll_votes,data[29],member_id)
+                if polls:
+                    chatroom['polls'] = polls
+                chatroom["expiry_time"] = data[32]
+
+            if chatroom['type'] == card_types.CARD_EVENT:
+                if data[33]:
+                    chatroom['about'] = data[33]
+                if data[34]:
+                    chatroom['co_hosts_id'] = self._get_co_hosts(data[34])
+                if data[35]:
+                    chatroom['online_link'] = data[35]
+
+                if data[32] > 0 :
+                    chatroom['end_date'] = data[32]
+
+            if data[36]:
+                chatroom['og_tags'] = json.loads(data[36])
+
+            if data[37]:
+
+                chatroom['preview'] = get_preview_for_url(member_id=member_id,
+                                                      preview_url=data[37],
+                                                      send_preview_text=False)
+            if data[38]:
+                chatroom['deleted_by'] = data[38]
+
+            if max_last_updated < data[39]:
+                max_last_updated = data[39]
+
+            chatroom['community_name'] = data[40]
+            chatrooms.append(chatroom)
+
+        if max_last_updated:
+            return JsonResponse({'chatrooms':chatrooms, 'max_last_updated':max_last_updated})
+        
+
+        return JsonResponse({'chatrooms':chatrooms})
+
+    def _get_header(self,header,title):
+
+        if header:
+            return header
+
+        if len(title) <= 30:
+            return title[:30]
+
+        return title[:27] + "..."
+
+    def _get_chatroom_files(self,chatroom_id,has_files):
+
+        files = {
+            'images' : [],
+            'pdf' : [],
+            'audios' : [],
+            'videos' : []
+        }
+
+        if has_files:
+            files_filter = Card_Attachment.objects.filter(collabcard=chatroom_id).order_by('id')
+
+            for file in files_filter:
+
+                if file.type == "image":
+                   img  = {'image_url': file.file_url, 'index': file.index}
+                   files['images'].append(img)
+                elif file.type == "pdf":
+                    pdf = {'pdf_file': file.file_url, 'index': file.index}
+                    files['pdf'].append(pdf)
+                elif file.type == "audio":
+                    audio_file = {'audio_url': file.file_url, 'index': file.index}
+                    files['audios'].append(audio_file)
+                elif file.type == "video":
+                    video_file = {'video_url': file.file_url, 'index': file.index}
+                    files['videos'].append(video_file)
+
+
+        return files
+
+
+    def _get_polls_v1(self,poll_data,chatroom_id,poll_votes,is_multi,member_id):
+
+        chatroom_poll_data = poll_data.get(chatroom_id)
+        chatroom_votes = poll_votes.get(chatroom_id)
+
+        if not chatroom_poll_data:
+            chatroom_poll_data = []
+
+        if not chatroom_votes:
+            chatroom_votes = []
+
+        total_votes = len(chatroom_votes)
+        polls = []
+        for data in chatroom_poll_data:
+
+            poll_id = data['id']
+            member_set = set()
+            count = 0
+            total_member_set = set()
+            temp = {}
+            temp['id'] = poll_id
+            temp['text'] = data['text']
+            temp['is_selected'] = False
+            temp['member'] = data['member']
+            if total_votes == 0:
+                temp['no_votes'] = 0
+                temp['percentage'] = 0
+                polls.append(temp)
+                continue
+            for member in chatroom_votes:
+
+                if member['user_id'] not in total_member_set:
+                    total_member_set.add(member['user_id'])
+
+                if member['poll_id'] == poll_id:
+                    count = count + 1
+                    if  member['user_id']  not in member_set:
+                        if member['user_id'] == int(member_id):
+                            temp['is_selected'] = True
+                        member_set.add(member['user_id'])
+
+            if is_multi:
+                count = len(member_set)
+                total_votes = len(total_member_set)
+
+            temp['no_votes'] = count
+
+            temp['percentage'] = int((count / total_votes) * 100)
+
+            polls.append(temp)
+
+        return polls
+
+    def _get_co_hosts(self,co_hosts):
+
+        co_hosts = json.loads(co_hosts)
+        co_host_list =[]
+        for member in co_hosts:
+            temp = {}
+            temp['id'] = member
+            co_host_list.append(temp)
+
+        return co_host_list
+
+    def _get_draft_chatrooms(self,member_id, last_updated, page, paginate_by):
+
+        draft_response = {'chatrooms': []}
+
+        if last_updated:
+            draft_filter = draftChatroom.objects.filter(date_epoch__gt=last_updated,user=member_id).order_by('id')
+        else:
+            draft_filter = draftChatroom.objects.filter(user=member_id).order_by('id')
+
+        draft_filter = pagination(draft_filter,page,paginate_by=paginate_by)
+        max_last_updated, chatrooms = fill_draft_chatrooms(draft_filter,member_id)
+
+        if max_last_updated:
+            draft_response = {'chatrooms': chatrooms, 'max_last_updated': max_last_updated}
+
+        return draft_response
 
