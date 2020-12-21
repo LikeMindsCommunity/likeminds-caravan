@@ -12,7 +12,7 @@ class ConversationManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fetch_conversation(self) -> None:
         """
-        create the chatroom in a community
+        fetches the conversation from the database
         """
         raise NotImplementedError
     

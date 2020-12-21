@@ -36,13 +36,13 @@ class ConversationImpl(ConversationManager):
     def get_chatroom_id(self) -> {}:
         return self.chatroom_id
 
-    def set_chatroom_id(self,chatroom_id):
+    def set_chatroom_id(self, chatroom_id):
        self.chatroom_id =  chatroom_id
 
     def get_scoll_direction(self):
         return self.scroll_direction
 
-    def set_scroll_direction(self,scroll_direction):
+    def set_scroll_direction(self, scroll_direction):
         self.scroll_direction = scroll_direction
 
     def get_conversation_id(self):
@@ -82,8 +82,8 @@ class ConversationImpl(ConversationManager):
     def _paged_queryset(self, conversation_filter):
         page = self.get_page()
         paginate_by = self.get_paginate_by()
-        return pagination(conversation_filter, page, paginate_by = paginate_by)
 
+        return pagination(conversation_filter, page, paginate_by = paginate_by)
 
     def _fetch_last_seen_conversation(self):
 
@@ -126,6 +126,7 @@ class ConversationImpl(ConversationManager):
                 conversations = self._fetch_conversation_queryset()
                 conversations = self._paged_queryset(conversations)
                 conversations = self._create_conversation_list(conversations)
+
             else:
 
                 upward_conversation = self._fetch_upward_conversation_queryset(10,last_seen.id)
@@ -136,12 +137,14 @@ class ConversationImpl(ConversationManager):
                 conversations = self._create_conversation_list(conversations)
 
         else:
+
             if self.get_scoll_direction() and int(self.get_scoll_direction()) == 0:  # upward scroll
                 upward_list = self._fetch_upward_conversation_queryset(20,self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
             elif self.get_scoll_direction() and self.get_scoll_direction() == 1:  # downward scroll
                 conversations = self._fetch_downward_conversation_queryset(20,self.get_conversation_id())
+
             else:
                 conversations = self._fetch_conversation_queryset()
 

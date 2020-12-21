@@ -19,6 +19,7 @@ class FethcConversation(APIView):
 
             conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page, paginate_by)
             conversations = conversation_manager.fetch_conversation()
+
             return JsonResponse({
                 'conversations':conversations
             })
