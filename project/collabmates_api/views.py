@@ -13534,17 +13534,16 @@ class SyncConversation(APIView):
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
 
-        # .select_related('card', 'user', 'remove',
-        #                 'community', 'deleted_by_user', 'reply',
-        #                 'preview_community', 'preview_chatroom')
-
         if chatroom_id:
             #sending all the conversations in a particular chatroom
             seen_conversation = request.GET.get('seen_conversation')
-            if not seen_conversation:
-                conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
+            if  seen_conversation:
+                conversation_filter = card_answers.objects.filter(card=chatroom_id, id__gt=seen_conversation).order_by(
+                    'id')
+            elif last_updated:
+                conversation_filter = card_answers.objects.filter(card=chatroom_id,last_updated__gt=last_updated).order_by('id')
             else:
-                conversation_filter = card_answers.objects.filter(card=chatroom_id,id__gt=seen_conversation).order_by('id')
+                conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
         elif community_id:
             #sending all the conversation in a particular community
             conversation_filter = card_answers.objects.filter(community=community_id).order_by('id')
