@@ -13546,7 +13546,10 @@ class SyncConversation(APIView):
                 conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
         elif community_id:
             #sending all the conversation in a particular community
-            conversation_filter = card_answers.objects.filter(community=community_id).order_by('id')
+            if not last_updated:
+                conversation_filter = card_answers.objects.filter(community=community_id).order_by('id')
+            else:
+                conversation_filter = card_answers.objects.filter(community=community_id,last_updated__gt=last_updated).order_by('id')
         else:
             #sending all the conversations
             if chatroom_status == "followed":
