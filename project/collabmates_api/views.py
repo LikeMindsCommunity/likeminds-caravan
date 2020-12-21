@@ -13258,7 +13258,7 @@ class SyncChatrooms(APIView):
         member_id = get_member_id_from_headers(request)
         if not member_id:
             context = get_error_context(False, "send member id in headers")
-            return JsonResponse(context)
+            return JsonResponse(context,status=400)
         query_params = request.query_params
 
         page = query_params.get('page', 1)
@@ -13282,6 +13282,7 @@ class SyncChatrooms(APIView):
 
         elif community_id:
             chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, page, paginate_by)
+
         else:
             chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
 
