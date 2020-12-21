@@ -2589,6 +2589,7 @@ def create_community_version_1(request):
         # give all the CM and member rights to the community creator i.e owner
         give_all_manager_rights(user=user_instance, community=community_instance)
         give_all_member_rights(user=user_instance, community=community_instance)
+        create_member_rights_history_for_owner.delay(community_instance.id, user_instance.id)
         # give all community setting rights
         give_all_community_setting_rights(community=community_instance)
 
@@ -2607,8 +2608,6 @@ def create_community_version_1(request):
 
         community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance, current_user_id=member_id)
         return JsonResponse({'success': True, 'community': community_serializer})
-
-
 
     elif page == 2:
 

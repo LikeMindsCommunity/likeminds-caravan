@@ -659,6 +659,21 @@ def update_rights_history_for_creation_rights_removed(current_user_id, community
 
 
 @shared_task()
+def create_member_rights_history_for_owner(community_id, user_id):
+
+    all_rights = memberRights.objects.all()
+    
+    user_instance = User.objects.get(pk=user_id)
+    community = Community.objects.get(pk=community_id)
+
+    for right in all_rights:
+        enable_or_create_member_right_history(user=user_instance,
+                                              community=community,
+                                              right_id=right,
+                                              current_user_instance=user_instance)
+
+
+@shared_task()
 def update_member_rights_history(rights_added, rights_removed, current_user_id, community_id, user_id):
 
     current_user_instance = User.objects.get(pk=current_user_id)
@@ -685,7 +700,11 @@ def enable_or_create_member_right_history(user, community, right_id, current_use
                               updated_cm=current_user_instance, updated_time=time.time())
     else:
         try:
-            right = memberRights.objects.get(pk=right_id)
+            if isinstance(right_id, memberRights):
+                right = right_id
+            else:
+                right = memberRights.objects.get(pk=right_id)
+
             create_member_rights_history(right, user, community,
                                          enabled_by_cm=True, updated_cm=current_user_instance)
         except Exception as e:
