@@ -232,7 +232,8 @@ urlpatterns = [
 
     path('block_member', api_views.block_member, name='block_member'),
     path('send_test_notification', send_test_notification, name='send_test_notification'),
-    path('delete_user',delete_user,name='delete_user')
+    path('delete_user', delete_user, name='delete_user')
+    
 ]
 
 app_name = 'collabmates_api'
