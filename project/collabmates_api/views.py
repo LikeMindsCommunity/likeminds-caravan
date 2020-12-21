@@ -13650,9 +13650,15 @@ def sync_members(request):
                 context = get_error_context(False, "Incorrect chatroom id")
                 return JsonResponse(context, status=400)
 
-            chatroom_particpants = collabcardState.objects.filter(card=chatroom_id, is_guest=False,
+            if not last_updated:
+                chatroom_particpants = collabcardState.objects.filter(card=card_instance, is_guest=False,
                                                                   remove=None).filter(Q(follow_status=True) |
                                                                                       Q(attending_status=True)).order_by('id')
+            else:
+                chatroom_particpants = collabcardState.objects.filter(card=card_instance, is_guest=False,
+                                                                      remove=None,updated_at__gt=last_updated).filter(Q(follow_status=True) |
+                                                                                          Q(attending_status=True)).order_by('id')
+
             participants_list = list(chatroom_particpants.values_list("user__id", flat=True))
             max_last_updated = 0
 
@@ -13661,14 +13667,6 @@ def sync_members(request):
 
             chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
                                              community_id=community_instance)
-
-            # for data in chatroom_particpants:
-            #     user_profile = get_user_profile(data.user, community_id,
-            #                                          current_user_id=member_id,
-            #                                          send_profile=False)
-            #     if max_last_updated < data.updated_at:
-            #         max_last_updated = data.updated_at
-            #     member_list.append(user_profile)
 
             for member_instance in chatroom_members:
 
@@ -13686,7 +13684,10 @@ def sync_members(request):
             return JsonResponse(context)
 
         elif community_id:
-            member_filter = Members.objects.filter(community_id=community_id).order_by('id')
+            if not last_updated:
+                member_filter = Members.objects.filter(community_id=community_id).order_by('id')
+            else:
+                member_filter = Members.objects.filter(community_id=community_id,updated_at__gt=last_updated).order_by('id')
         else:
             if not last_updated:
                 member_filter = Members.objects.order_by('id')
