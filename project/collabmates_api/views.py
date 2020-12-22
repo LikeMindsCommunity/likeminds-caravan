@@ -6,7 +6,6 @@ from datetime import datetime
 from urllib.parse import unquote, quote, parse_qsl, parse_qs, urlsplit
 import googlemaps
 import requests as rqst
-from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
@@ -84,6 +83,11 @@ from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerialize
                        YourCommunitySerializer)
 
 from .utilities.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
+from .upload_attachments import (save_community_image, save_chatroom_attachments,
+                                 save_conversation_attachments, save_poll_attachments,
+                                 save_draft_attachments, save_draft_poll_attachments,
+                                 get_image_dimensions)
+from rest_framework import status as status_codes
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -804,7 +808,6 @@ def community(request, community_id, req_dict=None):
                                                 current_user_instance=current_user_instance)
 
     community_state = get_state_of_community(community)
-
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
@@ -2586,6 +2589,7 @@ def create_community_version_1(request):
         # give all the CM and member rights to the community creator i.e owner
         give_all_manager_rights(user=user_instance, community=community_instance)
         give_all_member_rights(user=user_instance, community=community_instance)
+        create_member_rights_history_for_owner.delay(community_instance.id, user_instance.id)
         # give all community setting rights
         give_all_community_setting_rights(community=community_instance)
 
@@ -2604,8 +2608,6 @@ def create_community_version_1(request):
 
         community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance, current_user_id=member_id)
         return JsonResponse({'success': True, 'community': community_serializer})
-
-
 
     elif page == 2:
 
@@ -3244,9 +3246,9 @@ def create_card_internal(user_id, community_id, res):
 
 
 def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
-    '''function to send mail and notifications for chatroom creations'''
-    # pass
-    #sending the mails and notification of simple chatrooms without files
+    """ function to send mail and notifications for chatroom creations """
+
+    #sending the mails and notification of simple chat rooms without files
     if not card_instance.has_files:
         send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
@@ -3255,9 +3257,6 @@ def send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
                                                       card_id=card_instance.id,
                                                       community_name=card_instance.community.name,
                                                       community_state=card_instance.community.hide_community)
-
-    # if card_instance.type != card_types.CARD_INTRO:  # stopping mail for introduction cards
-    #     send_email_for_collabcard(card_instance.community, user_instance.userinfo, card_instance, card_instance.type)
 
 
 @csrf_exempt
@@ -3358,7 +3357,8 @@ def create_draft_collabcard(request, res=None):
         poll_instance.save()
 
     chatroom = draftChatroomSerializer(card, user_instance)
-
+    chatroom['updated_at'] = int(time.time())
+    chatroom['is_draft'] = True
     engage_filter = conversationEngage.objects.filter(user=user_instance, draft=card)
 
     if not engage_filter.exists():
@@ -3637,11 +3637,16 @@ def chatroom_delete(request):
         if (disallow_create_chatroom or disallow_create_chatroom == "true") and\
                 not member_is_promoter:
 
-            remove_member_create_room_right(card_creator, community_instance)
+            remove_member_create_room_right(card_creator, community_instance,
+                                            current_user_id=member_id)
 
             save_moderation_history(user=card_creator, community=community_instance,
                                     moderation_by=current_user_instance,
                                     type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+
+            update_rights_history_for_creation_rights_removed.delay(member_id,
+                                                                    community_instance.id,
+                                                                    card_creator.id)
 
         # updates last seen count after card is deleted
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
@@ -8328,6 +8333,7 @@ def upload_files(request):
             instance.save()
         except:
             return JsonResponse({'success': False, 'error_message': "Send valid poll id"})
+
     elif 'draft_id' in body and body['draft_id']:
         attachment_type = body['type']
         draft_id = body['draft_id']
@@ -8362,23 +8368,156 @@ def upload_files(request):
     if chatroom_local:
         context['chatroom_local'] = chatroom_local.data
 
-
     return JsonResponse(context)
 
 
-def get_image_dimensions(img_dimensions):
+@csrf_exempt
+def upload_files_version_1(request):
+    """function to upload files"""
+    context = save_attachments(request)
 
-    if img_dimensions is None:
-        return None
+    success = context.get('success', False)
+    status = status_codes.HTTP_200_OK if success else status_codes.HTTP_400_BAD_REQUEST
 
-    if isinstance(img_dimensions, str):
+    return JsonResponse(context, status=status)
+
+
+def save_attachments(request):
+    """ save attachments for cards and conversations """
+    member_id = get_member_id_from_headers(request)
+
+    if member_id is None:
+        return {'success': False, 'error_message': "Send member id in headers"}
+
+    conversation = None
+    chatroom_local = None
+
+    context = {
+        'success': True,
+    }
+
+    if is_request_web(request):
+        if request.user.is_authenticated:
+            member_id = request.user.id
+
+    body = json.loads(request.body)
+
+    if 'community_id' in body and body['community_id']:
+        context = save_community_image(body, member_id)
+        if context is not None:
+            return context
+
+    elif 'chatroom_id' in body and body['chatroom_id']:
+        chatroom_local = upload_chatroom_attachments(body, member_id)
+
+        if 'success' in chatroom_local and not chatroom_local['success']:
+            return chatroom_local
+
+    elif 'conversation_id' in body and body['conversation_id']:
+        conversation = upload_conversation_attachments(body, member_id)
+
+        if 'success' in conversation and not conversation['success']:
+            return conversation
+
+    elif 'poll_id' in body and body['poll_id']:
+
         try:
-            img_dimensions = json.loads(img_dimensions)
+            save_poll_attachments(body)
         except:
-            img_dimensions = ast.literal_eval(img_dimensions)
+            return {'success': False,
+                    'error_message': "Send valid poll id"}
 
-        img_dimensions = json.dumps(img_dimensions)
-    return img_dimensions
+    elif 'draft_id' in body and body['draft_id']:
+        save_draft_attachments(body)
+
+    elif 'draft_poll_id' in body and body['draft_poll_id']:
+
+        try:
+            save_draft_poll_attachments(body)
+        except:
+            return {'success': False,
+                    'error_message': "Send valid draft poll id"}
+
+    else:
+        context['success'] = False
+        context['error_message'] = "parameters are missing"
+
+    # sending the conversation instance if present
+    if conversation:
+        context['conversation'] = conversation
+
+    # sending the chatroom local object
+    if chatroom_local:
+        context['chatroom_local'] = chatroom_local.data
+
+    return context
+
+
+def upload_chatroom_attachments(body, member_id):
+    """ function to upload chatroom attachments """
+
+    chatroom_id = body['chatroom_id']
+    try:
+        chatroom_instance = Collabcard.objects.get(id=chatroom_id)
+        
+    except Collabcard.DoesNotExist:
+        return {'success': False,
+                'error_message': "Send valid chatroom id"}
+
+    chatroom_instance.has_files = True
+    chatroom_instance.save()
+
+    save_chatroom_attachments(chatroom_instance, body)
+
+    # updating updated_at for syncing apis
+    collabcardState.objects.filter(user=member_id, card=chatroom_instance).update(updated_at=time.time())
+    files_count = body['files_count'] if 'files_count' in body else 0
+
+    uploaded_files_count = Card_Attachment.objects.filter(collabcard=chatroom_instance).count()
+
+    if uploaded_files_count == int(files_count):
+        user_instance = User.objects.get(id=member_id)
+        send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance)
+
+    member_data = {'member_id': member_id,
+                   'current_user_id': member_id,
+                   'state_instance': None}
+    chatroom_local = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
+
+    return chatroom_local
+
+
+def upload_conversation_attachments(body, member_id):
+    """ function to upload conversation attachments """
+    conversation_id = body['conversation_id']
+    try:
+        conversation_instance = card_answers.objects.get(id=conversation_id)
+
+    except card_answers.DoesNotExist:
+        return {'success': False,
+                'error_message': "Send valid conversation id"}
+
+    file = answerAttachment()
+    file.answer = conversation_instance
+
+    save_conversation_attachments(body, conversation_instance)
+
+    files_count = body['files_count'] if 'files_count' in body else 0
+
+    current_time_ms = int(round(time.time() * 1000))
+
+    # updating the last updated when posting answer
+    card_answers.objects.filter(id=conversation_instance).update(last_updated=current_time_ms, has_files=True)
+
+    conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
+
+    # saving last answer id
+    uploaded_files_count = answerAttachment.objects.filter(answer=conversation_instance).count()
+    if uploaded_files_count == int(files_count):
+        update_last_answer_id(conversation_instance.card.id, conversation_instance.id)
+        send_follow_notification(card_id=conversation_instance.card.id, user_id=conversation_instance.user.id,
+                                 answer=conversation_instance.answer)
+    return conversation
 
 
 ############# functions for  login flow   ##########################
@@ -12373,6 +12512,9 @@ def remove_community_manager(request):
                                 type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
         # updating time for all members of community
         Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+
+        restore_member_rights_from_history(user_instance, community_instance)
+
         info_logger.info(f"REMOVE_COMMUNITY_MANAGER_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
         send_notification_for_removed_cm.delay(user_id, community_id)
@@ -12457,16 +12599,24 @@ def transfer_community_ownership(request):
             context = get_error_context(False, "you are not the owner of the community")
             return JsonResponse(context)
 
-        previous_owner_title = "Owner"
+        new_owner = Members.objects.filter(community_id=community_instance,
+                                           member_id=user_instance)
+
+        new_owner_title = "Owner"
+        if new_owner.exists() and new_owner[0].custom_title:
+            new_owner_title = new_owner[0].custom_title
+            if new_owner_title == "Community Manager" or new_owner_title == "Member":
+                new_owner_title = "Owner"
+
+        previous_owner_title = "Community Manager"
         if admin[0].custom_title:
             previous_owner_title = admin[0].custom_title
-
-            if previous_owner_title == "Community Manager" or previous_owner_title == "Member":
-                previous_owner_title = "Owner"
+            if previous_owner_title == "Owner":
+                previous_owner_title = "Community Manager"
 
         Members.objects.filter(community_id=community_instance,
                                member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
-                                                               custom_title=previous_owner_title, parent_cm=None,
+                                                               custom_title=new_owner_title, parent_cm=None,
                                                                parent_cm_list=None,
                                                                updated_at=time.time())
 
@@ -12480,7 +12630,7 @@ def transfer_community_ownership(request):
         give_all_manager_rights(user_instance, community_instance)  # for new owner
         # current owner
         parent_cm_list = json.dumps([str(user_id)])
-        admin.update(is_owner=False, custom_title="Community Manager",
+        admin.update(is_owner=False, custom_title=previous_owner_title,
                      parent_cm=user_instance, parent_cm_list=parent_cm_list,
                      updated_at=time.time())
 
@@ -12623,7 +12773,7 @@ def update_community_member_rights(request):
         # saving custom title for member
         custom_title_changed = save_member_custom_title(custom_title, community_instance, user_instance)
         # saving members rights list in engage table
-        save_member_rights_in_enage(selected_rights, user_instance, community_instance)
+        save_member_rights_in_engage(selected_rights, user_instance, community_instance)
 
         if len(selected_rights) > 0:
             save_moderation_history(user=user_instance, community=community_instance,
@@ -12645,6 +12795,8 @@ def update_community_member_rights(request):
             send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                              community_id=community_id,
                                                              custom_title=custom_title)
+
+        update_member_rights_history.delay(rights_added, rights_removed, current_user_id, community_id, user_id)
 
         return JsonResponse({'success': True})
     else:
@@ -13002,9 +13154,17 @@ def action_pending_chatroom(request):
         if pre_approve == "true" or\
                 pre_approve is True:
 
-            give_member_auto_approve_right(user=chatroom_creator, community=community_instance)
+            give_member_auto_approve_right(user=chatroom_creator, community=community_instance,
+                                           current_user_instance=current_user_instance)
+            update_rights_history_for_creation_rights_given.delay(current_user_id,
+                                                                  community_instance.id,
+                                                                  chatroom_creator.id)
         else:
-            remove_member_create_room_right(user=chatroom_creator, community=community_instance)
+            remove_member_create_room_right(user=chatroom_creator, community=community_instance,
+                                            current_user_id=current_user_id)
+            update_rights_history_for_creation_rights_removed.delay(current_user_id,
+                                                                    community_instance.id,
+                                                                    chatroom_creator.id)
 
         current_user_instance = User.objects.get(pk=current_user_id)
         save_moderation_history(user=chatroom_creator, community=community_instance,
@@ -13196,7 +13356,7 @@ def update_community_rights(request):
                 communityRightsSettings(community=community_instance, right=right).save()
                 give_right_to_all_members(community=community_instance, right=right)
             except:
-                print("rights already exists")
+                error_logger.error("rights already exists for commnunity {community_id} in community settings")
 
         for right_id in removed_rights:
             # if right is removed, the right is disabled for all the members
@@ -13658,7 +13818,6 @@ class SyncChatrooms(APIView):
             if max_last_updated:
                 return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
         return JsonResponse({'chatrooms': []})
-
 
 
 def fill_draft_chatrooms(draft_filter,member_id):
