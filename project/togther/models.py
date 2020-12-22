@@ -439,8 +439,10 @@ class Card_Attachment(models.Model):
     attachment = models.FileField(upload_to="media/collabcard_files", default='')
     file_url = models.CharField(max_length=500, null=True)
     type = models.CharField(max_length=50, default='')
-    index = models.IntegerField(default=1)
+    index = models.IntegerField(default=1, null=True)
     dimensions = models.TextField(null=True)
+    height = models.IntegerField(null=True)
+    width = models.IntegerField(null=True)
 
 
 class draftChatroomFiles(models.Model):
@@ -452,8 +454,10 @@ class draftChatroomFiles(models.Model):
     type = models.CharField(max_length=50, default='')
 
     created_at = models.BigIntegerField(default=0)
-    index = models.IntegerField(default=1)
+    index = models.IntegerField(default=1, null=True)
     dimensions = models.TextField(null=True)
+    height = models.IntegerField(null=True)
+    width = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
@@ -475,8 +479,10 @@ class answerAttachment(models.Model):
 
     created_at = models.BigIntegerField(default=0)
 
-    index = models.IntegerField(default=1)
+    index = models.IntegerField(default=1, null=True)
     dimensions = models.TextField(null=True)
+    height = models.IntegerField(null=True)
+    width = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:

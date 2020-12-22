@@ -60,9 +60,11 @@ def update_community(member_instance, community):
 def save_chatroom_attachments(chatroom_instance, body):
     file = Card_Attachment()
     file.collabcard = chatroom_instance
-    file.type = body['type']
-    file.file_url = body['url']
-    file.index = body['index'] if 'index' in body else 1
+    file.type = body.get('type', None)
+    file.file_url = body.get('url', None)
+    file.index = body.get('index', 1)
+    file.width = body.get('width', None)
+    file.height = body.get('height', None)
     file.dimensions = get_image_dimensions(body.get('dimensions', None))
     file.save()
 
@@ -71,40 +73,43 @@ def save_conversation_attachments(body, conversation_instance):
 
     file = answerAttachment()
     file.answer = conversation_instance
-    file.type =  body['type']
-    file.file_url = body['url'] if 'url' in body else None
-    file.index = body['index'] if 'index' in body else 1
-    file.location_name = body['location_name'] if 'location_name' in body else None
-    file.location_lat = body['location_lat'] if 'location_lat' in body else None
-    file.location_long = body['location_long'] if 'location_long' in body else None
+    file.type = body.get('type', None)
+    file.file_url = body.get('url', None)
+    file.index = body.get('index', None)
+    file.location_name = body.get('location_name', None)
+    file.location_lat = body.get('location_lat', None)
+    file.location_long = body.get('location_long', None)
+    file.width = body.get('width', None)
+    file.height = body.get('height', None)
     file.dimensions = get_image_dimensions(body.get('dimensions', None))
     file.save()
 
 
 def save_poll_attachments(body):
     instance = CollabcardPolls.objects.get(id=body['poll_id'])
-    instance.image_url = body['url']
+    instance.image_url = body.get('url', None)
     instance.save()
 
 
 def save_draft_attachments(body):
 
-    attachment_type = body['type']
     draft_id = body['draft_id']
     draft_instance = draftChatroom.objects.get(id=draft_id)
 
     instance = draftChatroomFiles()
     instance.draft = draft_instance
-    instance.file_url = body['url']
-    instance.index = body['index'] if 'index' in body else 1
-    instance.type = attachment_type
+    instance.type = body.get('type', None)
+    instance.file_url = body.get('url', None)
+    instance.index = body.get('index', 1)
+    instance.width = body.get('width', None)
+    instance.height = body.get('height', None)
     instance.dimensions = get_image_dimensions(body.get('dimensions', None))
     instance.save()
 
 
 def save_draft_poll_attachments(body):
     instance = draftPolls.objects.get(id=body['draft_poll_id'])
-    instance.image_url = body['url']
+    instance.image_url = body.get('url', None)
     instance.save()
 
 
