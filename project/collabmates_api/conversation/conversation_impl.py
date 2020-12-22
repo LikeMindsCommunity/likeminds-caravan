@@ -4,7 +4,7 @@ from collabmates_api.serializers import conversationSerializer
 from collabmates_api.views import reverse_conversations_for_upward_pagination
 from external_services.logging.logging_wrapper import LoggingWrapper
 from collabmates_api.utility import pagination
-
+from .constants import LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION, DOWNWARD_SCROLL_DIRECTION
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -63,15 +63,11 @@ class ConversationImpl(ConversationManager):
     def set_paginate_by(self, paginate_by):
         self.set_paginate_by = paginate_by
 
-
     def _fetch_conversation_queryset(self):
-
         return card_answers.objects.select_related('reply', 'preview_community',
                                                                'preview_chatroom').filter(card=self.get_chatroom_id()).order_by('id')
 
     def _fetch_upward_conversation_queryset(self, list_size, conversation_id):
-
-
         return card_answers.objects.select_related('reply', 'preview_community',
                                                                'preview_chatroom').filter(card=self.get_chatroom_id()).filter(id__lte=conversation_id).order_by('-id')[:list_size]
 
@@ -88,17 +84,17 @@ class ConversationImpl(ConversationManager):
     def _fetch_last_seen_conversation(self):
 
         last_seen_conversation = None
-        user_chatroom_instance = collabcardState.objects.filter(card=self.get_chatroom_id(),user=self.get_member_id()).first()
+        user_chatroom_instance = collabcardState.objects.filter(card=self.get_chatroom_id(), user=self.get_member_id()).first()
 
         if user_chatroom_instance:
             last_seen_conversation = user_chatroom_instance.last_seen_conversation
 
         return last_seen_conversation
 
-    def _serialize_conversation(self,conversation_instance):
+    def _serialize_conversation(self, conversation_instance):
         return conversationSerializer(conversation_instance)
 
-    def _create_conversation_list(self,conversations):
+    def _create_conversation_list(self, conversations):
 
         conversation_list = []
         for conversation in conversations:
@@ -106,7 +102,6 @@ class ConversationImpl(ConversationManager):
             conversation_list.append(conversation_dict)
 
         return conversation_list
-
 
     def fetch_conversation(self):
 
@@ -116,6 +111,7 @@ class ConversationImpl(ConversationManager):
             if last_seen_conversation:
                 conversations = [last_seen_conversation]
                 conversations = self._create_conversation_list(conversations)
+
                 return conversations
 
         if not self.get_scoll_direction() and not self.get_conversation_id():
@@ -129,8 +125,9 @@ class ConversationImpl(ConversationManager):
 
             else:
 
-                upward_conversation = self._fetch_upward_conversation_queryset(10,last_seen.id)
-                downward_conversation = self._fetch_downward_conversation_queryset(10,last_seen.id)
+                upward_conversation = self._fetch_upward_conversation_queryset(LIST_SIZE,last_seen.id)
+                downward_conversation = self._fetch_downward_conversation_queryset(LIST_SIZE,last_seen.id)
+
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
                 conversations = conversations.order_by('id')
@@ -138,12 +135,12 @@ class ConversationImpl(ConversationManager):
 
         else:
 
-            if self.get_scoll_direction() and int(self.get_scoll_direction()) == 0:  # upward scroll
-                upward_list = self._fetch_upward_conversation_queryset(20,self.get_conversation_id())
+            if self.get_scoll_direction() and int(self.get_scoll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
+                upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
-            elif self.get_scoll_direction() and self.get_scoll_direction() == 1:  # downward scroll
-                conversations = self._fetch_downward_conversation_queryset(20,self.get_conversation_id())
+            elif self.get_scoll_direction() and self.get_scoll_direction() == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
+                conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
 
             else:
                 conversations = self._fetch_conversation_queryset()

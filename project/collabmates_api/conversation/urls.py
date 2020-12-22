@@ -1,7 +1,7 @@
 from django.urls import path
-from collabmates_api.conversation.view_conversation_impl import FethcConversation
+from collabmates_api.conversation.view_conversation_impl import FetchConversation
 
 urlpatterns = [
-    path('fetch', FethcConversation.as_view(), name="fetch_conversation")
+    path('fetch', FetchConversation.as_view(), name="fetch_conversation")
 
 ]

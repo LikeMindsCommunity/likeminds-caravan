@@ -3,7 +3,7 @@ from collabmates_api.conversation.conversation_impl import ConversationImpl
 from collabmates_api.utilities.request_utilities import RequestUtilities
 from rest_framework.views import APIView
 
-class FethcConversation(APIView):
+class FetchConversation(APIView):
 
         '''inheriting API view class for using class based views in django'''
 
@@ -21,6 +21,6 @@ class FethcConversation(APIView):
             conversations = conversation_manager.fetch_conversation()
 
             return JsonResponse({
-                'conversations':conversations
+                'conversations': conversations
             })
 
