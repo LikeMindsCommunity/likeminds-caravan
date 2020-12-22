@@ -456,13 +456,29 @@ def get_collabcard_files(card_id, draft=False):
             img = {'image_url': file.file_url, 'index': file.index}
             if file.dimensions:
                 img['dimensions'] = json.loads(file.dimensions)
+
+            if file.height:
+                img['height'] = file.height
+
+            if file.width:
+                img['width'] = file.width
+
             img_list.append(img)
+
         elif file.type == 'video':
             if file.file_url:
                 video_url = {'video_url': file.file_url, 'index': file.index}
             else:
                 video_url = {'video_url': url + file.attachment.url, 'index': file.index}
+
+            if file.height:
+                video_url['height'] = file.height
+
+            if file.width:
+                video_url['width'] = file.width
+
             video_list.append(video_url)
+
         elif file.type == 'audio':
             if file.file_url:
                 audio_url = {'audio_url': file.file_url, 'index': file.index}
@@ -1616,19 +1632,37 @@ def get_answer_files(answer_id):
                 img = {'image_url': file.file_url, 'index': file.index}
                 if file.dimensions:
                     img['dimensions'] = json.loads(file.dimensions)
+
+                if file.height:
+                    img['height'] = file.height
+
+                if file.width:
+                    img['width'] = file.width
+
                 img_list.append(img)
+
         elif file.type == 'video':
             if file.file_url:
                 video_url = {'video_url': file.file_url, 'index': file.index}
+
+                if file.height:
+                    video_url['height'] = file.height
+
+                if file.width:
+                    video_url['width'] = file.width
+
                 videos.append(video_url)
+
         elif file.type == 'audio':
             if file.file_url:
                 audio_url = {'audio_url': file.file_url, 'index': file.index}
                 audios.append(audio_url)
+
         elif file.type == 'pdf':
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url, 'index': file.index}
                 pdf.append(pdf_url)
+
         elif file.type == "location":
             location = {
                 'location_name': file.location_name,
