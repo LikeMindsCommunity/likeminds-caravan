@@ -237,3 +237,4 @@ urlpatterns = [
 ]
 
 app_name = 'collabmates_api'
+
