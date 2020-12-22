@@ -13843,6 +13843,7 @@ def sync_members(request):
 
             else:
                 context = {'members':[]}
+
             return JsonResponse(context)
 
         elif community_id:
