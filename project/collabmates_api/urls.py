@@ -232,6 +232,9 @@ urlpatterns = [
     path('conversation/',include('collabmates_api.conversation.urls')),
     path('block_member', api_views.block_member, name='block_member'),
     path('send_test_notification', send_test_notification, name='send_test_notification'),
+    path('user/', include('collabmates_api.User.urls'))
+
 ]
 
 app_name = 'collabmates_api'
+
