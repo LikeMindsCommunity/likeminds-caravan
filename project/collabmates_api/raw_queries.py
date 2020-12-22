@@ -730,8 +730,8 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
         curr.close()
         conn.close()
         chatroom_id_list = get_chatroom_id_list(data)
-        return data,chatroom_id_list
 
+        return data, chatroom_id_list
 
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
