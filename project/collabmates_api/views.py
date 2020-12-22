@@ -5492,12 +5492,14 @@ def get_answer_bubble_context_for_web(ans):
     return answer_bubble
 
 
-def get_chatroom_actions(card_status, request, creator, promoter=False, current_user_instance=None,
-                         community_instance=None, is_child=False):
+def get_chatroom_actions(card_status,creator, promoter=False, current_user_instance=None,
+                         community_instance=None, is_child=False, request_type=""):
 
     ''' function to get chatroom actions '''
 
-    is_ios = is_platform_ios(request)
+    is_ios = False
+    if request_type == "iOS":
+        is_ios = True
 
     purpose_card = False
     intro_card = False
@@ -5608,7 +5610,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if not conversation_id and not scroll_direction:
 
         if is_guest:
-            context = adding_guest_in_chatroom(request, context, card_instance, aj, source_id,
+            context = adding_guest_in_chatroom(context, card_instance, aj, source_id,
                                                card_instance.community.id, current_user_id=user_id)
 
         instance_filter = conversationMemberState.objects.filter(user_id=user_id, card=card_instance)
@@ -5693,9 +5695,16 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if user_id and int(user_id) == card_instance.user.id:
         is_card_creator = True
     # sending the chatroom actions
-    chatroom_actions = get_chatroom_actions(card_status, request, creator=is_card_creator, promoter=is_promoter,
+
+    request_type = ""
+    is_ios = is_request_ios(request)
+    if is_ios:
+        request_type = "iOS"
+
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
                                             current_user_instance=user_id,
-                                            community_instance=card_instance.community, is_child=is_child
+                                            community_instance=card_instance.community, is_child=is_child,
+                                            request_type=request_type
                                             )
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
@@ -5756,6 +5765,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     return context
 
 
+
 def get_chatroom_internal_version_1(request, card_instance, user_id, page, conversation_id, scroll_direction, is_ios=False):
 
 
@@ -5789,7 +5799,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     if not conversation_id and not scroll_direction:
 
         if is_guest:
-            context = adding_guest_in_chatroom(request, context, card_instance, aj, source_id,
+            context = adding_guest_in_chatroom(context, card_instance, aj, source_id,
                                                card_instance.community.id, current_user_id=user_id)
     #
     #     instance_filter = conversationMemberState.objects.filter(user_id=user_id, card=card_instance)
@@ -5871,9 +5881,15 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     is_card_creator = False
     if user_id and int(user_id) == card_instance.user.id:
         is_card_creator = True
-    chatroom_actions = get_chatroom_actions(card_status, request, creator=is_card_creator, promoter=is_promoter,
+    request_type = ""
+    is_ios = is_request_ios(request)
+    if is_ios:
+        request_type = "iOS"
+
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
                                             current_user_instance=user_id,
-                                            community_instance=card_instance.community, is_child=is_child
+                                            community_instance=card_instance.community, is_child=is_child,
+                                            request_type=request_type
                                             )
 
     # latest_conversations = save_the_latest_conversation(card_instance, user_id)
@@ -5899,8 +5915,8 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     latest_conversation = conversations_filter.last()
 
     #icons states for sending following, tagging
-    icon_states = get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id, latest_conversation,
-                                                          conversations)
+    icon_states = get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id
+                                                          )
     card['show_follow_telescope'] = icon_states['show_follow_telescope']
     card['show_follow_auto_tag'] = icon_states['show_follow_auto_tag']
     card['show_active'] = icon_states['show_active']
@@ -5965,7 +5981,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     if not conversation_id and not scroll_direction:
 
         if is_guest:
-            context = adding_guest_in_chatroom(request, context, card_instance, aj, source_id,
+            context = adding_guest_in_chatroom(context, card_instance, aj, source_id,
                                                card_instance.community.id, current_user_id=user_id)
 
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
@@ -6020,9 +6036,15 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     if user_id and int(user_id) == card_instance.user.id:
         is_card_creator = True
 
-    chatroom_actions = get_chatroom_actions(card_status, request, creator=is_card_creator, promoter=is_promoter,
+    request_type = ""
+    is_ios = is_request_ios(request)
+    if is_ios:
+        request_type = "iOS"
+
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
                                             current_user_instance=user_id,
-                                            community_instance=card_instance.community, is_child=is_child
+                                            community_instance=card_instance.community, is_child=is_child,
+                                            request_type=request_type
                                             )
 
     context['chatroom_actions'] = chatroom_actions
@@ -6108,7 +6130,7 @@ def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
     return True
 
 
-def adding_guest_in_chatroom(request, context, card_instance, aj, source_id, community_id, current_user_id,
+def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id, current_user_id,
                              guest_header=False):
 
     aj_expired = is_chatroom_join_expired(aj, source_id, card_instance.id)
@@ -6248,7 +6270,7 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
     return  { 'show_follow_telescope' : False, 'show_follow_auto_tag':False, 'show_active':False }
 
 
-def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id, latest_conversation, conversations):
+def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id):
     '''function to show follow telescope of user'''
 
     show = False
@@ -6280,19 +6302,6 @@ def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id, 
         temp['show_follow_auto_tag'] = False
         show = True
 
-    # if show:
-    #     last = False
-    #     if latest_conversation:
-    #         for conversation in conversations:
-    #             if latest_conversation.id == conversation['id']:
-    #                 last = True
-    #     else:
-    #         last = True
-    #
-    #     if last:
-    #         show = True
-    #     else:
-    #         show = False
 
     if show:
         return temp
@@ -6887,7 +6896,7 @@ def create_conversation(request):
 
     if is_guest and (current_state['state'] == 0 or current_state['state'] == member_states.PENDING_MEMBER):
         context = {}
-        context = adding_guest_in_chatroom(request, context, card_instance, res['aj'], res['source_id'],
+        context = adding_guest_in_chatroom(context, card_instance, res['aj'], res['source_id'],
                                            card_instance.community.id, member_id, guest_header=True)
 
     ##checking weather the conversation creater is a guest or not
@@ -7154,7 +7163,7 @@ def collabcard_follow(request, function_dict=None):
     if aj and source_id and (member_state['state'] == 0 or member_state['state'] == member_states.PENDING_MEMBER):
 
         context = {}
-        context = adding_guest_in_chatroom(request, context, collabcard, aj, source_id, community_instance.id, current_member_id,guest_header=True)
+        context = adding_guest_in_chatroom(context, collabcard, aj, source_id, community_instance.id, current_member_id,guest_header=True)
 
         #updating the collabcard state external follow for guest member
         collabcardState.objects.filter(card=collabcard, user=user_instance).update(external_follow=True)
