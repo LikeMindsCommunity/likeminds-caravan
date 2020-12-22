@@ -432,8 +432,16 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             files = Card_Attachment.objects.filter(collabcard=card, type="image")
             for file in files:
                 img = {'image_url': file.file_url, 'index': file.index}
+
                 if file.dimensions:
                     img['dimensions'] = json.loads(file.dimensions)
+
+                if file.height:
+                    img['height'] = file.height
+
+                if file.width:
+                    img['width'] = file.width
+
                 images.append(img)
 
         return images
@@ -467,6 +475,13 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             files = Card_Attachment.objects.filter(collabcard=card, type="video")
             for file in files:
                 video_file = {'video_url': file.file_url, 'index': file.index}
+
+                if file.height:
+                    video_file['height'] = file.height
+
+                if file.width:
+                    video_file['width'] = file.width
+
                 videos.append(video_file)
 
         return videos

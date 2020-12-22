@@ -9,6 +9,7 @@ from collabmates_api import rest_api as rest_views
 from django.views.generic import TemplateView
 from .notification import send_test_notification
 
+
 urlpatterns = [
     #for testing email templates only. remove in prod/beta
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
@@ -221,17 +222,21 @@ urlpatterns = [
 
     path('fetch_user_meta', api_views.fetch_user_meta, name='fetch_user_meta'),
 
-    path('sync_chatrooms', api_views.SyncChatroomsV1.as_view(), name='sync_chatrooms'),
+    path('sync_chatrooms', api_views.SyncChatrooms.as_view(), name='sync_chatrooms'),
 
     path('sync_communities', api_views.SyncCommunities.as_view(), name='sync_communities'),
-    #path('v1/sync_chatrooms', api_views.SyncChatroomsV1.as_view(), name='sync_chatrooms'),
+
 
 
 
     #######################################################################################
-
+    path('conversation/',include('collabmates_api.conversation.urls')),
     path('block_member', api_views.block_member, name='block_member'),
     path('send_test_notification', send_test_notification, name='send_test_notification'),
+    path('chatroom/', include('collabmates_api.chatroom.urls')),
+    path('user/', include('collabmates_api.user.urls'))
+
 ]
 
 app_name = 'collabmates_api'
+

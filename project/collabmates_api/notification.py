@@ -1,4 +1,5 @@
 from __future__ import absolute_import, unicode_literals
+from external_services.logging.logging_wrapper import LoggingWrapper
 from celery import shared_task
 import re
 import time
@@ -29,6 +30,11 @@ import traceback
 
 from datetime import datetime,timedelta
 from .serializers import get_answer_files, get_collabcard_files
+from .static_text import *
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
+
 # file to store configuration of the system
 
 
@@ -2296,4 +2302,98 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
     # notification_meta(notification_list, message)
 
 
+@shared_task
+def send_notification_for_right_given_to_manager(user_id, community_id, rights_added):
+    try:
+        community_instance = Community.objects.get(pk=community_id)
+    except Community.DoesNotExist:
+        error_logger.error("send_notification_for_removed_cm - community id does not exist")
+        return
 
+    try:
+        user_instance = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        error_logger.error("send_notification_for_removed_cm - user id does not exist")
+        return
+
+    community_name = community_instance.name
+
+    notification_list = []
+
+    user_details = get_user_fcm_details(user_instance=user_instance)
+    notification_list.append(user_details)
+
+    for right_id in rights_added:
+        right = adminRights.objects.get(pk=right_id)
+
+        route = f"route://community?community_id={community_id}&community_name={community_name}"
+        sub_title = ENABLE_MANAGER_ADD_MANAGER_RIGHT
+
+        if right.state == manager_rights.MANAGER_RIGHT_DELETE_ROOMS:
+            sub_title = ENABLE_MANAGER_RIGHT_DELETE_ROOMS
+
+        elif right.state == manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS:
+            sub_title = ENABLE_MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS
+
+        elif right.state == manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY:
+            sub_title = ENABLE_MANAGER_RIGHT_EDIT_COMMUNITY
+
+        elif right.state == manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO:
+            sub_title = ENABLE_MANAGER_RIGHT_VIEW_CONTACT_INFO
+
+        message = {'payload': {
+                        "title": community_name,
+                        "sub_title": sub_title,
+                        'route': route
+                        }
+                  }
+
+        notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_removed_cm(user_id, community_id):
+
+    try:
+        community_instance = Community.objects.get(pk=community_id)
+    except Community.DoesNotExist:
+        error_logger.error("send_notification_for_removed_cm - community id does not exist")
+        return
+
+    try:
+        user_instance = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        error_logger.error("send_notification_for_removed_cm - user id does not exist")
+        return
+
+    community_name = community_instance.name
+
+    notification_list = []
+
+    user_details = get_user_fcm_details(user_instance=user_instance)
+    notification_list.append(user_details)
+
+    sub_title = NOTIFICATION_SUB_TITLE_FOR_CM_REMOVED
+    route = f"route://community?community_id={community_id}&community_name={community_name}"
+
+    message = {'payload': {
+                    "title": community_name,
+                    "sub_title": sub_title,
+                    'route': route
+                    }
+              }
+
+    notification_meta(notification_list, message)
+
+
+def get_user_fcm_details(user_instance):
+    user_fcm_token = user_instance.userinfo.fcm_token
+    user_mobile_os = user_instance.userinfo.mobile_os
+
+    user_details = {
+        "id": user_instance.id,
+        'fcm_token': user_fcm_token,
+        'mobile_os': user_mobile_os,
+    }
+
+    return user_details
