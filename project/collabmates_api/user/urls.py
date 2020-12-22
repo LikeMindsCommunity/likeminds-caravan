@@ -5,3 +5,4 @@ urlpatterns = [
     path('delete', DeleteUserView.as_view(), name="delete_user")
 
 ]
+
