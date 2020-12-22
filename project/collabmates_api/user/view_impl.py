@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
-import json
+from collabmates_api.utilities.request_utilities import RequestUtilities
 from django.conf import settings
 from collabmates_api.user.user_impl import UserImpl
 
@@ -10,8 +10,9 @@ class DeleteUserView(APIView):
 
         def post(self, request):
 
-            if self.is_environment_beta():
-                request_body = self.fetch_request_body(request)
+            if settings.IS_BETA:
+
+                request_body = RequestUtilities.fetch_request_body(request)
                 request_values = self.process_request_body(request_body)
                 user_manager = UserImpl(user_id = request_values[0], mobile_no = request_values[1])
                 user_deleted = user_manager.delete_user()
@@ -20,25 +21,16 @@ class DeleteUserView(APIView):
                     return JsonResponse({'success':True})
 
                 return JsonResponse({
-                    'success':False,
+                    'success': False,
                     'error_message': "credentials not found"
-                }, status=404)
+                }, status=400)
 
             else:
                 api_response = {
-                    'success':False,
-                    'error_message': "credentials not found"
+                    'success': False,
+                    'error_message': "resource not found"
                 }
                 return JsonResponse(api_response,status=404)
-
-        def fetch_request_body(self,request):
-
-            request_body = json.loads(request.body)
-
-            return request_body
-
-        def is_environment_beta(self):
-            return settings.IS_BETA
 
         def process_request_body(self, request_body):
 
