@@ -1,6 +1,6 @@
 from togther.models import userMobiles
 from django.contrib.auth.models import User
-from collabmates_api.User.user_manager import UserManager
+from collabmates_api.user.user_manager import UserManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
@@ -27,7 +27,7 @@ class UserImpl(UserManager):
     def set_mobile_no(self, mobile_no):
         self.mobile_no = mobile_no
 
-    def _fetch_user_instance(self,user_id):
+    def _fetch_user_instance(self, user_id):
         user_instance = None
         try:
             user_instance = User.objects.get(id=user_id)
@@ -37,7 +37,7 @@ class UserImpl(UserManager):
 
         return user_instance
 
-    def _fetch_user_instance_from_mobile_no(self,mobile_no):
+    def _fetch_user_instance_from_mobile_no(self, mobile_no):
         user_instance = None
         try:
             user_mobiles = userMobiles.objects.get(mobile_no=mobile_no)
@@ -47,7 +47,7 @@ class UserImpl(UserManager):
 
         return user_instance
 
-    def delete_user_query(self,user_instance):
+    def delete_user_query(self, user_instance):
         return User.objects.filter(id=user_instance.id).delete()
 
     def delete_user(self):
