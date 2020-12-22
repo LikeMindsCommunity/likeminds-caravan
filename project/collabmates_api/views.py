@@ -13811,23 +13811,20 @@ def sync_members(request):
                 context = get_error_context(False, "Incorrect chatroom id")
                 return JsonResponse(context, status=400)
 
-            if not last_updated:
-                chatroom_particpants = collabcardState.objects.filter(card=card_instance, is_guest=False,
+
+            chatroom_particpants = collabcardState.objects.filter(card=card_instance, is_guest=False,
                                                                   remove=None).filter(Q(follow_status=True) |
                                                                                       Q(attending_status=True)).order_by('id')
-            else:
-                chatroom_particpants = collabcardState.objects.filter(card=card_instance, is_guest=False,
-                                                                      remove=None,updated_at__gt=last_updated).filter(Q(follow_status=True) |
-                                                                                          Q(attending_status=True)).order_by('id')
-
             participants_list = list(chatroom_particpants.values_list("user__id", flat=True))
             max_last_updated = 0
 
-            member_list = []
             chatroom_particpants = list_pagination(participants_list, page, paginate_by=paginate_by)
-
-            chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
+            if not last_updated:
+                chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
                                              community_id=community_instance)
+            else:
+                chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
+                                                          community_id=community_instance, updated_at__gt=last_updated)
 
             for member_instance in chatroom_members:
 
@@ -13838,10 +13835,14 @@ def sync_members(request):
                                                                   current_user_id=member_id, send_profile=False)
                 member_list.append(member_data)
 
-            context = {
-                'members': member_list,
-                'max_last_updated': max_last_updated
-            }
+            if max_last_updated:
+                context = {
+                    'members': member_list,
+                    'max_last_updated': max_last_updated
+                }
+
+            else:
+                context = {'members':[]}
             return JsonResponse(context)
 
         elif community_id:
