@@ -654,7 +654,11 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
             togther_collabcard.internal_link,
             togther_collabcard.deleted_by_user_id,
             togther_collabcardState.updated_at,
-            togther_community.name
+            togther_community.name,
+            togther_collabcard.duration,
+            togther_collabcard.location,
+            togther_collabcard.location_lat,
+            togther_collabcard.location_long
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 
@@ -707,7 +711,11 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
                    togther_collabcard.internal_link,
                    togther_collabcard.deleted_by_user_id,
                    togther_collabcardState.updated_at,
-                   togther_community.name
+                   togther_community.name,
+                   togther_collabcard.duration,
+                   togther_collabcard.location,
+                   togther_collabcard.location_lat,
+                   togther_collabcard.location_long
                    from togther_collabcard
                    INNER JOIN togther_collabcardState
                    ON togther_collabcardState.card_id = togther_collabcard.id 
@@ -722,8 +730,8 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
         curr.close()
         conn.close()
         chatroom_id_list = get_chatroom_id_list(data)
-        return data,chatroom_id_list
 
+        return data, chatroom_id_list
 
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
@@ -899,7 +907,11 @@ def fetch_chatroom_id_query(chatroom_id,user_id):
             togther_collabcard.internal_link,
             togther_collabcard.deleted_by_user_id,
             togther_collabcardState.updated_at,
-            togther_community.name
+            togther_community.name,
+            togther_collabcard.duration,
+            togther_collabcard.location,
+            togther_collabcard.location_lat,
+            togther_collabcard.location_long
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 
@@ -974,7 +986,11 @@ def fetch_community_chatroom_query(community_id,page,limit):
             togther_collabcard.internal_link,
             togther_collabcard.deleted_by_user_id,
             togther_collabcardState.updated_at,
-            togther_community.name
+            togther_community.name,
+            togther_collabcard.duration,
+            togther_collabcard.location,
+            togther_collabcard.location_lat,
+            togther_collabcard.location_long
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 

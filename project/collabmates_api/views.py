@@ -13938,7 +13938,7 @@ class SyncChatroomsV1(APIView):
                     chatroom['polls'] = polls
                 chatroom["expiry_time"] = data[32]
 
-            if chatroom['type'] == card_types.CARD_EVENT:
+            if chatroom['type'] == card_types.CARD_EVENT  or chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
                 if data[33]:
                     chatroom['about'] = data[33]
                 if data[34]:
@@ -13964,6 +13964,13 @@ class SyncChatroomsV1(APIView):
                 max_last_updated = data[39]
 
             chatroom['community_name'] = data[40]
+
+            if chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
+                chatroom['duration'] = data[41]
+                chatroom['location'] = data[42]
+                chatroom['location_lat'] = data[43]
+                chatroom['location_long'] = data[44]
+
             chatrooms.append(chatroom)
 
         if max_last_updated:
