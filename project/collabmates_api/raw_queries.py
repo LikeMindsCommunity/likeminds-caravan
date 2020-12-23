@@ -711,7 +711,7 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
                    togther_collabcard.internal_link,
                    togther_collabcard.deleted_by_user_id,
                    togther_collabcardState.updated_at,
-                   togther_community.name, 
+                   togther_community.name,
                    togther_collabcard.duration,
                    togther_collabcard.location,
                    togther_collabcard.location_lat,

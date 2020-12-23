@@ -14060,3 +14060,5 @@ class SyncCommunities(APIView):
             return JsonResponse(context)
 
         return JsonResponse({'communities': temp.data})
+
+
