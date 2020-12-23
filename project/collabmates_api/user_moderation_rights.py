@@ -103,7 +103,7 @@ def save_member_right(user, community, right):
     """ function to save individual member right """
     try:
         userMemberRights(user=user, community=community, right=right).save()
-    except:
+    except Exception as e:
         error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
 
 
@@ -662,7 +662,6 @@ def update_rights_history_for_creation_rights_removed(current_user_id, community
 def create_member_rights_history_for_owner(community_id, user_id):
 
     all_rights = memberRights.objects.all()
-    
     user_instance = User.objects.get(pk=user_id)
     community = Community.objects.get(pk=community_id)
 
@@ -697,7 +696,7 @@ def enable_or_create_member_right_history(user, community, right_id, current_use
                                                             right=right_id)
     if rights_history.exists():
         rights_history.update(enabled_by_CM=True,
-                              updated_cm=current_user_instance, updated_time=time.time())
+                              updated_CM=current_user_instance, updated_time=time.time())
     else:
         try:
             if isinstance(right_id, memberRights):
@@ -718,7 +717,7 @@ def disable_or_create_member_right_history(user, community, right_id, current_us
                                                             right=right_id)
     if rights_history.exists():
         rights_history.update(enabled_by_CM=False,
-                              updated_cm=current_user_instance, updated_time=time.time())
+                              updated_CM=current_user_instance, updated_time=time.time())
     else:
         try:
             right = memberRights.objects.get(pk=right_id)
@@ -737,8 +736,10 @@ def create_member_rights_history(right, user, community, enabled_by_cm=False, up
 
 def restore_member_rights_from_history(user, community):
 
+    userMemberRights.objects.filter(user=user, community=community).delete()
+
     rights_history = userMemberRightsHistory.objects.filter(user=user, community=community,
-                                                            enabled_by_cm=True)
+                                                            enabled_by_CM=True)
     rights_list = []
     for history in rights_history:
 
@@ -794,7 +795,6 @@ def save_added_removed_rights_for_member(community_instance, user_instance, sele
                                                           user=user_instance).values_list("right__id", flat=True))
     rights_added, rights_removed = get_added_and_removed_rights(selected_rights=selected_rights,
                                                                 existing_rights=existing_rights)
-
     update_member_rights(rights_added, rights_removed, community_instance, user_instance)
 
     return rights_added, rights_removed
@@ -804,16 +804,16 @@ def update_member_rights(rights_added, rights_removed, community_instance, user_
     """ update member rights from list """
     for right_id in rights_added:
         right = memberRights.objects.get(pk=right_id)
-        save_member_right(right, user_instance, community_instance)
+        save_member_right(user=user_instance, community=community_instance, right=right)
 
     for right_id in rights_removed:
         right = memberRights.objects.get(pk=right_id)
-        delete_member_right(right, user_instance, community_instance)
+        delete_member_right(user=user_instance, community=community_instance, right=right)
 
 
-def delete_member_right(right, user_instance, community_instance):
-    userMemberRights.objects.filter(user=user_instance,
-                                    community=community_instance, right=right).delete()
+def delete_member_right(user, community, right):
+    userMemberRights.objects.filter(user=user,
+                                    community=community, right=right).delete()
 
 
 def get_manager_custom_title(member_instance, custom_title, is_member_already_promoter):
@@ -888,7 +888,7 @@ def get_added_and_removed_rights(selected_rights, existing_rights):
     rights_added = selected_rights_list - existing_rights
     removed_rights = existing_rights - selected_rights_list
 
-    return rights_added, removed_rights
+    return list(rights_added), list(removed_rights)
 
 
 def save_member_custom_title(custom_title, community_instance, user_instance):

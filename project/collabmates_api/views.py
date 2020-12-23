@@ -8516,7 +8516,9 @@ def upload_conversation_attachments(body, member_id):
     current_time_ms = int(round(time.time() * 1000))
 
     # updating the last updated when posting answer
-    card_answers.objects.filter(id=conversation_instance).update(last_updated=current_time_ms, has_files=True)
+    conversation_instance.last_updated = current_time_ms
+    conversation_instance.has_files = True
+    conversation_instance.save()
 
     conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
 

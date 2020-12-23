@@ -130,9 +130,9 @@ urlpatterns = [
     path('v1/edit_community', views.edit_community_version_1, name='edit_community_version_1'),
     path('edit_community_questions', views.edit_community_questions, name='edit_community_questions'),
 
-
     #path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
+    path('v1/upload_files', api_views.upload_files_version_1, name='upload_files_version_1'),
 
     path('update_location',api_views.update_location,name='upload_location'),
     path('fetch_location/<int:user_id>',api_views.get_user_location,name='fetch_location'),
@@ -153,7 +153,6 @@ urlpatterns = [
     path('fetch_report_tags', api_views.fetch_report_tags, name='fetch_report_tags'),
     path('push_report', api_views.push_report_v1, name='push_report'),
 
-
     path('community_collabcard_id', api_views.community_collabcard_id, name='community_collabcard_id'),
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
 
@@ -166,7 +165,6 @@ urlpatterns = [
 
     path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),
     path('push_email', api_views.push_email, name='push_email'),
-
 
     #email verify
     path('email_verify', api_views.email_verify, name='email_verify'),
