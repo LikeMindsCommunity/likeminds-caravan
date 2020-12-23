@@ -2307,13 +2307,13 @@ def send_notification_for_right_given_to_manager(user_id, community_id, rights_a
     try:
         community_instance = Community.objects.get(pk=community_id)
     except Community.DoesNotExist:
-        error_logger.error("send_notification_for_removed_cm - community id does not exist")
+        error_logger.error(f"send_notification_for_removed_cm - community id {community_id} does not exist")
         return
 
     try:
         user_instance = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        error_logger.error("send_notification_for_removed_cm - user id does not exist")
+        error_logger.error(f"send_notification_for_removed_cm - user id {user_id} does not exist")
         return
 
     community_name = community_instance.name
@@ -2357,13 +2357,13 @@ def send_notification_for_removed_cm(user_id, community_id):
     try:
         community_instance = Community.objects.get(pk=community_id)
     except Community.DoesNotExist:
-        error_logger.error("send_notification_for_removed_cm - community id does not exist")
+        error_logger.error(f"send_notification_for_removed_cm - community id {community_id} does not exist")
         return
 
     try:
         user_instance = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        error_logger.error("send_notification_for_removed_cm - user id does not exist")
+        error_logger.error(f"send_notification_for_removed_cm - user id {user_id} does not exist")
         return
 
     community_name = community_instance.name
