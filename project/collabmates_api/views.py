@@ -13450,7 +13450,7 @@ class SyncChatrooms(APIView):
             chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id)
 
         elif community_id:
-            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, page, paginate_by)
+            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by)
 
         else:
             chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
