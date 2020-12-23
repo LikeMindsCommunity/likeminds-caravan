@@ -9,6 +9,7 @@ from collabmates_api import rest_api as rest_views
 from django.views.generic import TemplateView
 from .notification import send_test_notification
 
+
 urlpatterns = [
     #for testing email templates only. remove in prod/beta
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
@@ -129,9 +130,9 @@ urlpatterns = [
     path('v1/edit_community', views.edit_community_version_1, name='edit_community_version_1'),
     path('edit_community_questions', views.edit_community_questions, name='edit_community_questions'),
 
-
     #path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
+    path('v1/upload_files', api_views.upload_files_version_1, name='upload_files_version_1'),
 
     path('update_location',api_views.update_location,name='upload_location'),
     path('fetch_location/<int:user_id>',api_views.get_user_location,name='fetch_location'),
@@ -152,7 +153,6 @@ urlpatterns = [
     path('fetch_report_tags', api_views.fetch_report_tags, name='fetch_report_tags'),
     path('push_report', api_views.push_report_v1, name='push_report'),
 
-
     path('community_collabcard_id', api_views.community_collabcard_id, name='community_collabcard_id'),
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
 
@@ -165,7 +165,6 @@ urlpatterns = [
 
     path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),
     path('push_email', api_views.push_email, name='push_email'),
-
 
     #email verify
     path('email_verify', api_views.email_verify, name='email_verify'),
@@ -221,17 +220,21 @@ urlpatterns = [
 
     path('fetch_user_meta', api_views.fetch_user_meta, name='fetch_user_meta'),
 
-    path('sync_chatrooms', api_views.SyncChatroomsV1.as_view(), name='sync_chatrooms'),
+    path('sync_chatrooms', api_views.SyncChatrooms.as_view(), name='sync_chatrooms'),
 
     path('sync_communities', api_views.SyncCommunities.as_view(), name='sync_communities'),
-    #path('v1/sync_chatrooms', api_views.SyncChatroomsV1.as_view(), name='sync_chatrooms'),
+
 
 
 
     #######################################################################################
-
+    path('conversation/',include('collabmates_api.conversation.urls')),
     path('block_member', api_views.block_member, name='block_member'),
     path('send_test_notification', send_test_notification, name='send_test_notification'),
+    path('chatroom/', include('collabmates_api.chatroom.urls')),
+    path('user/', include('collabmates_api.user.urls'))
+
 ]
 
 app_name = 'collabmates_api'
+

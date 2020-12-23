@@ -19,7 +19,7 @@ from utility.states import (collabcard_states, member_states, community_states,
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
-from togther.models import Collabcard
+from togther.models import Collabcard, userMemberRightsHistory
 from utility.encryption import encrypt, decrypt
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
 from .user_moderation_rights import (get_related_reports_for_user, check_admin_delete_right,
@@ -794,7 +794,4 @@ def update_report_count_in_member_engage(user, community, is_owner=False, parent
     Member_Engage.objects.filter(member_id=user,
                                  community_id=community).update(open_reports=report_count,
                                                                 updated_at=time.time())
-
-
-
 

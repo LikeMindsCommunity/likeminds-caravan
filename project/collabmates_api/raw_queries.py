@@ -664,7 +664,7 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
             ON togther_collabcardState.card_id = togther_collabcard.id 
             INNER JOIN togther_community
             ON togther_community.id = togther_collabcard.community_id
-            where togther_collabcardState.user_id=%s  order by togther_collabcardState.id  limit  %s  offset %s """%(str(user_id),str(limit),str(offset))
+            where togther_collabcardState.user_id=%s  and togther_collabcardState.remove_id is null order by togther_collabcardState.id  limit  %s  offset %s """%(str(user_id),str(limit),str(offset))
         else:
             sql = """
                    SELECT 
@@ -721,7 +721,7 @@ def fetch_chatrooms_query(user_id,limit,page,last_updated):
                    ON togther_collabcardState.card_id = togther_collabcard.id 
                    INNER JOIN togther_community
                    ON togther_community.id = togther_collabcard.community_id
-                   where togther_collabcardState.user_id=%s
+                   where togther_collabcardState.user_id=%s and togther_collabcardState.remove_id is null
                    and togther_collabcardState.updated_at > %s order by togther_collabcardState.id  limit  %s  offset %s""" % (
             str(user_id), str(last_updated),str(limit), str(offset))
 
@@ -917,7 +917,9 @@ def fetch_chatroom_id_query(chatroom_id,user_id):
             ON togther_collabcardState.card_id = togther_collabcard.id 
             INNER JOIN togther_community
             ON togther_community.id = togther_collabcard.community_id
-            where togther_collabcardState.user_id=%s and togther_collabcardState.card_id=%s  """ % (
+            where togther_collabcardState.user_id=%s 
+            and togther_collabcardState.card_id=%s 
+            and togther_collabcardState.remove_id is null """ % (
             str(user_id),str(chatroom_id))
 
 
@@ -932,7 +934,7 @@ def fetch_chatroom_id_query(chatroom_id,user_id):
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
-def fetch_community_chatroom_query(community_id,page,limit):
+def fetch_community_chatroom_query(community_id, user_id, page, limit):
 
     try:
         conn = get_connection()
@@ -996,8 +998,10 @@ def fetch_community_chatroom_query(community_id,page,limit):
             ON togther_collabcardState.card_id = togther_collabcard.id 
             INNER JOIN togther_community
             ON togther_community.id = togther_collabcard.community_id
-            where  togther_collabcard.community_id=%s order by id limit %s offset %s """ % (
-            str(community_id),str(limit),str(offset))
+            where  togther_collabcard.community_id=%s and togther_collabcardState.user_id = %s
+            and togther_collabcardState.remove_id is null 
+            order by id limit %s offset %s """ % (
+            str(user_id),str(community_id),str(limit),str(offset))
 
 
 
