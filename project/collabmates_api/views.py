@@ -8516,7 +8516,9 @@ def upload_conversation_attachments(body, member_id):
     current_time_ms = int(round(time.time() * 1000))
 
     # updating the last updated when posting answer
-    card_answers.objects.filter(id=conversation_instance).update(last_updated=current_time_ms, has_files=True)
+    conversation_instance.last_updated = current_time_ms
+    conversation_instance.has_files = True
+    conversation_instance.save()
 
     conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
 
@@ -13450,7 +13452,7 @@ class SyncChatrooms(APIView):
             chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id)
 
         elif community_id:
-            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, page, paginate_by)
+            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by)
 
         else:
             chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
@@ -14060,7 +14062,5 @@ class SyncCommunities(APIView):
             return JsonResponse(context)
 
         return JsonResponse({'communities': temp.data})
-
-
 
 
