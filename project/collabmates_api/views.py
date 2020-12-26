@@ -7523,7 +7523,7 @@ def collabcard_attend(request):
 def update_event_answer_text(collabcard_instance):
     """function to update the answer text of card when an event is created"""
 
-    if collabcard_instance.type == 2:
+    if collabcard_instance.type == card_types.CARD_EVENT or collabcard_instance.type == card_types.CARD_PUBLIC_EVENT:
 
         # getting the number of people interestes in event
         event_list_members = collabcardState.objects.filter(card=collabcard_instance).filter(
