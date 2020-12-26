@@ -1001,7 +1001,7 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit):
             where  togther_collabcard.community_id=%s and togther_collabcardState.user_id = %s
             and togther_collabcardState.remove_id is null 
             order by id limit %s offset %s """ % (
-            str(user_id),str(community_id),str(limit),str(offset))
+            str(community_id),str(user_id),str(limit),str(offset))
 
 
 
