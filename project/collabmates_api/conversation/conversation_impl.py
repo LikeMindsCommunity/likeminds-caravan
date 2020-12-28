@@ -143,7 +143,7 @@ class ConversationImpl(ConversationManager):
                 upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
-            elif self.get_scoll_direction() and self.get_scoll_direction() == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
+            elif self.get_scoll_direction() and int(self.get_scoll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
                 conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
 
             else:
