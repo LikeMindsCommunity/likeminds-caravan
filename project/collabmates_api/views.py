@@ -3816,7 +3816,7 @@ def fetch_share_url(request):
 
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
-    
+
     if chatroom_id:
         try:
             card_instance = Collabcard.objects.get(id=chatroom_id)
@@ -13793,7 +13793,7 @@ def sync_members(request):
     page = int(page)
     paginate_by = request.GET.get('page_size', 200)
 
-    last_updated = request.GET.get('last_updated')
+    last_updated = request.GET.get('last_updated',0)
 
     paginate_by = int(paginate_by)
     member_list = []
@@ -13854,10 +13854,8 @@ def sync_members(request):
                 member_filter = Members.objects.filter(community_id=community_id, updated_at__gt=last_updated).order_by(
                     'id')
         else:
-            if not last_updated:
-                member_filter = Members.objects.order_by('id')
-            else:
-                member_filter = Members.objects.filter(updated_at__gt=last_updated).order_by('id')
+            members_response = fetch_all_members_of_user_joined_communities(member_id, page, last_updated, paginate_by)
+            return JsonResponse(members_response)
 
         paginated_members = get_paginated_queryset_with_maxpages(member_filter, page, paginate_by=paginate_by)
 
@@ -13992,6 +13990,65 @@ def fill_draft_chatrooms(draft_filter, member_id):
         chatrooms.append(draft_chatroom)
 
     return max_last_updated, chatrooms
+
+
+
+def fetch_all_members_of_user_joined_communities(member_id, page, last_updated, limit):
+    """function to get all members of community which is joined by the member"""
+
+    community_id_list = get_community_id_list(member_id)
+    responses_data = get_member_responses_for_community(community_id_list)
+    members_data = get_members_of_community(community_id_list, last_updated, page, limit)
+    members = []
+    max_last_updated = 0
+
+    for data in members_data:
+        member_context = dict()
+        member_context['id'] = data['member_id']
+        member_context['name'] = data['name']
+        member_context['image_url'] = data['image_url']
+        member_context['state'] = data['state']
+        member_context['is_owner'] = data['is_owner']
+        community_name = data['community_name']
+        locale_time = time.localtime(data['created_at'])
+
+        if data['custom_title'] and not data['custom_title'] == 'Member':
+            member_context['custom_title'] = data['custom_title']
+
+        if member_context['state'] == member_states.ADMIN or member_context['state'] == member_states.MEMBER or \
+                member_context['state'] == member_states.PROFILE_UNAVAILABLE:
+            member_context['member_since'] = "Member of " + community_name + " since " + time.strftime('%b %d %Y',
+                                                                                                       locale_time)
+        elif member_context['state'] == member_states.PENDING_MEMBER:
+            member_context['member_since'] = "Verification pending for " + community_name
+
+        key = str(data['member_id']) + "$" + str(data['community_id'])
+
+        if member_context['state'] == member_states.ADMIN and not responses_data.get(key):
+            member_context['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % (
+                time.strftime("%d %B %Y", locale_time))
+
+        elif member_context['state'] == member_states.MEMBER or member_context['state'] == member_states.PROFILE_UNAVAILABLE:
+
+            if not responses_data.get(key):
+                member_context['custom_intro_text'] = CREATE_INTRO_TEXT_MEMBER % (
+                    time.strftime("%d %B %Y", locale_time))
+                member_context['custom_click_text'] = CUSTOM_CLICK_TEXT % (
+                    data['name'],
+                    time.strftime("%d %B %Y", locale_time))
+
+        member_context['community_id'] = data['community_id']
+
+        if max_last_updated < data['updated_at']:
+            max_last_updated = data['updated_at']
+
+        members.append(member_context)
+
+
+    if max_last_updated:
+        return {'members': members, max_last_updated: max_last_updated}
+
+    return {'members': members}
 
 
 class SyncCommunities(APIView):
