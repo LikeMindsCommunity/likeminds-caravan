@@ -60,9 +60,7 @@ from .raw_queries import *
 from .serializers import *
 from .static_files import *
 from .static_text import *
-from .static_text import (tool_member_requests, tool_pending_chat_rooms,
-                          tool_review_reports, tool_edit_directory_questions,
-                          tool_edit_community_details, tool_community_settings)
+from .static_text import (LINKED_IN_ACCESS_TOKEN_URL, LINKED_IN_USER_URL, LINKED_IN_EMAIL_URL)
 from .members import *
 from .utility import *
 from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard_posted,
@@ -8699,6 +8697,19 @@ def login_authenticate_version_1(request):
             context = login_with_linkedin(request, res, json_to_save)
             return JsonResponse(context)
 
+        elif login_type == 'linkedin_web':
+
+            dic_form = linked_in_authentication(request)
+            json_to_save = json.dumps(dic_form)
+
+            if 'success' in dic_form and not dic_form['success']:
+                return JsonResponse(dic_form, status=400)
+
+            res['login_json'] = dic_form
+
+            context = login_with_linkedin(request, res, json_to_save, login_type=login_type)
+            return JsonResponse(context)
+
         elif login_type == "apple":
 
             dic_form = res['login_json']
@@ -8715,6 +8726,71 @@ def login_authenticate_version_1(request):
     else:
         context = get_error_context(False, "Send a post request")
         return JsonResponse(context)
+
+
+@csrf_exempt
+def linked_in_authentication(request):
+
+    request_body = json.loads(request.body)
+
+    info_logger.info(f"linked in web body {request_body}")
+
+    code = request_body.get('code', None)
+
+    if not code:
+        context = get_error_context(False, "code is not correct")
+        return context
+    
+    response = get_access_token(request_body)
+    info_logger.info(response)
+
+    if 'access_token' not in response:
+        context = get_error_context(False, "Try after sometime!!!!!")
+        context['linked_in_error'] = response
+        return context
+
+    return get_user_details(response['access_token'])
+
+
+def get_access_token(request_body):
+    
+    code = request_body.get('code', None)
+    grant_type = request_body.get('grant_type', None)
+    redirect_uri = request_body.get('redirect_uri', None)
+    client_id = request_body.get('client_id', None)
+    client_secret = request_body.get('client_secret', None)
+    
+    params = {
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'grant_type': grant_type,
+        'redirect_uri': redirect_uri,
+        'code': code
+    }
+
+    ans = rqst.post(LINKED_IN_ACCESS_TOKEN_URL, params=params)
+    response = ans.json()
+    info_logger.info(response)
+    return response
+
+
+def get_user_details(access_token):
+    user_url = LINKED_IN_USER_URL + access_token
+    email_url = LINKED_IN_EMAIL_URL + access_token
+
+    # getting public details of user from Linked In
+    resp = rqst.get(user_url)
+    data_main = json.loads(resp.text)
+    info_logger.info(f"linked in web data_main  {data_main}")
+    # getting user email details from Linked In
+    resp = rqst.get(email_url)
+    email_data = json.loads(resp.text)
+    info_logger.info(f"linked in web email_data  {email_data}")
+    data_main['email'] = email_data
+
+    info_logger.info(f"linked in web response  {data_main}")
+
+    return data_main
 
 
 def create_user(user_name, email, id, apple_id=False):
