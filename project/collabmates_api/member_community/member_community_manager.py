@@ -15,3 +15,11 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         Get communities of the member
         """
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_member_state_of_community(self) -> int:
+        """
+        fetch the member state of community
+        """
+        raise NotImplementedError
+

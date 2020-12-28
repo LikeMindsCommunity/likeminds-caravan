@@ -1,0 +1,14 @@
+class MemberStates:
+    GUEST = 0
+    ADMIN = 1
+    TEMP_ADMIN = 2
+    PENDING_MEMBER = 3
+    MEMBER = 4
+    DECLINED_MEMBER = 5
+    UNKNOWN_NOMINATED_PROMOTER = 6
+    KNOWN_NOMINATED_PROMOTER = 7
+    INTERESTED_MEMBER = 8
+    PROFILE_UNAVAILABLE = 9
+
+
+member_states = MemberStates()
