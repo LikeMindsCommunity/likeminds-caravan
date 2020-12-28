@@ -5,6 +5,7 @@ from collabmates_api.views import reverse_conversations_for_upward_pagination
 from external_services.logging.logging_wrapper import LoggingWrapper
 from collabmates_api.utility import pagination
 from .constants import LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION, DOWNWARD_SCROLL_DIRECTION
+import time
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -92,7 +93,10 @@ class ConversationImpl(ConversationManager):
         return last_seen_conversation
 
     def _serialize_conversation(self, conversation_instance):
-        return conversationSerializer(conversation_instance)
+        conversation_serializer = conversationSerializer(conversation_instance)
+        created_at_hh_mm = time.strftime('%H:%M', time.localtime(conversation_serializer['created_at']))
+        conversation_serializer['created_at'] = created_at_hh_mm
+        return conversation_serializer
 
     def _create_conversation_list(self, conversations):
 
