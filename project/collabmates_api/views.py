@@ -1186,6 +1186,8 @@ def join_promoter_created_community_version_1(res, request):
 
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                 member_state=member_states.PENDING_MEMBER)
+            # removing its data from removed members in order to consider it a new user
+            removedMembers.objects.filter(community=community_instance, member=user_instance).delete()
         update_pending_member_count_in_engage(community_instance)
         return JsonResponse({'success': True})
     else:
