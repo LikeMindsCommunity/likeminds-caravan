@@ -1,7 +1,9 @@
 from togther.models import Members,collabcardState,Userinfo,Collabcard, blockedMembers
 from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
     card_types, chatroom_states, email_states
-
+from .utilities.exception_utilities import (CustomException, InvalidHeaderException,
+                                            InvalidCommunityException, InvalidUserException,
+                                            InvalidChatroomException)
 from django.db.models import Q,Subquery
 from django.db import connection
 from .serializers import *
@@ -23,10 +25,6 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
                     Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
                     Q(state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
 
-    blocked_users_list = list(blockedMembers.objects.filter(community=community_id,
-                                                            blocked_by=current_member_id).values_list(
-                                                            "blocked_member__id", flat=True))
-
     tagging_list = []
 
     blocked_users_list = list(blockedMembers.objects.filter(community=community_id,
@@ -34,20 +32,11 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
                                                             "blocked_member__id", flat=True))
     for member in member_filter:
 
-
         user_instance = member.member_id
         if int(user_instance.id) in blocked_users_list:
             continue
 
-        temp = {}
-
-
-        user_instance = member.member_id
-        if int(user_instance.id) in blocked_users_list:
-            continue
-
-        temp = {}
-        temp['id'] = user_instance.id
+        temp = {'id': user_instance.id}
 
         if str(temp['id']) == current_member_id:
             continue
@@ -86,6 +75,119 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
     tagging_list = tagging_list + guest_list
     return tagging_list
 
+
+def get_tagging_list_internal_v1(community_id, chatroom_id=None, current_member_id=None):
+
+    '''function to give tagging list of members in community'''
+
+    # check and fetch for community id
+    if chatroom_id and not community_id:
+        try:
+            card_instance = Collabcard.objects.get(id=chatroom_id)
+            community = card_instance.community
+        except Collabcard.DoesNotExist:
+            raise InvalidChatroomException()
+    else:
+        try:
+            community = Community.objects.get(pk=community_id)
+        except Community.DoesNotExist:
+            raise InvalidCommunityException()
+
+    blocked_users_list = get_blocked_members_list(community, current_member_id)
+
+    if chatroom_id:
+        response = get_chatroom_participants_for_tagging(chatroom_id, blocked_users_list, current_member_id)
+
+    else:
+        response = get_community_members_for_tagging(community, blocked_users_list, current_member_id)
+
+    return response
+
+
+def get_blocked_members_list(community, user_id):
+    blocked_users_list = list(blockedMembers.objects.filter(community=community,
+                                                            blocked_by=user_id).values_list(
+                                                            "blocked_member__id", flat=True))
+    return blocked_users_list
+
+
+def get_chatroom_participants_for_tagging(chatroom_id, blocked_users_list, current_member_id):
+    participants_list = []
+    tagging_list = []
+    state_filter = collabcardState.objects.filter(card_id=chatroom_id, remove=None).select_related('user')
+
+    for data in state_filter:
+
+        user_instance = data.user
+        user_id = user_instance.id
+        if int(user_id) in blocked_users_list:
+            continue
+
+        if str(user_id) == current_member_id:
+            continue
+
+        member_dict = {'id': user_id,
+                       'name': user_instance.userinfo.name,
+                       'image_url': user_instance.userinfo.image_link,
+                       }
+
+        tagging_list.append(member_dict)
+        if data.follow_status:
+
+            participants_dict = member_dict.copy()
+            additional_dict = {'follow_status': data.follow_status,
+                               'attending_status': data.attending_status,
+                               'is_guest': data.is_guest
+                              }
+
+            participants_dict.update(**additional_dict)
+            participants_list.append(participants_dict)
+
+    tagging_list = sorted(tagging_list, key=lambda i: i['name'])
+    participants_list = sorted(participants_list, key=lambda i: i['name'])
+
+    response = {
+        'members': tagging_list,
+        'participants': participants_list
+    }
+    return response
+
+
+def get_community_members_for_tagging(community, blocked_users_list, current_member_id):
+
+    member_filter = Members.objects.filter(community_id=community).filter(
+        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
+        Q(state=member_states.PROFILE_UNAVAILABLE)).select_related('member_id')
+
+    tagging_list = []
+
+    for member in member_filter:
+
+        user_instance = member.member_id
+        user_id = user_instance.id
+        if int(user_id) in blocked_users_list:
+            continue
+
+        if int(user_id) == int(current_member_id):
+            continue
+
+        temp = {
+            'id': user_id,
+            'name': user_instance.userinfo.name,
+            'image_url': member.image_url if member.image_url else user_instance.userinfo.image_link,
+            'state': member.state
+        }
+
+        tagging_list.append(temp)
+
+    tagging_list = sorted(tagging_list, key=lambda i: i['name'])
+
+    response = {
+        'members': tagging_list
+    }
+    return response
+
+
 def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
 
     '''function to return tagging list of members in chatroom'''
@@ -98,7 +200,7 @@ def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
     except Exception as e:
         return []
 
-    state_filter = collabcardState.objects.filter(card=card_instance,follow_status=True,remove=None)
+    state_filter = collabcardState.objects.filter(card=card_instance, follow_status=True, remove=None)
     user_set = set()
     for data in state_filter:
         user_instance = data.user

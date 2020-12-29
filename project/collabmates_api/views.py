@@ -86,9 +86,10 @@ from .upload_attachments import (save_community_image, save_chatroom_attachments
                                  save_draft_attachments, save_draft_poll_attachments,
                                  get_image_dimensions)
 from rest_framework import status as status_codes
-
+from .utilities.exception_utilities import (CustomException, InvalidHeaderException,
+                                            InvalidCommunityException, InvalidUserException)
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
-
+from rest_framework.exceptions import APIException
 url = settings.URL
 # url='http://localhost:8000'
 error_logger = LoggingWrapper.get_instance()
@@ -10896,6 +10897,30 @@ def get_tagging_list(request):
         tagging_list = get_tagging_list_internal_web(chatroom_id, current_user_id=current_member_id)
 
     return JsonResponse({'members': tagging_list})
+
+
+class GetTaggingList(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+        member_id = get_member_id_from_headers(request)
+        
+        if not member_id:
+            raise InvalidHeaderException()
+
+        query_params = request.query_params
+
+        community_id = query_params.get('community_id', None)
+        chatroom_id = query_params.get('chatroom_id', None)
+
+        if community_id is None and chatroom_id is None:
+            response = get_error_context(False, "send community id or chatroom id in query params")
+            raise CustomException(response)
+
+        response = get_tagging_list_internal_v1(community_id,
+                                                chatroom_id=chatroom_id,
+                                                current_member_id=member_id)
+        return JsonResponse(response)
 
 
 # functionality for filters
