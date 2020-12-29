@@ -14122,7 +14122,7 @@ def fetch_all_members_of_user_joined_communities(member_id, page, last_updated, 
 
 
     if max_last_updated:
-        return {'members': members, max_last_updated: max_last_updated}
+        return {'members': members, 'max_last_updated': max_last_updated}
 
     return {'members': members}
 
