@@ -4688,7 +4688,8 @@ def collabcard(request, card_id):
     if card_filter.exists():
         card_instance = card_filter[0]
 
-        if card_instance.type in (card_types.CARD_NORMAL, card_types.CARD_INTRO, card_types.CARD_EVENT):
+        if card_instance.type in (
+        card_types.CARD_NORMAL, card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT):
 
             if settings.IS_BETA:
                 return redirect(
