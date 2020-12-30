@@ -245,7 +245,7 @@ def update_pending_member_count_in_engage(community):
                                                   updated_at=current_time, member_state=member.state)
         else:
             Member_Engage.objects.filter(community_id=community, member_id=member.member_id
-                                         ).update(member_state=member.state)
+                                         ).update(member_state=member.state, updated_at = current_time)
 
     info_logger.info("Member Engage Pending Count Updated")
 
@@ -2214,6 +2214,7 @@ def remove_from_member(request):
             check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
+            update_pending_member_count_in_engage(community_instance)
 
             return JsonResponse({'success': True})
 
