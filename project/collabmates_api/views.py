@@ -13823,7 +13823,7 @@ class SyncConversation(APIView):
             if chatroom_status == "followed":
 
                 followed_rooms = list(collabcardState.objects.filter(
-                    user=member_id, follow_status=True).values_list(
+                    user=member_id, follow_status=True, remove=None).values_list(
                     "card_id", flat=True))
                 if last_updated:
                     conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated,
@@ -13831,7 +13831,7 @@ class SyncConversation(APIView):
                 else:
                     conversation_filter = card_answers.objects.filter(card__id__in=followed_rooms).order_by('id')
             else:
-                unfollowed_rooms = list(collabcardState.objects.filter(user=member_id, follow_status=False).values_list(
+                unfollowed_rooms = list(collabcardState.objects.filter(user=member_id, follow_status=False, remove=None).values_list(
                     "card_id", flat=True))
                 if last_updated:
                     conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).filter(
