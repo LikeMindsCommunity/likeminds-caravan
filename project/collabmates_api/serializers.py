@@ -1575,7 +1575,8 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
         'created_at': conversation.created_at,
         'has_files': conversation.has_files,
         'chatroom_id': conversation.card.id,
-        'community_id': conversation.community.id
+        'community_id': conversation.community.id,
+        'created_epoch': conversation.created_at
     }
 
     if conversation.has_files:
@@ -1691,7 +1692,9 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
         'has_files': conversation.has_files,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,
-        'member_id': conversation.user.id
+        'member_id': conversation.user.id,
+        'created_epoch':conversation.created_at
+
     }
 
     if conversation.has_files:

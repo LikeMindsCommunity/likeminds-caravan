@@ -5455,7 +5455,8 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'is_edited': ans.is_edited,
             'member_id': ans.user.id,
             'community_id': community_id,
-            'chatroom_id': ans.card.id
+            'chatroom_id': ans.card.id,
+            'created_epoch':ans.created_at
         }
 
         if ans.og_tags:
@@ -6983,8 +6984,9 @@ def create_conversation(request):
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'],
                                                                  has_files=has_files, is_ios=is_ios)
 
-    conversation = get_conversation_instance_for_db_synching(ans, current_user_id=member_id)
-    return JsonResponse({'success': True, 'id': ans.id, 'conversation': conversation})
+    context = {"current_user_id": member_id, "fetch_reply": True}
+    conversation = CardAnswersDBSyncSerializer(ans, context=context, many=False)
+    return JsonResponse({'success': True, 'id': ans.id, 'conversation': conversation.data})
 
 
 def conversation_tagging(request, res, card_instance, user_instance, member_id):
