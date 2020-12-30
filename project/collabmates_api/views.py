@@ -5456,7 +5456,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'member_id': ans.user.id,
             'community_id': community_id,
             'chatroom_id': ans.card.id,
-            'created_epoch':ans.created_at
+            'created_epoch': int(ans.created_at)
         }
 
         if ans.og_tags:

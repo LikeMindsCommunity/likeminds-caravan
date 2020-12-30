@@ -861,7 +861,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         return None
 
     def get_created_epoch(self, obj):
-        return obj.created_at
+        return int(obj.created_at)
 
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)
