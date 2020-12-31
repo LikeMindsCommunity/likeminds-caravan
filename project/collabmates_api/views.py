@@ -3547,15 +3547,13 @@ def chatroom_rename(request):
     collabcard_filter = Collabcard.objects.filter(id=chatroom_id)
     if collabcard_filter.exists():
         collabcard_filter.update(header=chatroom_name)
+        card_instance = collabcard_filter[0]
 
         if first_time_rename == "true":
             collabcard_filter.update(has_been_named=True)
-            card_instance = collabcard_filter[0]
             user_instance = User.objects.get(id=member_id)
-
-            collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
-
             send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
+        collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
 
     else:
         context = get_error_context(False, "send correct chatroom id in post params")
@@ -5737,7 +5735,9 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     # getting the state of chatroom against the user
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id, remove=None)
     # if the user is seeing this chatroom from external link or notification
-    if not chatroom_state.exists() and user_instance:
+    if not chatroom_state.exists() and \
+            user_instance and \
+            is_member_verified(card_instance.community, user_instance):
         expire_at = get_expiry_time_of_chatroom()
         create_chatroom_state_instance(card_instance, user_instance, state=0, external_seen=True, expire_at=expire_at,
                                        function_called="get_chatroom_internal")
@@ -5922,7 +5922,9 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     # getting the state of chatroom against the user
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
     # if the user is seeing this chatroom from external link or notification
-    if not chatroom_state.exists() and user_instance:
+    if not chatroom_state.exists() and\
+            user_instance and \
+            is_member_verified(card_instance.community, user_instance):
         expire_at = get_expiry_time_of_chatroom()
         create_chatroom_state_instance(card_instance, user_instance, state=0, external_seen=True, expire_at=expire_at,
                                        function_called="get_chatroom_internal_version_1")

@@ -822,6 +822,8 @@ def get_member_instances_for_footer_images_in_chatroom(card_instance):
         member_images.append(image_url)
 
         member_data = get_user_profile(conversation.user, community_instance, send_profile=False, remove=remove)
+        member_data['community_id'] = community_instance.id
+        member_data['chatroom_id'] = card_instance.id
         conversation_members.append(member_data)
 
         count = count + 1
