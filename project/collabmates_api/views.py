@@ -12660,7 +12660,6 @@ def transfer_community_ownership(request):
 
         context = {'success': False}
         for instance in mobile_filter:
-            print(">>>>>>>  ", instance.mobile_no)
             phone_no = str(instance.country_code) + str(instance.mobile_no)
 
             international = False
