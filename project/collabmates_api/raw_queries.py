@@ -1070,7 +1070,7 @@ def get_member_responses_for_community(community_id_list):
         return responses_dict
 
     except (Exception, psycopg2.Error) as error:
-        error_logger("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def process_member_data(res):
