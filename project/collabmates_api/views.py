@@ -88,6 +88,7 @@ from .upload_attachments import (save_community_image, save_chatroom_attachments
 from rest_framework import status as status_codes
 from utility.exception_utilities import (CustomException, InvalidHeaderException,
                                             InvalidCommunityException, InvalidUserException)
+from external_services.logging.logging_wrapper import LoggingWrapper
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 from rest_framework.exceptions import APIException
 url = settings.URL
