@@ -5,7 +5,8 @@ from collabmates_api.views import reverse_conversations_for_upward_pagination
 from external_services.logging.logging_wrapper import LoggingWrapper
 from collabmates_api.utility import pagination
 from .constants import LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION, DOWNWARD_SCROLL_DIRECTION
-import time
+from utility.time_utilities import TimeUtilities
+from utility.number_utilities import NumberUtilities
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -94,8 +95,8 @@ class ConversationImpl(ConversationManager):
 
     def _serialize_conversation(self, conversation_instance):
         conversation_serializer = conversationSerializer(conversation_instance)
-        created_at_hh_mm = time.strftime('%H:%M', time.localtime(conversation_serializer['created_at']))
-        conversation_serializer['created_at'] = created_at_hh_mm
+        conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(conversation_instance.created_at)
+
         return conversation_serializer
 
     def _create_conversation_list(self, conversations):
@@ -139,11 +140,11 @@ class ConversationImpl(ConversationManager):
 
         else:
 
-            if self.get_scoll_direction() and int(self.get_scoll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
+            if self.get_scoll_direction() and NumberUtilities.get_integer_from_string(self.get_scoll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
                 upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
-            elif self.get_scoll_direction() and int(self.get_scoll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
+            elif self.get_scoll_direction() and NumberUtilities.get_integer_from_string(self.get_scoll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
                 conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
 
             else:

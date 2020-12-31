@@ -80,13 +80,13 @@ from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
                        YourCommunitySerializer)
 
-from .utilities.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
+from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
                                  save_conversation_attachments, save_poll_attachments,
                                  save_draft_attachments, save_draft_poll_attachments,
                                  get_image_dimensions)
 from rest_framework import status as status_codes
-from .utilities.exception_utilities import (CustomException, InvalidHeaderException,
+from utility.exception_utilities import (CustomException, InvalidHeaderException,
                                             InvalidCommunityException, InvalidUserException)
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 from rest_framework.exceptions import APIException

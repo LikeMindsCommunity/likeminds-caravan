@@ -165,10 +165,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         member_community['member_state'] = community.member_state
         member_community['click_state'] = community.click_state
 
-    def _fetch_member_community_data(self, community_id, member_id) -> []:
+    def _fetch_member_community_data(self, community_id, member_id) -> list:
         return Members.objects.filter(member_id=member_id, community_id=community_id)
 
-    def fetch_member_state_of_community(self) -> int:
+    def community_member_state(self) -> int:
         state = 0
         member_data = self._fetch_member_community_data(self.get_community_id(), self.get_member_id())
 

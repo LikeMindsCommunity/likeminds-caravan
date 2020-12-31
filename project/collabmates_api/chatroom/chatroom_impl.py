@@ -169,11 +169,9 @@ class ChatroomImpl(ChatroomManager):
 
         save_the_latest_conversation(card_instance, self.get_member_id())
 
-    def _fetch_count_of_chatroom_participants(self, card_instance):
+    def _chatroom_participants_count(self, card_instance):
 
-        participant_count = collabcardState.objects.filter(follow_status=True, card=card_instance).count()
-
-        return participant_count
+        return collabcardState.objects.filter(follow_status=True, card=card_instance).count()
 
     def fetch_chatroom(self):
 
@@ -206,7 +204,7 @@ class ChatroomImpl(ChatroomManager):
         chatroom_obj['total_response_count'] = self._fetch_total_response_count(card_instance)
         chatroom_obj['community'] = ChatroomHelper.fetch_serialized_community(card_instance, user_instance, self.get_member_id())
         chatroom_obj['unread_messages'] = self._fetch_number_of_unread_messages(card_instance, user_instance)
-        chatroom_obj['participant_count'] = self._fetch_count_of_chatroom_participants(card_instance)
+        chatroom_obj['participant_count'] = self._chatroom_participants_count(card_instance)
         self._save_external_seen_in_chatroom_state(card_instance, user_instance)
         self._save_latest_conversation_on_screen(card_instance)
 

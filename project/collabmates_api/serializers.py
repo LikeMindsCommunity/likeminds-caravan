@@ -21,7 +21,7 @@ from .static_files import *
 from .static_text import months_semi
 from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
 from .branch import create_community_branch_links
-from collabmates_api.utilities.constants import *
+from utility.constants import *
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()

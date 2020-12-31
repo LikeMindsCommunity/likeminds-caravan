@@ -17,9 +17,9 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_member_state_of_community(self) -> int:
+    def community_member_state(self) -> int:
         """
-        fetch the member state of community
+        returns member state in community
         """
         raise NotImplementedError
 

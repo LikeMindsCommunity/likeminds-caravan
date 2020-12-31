@@ -7,7 +7,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.utils import *
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
-from .utilities.constants import MSG91_SENDOTP_URI, MSG91_VERIFYOTP_URI, SMSGUPSHUP_SMS_URI, COMMUNITY_JOIN_SMS, \
+from utility.constants import MSG91_SENDOTP_URI, MSG91_VERIFYOTP_URI, SMSGUPSHUP_SMS_URI, COMMUNITY_JOIN_SMS, \
     COMMUNITY_JOIN_SMS_REMINDER
 
 gupshup_id = settings.GUPSHUP_ID

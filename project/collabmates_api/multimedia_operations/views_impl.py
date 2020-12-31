@@ -2,7 +2,7 @@ from django.http import JsonResponse
 
 from collabmates_api.multimedia_operations.mm_operations_impl import MultimediaOperationsImpl
 from collabmates_api.multimedia_operations.views_manager import ViewsManager
-from collabmates_api.utilities.request_utilities import RequestUtilities
+from utility.request_utilities import RequestUtilities
 from collabmates_api.views import get_error_context
 from external_services.amazon_s3.buckets import S3_BUCKETS
 

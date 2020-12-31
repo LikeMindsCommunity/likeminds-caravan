@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from collabmates_api.community.community_impl import CommunityImpl, CommunityHelper
-from collabmates_api.utilities.request_utilities import RequestUtilities
+from utility.request_utilities import RequestUtilities
 from rest_framework.views import APIView
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community, User
