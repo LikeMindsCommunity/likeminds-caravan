@@ -744,7 +744,7 @@ def restore_member_rights_from_history(user, community):
     for history in rights_history:
 
         right_instance = history.right
-        rights_list.append(right_instance.id)
+        rights_list.append(right_instance.state)
 
         save_member_right(user=user, community=community, right=right_instance)
 
@@ -921,3 +921,26 @@ def save_member_rights_in_engage(selected_rights, user_instance, community_insta
     conversationEngage.objects.filter(user=user_instance,
                                       community=community_instance).update(rights_list=rights_list)
 
+
+@shared_task()
+def update_member_rights_in_member_engage(community_id, user_id):
+
+    community = Community.objects.get(pk=community_id)
+    user = User.objects.get(pk=user_id)
+
+    rights_list = list(userMemberRights.objects.filter(user=user,
+                                                       community=community).values_list("right__state", flat=True))
+    Member_Engage.objects.filter(member_id=user,
+                                 community_id=community).update(rights_list=rights_list)
+
+
+@shared_task()
+def update_member_rights_in_conversation_engage(community_id, user_id):
+
+    community = Community.objects.get(pk=community_id)
+    user = User.objects.get(pk=user_id)
+
+    rights_list = list(userMemberRights.objects.filter(user=user,
+                                                       community=community).values_list("right__state", flat=True))
+    conversationEngage.objects.filter(user=user,
+                                      community_id=community).update(rights_list=rights_list)

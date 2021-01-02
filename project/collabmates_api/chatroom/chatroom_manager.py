@@ -10,8 +10,15 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @abc.abstractmethod
-    def fetch_chatroom(self) -> None:
+    def fetch_chatroom(self) -> dict:
         """
         fetching the chatroom from chatroom id
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def create_chatroom(self, req_body: dict) -> dict:
+        """
+        create chatroom
         """
         raise NotImplementedError

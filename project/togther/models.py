@@ -1,7 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import User
 import time
+from django.db.models import Q
+from utility.states import member_states, member_rights
 from django.db.models.query import QuerySet
+from utility.exception_utilities import InvalidCommunityException, InvalidChatroomException
 
 response_choices = (
     ('text', 'Text'),
@@ -42,6 +45,17 @@ class Community(models.Model):
 
     def __str__(self):
         return self.name
+
+    @staticmethod
+    def get_community_or_raise_exception(community_id):
+        try:
+            return Community.objects.get(id=community_id)
+        except:
+            response = {
+                'success': False,
+                'error_message': f"community with id {community_id} doesn't exists"
+            }
+            raise InvalidCommunityException()
 
 
 class communityToast(models.Model):
@@ -84,6 +98,20 @@ class Members(models.Model):
 
     def __str__(self):
         return self.member_id.userinfo.name + "__" + self.community_id.name
+
+    @staticmethod
+    def is_community_member(community: Community, member: User) -> bool:
+        return Members.objects.filter(community_id=community,
+                                      member_id=member
+                                      ).filter(Q(state=member_states.ADMIN) |
+                                               Q(state=member_states.MEMBER)).exists()
+
+    @staticmethod
+    def get_community_member_state(community: Community, member: User) -> int:
+        member = Members.objects.filter(community_id=community, member_id=member)
+        if member.exists():
+            return member[0].state
+        return member_states.GUEST
 
     # def save(self, *args, **kwargs):
     #     if self.created_at <= 0:
@@ -141,7 +169,6 @@ class Report_Tags(models.Model):
     type = models.IntegerField(default=0)
 
 
-
 class Collabcard(models.Model):
     title = models.TextField()
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
@@ -153,10 +180,14 @@ class Collabcard(models.Model):
     answer_text = models.CharField(max_length=100, default='')
     share_link = models.CharField(max_length=2048, default='')
     og_tags = models.CharField(max_length=2048, default='')
+
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
     video_count = models.IntegerField(default=0, null=True)
     audio_count = models.IntegerField(default=0, null=True)
+    attachment_count = models.IntegerField(default=0, null=True)
+    attachments_uploaded = models.BooleanField(null=True, default=False)
+
     type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
     date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
     duration = models.BigIntegerField(default=0)  # for saving duration of event
@@ -208,6 +239,23 @@ class Collabcard(models.Model):
     disable_poll_announcement_mail = models.BooleanField(default=False)
     has_files = models.BooleanField(default=False)
 
+    @staticmethod
+    def update_time_for_community_members(community: Community) -> None:
+        current_time_msec = int(time.time() * 1000)
+        Member_Engage.objects.filter(community_id=community
+                                     ).update(order_time=current_time_msec)
+
+    @staticmethod
+    def get_chatroom_or_raise_exception(chatroom_id):
+        try:
+            return Collabcard.objects.get(pk=chatroom_id)
+        except:
+            response = {
+                'success': False,
+                'error_message': f'chatroom with id {chatroom_id} does not exist'
+            }
+            raise InvalidChatroomException(response)
+
 
 class draftChatroom(models.Model):
     title = models.TextField()
@@ -227,6 +275,8 @@ class draftChatroom(models.Model):
     # for polls count
     polls_count = models.IntegerField(default=0)
     attending_count = models.IntegerField(default=0)
+    attachment_count = models.IntegerField(default=0, null=True)
+    attachments_uploaded = models.BooleanField(null=True, default=False)
 
     # for event cards
     location = models.TextField(null=True)
@@ -340,12 +390,13 @@ class card_answers(models.Model):
 
     last_updated = models.BigIntegerField(default=0)
 
+    attachment_count = models.IntegerField(default=0, null=True)
+    attachments_uploaded = models.BooleanField(null=True, default=False)
 
-    #saving the last updated in milliseconds
+    # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
         if self.last_updated == 0:
             self.last_updated = int(round(time.time() * 1000))
-
 
         super(card_answers, self).save(*args, **kwargs)
 
@@ -374,7 +425,7 @@ class collabcardState(models.Model):
     external_follow = models.BooleanField(default=False)
 
     manual_set_active = models.BigIntegerField(null=True)
-    last_seen_conversation = models.ForeignKey(card_answers,null=True,on_delete=models.SET_NULL)
+    last_seen_conversation = models.ForeignKey(card_answers, null=True, on_delete=models.SET_NULL)
 
     class Meta:
         unique_together = (('card', 'user'),)
@@ -412,8 +463,10 @@ class conversationEngage(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE, null=True)
-    last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,related_name='last_conversation_member')
-    second_last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,related_name='second_last_conversation_member')
+    last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,
+                                                 related_name='last_conversation_member')
+    second_last_conversation_member = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,
+                                                        related_name='second_last_conversation_member')
 
     last_conversation_user = models.ForeignKey(collabcardState, on_delete=models.SET_NULL, null=True,
                                                related_name='last_conversation_user')
@@ -594,6 +647,7 @@ class Member_Engage(models.Model):
         self.order_time = int(time.time() * 1000)
         super(Member_Engage, self).save(*args, **kwargs)
 
+
 # community lpig
 
 class Community_Legacy(models.Model):
@@ -767,9 +821,11 @@ class Report(models.Model):
     reason = models.CharField(max_length=2048, null=True)
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, null=True)
     type = models.IntegerField(null=True)
-    action_taken_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='action_taken_by_promoter', null=True)
+    action_taken_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='action_taken_by_promoter',
+                                        null=True)
     action_taken_reason = models.CharField(max_length=2048, null=True)
-    action_taken_tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, related_name='action_taken_tag', null=True)
+    action_taken_tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE, related_name='action_taken_tag',
+                                         null=True)
     rights_added = models.TextField(null=True)
     rights_removed = models.TextField(null=True)
     action_taken = models.IntegerField(null=True)
@@ -779,10 +835,6 @@ class Report(models.Model):
     date_epoch = models.BigIntegerField(default=-9223372036854775808, null=True)
 
     link = models.TextField(null=True)
-
-
-
-
 
 
 class CollabcardStateBackup(models.Model):
@@ -1123,10 +1175,8 @@ class communityFieldSubTypes(models.Model):
     def __str__(self):
         return self.sub_type
 
-
     class Meta:
         ordering = ["sub_type"]
-
 
 
 class communityField(models.Model):
@@ -1201,8 +1251,6 @@ class userFeedback(models.Model):
     feedback = models.TextField(null=True)
 
 
-
-
 class adminRights(models.Model):
     title = models.TextField(null=True)
     sub_title = models.TextField(null=True)
@@ -1219,6 +1267,7 @@ class userAdminRights(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     right = models.ForeignKey(adminRights, on_delete=models.CASCADE)
+
     # right_given_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='right_given_by_user')
     class Meta:
         unique_together = (('user', 'community', 'right'),)
@@ -1231,6 +1280,46 @@ class userMemberRights(models.Model):
 
     class Meta:
         unique_together = (('user', 'community', 'right'),)
+
+    @staticmethod
+    def check_member_invite_private_right(user, community):
+
+        user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                      right__state=member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK)
+
+        if user_rights.exists():
+            return True
+        return False
+
+    @staticmethod
+    def check_member_respond_right(user, community):
+
+        user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                      right__state=member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM)
+
+        if user_rights.exists():
+            return True
+        return False
+
+    @staticmethod
+    def check_member_create_room_right(user, community):
+
+        user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                      right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
+
+        if user_rights.exists():
+            return True
+        return False
+
+    @staticmethod
+    def check_member_auto_approve_right(user, community):
+
+        user_rights = userMemberRights.objects.filter(user=user, community=community,
+                                                      right__state=member_rights.MEMBER_RIGHT_AUTO_APPROVE)
+
+        if user_rights.exists():
+            return True
+        return False
 
 
 class moderationHistory(models.Model):
@@ -1268,7 +1357,6 @@ class blockedMembers(models.Model):
 
 
 class userDevices(models.Model):
-
     '''class to store the devices of user when the user installs the app'''
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -1300,4 +1388,3 @@ class userMemberRightsHistory(models.Model):
     def save(self, *args, **kwargs):
         self.updated_time = time.time()
         super(userMemberRightsHistory, self).save(*args, **kwargs)
-
