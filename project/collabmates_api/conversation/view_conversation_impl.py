@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from collabmates_api.conversation.conversation_impl import ConversationImpl
-from collabmates_api.utilities.request_utilities import RequestUtilities
+from utility.request_utilities import RequestUtilities
 from rest_framework.views import APIView
 
 class FetchConversation(APIView):

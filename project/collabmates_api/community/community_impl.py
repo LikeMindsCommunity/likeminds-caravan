@@ -8,7 +8,7 @@ from togther.models import Community
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
-from collabmates_api.utilities.states import member_states
+from utility.states import member_states
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -105,7 +105,7 @@ class CommunityImpl(CommunityManager):
             return response_context
 
         community_member = MemberCommunityImpl(self.get_member_id(), self.get_community_id())
-        state = community_member.fetch_member_state_of_community()
+        state = community_member.community_member_state()
         community_instance = CommunityHelper.fetch_community_instance(self.get_community_id())
         block_leave_community = self._is_leave_community_blocked(state)
         community_context = {}

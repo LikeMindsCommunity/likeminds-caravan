@@ -2,8 +2,8 @@ from django.http import JsonResponse
 
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from collabmates_api.member_community.views_manager import ViewsManager
-from collabmates_api.utilities.request_utilities import RequestUtilities
-from collabmates_api.utilities.number_utilities import NumberUtilities
+from utility.request_utilities import RequestUtilities
+from utility.number_utilities import NumberUtilities
 from collabmates_api.views import get_error_context
 
 

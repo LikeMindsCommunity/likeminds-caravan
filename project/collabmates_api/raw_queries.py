@@ -5,6 +5,11 @@ import logging
 import psycopg2
 from utility.states import card_types
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
+
 envir = False
 # from utility.utils import custom_cache
 try:
@@ -31,13 +36,13 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
         paramter_list = [last_conversation_id, unseen_count, card_id, user_id]
         curr.execute(sql, paramter_list)
         conn.commit()
-        print("conversation engage updated successfully")
+        info_logger.info("conversation engage updated successfully")
         curr.close()
         conn.close()
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_active_chatrooms_count_in_community(community_id, user_id, current_time):
@@ -60,7 +65,7 @@ def get_active_chatrooms_count_in_community(community_id, user_id, current_time)
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_inactive_chatrooms_count_in_community(community_id, user_id, current_time):
@@ -83,7 +88,7 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_inactive_followed_chatrooms_count(user_id, current_time):
@@ -104,7 +109,7 @@ def get_inactive_followed_chatrooms_count(user_id, current_time):
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_active_my_chatrooms_count(user_id, current_time):
@@ -129,7 +134,7 @@ def get_active_my_chatrooms_count(user_id, current_time):
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_active_followed_chatrooms(user_id, current_time, page, limit=10):
@@ -160,7 +165,7 @@ def get_active_followed_chatrooms(user_id, current_time, page, limit=10):
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10):
@@ -191,7 +196,7 @@ def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10):
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_draft_chatrooms_on_home_screen(user_id, page, limit=10):
@@ -222,7 +227,7 @@ def get_draft_chatrooms_on_home_screen(user_id, page, limit=10):
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 @shared_task
@@ -232,19 +237,19 @@ def update_community_purpose_card(community_id, card_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        print(card_id)
-        print(community_id)
+        info_logger.info(card_id)
+        info_logger.info(community_id)
         sql = """update togther_community set purpose_collabcard=%s where id=%s""" % (card_id, community_id)
-        print(sql)
+        info_logger.info(sql)
         curr.execute(sql)
         conn.commit()
-        print("purpose updated successfully")
+        info_logger.info("purpose updated successfully")
         curr.close()
         conn.close()
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_all_data(sql):
@@ -261,7 +266,7 @@ def get_all_data(sql):
         return []
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def filter_tags(user_id=0, community_id=0):
@@ -423,11 +428,11 @@ def ranking_tags(tag):
         curr.execute(sql, parameter)
         conn.commit()
         count = curr.rowcount
-        print(count, "Record inserted successfully into community_rank table")
+        info_logger.info(count, "Record inserted successfully into community_rank table")
         curr.close()
         conn.close()
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting  to PostgreSQL", error)
+        error_logger.error("Error while connecting  to PostgreSQL", error)
 
 
 def delete_previous_data_for_user(user_id):
@@ -442,9 +447,9 @@ def delete_previous_data_for_user(user_id):
         conn.commit()
         curr.close()
         conn.close()
-        print("Record deleted successfully for user:,", user_id)
+        info_logger.info("Record deleted successfully for user:,", user_id)
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting  to PostgreSQL", error)
+        error_logger.error("Error while connecting  to PostgreSQL", error)
 
 
 def action_for_user_crete_or_community_create(user_id, community_id):
@@ -504,7 +509,6 @@ def action_for_user_crete_or_community_create(user_id, community_id):
             else:
                 filter_tag = filter_tags(community_id=community)
             community_tags.append(filter_tag)
-        # print(community_tags)
 
     elif user_id is None and community_id is not None:
         sql = "select distinct(user_id_id) from togther_user_legacy"
@@ -526,7 +530,7 @@ def action_for_user_crete_or_community_create(user_id, community_id):
 @shared_task
 def compute_rank(user_id=None, community_id=None):
     '''function to compute the rank of community '''
-    print("Executing Compute Rank for User", user_id)
+    info_logger.info("Executing Compute Rank for User", user_id)
     # clearing the custom_cache
     # custom_cache.clear()
     start_time = time.time()
@@ -538,11 +542,10 @@ def compute_rank(user_id=None, community_id=None):
             score = get_relevant_score(user, community)
             if score[2] != 0:
                 ranking_tags(score)
-                # print(score)
 
     end_time = time.time()
 
-    print("Compute rank execution time :", (end_time - start_time))
+    info_logger.info("Compute rank execution time :", (end_time - start_time))
 
 
 @app.task
@@ -551,7 +554,7 @@ def ranking_all_users_and_communities():
 
     start_time = time.time()
 
-    print("Ranking All Users And Communities Based on tags")
+    info_logger.info("Ranking All Users And Communities Based on tags")
 
     sql = "select user_id_id from togther_userinfo order by id desc"
     all_user = get_all_data(sql)
@@ -560,13 +563,13 @@ def ranking_all_users_and_communities():
         if filter_tag:
             compute_rank(user_id=user[0])
         else:
-            print("No Onboarding for user_id:", user[0])
+            info_logger.info("No Onboarding for user_id:", user[0])
 
     end_time = time.time()
 
     diff = (end_time - start_time)
 
-    print("Ranking Script Execution Time:", diff)
+    info_logger.info("Ranking Script Execution Time:", diff)
 
 
 def fetch_chatrooms_query(user_id, limit, page, last_updated):
@@ -599,7 +602,7 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
             togther_collabcard.user_id,
             togther_collabcard.has_been_named,
             togther_collabcard.header,
-                
+
             togther_collabcardState.state,
             togther_collabcardState.mute_status,
             togther_collabcardState.follow_status,
@@ -608,7 +611,7 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
             togther_collabcardState.last_seen_conversation_id,
             togther_collabcardState.expiry_time,
             togther_collabcardState.attending_status,
-            
+
             togther_collabcard.has_files,
             togther_collabcard.is_poll_anonymous,
             togther_collabcard.allow_add_option,
@@ -617,7 +620,7 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
             togther_collabcard.is_poll_anonymous,
             togther_collabcard.poll_type,
             togther_collabcard.end_date,
-            
+
             togther_collabcard.about,
             togther_collabcard.co_hosts,
             togther_collabcard.online_link,
@@ -657,7 +660,6 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                    togther_collabcard.user_id,
                    togther_collabcard.has_been_named,
                    togther_collabcard.header,
-
                    togther_collabcardState.state,
                    togther_collabcardState.mute_status,
                    togther_collabcardState.follow_status,
@@ -666,7 +668,6 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                    togther_collabcardState.last_seen_conversation_id,
                    togther_collabcardState.expiry_time,
                    togther_collabcardState.attending_status,
-
                    togther_collabcard.has_files,
                    togther_collabcard.is_poll_anonymous,
                    togther_collabcard.allow_add_option,
@@ -675,7 +676,6 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                    togther_collabcard.is_poll_anonymous,
                    togther_collabcard.poll_type,
                    togther_collabcard.end_date,
-
                    togther_collabcard.about,
                    togther_collabcard.co_hosts,
                    togther_collabcard.online_link,
@@ -706,7 +706,7 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
         return data, chatroom_id_list
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def fetch_chatroom_polls(chatroom_id_list):
@@ -782,7 +782,7 @@ def fetch_chatroom_polls(chatroom_id_list):
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        info_logger.info("Error while connecting to PostgreSQL  ", error)
 
 
 def fetch_member_poll_votes(chatroom_id_list):
@@ -824,7 +824,7 @@ def fetch_member_poll_votes(chatroom_id_list):
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def fetch_chatroom_id_query(chatroom_id, user_id):
@@ -851,7 +851,6 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
             togther_collabcard.user_id,
             togther_collabcard.has_been_named,
             togther_collabcard.header,
-
             togther_collabcardState.state,
             togther_collabcardState.mute_status,
             togther_collabcardState.follow_status,
@@ -860,7 +859,6 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
             togther_collabcardState.last_seen_conversation_id,
             togther_collabcardState.expiry_time,
             togther_collabcardState.attending_status,
-
             togther_collabcard.has_files,
             togther_collabcard.is_poll_anonymous,
             togther_collabcard.allow_add_option,
@@ -869,7 +867,6 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
             togther_collabcard.is_poll_anonymous,
             togther_collabcard.poll_type,
             togther_collabcard.end_date,
-
             togther_collabcard.about,
             togther_collabcard.co_hosts,
             togther_collabcard.online_link,
@@ -901,7 +898,7 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
 
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def fetch_community_chatroom_query(community_id, user_id, page, limit):
@@ -929,7 +926,6 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit):
             togther_collabcard.user_id,
             togther_collabcard.has_been_named,
             togther_collabcard.header,
-
             togther_collabcardState.state,
             togther_collabcardState.mute_status,
             togther_collabcardState.follow_status,
@@ -938,7 +934,6 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit):
             togther_collabcardState.last_seen_conversation_id,
             togther_collabcardState.expiry_time,
             togther_collabcardState.attending_status,
-
             togther_collabcard.has_files,
             togther_collabcard.is_poll_anonymous,
             togther_collabcard.allow_add_option,
@@ -947,7 +942,6 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit):
             togther_collabcard.is_poll_anonymous,
             togther_collabcard.poll_type,
             togther_collabcard.end_date,
-
             togther_collabcard.about,
             togther_collabcard.co_hosts,
             togther_collabcard.online_link,
@@ -979,7 +973,7 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit):
 
         return data, chatroom_id_list
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_chatroom_id_list(data):
@@ -1011,7 +1005,7 @@ def get_community_id_list(member_id):
         return community_id_list
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_members_of_community(community_id_list, last_updated, page, limit):
@@ -1053,7 +1047,7 @@ def get_members_of_community(community_id_list, last_updated, page, limit):
         return member_date
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def get_member_responses_for_community(community_id_list):
@@ -1064,7 +1058,8 @@ def get_member_responses_for_community(community_id_list):
         curr = conn.cursor()
         community_id_tupple = get_tuple_from_array(community_id_list)
 
-        sql = """select  member_id, community_id from togther_communityAnswers where community_id in  %s """ % (str(community_id_tupple))
+        sql = """select  member_id, community_id from togther_communityAnswers where community_id in  %s """ % (
+            str(community_id_tupple))
         curr.execute(sql)
         curr.execute(sql)
         res = curr.fetchall()
@@ -1075,7 +1070,7 @@ def get_member_responses_for_community(community_id_list):
         return responses_dict
 
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  ", error)
 
 
 def process_member_data(res):
@@ -1130,11 +1125,11 @@ def get_dictionary_of_member_responses(res):
 
 if envir:
     if __name__ == "__main__":
-        print("python file")
+        info_logger.info("python file")
         start_time = time.time()
         ranking_all_users_and_communities()
 
         end_time = time.time()
 
-        print("Execution Time--")
-        print(end_time - start_time)
+        info_logger.info("Execution Time--")
+        info_logger.info(end_time - start_time)

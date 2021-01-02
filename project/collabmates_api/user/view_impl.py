@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
-from collabmates_api.utilities.request_utilities import RequestUtilities
+from utility.request_utilities import RequestUtilities
 from django.conf import settings
 from collabmates_api.user.user_impl import UserImpl
 
