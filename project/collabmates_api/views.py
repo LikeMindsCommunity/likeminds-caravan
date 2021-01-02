@@ -14184,7 +14184,7 @@ class SyncCommunities(APIView):
         context = {"current_user_id": member_id}
 
         if chatroom_id:
-            chatroom_context = fetch_community_of_chatroom(chatroom_id)
+            chatroom_context = fetch_community_of_chatroom(chatroom_id, member_id)
 
             return JsonResponse(chatroom_context)
 
