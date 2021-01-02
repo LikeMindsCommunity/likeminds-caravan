@@ -13502,7 +13502,14 @@ class SyncChatrooms(APIView):
             return JsonResponse(draft_response)
 
         if chatroom_id:
-            chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id)
+            state_filter = collabcardState.objects.filter(card=chatroom_id, user=member_id)
+
+            if state_filter.exists():
+                chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id)
+            else:
+                chatroom = get_chatroom_data_in_case_of_guest(chatroom_id, member_id)
+
+                return JsonResponse({'chatrooms':chatroom})
 
         elif community_id:
             chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by)
@@ -14239,4 +14246,21 @@ def fill_guest_communities(state_filter, member_id, guest_community_relation):
         communities.append(community_list.data)
 
     return communities
+
+def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
+
+    try:
+        chatroom_instance = Collabcard.objects.get(id=chatroom_id)
+
+    except Exception as e:
+        error_logger.error(e.args)
+        return []
+
+    member_data = {'member_id': member_id,
+                   'current_user_id': member_id,
+                   'state_instance': None}
+    chatroom = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
+    chatroom_list = [chatroom.data]
+
+    return chatroom_list
 
