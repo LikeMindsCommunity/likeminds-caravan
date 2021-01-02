@@ -14260,7 +14260,9 @@ def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
                    'current_user_id': member_id,
                    'state_instance': None}
     chatroom = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
-    chatroom_list = [chatroom.data]
+    chatroom_context = chatroom.data
+    chatroom_context['follow_status'] = False
+    chatroom_list = [chatroom_context]
 
     return chatroom_list
 
