@@ -456,10 +456,10 @@ def get_collabcard_files(card_id, draft=False):
     pdf = []
     video_list = []
     audio_list = []
-    attachments = []
+
     for file in files:
         if file.type == 'image':
-            img = {'image_url': file.file_url, 'index': file.index}
+            img = {'image_url': file.file_url, 'index': file.index, 'type': file.type}
             if file.dimensions:
                 img['dimensions'] = json.loads(file.dimensions)
 
@@ -473,7 +473,7 @@ def get_collabcard_files(card_id, draft=False):
 
         elif file.type == 'video':
             if file.file_url:
-                video_url = {'video_url': file.file_url, 'index': file.index}
+                video_url = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
             else:
                 video_url = {'video_url': url + file.attachment.url, 'index': file.index}
 
@@ -487,13 +487,13 @@ def get_collabcard_files(card_id, draft=False):
 
         elif file.type == 'audio':
             if file.file_url:
-                audio_url = {'audio_url': file.file_url, 'index': file.index}
+                audio_url = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
             else:
                 audio_url = {'audio_url': url + file.attachment.url, 'index': file.index}
             audio_list.append(audio_url)
         elif file.type == 'pdf':
             if file.file_url:
-                pdf_url = {'pdf_file': file.file_url, 'index': file.index}
+                pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url, 'index': file.index}
             pdf.append(pdf_url)
@@ -1640,12 +1640,12 @@ def get_answer_files(answer_id):
     pdf = []
     videos = []
     audios = []
-    attachments = []
+
     files = {}
     for file in attachments:
         if file.type == 'image':
             if file.file_url:
-                img = {'image_url': file.file_url, 'index': file.index}
+                img = {'image_url': file.file_url, 'index': file.index, 'type': file.type}
                 if file.dimensions:
                     img['dimensions'] = json.loads(file.dimensions)
 
@@ -1659,7 +1659,7 @@ def get_answer_files(answer_id):
 
         elif file.type == 'video':
             if file.file_url:
-                video_url = {'video_url': file.file_url, 'index': file.index}
+                video_url = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
 
                 if file.height:
                     video_url['height'] = file.height
@@ -1671,12 +1671,12 @@ def get_answer_files(answer_id):
 
         elif file.type == 'audio':
             if file.file_url:
-                audio_url = {'audio_url': file.file_url, 'index': file.index}
+                audio_url = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
                 audios.append(audio_url)
 
         elif file.type == 'pdf':
             if file.file_url:
-                pdf_url = {'pdf_file': file.file_url, 'index': file.index}
+                pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
                 pdf.append(pdf_url)
 
         elif file.type == "location":
