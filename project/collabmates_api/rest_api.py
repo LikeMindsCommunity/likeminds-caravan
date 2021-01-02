@@ -323,6 +323,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     pdf = serializers.SerializerMethodField()
     videos = serializers.SerializerMethodField()
     audios = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
     preview = serializers.DictField(write_only=True)
     polls = serializers.SerializerMethodField()
     share_url = serializers.CharField(write_only=True)
@@ -336,23 +337,23 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     chatroom_expiry_time = serializers.CharField(write_only=True)
     last_seen_conversation = serializers.IntegerField(write_only=True)
 
-
     class Meta:
         model = Collabcard
         fields = ('id', 'title', 'community_id', 'answer_text',
-                  'image_count', 'pdf_count', 'video_count', 'audio_count', 'type',
-                  'date_time', 'is_pending', 'attending_count', 'polls_count',
-                  'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
+                  'image_count', 'pdf_count', 'video_count', 'audio_count', 'attachment_count',
+                  'attachments_uploaded', 'type', 'date_time', 'is_pending', 'attending_count',
+                  'polls_count', 'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
                   'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state',
                   'multiple_select_no', 'polls', 'location', 'location_lat', 'location_long',
                   'start_date', 'end_date', 'about', 'co_hosts', 'online_link', 'updated_member',
                   'community', 'og_tags', 'created_at', 'is_anonymous',
                   'expiry_time', 'poll_type_text', 'submit_type_text', 'date',
                   'chatroom_category', 'deleted_by', 'member_id', 'created_at',
-                  'internal_link', 'images', 'pdf', 'audios', 'videos', 'preview','deleted_by', 'header',
+                  'internal_link', 'images', 'pdf', 'audios', 'videos', 'attachments',
+                  'preview', 'deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
-                  'poll_type','last_seen_conversation'
+                  'poll_type', 'last_seen_conversation'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -485,6 +486,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 videos.append(video_file)
 
         return videos
+
+    def get_attachments(self,card):
+        return []
 
     def to_representation(self, card):
         data = super(GetChatroomInstanceSerializer, self).to_representation(card)
@@ -637,6 +641,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 data['last_seen_conversation'] = status_dict['last_seen_conversation']
 
             self.state_instance = None  # making None for the next object
+
+        data['attachments'] = data['images'] + data['videos']
 
         return data
 
@@ -897,6 +903,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 data['pdf'] = answer_files['pdf']
                 data['videos'] = answer_files['videos']
                 data['audios'] = answer_files['audios']
+                data['attachments'] = answer_files['attachments']
                 if 'location' in answer_files:
                     data['location'] = answer_files['location']
 
