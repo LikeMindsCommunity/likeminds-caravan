@@ -32,3 +32,6 @@ Download app : {2}'''
 COMMUNITY_JOIN_SMS_REMINDER = '''Hi {0}! It’s been 3 days since you’ve been approved to join {1}. Download the LikeMinds app to get real-time notifications, join other relevant chatrooms, start your own chatroom, attend events, and much more. 
 
 Download app : {2}'''
+
+CREATE_INTRO_TEXT_ADMIN = """Created this community on %s"""
+CREATE_INTRO_TEXT_MEMBER = """Joined via a private community link on %s"""

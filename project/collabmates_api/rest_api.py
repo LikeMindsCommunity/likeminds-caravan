@@ -838,13 +838,14 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     reply_conversation = serializers.IntegerField(write_only=True)
     preview = serializers.DictField(write_only=True)
     member_id = serializers.CharField(write_only=True)
+    created_epoch = serializers.SerializerMethodField()
 
     class Meta:
         model = card_answers
         fields = ("id", 'answer', 'card', 'user', 'created_at', 'community', 'state',
                   'og_tags', 'deleted_by', 'is_edited', 'reply', 'internal_link',
                   'has_files', 'date', 'images', 'pdf', 'audios', 'videos',
-                  'location', 'reply_conversation', 'preview', 'member_id')
+                  'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)
@@ -858,6 +859,9 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         if obj.deleted_by_user is not None:
             return obj.deleted_by_user.id
         return None
+
+    def get_created_epoch(self, obj):
+        return int(obj.created_at)
 
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)

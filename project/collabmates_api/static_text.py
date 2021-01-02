@@ -320,7 +320,7 @@ months_full = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6:
 
 
 MENU = {
-    'member' : ['Invite members','View all chat rooms','Member directory','Leave community','Report'],
+    'member': ['Invite members','View all chat rooms','Member directory','Leave community','Report'],
     'promoter': ['Invite members','View all chat rooms','Member directory','Edit community','Report'],
     'pending_member':['Cancel joining request']
 }
@@ -335,3 +335,6 @@ ENABLE_MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS = "Congratulations! The Community Ma
 ENABLE_MANAGER_RIGHT_DELETE_ROOMS = "Congratulations! The Community Manager has conferred you privilege to “Delete Chat room or Responses”"
 ENABLE_MANAGER_ADD_MANAGER_RIGHT = "Congratulations! The Community Manager has conferred you privilege to “Add Community Managers”."
 
+LINKED_IN_ACCESS_TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
+LINKED_IN_USER_URL = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token='
+LINKED_IN_EMAIL_URL = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token='

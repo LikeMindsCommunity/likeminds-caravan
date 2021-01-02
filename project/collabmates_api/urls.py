@@ -17,7 +17,7 @@ urlpatterns = [
 
     #path('communities', api_views.communities, name="communities"),
   
-    path('your_communities/<int:user_id>/', include('collabmates_api.landing_page.urls')),
+    path('your_communities/<int:user_id>/', include('collabmates_api.member_community.urls')),
 
     path('community/<int:community_id>', api_views.community, name="community"),
 
@@ -232,7 +232,10 @@ urlpatterns = [
     path('block_member', api_views.block_member, name='block_member'),
     path('send_test_notification', send_test_notification, name='send_test_notification'),
     path('chatroom/', include('collabmates_api.chatroom.urls')),
-    path('user/', include('collabmates_api.user.urls'))
+    path('user/', include('collabmates_api.user.urls')),
+    path('v1/get_tagging_list', api_views.GetTaggingList.as_view(), name='get_tagging_list_v1'),
+    path('community/', include('collabmates_api.community.urls'))
+    
 
 ]
 

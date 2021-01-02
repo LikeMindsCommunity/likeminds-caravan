@@ -1,10 +1,9 @@
 from django.contrib.auth.models import User
 from rest_framework.utils import json
 
-from togther.models import Member_Engage, Community
+from togther.models import Member_Engage, Community, Members
 from utility.states import member_states
-from collabmates_api.landing_page.member_community_manager import MemberCommunityManager
-from collabmates_api.serializers import CommunitySerializer
+from collabmates_api.member_community.member_community_manager import MemberCommunityManager
 from collabmates_api.user_moderation_rights import check_admin_approve_right
 from collabmates_api.utility import pagination
 from collabmates_api.views import get_home_screen_community_actions, get_active_chatroom_member_images
@@ -13,14 +12,13 @@ from collabmates_api.rest_api import CommunitySerializerV1
 
 
 class MemberCommunityImpl(MemberCommunityManager):
-    member_id = None
-    page = None
-    communities = None
 
-    def __init__(self, member_id: str, page: int):
+    member_id = None
+    community_id = None
+
+    def __init__(self, member_id: str, community_id: str):
         self.member_id = member_id
-        self.page = page
-        self.communities = list()
+        self.community_id = community_id
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -28,25 +26,20 @@ class MemberCommunityImpl(MemberCommunityManager):
     def set_member_id(self, member_id: str) -> None:
         self.member_id = member_id
 
-    def get_page(self) -> int:
-        return self.page
+    def get_community_id(self) -> str:
+        return self.community_id
 
-    def set_page(self, page: int) -> None:
-        self.page = page
+    def set_community_id(self, community_id: str) -> None:
+        self.community_id = community_id
 
-    def get_communities(self) -> list:
-        return self.communities
-
-    def set_communities(self, communities: list) -> None:
-        self.communities = communities
-
-    def extract_member_communities(self) -> None:
+    def extract_member_communities(self, page: int) -> list:
         self._send_app_install_notification(self.get_member_id())
 
         communities = self._find_member_communities(self.get_member_id())
-        communities = self._paged_queryset(communities, self.get_page())
+        communities = self._paged_queryset(communities, page)
+        communities = self._add_additional_information(communities)
 
-        self._add_additional_information(communities)
+        return communities
 
     @staticmethod
     def _send_app_install_notification(member_id: str) -> None:
@@ -70,16 +63,15 @@ class MemberCommunityImpl(MemberCommunityManager):
         return Member_Engage.objects.filter(member_id=member_id).order_by('-order_time')
 
     @staticmethod
-    def _paged_queryset(communities: list, page: int):
+    def _paged_queryset(communities: list, page: int) -> list:
         result_per_page = 10
         return pagination(communities, page, paginate_by=result_per_page)
 
-    def _add_additional_information(self, communities: list) -> None:
+    def _add_additional_information(self, communities: list) -> list:
         member_communities_additional_info = list()
 
         for community in communities:
             member_community = self._community_serializer(community.community_id, self.get_member_id())
-
             self._add_admin_info(member_community, community)
             self._add_community_actions(member_community, community)
             self._add_unseen_count_info(member_community, community)
@@ -89,7 +81,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             member_communities_additional_info.append(member_community)
 
-        self.set_communities(member_communities_additional_info)
+        return member_communities_additional_info
 
     @staticmethod
     def _community_serializer(community_id: int, member_id: str) -> dict:
@@ -172,3 +164,15 @@ class MemberCommunityImpl(MemberCommunityManager):
     def _add_additional_keys(member_community: dict, community: {}) -> None:
         member_community['member_state'] = community.member_state
         member_community['click_state'] = community.click_state
+
+    def _fetch_member_community_data(self, community_id, member_id) -> list:
+        return Members.objects.filter(member_id=member_id, community_id=community_id)
+
+    def community_member_state(self) -> int:
+        state = 0
+        member_data = self._fetch_member_community_data(self.get_community_id(), self.get_member_id())
+
+        if member_data:
+            state = member_data[0].state
+
+        return state

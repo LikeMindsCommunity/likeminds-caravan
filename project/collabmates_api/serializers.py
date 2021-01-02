@@ -21,7 +21,7 @@ from .static_files import *
 from .static_text import months_semi
 from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
 from .branch import create_community_branch_links
-from collabmates_api.utilities.constants import *
+from utility.constants import *
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -822,6 +822,8 @@ def get_member_instances_for_footer_images_in_chatroom(card_instance):
         member_images.append(image_url)
 
         member_data = get_user_profile(conversation.user, community_instance, send_profile=False, remove=remove)
+        member_data['community_id'] = community_instance.id
+        member_data['chatroom_id'] = card_instance.id
         conversation_members.append(member_data)
 
         count = count + 1
@@ -1575,7 +1577,8 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
         'created_at': conversation.created_at,
         'has_files': conversation.has_files,
         'chatroom_id': conversation.card.id,
-        'community_id': conversation.community.id
+        'community_id': conversation.community.id,
+        'created_epoch': int(conversation.created_at)
     }
 
     if conversation.has_files:
@@ -1691,7 +1694,8 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
         'has_files': conversation.has_files,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,
-        'member_id': conversation.user.id
+        'member_id': conversation.user.id,
+        'created_epoch': int(conversation.created_at)
     }
 
     if conversation.has_files:
