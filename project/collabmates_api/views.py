@@ -5741,7 +5741,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         expire_at = get_expiry_time_of_chatroom()
         create_chatroom_state_instance(card_instance, user_instance, state=0, external_seen=True, expire_at=expire_at,
                                        function_called="get_chatroom_internal")
-    elif user_instance:
+    elif user_instance and chatroom_state.exists():
         instance = chatroom_state[0]
         if not instance.external_seen:
             instance.external_seen = True
@@ -5825,48 +5825,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         if is_guest:
             context = adding_guest_in_chatroom(context, card_instance, aj, source_id,
                                                card_instance.community.id, current_user_id=user_id)
-    #
-    #     instance_filter = conversationMemberState.objects.filter(user_id=user_id, card=card_instance)
-    #     if not instance_filter.exists():
-    #
-    #         conversations = pagination(conversations_filter, page, paginate_by=20)
-    #         conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id)
-    #
-    #         placeholder = create_introduction_card_placeholder(card_instance, user_id)
-    #         if placeholder:
-    #             context['placeholder'] = placeholder
-    #     else:
-    #         conversation_instance = instance_filter[0].conversation
-    #
-    #         upward_conversation = conversations_filter.filter(id__lte=conversation_instance.id).order_by('-id')[:10]
-    #
-    #         downward_conversation = conversations_filter.filter(id__gt=conversation_instance.id)[:10]
-    #
-    #         # merging both conversations
-    #         conversations = upward_conversation | downward_conversation
-    #         conversations = conversations.order_by('id')
-    #         conversations = get_answer_data(conversations, card_instance.community.id,
-    #                                         current_user_id=user_id, last_seen=conversation_instance)
-    #
-    # else:
-    #
-    #     try:
-    #         scroll_direction = int(scroll_direction)
-    #         conversation_id = int(conversation_id)
-    #     except Exception as e:
-    #         context = get_error_context(False,"conversation id is a nullable field.Don't send the key")
-    #         return context
-    #
-    #     if scroll_direction == 0:  # upward scroll
-    #         upward_list = conversations_filter.filter(id__lt=conversation_id).order_by('-id')[:20]
-    #         conversations = reverse_conversations_for_upward_pagination(upward_list)
-    #
-    #     elif scroll_direction == 1:  # downward scroll
-    #         conversations = conversations_filter.filter(id__gt=conversation_id)[:20]
-    #     else:
-    #         conversations = conversations_filter
-    #
-    #     conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id)
 
     card = get_chatroom_instance(card_instance, user_id)
 
@@ -5928,7 +5886,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         expire_at = get_expiry_time_of_chatroom()
         create_chatroom_state_instance(card_instance, user_instance, state=0, external_seen=True, expire_at=expire_at,
                                        function_called="get_chatroom_internal_version_1")
-    elif user_instance:
+    elif user_instance and chatroom_state.exists():
         instance = chatroom_state[0]
         if not instance.external_seen:
             instance.external_seen = True
@@ -6014,7 +5972,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
         create_chatroom_state_instance(card_instance, user_instance, state=0,
                                        external_seen=True, expire_at=expire_at,
                                        function_called="get_chatroom_internal_version_1")
-    elif user_instance:
+    elif user_instance and chatroom_state.exists():
         instance = chatroom_state[0]
         if not instance.external_seen:
             instance.external_seen = True
@@ -13544,7 +13502,14 @@ class SyncChatrooms(APIView):
             return JsonResponse(draft_response)
 
         if chatroom_id:
-            chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id)
+            state_filter = collabcardState.objects.filter(card=chatroom_id, user=member_id)
+
+            if state_filter.exists():
+                chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id)
+            else:
+                chatroom = get_chatroom_data_in_case_of_guest(chatroom_id, member_id)
+
+                return JsonResponse({'chatrooms':chatroom})
 
         elif community_id:
             chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by)
@@ -14281,3 +14246,23 @@ def fill_guest_communities(state_filter, member_id, guest_community_relation):
         communities.append(community_list.data)
 
     return communities
+
+def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
+
+    try:
+        chatroom_instance = Collabcard.objects.get(id=chatroom_id)
+
+    except Exception as e:
+        error_logger.error(e.args)
+        return []
+
+    member_data = {'member_id': member_id,
+                   'current_user_id': member_id,
+                   'state_instance': None}
+    chatroom = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
+    chatroom_context = chatroom.data
+    chatroom_context['follow_status'] = False
+    chatroom_list = [chatroom_context]
+
+    return chatroom_list
+
