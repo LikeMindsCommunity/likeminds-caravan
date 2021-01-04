@@ -113,10 +113,15 @@ class Members(models.Model):
             return member[0].state
         return member_states.GUEST
 
-    # def save(self, *args, **kwargs):
-    #     if self.created_at <= 0:
-    #         self.created_at = time.time()
-    #     super(Members, self).save(*args, **kwargs)
+    @staticmethod
+    def get_member_instance_or_none(community: Community, member: User) -> object:
+
+        member = Members.objects.filter(community_id=community, member_id=member)
+
+        if member.exists():
+            return member[0]
+
+        return None
 
 
 class removedMembers(models.Model):
