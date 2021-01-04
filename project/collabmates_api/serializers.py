@@ -457,33 +457,42 @@ def get_collabcard_files(card_id, draft=False):
     video_list = []
     audio_list = []
 
+    attachments = []
+
     for file in files:
         if file.type == 'image':
             img = {'image_url': file.file_url, 'index': file.index, 'type': file.type}
+            img_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
             if file.dimensions:
                 img['dimensions'] = json.loads(file.dimensions)
+                img_attachment['dimensions'] = json.loads(file.dimensions)
 
             if file.height:
                 img['height'] = file.height
+                img_attachment['height'] = file.height
 
             if file.width:
                 img['width'] = file.width
+                img_attachment['width'] = file.width
 
             img_list.append(img)
+            attachments.append(img_attachment)
 
         elif file.type == 'video':
-            if file.file_url:
-                video_url = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
-            else:
-                video_url = {'video_url': url + file.attachment.url, 'index': file.index}
+            video_url = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
+            video_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
             if file.height:
                 video_url['height'] = file.height
+                video_attachment['height'] = file.height
 
             if file.width:
                 video_url['width'] = file.width
+                video_attachment['width'] = file.width
 
             video_list.append(video_url)
+            attachments.append(video_attachment)
 
         elif file.type == 'audio':
             if file.file_url:
@@ -497,8 +506,6 @@ def get_collabcard_files(card_id, draft=False):
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url, 'index': file.index}
             pdf.append(pdf_url)
-
-    attachments = img_list + video_list
 
     return img_list, pdf, audio_list, video_list, attachments
 
@@ -1587,12 +1594,15 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
         'is_edited': conversation.is_edited,
         'created_at': conversation.created_at,
         'has_files': conversation.has_files,
+        'attachment_count': conversation.attachment_count,
+        'attachments_uploaded': conversation.attachments_uploaded,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,
         'created_epoch': int(conversation.created_at)
     }
 
-    if conversation.has_files:
+    if conversation.has_files or\
+            conversation.attachment_count > 0:
         answer_files = get_answer_files(temp['id'])
         temp['images'] = answer_files['image']
         temp['videos'] = answer_files['videos']
@@ -1641,33 +1651,44 @@ def get_answer_files(answer_id):
     videos = []
     audios = []
 
+    attachments_list = []
+
     files = {}
     for file in attachments:
         if file.type == 'image':
             if file.file_url:
                 img = {'image_url': file.file_url, 'index': file.index, 'type': file.type}
+                img_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
                 if file.dimensions:
                     img['dimensions'] = json.loads(file.dimensions)
-
+                    img_attachment['dimensions'] = json.loads(file.dimensions)
                 if file.height:
                     img['height'] = file.height
+                    img_attachment['height'] = file.height
 
                 if file.width:
                     img['width'] = file.width
+                    img_attachment['height'] = file.height
 
                 img_list.append(img)
+                attachments_list.append(img_attachment)
 
         elif file.type == 'video':
             if file.file_url:
                 video_url = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
+                video_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
                 if file.height:
                     video_url['height'] = file.height
+                    video_attachment['height'] = file.height
 
                 if file.width:
                     video_url['width'] = file.width
+                    video_attachment['width'] = file.width
 
                 videos.append(video_url)
+                attachments_list.append(video_attachment)
 
         elif file.type == 'audio':
             if file.file_url:
@@ -1691,7 +1712,7 @@ def get_answer_files(answer_id):
     files['pdf'] = pdf
     files['videos'] = videos
     files['audios'] = audios
-    files['attachments'] = img_list + videos
+    files['attachments'] = attachments_list
     return files
 
 
@@ -1706,13 +1727,16 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
         'is_edited': conversation.is_edited,
         'created_at': time.strftime('%H:%M', time.localtime(conversation.created_at)),
         'has_files': conversation.has_files,
+        'attachment_count': conversation.attachment_count,
+        'attachments_uploaded': conversation.attachments_uploaded,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,
         'member_id': conversation.user.id,
         'created_epoch': int(conversation.created_at)
     }
 
-    if conversation.has_files:
+    if conversation.has_files or\
+            conversation.attachment_count > 0:
 
         answer_files = get_answer_files(conversation_dict['id'])
         conversation_dict['images'] = answer_files['image']

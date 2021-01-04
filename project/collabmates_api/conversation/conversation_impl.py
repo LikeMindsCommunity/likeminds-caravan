@@ -129,7 +129,13 @@ class ConversationImpl(ConversationManager):
     def _create_conversation_list(self, conversations):
 
         conversation_list = []
+
         for conversation in conversations:
+
+            if conversation.attachments_uploaded is False and\
+                    conversation.user.id != int(self.member_id):
+                continue
+
             conversation_dict = self._serialize_conversation(conversation)
             conversation_list.append(conversation_dict)
 
@@ -155,6 +161,8 @@ class ConversationImpl(ConversationManager):
         conversation_content['attachment_count'] = req_body.get('attachment_count', 0)
         if conversation_content['attachment_count'] > 0:
             conversation_content['attachments_uploaded'] = False
+            conversation_content['has_files'] = True
+            req_body['has_files'] = True
 
         conversation_content['is_guest'] = self._is_user_already_guest(user=user_instance,
                                                                        chatroom=chatroom_instance)
@@ -298,7 +306,11 @@ class ConversationImpl(ConversationManager):
         conversation_instance = self._create_conversation_instance(conversation_content)
         self._set_preview_for_conversation(conversation_instance, req_body)
 
-        if req_body.get('has_files', False):
+        attachment_count = req_body.get('attachment_count', 0)
+
+        has_files = has_files or attachment_count > 0
+
+        if not has_files:
             self._update_latest_conversation_id_to_firebase(chatroom_id,
                                                            conversation_instance.id)
 
