@@ -193,9 +193,9 @@ class Collabcard(models.Model):
     has_been_named = models.BooleanField(default=True)  # for notification access
     internal_link = models.TextField(null=True)
     preview_type = models.TextField(null=True)
-    preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
+    preview_community = models.ForeignKey(Community, on_delete=models.SET_NULL, null=True,
                                           related_name='chatroom_preview_community')
-    preview_chatroom = models.ForeignKey('self', on_delete=models.PROTECT, null=True,
+    preview_chatroom = models.ForeignKey('self', on_delete=models.SET_NULL, null=True,
                                          related_name='chatroom_preview_chatroom')
     is_pending = models.BooleanField(default=False)  # for pending chat rooms which has to be approved
     is_deleted = models.BooleanField(default=False)  # for internal check, not to be sent in API's
@@ -252,9 +252,9 @@ class draftChatroom(models.Model):
 
     internal_link = models.TextField(null=True)
     preview_type = models.TextField(null=True)
-    preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
+    preview_community = models.ForeignKey(Community, on_delete=models.SET_NULL, null=True,
                                           related_name='draft_chatroom_preview_community')
-    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
+    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True,
                                          related_name='draft_chatroom_preview_chatroom')
 
 
@@ -328,12 +328,12 @@ class card_answers(models.Model):
     deleted_by_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
                                         related_name='conversation_deleted_by_user')
     is_edited = models.BooleanField(default=False)
-    reply = models.ForeignKey('self', on_delete=models.PROTECT, null=True, related_name='replied_conversation')
+    reply = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, related_name='replied_conversation')
     internal_link = models.TextField(null=True)
     preview_type = models.TextField(null=True)
-    preview_community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True,
+    preview_community = models.ForeignKey(Community, on_delete=models.SET_NULL, null=True,
                                           related_name='conversation_preview_community')
-    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.PROTECT, null=True,
+    preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True,
                                          related_name='conversation_preview_chatroom')
 
     has_files = models.BooleanField(default=False)
