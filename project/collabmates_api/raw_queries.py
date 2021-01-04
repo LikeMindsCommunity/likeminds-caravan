@@ -991,21 +991,48 @@ def get_community_id_list(member_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select community_id_id from togther_members where member_id_id=%s""" % (str(member_id))
-        curr.execute(sql)
+        sql = """select community_id_id from togther_members where  member_id_id=%s""" % (str(member_id))
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
         conn.close()
-        community_id_list = []
+        community_id_set = set()
 
         for community_id in data:
-            community_id_list.append(community_id[0])
+            community_id_set.add(community_id[0])
 
-        return community_id_list
+        guest_community_list = get_community_id_of_guest(member_id)
+
+        for community_id in guest_community_list:
+            community_id_set.add(community_id)
+
+        return list(community_id_set)
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s", error)
+
+
+def get_community_id_of_guest(member_id):
+
+    """function to get community id for which the user id guest"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """select distinct(community_id) from togther_collabcardState where is_guest=True and user_id=%s""" % (str(member_id))
+        curr.execute(sql)
+        data = curr.fetchall()
+        curr.close()
+        conn.close()
+        guest_community_id_list = []
+
+        for community_id in data:
+            guest_community_id_list.append(community_id[0])
+
+        return guest_community_id_list
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s", error)
 
 
 def get_members_of_community(community_id_list, last_updated, page, limit):
@@ -1015,6 +1042,10 @@ def get_members_of_community(community_id_list, last_updated, page, limit):
         conn = get_connection()
         curr = conn.cursor()
         community_id_tupple = get_tuple_from_array(community_id_list)
+
+        if not community_id_tupple:
+            return []
+
         offset = (int(page) - 1) * int(limit)
 
         sql = """select togther_members.member_id_id,
