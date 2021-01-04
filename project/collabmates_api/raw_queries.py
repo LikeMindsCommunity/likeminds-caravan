@@ -42,7 +42,7 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def get_active_chatrooms_count_in_community(community_id, user_id, current_time):
@@ -65,7 +65,7 @@ def get_active_chatrooms_count_in_community(community_id, user_id, current_time)
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def get_inactive_chatrooms_count_in_community(community_id, user_id, current_time):
@@ -88,7 +88,7 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def get_inactive_followed_chatrooms_count(user_id, current_time):
@@ -109,7 +109,7 @@ def get_inactive_followed_chatrooms_count(user_id, current_time):
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
 def get_active_my_chatrooms_count(user_id, current_time):
@@ -134,7 +134,7 @@ def get_active_my_chatrooms_count(user_id, current_time):
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def get_active_followed_chatrooms(user_id, current_time, page, limit=10):
@@ -165,7 +165,7 @@ def get_active_followed_chatrooms(user_id, current_time, page, limit=10):
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
 def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10):
@@ -196,7 +196,7 @@ def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10):
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def get_draft_chatrooms_on_home_screen(user_id, page, limit=10):
@@ -227,7 +227,7 @@ def get_draft_chatrooms_on_home_screen(user_id, page, limit=10):
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 @shared_task
@@ -249,7 +249,7 @@ def update_community_purpose_card(community_id, card_id):
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def get_all_data(sql):
@@ -266,7 +266,7 @@ def get_all_data(sql):
         return []
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def filter_tags(user_id=0, community_id=0):
@@ -432,7 +432,7 @@ def ranking_tags(tag):
         curr.close()
         conn.close()
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting  to PostgreSQL", error)
+        error_logger.error("Error while connecting  to PostgreSQL %s", error)
 
 
 def delete_previous_data_for_user(user_id):
@@ -449,7 +449,7 @@ def delete_previous_data_for_user(user_id):
         conn.close()
         info_logger.info("Record deleted successfully for user:,", user_id)
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting  to PostgreSQL", error)
+        error_logger.error("Error while connecting  to PostgreSQL %s", error)
 
 
 def action_for_user_crete_or_community_create(user_id, community_id):
@@ -706,7 +706,7 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
         return data, chatroom_id_list
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def fetch_chatroom_polls(chatroom_id_list):
@@ -824,7 +824,7 @@ def fetch_member_poll_votes(chatroom_id_list):
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def fetch_chatroom_id_query(chatroom_id, user_id):
@@ -898,7 +898,7 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
 
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s", error)
 
 
 def fetch_community_chatroom_query(community_id, user_id, page, limit):
@@ -973,7 +973,7 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit):
 
         return data, chatroom_id_list
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
 def get_chatroom_id_list(data):
@@ -991,7 +991,7 @@ def get_community_id_list(member_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select community_id_id from togther_members where  member_id_id=%s""" % (str(member_id))
+        sql = """select community_id_id from togther_members where member_id_id=%s""" % (str(member_id))
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
@@ -1078,7 +1078,7 @@ def get_members_of_community(community_id_list, last_updated, page, limit):
         return member_date
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
 def get_member_responses_for_community(community_id_list):
@@ -1101,7 +1101,7 @@ def get_member_responses_for_community(community_id_list):
         return responses_dict
 
     except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL  ", error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def process_member_data(res):
