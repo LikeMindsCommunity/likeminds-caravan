@@ -10881,6 +10881,20 @@ def all_members(request):
     else:
         return JsonResponse(context)
 
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
+def all_members_version_1(request):
+
+    '''version 1 api for sending members of community with different community type'''
+
+    context = get_all_members_version_1(request)
+
+    if request.accepted_renderer.format == '*/*':
+        info_logger.info("html format")
+        return render(request, 'filtered_members.html', context)
+    else:
+        return JsonResponse(context)
+
 
 def get_tagging_list(request):
     '''api to get tag list of members'''
