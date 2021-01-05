@@ -3010,7 +3010,9 @@ def create_poll(request):
     community_id = res['community_id']
     res['type'] = card_types.CARD_POLL  # poll chatroom type is 3
 
-    is_member = Members.objects.filter(community_id=community_id,member_id=user_id).filter(Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+    is_member = Members.objects.filter(community_id=community_id,
+                                       member_id=member_id).filter(Q(state=member_states.ADMIN) |
+                                                                   Q(state=member_states.MEMBER))
     if not is_member:
         context = get_error_context(False, "You cannot create a chatroom")
         return JsonResponse(context)
@@ -5481,6 +5483,8 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'videos': attachements['videos'],
             'pdf': attachements['pdf'],
             'attachments': attachements['attachments'],
+            'attachment_count': ans.attachment_count,
+            'attachments_uploaded': ans.attachments_uploaded ,
             'date': date,
             'state': ans.state,
             # 'is_deleted': ans.is_deleted,
@@ -5490,6 +5494,9 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'chatroom_id': ans.card.id,
             'created_epoch': int(ans.created_at)
         }
+        
+        if ans.attachment_count == 0:
+            context['attachment_count'] = len(context['attachment_count'])
 
         if ans.og_tags:
             context['og_tags'] = json.loads(ans.og_tags)
@@ -8273,8 +8280,9 @@ def upload_files(request):
         file.collabcard = card_instance
         file.type = attachment_type
         file.file_url = body['url']
-        file.index = body['index'] if 'index' in body else 1
-        file.dimensions = get_image_dimensions(body.get('dimensions', None))
+        file.index = body.get('index', 0)
+        file.height = body.get('height', None)
+        file.width = body.get('width', None)
         file.save()
 
         # updating updated_at for synching apis
@@ -8299,11 +8307,12 @@ def upload_files(request):
         file.answer = answer_instance
         file.type = attachment_type
         file.file_url = body['url'] if 'url' in body else None
-        file.index = body['index'] if 'index' in body else 1
-        file.location_name = body['location_name'] if 'location_name' in body else None
-        file.location_lat = body['location_lat'] if 'location_lat' in body else None
-        file.location_long = body['location_long'] if 'location_long' in body else None
-        file.dimensions = get_image_dimensions(body.get('dimensions', None))
+        file.index = body.get('index', 0)
+        file.height = body.get('height', None)
+        file.width = body.get('width', None)
+        file.location_name = body.get('location_name', None)
+        file.location_lat = body.get('location_lat', None)
+        file.location_long = body.get('location_long', None)
         file.save()
 
         files_count = body['files_count'] if 'files_count' in body else 0
@@ -8342,9 +8351,10 @@ def upload_files(request):
         instance = draftChatroomFiles()
         instance.draft = draft_instance
         instance.file_url = body['url']
-        instance.index = body['index'] if 'index' in body else 1
+        instance.index = body.get('index', 0)
+        instance.height = body.get('height', None)
+        instance.width = body.get('width', None)
         instance.type = attachment_type
-        instance.dimensions = get_image_dimensions(body.get('dimensions', None))
         instance.save()
 
     elif 'draft_poll_id' in body and body['draft_poll_id']:
@@ -13623,6 +13633,7 @@ class SyncChatrooms(APIView):
             chatroom['audios'] = chatroom_files['audios']
             chatroom['videos'] = chatroom_files['videos']
             chatroom['attachments'] = chatroom_files['attachments']
+            chatroom['attachment_count'] = len(chatroom_files['attachments'])
 
             if chatroom['type'] == card_types.CARD_POLL:
 

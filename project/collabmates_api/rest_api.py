@@ -670,6 +670,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
             self.state_instance = None  # making None for the next object
 
+        data['attachment_count'] = len(data['attachments'])
+
         return data
 
 
@@ -934,6 +936,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 data['videos'] = answer_files['videos']
                 data['audios'] = answer_files['audios']
                 data['attachments'] = answer_files['attachments']
+                data['attachment_count'] = len(data['attachments'])
                 if 'location' in answer_files:
                     data['location'] = answer_files['location']
 

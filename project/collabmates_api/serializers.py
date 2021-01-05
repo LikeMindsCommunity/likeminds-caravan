@@ -1669,7 +1669,7 @@ def get_answer_files(answer_id):
 
                 if file.width:
                     img['width'] = file.width
-                    img_attachment['height'] = file.height
+                    img_attachment['width'] = file.width
 
                 img_list.append(img)
                 attachments_list.append(img_attachment)

@@ -718,7 +718,7 @@ def get_custom_data_for_new_conversation_created(user_id):
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
             if last_instance.has_files or\
-                    last_conversation.attachment_count > 0:
+                    last_instance.attachment_count > 0:
                 answer_files = get_answer_files(last_instance)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
@@ -781,7 +781,7 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
             if last_instance.has_files or\
-                    last_conversation.attachment_count > 0:
+                    last_instance.attachment_count > 0:
                 answer_files = get_answer_files(last_instance.id)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
