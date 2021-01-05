@@ -12,7 +12,7 @@ from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_
                      create_chatroom_state_instance, get_icons_states_of_chatroom_version_1,
                      save_the_latest_conversation, collabcard_follow_internal,
                      send_chatroom_creation_notifications_and_mails, update_seen_status_for_new_user_in_chatroom,
-                     create_chatroom, )
+                     create_chatroom, get_latest_conversation_members, )
 from ..tasks import update_pending_chatroom_count_for_promoters
 from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts,
                             schedule_poll_end_notification, send_ice_breaker_notification)
@@ -28,7 +28,7 @@ from utility.states import chatroom_states, member_states, card_types, collabcar
 from utility.request_utilities import RequestUtilities
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
-from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation
+from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation, get_chatroom_user_images_for_web
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (InvalidUserException, InvalidCommunityException,
                                          InvalidHeaderException, CustomException)
@@ -412,6 +412,16 @@ class ChatroomImpl(ChatroomManager):
         else:
             update_pending_chatroom_count_for_promoters.delay(community_id)
 
+    def _latest_conversations_user_data(self):
+
+        conversation_users_meta = get_chatroom_user_images_for_web(self.get_chatroom_id())
+        conversation_users = get_latest_conversation_members(conversation_users_meta['last_conversation_member'],
+                                                             conversation_users_meta['second_last_conversation_member'],
+                                                             conversation_users_meta['last_conversation_user'],
+                                                             conversation_users_meta['second_last_conversation_user'])
+
+        return conversation_users
+
     def fetch_chatroom(self) -> dict:
 
         card_instance = ChatroomHelper.fetch_card_instance(self.get_chatroom_id())
@@ -444,6 +454,7 @@ class ChatroomImpl(ChatroomManager):
                                                                               self.get_member_id())
         chatroom_obj['unread_messages'] = self._fetch_number_of_unread_messages(card_instance, user_instance)
         chatroom_obj['participant_count'] = self._chatroom_participants_count(card_instance)
+        chatroom_obj['conversation_users'] = self._latest_conversations_user_data()
         self._save_external_seen_in_chatroom_state(card_instance, user_instance)
         self._save_latest_conversation_on_screen(card_instance)
 
