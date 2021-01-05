@@ -634,7 +634,7 @@ def send_follow_notification(card_id,user_id,answer):
         notification_list=[]
 
         for member in member_list:
-            if str(member[0]) != user_id and str(member[0]) not in tagged_users_list:
+            if str(member[0]) != str(user_id) and str(member[0]) not in tagged_users_list:
                 temp={}
                 notification_details = get_token_for_fcm(member[0],True)
                 temp['id']=member[0]
