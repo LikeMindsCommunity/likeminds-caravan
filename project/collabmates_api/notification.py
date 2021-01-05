@@ -708,8 +708,8 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['community_image'] = conversation.card.community.image_link
         temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
 
-        last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
+
         if last_instance:
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
@@ -717,7 +717,8 @@ def get_custom_data_for_new_conversation_created(user_id):
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
-            if last_instance.has_files:
+            if last_instance.has_files or\
+                    last_instance.attachment_count > 0:
                 answer_files = get_answer_files(last_instance)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
@@ -726,8 +727,6 @@ def get_custom_data_for_new_conversation_created(user_id):
                 temp['attachments'] = answer_files['attachments']
 
         unread_conversation.append(temp)
-
-    print(">>>>>>>>>   ", unread_conversation)
 
     return unread_conversation
 
@@ -772,8 +771,8 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         card_instance  = conversation.card
         temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance,user_id)
 
-        last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
+
         if last_instance:
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
@@ -781,7 +780,8 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
-            if last_instance.has_files:
+            if last_instance.has_files or\
+                    last_instance.attachment_count > 0:
                 answer_files = get_answer_files(last_instance.id)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
@@ -790,7 +790,6 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
                 temp['attachments'] = answer_files['attachments']
 
             temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_instance.id))
-    print(">>>>>>>>>   ", temp)
 
     return temp
 

@@ -429,8 +429,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_images(self,card):
 
         images = []
-        if card.has_files:
+
+        if card.has_files or\
+                card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="image")
+
             for file in files:
                 img = {'image_url': file.file_url, 'index': file.index}
 
@@ -450,8 +453,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_pdf(self, card):
 
         pdf = []
-        if card.has_files:
+
+        if card.has_files or\
+                card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="pdf")
+
             for file in files:
                 temp = {'pdf_file': file.file_url, 'index': file.index}
                 pdf.append(temp)
@@ -461,8 +467,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_audios(self,card):
 
         audios = []
-        if card.has_files:
+
+        if card.has_files or\
+                card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="audio")
+
             for file in files:
                 audio_file = {'audio_url': file.file_url, 'index': file.index}
                 audios.append(audio_file)
@@ -472,7 +481,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_videos(self, card):
 
         videos = []
-        if card.has_files:
+
+        if card.has_files or\
+                card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="video")
             for file in files:
                 video_file = {'video_url': file.file_url, 'index': file.index}
@@ -487,8 +498,25 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         return videos
 
-    def get_attachments(self,card):
-        return []
+    def get_attachments(self, card):
+        attachments = []
+
+        if card.has_files or\
+                card.attachment_count > 0:
+            files = Card_Attachment.objects.filter(collabcard=card).filter(Q(type="video") | Q(type="image"))
+
+            for file in files:
+                attachment_file = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                if file.height:
+                    attachment_file['height'] = file.height
+
+                if file.width:
+                    attachment_file['width'] = file.width
+
+                attachments.append(attachment_file)
+
+        return attachments
 
     def to_representation(self, card):
         data = super(GetChatroomInstanceSerializer, self).to_representation(card)
@@ -642,7 +670,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
             self.state_instance = None  # making None for the next object
 
-        data['attachments'] = data['images'] + data['videos']
+        data['attachment_count'] = len(data['attachments'])
 
         return data
 
@@ -851,6 +879,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         fields = ("id", 'answer', 'card', 'user', 'created_at', 'community', 'state',
                   'og_tags', 'deleted_by', 'is_edited', 'reply', 'internal_link',
                   'has_files', 'date', 'images', 'pdf', 'audios', 'videos',
+                  'attachment_count', 'attachments_uploaded',
                   'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch')
 
     def __init__(self, *args, **kwargs):
@@ -897,13 +926,17 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 else:
                     del data['og_tags']
 
-            elif field.field_name == "has_files" and data['has_files']:
+            elif (field.field_name == "has_files" and
+                  data['has_files']) or\
+                 (field.field_name == "attachment_count" and
+                  data['attachment_count'] > 0):
                 answer_files = get_answer_files(data['id'])
                 data['images'] = answer_files['image']
                 data['pdf'] = answer_files['pdf']
                 data['videos'] = answer_files['videos']
                 data['audios'] = answer_files['audios']
                 data['attachments'] = answer_files['attachments']
+                data['attachment_count'] = len(data['attachments'])
                 if 'location' in answer_files:
                     data['location'] = answer_files['location']
 

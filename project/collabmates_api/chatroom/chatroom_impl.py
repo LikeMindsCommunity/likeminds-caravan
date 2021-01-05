@@ -208,13 +208,15 @@ class ChatroomImpl(ChatroomManager):
         card_content['pdf_count'] = req_body.get('pdf_count', 0)
         card_content['video_count'] = req_body.get('video_count', 0)
         card_content['audio_count'] = req_body.get('audio_count', 0)
+        card_content['has_files'] = req_body.get('has_files', False)
 
         card_content['attachment_count'] = req_body.get('attachment_count', 0)
 
         if card_content['attachment_count'] > 0:
             card_content['attachments_uploaded'] = False
+            card_content['has_files'] = True
+            req_body['has_files'] = True
 
-        card_content['has_files'] = req_body.get('has_files', False)
 
     def _fill_chatroom_epoch_time(self, card_content, req_body) -> None:
         card_content['date_time'] = req_body.get('date_time', 0)
