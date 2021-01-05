@@ -653,6 +653,8 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_serializer['videos'] = collabcard_files[3]
     collabcard_serializer['attachments'] = collabcard_files[4]
 
+    collabcard_serializer['attachment_count'] = len(collabcard_files[4])
+
     # # get time stamp for card
     # time_text = get_time_text(card_instance.date_epoch)
     # collabcard_serializer['created_at'] = time_text

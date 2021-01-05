@@ -3002,7 +3002,7 @@ def create_card(request, req_dict=None):
 
 @csrf_exempt
 def create_poll(request):
-    '''function to create poll collabcard'''
+    """function to create poll collabcard"""
 
     member_id = get_member_id_from_headers(request)
     res = json.loads(request.body)
@@ -5496,7 +5496,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
         }
         
         if ans.attachment_count == 0:
-            context['attachment_count'] = len(context['attachment_count'])
+            context['attachment_count'] = len(context['attachments'])
 
         if ans.og_tags:
             context['og_tags'] = json.loads(ans.og_tags)
