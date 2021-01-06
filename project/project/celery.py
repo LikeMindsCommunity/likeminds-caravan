@@ -45,6 +45,12 @@ app.conf.beat_schedule = {
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose
     },
+    'send_uninstall_notification_3am': {
+        'task': 'cms.utils.find_uninstall_devices',
+        'schedule': crontab(hour=3, minute=0),
+        # minute="*/10" change to `crontab(minute=0, hour0)` if you want it to run daily at midnight
+        # 'schedule':120.0, #for testing purpose
+    },
     'update_dashboard_daily': {
         'task': 'cms.utils.run_daily_tasks',
         'schedule': crontab(hour=6, minute=0),

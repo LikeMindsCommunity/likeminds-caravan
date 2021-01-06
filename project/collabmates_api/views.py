@@ -55,6 +55,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            check_notification_flag, create_notification_flag, is_request_ios,
                            )
 
+
 from .notification import *
 from .raw_queries import *
 from .serializers import *
@@ -77,7 +78,7 @@ from .sms import *
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
-from cms.models import NewAnswer, userAcquition
+from cms.models import NewAnswer, userAcquition, appUninstalls
 
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
@@ -10302,7 +10303,26 @@ def config(request):
 
     context['updatePriority'] = 0
 
+    #set installed flags in case of mobile devices
+    if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
+        set_installed_flag(member_id)
+
     return JsonResponse(context)
+
+
+def set_installed_flag(member_id):
+    """
+    event when user installed the app
+    """
+    notification_list = [
+        'mail_has_installed_app'
+    ]
+    create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
+
+    app_uninstall, created = appUninstalls.objects.get_or_create(user=member_id)
+    if created:
+        app_uninstall.uninstall_days = 0
+        app_uninstall.save()
 
 
 def get_mixpanel_statistics(member_id):
