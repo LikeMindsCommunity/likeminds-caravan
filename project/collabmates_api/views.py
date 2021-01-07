@@ -3123,7 +3123,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         card.is_pending = True
 
     card.member_state = res['member_state']
-    card.date_epoch = time.time()  # card creation time
+    card.date_epoch = int(time.time())  # card creation time
 
     # adding has_files key
     card.has_files = res['has_files'] if ('has_files' in res) else False
