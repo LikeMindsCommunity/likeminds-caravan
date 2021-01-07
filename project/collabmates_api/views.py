@@ -55,6 +55,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            check_notification_flag, create_notification_flag, is_request_ios,
                            )
 
+
 from .notification import *
 from .raw_queries import *
 from .serializers import *
@@ -77,7 +78,7 @@ from .sms import *
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
-from cms.models import NewAnswer, userAcquition
+from cms.models import NewAnswer, userAcquition, appUninstalls
 
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
@@ -10302,7 +10303,26 @@ def config(request):
 
     context['updatePriority'] = 0
 
+    #set installed flags in case of mobile devices
+    if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
+        set_installed_flag(member_id)
+
     return JsonResponse(context)
+
+
+def set_installed_flag(member_id):
+    """
+    event when user installed the app
+    """
+    notification_list = [
+        'mail_has_installed_app'
+    ]
+    create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
+
+    app_uninstall, created = appUninstalls.objects.get_or_create(user=member_id)
+    if created:
+        app_uninstall.uninstall_days = 0
+        app_uninstall.save()
 
 
 def get_mixpanel_statistics(member_id):
@@ -13556,6 +13576,8 @@ class SyncChatrooms(APIView):
 
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
+        chatroom_status = query_params.get('chatroom_status', '')
+        chatroom_expire_status = query_params.get('chatroom_expire_status', '')
 
         draft = query_params.get('draft', '')
 
@@ -13577,7 +13599,7 @@ class SyncChatrooms(APIView):
             chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by)
 
         else:
-            chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
+            chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status)
 
         poll_data = {}
         poll_votes = {}
@@ -13838,18 +13860,16 @@ class SyncConversation(APIView):
 
         if not member_id:
             context = get_error_context(False, "send member id in headers")
+
             return JsonResponse(context)
 
         query_params = request.query_params
         page = query_params.get('page', 1)
-
         paginate_by = query_params.get('page_size', 200)
-
-        last_updated = query_params.get('last_updated', None)
+        last_updated = query_params.get('last_updated', 0)
         paginate_by = int(paginate_by)
-
         chatroom_status = query_params.get('chatroom_status', '')
-
+        chatroom_expire_status = query_params.get('chatroom_expire_status', '')
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
 
@@ -13872,25 +13892,7 @@ class SyncConversation(APIView):
                 conversation_filter = card_answers.objects.filter(community=community_id,
                                                                   last_updated__gt=last_updated).order_by('id')
         else:
-            # sending all the conversations
-            if chatroom_status == "followed":
-
-                followed_rooms = list(collabcardState.objects.filter(
-                    user=member_id, follow_status=True, remove=None).values_list(
-                    "card_id", flat=True))
-                if last_updated:
-                    conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated,
-                                                                      card__id__in=followed_rooms).order_by('id')
-                else:
-                    conversation_filter = card_answers.objects.filter(card__id__in=followed_rooms).order_by('id')
-            else:
-                unfollowed_rooms = list(collabcardState.objects.filter(user=member_id, follow_status=False, remove=None).values_list(
-                    "card_id", flat=True))
-                if last_updated:
-                    conversation_filter = card_answers.objects.filter(last_updated__gt=last_updated).filter(
-                        card__id__in=unfollowed_rooms).order_by('id')
-                else:
-                    conversation_filter = card_answers.objects.filter(card__id__in=unfollowed_rooms).order_by('id')
+            conversation_filter = get_user_related_conversations(chatroom_status, chatroom_expire_status, member_id, last_updated)
 
         conversation_filter = conversation_filter.select_related('preview_community', 'preview_chatroom')
 
@@ -13914,6 +13916,81 @@ class SyncConversation(APIView):
 
         return JsonResponse(context)
 
+
+def get_user_related_conversations(chatroom_status, chatroom_expire_status, member_id, last_updated):
+
+    """
+        This function returns conversation filter based on different conditions of chatroom
+        chatroom_status = followed/unfollowed
+        chatroom_expire_status = active/ inactive
+    """
+    chatroom_list = []
+
+    if chatroom_status and chatroom_expire_status:
+
+        if chatroom_status == "followed" and chatroom_expire_status == "active":
+            condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
+
+        elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
+            condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
+
+        elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
+            condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
+
+        elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
+            condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
+
+    elif chatroom_status:
+
+        if chatroom_status == "followed":
+            condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict)
+
+        elif chatroom_status == "unfollowed":
+            condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict)
+
+    elif chatroom_expire_status:
+
+        if chatroom_expire_status == "active":
+            condition_dict = {'user': member_id,'remove': None}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
+
+        elif chatroom_expire_status == "inactive":
+            condition_dict = {'user': member_id, 'remove': None}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
+
+    else:
+        condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
+        chatroom_list = get_id_list_of_chatrooms(condition_dict)
+
+    conversation_filter = card_answers.objects.filter(card__id__in=chatroom_list, last_updated__gt=last_updated).order_by('id')
+    conversation_filter = conversation_filter.select_related('preview_community', 'preview_chatroom')
+
+    return conversation_filter
+
+
+def get_id_list_of_chatrooms(condition_dict, active_status=None):
+
+    """ return chatroom id list based on conditional dict"""
+    q_cond = Q()
+    current_time = time.time()
+
+    if active_status is True:
+        q_cond = Q(expiry_time=None) | Q(expiry_time__gt=current_time)
+
+    elif active_status is False:
+        q_cond = ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)
+
+    chatroom_list = list(collabcardState.objects.filter(
+        **condition_dict).filter(q_cond).values_list(
+        "card_id", flat=True))
+
+    return chatroom_list
 
 def fetch_user_meta(request):
     '''api to send community ids list'''
@@ -14150,7 +14227,6 @@ def fill_draft_chatrooms(draft_filter, member_id):
     return max_last_updated, chatrooms
 
 
-
 def fetch_all_members_of_user_joined_communities(member_id, page, last_updated, limit):
     """function to get all members of community which is joined by the member"""
 
@@ -14329,6 +14405,7 @@ def fill_guest_communities(state_filter, member_id, guest_community_relation):
 
     return communities
 
+
 def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
 
     try:
@@ -14347,4 +14424,59 @@ def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
     chatroom_list = [chatroom_context]
 
     return chatroom_list
+
+
+def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status):
+
+    """
+    This function returns chatrooms based on different conditions
+    chatroom_status = followed/unfollowed
+    chatroom_expire_status = active/ inactive
+    """
+    chatroom_data = []
+    chatroom_id_list = []
+
+    if chatroom_status and chatroom_expire_status:
+
+        if chatroom_status == "followed" and chatroom_expire_status == "active":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
+                                                                                               page, last_updated, follow_status=True, active_status=True)
+
+        elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
+                                                                                               page, last_updated, follow_status=True, active_status=False)
+
+        elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
+                                                                                               page, last_updated, follow_status=False, active_status=True)
+
+        elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
+                                                                                               page, last_updated, follow_status=False, active_status=False)
+
+    elif chatroom_status:
+
+        if chatroom_status == "followed":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_follow_status(member_id, paginate_by, page,
+                                                                                      last_updated, follow_status=True)
+
+        elif chatroom_status == "unfollowed":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_follow_status(member_id, paginate_by, page,
+                                                                                      last_updated, follow_status=False)
+
+    elif chatroom_expire_status:
+
+        if chatroom_expire_status == "active":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_active_status(member_id, paginate_by, page,
+                                                                                      last_updated, active_status=True)
+
+        elif chatroom_expire_status == "inactive":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_active_status(member_id, paginate_by, page,
+                                                                                      last_updated, active_status=False)
+
+    else:
+        chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
+
+    return chatroom_data, chatroom_id_list
+
 

@@ -112,6 +112,14 @@ def send_notification_for_ios(token_list, message):
     return result
 
 
+def send_silent_notification(token_list):
+
+    push_service = FCMNotification(api_key=server_key)
+    result = push_service.notify_multiple_devices(registration_ids=token_list)
+
+    return result
+
+
 def get_title_from_collabcard(card):
     ''' To extract the title from a card. '''
     if card.header:
