@@ -13576,6 +13576,8 @@ class SyncChatrooms(APIView):
 
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
+        chatroom_status = query_params.get('chatroom_status', '')
+        chatroom_expire_status = query_params.get('chatroom_expire_status', '')
 
         draft = query_params.get('draft', '')
 
@@ -13597,7 +13599,7 @@ class SyncChatrooms(APIView):
             chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by)
 
         else:
-            chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
+            chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status)
 
         poll_data = {}
         poll_votes = {}
@@ -14170,7 +14172,6 @@ def fill_draft_chatrooms(draft_filter, member_id):
     return max_last_updated, chatrooms
 
 
-
 def fetch_all_members_of_user_joined_communities(member_id, page, last_updated, limit):
     """function to get all members of community which is joined by the member"""
 
@@ -14349,6 +14350,7 @@ def fill_guest_communities(state_filter, member_id, guest_community_relation):
 
     return communities
 
+
 def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
 
     try:
@@ -14367,4 +14369,58 @@ def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
     chatroom_list = [chatroom_context]
 
     return chatroom_list
+
+
+def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status):
+
+    """
+    This function returns chatrooms based on different conditions
+    chatroom_status = followed/unfollowed
+    chatroom_expire_status = active/ inactive
+    """
+    chatroom_data = []
+    chatroom_id_list = []
+
+    if chatroom_status and chatroom_expire_status:
+
+        if chatroom_status == "followed" and chatroom_expire_status == "active":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
+                                                                                               page, last_updated, follow_status=True, active_status=True)
+
+        elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
+                                                                                               page, last_updated, follow_status=True, active_status=False)
+
+        elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
+                                                                                               page, last_updated, follow_status=False, active_status=True)
+
+        elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
+                                                                                               page, last_updated, follow_status=False, active_status=False)
+
+    elif chatroom_status:
+
+        if chatroom_status == "followed":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_follow_status(member_id, paginate_by, page,
+                                                                                      last_updated, follow_status=True)
+
+        elif chatroom_status == "unfollowed":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_follow_status(member_id, paginate_by, page,
+                                                                                      last_updated, follow_status=False)
+
+    elif chatroom_expire_status:
+
+        if chatroom_expire_status == "active":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_active_status(member_id, paginate_by, page,
+                                                                                      last_updated, active_status=True)
+
+        elif chatroom_expire_status == "inactive":
+            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_active_status(member_id, paginate_by, page,
+                                                                                      last_updated, active_status=False)
+
+    else:
+        chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
+
+    return chatroom_data, chatroom_id_list
 
