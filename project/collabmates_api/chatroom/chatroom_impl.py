@@ -109,7 +109,11 @@ class ChatroomImpl(ChatroomManager):
 
     def _fetch_total_response_count(self, card_instance):
 
-        total_response_count = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).count()
+        total_response_count = card_answers.objects.filter(card=card_instance,
+                                                           state=chatroom_states.ANSWER
+                                                           ).filter(Q(attachment_count=0) |
+                                                                    Q(attachments_uploaded=True)
+                                                                    ).count()
 
         return total_response_count
 
@@ -211,12 +215,11 @@ class ChatroomImpl(ChatroomManager):
         card_content['has_files'] = req_body.get('has_files', False)
 
         card_content['attachment_count'] = req_body.get('attachment_count', 0)
+        card_content['attachments_uploaded'] = False
 
         if card_content['attachment_count'] > 0:
-            card_content['attachments_uploaded'] = False
             card_content['has_files'] = True
             req_body['has_files'] = True
-
 
     def _fill_chatroom_epoch_time(self, card_content, req_body) -> None:
         card_content['date_time'] = req_body.get('date_time', 0)

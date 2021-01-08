@@ -51,10 +51,12 @@ def get_active_chatrooms_count_in_community(community_id, user_id, current_time)
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select count(distinct(card_id))  from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
-              and (expiry_time is null or expiry_time > %s)
-              and card_id in (select id from togther_collabcard where community_id=%s and is_pending=false and is_deleted=false)
-              """ % (str(community_id), str(user_id), str(current_time), str(community_id))
+        sql = """select count(distinct(card_id))  from togther_collabcardState where community_id=%s and
+                 user_id=%s  and remove_id is null 
+                 and (expiry_time is null or expiry_time > %s)
+                 and card_id in (select id from togther_collabcard where community_id=%s and is_pending=false and
+                 is_deleted=false and (attachment_count = 0 or attachments_uploaded=true))
+                 """ % (str(community_id), str(user_id), str(current_time), str(community_id))
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -74,10 +76,14 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select count(distinct(card_id)) from togther_collabcardState where community_id=%s and user_id=%s  and remove_id is null 
-        and (expiry_time is not null and expiry_time < %s)
-        and card_id in (select id from togther_collabcard where community_id=%s and is_pending=false and is_deleted=false)
-        """ % (str(community_id), str(user_id), str(current_time), str(community_id))
+        sql = """select count(distinct(card_id)) from togther_collabcardState where community_id=%s 
+                 and user_id=%s  and remove_id is null 
+                 and (expiry_time is not null and expiry_time < %s) and card_id in (
+                    select id from togther_collabcard where community_id=%s 
+                    and is_pending=false and is_deleted=false and
+                    (attachment_count = 0 or attachments_uploaded = true)
+                 )
+                 """ % (str(community_id), str(user_id), str(current_time), str(community_id))
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -632,7 +638,9 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
             togther_collabcard.duration,
             togther_collabcard.location,
             togther_collabcard.location_lat,
-            togther_collabcard.location_long
+            togther_collabcard.location_long,
+            togther_collabcard.attachment_count,
+            togther_collabcard.attachments_uploaded
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 
@@ -687,7 +695,9 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                    togther_collabcard.duration,
                    togther_collabcard.location,
                    togther_collabcard.location_lat,
-                   togther_collabcard.location_long
+                   togther_collabcard.location_long,
+                   togther_collabcard.attachment_count,
+                   togther_collabcard.attachments_uploaded
                    from togther_collabcard
                    INNER JOIN togther_collabcardState
                    ON togther_collabcardState.card_id = togther_collabcard.id 
@@ -878,7 +888,9 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
             togther_collabcard.duration,
             togther_collabcard.location,
             togther_collabcard.location_lat,
-            togther_collabcard.location_long
+            togther_collabcard.location_long,
+            togther_collabcard.attachment_count,
+            togther_collabcard.attachments_uploaded
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 
@@ -953,7 +965,9 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit):
             togther_collabcard.duration,
             togther_collabcard.location,
             togther_collabcard.location_lat,
-            togther_collabcard.location_long
+            togther_collabcard.location_long,
+            togther_collabcard.attachment_count,
+            togther_collabcard.attachments_uploaded
             from togther_collabcard
             INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id 
@@ -1211,7 +1225,9 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
                    togther_collabcard.duration,
                    togther_collabcard.location,
                    togther_collabcard.location_lat,
-                   togther_collabcard.location_long
+                   togther_collabcard.location_long,
+                   togther_collabcard.attachment_count,
+                   togther_collabcard.attachments_uploaded
                    from togther_collabcard
                    INNER JOIN togther_collabcardState
                    ON togther_collabcardState.card_id = togther_collabcard.id 
@@ -1292,7 +1308,9 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
                    togther_collabcard.duration,
                    togther_collabcard.location,
                    togther_collabcard.location_lat,
-                   togther_collabcard.location_long
+                   togther_collabcard.location_long,
+                   togther_collabcard.attachment_count,
+                   togther_collabcard.attachments_uploaded
                    from togther_collabcard
                    INNER JOIN togther_collabcardState
                    ON togther_collabcardState.card_id = togther_collabcard.id 
@@ -1374,7 +1392,9 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                    togther_collabcard.duration,
                    togther_collabcard.location,
                    togther_collabcard.location_lat,
-                   togther_collabcard.location_long
+                   togther_collabcard.location_long,
+                   togther_collabcard.attachment_count,
+                   togther_collabcard.attachments_uploaded
                    from togther_collabcard
                    INNER JOIN togther_collabcardState
                    ON togther_collabcardState.card_id = togther_collabcard.id 

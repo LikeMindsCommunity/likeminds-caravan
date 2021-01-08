@@ -521,7 +521,8 @@ def my_chatrooms_version_1(request):
 
         if card_instance:
 
-            if card_instance.attachments_uploaded is False and\
+            if card_instance.attachment_count > 0 and\
+                    card_instance.attachments_uploaded is False and\
                     int(member_id) != int(card_instance.user.id):
                 continue
 
@@ -3041,15 +3042,24 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.community = community_instance
     card.user = user_instance
     card.type = card_type
+
+    # adding has_files key
+    card.has_files = res['has_files'] if ('has_files' in res) else False
+
     card.image_count = res['image_count'] if ('image_count' in res) else 0
     card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
     card.video_count = res['video_count'] if ('video_count' in res) else 0
     card.audio_count = res['audio_count'] if ('audio_count' in res) else 0
 
     attachment_count = res.get('attachment_count', 0)
+
+    if attachment_count == 0:
+        attachment_count = res.get('image_count', 0) + res.get('video_count', 0)
+
     card.attachment_count = attachment_count
+    card.attachments_uploaded = False
     if attachment_count > 0:
-        card.attachments_uploaded = False
+        card.has_files = True
 
     card.date_time = res['date_time'] if ('date_time' in res) else 0
     card.duration = res['duration'] if ('duration' in res) else 0
@@ -3125,8 +3135,6 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.member_state = res['member_state']
     card.date_epoch = int(time.time())  # card creation time
 
-    # adding has_files key
-    card.has_files = res['has_files'] if ('has_files' in res) else False
     card.save()
     # add ownerflag here
 
@@ -5442,7 +5450,8 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
     answers = []
     for ans in answer_filter:
 
-        if ans.attachments_uploaded is False and\
+        if ans.attachment_count > 0 and\
+                ans.attachments_uploaded is False and \
                 current_user_id:
             if int(current_user_id) != ans.user.id:
                 continue
@@ -5485,7 +5494,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'pdf': attachements['pdf'],
             'attachments': attachements['attachments'],
             'attachment_count': ans.attachment_count,
-            'attachments_uploaded': ans.attachments_uploaded ,
+            'attachments_uploaded': ans.attachments_uploaded,
             'date': date,
             'state': ans.state,
             # 'is_deleted': ans.is_deleted,
@@ -5495,9 +5504,9 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'chatroom_id': ans.card.id,
             'created_epoch': int(ans.created_at)
         }
-        
-        if ans.attachment_count == 0:
-            context['attachment_count'] = len(context['attachments'])
+
+        if ans.attachments_uploaded is None:
+            context['attachments_uploaded'] = False
 
         if ans.og_tags:
             context['og_tags'] = json.loads(ans.og_tags)
@@ -5669,7 +5678,11 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if is_ios:
         conversations_filter = conversations_filter.filter(is_deleted=False)
 
-    total_response_count = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).count()
+    total_response_count = card_answers.objects.filter(card=card_instance,
+                                                       state=chatroom_states.ANSWER
+                                                       ).filter(Q(attachment_count=0) |
+                                                                Q(attachments_uploaded=True)
+                                                                ).count()
 
     if not conversation_id and not scroll_direction:
 
@@ -5857,7 +5870,11 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     conversations_filter = card_answers.objects.select_related('reply', 'preview_community',
                                                                'preview_chatroom').filter(card=card_instance).order_by(
         'id')
-    total_response_count = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).count()
+    total_response_count = card_answers.objects.filter(card=card_instance,
+                                                       state=chatroom_states.ANSWER
+                                                       ).filter(Q(attachment_count=0) |
+                                                                Q(attachments_uploaded=True)
+                                                                ).count()
 
     conversations = []
 
@@ -6931,8 +6948,9 @@ def create_conversation(request):
 
     attachment_count = res.get('attachment_count', 0)
     ans.attachment_count = attachment_count
+    ans.attachments_uploaded = False
+
     if attachment_count > 0:
-        ans.attachments_uploaded = False
         ans.has_files = True
 
     set_preview_object(ans, res, member_id)
@@ -7762,19 +7780,22 @@ def get_last_conversation(conversation_filter, member_id, chatroom_id):
 
 
 def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
-    '''function to get chatrooms'''
+    """function to get chatrooms"""
 
     chatrooms = []
     for card_instance in chatroom_list:
 
-        if card_instance.attachments_uploaded is False and\
+        if card_instance.attachment_count > 0 and\
+                card_instance.attachments_uploaded is False and\
                 int(member_id) != card_instance.user.id:
             continue
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id)
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                          state=chatroom_states.ANSWER,
-                                                          attachments_uploaded=False).order_by('id')
+                                                          state=chatroom_states.ANSWER
+                                                          ).filter(Q(attachment_count=0) |
+                                                                   Q(attachments_uploaded=True)
+                                                                   ).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
 
         if card_instance.internal_link:
@@ -7809,14 +7830,18 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False)
     for data in chatroom_list:
         card_instance = data.card
 
-        if card_instance.attachments_uploaded is False and\
+        if card_instance.attachment_count > 0 and\
+                card_instance.attachments_uploaded is False and\
                 int(member_id) != card_instance.user.id:
             continue
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id, state_instance=data, send_profile=False)
 
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                          state=chatroom_states.ANSWER).order_by('id')
+                                                          state=chatroom_states.ANSWER
+                                                          ).filter(Q(attachment_count=0) |
+                                                                   Q(attachments_uploaded=True)
+                                                                   ).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
 
         if card_instance.internal_link:
@@ -7856,13 +7881,17 @@ def get_chatrooms_version_2(chatroom_list, member_id, active=None, is_ios=False)
     for data in chatroom_list:
         card_instance = data.card
 
-        if card_instance.attachments_uploaded is False and\
+        if card_instance.attachment_count > 0 and\
+                card_instance.attachments_uploaded is False and\
                 int(member_id) != card_instance.user.id:
             continue
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id, state_instance=data)
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                          state=chatroom_states.ANSWER).order_by('id')
+                                                          state=chatroom_states.ANSWER
+                                                          ).filter(Q(attachment_count=0) |
+                                                                   Q(attachments_uploaded=True)
+                                                                   ).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
 
         if card_instance.internal_link:
@@ -8273,6 +8302,8 @@ def upload_files(request):
     elif 'collabcard_id' in body and body['collabcard_id']:
         attachment_type = body['type']
         collabcard_id = body['collabcard_id']
+        files_count = body.get('files_count', 0)
+
         card_instance = Collabcard.objects.get(id=collabcard_id)
         card_instance.has_files = True
         card_instance.save()
@@ -8288,7 +8319,6 @@ def upload_files(request):
 
         # updating updated_at for synching apis
         collabcardState.objects.filter(user=member_id, card=card_instance).update(updated_at=time.time())
-        files_count = body['files_count'] if 'files_count' in body else 0
         uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
 
         if uploaded_files_count == int(files_count):
@@ -8303,7 +8333,12 @@ def upload_files(request):
     elif 'answer_id' in body and body['answer_id']:
         attachment_type = body['type']
         answer_id = body['answer_id']
+        files_count = body.get('files_count', 0)
+
         answer_instance = card_answers.objects.get(id=answer_id)
+        answer_instance.attachment_count = files_count
+        answer_instance.save()
+
         file = answerAttachment()
         file.answer = answer_instance
         file.type = attachment_type
@@ -8530,7 +8565,7 @@ def upload_conversation_attachments(body, member_id):
     # saving last answer id
     uploaded_files_count = answerAttachment.objects.filter(answer=conversation_instance).count()
 
-    if uploaded_files_count == int(conversation_instance.attachment_count):
+    if uploaded_files_count == conversation_instance.attachment_count:
         conversation_instance.attachments_uploaded = True
         conversation_instance.save()
 
@@ -13612,6 +13647,14 @@ class SyncChatrooms(APIView):
 
         max_last_updated = 0
         for data in chatroom_data:
+
+            attachment_count = data[45]
+            attachments_uploaded = data[46]
+
+            if attachment_count > 0 and attachments_uploaded is False:
+                if int(member_id) != int(data[14]):
+                    continue
+
             chatroom = {}
             chatroom['id'] = data[0]
             chatroom['title'] = data[1]
@@ -13621,6 +13664,8 @@ class SyncChatrooms(APIView):
             chatroom['pdf_count'] = data[5]
             chatroom['video_count'] = data[6]
             chatroom['audio_count'] = data[7]
+            chatroom['attachment_count'] = attachment_count
+            chatroom['attachments_uploaded'] = attachments_uploaded
             chatroom['type'] = data[8]
             chatroom['date_time'] = data[9]
             chatroom['is_pending'] = data[10]
@@ -13655,7 +13700,6 @@ class SyncChatrooms(APIView):
             chatroom['audios'] = chatroom_files['audios']
             chatroom['videos'] = chatroom_files['videos']
             chatroom['attachments'] = chatroom_files['attachments']
-            chatroom['attachment_count'] = len(chatroom_files['attachments'])
 
             if chatroom['type'] == card_types.CARD_POLL:
 
@@ -13741,14 +13785,19 @@ class SyncChatrooms(APIView):
 
                 if file.type == "image":
                     img = {'image_url': file.file_url, 'index': file.index, 'type': file.type}
+                    img_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
                     if file.height:
                         img['height'] = file.height
+                        img_attachment['height'] = file.height
 
                     if file.width:
                         img['width'] = file.width
+                        img_attachment['width'] = file.width
 
                     files['images'].append(img)
+                    attachments.append(img_attachment)
+
                 elif file.type == "pdf":
                     pdf = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
                     files['pdf'].append(pdf)
@@ -13757,16 +13806,19 @@ class SyncChatrooms(APIView):
                     files['audios'].append(audio_file)
                 elif file.type == "video":
                     video_file = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
-
+                    video_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
                     if file.height:
                         video_file['height'] = file.height
+                        video_attachment['height'] = file.height
 
                     if file.width:
                         video_file['width'] = file.width
+                        video_attachment['width'] = file.width
 
                     files['videos'].append(video_file)
-
-        files['attachments'] = files['images'] + files['videos']
+                    attachments.append(video_attachment)
+                    
+        files['attachments'] = attachments
 
         return files
 
@@ -13903,7 +13955,18 @@ class SyncConversation(APIView):
         conversations_data = CardAnswersDBSyncSerializer(conversation_list, context=context, many=True)
         conversations = conversations_data.data
 
-        for conversation in conversation_list:
+        conversation_last_index = paginate_by - 1
+
+        for conversation in conversation_list[::-1]:
+
+            if conversation.attachment_count > 0 and conversation.attachments_uploaded is False:
+
+                if int(member_id) != conversation.user.id:
+                    del conversations[conversation_last_index]
+                    conversation_last_index -= 1
+
+                    continue
+
             if max_last_updated < conversation.last_updated:
                 max_last_updated = conversation.last_updated
 

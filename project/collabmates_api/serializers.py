@@ -226,6 +226,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "created_at": time.strftime('%H:%M', time.localtime(card.date_epoch)),
         "date_epoch": card.date_epoch
     }
+    if card.attachments_uploaded is None:
+        collabcard['attachments_uploaded'] = False
 
     if user and int(user) == card.user.id:
         collabcard['has_been_named'] = card.has_been_named
@@ -360,6 +362,9 @@ def draftChatroomSerializer(card, user, community=None):
         'community_name':card.community.name
 
     }
+
+    if card.attachments_uploaded is None:
+        chatroom['attachments_uploaded'] = False
 
     # for poll card
     if card.type == card_types.CARD_POLL:
@@ -639,11 +644,6 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-    # else:
-    #     collabcard_member = get_user_profile(user_id=card_instance.user.id, community_id=card_instance.community.id,
-    #                                          current_user_id=current_user_id,
-    #                                          send_profile=False, remove=False)
-    #     collabcard_serializer['member'] = collabcard_member
 
     # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
@@ -654,10 +654,6 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_serializer['attachments'] = collabcard_files[4]
 
     collabcard_serializer['attachment_count'] = len(collabcard_files[4])
-
-    # # get time stamp for card
-    # time_text = get_time_text(card_instance.date_epoch)
-    # collabcard_serializer['created_at'] = time_text
 
     return collabcard_serializer
 
@@ -1603,6 +1599,9 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
         'created_epoch': int(conversation.created_at)
     }
 
+    if conversation.attachments_uploaded is None:
+        temp['attachments_uploaded'] = False
+
     if conversation.has_files or\
             conversation.attachment_count > 0:
         answer_files = get_answer_files(temp['id'])
@@ -1736,6 +1735,9 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
         'member_id': conversation.user.id,
         'created_epoch': int(conversation.created_at)
     }
+
+    if conversation.attachments_uploaded is None:
+        conversation_dict['attachments_uploaded'] = False
 
     if conversation.has_files or\
             conversation.attachment_count > 0:
@@ -2081,7 +2083,9 @@ def get_chatroom_preview(card_instance, member_id, active=None):
 
     chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False, preview=True)
     conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                      state=chatroom_states.ANSWER)
+                                                      state=chatroom_states.ANSWER
+                                                      ).filter(Q(attachment_count=0) |
+                                                               Q(attachments_uploaded=True))
     chatroom_instance['total_response_count'] = conversation_filter.count()
 
     last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)

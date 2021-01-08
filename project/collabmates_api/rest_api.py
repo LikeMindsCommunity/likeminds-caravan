@@ -670,8 +670,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
             self.state_instance = None  # making None for the next object
 
-        data['attachment_count'] = len(data['attachments'])
-
         return data
 
 
@@ -936,7 +934,6 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 data['videos'] = answer_files['videos']
                 data['audios'] = answer_files['audios']
                 data['attachments'] = answer_files['attachments']
-                data['attachment_count'] = len(data['attachments'])
                 if 'location' in answer_files:
                     data['location'] = answer_files['location']
 
@@ -947,7 +944,8 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
                 try:
                     data['preview'] = get_preview_for_url(member_id=self.current_user_id,
-                                                      preview_url=data['internal_link'])
+                                                          preview_url=data['internal_link'],
+                                                          )
                 except:
                     del data['preview']
                 del data['internal_link']
