@@ -159,8 +159,9 @@ class ConversationImpl(ConversationManager):
         conversation_content['has_files'] = has_files
 
         conversation_content['attachment_count'] = req_body.get('attachment_count', 0)
+        conversation_content['attachments_uploaded'] = False
+
         if conversation_content['attachment_count'] > 0:
-            conversation_content['attachments_uploaded'] = False
             conversation_content['has_files'] = True
             req_body['has_files'] = True
 

@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     'cms',
 ]
 
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -64,8 +63,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
-    'utility.slash_middleware.AppendOrRemoveSlashMiddleware',
-    'middleware.api_logger.ApiLogger'
+    'utility.custom_middleware.AppendOrRemoveSlashMiddleware',
+    'middleware.api_logger.ApiLogger',
+    # 'middleware.InternalServerErrorMiddleware.InternalServerErrorHandlerMiddleware',
+
 ]
 
 

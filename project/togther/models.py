@@ -191,7 +191,7 @@ class Collabcard(models.Model):
     video_count = models.IntegerField(default=0, null=True)
     audio_count = models.IntegerField(default=0, null=True)
     attachment_count = models.IntegerField(default=0)
-    attachments_uploaded = models.BooleanField(null=True)
+    attachments_uploaded = models.BooleanField(default=False, null=True)
 
     type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
     date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
@@ -281,7 +281,7 @@ class draftChatroom(models.Model):
     polls_count = models.IntegerField(default=0)
     attending_count = models.IntegerField(default=0)
     attachment_count = models.IntegerField(default=0)
-    attachments_uploaded = models.BooleanField(null=True)
+    attachments_uploaded = models.BooleanField(default=False, null=True)
 
     # for event cards
     location = models.TextField(null=True)
@@ -396,7 +396,7 @@ class card_answers(models.Model):
     last_updated = models.BigIntegerField(default=0)
 
     attachment_count = models.IntegerField(default=0)
-    attachments_uploaded = models.BooleanField(null=True)
+    attachments_uploaded = models.BooleanField(default=False, null=True)
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
