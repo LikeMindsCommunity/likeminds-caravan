@@ -13955,17 +13955,17 @@ class SyncConversation(APIView):
         conversations_data = CardAnswersDBSyncSerializer(conversation_list, context=context, many=True)
         conversations = conversations_data.data
 
-        conversation_last_index = paginate_by - 1
+        conversation_last_index = len(conversations) - 1
 
         for conversation in conversation_list[::-1]:
 
-            if conversation.attachment_count > 0 and conversation.attachments_uploaded is False:
-
-                if int(member_id) != conversation.user.id:
-                    del conversations[conversation_last_index]
-                    conversation_last_index -= 1
-
-                    continue
+            # if conversation.attachment_count > 0 and conversation.attachments_uploaded is False:
+            #
+            #     if int(member_id) != conversation.user.id:
+            #         del conversations[conversation_last_index]
+            #         conversation_last_index -= 1
+            #
+            #         continue
 
             if max_last_updated < conversation.last_updated:
                 max_last_updated = conversation.last_updated
