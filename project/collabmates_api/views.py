@@ -3796,10 +3796,12 @@ def set_chatroom_active(request):
     info_logger.info(res)
 
     current_time = time.time()
+
     if status:
         updated_time = current_time + int(duration)
+
     else:
-        updated_time = current_time
+        updated_time = current_time - HOURS_24
 
     state_filter = collabcardState.objects.filter(card=chatroom_id, user=member_id)
 
