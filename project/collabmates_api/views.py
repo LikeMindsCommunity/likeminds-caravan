@@ -14433,7 +14433,7 @@ def fetch_community_of_chatroom(chatroom_id, member_id):
 def create_community_context(community_id, member_id):
 
     communities = []
-    community_instance = Community.objects.get(id=community_id)
+    community_instance = Community.get_community_or_raise_exception(community_id)
     community_list = CommunitySerializerV1(community_instance, context={"current_user_id": member_id}, many=False)
     communities.append(community_list.data)
 

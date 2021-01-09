@@ -132,7 +132,7 @@ class ConversationImpl(ConversationManager):
 
         for conversation in conversations:
 
-            if conversation.attachments_uploaded is False and\
+            if conversation.attachment_count > 0 and conversation.attachments_uploaded is False and\
                     conversation.user.id != int(self.member_id):
                 continue
 
@@ -258,6 +258,7 @@ class ConversationImpl(ConversationManager):
             if self.get_scroll_direction() and NumberUtilities.get_integer_from_string(self.get_scroll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
                 upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
+
 
             elif self.get_scroll_direction() and NumberUtilities.get_integer_from_string(self.get_scroll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
                 conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
