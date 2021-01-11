@@ -91,6 +91,7 @@ from .upload_attachments import (save_community_image, save_chatroom_attachments
                                  get_image_dimensions)
 from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
+from utility.number_utilities import NumberUtilities
 from utility.exception_utilities import (CustomException, InvalidHeaderException,
                                             InvalidCommunityException, InvalidUserException)
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -520,12 +521,6 @@ def my_chatrooms_version_1(request):
         draft_instance = instance.draft
 
         if card_instance:
-
-            if card_instance.attachment_count > 0 and\
-                    card_instance.attachments_uploaded is False and\
-                    int(member_id) != int(card_instance.user.id):
-                continue
-
             chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False)
             context = {"current_user_id": member_id}
             chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
@@ -3249,7 +3244,11 @@ def create_card_internal(user_id, community_id, res):
             'status': True,
             'source': "create_chatroom"
         }
-        collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+
+        set_expiry_time_none = card_instance.attachment_count > 0
+
+        collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN,
+                                   set_expiry_time_none=set_expiry_time_none)
 
         update_last_answer_id(card_instance.id, "")
 
@@ -3267,8 +3266,9 @@ def create_card_internal(user_id, community_id, res):
 
     if has_auto_approve_right or is_intro_card or create_intro:
         # batch update for already existing users and saving their unseen count
-        set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id,
-                                                                  function_called="create_card_internal")
+        if card_instance.attachment_count == 0:
+            set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id,
+                                                                      function_called="create_card_internal")
         # update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
     else:
@@ -3286,15 +3286,21 @@ def send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
     """ function to send mail and notifications for chatroom creations """
 
     # sending the mails and notification of simple chat rooms without files
-    if not card_instance.has_files or not\
-            card_instance.attachment_count > 0:
-        send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
-                                                          user_instance.id, user_instance.userinfo.name,
-                                                          type=card_instance.type,
-                                                          date_time=card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time,
-                                                          card_id=card_instance.id,
-                                                          community_name=card_instance.community.name,
-                                                          community_state=card_instance.community.hide_community)
+    if not card_instance.has_files or\
+            not card_instance.attachment_count > 0:
+        send_chatroom_creation_notification(card_instance, user_instance)
+
+
+def send_chatroom_creation_notification(card_instance, user_instance):
+    date_time = card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time
+
+    send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
+                                                      user_instance.id, user_instance.userinfo.name,
+                                                      type=card_instance.type,
+                                                      date_time=date_time,
+                                                      card_id=card_instance.id,
+                                                      community_name=card_instance.community.name,
+                                                      community_state=card_instance.community.hide_community)
 
 
 @csrf_exempt
@@ -7263,7 +7269,8 @@ def collabcard_follow(request, function_dict=None):
     return JsonResponse({'success': True})
 
 
-def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN):
+def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN,
+                               set_expiry_time_none=False):
 
     """ folowing collabcard internally """
 
@@ -7316,7 +7323,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
             mute_status = True
         else:
             mute_status = False
-        expiry_time = get_expiry_time_of_chatroom()
+        expiry_time = get_expiry_time_of_chatroom() if not set_expiry_time_none else None
         create_chatroom_state_instance(card_instance, user_instance, state=0,
                                        expire_at=expiry_time, external_seen=True, is_guest=is_guest,
                                        source=ref_instance, follow_status=status,
@@ -8029,6 +8036,7 @@ def fetch_chatroom_feed_version_1(request):
             chatroom_list = pagination(state_filter, page, paginate_by=5)
             chatrooms = get_chatrooms_version_1(chatroom_list, member_id, is_ios=is_ios)
         else:
+
             last_seen = last_seen[0]
 
             if active:
@@ -8049,8 +8057,6 @@ def fetch_chatroom_feed_version_1(request):
             chatroom_list = chatroom_filter.order_by('card_id')
 
             chatrooms = get_chatrooms_version_1(chatroom_list, member_id, active, is_ios=is_ios)
-
-        # context['header'] = chatroom_feed_header(community_id, member_id)
 
     else:
         scroll_direction = int(scroll_direction)
@@ -8323,11 +8329,19 @@ def upload_files(request):
         collabcardState.objects.filter(user=member_id, card=card_instance).update(updated_at=time.time())
         uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
 
-        if uploaded_files_count == int(files_count):
+        if uploaded_files_count == NumberUtilities.get_integer_from_string(files_count):
             card_instance.attachments_uploaded = True
             card_instance.save()
             user_instance = User.objects.get(id=member_id)
-            send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
+
+            expiry_time = time.time() + HOURS_24
+            collabcardState.objects.filter(card=card_instance,
+                                           user=user_instance).update(expiry_time=expiry_time)
+
+            send_chatroom_creation_notification(card_instance, user_instance)
+            set_chatroom_state_for_all_members_on_card_creation.delay(card_instance.community.id,
+                                                                      card_id=collabcard_id,
+                                                                      function_called="upload_files")
 
         member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
         chatroom_local = GetChatroomInstanceSerializer(card_instance, context=member_data, many=False)
@@ -8335,10 +8349,11 @@ def upload_files(request):
     elif 'answer_id' in body and body['answer_id']:
         attachment_type = body['type']
         answer_id = body['answer_id']
-        files_count = body.get('files_count', 0)
+        files_count = NumberUtilities.get_integer_from_string(body.get('files_count', "0"))
 
         answer_instance = card_answers.objects.get(id=answer_id)
         answer_instance.attachment_count = files_count
+        answer_instance.last_updated = int(round(time.time() * 1000))
         answer_instance.save()
 
         file = answerAttachment()
@@ -8353,24 +8368,19 @@ def upload_files(request):
         file.location_long = body.get('location_long', None)
         file.save()
 
-        files_count = body['files_count'] if 'files_count' in body else 0
-
-        current_time_ms = int(round(time.time() * 1000))
-
-        # updating the last updated when posting answer
-        card_answers.objects.filter(id=answer_id).update(last_updated=current_time_ms, has_files=True)
-
-        conversation = get_conversation_instance_for_db_synching(answer_instance, current_user_id=member_id)
-
         # saving last answer id
         uploaded_files_count = answerAttachment.objects.filter(answer=answer_instance).count()
 
-        if uploaded_files_count == int(files_count):
+        if uploaded_files_count == files_count:
+            # # updating the last updated when posting answer
             answer_instance.attachments_uploaded = True
             answer_instance.save()
+
             update_last_answer_id(answer_instance.card.id, answer_instance.id)
             send_follow_notification(card_id=answer_instance.card.id, user_id=answer_instance.user.id,
                                      answer=answer_instance.answer)
+
+        conversation = get_conversation_instance_for_db_synching(answer_instance, current_user_id=member_id)
 
     elif 'poll_id' in body and body['poll_id']:
 
@@ -8528,7 +8538,16 @@ def upload_chatroom_attachments(body, member_id):
         chatroom_instance.save()
 
         user_instance = User.objects.get(id=member_id)
-        send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance)
+
+        expiry_time = time.time() + HOURS_24
+        collabcardState.objects.filter(card=chatroom_instance,
+                                       user=user_instance).update(expiry_time=expiry_time)
+
+        send_chatroom_creation_notification(chatroom_instance, user_instance)
+
+        set_chatroom_state_for_all_members_on_card_creation.delay(chatroom_instance.community.id,
+                                                                  card_id=chatroom_id,
+                                                                  function_called="upload_files_version_1")
 
     member_data = {'member_id': member_id,
                    'current_user_id': member_id,
@@ -8548,21 +8567,12 @@ def upload_conversation_attachments(body, member_id):
         return {'success': False,
                 'error_message': "Send valid conversation id"}
 
-    file = answerAttachment()
-    file.answer = conversation_instance
-
     save_conversation_attachments(body, conversation_instance)
 
-    files_count = body['files_count'] if 'files_count' in body else 0
-
-    current_time_ms = int(round(time.time() * 1000))
-
     # updating the last updated when posting answer
-    conversation_instance.last_updated = current_time_ms
+    conversation_instance.last_updated = int(round(time.time() * 1000))
     conversation_instance.has_files = True
     conversation_instance.save()
-
-    conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
 
     # saving last answer id
     uploaded_files_count = answerAttachment.objects.filter(answer=conversation_instance).count()
@@ -8574,6 +8584,9 @@ def upload_conversation_attachments(body, member_id):
         update_last_answer_id(conversation_instance.card.id, conversation_instance.id)
         send_follow_notification(card_id=conversation_instance.card.id, user_id=conversation_instance.user.id,
                                  answer=conversation_instance.answer)
+
+    conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
+
     return conversation
 
 
@@ -12228,7 +12241,11 @@ def fetch_poll_users(request):
 
     for member in option_selected_members:
         member_instance = Members.objects.filter(community_id=community_id, member_id=member.user)
-        members_list.append(MembersSerializer(member_instance[0], community_id, current_user_id=member_id))
+        if member_instance.exists():
+            members_list.append(MembersSerializer(member_instance[0], community_id, current_user_id=member_id))
+        else:
+            members_list.append(get_user_profile(member.user, send_profile=True))
+
 
     return JsonResponse({"members": members_list})
 
@@ -13653,7 +13670,8 @@ class SyncChatrooms(APIView):
             attachment_count = data[45]
             attachments_uploaded = data[46]
 
-            if attachment_count > 0 and attachments_uploaded is False:
+            if attachment_count > 0 and\
+                    attachments_uploaded is False:
                 if int(member_id) != int(data[14]):
                     continue
 
@@ -13796,6 +13814,10 @@ class SyncChatrooms(APIView):
                     if file.width:
                         img['width'] = file.width
                         img_attachment['width'] = file.width
+
+                    if file.thumbnail_url:
+                        img['thumbnail_url'] = file.thumbnail_url
+                        img_attachment['thumbnail_url'] = file.thumbnail_url
 
                     files['images'].append(img)
                     attachments.append(img_attachment)
@@ -13952,25 +13974,13 @@ class SyncConversation(APIView):
 
         conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
 
-        max_last_updated = 0
         context = {"current_user_id": member_id, "fetch_reply": True}
         conversations_data = CardAnswersDBSyncSerializer(conversation_list, context=context, many=True)
         conversations = conversations_data.data
 
-        conversation_last_index = len(conversations) - 1
-
-        for conversation in conversation_list[::-1]:
-
-            # if conversation.attachment_count > 0 and conversation.attachments_uploaded is False:
-            #
-            #     if int(member_id) != conversation.user.id:
-            #         del conversations[conversation_last_index]
-            #         conversation_last_index -= 1
-            #
-            #         continue
-
-            if max_last_updated < conversation.last_updated:
-                max_last_updated = conversation.last_updated
+        max_last_updated = self.get_attachments_filtered_conversations(conversation_list,
+                                                                       conversations,
+                                                                       member_id)
 
         context = {
             'conversations': conversations,
@@ -13980,6 +13990,28 @@ class SyncConversation(APIView):
             context['max_last_updated'] = max_last_updated
 
         return JsonResponse(context)
+
+    def get_attachments_filtered_conversations(self, conversation_list, conversation_data, member_id):
+
+        conversation_last_index = len(conversation_data) - 1
+        max_last_updated = 0
+
+        for conversation in conversation_list[::-1]:
+
+            if conversation.attachment_count > 0 and \
+                    conversation.attachments_uploaded is False:
+
+                if NumberUtilities.get_integer_from_string(member_id) != conversation.user.id:
+                    del conversation_data[conversation_last_index]
+                    conversation_last_index -= 1
+                    continue
+
+            if max_last_updated < conversation.last_updated:
+                max_last_updated = conversation.last_updated
+
+            conversation_last_index -= 1
+
+        return max_last_updated
 
 
 def get_user_related_conversations(chatroom_status, chatroom_expire_status, member_id, last_updated):
@@ -14056,6 +14088,7 @@ def get_id_list_of_chatrooms(condition_dict, active_status=None):
         "card_id", flat=True))
 
     return chatroom_list
+
 
 def fetch_user_meta(request):
     '''api to send community ids list'''

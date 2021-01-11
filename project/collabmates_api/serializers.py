@@ -226,6 +226,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "created_at": time.strftime('%H:%M', time.localtime(card.date_epoch)),
         "date_epoch": card.date_epoch
     }
+
     if card.attachments_uploaded is None:
         collabcard['attachments_uploaded'] = False
 
@@ -481,6 +482,10 @@ def get_collabcard_files(card_id, draft=False):
                 img['width'] = file.width
                 img_attachment['width'] = file.width
 
+            if file.thumbnail_url:
+                img['thumbnail_url'] = file.thumbnail_url
+                img_attachment['thumbnail_url'] = file.thumbnail_url
+
             img_list.append(img)
             attachments.append(img_attachment)
 
@@ -652,8 +657,6 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_serializer['audios'] = collabcard_files[2]
     collabcard_serializer['videos'] = collabcard_files[3]
     collabcard_serializer['attachments'] = collabcard_files[4]
-
-    collabcard_serializer['attachment_count'] = len(collabcard_files[4])
 
     return collabcard_serializer
 
@@ -1672,6 +1675,10 @@ def get_answer_files(answer_id):
                     img['width'] = file.width
                     img_attachment['width'] = file.width
 
+                if file.thumbnail_url:
+                    img['thumbnail_url'] = file.thumbnail_url
+                    img_attachment['thumbnail_url'] = file.thumbnail_url
+
                 img_list.append(img)
                 attachments_list.append(img_attachment)
 
@@ -1687,6 +1694,10 @@ def get_answer_files(answer_id):
                 if file.width:
                     video_url['width'] = file.width
                     video_attachment['width'] = file.width
+
+                if file.thumbnail_url:
+                    video_url['thumbnail_url'] = file.thumbnail_url
+                    video_attachment['thumbnail_url'] = file.thumbnail_url
 
                 videos.append(video_url)
                 attachments_list.append(video_attachment)

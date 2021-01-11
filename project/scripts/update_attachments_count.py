@@ -29,8 +29,10 @@ def update_chatroom_files_attachment_count():
         try:
             print(f"updating chatroom with id {chatroom_id}")
             chatroom_instance = Collabcard.objects.get(pk=chatroom_id)
-            chatroom_instance.attachment_count = get_chatroom_files_count(chatroom_instance)
-            chatroom_instance.attachments_uploaded = True
+            attachment_count = get_chatroom_files_count(chatroom_instance)
+            chatroom_instance.attachment_count = attachment_count
+            chatroom_instance.attachments_uploaded = attachment_count > 0
+            chatroom_instance.has_files = attachment_count > 0
             chatroom_instance.save()
 
             collabcardState.objects.filter(card=chatroom_instance).update(updated_at=time.time())
@@ -53,8 +55,11 @@ def update_conversation_files_attachment_count():
         try:
             print(f"updating conversation with id {conversation_id}")
             answer_instance = card_answers.objects.get(pk=conversation_id)
-            answer_instance.attachment_count = get_conversation_files_count(answer_instance)
-            answer_instance.attachments_uploaded = True
+            attachment_count = get_conversation_files_count(answer_instance)
+            answer_instance.attachment_count = attachment_count
+            answer_instance.attachments_uploaded = attachment_count > 0
+            answer_instance.has_files = attachment_count > 0
+
             answer_instance.last_updated = time.time()
             answer_instance.save()
 

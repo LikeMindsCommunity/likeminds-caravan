@@ -496,6 +496,7 @@ class Card_Attachment(models.Model):
     collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     attachment = models.FileField(upload_to="media/collabcard_files", default='')
     file_url = models.CharField(max_length=500, null=True)
+    thumbnail_url = models.TextField(null=True)
     type = models.CharField(max_length=50, default='')
     index = models.IntegerField(default=1, null=True)
     dimensions = models.TextField(null=True)
@@ -509,6 +510,7 @@ class draftChatroomFiles(models.Model):
     draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE)
 
     file_url = models.TextField(null=True)
+    thumbnail_url = models.TextField(null=True)
     type = models.CharField(max_length=50, default='')
 
     created_at = models.BigIntegerField(default=0)
@@ -529,6 +531,7 @@ class answerAttachment(models.Model):
     answer = models.ForeignKey(card_answers, on_delete=models.CASCADE)
 
     file_url = models.TextField(null=True)
+    thumbnail_url = models.TextField(null=True)
     type = models.CharField(max_length=50, default='')
 
     location_name = models.TextField(null=True)
