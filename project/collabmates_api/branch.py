@@ -26,6 +26,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
     For public
         0 => public community share link
         1 => public member directory share link
+        2 => public community share link to download app
     For owner/promoter
         0 => public community share link
         1 => private community share link
@@ -79,6 +80,17 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory")
         data.append(long_url_item)
 
+        # creating private expired link for non logged in user
+        if shared_by_id:
+            base_url = '%s/community/%s?shared_by=%s&aj=1234' % (
+                host_url, str(community.id), str(shared_by_id))
+        else:
+            base_url = '%s/community/%s?aj=1234' % (
+                host_url, str(community.id))
+
+        long_url_item = create_link_item(base_url, community, "AppBackend", "Web download button", private=True)
+        data.append(long_url_item)
+
     # API request
     r = requests.post(url=api_endpoint, json=data)
 
@@ -108,6 +120,10 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
 
         if 'url' not in data[1]:
             data[1]['url'] = '%s/community/%s?shared_by=%s&source=members_directory' % (
+                host_url, str(community.id), str(shared_by_id))
+
+        if 'url' not in data[2]:
+            data[2]['url'] = '%s/community/%s?shared_by=%s&' % (
                 host_url, str(community.id), str(shared_by_id))
     return data
 
@@ -140,6 +156,7 @@ def create_link_item(base_url, community, channel, feature, private=False):
         }
     }
 
+    # to handle apps download in case of private links
     if not private:
         link_item['data']['$fallback_url'] = 'https://%s' % base_url
     else:

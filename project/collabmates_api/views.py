@@ -3867,14 +3867,19 @@ def get_branch_links_for_community_share(user_instance, community_instance):
 
 def fetch_share_url(request):
     '''api to share the url of community and chatroom'''
-
     member_id = get_member_id_from_headers(request)
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
 
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
+
+    if RequestUtilities.is_request_web(request):
+        branch_links = generate_links_for_guest_web(community_id,member_id)
+        url = branch_links[2]['url']
+        return JsonResponse({'community_share': url, 'success': True})
+
+    if not member_id:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
 
     if chatroom_id:
         try:
@@ -3954,7 +3959,16 @@ def fetch_share_url(request):
 
     return JsonResponse({'error_message': "Invalid request", 'success': False}, status=400)
 
+def generate_links_for_guest_web(community_id,member_id):
 
+    if member_id and community_id:
+        branch_link = create_community_branch_links(community_id, member_id, aj=None)
+        return branch_link
+
+    elif community_id:
+        branch_link = create_community_branch_links(community_id, None, aj=None)
+        return branch_link
+    
 # api to deprecate
 @csrf_exempt
 def collabcard_poll(request):
