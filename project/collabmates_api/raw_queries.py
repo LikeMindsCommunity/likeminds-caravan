@@ -51,12 +51,22 @@ def get_active_chatrooms_count_in_community(community_id, user_id, current_time)
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select count(distinct(card_id))  from togther_collabcardState where community_id=%s and
-                 user_id=%s  and remove_id is null 
-                 and (expiry_time is null or expiry_time > %s)
-                 and card_id in (select id from togther_collabcard where community_id=%s and is_pending=false and
-                 is_deleted=false and (attachment_count = 0 or attachments_uploaded=true))
-                 """ % (str(community_id), str(user_id), str(current_time), str(community_id))
+        sql = """SELECT count(distinct(card_id))
+                 FROM togther_collabcardState
+                 WHERE community_id=%s
+                    AND user_id=%s
+                    AND remove_id is null
+                    AND (expiry_time is null
+                    OR expiry_time > %s)
+                    AND card_id IN 
+                (SELECT id
+                FROM togther_collabcard
+                WHERE community_id=%s
+                        AND is_pending=false
+                        AND is_deleted=false
+                        AND (attachment_count = 0
+                        OR attachments_uploaded=true))
+            """ % (str(community_id), str(user_id), str(current_time), str(community_id))
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -76,14 +86,22 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select count(distinct(card_id)) from togther_collabcardState where community_id=%s 
-                 and user_id=%s  and remove_id is null 
-                 and (expiry_time is not null and expiry_time < %s) and card_id in (
-                    select id from togther_collabcard where community_id=%s 
-                    and is_pending=false and is_deleted=false and
-                    (attachment_count = 0 or attachments_uploaded = true)
-                 )
-                 """ % (str(community_id), str(user_id), str(current_time), str(community_id))
+        sql = """SELECT count(distinct(card_id))
+                FROM togther_collabcardState
+                WHERE community_id=%s
+                        AND user_id=%s
+                        AND remove_id is null
+                        AND (expiry_time is NOT null
+                        AND expiry_time < %s)
+                        AND card_id IN 
+                (SELECT id
+                FROM togther_collabcard
+                WHERE community_id=%s
+                        AND is_pending=false
+                        AND is_deleted=false
+                        AND (attachment_count = 0
+                        OR attachments_uploaded = true) )
+                """ % (str(community_id), str(user_id), str(current_time), str(community_id))
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -1262,63 +1280,64 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
         current_time = int(time.time())
         status_query = get_active_inactive_status_query(active_status, current_time)
 
-        sql = """
-                   SELECT 
-                   togther_collabcard.id,
-                   togther_collabcard.title,
-                   togther_collabcard.community_id,
-                   togther_collabcard.answer_text,
-                   togther_collabcard.image_count,
-                   togther_collabcard.pdf_count,
-                   togther_collabcard.video_count,
-                   togther_collabcard.audio_count,
-                   togther_collabcard.type,
-                   togther_collabcard.date_time,
-                   togther_collabcard.is_pending,
-                   togther_collabcard.attending_count,
-                   togther_collabcard.polls_count,
-                   togther_collabcard.date_epoch,
-                   togther_collabcard.user_id,
-                   togther_collabcard.has_been_named,
-                   togther_collabcard.header,
-                   togther_collabcardState.state,
-                   togther_collabcardState.mute_status,
-                   togther_collabcardState.follow_status,
-                   togther_collabcardState.is_guest,
-                   togther_collabcardState.is_tagged,
-                   togther_collabcardState.last_seen_conversation_id,
-                   togther_collabcardState.expiry_time,
-                   togther_collabcardState.attending_status,
-                   togther_collabcard.has_files,
-                   togther_collabcard.is_poll_anonymous,
-                   togther_collabcard.allow_add_option,
-                   togther_collabcard.multiple_select_state,
-                   togther_collabcard.multiple_select_no,
-                   togther_collabcard.is_poll_anonymous,
-                   togther_collabcard.poll_type,
-                   togther_collabcard.end_date,
-                   togther_collabcard.about,
-                   togther_collabcard.co_hosts,
-                   togther_collabcard.online_link,
-                   togther_collabcard.og_tags,
-                   togther_collabcard.internal_link,
-                   togther_collabcard.deleted_by_user_id,
-                   togther_collabcardState.updated_at,
-                   togther_community.name,
-                   togther_collabcard.duration,
-                   togther_collabcard.location,
-                   togther_collabcard.location_lat,
-                   togther_collabcard.location_long,
-                   togther_collabcard.attachment_count,
-                   togther_collabcard.attachments_uploaded
-                   from togther_collabcard
-                   INNER JOIN togther_collabcardState
-                   ON togther_collabcardState.card_id = togther_collabcard.id 
-                   INNER JOIN togther_community
-                   ON togther_community.id = togther_collabcard.community_id
-                   where togther_collabcardState.user_id=%s and togther_collabcardState.remove_id is null
-                   and %s
-                   and togther_collabcardState.updated_at > %s  order by togther_collabcardState.updated_at  limit  %s  offset %s""" % (
+        sql = """SELECT  togther_collabcard.id,
+                         togther_collabcard.title,
+                         togther_collabcard.community_id,
+                         togther_collabcard.answer_text,
+                         togther_collabcard.image_count,
+                         togther_collabcard.pdf_count,
+                         togther_collabcard.video_count,
+                         togther_collabcard.audio_count,
+                         togther_collabcard.type,
+                         togther_collabcard.date_time,
+                         togther_collabcard.is_pending,
+                         togther_collabcard.attending_count,
+                         togther_collabcard.polls_count,
+                         togther_collabcard.date_epoch,
+                         togther_collabcard.user_id,
+                         togther_collabcard.has_been_named,
+                         togther_collabcard.header,
+                         togther_collabcardState.state,
+                         togther_collabcardState.mute_status,
+                         togther_collabcardState.follow_status,
+                         togther_collabcardState.is_guest,
+                         togther_collabcardState.is_tagged,
+                         togther_collabcardState.last_seen_conversation_id,
+                         togther_collabcardState.expiry_time,
+                         togther_collabcardState.attending_status,
+                         togther_collabcard.has_files,
+                         togther_collabcard.is_poll_anonymous,
+                         togther_collabcard.allow_add_option,
+                         togther_collabcard.multiple_select_state,
+                         togther_collabcard.multiple_select_no,
+                         togther_collabcard.is_poll_anonymous,
+                         togther_collabcard.poll_type,
+                         togther_collabcard.end_date,
+                         togther_collabcard.about,
+                         togther_collabcard.co_hosts,
+                         togther_collabcard.online_link,
+                         togther_collabcard.og_tags,
+                         togther_collabcard.internal_link,
+                         togther_collabcard.deleted_by_user_id,
+                         togther_collabcardState.updated_at,
+                         togther_community.name,
+                         togther_collabcard.duration,
+                         togther_collabcard.location,
+                         togther_collabcard.location_lat,
+                         togther_collabcard.location_long,
+                         togther_collabcard.attachment_count,
+                         togther_collabcard.attachments_uploaded
+        FROM togther_collabcard
+        INNER JOIN togther_collabcardState
+            ON togther_collabcardState.card_id = togther_collabcard.id
+        INNER JOIN togther_community
+            ON togther_community.id = togther_collabcard.community_id
+        WHERE togther_collabcardState.user_id=%s
+                AND togther_collabcardState.remove_id is null
+                AND %s
+                AND togther_collabcardState.updated_at > %s
+        ORDER BY  togther_collabcardState.updated_at limit %s offset %s
+              """ % (
                 str(user_id), str(status_query), str(last_updated), str(limit), str(offset))
 
         curr.execute(sql)
@@ -1346,64 +1365,65 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
         current_time = int(time.time())
         status_query = get_active_inactive_status_query(active_status, current_time)
 
-        sql = """
-                   SELECT 
-                   togther_collabcard.id,
-                   togther_collabcard.title,
-                   togther_collabcard.community_id,
-                   togther_collabcard.answer_text,
-                   togther_collabcard.image_count,
-                   togther_collabcard.pdf_count,
-                   togther_collabcard.video_count,
-                   togther_collabcard.audio_count,
-                   togther_collabcard.type,
-                   togther_collabcard.date_time,
-                   togther_collabcard.is_pending,
-                   togther_collabcard.attending_count,
-                   togther_collabcard.polls_count,
-                   togther_collabcard.date_epoch,
-                   togther_collabcard.user_id,
-                   togther_collabcard.has_been_named,
-                   togther_collabcard.header,
-                   togther_collabcardState.state,
-                   togther_collabcardState.mute_status,
-                   togther_collabcardState.follow_status,
-                   togther_collabcardState.is_guest,
-                   togther_collabcardState.is_tagged,
-                   togther_collabcardState.last_seen_conversation_id,
-                   togther_collabcardState.expiry_time,
-                   togther_collabcardState.attending_status,
-                   togther_collabcard.has_files,
-                   togther_collabcard.is_poll_anonymous,
-                   togther_collabcard.allow_add_option,
-                   togther_collabcard.multiple_select_state,
-                   togther_collabcard.multiple_select_no,
-                   togther_collabcard.is_poll_anonymous,
-                   togther_collabcard.poll_type,
-                   togther_collabcard.end_date,
-                   togther_collabcard.about,
-                   togther_collabcard.co_hosts,
-                   togther_collabcard.online_link,
-                   togther_collabcard.og_tags,
-                   togther_collabcard.internal_link,
-                   togther_collabcard.deleted_by_user_id,
-                   togther_collabcardState.updated_at,
-                   togther_community.name,
-                   togther_collabcard.duration,
-                   togther_collabcard.location,
-                   togther_collabcard.location_lat,
-                   togther_collabcard.location_long,
-                   togther_collabcard.attachment_count,
-                   togther_collabcard.attachments_uploaded
-                   from togther_collabcard
-                   INNER JOIN togther_collabcardState
-                   ON togther_collabcardState.card_id = togther_collabcard.id 
-                   INNER JOIN togther_community
-                   ON togther_community.id = togther_collabcard.community_id
-                   where togther_collabcardState.user_id=%s and togther_collabcardState.remove_id is null
-                   and %s
-                   and togther_collabcardState.follow_status = %s
-                   and togther_collabcardState.updated_at > %s  order by togther_collabcardState.updated_at  limit  %s  offset %s""" % (
+        sql = """SELECT  togther_collabcard.id,
+                         togther_collabcard.title,
+                         togther_collabcard.community_id,
+                         togther_collabcard.answer_text,
+                         togther_collabcard.image_count,
+                         togther_collabcard.pdf_count,
+                         togther_collabcard.video_count,
+                         togther_collabcard.audio_count,
+                         togther_collabcard.type,
+                         togther_collabcard.date_time,
+                         togther_collabcard.is_pending,
+                         togther_collabcard.attending_count,
+                         togther_collabcard.polls_count,
+                         togther_collabcard.date_epoch,
+                         togther_collabcard.user_id,
+                         togther_collabcard.has_been_named,
+                         togther_collabcard.header,
+                         togther_collabcardState.state,
+                         togther_collabcardState.mute_status,
+                         togther_collabcardState.follow_status,
+                         togther_collabcardState.is_guest,
+                         togther_collabcardState.is_tagged,
+                         togther_collabcardState.last_seen_conversation_id,
+                         togther_collabcardState.expiry_time,
+                         togther_collabcardState.attending_status,
+                         togther_collabcard.has_files,
+                         togther_collabcard.is_poll_anonymous,
+                         togther_collabcard.allow_add_option,
+                         togther_collabcard.multiple_select_state,
+                         togther_collabcard.multiple_select_no,
+                         togther_collabcard.is_poll_anonymous,
+                         togther_collabcard.poll_type,
+                         togther_collabcard.end_date,
+                         togther_collabcard.about,
+                         togther_collabcard.co_hosts,
+                         togther_collabcard.online_link,
+                         togther_collabcard.og_tags,
+                         togther_collabcard.internal_link,
+                         togther_collabcard.deleted_by_user_id,
+                         togther_collabcardState.updated_at,
+                         togther_community.name,
+                         togther_collabcard.duration,
+                         togther_collabcard.location,
+                         togther_collabcard.location_lat,
+                         togther_collabcard.location_long,
+                         togther_collabcard.attachment_count,
+                         togther_collabcard.attachments_uploaded
+        FROM togther_collabcard
+        INNER JOIN togther_collabcardState
+            ON togther_collabcardState.card_id = togther_collabcard.id
+        INNER JOIN togther_community
+            ON togther_community.id = togther_collabcard.community_id
+        WHERE togther_collabcardState.user_id=%s
+                AND togther_collabcardState.remove_id is null
+                AND %s
+                AND togther_collabcardState.follow_status = %s
+                AND togther_collabcardState.updated_at > %s
+        ORDER BY  togther_collabcardState.updated_at limit %s offset %s
+              """ % (
                 str(user_id), str(status_query), follow_status, str(last_updated), str(limit), str(offset))
 
         curr.execute(sql)
