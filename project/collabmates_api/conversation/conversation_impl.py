@@ -132,8 +132,9 @@ class ConversationImpl(ConversationManager):
 
         for conversation in conversations:
 
-            if conversation.attachment_count > 0 and conversation.attachments_uploaded is False and\
-                    conversation.user.id != int(self.member_id):
+            if conversation.attachment_count > 0 and\
+                    conversation.attachments_uploaded is False and\
+                    conversation.user.id != NumberUtilities.get_integer_from_string(self.member_id):
                 continue
 
             conversation_dict = self._serialize_conversation(conversation)

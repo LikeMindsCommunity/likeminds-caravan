@@ -65,6 +65,7 @@ def save_chatroom_attachments(chatroom_instance, body):
     file.index = body.get('index', 1)
     file.width = body.get('width', None)
     file.height = body.get('height', None)
+    file.thumbnail_url = body.get('thumbnail_url', None)
     file.save()
 
 
@@ -80,6 +81,7 @@ def save_conversation_attachments(body, conversation_instance):
     file.location_long = body.get('location_long', None)
     file.width = body.get('width', None)
     file.height = body.get('height', None)
+    file.thumbnail_url = body.get('thumbnail_url', None)
     file.save()
 
 
@@ -101,6 +103,7 @@ def save_draft_attachments(body):
     instance.index = body.get('index', 1)
     instance.width = body.get('width', None)
     instance.height = body.get('height', None)
+    instance.thumbnail_url = body.get('thumbnail_url', None)
     instance.save()
 
 

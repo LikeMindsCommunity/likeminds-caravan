@@ -446,6 +446,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 if file.width:
                     img['width'] = file.width
 
+                if file.thumbnail_url:
+                    img['thumbnail_url'] = file.thumbnail_url
+
                 images.append(img)
 
         return images
@@ -494,6 +497,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 if file.width:
                     video_file['width'] = file.width
 
+                if file.thumbnail_url:
+                    video_file['thumbnail_url'] = file.thumbnail_url
+
                 videos.append(video_file)
 
         return videos
@@ -513,6 +519,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
                 if file.width:
                     attachment_file['width'] = file.width
+
+                if file.thumbnail_url:
+                    attachment_file['thumbnail_url'] = file.thumbnail_url
 
                 attachments.append(attachment_file)
 
@@ -947,7 +956,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                                                           preview_url=data['internal_link'],
                                                           )
                 except:
-                    del data['preview']
+                    data['preview'] = None
                 del data['internal_link']
 
             elif data[field.field_name] is None:
