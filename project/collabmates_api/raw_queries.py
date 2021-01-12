@@ -1007,6 +1007,7 @@ def get_community_id_of_guest(member_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
+
         sql = """
         SELECT distinct(community_id)
         FROM togther_collabcardState
