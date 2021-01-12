@@ -646,7 +646,7 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
             ON togther_collabcardState.card_id = togther_collabcard.id 
             INNER JOIN togther_community
             ON togther_community.id = togther_collabcard.community_id
-            where togther_collabcardState.user_id=%s  and togther_collabcardState.remove_id is null order by togther_collabcardState.id  limit  %s  offset %s """ % (
+            where togther_collabcardState.user_id=%s  and togther_collabcardState.remove_id is null order by togther_collabcardState.updated_at  limit  %s  offset %s """ % (
                 str(user_id), str(limit), str(offset))
         else:
             sql = """
@@ -704,7 +704,7 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                    INNER JOIN togther_community
                    ON togther_community.id = togther_collabcard.community_id
                    where togther_collabcardState.user_id=%s and togther_collabcardState.remove_id is null
-                   and togther_collabcardState.updated_at > %s order by togther_collabcardState.id  limit  %s  offset %s""" % (
+                   and togther_collabcardState.updated_at > %s order by togther_collabcardState.updated_at  limit  %s  offset %s""" % (
                 str(user_id), str(last_updated), str(limit), str(offset))
 
         curr.execute(sql)
@@ -975,7 +975,7 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit):
             ON togther_community.id = togther_collabcard.community_id
             where  togther_collabcard.community_id=%s and togther_collabcardState.user_id = %s
             and togther_collabcardState.remove_id is null 
-            order by id limit %s offset %s """ % (
+            order by togther_collabcardState.updated_at limit %s offset %s """ % (
             str(community_id), str(user_id), str(limit), str(offset))
 
         curr.execute(sql)
@@ -1235,7 +1235,7 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
                    ON togther_community.id = togther_collabcard.community_id
                    where togther_collabcardState.user_id=%s and togther_collabcardState.remove_id is null
                    and togther_collabcardState.updated_at > %s and follow_status = %s
-                   order by togther_collabcardState.id  limit  %s  offset %s""" % (
+                   order by togther_collabcardState.updated_at  limit  %s  offset %s""" % (
                 str(user_id), str(last_updated), follow_status, str(limit), str(offset))
         curr.execute(sql)
         data = curr.fetchall()
@@ -1318,7 +1318,7 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
                    ON togther_community.id = togther_collabcard.community_id
                    where togther_collabcardState.user_id=%s and togther_collabcardState.remove_id is null
                    and %s
-                   and togther_collabcardState.updated_at > %s  order by togther_collabcardState.id  limit  %s  offset %s""" % (
+                   and togther_collabcardState.updated_at > %s  order by togther_collabcardState.updated_at  limit  %s  offset %s""" % (
                 str(user_id), str(status_query), str(last_updated), str(limit), str(offset))
 
         curr.execute(sql)
@@ -1403,7 +1403,7 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                    where togther_collabcardState.user_id=%s and togther_collabcardState.remove_id is null
                    and %s
                    and togther_collabcardState.follow_status = %s
-                   and togther_collabcardState.updated_at > %s  order by togther_collabcardState.id  limit  %s  offset %s""" % (
+                   and togther_collabcardState.updated_at > %s  order by togther_collabcardState.updated_at  limit  %s  offset %s""" % (
                 str(user_id), str(status_query), follow_status, str(last_updated), str(limit), str(offset))
 
         curr.execute(sql)

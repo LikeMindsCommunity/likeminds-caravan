@@ -13954,19 +13954,19 @@ class SyncConversation(APIView):
             seen_conversation = request.GET.get('seen_conversation')
             if seen_conversation:
                 conversation_filter = card_answers.objects.filter(card=chatroom_id, id__gt=seen_conversation).order_by(
-                    'id')
+                    'last_updated')
             elif last_updated:
                 conversation_filter = card_answers.objects.filter(card=chatroom_id,
-                                                                  last_updated__gt=last_updated).order_by('id')
+                                                                  last_updated__gt=last_updated).order_by('last_updated')
             else:
-                conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('id')
+                conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('last_updated')
         elif community_id:
             # sending all the conversation in a particular community
             if not last_updated:
-                conversation_filter = card_answers.objects.filter(community=community_id).order_by('id')
+                conversation_filter = card_answers.objects.filter(community=community_id).order_by('last_updated')
             else:
                 conversation_filter = card_answers.objects.filter(community=community_id,
-                                                                  last_updated__gt=last_updated).order_by('id')
+                                                                  last_updated__gt=last_updated).order_by('last_updated')
         else:
             conversation_filter = get_user_related_conversations(chatroom_status, chatroom_expire_status, member_id, last_updated)
 
@@ -14065,7 +14065,8 @@ def get_user_related_conversations(chatroom_status, chatroom_expire_status, memb
         condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
         chatroom_list = get_id_list_of_chatrooms(condition_dict)
 
-    conversation_filter = card_answers.objects.filter(card__id__in=chatroom_list, last_updated__gt=last_updated).order_by('id')
+    conversation_filter = card_answers.objects.filter(card__id__in=chatroom_list,
+                                                      last_updated__gt=last_updated).order_by('last_updated')
     conversation_filter = conversation_filter.select_related('preview_community', 'preview_chatroom')
 
     return conversation_filter

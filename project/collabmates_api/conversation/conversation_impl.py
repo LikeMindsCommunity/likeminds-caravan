@@ -5,7 +5,7 @@ from typing import Union
 from rest_framework import status as status_codes
 
 from .conversation_manager import ConversationManager
-from ..serializers import conversationSerializer
+from ..serializers import conversationSerializer, get_preview_for_url
 from ..utility import pagination
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_follow_internal,
@@ -120,9 +120,29 @@ class ConversationImpl(ConversationManager):
 
         return last_seen_conversation
 
+    def _generate_internal_link_preview(self, conversation_instance):
+
+        preview = {}
+
+        if conversation_instance.internal_link:
+            try:
+                preview = get_preview_for_url(self.get_member_id(),
+                                              conversation_instance.internal_link,
+                                              community_instance=conversation_instance.preview_community,
+                                              chatroom_instance=conversation_instance.preview_chatroom,
+                                              send_preview_text=False)
+            except Exception as e:
+                error_logger.error(e.args)
+
+        return preview
+
     def _serialize_conversation(self, conversation_instance):
         conversation_serializer = conversationSerializer(conversation_instance)
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(conversation_instance.created_at)
+        preview = self._generate_internal_link_preview(conversation_instance)
+
+        if preview:
+            conversation_serializer['preview'] = preview
 
         return conversation_serializer
 
