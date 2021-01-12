@@ -13853,6 +13853,10 @@ class SyncChatrooms(APIView):
                         video_file['width'] = file.width
                         video_attachment['width'] = file.width
 
+                    if file.thumbnail_url:
+                        video_file['thumbnail_url'] = file.thumbnail_url
+                        video_attachment['thumbnail_url'] = file.thumbnail_url
+
                     files['videos'].append(video_file)
                     attachments.append(video_attachment)
                     
