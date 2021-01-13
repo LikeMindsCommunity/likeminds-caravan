@@ -112,6 +112,14 @@ def send_notification_for_ios(token_list, message):
     return result
 
 
+def send_silent_notification(token_list):
+
+    push_service = FCMNotification(api_key=server_key)
+    result = push_service.notify_multiple_devices(registration_ids=token_list)
+
+    return result
+
+
 def get_title_from_collabcard(card):
     ''' To extract the title from a card. '''
     if card.header:
@@ -568,6 +576,7 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['pdf'] = collabcard_files[1]
     unread_conversation['audios'] = collabcard_files[2]
     unread_conversation['videos'] = collabcard_files[3]
+    unread_conversation['attachments'] = collabcard_files[4]
 
     chatroom_user_image = user_instance.userinfo.image_link
     unread_conversation['chatroom_user_image'] = chatroom_user_image if chatroom_user_image else ''
@@ -633,7 +642,7 @@ def send_follow_notification(card_id,user_id,answer):
         notification_list=[]
 
         for member in member_list:
-            if str(member[0]) != user_id and str(member[0]) not in tagged_users_list:
+            if str(member[0]) != str(user_id) and str(member[0]) not in tagged_users_list:
                 temp={}
                 notification_details = get_token_for_fcm(member[0],True)
                 temp['id']=member[0]
@@ -707,8 +716,8 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['community_image'] = conversation.card.community.image_link
         temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
 
-        last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
+
         if last_instance:
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
@@ -716,16 +725,16 @@ def get_custom_data_for_new_conversation_created(user_id):
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
-            if last_instance.has_files:
+            if last_instance.has_files or\
+                    last_instance.attachment_count > 0:
                 answer_files = get_answer_files(last_instance)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
                 temp['videos'] = answer_files['videos']
                 temp['audios'] = answer_files['audios']
+                temp['attachments'] = answer_files['attachments']
 
         unread_conversation.append(temp)
-
-    print(">>>>>>>>>   ", unread_conversation)
 
     return unread_conversation
 
@@ -770,8 +779,8 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         card_instance  = conversation.card
         temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance,user_id)
 
-        last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
+
         if last_instance:
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
@@ -779,15 +788,16 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
-            if last_instance.has_files:
+            if last_instance.has_files or\
+                    last_instance.attachment_count > 0:
                 answer_files = get_answer_files(last_instance.id)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
                 temp['videos'] = answer_files['videos']
                 temp['audios'] = answer_files['audios']
+                temp['attachments'] = answer_files['attachments']
 
             temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_instance.id))
-    print(">>>>>>>>>   ", temp)
 
     return temp
 

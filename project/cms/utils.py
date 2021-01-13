@@ -1,15 +1,13 @@
 
-from togther.models import  Community
-from datetime import datetime, time,timedelta
-from togther.models import Collabcard
-from togther.models import card_answers
-from togther.models import Userinfo,Members,collabcardState,MemberPollVotes
+from togther.models import Community
+from datetime import datetime, time, timedelta
+from togther.models import Collabcard, card_answers, Userinfo, Members, collabcardState, MemberPollVotes, userDevices
 from .models import *
 from project.celery import app
 from celery import shared_task
+from collabmates_api.notification import send_silent_notification
 
-
-def show_community_wise_details(community_id,day_a):
+def show_community_wise_details(community_id, day_a):
     if day_a == 9:
         return
     midnight = datetime.combine(datetime.today(), datetime.min.time())
@@ -295,3 +293,43 @@ def get_percent(a,b):
         return '-'
     else:
         return ("%.0f" % (a/b*100) + '%')
+
+
+@app.task
+def find_uninstall_devices():
+    """
+    task to be run at 3 am to check if user has app installed
+    """
+    user_devices = userDevices.objects.all()
+    all_users = User.objects.all()
+
+    for user in all_users:
+        app_uninstall, created = appUninstalls.objects.get_or_create(user=user)
+
+        #skip the user  if the uninstall days == 10
+        if app_uninstall.uninstall_days == 10:
+            continue
+
+        devices = user_devices.filter(user=user)
+        flag_installed = False
+        token_list = get_user_tokens(devices)
+
+        if len(token_list):
+            result = send_silent_notification(token_list)
+
+            if result['success'] > 0:
+                flag_installed = True
+
+        if flag_installed:
+            app_uninstall.uninstall_days = 0
+        else:
+            app_uninstall.uninstall_days = app_uninstall.uninstall_days + 1
+
+        app_uninstall.save()
+
+
+def get_user_tokens(devices):
+    token_list = []
+    for device in devices:
+        token_list.append(device.fcm_token)
+    return token_list

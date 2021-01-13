@@ -33,7 +33,6 @@ class MemberCommunityImpl(MemberCommunityManager):
         self.community_id = community_id
 
     def extract_member_communities(self, page: int) -> list:
-        self._send_app_install_notification(self.get_member_id())
 
         communities = self._find_member_communities(self.get_member_id())
         communities = self._paged_queryset(communities, page)
@@ -41,19 +40,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return communities
 
-    @staticmethod
-    def _send_app_install_notification(member_id: str) -> None:
-        """
-        TODO: move to notification module
-        """
-        """
-        event when user installed the app
-        """
-
-        notification_list = [
-            'mail_has_installed_app'
-        ]
-        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
     @staticmethod
     def _find_member_communities(member_id: str) -> list:

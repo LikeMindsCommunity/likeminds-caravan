@@ -1,4 +1,5 @@
 import abc
+from togther.models import card_answers
 
 
 class ConversationManager(metaclass=abc.ABCMeta):
@@ -15,4 +16,12 @@ class ConversationManager(metaclass=abc.ABCMeta):
         fetches the conversation from the database
         """
         raise NotImplementedError
-    
+
+    @abc.abstractmethod
+    def create_conversation(self, req_body: dict, is_ios: bool,
+                            is_user_guest: bool, has_files: bool) -> card_answers:
+        """
+        create conversation
+        """
+        raise NotImplementedError
+

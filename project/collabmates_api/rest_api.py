@@ -323,6 +323,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     pdf = serializers.SerializerMethodField()
     videos = serializers.SerializerMethodField()
     audios = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
     preview = serializers.DictField(write_only=True)
     polls = serializers.SerializerMethodField()
     share_url = serializers.CharField(write_only=True)
@@ -336,23 +337,23 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     chatroom_expiry_time = serializers.CharField(write_only=True)
     last_seen_conversation = serializers.IntegerField(write_only=True)
 
-
     class Meta:
         model = Collabcard
         fields = ('id', 'title', 'community_id', 'answer_text',
-                  'image_count', 'pdf_count', 'video_count', 'audio_count', 'type',
-                  'date_time', 'is_pending', 'attending_count', 'polls_count',
-                  'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
+                  'image_count', 'pdf_count', 'video_count', 'audio_count', 'attachment_count',
+                  'attachments_uploaded', 'type', 'date_time', 'is_pending', 'attending_count',
+                  'polls_count', 'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
                   'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state',
                   'multiple_select_no', 'polls', 'location', 'location_lat', 'location_long',
                   'start_date', 'end_date', 'about', 'co_hosts', 'online_link', 'updated_member',
                   'community', 'og_tags', 'created_at', 'is_anonymous',
                   'expiry_time', 'poll_type_text', 'submit_type_text', 'date',
                   'chatroom_category', 'deleted_by', 'member_id', 'created_at',
-                  'internal_link', 'images', 'pdf', 'audios', 'videos', 'preview','deleted_by', 'header',
+                  'internal_link', 'images', 'pdf', 'audios', 'videos', 'attachments',
+                  'preview', 'deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
-                  'poll_type','last_seen_conversation'
+                  'poll_type', 'last_seen_conversation'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -428,8 +429,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_images(self,card):
 
         images = []
-        if card.has_files:
+
+        if card.has_files or\
+                card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="image")
+
             for file in files:
                 img = {'image_url': file.file_url, 'index': file.index}
 
@@ -442,6 +446,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 if file.width:
                     img['width'] = file.width
 
+                if file.thumbnail_url:
+                    img['thumbnail_url'] = file.thumbnail_url
+
                 images.append(img)
 
         return images
@@ -449,8 +456,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_pdf(self, card):
 
         pdf = []
-        if card.has_files:
+
+        if card.has_files or\
+                card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="pdf")
+
             for file in files:
                 temp = {'pdf_file': file.file_url, 'index': file.index}
                 pdf.append(temp)
@@ -460,8 +470,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_audios(self,card):
 
         audios = []
-        if card.has_files:
+
+        if card.has_files or\
+                card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="audio")
+
             for file in files:
                 audio_file = {'audio_url': file.file_url, 'index': file.index}
                 audios.append(audio_file)
@@ -471,7 +484,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_videos(self, card):
 
         videos = []
-        if card.has_files:
+
+        if card.has_files or\
+                card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="video")
             for file in files:
                 video_file = {'video_url': file.file_url, 'index': file.index}
@@ -482,9 +497,35 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 if file.width:
                     video_file['width'] = file.width
 
+                if file.thumbnail_url:
+                    video_file['thumbnail_url'] = file.thumbnail_url
+
                 videos.append(video_file)
 
         return videos
+
+    def get_attachments(self, card):
+        attachments = []
+
+        if card.has_files or\
+                card.attachment_count > 0:
+            files = Card_Attachment.objects.filter(collabcard=card).filter(Q(type="video") | Q(type="image"))
+
+            for file in files:
+                attachment_file = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                if file.height:
+                    attachment_file['height'] = file.height
+
+                if file.width:
+                    attachment_file['width'] = file.width
+
+                if file.thumbnail_url:
+                    attachment_file['thumbnail_url'] = file.thumbnail_url
+
+                attachments.append(attachment_file)
+
+        return attachments
 
     def to_representation(self, card):
         data = super(GetChatroomInstanceSerializer, self).to_representation(card)
@@ -845,6 +886,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         fields = ("id", 'answer', 'card', 'user', 'created_at', 'community', 'state',
                   'og_tags', 'deleted_by', 'is_edited', 'reply', 'internal_link',
                   'has_files', 'date', 'images', 'pdf', 'audios', 'videos',
+                  'attachment_count', 'attachments_uploaded',
                   'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch')
 
     def __init__(self, *args, **kwargs):
@@ -891,12 +933,16 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 else:
                     del data['og_tags']
 
-            elif field.field_name == "has_files" and data['has_files']:
+            elif (field.field_name == "has_files" and
+                  data['has_files']) or\
+                 (field.field_name == "attachment_count" and
+                  data['attachment_count'] > 0):
                 answer_files = get_answer_files(data['id'])
                 data['images'] = answer_files['image']
                 data['pdf'] = answer_files['pdf']
                 data['videos'] = answer_files['videos']
                 data['audios'] = answer_files['audios']
+                data['attachments'] = answer_files['attachments']
                 if 'location' in answer_files:
                     data['location'] = answer_files['location']
 
@@ -907,9 +953,10 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
                 try:
                     data['preview'] = get_preview_for_url(member_id=self.current_user_id,
-                                                      preview_url=data['internal_link'])
+                                                          preview_url=data['internal_link'],
+                                                          )
                 except:
-                    del data['preview']
+                    data['preview'] = None
                 del data['internal_link']
 
             elif data[field.field_name] is None:

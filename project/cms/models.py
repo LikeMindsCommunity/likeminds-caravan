@@ -274,5 +274,11 @@ class userAcquition(models.Model):
         super(userAcquition, self).save(*args, **kwargs)
 
 
+class appUninstalls(models.Model):
 
+    """
+    to store the number of days for users when the app is uninstalled.
+    """
 
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    uninstall_days = models.IntegerField(default=0)

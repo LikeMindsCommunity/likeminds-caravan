@@ -2,7 +2,8 @@ from togther.models import userMobiles
 from django.contrib.auth.models import User
 from collabmates_api.user.user_manager import UserManager
 from external_services.logging.logging_wrapper import LoggingWrapper
-
+from utility.exception_utilities import InvalidUserException
+from rest_framework import status as status_codes
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -72,3 +73,16 @@ class UserImpl(UserManager):
             else:
                 return False
 
+
+class UserHelper:
+
+    @staticmethod
+    def get_user_or_raise_exception(user_id):
+        try:
+            return User.objects.get(pk=user_id)
+        except:
+            response = {
+                'success': False,
+                'error_message': f'User with id {user_id} does not exist'
+            }
+            raise InvalidUserException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)

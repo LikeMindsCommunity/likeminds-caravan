@@ -211,6 +211,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'pdf_count': card.pdf_count,
         'video_count': card.video_count,
         'audio_count': card.audio_count,
+        'attachment_count': card.attachment_count,
+        'attachments_uploaded': card.attachments_uploaded,
         'type': card.type,
         'date_time': card.date_time,
         'duration': card.duration,
@@ -224,6 +226,9 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "created_at": time.strftime('%H:%M', time.localtime(card.date_epoch)),
         "date_epoch": card.date_epoch
     }
+
+    if card.attachments_uploaded is None:
+        collabcard['attachments_uploaded'] = False
 
     if user and int(user) == card.user.id:
         collabcard['has_been_named'] = card.has_been_named
@@ -346,6 +351,8 @@ def draftChatroomSerializer(card, user, community=None):
         'pdf_count': card.pdf_count,
         'video_count': card.video_count,
         'audio_count': card.audio_count,
+        'attachment_count': card.attachment_count,
+        'attachments_uploaded': card.attachments_uploaded,
         'type': card.type,
         'date_time': card.date_time,
         'duration': card.duration,
@@ -356,6 +363,9 @@ def draftChatroomSerializer(card, user, community=None):
         'community_name':card.community.name
 
     }
+
+    if card.attachments_uploaded is None:
+        chatroom['attachments_uploaded'] = False
 
     # for poll card
     if card.type == card_types.CARD_POLL:
@@ -436,6 +446,7 @@ def draftChatroomSerializer(card, user, community=None):
     chatroom['pdf'] = draft_files[1]
     chatroom['audios'] = draft_files[2]
     chatroom['videos'] = draft_files[3]
+    chatroom['attachments'] = draft_files[4]
 
     return chatroom
 
@@ -451,47 +462,66 @@ def get_collabcard_files(card_id, draft=False):
     pdf = []
     video_list = []
     audio_list = []
+
+    attachments = []
+
     for file in files:
         if file.type == 'image':
-            img = {'image_url': file.file_url, 'index': file.index}
+            img = {'image_url': file.file_url, 'index': file.index, 'type': file.type}
+            img_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
             if file.dimensions:
                 img['dimensions'] = json.loads(file.dimensions)
+                img_attachment['dimensions'] = json.loads(file.dimensions)
 
             if file.height:
                 img['height'] = file.height
+                img_attachment['height'] = file.height
 
             if file.width:
                 img['width'] = file.width
+                img_attachment['width'] = file.width
+
+            if file.thumbnail_url:
+                img['thumbnail_url'] = file.thumbnail_url
+                img_attachment['thumbnail_url'] = file.thumbnail_url
 
             img_list.append(img)
+            attachments.append(img_attachment)
 
         elif file.type == 'video':
-            if file.file_url:
-                video_url = {'video_url': file.file_url, 'index': file.index}
-            else:
-                video_url = {'video_url': url + file.attachment.url, 'index': file.index}
+            video_url = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
+            video_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
             if file.height:
                 video_url['height'] = file.height
+                video_attachment['height'] = file.height
 
             if file.width:
                 video_url['width'] = file.width
+                video_attachment['width'] = file.width
+
+            if file.thumbnail_url:
+                video_url['thumbnail_url'] = file.thumbnail_url
+                video_attachment['thumbnail_url'] = file.thumbnail_url
 
             video_list.append(video_url)
+            attachments.append(video_attachment)
 
         elif file.type == 'audio':
             if file.file_url:
-                audio_url = {'audio_url': file.file_url, 'index': file.index}
+                audio_url = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
             else:
                 audio_url = {'audio_url': url + file.attachment.url, 'index': file.index}
             audio_list.append(audio_url)
         elif file.type == 'pdf':
             if file.file_url:
-                pdf_url = {'pdf_file': file.file_url, 'index': file.index}
+                pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url, 'index': file.index}
             pdf.append(pdf_url)
-    return img_list, pdf, audio_list, video_list
+
+    return img_list, pdf, audio_list, video_list, attachments
 
 
 def get_share_url_text(card, user_id):
@@ -623,11 +653,6 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
         collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
-    # else:
-    #     collabcard_member = get_user_profile(user_id=card_instance.user.id, community_id=card_instance.community.id,
-    #                                          current_user_id=current_user_id,
-    #                                          send_profile=False, remove=False)
-    #     collabcard_serializer['member'] = collabcard_member
 
     # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
@@ -635,10 +660,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_serializer['pdf'] = collabcard_files[1]
     collabcard_serializer['audios'] = collabcard_files[2]
     collabcard_serializer['videos'] = collabcard_files[3]
-
-    # # get time stamp for card
-    # time_text = get_time_text(card_instance.date_epoch)
-    # collabcard_serializer['created_at'] = time_text
+    collabcard_serializer['attachments'] = collabcard_files[4]
 
     return collabcard_serializer
 
@@ -706,6 +728,7 @@ def get_draft_chatroom_instance(draft_instance, member_id):
     draft_serializer['pdf'] = draft_files[1]
     draft_serializer['audios'] = draft_files[2]
     draft_serializer['videos'] = draft_files[3]
+    draft_serializer['attachments'] = draft_files[4]
     return draft_serializer
 
 
@@ -1576,17 +1599,24 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
         'is_edited': conversation.is_edited,
         'created_at': conversation.created_at,
         'has_files': conversation.has_files,
+        'attachment_count': conversation.attachment_count,
+        'attachments_uploaded': conversation.attachments_uploaded,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,
         'created_epoch': int(conversation.created_at)
     }
 
-    if conversation.has_files:
+    if conversation.attachments_uploaded is None:
+        temp['attachments_uploaded'] = False
+
+    if conversation.has_files or\
+            conversation.attachment_count > 0:
         answer_files = get_answer_files(temp['id'])
         temp['images'] = answer_files['image']
         temp['videos'] = answer_files['videos']
         temp['audios'] = answer_files['audios']
         temp['pdf'] = answer_files['pdf']
+        temp['attachments'] = answer_files['attachments']
         if 'location' in answer_files:
             temp['location'] = answer_files['location']
 
@@ -1628,42 +1658,62 @@ def get_answer_files(answer_id):
     pdf = []
     videos = []
     audios = []
+
+    attachments_list = []
+
     files = {}
     for file in attachments:
         if file.type == 'image':
             if file.file_url:
-                img = {'image_url': file.file_url, 'index': file.index}
+                img = {'image_url': file.file_url, 'index': file.index, 'type': file.type}
+                img_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
                 if file.dimensions:
                     img['dimensions'] = json.loads(file.dimensions)
-
+                    img_attachment['dimensions'] = json.loads(file.dimensions)
                 if file.height:
                     img['height'] = file.height
+                    img_attachment['height'] = file.height
 
                 if file.width:
                     img['width'] = file.width
+                    img_attachment['width'] = file.width
+
+                if file.thumbnail_url:
+                    img['thumbnail_url'] = file.thumbnail_url
+                    img_attachment['thumbnail_url'] = file.thumbnail_url
 
                 img_list.append(img)
+                attachments_list.append(img_attachment)
 
         elif file.type == 'video':
             if file.file_url:
-                video_url = {'video_url': file.file_url, 'index': file.index}
+                video_url = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
+                video_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
                 if file.height:
                     video_url['height'] = file.height
+                    video_attachment['height'] = file.height
 
                 if file.width:
                     video_url['width'] = file.width
+                    video_attachment['width'] = file.width
+
+                if file.thumbnail_url:
+                    video_url['thumbnail_url'] = file.thumbnail_url
+                    video_attachment['thumbnail_url'] = file.thumbnail_url
 
                 videos.append(video_url)
+                attachments_list.append(video_attachment)
 
         elif file.type == 'audio':
             if file.file_url:
-                audio_url = {'audio_url': file.file_url, 'index': file.index}
+                audio_url = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
                 audios.append(audio_url)
 
         elif file.type == 'pdf':
             if file.file_url:
-                pdf_url = {'pdf_file': file.file_url, 'index': file.index}
+                pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
                 pdf.append(pdf_url)
 
         elif file.type == "location":
@@ -1678,6 +1728,7 @@ def get_answer_files(answer_id):
     files['pdf'] = pdf
     files['videos'] = videos
     files['audios'] = audios
+    files['attachments'] = attachments_list
     return files
 
 
@@ -1692,19 +1743,26 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
         'is_edited': conversation.is_edited,
         'created_at': time.strftime('%H:%M', time.localtime(conversation.created_at)),
         'has_files': conversation.has_files,
+        'attachment_count': conversation.attachment_count,
+        'attachments_uploaded': conversation.attachments_uploaded,
         'chatroom_id': conversation.card.id,
         'community_id': conversation.community.id,
         'member_id': conversation.user.id,
         'created_epoch': int(conversation.created_at)
     }
 
-    if conversation.has_files:
+    if conversation.attachments_uploaded is None:
+        conversation_dict['attachments_uploaded'] = False
+
+    if conversation.has_files or\
+            conversation.attachment_count > 0:
 
         answer_files = get_answer_files(conversation_dict['id'])
         conversation_dict['images'] = answer_files['image']
         conversation_dict['pdf'] = answer_files['pdf']
         conversation_dict['videos'] = answer_files['videos']
         conversation_dict['audios'] = answer_files['audios']
+        conversation_dict['attachments'] = answer_files['attachments']
 
         if 'location' in answer_files:
             conversation_dict['location'] = answer_files['location']
@@ -2040,7 +2098,9 @@ def get_chatroom_preview(card_instance, member_id, active=None):
 
     chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False, preview=True)
     conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                      state=chatroom_states.ANSWER)
+                                                      state=chatroom_states.ANSWER
+                                                      ).filter(Q(attachment_count=0) |
+                                                               Q(attachments_uploaded=True))
     chatroom_instance['total_response_count'] = conversation_filter.count()
 
     last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
