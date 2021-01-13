@@ -13664,7 +13664,7 @@ class SyncChatrooms(APIView):
                 return JsonResponse({'chatrooms':chatroom})
 
         elif community_id:
-            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by)
+            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by, last_updated)
 
         else:
             chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status)
@@ -13986,7 +13986,8 @@ class SyncConversation(APIView):
                 conversation_filter = card_answers.objects.filter(community=community_id,
                                                                   last_updated__gt=last_updated).order_by('last_updated')
         else:
-            conversation_filter = get_user_related_conversations(chatroom_status, chatroom_expire_status, member_id, last_updated)
+            conversation_filter = get_user_related_conversations(chatroom_status, chatroom_expire_status,
+                                                                 member_id, last_updated)
 
         conversation_filter = conversation_filter.select_related('preview_community', 'preview_chatroom')
 
