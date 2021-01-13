@@ -10332,18 +10332,15 @@ def config(request):
     try:
         user_detail = get_mixpanel_statistics(member_id)
         context['user_detail'] = user_detail
-    except:
-        error_logger.error("Mixpanel not fired")
+    except Exception as e:
+        error_logger.error(e)
 
 
     context['updatePriority'] = 0
 
     #set installed flags in case of mobile devices
     if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
-        try:
-            set_installed_flag(member_id)
-        except:
-            error_logger.error("Flag not set for user")
+        set_installed_flag(member_id)
 
     return JsonResponse(context)
 
@@ -10353,20 +10350,20 @@ def set_installed_flag(member_id):
     event when user installed the app
     """
 
-    notification_list = [
-        'mail_has_installed_app'
-    ]
-    create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
-
     try:
-        user_instance = User.objects.get(id=member_id)
-    except:
-        error_logger.error("User does not exist")
+        notification_list = [
+            'mail_has_installed_app'
+        ]
+        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
-    app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
-    if created:
-        app_uninstall.uninstall_days = 0
-        app_uninstall.save()
+        user_instance = User.objects.get(id=member_id)
+        app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
+        if created:
+            app_uninstall.uninstall_days = 0
+            app_uninstall.save()
+
+    except Exception as e:
+        error_logger.error(e)
 
 
 def get_mixpanel_statistics(member_id):
