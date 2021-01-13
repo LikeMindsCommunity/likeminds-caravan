@@ -10336,7 +10336,10 @@ def config(request):
 
     #set installed flags in case of mobile devices
     if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
-        set_installed_flag(member_id)
+        try:
+            set_installed_flag(member_id)
+        except:
+            error_logger.error("Flag not set for user")
 
     return JsonResponse(context)
 
@@ -10354,8 +10357,7 @@ def set_installed_flag(member_id):
     try:
         user_instance = User.objects.get(id=member_id)
     except:
-        context = get_error_context(False, "send correct member id")
-        return JsonResponse(context)
+        error_logger.error("User does not exist")
 
     app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
     if created:
