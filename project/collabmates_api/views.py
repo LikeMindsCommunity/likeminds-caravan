@@ -10329,8 +10329,12 @@ def config(request):
     context['access'] = access
 
     ##mixpanel changes
-    user_detail = get_mixpanel_statistics(member_id)
-    context['user_detail'] = user_detail
+    try:
+        user_detail = get_mixpanel_statistics(member_id)
+        context['user_detail'] = user_detail
+    except Exception as e:
+        error_logger.error(e)
+
 
     context['updatePriority'] = 0
 
@@ -10345,15 +10349,21 @@ def set_installed_flag(member_id):
     """
     event when user installed the app
     """
-    notification_list = [
-        'mail_has_installed_app'
-    ]
-    create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
-    app_uninstall, created = appUninstalls.objects.get_or_create(user=member_id)
-    if created:
-        app_uninstall.uninstall_days = 0
-        app_uninstall.save()
+    try:
+        notification_list = [
+            'mail_has_installed_app'
+        ]
+        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
+
+        user_instance = User.objects.get(id=member_id)
+        app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
+        if created:
+            app_uninstall.uninstall_days = 0
+            app_uninstall.save()
+
+    except Exception as e:
+        error_logger.error(e)
 
 
 def get_mixpanel_statistics(member_id):
@@ -10363,7 +10373,10 @@ def get_mixpanel_statistics(member_id):
         return
 
     context = {}
-    user_instance = User.objects.get(id=member_id)
+    try:
+        user_instance = User.objects.get(id=member_id)
+    except:
+        error_logger.error("User does not exist")
 
     context['user'] = get_logged_in_user(user_instance)
 
