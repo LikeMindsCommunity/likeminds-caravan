@@ -10329,8 +10329,12 @@ def config(request):
     context['access'] = access
 
     ##mixpanel changes
-    user_detail = get_mixpanel_statistics(member_id)
-    context['user_detail'] = user_detail
+    try:
+        user_detail = get_mixpanel_statistics(member_id)
+        context['user_detail'] = user_detail
+    except:
+        error_logger.error("Mixpanel not fired")
+
 
     context['updatePriority'] = 0
 
@@ -10372,7 +10376,10 @@ def get_mixpanel_statistics(member_id):
         return
 
     context = {}
-    user_instance = User.objects.get(id=member_id)
+    try:
+        user_instance = User.objects.get(id=member_id)
+    except:
+        error_logger.error("User does not exist")
 
     context['user'] = get_logged_in_user(user_instance)
 
