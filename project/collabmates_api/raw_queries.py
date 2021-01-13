@@ -881,7 +881,7 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
         error_logger.error("Error while connecting to PostgreSQL %s", error)
 
 
-def fetch_community_chatroom_query(community_id, user_id, page, limit):
+def fetch_community_chatroom_query(community_id, user_id, page, limit, last_updated):
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -943,10 +943,11 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit):
     WHERE togther_collabcard.community_id=%s
             AND togther_collabcardState.user_id = %s
             AND togther_collabcardState.remove_id is null
+            AND togther_collabcardState.updated_at > %s
     ORDER BY  togther_collabcardState.updated_at limit %s offset %s
     
     """ % (
-            str(community_id), str(user_id), str(limit), str(offset))
+            str(community_id), str(user_id), str(last_updated), str(limit), str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
