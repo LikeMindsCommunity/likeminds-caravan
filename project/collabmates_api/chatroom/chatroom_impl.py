@@ -18,7 +18,7 @@ from ..notification import (get_tagged_members_list, send_notification_to_event_
                             schedule_poll_end_notification, send_ice_breaker_notification)
 from ..user.user_impl import UserHelper
 
-# from ...togther.models import Members
+
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls)
@@ -32,6 +32,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (InvalidUserException, InvalidCommunityException,
                                          InvalidHeaderException, CustomException)
+from utility.time_utilities import TimeUtilities
 
 
 error_logger = LoggingWrapper.get_instance()
@@ -239,7 +240,7 @@ class ChatroomImpl(ChatroomManager):
         else:
             card_content['end_date'] = req_body.get('end_date', 0)
 
-        card_content['date_epoch'] = time.time()
+        card_content['date_epoch'] = TimeUtilities.current_time_in_sec()
 
     def _fill_chatroom_event_details(self, req_body, card_content):
         card_content['location'] = req_body.get('location', None)
@@ -586,7 +587,7 @@ class ChatroomHelper:
 
     @staticmethod
     def fetch_user_instance_or_raise_exception(user_id: Union[str, int]):
-        return UserHelper.get_user_or_raise_exception(user_id)
+        return User.get_user_or_raise_exception(user_id)
 
     @staticmethod
     def fetch_user_info_instance(user_instance: object):

@@ -86,5 +86,3 @@ class UserHelper:
                 'error_message': f'User with id {user_id} does not exist'
             }
             raise InvalidUserException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-    User.add_to_class("get_user_or_raise_exception", get_user_or_raise_exception)

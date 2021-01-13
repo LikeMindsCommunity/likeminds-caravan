@@ -385,30 +385,8 @@ def my_chatrooms(request):
             context = get_error_context(False, "User does not exist")
             return JsonResponse(context)
 
-    # if active is True:
-    #     engage_list = get_active_followed_chatrooms(member_id,current_time,page,limit=10)
-    #     for id in engage_list:
-    #         instance = conversationEngage.objects.get(pk=id)
-    #         instance_list.append(instance)
-    #
-    #     draft_list = get_draft_chatrooms_on_home_screen(member_id, page, limit=10)
-    #
-    #     for id in draft_list:
-    #         instance = conversationEngage.objects.get(pk=id)
-    #         instance_list.append(instance)
-    #
-    # elif active is False:
-    #
-    #     engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
-    #     for id in engage_list:
-    #         instance = conversationEngage.objects.get(pk=id)
-    #         instance_list.append(instance)
-    #
-    # else:
     instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
     instance_list = pagination(instance_list, page, paginate_by=10)
-    # instance_list = get_paginated_queryset_with_maxpages(instance_list,page,paginate_by=10)
-    # instance_list = instance_list['page_list']
 
     for instance in instance_list:
 
@@ -437,17 +415,6 @@ def my_chatrooms(request):
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
-
-        # if active == True:
-        #     if card_instance  and chatroom['chatroom']['active']:
-        #         my_chatrooms.append(chatroom)
-        #     elif draft_instance:
-        #         my_chatrooms.append(chatroom)
-        #
-        # if active == False  and not chatroom['chatroom']['active'] and card_instance:
-        #     my_chatrooms.append(chatroom)
-        #
-        # if active == None:
 
         chatroom['member_right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
 
@@ -2601,7 +2568,7 @@ def create_community_version_1(request):
         # give all the CM and member rights to the community creator i.e owner
         give_all_manager_rights(user=user_instance, community=community_instance)
         give_all_member_rights(user=user_instance, community=community_instance)
-        create_member_rights_history_for_owner.delay(community_instance.id, user_instance.id)
+        # create_member_rights_history_for_owner.delay(community_instance.id, user_instance.id)
         # give all community setting rights
         give_all_community_setting_rights(community=community_instance)
 
@@ -10362,8 +10329,12 @@ def config(request):
     context['access'] = access
 
     ##mixpanel changes
-    user_detail = get_mixpanel_statistics(member_id)
-    context['user_detail'] = user_detail
+    try:
+        user_detail = get_mixpanel_statistics(member_id)
+        context['user_detail'] = user_detail
+    except Exception as e:
+        error_logger.error(e)
+
 
     context['updatePriority'] = 0
 
@@ -10378,15 +10349,21 @@ def set_installed_flag(member_id):
     """
     event when user installed the app
     """
-    notification_list = [
-        'mail_has_installed_app'
-    ]
-    create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
-    app_uninstall, created = appUninstalls.objects.get_or_create(user=member_id)
-    if created:
-        app_uninstall.uninstall_days = 0
-        app_uninstall.save()
+    try:
+        notification_list = [
+            'mail_has_installed_app'
+        ]
+        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
+
+        user_instance = User.objects.get(id=member_id)
+        app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
+        if created:
+            app_uninstall.uninstall_days = 0
+            app_uninstall.save()
+
+    except Exception as e:
+        error_logger.error(e)
 
 
 def get_mixpanel_statistics(member_id):
@@ -10396,7 +10373,10 @@ def get_mixpanel_statistics(member_id):
         return
 
     context = {}
-    user_instance = User.objects.get(id=member_id)
+    try:
+        user_instance = User.objects.get(id=member_id)
+    except:
+        error_logger.error("User does not exist")
 
     context['user'] = get_logged_in_user(user_instance)
 

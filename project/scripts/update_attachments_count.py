@@ -60,7 +60,7 @@ def update_conversation_files_attachment_count():
             answer_instance.attachments_uploaded = attachment_count > 0
             answer_instance.has_files = attachment_count > 0
 
-            answer_instance.last_updated = time.time()
+            answer_instance.last_updated = int(time.time() * 1000)
             answer_instance.save()
 
             count += 1

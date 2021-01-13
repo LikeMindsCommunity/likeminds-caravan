@@ -4,7 +4,8 @@ import time
 from django.db.models import Q
 from utility.states import member_states, member_rights
 from django.db.models.query import QuerySet
-from utility.exception_utilities import InvalidCommunityException, InvalidChatroomException
+from rest_framework import status as status_codes
+from utility.exception_utilities import InvalidCommunityException, InvalidChatroomException, InvalidUserException
 
 response_choices = (
     ('text', 'Text'),
@@ -16,6 +17,28 @@ card_action = (
     ('like', 'Like'),
     ('share', 'Share'),
 )
+
+
+def get_user_or_raise_exception(user_id):
+    try:
+        return User.objects.get(pk=user_id)
+    except:
+        response = {
+            'success': False,
+            'error_message': f'User with id {user_id} does not exist :('
+        }
+        raise InvalidUserException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+
+def get_user_or_none(user_id):
+    try:
+        return User.objects.get(pk=user_id)
+    except:
+        return None
+
+
+User.add_to_class("get_user_or_raise_exception", get_user_or_raise_exception)
+User.add_to_class("get_user_or_none", get_user_or_none)
 
 
 class Community(models.Model):

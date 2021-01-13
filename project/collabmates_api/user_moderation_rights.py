@@ -57,9 +57,6 @@ def give_default_member_rights(user, community):
         except:
             error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
 
-    create_history_for_defaults_rights.delay(rights_added, rights_removed,
-                                             community_id=community.id, user_id=user.id)
-
 
 def give_all_manager_rights(user, community):
     """function to give a manager all the rights """
@@ -153,7 +150,6 @@ def get_saved_member_rights_list(user_rights, admin_rights=None):
 
 
 def get_saved_manager_rights_list(admin_rights):
-
     all_manager_rights = adminRights.objects.all().order_by("state")
     rights_list = []
     for right in all_manager_rights:
@@ -184,7 +180,6 @@ def get_saved_manager_rights_list(admin_rights):
 
 
 def get_default_manager_rights_list():
-
     all_manager_rights = adminRights.objects.all().order_by("state")
     rights_list = []
     for right in all_manager_rights:
@@ -250,10 +245,11 @@ def check_all_member_rights(user=None, community=None):
 
     if user is None:
         member_rights = communityRightsSettings.objects.select_related('right').filter(
-                        community=community).order_by("right__state")
+            community=community).order_by("right__state")
     else:
         member_rights = userMemberRights.objects.select_related('right').filter(user=user,
-                                                                                community=community).order_by("right__state")
+                                                                                community=community).order_by(
+            "right__state")
     create_room = False
     create_poll = False
     create_event = False
@@ -283,7 +279,6 @@ def check_all_member_rights(user=None, community=None):
 
 
 def remove_member_create_room_right(user, community, current_user_id):
-
     create_rights = [member_rights.MEMBER_RIGHT_CREATE_ROOMS, member_rights.MEMBER_RIGHT_CREATE_POLL,
                      member_rights.MEMBER_RIGHT_CREATE_EVENT]
     try:
@@ -299,7 +294,6 @@ def remove_member_create_room_right(user, community, current_user_id):
 
 
 def check_admin_delete_right(user, community):
-
     user_rights = userAdminRights.objects.filter(user=user, community=community,
                                                  right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
 
@@ -309,7 +303,6 @@ def check_admin_delete_right(user, community):
 
 
 def check_admin_approve_right(user, community):
-
     user_rights = userAdminRights.objects.filter(user=user, community=community,
                                                  right__state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
 
@@ -319,7 +312,6 @@ def check_admin_approve_right(user, community):
 
 
 def check_admin_view_contact_right(user, community):
-
     user_rights = userAdminRights.objects.filter(user=user, community=community,
                                                  right__state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
 
@@ -329,7 +321,6 @@ def check_admin_view_contact_right(user, community):
 
 
 def check_admin_edit_community_right(user, community):
-
     user_rights = userAdminRights.objects.filter(user=user, community=community,
                                                  right__state=manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY)
 
@@ -339,7 +330,6 @@ def check_admin_edit_community_right(user, community):
 
 
 def get_moderation_history_title(moderation_history):
-
     if moderation_history.moderation_by:
         user_id = moderation_history.moderation_by.id
         user_name = moderation_history.moderation_by.userinfo.name
@@ -410,7 +400,6 @@ def save_moderation_history(user, community, moderation_by, type):
 
 
 def check_member_invite_private_right(user, community):
-
     user_rights = userMemberRights.objects.filter(user=user, community=community,
                                                   right__state=member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK)
 
@@ -420,7 +409,6 @@ def check_member_invite_private_right(user, community):
 
 
 def check_member_respond_right(user, community):
-
     user_rights = userMemberRights.objects.filter(user=user, community=community,
                                                   right__state=member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM)
 
@@ -430,7 +418,6 @@ def check_member_respond_right(user, community):
 
 
 def check_member_create_room_right(user, community):
-
     user_rights = userMemberRights.objects.filter(user=user, community=community,
                                                   right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
 
@@ -440,7 +427,6 @@ def check_member_create_room_right(user, community):
 
 
 def check_member_auto_approve_right(user, community):
-
     user_rights = userMemberRights.objects.filter(user=user, community=community,
                                                   right__state=member_rights.MEMBER_RIGHT_AUTO_APPROVE)
 
@@ -450,7 +436,6 @@ def check_member_auto_approve_right(user, community):
 
 
 def give_member_auto_approve_right(user, community, current_user_instance):
-
     try:
         approve_right = memberRights.objects.get(state=member_rights.MEMBER_RIGHT_AUTO_APPROVE)
         user_rights = userMemberRights(user=user, community=community,
@@ -460,45 +445,46 @@ def give_member_auto_approve_right(user, community, current_user_instance):
         enable_or_create_member_right_history(user, community, approve_right,
                                               current_user_instance=current_user_instance)
     except:
-        error_logger.error(f"right {member_rights.MEMBER_RIGHT_CREATE_ROOMS} already exists for user {user.id} in community {community.id}")
+        error_logger.error(
+            f"right {member_rights.MEMBER_RIGHT_CREATE_ROOMS} already exists for user {user.id} in community {community.id}")
 
 
 def give_member_create_room_right(user, community):
-
     try:
         user_rights = userMemberRights(user=user, community=community,
                                        right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
         user_rights.save()
     except:
-        error_logger.error(f"right {member_rights.MEMBER_RIGHT_CREATE_ROOMS} already exists for user {user.id} in community {community.id}")
+        error_logger.error(
+            f"right {member_rights.MEMBER_RIGHT_CREATE_ROOMS} already exists for user {user.id} in community {community.id}")
 
 
 def give_right_to_all_members(community, right):
-
     community_members = Members.objects.select_related("member_id").filter(
-                                community_id=community).filter(Q(state=member_states.MEMBER) |
-                                                               Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
-                                                               Q(state=member_states.PROFILE_UNAVAILABLE))
+        community_id=community).filter(Q(state=member_states.MEMBER) |
+                                       Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
+                                       Q(state=member_states.PROFILE_UNAVAILABLE))
     for member in community_members:
         try:
             user = member.member_id
-            if check_history_exists(user, community, right, enabled_by_cm=True):
+            if not check_history_exists(user, community, right, enabled_by_cm=False) or \
+                    not check_rights_history_existence(user=user, community=community, right=right):
                 save_member_right(user=user, community=community, right=right)
         except:
             error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
 
 
 def remove_right_for_all_members(community, right):
-
     community_members = Members.objects.select_related("member_id").filter(
-                                community_id=community).filter(Q(state=member_states.MEMBER) |
-                                                               Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
-                                                               Q(state=member_states.PROFILE_UNAVAILABLE))
+        community_id=community).filter(Q(state=member_states.MEMBER) |
+                                       Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
+                                       Q(state=member_states.PROFILE_UNAVAILABLE))
     # has to loop through the members list cause the right should not be deleted for CM's
     for member in community_members:
         try:
             user = member.member_id
-            if check_history_exists(user, community, right, enabled_by_cm=False):
+            if check_history_exists(user, community, right, enabled_by_cm=False) or \
+                    not check_rights_history_existence(user=user, community=community, right=right):
                 userMemberRights.objects.filter(user=user, community=community, right=right).delete()
         except:
             error_logger.error(f"community settings {community.id} does not have right {right.id} to delete")
@@ -510,10 +496,14 @@ def check_history_exists(user, community, right, enabled_by_cm=False):
     return rights_history.exists()
 
 
-def get_tool_member_requests(user_id, community_id):
+def check_rights_history_existence(user, community, right):
+    rights_history = userMemberRightsHistory.objects.filter(user=user, community=community, right=right)
+    return rights_history.exists()
 
+
+def get_tool_member_requests(user_id, community_id):
     global tool_member_requests
-    member_count = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER).count()
+    member_count = Members.objects.filter(community_id=community_id, state=member_states.PENDING_MEMBER).count()
     tool_member_requests = tool_member_requests.copy()
     tool_member_requests["count"] = member_count
 
@@ -521,7 +511,6 @@ def get_tool_member_requests(user_id, community_id):
 
 
 def get_tool_pending_chat_rooms(user_id, community_id):
-
     global tool_pending_chat_rooms
     count = Collabcard.objects.filter(community=community_id, is_pending=True, is_deleted=False).count()
     tool_pending_chat_rooms = tool_pending_chat_rooms.copy()
@@ -530,7 +519,6 @@ def get_tool_pending_chat_rooms(user_id, community_id):
 
 
 def get_tool_review_reports(user_id, community_id, **kwargs):
-
     global tool_review_reports
     is_owner = kwargs["is_owner"] if "is_owner" in kwargs else False
     parent_cm_list = kwargs["parent_cm_list"] if "parent_cm_list" in kwargs else []
@@ -548,7 +536,6 @@ def get_tool_review_reports(user_id, community_id, **kwargs):
 
 
 def get_related_reports_for_user(user_id, community_id, **kwargs):
-
     if isinstance(user_id, User):
         user_id = user_id.id
 
@@ -561,7 +548,8 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
 
     reports = Report.objects.select_related("reported_by", "user_reported", "tag", "action_taken_by",
                                             "action_taken_tag", "community", "collabcard",
-                                            "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
+                                            "conversation").filter(community=community_id).exclude(type=3).order_by(
+        "-id")
 
     # no once can see those reports which are reported on himself
     reports = reports.exclude(user_reported__id=user_id)
@@ -583,7 +571,6 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
 
 
 def get_right_dict(right):
-
     right_dict = {"id": right.id, "state": right.state, "title": right.title}
 
     if right.sub_title:
@@ -598,7 +585,6 @@ def give_all_community_setting_rights(community):
 
 
 def save_community_setting_rights(community, rights_list):
-
     for right in rights_list:
         try:
             communityRightsSettings(community=community, right=right).save()
@@ -607,7 +593,6 @@ def save_community_setting_rights(community, rights_list):
 
 
 def remove_all_member_rights(community, user):
-
     try:
         userMemberRights.objects.filter(user=user, community=community).delete()
         userMemberRightsHistory.objects.filter(user=user, community=community).delete()
@@ -616,11 +601,11 @@ def remove_all_member_rights(community, user):
 
 
 def remove_all_manager_rights(community, user):
-
     try:
         userAdminRights.objects.filter(user=user, community=community).delete()
     except:
-        error_logger.error(f"removing all manager rights, manager rights for user {user.id} does not exist in community {community.id} to delete")
+        error_logger.error(
+            f"removing all manager rights, manager rights for user {user.id} does not exist in community {community.id} to delete")
 
 
 @shared_task()
@@ -642,13 +627,12 @@ def update_rights_history_for_creation_rights_given(current_user_id, community_i
 
 @shared_task()
 def update_rights_history_for_creation_rights_removed(current_user_id, community_id, user_id):
-
     user = User.objects.get(pk=user_id)
     current_user_instance = User.objects.get(pk=current_user_id)
     community = Community.objects.get(pk=community_id)
 
     create_rights_list = [member_rights.MEMBER_RIGHT_CREATE_ROOMS, member_rights.MEMBER_RIGHT_CREATE_POLL,
-                     member_rights.MEMBER_RIGHT_CREATE_EVENT]
+                          member_rights.MEMBER_RIGHT_CREATE_EVENT]
 
     create_rights = memberRights.objects.filter(state__in=create_rights_list)
 
@@ -660,7 +644,6 @@ def update_rights_history_for_creation_rights_removed(current_user_id, community
 
 @shared_task()
 def create_member_rights_history_for_owner(community_id, user_id):
-
     all_rights = memberRights.objects.all()
     user_instance = User.objects.get(pk=user_id)
     community = Community.objects.get(pk=community_id)
@@ -674,7 +657,6 @@ def create_member_rights_history_for_owner(community_id, user_id):
 
 @shared_task()
 def update_member_rights_history(rights_added, rights_removed, current_user_id, community_id, user_id):
-
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
     community_instance = Community.objects.get(pk=community_id)
@@ -691,7 +673,6 @@ def update_member_rights_history(rights_added, rights_removed, current_user_id, 
 
 
 def enable_or_create_member_right_history(user, community, right_id, current_user_instance=None):
-
     rights_history = userMemberRightsHistory.objects.filter(user=user, community=community,
                                                             right=right_id)
     if rights_history.exists():
@@ -735,18 +716,17 @@ def create_member_rights_history(right, user, community, enabled_by_cm=False, up
 
 
 def restore_member_rights_from_history(user, community):
-
     userMemberRights.objects.filter(user=user, community=community).delete()
 
-    rights_history = userMemberRightsHistory.objects.filter(user=user, community=community,
-                                                            enabled_by_CM=True)
+    member_rights = memberRights.objects.all()
+
     rights_list = []
-    for history in rights_history:
+    for right in member_rights:
 
-        right_instance = history.right
-        rights_list.append(right_instance.state)
-
-        save_member_right(user=user, community=community, right=right_instance)
+        if check_history_exists(user, community, right, enabled_by_cm=True) or \
+                not check_rights_history_existence(user, community, right):
+            rights_list.append(right.state)
+            save_member_right(user=user, community=community, right=right)
 
     Member_Engage.objects.filter(member_id=user,
                                  community_id=community).update(rights_list=rights_list)
@@ -883,7 +863,6 @@ def save_added_removed_rights_for_manager(community_instance, user_instance, sel
 
 
 def get_added_and_removed_rights(selected_rights, existing_rights):
-
     selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
     rights_added = selected_rights_list - existing_rights
     removed_rights = existing_rights - selected_rights_list
@@ -924,7 +903,6 @@ def save_member_rights_in_engage(selected_rights, user_instance, community_insta
 
 @shared_task()
 def update_member_rights_in_member_engage(community_id, user_id):
-
     community = Community.objects.get(pk=community_id)
     user = User.objects.get(pk=user_id)
 
@@ -936,7 +914,6 @@ def update_member_rights_in_member_engage(community_id, user_id):
 
 @shared_task()
 def update_member_rights_in_conversation_engage(community_id, user_id):
-
     community = Community.objects.get(pk=community_id)
     user = User.objects.get(pk=user_id)
 
