@@ -10345,12 +10345,14 @@ def set_installed_flag(member_id):
     """
     event when user installed the app
     """
+
     notification_list = [
         'mail_has_installed_app'
     ]
     create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
-    app_uninstall, created = appUninstalls.objects.get_or_create(user=member_id)
+    user_instance = User.objects.get(id=member_id)
+    app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
     if created:
         app_uninstall.uninstall_days = 0
         app_uninstall.save()
