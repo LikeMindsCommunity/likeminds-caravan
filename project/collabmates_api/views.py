@@ -10351,7 +10351,12 @@ def set_installed_flag(member_id):
     ]
     create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
-    user_instance = User.objects.get(id=member_id)
+    try:
+        user_instance = User.objects.get(id=member_id)
+    except:
+        context = get_error_context(False, "send correct member id")
+        return JsonResponse(context)
+
     app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
     if created:
         app_uninstall.uninstall_days = 0
