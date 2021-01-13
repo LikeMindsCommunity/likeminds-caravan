@@ -586,7 +586,7 @@ class ChatroomHelper:
 
     @staticmethod
     def fetch_user_instance_or_raise_exception(user_id: Union[str, int]):
-        return UserHelper.get_user_or_raise_exception(user_id)
+        return User.get_user_or_raise_exception(user_id)
 
     @staticmethod
     def fetch_user_info_instance(user_instance: object):
