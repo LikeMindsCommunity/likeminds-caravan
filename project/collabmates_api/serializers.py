@@ -501,6 +501,10 @@ def get_collabcard_files(card_id, draft=False):
                 video_url['width'] = file.width
                 video_attachment['width'] = file.width
 
+            if file.thumbnail_url:
+                video_url['thumbnail_url'] = file.thumbnail_url
+                video_attachment['thumbnail_url'] = file.thumbnail_url
+
             video_list.append(video_url)
             attachments.append(video_attachment)
 

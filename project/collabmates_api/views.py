@@ -3867,14 +3867,19 @@ def get_branch_links_for_community_share(user_instance, community_instance):
 
 def fetch_share_url(request):
     '''api to share the url of community and chatroom'''
-
     member_id = get_member_id_from_headers(request)
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
 
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
+
+    if RequestUtilities.is_request_web(request):
+        branch_links = generate_links_for_guest_web(community_id,member_id)
+        url = branch_links[2]['url']
+        return JsonResponse({'community_share': url, 'success': True})
+
+    if not member_id:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
 
     if chatroom_id:
         try:
@@ -3954,7 +3959,16 @@ def fetch_share_url(request):
 
     return JsonResponse({'error_message': "Invalid request", 'success': False}, status=400)
 
+def generate_links_for_guest_web(community_id,member_id):
 
+    if member_id and community_id:
+        branch_link = create_community_branch_links(community_id, member_id, aj=None)
+        return branch_link
+
+    elif community_id:
+        branch_link = create_community_branch_links(community_id, None, aj=None)
+        return branch_link
+    
 # api to deprecate
 @csrf_exempt
 def collabcard_poll(request):
@@ -4755,9 +4769,9 @@ def collabcard(request, card_id):
             if settings.IS_BETA:
                 return redirect(
                     "https://betaweb.likeminds.community/collabcard/%s?source_id=%s&aj=%s" % (card_id, source_id, aj))
-            # else:
-            #     return redirect(
-            #         "https://web.likeminds.community/collabcard/%s?source_id=%s&aj=%s" % (card_id, source_id, aj))
+            else:
+                return redirect(
+                    "https://web.likeminds.community/collabcard/%s?source_id=%s&aj=%s" % (card_id, source_id, aj))
     else:
 
         backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
@@ -13838,6 +13852,10 @@ class SyncChatrooms(APIView):
                     if file.width:
                         video_file['width'] = file.width
                         video_attachment['width'] = file.width
+
+                    if file.thumbnail_url:
+                        video_file['thumbnail_url'] = file.thumbnail_url
+                        video_attachment['thumbnail_url'] = file.thumbnail_url
 
                     files['videos'].append(video_file)
                     attachments.append(video_attachment)
