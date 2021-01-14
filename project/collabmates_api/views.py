@@ -10171,9 +10171,9 @@ def members_state(request, req_dict=None):
 
     if state == member_states.ADMIN:
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
-        member_rights = get_saved_manager_rights_list(admin_rights)
+        json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
 
-    elif state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
+    if state == member_states.ADMIN or state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
         member_rights = get_saved_member_rights_list(user_rights)
 
