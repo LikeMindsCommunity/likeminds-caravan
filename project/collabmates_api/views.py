@@ -10093,8 +10093,6 @@ def members_state(request, req_dict=None):
     else:
         member_id = req_dict['member_id']
         community_id = req_dict['community_id']
-    # if not collabcard_id.isdigit():
-    #     return JsonResponse({'state':0})
 
     state = 0
     tool_state = 0
@@ -10173,12 +10171,18 @@ def members_state(request, req_dict=None):
 
     if state == member_states.ADMIN:
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
-        json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
+        member_rights = get_saved_manager_rights_list(admin_rights)
 
-    if state == member_states.MEMBER or state == member_states.KNOWN_NOMINATED_PROMOTER or \
-            state == member_states.PROFILE_UNAVAILABLE or state == member_states.ADMIN or state == member_states.TEMP_ADMIN:
+    elif state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
-        json_response['member_rights'] = get_saved_member_rights_list(user_rights)
+        member_rights = get_saved_member_rights_list(user_rights)
+
+    else:
+        user_rights = check_all_member_rights(community=community_instance)
+        # fetching all the rights of the community
+        member_rights = get_saved_member_rights_list(user_rights)
+
+    json_response['member_rights'] = member_rights
 
     if image_url:
         json_response['member']['image_url'] = image_url
