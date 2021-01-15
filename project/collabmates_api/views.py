@@ -5665,8 +5665,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     conversations_filter = card_answers.objects.select_related('reply', 'preview_community',
                                                                'preview_chatroom').filter(card=card_instance).order_by(
         'id')
-    if is_ios:
-        conversations_filter = conversations_filter.filter(is_deleted=False)
 
     total_response_count = card_answers.objects.filter(card=card_instance,
                                                        state=chatroom_states.ANSWER
