@@ -275,7 +275,7 @@ class ChatroomImpl(ChatroomManager):
             if len(decoded_title) <= 30:
                 card_content['header'] = decoded_title[:30]
             else:
-                card_content['poll_type'].header = decoded_title[:27] + "..."
+                card_content['header'] = decoded_title[:27] + "..."
 
             if card_type == card_types.CARD_PURPOSE:
                 card_content['header'] = chatroom_name

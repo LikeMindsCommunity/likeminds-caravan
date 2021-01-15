@@ -225,8 +225,8 @@ urlpatterns = [
 
     path('sync_communities', api_views.SyncCommunities.as_view(), name='sync_communities'),
 
-
-
+    path('sync_chatrooms_diff', api_views.SyncChatroomsDiff.as_view(), name='sync_chatrooms_diff'),
+    path('sync_conversation_diff', api_views.SyncConversationDiff.as_view(), name='sync_conversation_diff'),
 
     #######################################################################################
     path('conversation/',include('collabmates_api.conversation.urls')),
