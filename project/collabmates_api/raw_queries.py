@@ -1410,6 +1410,90 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def fetch_chatroom_with_videos(limit, page, card_list):
+    """function to update chatroom data"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        offset = (int(page) - 1) * int(limit)
+
+        if len(card_list) > 1:
+            card_list = str(card_list)
+        else:
+            card_list = f"({card_list[0]})"
+
+        sql = """SELECT distinct on (togther_collabcard.id)
+                    togther_collabcard.id,
+                    togther_collabcard.title,
+                    togther_collabcard.community_id,
+                    togther_collabcard.answer_text,
+                    togther_collabcard.image_count,
+                    togther_collabcard.pdf_count,
+                    togther_collabcard.video_count,
+                    togther_collabcard.audio_count,
+                    togther_collabcard.type,
+                    togther_collabcard.date_time,
+                    togther_collabcard.is_pending,
+                    togther_collabcard.attending_count,
+                    togther_collabcard.polls_count,
+                    togther_collabcard.date_epoch,
+                    togther_collabcard.user_id,
+                    togther_collabcard.has_been_named,
+                    togther_collabcard.header,
+                    togther_collabcardState.state,
+                    togther_collabcardState.mute_status,
+                    togther_collabcardState.follow_status,
+                    togther_collabcardState.is_guest,
+                    togther_collabcardState.is_tagged,
+                    togther_collabcardState.last_seen_conversation_id,
+                    togther_collabcardState.expiry_time,
+                    togther_collabcardState.attending_status,
+                    togther_collabcard.has_files,
+                    togther_collabcard.is_poll_anonymous,
+                    togther_collabcard.allow_add_option,
+                    togther_collabcard.multiple_select_state,
+                    togther_collabcard.multiple_select_no,
+                    togther_collabcard.is_poll_anonymous,
+                    togther_collabcard.poll_type,
+                    togther_collabcard.end_date,
+                    togther_collabcard.about,
+                    togther_collabcard.co_hosts,
+                    togther_collabcard.online_link,
+                    togther_collabcard.og_tags,
+                    togther_collabcard.internal_link,
+                    togther_collabcard.deleted_by_user_id,
+                    togther_collabcardState.updated_at,
+                    togther_community.name,
+                    togther_collabcard.duration,
+                    togther_collabcard.location,
+                    togther_collabcard.location_lat,
+                    togther_collabcard.location_long,
+                    togther_collabcard.attachment_count,
+                    togther_collabcard.attachments_uploaded
+                FROM togther_collabcard
+                INNER JOIN togther_collabcardState
+                    ON togther_collabcardState.card_id = togther_collabcard.id
+                INNER JOIN togther_community
+                    ON togther_community.id = togther_collabcard.community_id
+                WHERE togther_collabcard.has_files is true
+                        AND togther_collabcard.id IN %s
+                ORDER BY  togther_collabcard.id limit %s offset %s """ % (
+                str(card_list), str(limit), str(offset))
+
+        curr.execute(sql)
+        data = curr.fetchall()
+        curr.close()
+        conn.close()
+        chatroom_id_list = get_chatroom_id_list(data)
+
+        return data, chatroom_id_list
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_active_inactive_status_query(active_status, current_time):
 
     if active_status:
@@ -1419,6 +1503,7 @@ def get_active_inactive_status_query(active_status, current_time):
         status_query = """(togther_collabcardState.expiry_time is not null and togther_collabcardState.expiry_time < %s)""" % (str(current_time))
 
     return status_query
+
 
 if envir:
     if __name__ == "__main__":
