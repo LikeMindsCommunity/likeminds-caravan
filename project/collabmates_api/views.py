@@ -39,6 +39,7 @@ from utility.states import (collabcard_states, member_states, question_states, c
 from utility.tasks import (mail_triger, new_member_request, member_request_approval_or_denied,
                            send_mail_for_report_abuse, send_mail_for_query_and_feedback,
                            save_name_initial_image)
+from utility.time_utilities import TimeUtilities
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_referred_members_of_a_member,
                            eligibility_count,
@@ -6073,57 +6074,83 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
 
 def save_the_latest_conversation(card_instance, user_id):
-    '''function to save the latest seen conversation'''
+
+    """function to save the lastest conversation of user"""
 
     if not user_id:
         return {'last_conversation': None}
 
-    latest_card = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
+    last_conversation = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
 
-    # status = is_member_verified(card_instance.community,user_id)
-    latest_conversation = None
-    if latest_card:
-        user_instance = User.objects.get(id=user_id)
-        conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
-        conversation_instance = latest_card
-        latest_conversation = conversation_instance
-
+    if last_conversation:
+        user_instance = User.get_user_or_raise_exception(user_id)
         state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
+
         if state_filter.exists():
-            expiry_time = get_expiry_time_of_chatroom(state_filter[0])
-            if state_filter[0].manual_set_active and state_filter[0].manual_set_active > expiry_time:
-                expiry_time = state_filter[0].manual_set_active
-        else:
-            expiry_time = get_expiry_time_of_chatroom()
-        if not conversation_member_filter.exists():
-            conversation_member_instance = conversationMemberState()
+
+            collabcard_state_instance = state_filter[0]
+            expiry_time = get_expiry_time_of_chatroom(collabcard_state_instance)
+
+            if collabcard_state_instance.manual_set_active and \
+                    collabcard_state_instance.manual_set_active > expiry_time:
+                expiry_time = collabcard_state_instance.manual_set_active
+
+            last_seen_conversation = collabcard_state_instance.last_seen_conversation
+
+            if collabcard_state_instance.last_seen_conversation:
+
+                if last_seen_conversation.id != last_conversation.id:
+                    collabcard_state_instance.last_seen_conversation = last_conversation
+                    collabcard_state_instance.expiry_time = expiry_time
+                    collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+                    collabcard_state_instance.save()
+
+                    update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
+                                                             last_conversation_id=last_conversation.id,
+                                                             unseen_count=0)
+
+            else:
+                collabcard_state_instance.last_seen_conversation = last_conversation
+                collabcard_state_instance.expiry_time = expiry_time
+                collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+                collabcard_state_instance.save()
+
+                update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
+                                                         last_conversation_id=last_conversation.id,
+                                                         unseen_count=0)
+
+        save_the_member_conversation_state(card_instance, user_instance, last_conversation)
+
+    latest_conversations = {'last_conversation': last_conversation}
+
+    return latest_conversations
+
+
+def save_the_member_conversation_state(card_instance, user_instance, conversation_instance):
+
+    conversation_member_filter = conversationMemberState.objects.filter(card=card_instance, user=user_instance)
+
+    if not conversation_member_filter.exists():
+
+        conversation_member_instance = conversationMemberState()
+        conversation_member_instance.card = card_instance
+        conversation_member_instance.conversation = conversation_instance
+        conversation_member_instance.user = user_instance
+        conversation_member_instance.created_at = TimeUtilities.current_time_in_sec()
+        conversation_member_instance.updated_at = TimeUtilities.current_time_in_sec()
+        conversation_member_instance.save()
+
+    else:
+
+        conversation_member_instance = conversation_member_filter[0]
+
+        if conversation_instance.id != conversation_member_instance.conversation.id:
             conversation_member_instance.card = card_instance
             conversation_member_instance.conversation = conversation_instance
             conversation_member_instance.user = user_instance
+            conversation_member_instance.updated_at = TimeUtilities.current_time_in_sec()
             conversation_member_instance.save()
 
-            collabcardState.objects.filter(card=card_instance, user=user_instance,
-                                           follow_status=True).update(expiry_time=expiry_time,
-                                                                      updated_at=time.time(),
-                                                                      last_seen_conversation=conversation_instance)
-
-            update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
-                                                     last_conversation_id=conversation_instance.id, unseen_count=0)
-
-        else:
-            if conversation_instance.id != conversation_member_filter[0].conversation.id:
-                conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
-                collabcardState.objects.filter(card=card_instance, user=user_instance,
-                                               follow_status=True).update(expiry_time=expiry_time,
-                                                                          updated_at=time.time(),
-                                                                          last_seen_conversation=conversation_instance)
-
-                update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
-                                                         last_conversation_id=conversation_instance.id,
-                                                         unseen_count=0)
-
-    latest_conversations = {'last_conversation': latest_conversation}
-    return latest_conversations
 
 
 def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
@@ -10066,8 +10093,6 @@ def members_state(request, req_dict=None):
     else:
         member_id = req_dict['member_id']
         community_id = req_dict['community_id']
-    # if not collabcard_id.isdigit():
-    #     return JsonResponse({'state':0})
 
     state = 0
     tool_state = 0
@@ -10148,10 +10173,16 @@ def members_state(request, req_dict=None):
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
         json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
 
-    if state == member_states.MEMBER or state == member_states.KNOWN_NOMINATED_PROMOTER or \
-            state == member_states.PROFILE_UNAVAILABLE or state == member_states.ADMIN or state == member_states.TEMP_ADMIN:
+    if state == member_states.ADMIN or state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
-        json_response['member_rights'] = get_saved_member_rights_list(user_rights)
+        member_rights = get_saved_member_rights_list(user_rights)
+
+    else:
+        user_rights = check_all_member_rights(community=community_instance)
+        # fetching all the rights of the community
+        member_rights = get_saved_member_rights_list(user_rights)
+
+    json_response['member_rights'] = member_rights
 
     if image_url:
         json_response['member']['image_url'] = image_url
