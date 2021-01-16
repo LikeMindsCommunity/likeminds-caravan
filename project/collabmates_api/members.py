@@ -757,29 +757,29 @@ def send_participants_of_chatroom(chatroom_id,filter_list,community_id,current_u
     return context
 
 
-def get_paginated_member_queryset(page,community_id,promoter=False):
-
+def get_paginated_member_queryset(page, community_id, promoter=False):
     '''function to get paginated  member ids'''
 
     cursor = connection.cursor()
     page_number = int(page)
     limit = 10
-    offset = (page_number-1) * 10
+    offset = (page_number - 1) * 10
     if promoter:
         sql = """
-        SELECT   togther_members.id,
-                 togther_members.member_id_id,
-                 togther_userinfo.name
-        FROM togther_members
-        INNER JOIN togther_userinfo
-            ON togther_members.member_id_id = togther_userinfo.user_id_id
-                AND togther_members.community_id_id = %s
-                AND (togther_members.state = 1
-                OR togther_members.state = 4
-                OR togther_members.state = 9
-                OR togther_members.state = 3)
-        ORDER BY  togther_userinfo.name,togther_members.member_id_id limit %s offset %s
-        
+
+                SELECT   togther_members.id,
+                         togther_members.member_id_id,
+                         togther_userinfo.name
+                FROM togther_members
+                INNER JOIN togther_userinfo
+                    ON togther_members.member_id_id = togther_userinfo.user_id_id
+                        AND togther_members.community_id_id = %s
+                        AND (togther_members.state = 1
+                        OR togther_members.state = 4
+                        OR togther_members.state = 9
+                        OR togther_members.state = 3)
+                ORDER BY  togther_userinfo.name,togther_members.member_id_id limit %s offset %s
+                
         """ % (str(community_id), str(limit), str(offset))
     else:
         sql = """
@@ -800,10 +800,10 @@ def get_paginated_member_queryset(page,community_id,promoter=False):
 
     res = cursor.fetchall()
 
-    member_ids=[]
+    member_ids = []
 
     for id in res:
-        instance =Members.objects.get(id=id[0])
+        instance = Members.objects.get(id=id[0])
         member_ids.append(instance)
 
     return member_ids
