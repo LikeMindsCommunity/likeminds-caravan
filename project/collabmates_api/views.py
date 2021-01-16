@@ -5630,7 +5630,7 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
 
         actions.append(action)
 
-    if card_status['follow_status'] and not is_ios:
+    if card_status['follow_status']:
         if card_status["active"]:
             actions.append(mark_inactive)
         else:
