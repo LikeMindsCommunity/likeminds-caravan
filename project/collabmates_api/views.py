@@ -8337,7 +8337,7 @@ def upload_files(request):
         collabcardState.objects.filter(user=member_id, card=card_instance).update(updated_at=time.time())
         uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
 
-        if uploaded_files_count == card_instance.attachement_count + card_instance.pdf_count:
+        if uploaded_files_count == card_instance.attachment_count + card_instance.pdf_count:
             card_instance.attachments_uploaded = True
             card_instance.save()
             user_instance = User.objects.get(id=member_id)
