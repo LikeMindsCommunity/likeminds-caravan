@@ -779,7 +779,6 @@ def get_paginated_member_queryset(page, community_id, promoter=False):
                         OR togther_members.state = 9
                         OR togther_members.state = 3)
                 ORDER BY  togther_userinfo.name,togther_members.member_id_id limit %s offset %s
-                
         """ % (str(community_id), str(limit), str(offset))
     else:
         sql = """
