@@ -5630,7 +5630,7 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
 
         actions.append(action)
 
-    if card_status['follow_status'] and not is_ios:
+    if card_status['follow_status']:
         if card_status["active"]:
             actions.append(mark_inactive)
         else:
@@ -5665,8 +5665,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     conversations_filter = card_answers.objects.select_related('reply', 'preview_community',
                                                                'preview_chatroom').filter(card=card_instance).order_by(
         'id')
-    if is_ios:
-        conversations_filter = conversations_filter.filter(is_deleted=False)
 
     total_response_count = card_answers.objects.filter(card=card_instance,
                                                        state=chatroom_states.ANSWER
@@ -8337,7 +8335,7 @@ def upload_files(request):
         collabcardState.objects.filter(user=member_id, card=card_instance).update(updated_at=time.time())
         uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
 
-        if uploaded_files_count == NumberUtilities.get_integer_from_string(files_count):
+        if uploaded_files_count == card_instance.attachment_count + card_instance.pdf_count:
             card_instance.attachments_uploaded = True
             card_instance.save()
             user_instance = User.objects.get(id=member_id)

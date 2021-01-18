@@ -12,9 +12,6 @@ class FetchConversation(APIView):
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
-        if not member_id:
-            raise InvalidHeaderException()
-
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
         conversation_id = request.GET.get('conversation_id')
@@ -23,6 +20,7 @@ class FetchConversation(APIView):
 
         conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page,
                                                 paginate_by)
+
         conversations = conversation_manager.fetch_conversation()
 
         return JsonResponse({
