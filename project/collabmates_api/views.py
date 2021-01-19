@@ -3262,13 +3262,22 @@ def send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
 def send_chatroom_creation_notification(card_instance, user_instance):
     date_time = card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time
 
-    send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
-                                                      user_instance.id, user_instance.userinfo.name,
-                                                      type=card_instance.type,
-                                                      date_time=date_time,
-                                                      card_id=card_instance.id,
-                                                      community_name=card_instance.community.name,
-                                                      community_state=card_instance.community.hide_community)
+    """
+    dont send the notifications for new intro room
+    TODO: update logic with new intro room update
+    """
+
+    if card_instance.type == card_types.CARD_INTRO:
+        return
+
+    else:
+        send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
+                                                          user_instance.id, user_instance.userinfo.name,
+                                                          type=card_instance.type,
+                                                          date_time=date_time,
+                                                          card_id=card_instance.id,
+                                                          community_name=card_instance.community.name,
+                                                          community_state=card_instance.community.hide_community)
 
 
 @csrf_exempt
