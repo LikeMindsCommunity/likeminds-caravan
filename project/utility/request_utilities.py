@@ -1,9 +1,16 @@
 import json
+from .number_utilities import NumberUtilities
+
+
 class RequestUtilities:
 
     @staticmethod
     def get_member_id_from_headers(request: object) -> str:
         return request.META.get('HTTP_X_MEMBER_ID')
+
+    @staticmethod
+    def get_version_code_from_headers(request: object) -> int:
+        return NumberUtilities.get_integer_from_string(request.META.get('HTTP_X_VERSION_CODE', 0))
 
     @staticmethod
     def fetch_request_body(request):
