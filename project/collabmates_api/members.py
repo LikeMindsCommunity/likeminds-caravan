@@ -766,7 +766,6 @@ def get_paginated_member_queryset(page, community_id, promoter=False):
     offset = (page_number - 1) * 10
     if promoter:
         sql = """
-
                 SELECT   togther_members.id,
                          togther_members.member_id_id,
                          togther_userinfo.name

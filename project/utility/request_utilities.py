@@ -29,7 +29,7 @@ class RequestUtilities:
 
     @staticmethod
     def is_request_ios(request: object):
-        return request.META.get('HTTP_X_PLATFORM_CODE') == "ios"
+        return request.META.get('HTTP_X_PLATFORM_CODE').lower() == "ios"
 
     @staticmethod
     def get_request_type(request: str) -> str:
