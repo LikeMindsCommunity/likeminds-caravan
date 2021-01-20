@@ -14539,9 +14539,11 @@ def sync_members(request):
             try:
                 card_instance = Collabcard.objects.get(pk=chatroom_id)
                 community_instance = card_instance.community
-            except:
-                context = get_error_context(False, "Incorrect chatroom id")
-                return JsonResponse(context, status=400)
+            except Exception as e:
+                error_logger.error(e.args)
+                return JsonResponse({'members':[]})
+
+
 
             chatroom_particpants = collabcardState.objects.filter(card=card_instance, is_guest=False,
                                                                   remove=None).filter(Q(follow_status=True) |
