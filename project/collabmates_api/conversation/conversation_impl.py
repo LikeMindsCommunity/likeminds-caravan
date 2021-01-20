@@ -5,7 +5,8 @@ from typing import Union
 from rest_framework import status as status_codes
 
 from .conversation_manager import ConversationManager
-from ..serializers import conversationSerializer, get_preview_for_url
+from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
+    get_removed_member_custom_text
 from ..utility import pagination
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_follow_internal,
@@ -137,9 +138,30 @@ class ConversationImpl(ConversationManager):
         return preview
 
     def _serialize_conversation(self, conversation_instance):
+
         conversation_serializer = conversationSerializer(conversation_instance)
-        conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(conversation_instance.created_at)
-        preview = self._generate_internal_link_preview(conversation_instance)
+        conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
+            conversation_instance.created_at)
+        preview = conversation_serializer.get('preview')
+
+        if conversation_instance.is_guest:
+            conversation_serializer['member']['is_guest'] = conversation_instance.is_guest
+            state_filter = collabcardState.objects.filter(card=conversation_instance.card,
+                                                          user=conversation_instance.user, is_guest=True)
+            if state_filter.exists() and state_filter[0].source:
+                instance = state_filter[0]
+                temp = get_guest_custom_text(instance)
+                conversation_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+                conversation_serializer['member']['custom_click_text'] = temp['custom_click_text']
+
+            # if the member is removed from the community
+        elif conversation_instance.remove:
+            instance = conversation_instance.remove
+            temp = get_removed_member_custom_text(instance)
+            conversation_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
+            conversation_serializer['member']['custom_click_text'] = temp['custom_click_text']
+            conversation_serializer['member']['remove_state'] = temp['remove_state']
+            conversation_serializer['member']['image_url'] = temp['removed_user_image_url']
 
         if preview:
             conversation_serializer['preview'] = preview
