@@ -200,7 +200,7 @@ class ChatroomImpl(ChatroomManager):
 
     def _chatroom_participants_count(self, card_instance):
 
-        return collabcardState.objects.filter(follow_status=True, card=card_instance).count()
+        return collabcardState.objects.filter(follow_status=True, card=card_instance, remove=None, is_tagged=False).count()
 
     def _fill_chatroom_basic_info(self, card_content, title, community, user, chatroom_type):
         card_content['title'] = title
