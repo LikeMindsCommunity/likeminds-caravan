@@ -2439,7 +2439,7 @@ def fetch_common_communities(request):
         Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
             state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id', flat=True)
 
-    common_communities = member_communities.intersection(user_communities)
+    common_communities = member_communities.intersection(user_communities).order_by('community_id')
     total_count = common_communities.count()
     common_communities = pagination(common_communities, page, paginate_by=10)
     communities = []
@@ -2460,9 +2460,10 @@ def fetch_common_communities(request):
 
     for order in communities_order:
         community_instance = Community.objects.get(id=order[0])
-        community_serializer = CommunitySerializer(community_instance, current_user_id=member_id)
-
+        context = {"current_user_id": member_id}
+        community_serializer = CommunitySerializerV1(community_instance, context=context, many=False).data
         communities.append(community_serializer)
+
     return JsonResponse({'communities': communities, 'total_count': total_count})
 
 
