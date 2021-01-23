@@ -14804,7 +14804,13 @@ class SyncCommunities(APIView):
 
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
+        guest = query_params.get('guest','')
         context = {"current_user_id": member_id}
+
+        if guest == "true":
+            communities = fetch_guest_communities(member_id, page, paginate_by)
+
+            return JsonResponse(communities)
 
         if chatroom_id:
             chatroom_context = fetch_community_of_chatroom(chatroom_id, member_id)
@@ -14845,6 +14851,7 @@ class SyncCommunities(APIView):
             return JsonResponse(context)
 
         else:
+
             max_pages = paginated_query_set['last_page']
             page = page - max_pages
             communities = fetch_guest_communities(member_id, page, paginate_by)
