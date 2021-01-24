@@ -72,7 +72,8 @@ from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard
                     send_welcome_mail, send_verification_mail_for_email_sync,
                     send_tagged_user_mail, send_chatroom_owner_mail,
                     send_community_confirmation_email, update_pending_chatrooms_and_report_count,
-                    update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters)
+                    update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
+                    post_owner_message_template_in_intro_room)
 
 from .mails import *
 from .sms import *
@@ -1331,6 +1332,8 @@ def post_introduction_card_for_community(community_id, member_id, request):
             if not intro_filter.exists():
                 create_card(request, req_dict=req_dict)
                 update_member_rights_in_conversation_engage(community_id, member_id)
+
+                post_owner_message_template_in_intro_room.delay(community_id, member_id)
                 print("created")
                 return True
             else:
@@ -4607,7 +4610,12 @@ def approve_or_decline_private_community(req_dict, request):
                                               request=request)
 
             # posting a intro collabcard
-            post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
+            community_id = req_dict['community_id']
+            member_id = req_dict['member_id']
+
+            post_introduction_card_for_community(community_id, member_id, request)
+
+            post_owner_message_template_in_intro_room.delay(community_id, member_id)
 
             # removing guest status from all chatrooms after access
             collabcardState.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).update(

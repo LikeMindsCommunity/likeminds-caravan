@@ -137,6 +137,18 @@ class Members(models.Model):
         return member_states.GUEST
 
     @staticmethod
+    def is_member_community_owner(community: Community, member: User) -> int:
+        member = Members.objects.filter(community_id=community, member_id=member, is_owner=True)
+
+        return member.exists()
+
+    @staticmethod
+    def get_community_owner_member_instance(community: Community) -> int:
+        member = Members.objects.filter(community_id=community, is_owner=True)
+
+        return member
+
+    @staticmethod
     def get_member_instance_or_none(community: Community, member: User) -> object:
 
         member = Members.objects.filter(community_id=community, member_id=member)

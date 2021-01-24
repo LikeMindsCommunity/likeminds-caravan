@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse , HttpResponseRedirect
+from django.http import HttpResponse , HttpResponseRedirect, JsonResponse
 from django.contrib.auth import logout
 from django.conf import settings
 from django.db.models import Q
@@ -10,8 +10,13 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from .utils import *
 from .models import *
 from .forms import *
-from togther.models import communityType,communitySubtype,communityField
+from togther.models import communityType, communitySubtype, communityField, Members, Community
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+from utility.exception_utilities import CustomException
+from utility.states import member_states
+from rest_framework import status as status_codes
 
 url = settings.URL
 # uncomment to run it in localhost
@@ -569,3 +574,59 @@ def url_shortner(request):
     # records = PerDayRecordOverview.objects.all().order_by('created_at')[:10]
     context = {}
     return render(request, 'cms/url_shortner.html', context)
+
+
+def message_template_for_owner(request):
+
+    user_id = request.POST.get('user_id', None)
+    community_id = request.POST.get('community_id', None)
+    message_template = request.POST.get('message_template', None)
+
+    if user_id is None:
+        response = {
+            'success': False,
+            'error_message': 'send user_id in post params'
+        }
+
+        raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    if community_id is None:
+        response = {
+            'success': False,
+            'error_message': 'send community_id in post params'
+        }
+
+        raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    if message_template is None:
+        response = {
+            'success': False,
+            'error_message': 'send message template in post params'
+        }
+
+        raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    user_instance = User.get_user_or_raise_exception(user_id)
+    community_instance = Community.get_community_or_raise_exception(community_id)
+
+    is_owner = Members.is_member_community_owner(community=community_instance,
+                                                 member=user_instance)
+
+    if not is_owner:
+
+        response = {
+            'success': False,
+            'error_message': 'user is not a admin of this community'
+        }
+
+        raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    template = MessageTemplate(user=user_instance,
+                               community=community_instance,
+                               message=message_template).save()
+
+    response = {
+        'success': True
+    }
+
+    return JsonResponse(response)
