@@ -6095,7 +6095,9 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                             )
 
     context['chatroom_actions'] = chatroom_actions
-
+    context['participant_count'] = collabcardState.objects.filter(follow_status=True,
+                                                                  card=card_instance, remove=None,
+                                                                  is_tagged=False).count()
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
     if not conversation_member_filter.exists():
         placeholder = create_introduction_card_placeholder(card_instance, user_id)
