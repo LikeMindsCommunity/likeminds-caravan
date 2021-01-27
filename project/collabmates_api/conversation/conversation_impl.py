@@ -6,7 +6,7 @@ from rest_framework import status as status_codes
 
 from .conversation_manager import ConversationManager
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
-    get_removed_member_custom_text
+    get_removed_member_custom_text, get_conversation_instance_for_db_synching
 from ..utility import pagination
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_follow_internal,
@@ -15,7 +15,7 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
                      reverse_conversations_for_upward_pagination)
 
 from .constants import (LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION,
-                        DOWNWARD_SCROLL_DIRECTION)
+                        DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
 
 from togther.models import card_answers, collabcardState, Collabcard, Members, Community
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -23,7 +23,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
-from utility.states import member_states, collabcard_states
+from utility.states import member_states, collabcard_states, card_types
 from utility.utils import decode_meta_from_url
 from utility.firebase import update_last_answer_id
 from utility.celery_tasks import update_my_chatrooms_for_users
@@ -314,7 +314,7 @@ class ConversationImpl(ConversationManager):
         return conversations
 
     def create_conversation(self, req_body: dict, is_ios: bool,
-                            is_user_guest: bool, has_files: bool) -> card_answers:
+                            is_user_guest: bool, has_files: bool) -> {}:
 
         chatroom_id = req_body.get('chatroom_id', None)
 
@@ -334,6 +334,11 @@ class ConversationImpl(ConversationManager):
         community_instance = ConversationHelper.fetch_community_instance(community_id=community_id)
 
         member_state = ConversationHelper.fetch_member_state(community=community_instance, user=user_instance)
+
+        if chatroom_instance.type == card_types.CARD_PURPOSE and\
+                member_state != member_states.ADMIN:
+
+            return {'success': False, 'error_message': ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM}
 
         self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
                                     is_guest=is_user_guest,
@@ -369,7 +374,17 @@ class ConversationImpl(ConversationManager):
                                has_files=has_files,
                                is_ios=is_ios)
 
-        return conversation_instance
+        conversation = get_conversation_instance_for_db_synching(conversation_instance,
+                                                                 current_user_id=self.get_member_id())
+
+        conversation_response = {
+            'success': True,
+            'id': conversation_instance.id,
+            'conversation': conversation
+        }
+
+        return conversation_response
+
 
 
 class ConversationHelper:

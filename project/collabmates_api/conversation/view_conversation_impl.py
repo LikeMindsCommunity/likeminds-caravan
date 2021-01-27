@@ -44,14 +44,10 @@ class CreateConversation(APIView):
         has_files = ConversationViewsHelper.has_files(req_body, is_ios)
 
         conversation_manager = ConversationImpl(member_id)
-        conversation_instance = conversation_manager.create_conversation(req_body, is_ios,
+        conversation_response = conversation_manager.create_conversation(req_body, is_ios,
                                                                          is_user_guest, has_files)
 
-        conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
-
-        return JsonResponse({'success': True,
-                             'id': conversation_instance.id,
-                             'conversation': conversation})
+        return JsonResponse(conversation_response)
 
 
 class ConversationViewsHelper:
