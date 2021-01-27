@@ -6961,6 +6961,11 @@ def create_conversation(request):
 
     current_state = members_state(request, {'community_id': card_instance.community.id, 'member_id': user_instance.id})
 
+    if card_instance.type == card_types.CARD_PURPOSE and\
+            current_state['state'] != member_states.ADMIN:
+
+        return JsonResponse({'success': False, 'error_message': "Only admin can create conversation in this chatroom"})
+
     if is_guest and (current_state['state'] == 0 or current_state['state'] == member_states.PENDING_MEMBER):
         context = {}
         context = adding_guest_in_chatroom(context, card_instance, res['aj'], res['source_id'],
