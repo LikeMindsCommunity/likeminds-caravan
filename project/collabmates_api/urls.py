@@ -235,8 +235,8 @@ urlpatterns = [
     path('chatroom/', include('collabmates_api.chatroom.urls')),
     path('user/', include('collabmates_api.user.urls')),
     path('v1/get_tagging_list', api_views.GetTaggingList.as_view(), name='get_tagging_list_v1'),
-    path('community/', include('collabmates_api.community.urls'))
-    
+    path('community/', include('collabmates_api.community.urls')),
+    path('home_snackbar/', include('collabmates_api.snackbar.urls'))
 
 ]
 

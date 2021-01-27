@@ -60,6 +60,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from .notification import *
 from .raw_queries import *
 from .serializers import *
+from .snackbar.snackbar_impl import SnackbarImpl
 from .static_files import *
 from .static_text import *
 from .static_text import (tool_member_requests, tool_pending_chat_rooms,
@@ -2125,7 +2126,7 @@ def remove_from_member(request):
 
     member_ids = request.POST.get('member_ids', False)
     tag_id = request.POST.get('tag_id', None)
-    reason = request.POST.get('reason', None)
+    reason = request.POST.get('reason', '')
 
     current_user_instance = User.objects.get(pk=member_id)
     community_instance = Community.objects.get(pk=community_id)
@@ -2160,11 +2161,20 @@ def remove_from_member(request):
                         remove_all_member_rights(community_instance, user_instance)
                         remove_all_manager_rights(community_instance, user_instance)
 
+                        snackbar_manager = SnackbarImpl()
+                        snackbar_dict = {
+                            'tag_id': tag_id,
+                            'reason': reason,
+                            'community_name': community_instance,
+                            'type': HomeSnackbarType.REMOVED_MEMBER,
+                            'user_id': member
+                        }
+                        snackbar_manager.create_snackbar(snackbar_dict)
+
                         check_reports_and_update_action.delay(action_taken_by=member_id,
                                                               action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
                                                               user=member, community=community_id,
                                                               action_taken_tag_id=tag_id, action_taken_reason=reason)
-
                         send_notification_for_removed_member.delay(admin_id=member_id,
                                                                    removed_user_id=member, community_id=community_id)
 
@@ -3709,8 +3719,24 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
 
     if int(current_user_instance.id) == int(collabcard_instance.user.id):
         action_taken = report_Action_Types.CHATROOM_DELETED_BY_CREATOR
+        snackbar_manager = SnackbarImpl()
+        snackbar_dict = {
+            'chatroom_id': collabcard_instance.id,
+            'type': HomeSnackbarType.CHATROOM_DELETED_BY_CREATOR
+        }
+        snackbar_manager.create_snackbar(snackbar_dict)
+
     else:
         action_taken = report_Action_Types.CHATROOM_DELETED_BY_CM
+        snackbar_manager = SnackbarImpl()
+        snackbar_dict = {
+            'chatroom_id': collabcard_instance.id,
+            'chatroom_creator_id': collabcard_instance.user.id,
+            'type': HomeSnackbarType.CHATROOM_DELETED_BY_COMMUNITY_MANAGER,
+            'tag_id': tag_id,
+            'reason': reason
+        }
+        snackbar_manager.create_snackbar(snackbar_dict)
 
     check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
                                           action_taken=action_taken,
@@ -13110,7 +13136,6 @@ def check_reports_and_update_action(action_taken_by, action_taken, conversation_
                        rights_added=final_rights_added, rights_removed=final_rights_removed,
                        action_taken_tag=action_taken_tag_instance, action_taken_reason=action_taken_reason
                        )
-
     return
 
 
@@ -13342,6 +13367,7 @@ def action_pending_chatroom(request):
         return JsonResponse(context)
 
     is_approved = (value == "true" or value is True)
+
     if is_approved:
         # creating  a copy of existing model and saving it
         chatroom.pk = None
@@ -13371,6 +13397,14 @@ def action_pending_chatroom(request):
         # batch update for already existing users and saving their unseen count
         set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
                                                                   function_called="action_pending_chatroom")
+
+    else:
+        snackbar_manager = SnackbarImpl()
+        snackbar_dict = {
+            'user_id': chatroom_creator.user,
+            'type': HomeSnackbarType.CHATROOM_REJECTED_BY_COMMUNITY_MANAGER
+        }
+        snackbar_manager.create_snackbar(snackbar_dict)
 
     send_notification_for_pending_chatroom_approved_or_rejected.delay(chatroom.id, is_approved=is_approved)
     # adding pending chatroom files to new chatroom

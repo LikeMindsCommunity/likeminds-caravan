@@ -1,8 +1,8 @@
 import enum
 
+
 #  these rights can be treated as right_id mapping to enums
 class ManagerRights:
-
     MANAGER_RIGHT_DELETE_ROOMS = 0
     MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS = 1
     MANAGER_RIGHT_EDIT_COMMUNITY = 2
@@ -25,7 +25,6 @@ manager_rights = ManagerRights()
 
 
 class MemberRights:
-
     MEMBER_RIGHT_CREATE_ROOMS = 0
     MEMBER_RIGHT_CREATE_POLL = 1
     MEMBER_RIGHT_CREATE_EVENT = 2
@@ -47,11 +46,11 @@ class MemberRights:
                          MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
                          MEMBER_RIGHT_INVITE_PRIVATE_LINK, MEMBER_RIGHT_AUTO_APPROVE]
 
+
 member_rights = MemberRights()
 
 
 class ModerationHistoryTypes:
-
     APPLIED_PUBLIC_LINK = 0
     APPLIED_PRIVATE_LINK = 1
     APPROVED_FROM = 2
@@ -81,11 +80,11 @@ class ModerationHistoryTypes:
     REJOINED_COMMUNITY_PRIVATE_LINK_TEXT = "Rejoined via private link from "
     APPLIED_PUBLIC_LINK_WEBSITE_TEXT = "Applied via community website"
 
+
 moderation_history_types = ModerationHistoryTypes()
 
 
 class ReportActionTypes:
-
     EDIT_MEMBER_PERMISSION = 0
     REMOVE_FROM_COMMUNITY = 1
     LEFT_THE_COMMUNITY = 2
@@ -99,7 +98,6 @@ report_Action_Types = ReportActionTypes()
 
 
 class ReportTypes:
-
     REPORT_MEMBER = 0
     REPORT_CHATROOM = 1
     REPORT_CONVERSATION = 2
@@ -112,7 +110,6 @@ report_Types = ReportTypes()
 
 # chatroom actions
 class ChatroomActions:
-
     ACTION_RENAME = 1
     ACTION_VIEW_PARTICIPANTS = 2
     ACTION_INVITE = 3
@@ -129,6 +126,7 @@ class ChatroomActions:
 
 chatroom_actions = ChatroomActions()
 
+
 # collabcard stats
 class CollabcardTypes:
     CARD_NORMAL = 0
@@ -140,10 +138,11 @@ class CollabcardTypes:
     CARD_PUBLIC_EVENT = 6
     CARD_PURPOSE = 7
 
+
 card_types = CollabcardTypes()
 
-class CollabcardStates:
 
+class CollabcardStates:
     COLLABCARD_STATE_UNSEEN = 0
     COLLABCARD_STATE_SEEN = 1
     COLLABCARD_STATE_FOLLOW = 2
@@ -158,7 +157,6 @@ collabcard_states = CollabcardStates()
 
 
 class PollTypes:
-
     POLL_TYPE_INSTANT = 0
     POLL_TYPE_DEFERRED = 1
 
@@ -176,20 +174,23 @@ class ChatroomStates:
 
     CHATROOM_GUEST = 6
 
+
 chatroom_states = ChatroomStates()
 
+
 class MultiSelectPollStates:
-    #class to save states of multiple select poll
+    # class to save states of multiple select poll
     EXACTLY = 0
     AT_MAX = 1
     AT_MOST = 1
     AT_LEAST = 2
 
+
 multi_select_poll_states = MultiSelectPollStates()
+
 
 # member state
 class MemberStates:
-
     GUEST = 0
 
     ADMIN = 1
@@ -202,15 +203,17 @@ class MemberStates:
     INTERESTED_MEMBER = 8
     PROFILE_UNAVAILABLE = 9
 
+
 member_states = MemberStates()
 
 
 class DeletedMembers:
-
     LEFT = 0
     REMOVED = 1
 
+
 deleted_members = DeletedMembers()
+
 
 # community types
 class CommunityTypes(enum.IntEnum):
@@ -228,6 +231,7 @@ class CommunityTypes(enum.IntEnum):
     # TYPE_GN = 10
     # TYPE_SS_GN = 11
     # TYPE_SS_GC = 12
+
 
 # community attributes
 class CommunityAttributes(enum.IntEnum):
@@ -262,17 +266,16 @@ class QuestionStates:
     FILE_UPLOAD = 5
     DATE_TIME = 6
     INTRODUCTION = 7
-    PROFILE_LINK=8
+    PROFILE_LINK = 8
     MOBILE_NO = 9
     EMAIL_ID = 10
     GOOGLE_CITY_FETCH = 11
 
-question_states=QuestionStates()
 
+question_states = QuestionStates()
 
 
 class CommunityStates:
-
     PRIVATE = 0
     HIDDEN = 1
     DELETED = 2
@@ -280,39 +283,36 @@ class CommunityStates:
     PILOT_ACTIVE = 4
     WHATSAPP = 5
 
+
 community_states = CommunityStates()
 
 
 class EmailStates:
-
     NON_PRIMARY = 0
     PRIMARY = 1
+
 
 email_states = EmailStates()
 
 
-
 class PhoneStates:
-
     NON_PRIMARY = 0
     PRIMARY = 1
+
 
 mobile_states = PhoneStates()
 
 
-
-
 class CommunityLevelsState:
-
     PENDING = 0
     COMPLETE = 1
     LOCKED = 2
+
 
 community_level_states = CommunityLevelsState()
 
 
 class ClickState:
-
     DEFAULT = 0
     SET_COMMUNITY = 1
     PENDING_APPROVAL = 2
@@ -320,15 +320,26 @@ class ClickState:
     SET_PURPOSE = 3
     SKIP_COMMUNITY = 4
 
+
 click_states = ClickState()
 
 
-
 class LevelClickStates:
-
     DEFAULT = 0
     DIRECTORY_CREATED = 1
     COMMUNITY_JOINED = 2
 
+
 level_click_states = LevelClickStates()
+
+
+class HomeSnackbarType(enum.Enum):
+    REMOVED_MEMBER = 1
+    CHATROOM_DELETED_BY_CREATOR = 2
+    CHATROOM_DELETED_BY_COMMUNITY_MANAGER = 3
+    CHATROOM_REJECTED_BY_COMMUNITY_MANAGER = 4
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
 

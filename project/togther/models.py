@@ -6,6 +6,7 @@ from utility.states import member_states, member_rights
 from django.db.models.query import QuerySet
 from rest_framework import status as status_codes
 from utility.exception_utilities import InvalidCommunityException, InvalidChatroomException, InvalidUserException
+from utility.time_utilities import TimeUtilities
 
 response_choices = (
     ('text', 'Text'),
@@ -343,6 +344,15 @@ class inActiveChatroomsCount(models.Model):
     inactive_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(null=True)
     updated_at = models.BigIntegerField(null=True)
+
+    @staticmethod
+    def create_instance(user_instance, inactive_count):
+        instance = inActiveChatroomsCount()
+        instance.user = user_instance
+        instance.inactive_count = inactive_count
+        instance.created_at = TimeUtilities.current_time_in_sec()
+        instance.updated_at = TimeUtilities.current_time_in_sec()
+        instance.save()
 
 
 class deletedChatrooms(models.Model):
@@ -1419,3 +1429,27 @@ class userMemberRightsHistory(models.Model):
     def save(self, *args, **kwargs):
         self.updated_time = time.time()
         super(userMemberRightsHistory, self).save(*args, **kwargs)
+
+
+class homeSnackbar(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField(null=True)
+    cta = models.TextField(null=True)
+    cta_route = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = TimeUtilities.current_time_in_sec()
+
+        super(homeSnackbar, self).save(*args, **kwargs)
+
+
+class ModelUtilities:
+    """class contains utility functions for models"""
+
+    @staticmethod
+    def model_update(model, filter_dict, update_dict):
+        update_status = model.objects.filter(**filter_dict).update(**update_dict)
+
+        return update_status
