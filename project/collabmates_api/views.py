@@ -5855,8 +5855,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance)
 
-    context['total_participants'] = collabcardState.objects.filter(card=card_instance, follow_status=True,
-                                                                   remove=None).count()
+    context['participant_count'] = collabcardState.objects.filter(follow_status=True, card=card_instance,
+                                                                  remove=None, is_tagged=False).count()
 
     conversation_users_meta = get_chatroom_user_images_for_web(card_instance.id)
     conversation_users = get_latest_conversation_members(conversation_users_meta['last_conversation_member'],
