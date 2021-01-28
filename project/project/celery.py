@@ -33,30 +33,35 @@ def debug_task(self):
     print('Request: {0!r}'.format(self.request))
 
 app.conf.beat_schedule = {
+
+    #   '<task_name>': {
+    #   'task': '<task path>',
+    #   'schedule': crontab(hour=8, minute=0),
+    #   minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
+    # },
     'send_pending_request_notification_at_8am': {
         'task': 'collabmates_api.notification.send_morning_pending_request_notification',
         'schedule': crontab(hour=8, minute=0),
-        # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
-        # 'schedule':120.0, #for testing purpose
     },
     'send_level_notification_at_8pm': {
         'task': 'collabmates_api.notification.send_evening_level_notification',
         'schedule': crontab(hour=20, minute=0),
-        # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
-        # 'schedule':120.0, #for testing purpose
+    },
+    'send_uninstall_notification_3am': {
+        'task': 'cms.utils.find_uninstall_devices',
+        'schedule': crontab(hour=3, minute=0),
     },
     'update_dashboard_daily': {
         'task': 'cms.utils.run_daily_tasks',
         'schedule': crontab(hour=6, minute=0),
-        # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
-        # 'schedule':120.0, #for testing purpose
     },
-
     'send_notification_to_inactive_chatroom_users': {
         'task': 'collabmates_api.notification.send_notification_to_inactive_chatroom_users',
         'schedule': 300,
-        # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
-        # 'schedule':120.0, #for testing purpose
+    },
+    'send_intro_room_evening_notifications': {
+        'task': 'collabmates_api.notification.send_intro_room_evening_notifications',
+        'schedule': crontab(hour=19, minute=0),
     },
 }
 app.conf.timezone = 'Asia/Kolkata'

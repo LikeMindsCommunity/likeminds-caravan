@@ -3,7 +3,7 @@ from django.utils.http import urlquote
 from django import urls
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
-
+from django.http import HttpResponse, JsonResponse
 
 class AppendOrRemoveSlashMiddleware(MiddlewareMixin):
 

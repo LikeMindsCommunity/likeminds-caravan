@@ -1,14 +1,21 @@
 from django.contrib.auth.models import User
 from rest_framework.utils import json
+from django.db.models import Q
 
-from togther.models import Member_Engage, Community, Members
-from utility.states import member_states
-from collabmates_api.member_community.member_community_manager import MemberCommunityManager
-from collabmates_api.user_moderation_rights import check_admin_approve_right
-from collabmates_api.utility import pagination
-from collabmates_api.views import get_home_screen_community_actions, get_active_chatroom_member_images
+from .constants import ACTIVE_USER_LIMIT
+from .member_community_manager import MemberCommunityManager
+from ..user_moderation_rights import check_admin_approve_right
+from ..utility import pagination
+from ..views import get_home_screen_community_actions, get_active_chatroom_member_images
+from ..rest_api import CommunitySerializerV1
+from ..serializers import get_user_profile
+from ..static_files import REMOVED_USER_URL
+
+from togther.models import Member_Engage, Community, Members, collabcardState
+
 from utility.utils import create_notification_flag
-from collabmates_api.rest_api import CommunitySerializerV1
+from utility.time_utilities import TimeUtilities
+from utility.states import member_states
 
 
 class MemberCommunityImpl(MemberCommunityManager):
@@ -33,7 +40,6 @@ class MemberCommunityImpl(MemberCommunityManager):
         self.community_id = community_id
 
     def extract_member_communities(self, page: int) -> list:
-        self._send_app_install_notification(self.get_member_id())
 
         communities = self._find_member_communities(self.get_member_id())
         communities = self._paged_queryset(communities, page)
@@ -41,19 +47,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return communities
 
-    @staticmethod
-    def _send_app_install_notification(member_id: str) -> None:
-        """
-        TODO: move to notification module
-        """
-        """
-        event when user installed the app
-        """
-
-        notification_list = [
-            'mail_has_installed_app'
-        ]
-        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
 
     @staticmethod
     def _find_member_communities(member_id: str) -> list:
@@ -95,9 +88,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         return CommunitySerializerV1(community_id, context=context, many=False).data
 
     def _add_admin_info(self, member_community: dict, community: {}) -> None:
-        user = self._extract_user(self.get_member_id())
 
         if community.member_state == member_states.ADMIN:
+            user = self._extract_user(self.get_member_id())
 
             member_community['pending_chatroom_count'] = community.pending_chatrooms
             member_community['open_reports_count'] = community.open_reports
@@ -141,15 +134,16 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def _add_active_chatroom_info(member_community: dict, community: {}, member_id: str) -> None:
-        active_chatroom = get_active_chatroom_member_images(community_instance=community.community_id,
-                                                            member_id=member_id)
-        active_chatroom_count = active_chatroom['count']
-        member_community['active_chatroom_count'] = active_chatroom_count
 
         if member_community['collabcard_unseen'] > 0 and \
                 community.new_chatroom_users:
             member_community['new_chatroom_users'] = json.loads(community.new_chatroom_users)
         else:
+            active_chatroom = MemberCommunityHelper.get_active_chatroom_member_images(
+                community_instance=community.community_id, member_id=member_id)
+
+            active_chatroom_count = active_chatroom['count']
+            member_community['active_chatroom_count'] = active_chatroom_count
             active_chatroom_users = active_chatroom['member_list']
             if active_chatroom_users:
                 member_community['active_chatroom_users'] = active_chatroom_users
@@ -176,3 +170,55 @@ class MemberCommunityImpl(MemberCommunityManager):
             state = member_data[0].state
 
         return state
+
+
+class MemberCommunityHelper:
+    @staticmethod
+    def get_active_chatroom_member_images(community_instance, member_id):
+
+        current_time = TimeUtilities.current_time_in_sec()
+        state_filter = collabcardState.objects.filter(
+            community=community_instance, user=member_id, card__is_deleted=False
+            ).select_related('card').filter(Q(expiry_time=None) |
+                                            Q(expiry_time__gt=current_time)
+                                            ).order_by('-expiry_time', '-card')
+        temp = {}
+        member_list = []
+        user_set = set()
+        temp['count'] = state_filter.count()
+        
+        for data in state_filter:
+            card_instance = data.card
+            user_instance = card_instance.user
+            user_id = user_instance.id
+
+            if user_id not in user_set:
+                member = MemberCommunityHelper.add_member_profile(user_instance, data.community)
+                member_list.append(member)
+                user_set.add(user_id)
+
+            if len(member_list) > ACTIVE_USER_LIMIT:
+                break
+
+        temp['member_list'] = member_list
+        
+        return temp
+    
+    @staticmethod
+    def add_member_profile(user_instance, community_instance):
+        
+        member_filter = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+
+        if member_filter.exists():
+            image_url = user_instance.userinfo.image_link if user_instance.userinfo.image_link else ''
+            member_instance = member_filter[0]
+
+            if member_instance.image_url:
+                image_url = member_instance.image_url
+        else:
+            image_url = REMOVED_USER_URL
+
+        member = get_user_profile(user_instance, community_instance, send_profile=False)
+        member['image_url'] = image_url
+        
+        return member

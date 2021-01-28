@@ -48,3 +48,4 @@ class InvalidChatroomException(BaseException):
     detail = {"success": False,
               "error_message": "Chatroom does not exist"
               }
+

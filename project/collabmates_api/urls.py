@@ -140,6 +140,7 @@ urlpatterns = [
     path('decode_url', api_views.decode_url, name='decode_url'),
 
     path('all_members', api_views.all_members, name='all_members'),
+    path('v1/all_members', api_views.all_members_version_1, name='all_members_version_1'),
     path('get_tagging_list', api_views.get_tagging_list, name='get_tagging_list'),
 
     path('member_activity', api_views.member_activity, name='member_activity'),
@@ -224,8 +225,8 @@ urlpatterns = [
 
     path('sync_communities', api_views.SyncCommunities.as_view(), name='sync_communities'),
 
-
-
+    path('sync_chatrooms_diff', api_views.SyncChatroomsDiff.as_view(), name='sync_chatrooms_diff'),
+    path('sync_conversation_diff', api_views.SyncConversationDiff.as_view(), name='sync_conversation_diff'),
 
     #######################################################################################
     path('conversation/',include('collabmates_api.conversation.urls')),

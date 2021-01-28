@@ -9,8 +9,7 @@ from django.db import connection
 from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
-
-
+from .rest_api import CommunitySerializerV1
 
 def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
 
@@ -276,7 +275,7 @@ def get_all_members(request, req_dict=None):
     is_filter = request.GET.get('is_filter', False)
 
     filter_list = request.GET.get('filter', None)
-    community_instance = Community.objects.get(pk=community_id)
+    community_instance = Community.get_community_or_raise_exception(community_id)
 
     # functionality for user filteration based on options
     context = {}
@@ -334,6 +333,120 @@ def get_all_members(request, req_dict=None):
             context['total_pending_members'] = user_engage[0].pending_members
 
     return context
+
+
+def get_all_members_version_1(request, req_dict=None):
+    """function to get all members of the community"""
+
+    page = request.GET.get('page', 1)
+
+    community_id = request.GET.get('community_id')
+    collabcard_id = request.GET.get('collabcard_id', None)
+
+    current_user_id = get_member_id_from_headers(request)
+    try:
+        current_user_instance = User.objects.get(pk=current_user_id)
+    except Exception as e:
+        current_user_instance = None
+        
+
+    filter_list = request.GET.get('filter', None)
+    community_instance = Community.get_community_or_raise_exception(community_id)
+
+    # functionality for user filteration based on options
+    context = {}
+
+    #flow for sending members of chatrooms
+    if collabcard_id and is_request_web(request):
+
+        return collabcard_members(collabcard_id, community_id, current_user_id, page)
+
+    if collabcard_id:
+
+        return chatroom_participants(collabcard_id, filter_list, community_id, current_user_id, page)
+
+    promoter_instance = None
+    member_instance = Members.get_member_instance_or_none(community_instance, current_user_instance)
+
+    if member_instance and member_instance.state == member_states.ADMIN:
+        promoter_instance = current_user_instance
+
+    community = CommunitySerializerV1(community_instance, context={"current_user_id": current_user_id}, many=False).data
+
+    if filter_list:
+
+        filter_context = filtered_member_list(current_user_id, community_id, filter_list, page, member_instance)
+        members = filter_context['members']
+        total_filtered_members = filter_context['total_filtered_members']
+
+    else:
+
+        unfiltered_context = unfiltered_member_list(current_user_id, community_id, page)
+        members = unfiltered_context['members']
+        total_filtered_members = community['members_count']
+
+    context = {'members': members,'community':community}
+
+    context['total_members'] = community['members_count']
+    context['total_filtered_members'] = total_filtered_members
+
+    if promoter_instance:
+        pending_members = pending_members_count_in_community(community_instance, current_user_instance)
+
+        if pending_members is None:
+            context['total_pending_members'] = pending_members
+
+    return context
+
+def pending_members_count_in_community(community_instance, user_instance):
+
+    user_engage = Member_Engage.objects.filter(community_id=community_instance,
+                                               member_id=user_instance)
+    if user_engage.exists():
+        return user_engage[0].pending_members
+
+
+def collabcard_members(collabcard_id, community_id, current_user_id, page):
+
+    members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no=page)
+    context = {'members': members}
+
+    return context
+
+
+def chatroom_participants(collabcard_id, filter_list, community_id, current_user_id, page):
+
+    context = send_participants_of_chatroom(collabcard_id, filter_list, community_id, current_user_id, page=page)
+
+    return context
+
+
+def filtered_member_list(current_user_id, community_id, filter_list, page, member_instance):
+
+    member_list = get_member_query_set(current_user_id, community_id, send_all=True)
+    filter_list = json.loads(filter_list)
+    member_set = get_filtered_users(filter_list, member_list)
+    total_filtered_members = len(member_set)
+    members = get_member_instances_with_filter(member_set, current_user_id, community_id, page=page,
+                                               member_instance=member_instance)
+    filter_context = {
+        'members': members,
+        'total_filtered_members': total_filtered_members
+    }
+
+    return filter_context
+
+
+def unfiltered_member_list(current_user_id, community_id, page):
+
+    member_list = get_member_query_set(current_user_id, community_id, page=page)
+    members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page)
+
+    unfilter_context = {
+        'members': members
+    }
+
+    return unfilter_context
 
 
 def get_community_managers(community_instance):
@@ -644,27 +757,51 @@ def send_participants_of_chatroom(chatroom_id,filter_list,community_id,current_u
     return context
 
 
-def get_paginated_member_queryset(page,community_id,promoter=False):
-
+def get_paginated_member_queryset(page, community_id, promoter=False):
     '''function to get paginated  member ids'''
 
     cursor = connection.cursor()
     page_number = int(page)
     limit = 10
-    offset = (page_number-1) * 10
+    offset = (page_number - 1) * 10
     if promoter:
-        sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9 or togther_members.state = 3) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
+        sql = """
+                SELECT   togther_members.id,
+                         togther_members.member_id_id,
+                         togther_userinfo.name
+                FROM togther_members
+                INNER JOIN togther_userinfo
+                    ON togther_members.member_id_id = togther_userinfo.user_id_id
+                        AND togther_members.community_id_id = %s
+                        AND (togther_members.state = 1
+                        OR togther_members.state = 4
+                        OR togther_members.state = 9
+                        OR togther_members.state = 3)
+                ORDER BY  togther_userinfo.name,togther_members.member_id_id limit %s offset %s
+        """ % (str(community_id), str(limit), str(offset))
     else:
-        sql = """SELECT togther_members.id,togther_members.member_id_id, togther_userinfo.name FROM togther_members INNER JOIN togther_userinfo ON togther_members.member_id_id = togther_userinfo.user_id_id  and togther_members.community_id_id = %s  and (togther_members.state = 1 or togther_members.state = 4 or togther_members.state = 9) order by name limit %s offset %s"""%(str(community_id),str(limit),str(offset))
+        sql = """
+                SELECT  togther_members.id,
+                        togther_members.member_id_id,
+                        togther_userinfo.name
+                FROM togther_members
+                INNER JOIN togther_userinfo
+                    ON togther_members.member_id_id = togther_userinfo.user_id_id
+                        AND togther_members.community_id_id = %s
+                        AND (togther_members.state = 1
+                        OR togther_members.state = 4
+                        OR togther_members.state = 9)
+                ORDER BY  togther_userinfo.name,togther_members.member_id_id limit %s offset %s
+        """ % (str(community_id), str(limit), str(offset))
 
     cursor.execute(sql)
 
     res = cursor.fetchall()
 
-    member_ids=[]
+    member_ids = []
 
     for id in res:
-        instance =Members.objects.get(id=id[0])
+        instance = Members.objects.get(id=id[0])
         member_ids.append(instance)
 
     return member_ids

@@ -20,6 +20,7 @@ from utility.states import (member_states, manager_rights, member_rights, modera
                            )
 
 from utility.utils import *
+from utility.time_utilities import TimeUtilities
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
 from utility.states import *
@@ -31,6 +32,13 @@ import traceback
 from datetime import datetime,timedelta
 from .serializers import get_answer_files, get_collabcard_files
 from .static_text import *
+
+from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE,
+                               INTRO_ROOM_NOTIFICATION_SUBTITLE_SINGULAR,
+                               INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL,
+                               INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR,
+                               INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL)
+
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -109,6 +117,14 @@ def send_notification_for_ios(token_list, message):
                                                   extra_kwargs=extra_kwargs)
 
     print(result)
+    return result
+
+
+def send_silent_notification(token_list):
+
+    push_service = FCMNotification(api_key=server_key)
+    result = push_service.notify_multiple_devices(registration_ids=token_list)
+
     return result
 
 
@@ -568,6 +584,7 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['pdf'] = collabcard_files[1]
     unread_conversation['audios'] = collabcard_files[2]
     unread_conversation['videos'] = collabcard_files[3]
+    unread_conversation['attachments'] = collabcard_files[4]
 
     chatroom_user_image = user_instance.userinfo.image_link
     unread_conversation['chatroom_user_image'] = chatroom_user_image if chatroom_user_image else ''
@@ -633,7 +650,7 @@ def send_follow_notification(card_id,user_id,answer):
         notification_list=[]
 
         for member in member_list:
-            if str(member[0]) != user_id and str(member[0]) not in tagged_users_list:
+            if str(member[0]) != str(user_id) and str(member[0]) not in tagged_users_list:
                 temp={}
                 notification_details = get_token_for_fcm(member[0],True)
                 temp['id']=member[0]
@@ -707,8 +724,8 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['community_image'] = conversation.card.community.image_link
         temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
 
-        last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
+
         if last_instance:
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
@@ -716,16 +733,16 @@ def get_custom_data_for_new_conversation_created(user_id):
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
-            if last_instance.has_files:
+            if last_instance.has_files or\
+                    last_instance.attachment_count > 0:
                 answer_files = get_answer_files(last_instance)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
                 temp['videos'] = answer_files['videos']
                 temp['audios'] = answer_files['audios']
+                temp['attachments'] = answer_files['attachments']
 
         unread_conversation.append(temp)
-
-    print(">>>>>>>>>   ", unread_conversation)
 
     return unread_conversation
 
@@ -770,8 +787,8 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
         card_instance  = conversation.card
         temp['last_conversation_unique_names'] = get_last_conversation_unique_names(card_instance,user_id)
 
-        last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
+
         if last_instance:
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
@@ -779,15 +796,16 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
-            if last_instance.has_files:
+            if last_instance.has_files or\
+                    last_instance.attachment_count > 0:
                 answer_files = get_answer_files(last_instance.id)
                 temp['images'] = answer_files['image']
                 temp['pdf'] = answer_files['pdf']
                 temp['videos'] = answer_files['videos']
                 temp['audios'] = answer_files['audios']
+                temp['attachments'] = answer_files['attachments']
 
             temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_instance.id))
-    print(">>>>>>>>>   ", temp)
 
     return temp
 
@@ -2397,3 +2415,82 @@ def get_user_fcm_details(user_instance):
     }
 
     return user_details
+
+
+@app.task
+def send_intro_room_evening_notifications():
+    current_time = TimeUtilities.current_time_in_sec()
+    all_communities = Community.objects.all()
+    all_members = Members.objects.all()
+
+    # get intro rooms in last 24 hours
+    new_intro_rooms = Collabcard.objects.filter(date_epoch__gte=current_time - 24*60*60)
+
+    communities = new_intro_rooms.values('community').distinct()
+
+    for community_id in communities:
+        community = all_communities.get(id=community_id['community'])
+        community_members = all_members.filter(community_id=community)
+        community_intro_rooms = new_intro_rooms.filter(community=community)
+        community_intro_rooms_count = community_intro_rooms.count()
+
+        if community_intro_rooms_count:
+            new_members = get_new_member_list(community_intro_rooms)
+
+            for member in community_members:
+                user_instance = member.member_id
+                message = get_message_for_evening_notification(community_intro_rooms, user_instance, community)
+
+                if member.id not in new_members:
+                    notification_list = get_notification_list_intro_notification(user_instance)
+                    notification_meta(notification_list, message)
+
+
+def get_new_member_list(community_intro_rooms):
+    """
+    Return the list of users who joined in last 24 hours
+    """
+    new_members = []
+    for community_intro_room in community_intro_rooms:
+        new_members.append(community_intro_room.user_id)
+    return new_members
+
+
+def get_message_for_evening_notification(community_intro_rooms, user_instance, community):
+    """
+    Generate and return notification body based on the number of new members
+    """
+
+    community_intro_rooms_count = community_intro_rooms.count()
+
+    if community_intro_rooms_count == 1:
+        joined_member = community_intro_rooms[0].user
+        title = INTRO_ROOM_NOTIFICATION_TITLE
+        sub_title = INTRO_ROOM_NOTIFICATION_SUBTITLE_SINGULAR % (
+            user_instance.userinfo.name, joined_member.userinfo.name, community.name)
+        route = INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR % community_intro_rooms[0].id
+
+    else:
+        title = INTRO_ROOM_NOTIFICATION_TITLE
+        sub_title = INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL % (user_instance.userinfo.name, community.name, community_intro_rooms_count)
+        route = INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL % (community.id, community.name)
+
+    message = {
+        'payload': {
+            "title": title,
+            "sub_title": sub_title,
+            'route': route
+        }
+    }
+    return message
+
+
+def get_notification_list_intro_notification(user_instance):
+    """
+    Send the list of users devices that will receive notifications
+    """
+    notification_list = []
+    user_details = get_user_fcm_details(user_instance=user_instance)
+    notification_list.append(user_details)
+    return notification_list
+

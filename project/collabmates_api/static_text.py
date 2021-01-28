@@ -338,3 +338,7 @@ ENABLE_MANAGER_ADD_MANAGER_RIGHT = "Congratulations! The Community Manager has c
 LINKED_IN_ACCESS_TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
 LINKED_IN_USER_URL = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token='
 LINKED_IN_EMAIL_URL = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token='
+
+VIDEO_ATTACHMENT_FILL_TEXT = "\n * This is a video message. Please update your app *"
+VIDEO_SYNC_TRIGGER_VERSION_CODE_AN = 84
+VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS = 84
