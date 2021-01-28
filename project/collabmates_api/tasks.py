@@ -817,7 +817,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
 
     owner_instance = owner_member_instance[0].member_id
 
-    template = MessageTemplate.objects.filter(community=community_instance, user=user_instance)
+    template = MessageTemplate.objects.filter(community=community_instance, user=owner_instance)
 
     if not template.exists():
         return

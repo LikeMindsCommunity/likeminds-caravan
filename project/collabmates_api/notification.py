@@ -22,6 +22,7 @@ from utility.states import (member_states, manager_rights, member_rights, modera
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
 from utility.celery_beat_tasks import CeleryBeatTask
+from utility.constants import INTRO_ROOM_LOOKBACK_PERIOD
 from project.celery import app
 from utility.states import *
 
@@ -33,7 +34,8 @@ from datetime import datetime,timedelta
 from .serializers import get_answer_files, get_collabcard_files
 from .static_text import *
 
-from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE,
+from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
+                               INTRO_ROOM_NOTIFICATION_TITLE_SINGULAR,
                                INTRO_ROOM_NOTIFICATION_SUBTITLE_SINGULAR,
                                INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR,
@@ -2418,13 +2420,14 @@ def get_user_fcm_details(user_instance):
 
 
 @app.task
+@shared_task
 def send_intro_room_evening_notifications():
     current_time = TimeUtilities.current_time_in_sec()
     all_communities = Community.objects.all()
     all_members = Members.objects.all()
 
-    # get intro rooms in last 24 hours
-    new_intro_rooms = Collabcard.objects.filter(date_epoch__gte=current_time - 24*60*60)
+    # get intro rooms in last 24 hours (86400 seconds)
+    new_intro_rooms = Collabcard.objects.filter(date_epoch__gte=current_time - INTRO_ROOM_LOOKBACK_PERIOD, type=CollabcardTypes.CARD_INTRO)
 
     communities = new_intro_rooms.values('community').distinct()
 
@@ -2465,13 +2468,13 @@ def get_message_for_evening_notification(community_intro_rooms, user_instance, c
 
     if community_intro_rooms_count == 1:
         joined_member = community_intro_rooms[0].user
-        title = INTRO_ROOM_NOTIFICATION_TITLE
+        title = INTRO_ROOM_NOTIFICATION_TITLE_SINGULAR
         sub_title = INTRO_ROOM_NOTIFICATION_SUBTITLE_SINGULAR % (
             user_instance.userinfo.name, joined_member.userinfo.name, community.name)
         route = INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR % community_intro_rooms[0].id
 
     else:
-        title = INTRO_ROOM_NOTIFICATION_TITLE
+        title = INTRO_ROOM_NOTIFICATION_TITLE_PLURAL
         sub_title = INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL % (user_instance.userinfo.name, community.name, community_intro_rooms_count)
         route = INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL % (community.id, community.name)
 

@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from .views import *
 
 urlpatterns = [
@@ -27,6 +27,7 @@ urlpatterns = [
     #
     # #tools
     # path('url_shortner', url_shortner, name="url_shortner"),
-    path('automate_message', message_template_for_owner, name="automate_message"),
+    path('automate_message', MessageTemplateForOwner.as_view(), name="automate_message"),
+    path('banner/', include('cms.marketing_banner.urls')),
 
 ]

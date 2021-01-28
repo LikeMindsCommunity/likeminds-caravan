@@ -33,19 +33,30 @@ class RequestUtilities:
 
     @staticmethod
     def get_request_type(request: str) -> str:
-        platform_code = request.META.get('HTTP_X_PLATFORM_CODE')
+        platform_code = request.META.get('HTTP_X_PLATFORM_CODE', '').lower()
 
         if platform_code:
-
             if platform_code == "an":
                 return "android"
 
-            elif platform_code == "iOS":
-                return "iOS"
+            elif platform_code == "ios":
+                return "ios"
 
             elif platform_code == "web":
                 return "web"
 
+            elif platform_code == "web-mobile":
+                return "web-mobile"
+
+            elif platform_code == "web-desktop":
+                return "web-desktop"
+
         return "Invalid request"
 
+    @staticmethod
+    def get_user_name_from_headers(request: object) -> str:
+        return request.META.get('HTTP_X_USERNAME')
 
+    @staticmethod
+    def get_password_from_headers(request: object) -> str:
+        return request.META.get('HTTP_X_PASSWORD')
