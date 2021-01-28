@@ -1,10 +1,10 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
-from project.utility.request_utilities import RequestUtilities
-from project.utility.exception_utilities import InvalidHeaderException
+from utility.request_utilities import RequestUtilities
+from utility.exception_utilities import InvalidHeaderException
 
 from .banner_impl import BannerImpl
-from project.cms.cms_auth_utilities import CMSAuthUtilities
+from ..cms_auth_utilities import CMSAuthUtilities
 
 
 class FetchBannerView(APIView):

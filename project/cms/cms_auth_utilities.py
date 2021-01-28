@@ -1,7 +1,7 @@
 from rest_framework import status as status_codes
-from project.utility.exception_utilities import (CustomException)
-from project.utility.request_utilities import RequestUtilities
-from project.cms.constants import *
+from utility.exception_utilities import (CustomException)
+from utility.request_utilities import RequestUtilities
+from .constants import *
 
 
 class CMSAuthUtilities:

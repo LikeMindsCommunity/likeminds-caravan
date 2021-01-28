@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from .banner_manager import BannerManager
 from ..models import MarketingBanner
 from .serializers import BannerSerializer
-from project.cms.constants import *
+from ..constants import *
 
 from togther.models import Members, Community
 
