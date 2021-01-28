@@ -61,7 +61,7 @@ app.conf.beat_schedule = {
     },
     'send_intro_room_evening_notifications': {
         'task': 'collabmates_api.notification.send_intro_room_evening_notifications',
-        'schedule': crontab(hour=19, minute=0),
+        'schedule': crontab(hour=19, minute=40),
     },
 }
 app.conf.timezone = 'Asia/Kolkata'

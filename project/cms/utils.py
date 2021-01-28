@@ -296,6 +296,7 @@ def get_percent(a,b):
 
 
 @app.task
+@shared_task
 def find_uninstall_devices():
     """
     task to be run at 3 am to check if user has app installed
@@ -306,7 +307,7 @@ def find_uninstall_devices():
     for user in all_users:
         app_uninstall, created = appUninstalls.objects.get_or_create(user=user)
 
-        #skip the user  if the uninstall days == 10
+        # skip the user  if the uninstall days == 10
         if app_uninstall.uninstall_days == 10:
             continue
 
