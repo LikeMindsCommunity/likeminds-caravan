@@ -31,7 +31,8 @@ import requests
 # url = 'https://beta.likeminds.community'
 url = settings.URL
 from .serializers import CollabcardPollsSerializer
-from .notification import get_title_from_collabcard 
+from .notification import get_title_from_collabcard
+from .static_text import CREATE_CONVERSATION_API_END_POINT
 # def send_email(subject,template,to):
 #     fail_silently=True
 #     msg = EmailMultiAlternatives(subject,
@@ -806,34 +807,43 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
 
     is_member = Members.is_community_member(community_instance, user_instance)
 
-    if is_member:
+    if not is_member:
+        return
 
-        owner_member_instance = Members.get_community_owner_member_instance(community_instance)
+    owner_member_instance = Members.get_community_owner_member_instance(community_instance)
 
-        if owner_member_instance.exists():
-            owner_instance = owner_member_instance[0].member_id
+    if not owner_member_instance.exists():
+        return
 
-        else:
-            return
+    owner_instance = owner_member_instance[0].member_id
 
-        template = MessageTemplate.objects.filter(community=community_instance, user=user_instance)
+    template = MessageTemplate.objects.filter(community=community_instance, user=user_instance)
 
-        if template.exists():
+    if not template.exists():
+        return
 
-            intro_filter = Collabcard.objects.filter(community=community_instance,
-                                                     user=user_instance,
-                                                     type=card_types.CARD_INTRO)
-            if intro_filter.exists():
+    intro_filter = Collabcard.objects.filter(community=community_instance,
+                                             user=user_instance,
+                                             type=card_types.CARD_INTRO)
+    if intro_filter.exists():
+        return
 
-                chatroom = intro_filter[0].card
+    chatroom = intro_filter[0].card
 
-                conversation_text = template[0].message
+    conversation_text = template[0].message
 
-                url = f"{settings.URL}/api/conversation/create"
+    api_url = CREATE_CONVERSATION_API_END_POINT
 
-                payload = "{chatroom_id: " + str(chatroom.id) + ", text: " + conversation_text + "}"
-                headers = {
-                    'x-member-id': str(owner_instance.id)
-                }
+    payload = "{chatroom_id: " + str(chatroom.id) + ", text: " + conversation_text + "}"
 
-                response = requests.request("POST", url, headers=headers, data=payload)
+    headers = {
+        'x-member-id': str(owner_instance.id)
+    }
+
+    response = request_api("POST", api_url, headers, payload)
+
+
+def request_api(method, api_url, headers, payload):
+    response = requests.request(method, api_url, headers=headers, data=payload)
+
+    return response

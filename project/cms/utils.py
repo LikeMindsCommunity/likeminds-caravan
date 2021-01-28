@@ -6,6 +6,7 @@ from .models import *
 from project.celery import app
 from celery import shared_task
 from collabmates_api.notification import send_silent_notification
+from utility.exception_utilities import CustomException
 
 def show_community_wise_details(community_id, day_a):
     if day_a == 9:
@@ -333,3 +334,14 @@ def get_user_tokens(devices):
     for device in devices:
         token_list.append(device.fcm_token)
     return token_list
+
+
+def get_error_context(success, error_message):
+    return {
+        'success': success,
+        'error_message': error_message
+    }
+
+
+def raise_custom_exception(response, status):
+    raise CustomException(response, status_code=status)

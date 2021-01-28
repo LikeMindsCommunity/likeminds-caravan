@@ -342,3 +342,5 @@ LINKED_IN_EMAIL_URL = 'https://api.linkedin.com/v2/emailAddress?q=members&projec
 VIDEO_ATTACHMENT_FILL_TEXT = "\n * This is a video message. Please update your app *"
 VIDEO_SYNC_TRIGGER_VERSION_CODE_AN = 84
 VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS = 84
+
+CREATE_CONVERSATION_API_END_POINT = f"{settings.URL}/api/conversation/create"

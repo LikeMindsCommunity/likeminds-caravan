@@ -583,28 +583,16 @@ def message_template_for_owner(request):
     message_template = request.POST.get('message_template', None)
 
     if user_id is None:
-        response = {
-            'success': False,
-            'error_message': 'send user_id in post params'
-        }
-
-        raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        response = get_error_context(False, 'send user_id in post params')
+        raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
 
     if community_id is None:
-        response = {
-            'success': False,
-            'error_message': 'send community_id in post params'
-        }
-
-        raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        response = get_error_context(False, 'send community_id in post params')
+        raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
 
     if message_template is None:
-        response = {
-            'success': False,
-            'error_message': 'send message template in post params'
-        }
-
-        raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        response = get_error_context(False, 'send message template in post params')
+        raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
 
     user_instance = User.get_user_or_raise_exception(user_id)
     community_instance = Community.get_community_or_raise_exception(community_id)
@@ -613,13 +601,8 @@ def message_template_for_owner(request):
                                                  member=user_instance)
 
     if not is_owner:
-
-        response = {
-            'success': False,
-            'error_message': 'user is not a admin of this community'
-        }
-
-        raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        response = get_error_context(False, 'user is not a admin of this community')
+        raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
 
     template = MessageTemplate(user=user_instance,
                                community=community_instance,
