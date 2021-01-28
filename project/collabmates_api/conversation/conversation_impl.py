@@ -97,7 +97,7 @@ class ConversationImpl(ConversationManager):
     def _fetch_upward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-                                                   id__lte=conversation_id).order_by('-id')[:list_size]
+            id__lte=conversation_id).order_by('-id')[:list_size]
 
     def _fetch_downward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
@@ -174,13 +174,12 @@ class ConversationImpl(ConversationManager):
 
         for conversation in conversations:
 
-            if conversation.attachment_count > 0 and\
-                    conversation.attachments_uploaded is False:
-
-                if (self.get_member_id() and
-                    conversation.user.id != NumberUtilities.get_integer_from_string(self.get_member_id())) or\
-                        conversation.api_version <= 0:
-                    continue
+            if (conversation.attachment_count > 0 and
+                conversation.attachments_uploaded is False) and (
+                    (self.get_member_id() and
+                     conversation.user.id != NumberUtilities.get_integer_from_string(self.get_member_id())) or
+                    conversation.api_version <= 0):
+                continue
 
             conversation_dict = self._serialize_conversation(conversation)
             conversation_list.append(conversation_dict)
@@ -242,10 +241,9 @@ class ConversationImpl(ConversationManager):
 
     def _auto_follow_chatroom(self, chatroom_id, member_state):
 
-        if member_state == member_states.ADMIN or\
+        if member_state == member_states.ADMIN or \
                 member_state == member_states.MEMBER or \
                 member_state == member_states.PROFILE_UNAVAILABLE:
-
             payload = ConversationHelper.fetch_auto_follow_dict(member_id=self.get_member_id(),
                                                                 chatroom_id=chatroom_id,
                                                                 status=True, source="create_conversation")
@@ -302,13 +300,17 @@ class ConversationImpl(ConversationManager):
 
         else:
 
-            if self.get_scroll_direction() and NumberUtilities.get_integer_from_string(self.get_scroll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
-                upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
+            if self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
+                    self.get_scroll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
+                upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE,
+                                                                       self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
 
-            elif self.get_scroll_direction() and NumberUtilities.get_integer_from_string(self.get_scroll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
-                conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
+            elif self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
+                    self.get_scroll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
+                conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE,
+                                                                           self.get_conversation_id())
 
             else:
                 conversations = self._fetch_conversation_queryset()
@@ -366,7 +368,7 @@ class ConversationImpl(ConversationManager):
 
         if not has_files:
             self._update_latest_conversation_id_to_firebase(chatroom_id,
-                                                           conversation_instance.id)
+                                                            conversation_instance.id)
 
         self._save_latest_conversation_for_members(chatroom_instance)
 
@@ -392,19 +394,19 @@ class ConversationImpl(ConversationManager):
 
 
 class ConversationHelper:
-    
+
     @staticmethod
     def fetch_user_instance(user_id) -> User:
         return User.get_user_or_raise_exception(user_id)
-    
+
     @staticmethod
     def fetch_community_instance(community_id) -> Community:
         return Community.get_community_or_raise_exception(community_id)
-    
+
     @staticmethod
     def fetch_chatroom_instance(chatroom_id) -> Collabcard:
         return Collabcard.get_chatroom_or_raise_exception(chatroom_id)
-    
+
     @staticmethod
     def fetch_replied_conversation(req_body):
         try:
@@ -420,7 +422,7 @@ class ConversationHelper:
                 'error_message': f'replied_conversation_id {replied_conversation_id} is wrong'
             }
             raise CustomException(response)
-    
+
     @staticmethod
     def fetch_og_tags(req_body):
         if 'og_tags' in req_body:
@@ -430,11 +432,11 @@ class ConversationHelper:
         else:
             return
         return og_tags
-    
+
     @staticmethod
     def fetch_member_state(community, user) -> int:
         return Members.get_community_member_state(community, user)
-    
+
     @staticmethod
     def fetch_auto_follow_dict(member_id, chatroom_id, status, source):
 
@@ -444,4 +446,3 @@ class ConversationHelper:
             'status': status,
             'source': source
         }
-

@@ -5,8 +5,10 @@ from django.db.models import Q
 from utility.states import member_states, member_rights
 from django.db.models.query import QuerySet
 from rest_framework import status as status_codes
-from utility.exception_utilities import InvalidCommunityException, InvalidChatroomException, InvalidUserException
+from utility.exception_utilities import (InvalidCommunityException, InvalidChatroomException,
+                                         InvalidUserException, CustomException)
 from utility.time_utilities import TimeUtilities
+
 
 response_choices = (
     ('text', 'Text'),
@@ -72,6 +74,7 @@ class Community(models.Model):
 
     @staticmethod
     def get_community_or_raise_exception(community_id):
+
         try:
             return Community.objects.get(id=community_id)
         except:
@@ -79,7 +82,14 @@ class Community(models.Model):
                 'success': False,
                 'error_message': f"community with id {community_id} doesn't exists"
             }
-            raise InvalidCommunityException()
+            raise InvalidCommunityException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    @staticmethod
+    def get_community_or_None(community_id):
+        try:
+            return Community.objects.get(id=community_id)
+        except:
+            return None
 
 
 class communityToast(models.Model):

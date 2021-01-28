@@ -361,14 +361,12 @@ def get_active_chatroom_member_images(community_instance, member_id):
 
 def is_draft_conversation(conversation, current_user_id):
 
-    if conversation.attachment_count > 0 and \
-            conversation.attachments_uploaded is False:
-
-        if (current_user_id and
-            NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or \
-                conversation.api_version <= 0:
-
-            return True
+    if (conversation.attachment_count > 0 and
+        conversation.attachments_uploaded is False) and\
+            ((current_user_id and
+              NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or
+             conversation.api_version <= 0):
+        return True
 
     return False
 
@@ -10119,7 +10117,12 @@ def members_state(request, req_dict=None):
         collabcard_id = request.GET.get('collabcard_id')
 
         if collabcard_id and not community_id:
-            card = Collabcard.get_chatroom_or_raise_exception(collabcard_id)
+            card = Collabcard.get_chatroom_or_None(collabcard_id)
+
+            if card is None:
+                response = get_error_context(False, f"chatroom with id {collabcard_id} doesn't exists")
+                return JsonResponse(response)
+
             community_id = card.community.id
 
         if not community_id:
@@ -10134,7 +10137,11 @@ def members_state(request, req_dict=None):
     tool_state = 0
     custom_title = "Member"
 
-    community_instance = Community.get_community_or_raise_exception(community_id)
+    community_instance = Community.get_community_or_None(community_id)
+
+    if community_instance is None:
+        response = get_error_context(False, f"community with id {community_id} doesn't exists")
+        return JsonResponse(response)
 
     query_set = Members.objects.filter(member_id=member_id, community_id=community_instance)
 
