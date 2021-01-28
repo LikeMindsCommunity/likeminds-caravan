@@ -139,7 +139,7 @@ class ConversationImpl(ConversationManager):
 
     def _serialize_conversation(self, conversation_instance):
 
-        conversation_serializer = conversationSerializer(conversation_instance)
+        conversation_serializer = conversationSerializer(conversation_instance, current_user_id=self.get_member_id())
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
             conversation_instance.created_at)
         preview = conversation_serializer.get('preview')
