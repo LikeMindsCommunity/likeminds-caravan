@@ -138,7 +138,8 @@ class Members(models.Model):
         return Members.objects.filter(community_id=community,
                                       member_id=member
                                       ).filter(Q(state=member_states.ADMIN) |
-                                               Q(state=member_states.MEMBER)).exists()
+                                               Q(state=member_states.MEMBER) |
+                                               Q(state=member_states.PROFILE_UNAVAILABLE)).exists()
 
     @staticmethod
     def get_community_member_state(community: Community, member: User) -> int:

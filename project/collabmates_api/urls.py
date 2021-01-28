@@ -3,7 +3,7 @@ from . import views
 from collabmates_api import views as api_views
 # from collabmates_api.notification import send_poll_notification_manually
 from django.views.decorators.csrf import csrf_exempt
-from collabmates_api import rest_api as rest_views
+from cms.marketing_banner.banner_views_impl import FetchBannerView
 
 #for testing email templates only remove.  in prod/beta
 from django.views.generic import TemplateView
@@ -236,6 +236,7 @@ urlpatterns = [
     path('user/', include('collabmates_api.user.urls')),
     path('v1/get_tagging_list', api_views.GetTaggingList.as_view(), name='get_tagging_list_v1'),
     path('community/', include('collabmates_api.community.urls')),
+    path('banner/fetch', FetchBannerView.as_view(), name='fetch_banner_for_user'),
     path('home_snackbar/', include('collabmates_api.snackbar.urls'))
 
 ]
