@@ -4,7 +4,7 @@ from project.utility.request_utilities import RequestUtilities
 from project.utility.exception_utilities import InvalidHeaderException
 
 from .banner_impl import BannerImpl
-from project.cms.cms_request_utilities import CMSUtilities
+from project.cms.cms_auth_utilities import CMSAuthUtilities
 
 
 class FetchBannerView(APIView):
@@ -32,10 +32,10 @@ class FetchBannerForCMSView(APIView):
 
     def get(self, request, *args, **kwargs):
 
-        user_name, password = CMSUtilities.get_username_and_password_from_headers(request)
+        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
 
-        if not CMSUtilities.validate_user(user_name, password):
-            CMSUtilities.raise_authentication_error()
+        if not CMSAuthUtilities.validate_user(user_name, password):
+            CMSAuthUtilities.raise_authentication_error()
 
         banner_manager = BannerImpl()
         response = banner_manager.fetch_banner_for_cms()
@@ -48,10 +48,10 @@ class CheckBannerView(APIView):
 
     def get(self, request, *args, **kwargs):
 
-        user_name, password = CMSUtilities.get_username_and_password_from_headers(request)
+        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
 
-        if not CMSUtilities.validate_user(user_name, password):
-            CMSUtilities.raise_authentication_error()
+        if not CMSAuthUtilities.validate_user(user_name, password):
+            CMSAuthUtilities.raise_authentication_error()
 
         start_epoch_time = request.GET.get('start_epoch_time', None)
         end_epoch_time = request.GET.get('end_epoch_time', None)
@@ -66,10 +66,10 @@ class CreateOrUpdateBannerView(APIView):
 
     def post(self, request, *args, **kwargs):
 
-        user_name, password = CMSUtilities.get_username_and_password_from_headers(request)
+        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
 
-        if not CMSUtilities.validate_user(user_name, password):
-            CMSUtilities.raise_authentication_error()
+        if not CMSAuthUtilities.validate_user(user_name, password):
+            CMSAuthUtilities.raise_authentication_error()
 
         req_body = RequestUtilities.fetch_request_body(request)
 
@@ -85,10 +85,10 @@ class RemoveBannerView(APIView):
 
         banner_id = request.GET.get('banner_id')
 
-        user_name, password = CMSUtilities.get_username_and_password_from_headers(request)
+        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
 
-        if not CMSUtilities.validate_user(user_name, password):
-            CMSUtilities.raise_authentication_error()
+        if not CMSAuthUtilities.validate_user(user_name, password):
+            CMSAuthUtilities.raise_authentication_error()
 
         banner_manager = BannerImpl()
         response = banner_manager.remove_banner(banner_id)

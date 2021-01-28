@@ -4,7 +4,7 @@ from project.utility.request_utilities import RequestUtilities
 from project.cms.constants import *
 
 
-class CMSUtilities:
+class CMSAuthUtilities:
 
     @staticmethod
     def get_username_and_password_from_headers(request):
@@ -12,7 +12,7 @@ class CMSUtilities:
         password = RequestUtilities.get_password_from_headers(request)
 
         if user_name is None and password is None:
-            CMSUtilities.raise_credentials_missing_exception()
+            CMSAuthUtilities.raise_credentials_missing_exception()
         else:
             return user_name, password
 

@@ -17,7 +17,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from rest_framework import status as status_codes
 from rest_framework.views import APIView
 
-from .cms_request_utilities import CMSUtilities
+from .cms_auth_utilities import CMSAuthUtilities
 
 url = settings.URL
 # uncomment to run it in localhost
@@ -576,10 +576,10 @@ class MessageTemplateForOwner(APIView):
 
     def post(self, request, *args, **kwargs):
 
-        user_name, password = CMSUtilities.get_username_and_password_from_headers(request)
+        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
 
-        if not CMSUtilities.validate_user(user_name, password):
-            CMSUtilities.raise_authentication_error()
+        if not CMSAuthUtilities.validate_user(user_name, password):
+            CMSAuthUtilities.raise_authentication_error()
 
         user_id = request.data.get('user_id', None)
         community_id = request.data.get('community_id', None)
