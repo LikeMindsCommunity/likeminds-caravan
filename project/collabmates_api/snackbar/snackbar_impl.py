@@ -129,7 +129,7 @@ class SnackbarImpl(SnackbarManager):
         state_filter = collabcardState.objects.filter(card=chatroom_id, follow_status=True, remove=None)
         text = CHATROOM_COMMUNITY_MANAGER_TEXT % card_instance.header
         cta = CHATROOM_COMMUNITY_MANAGER_CTA_TEXT
-        cta_route = self._compute_cta_route_in_chatroom_manager_delete(snackbar_dict['tag_id'], snackbar_dict['reason'])
+        cta_route = quote(self._compute_cta_route_in_chatroom_manager_delete(snackbar_dict['tag_id'], snackbar_dict['reason']))
 
         text_creator = CHATROOM_COMMUNITY_MANAGER_CREATOR_TEXT % card_instance.header
 
@@ -204,3 +204,4 @@ class SnackbarImplHelper:
     @staticmethod
     def validate_snackbar_type(snackbar_type) -> bool:
         return HomeSnackbarType.has_value(snackbar_type)
+

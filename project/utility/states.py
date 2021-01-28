@@ -340,6 +340,14 @@ class HomeSnackbarType(enum.Enum):
     CHATROOM_REJECTED_BY_COMMUNITY_MANAGER = 4
 
     @classmethod
-    def has_value(cls, value):
-        return value in cls._value2member_map_
+    def has_value(cls, value) -> bool:
+        response = False
+        try:
+            if cls.__contains__(value):
+                response = True
+        except AttributeError as e:
+            response = False
+        finally:
+            return response
+
 
