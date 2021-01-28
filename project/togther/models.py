@@ -431,6 +431,8 @@ class card_answers(models.Model):
     attachment_count = models.IntegerField(default=0)
     attachments_uploaded = models.BooleanField(default=False, null=True)
 
+    api_version = models.IntegerField(default=0)
+
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
         if self.last_updated == 0:

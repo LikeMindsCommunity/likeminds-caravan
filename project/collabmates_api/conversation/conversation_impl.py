@@ -139,7 +139,7 @@ class ConversationImpl(ConversationManager):
 
     def _serialize_conversation(self, conversation_instance):
 
-        conversation_serializer = conversationSerializer(conversation_instance)
+        conversation_serializer = conversationSerializer(conversation_instance, current_user_id=self.get_member_id())
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
             conversation_instance.created_at)
         preview = conversation_serializer.get('preview')
@@ -175,9 +175,12 @@ class ConversationImpl(ConversationManager):
         for conversation in conversations:
 
             if conversation.attachment_count > 0 and\
-                    conversation.attachments_uploaded is False and\
-                    conversation.user.id != NumberUtilities.get_integer_from_string(self.member_id):
-                continue
+                    conversation.attachments_uploaded is False:
+
+                if (self.get_member_id() and
+                    conversation.user.id != NumberUtilities.get_integer_from_string(self.get_member_id())) or\
+                        conversation.api_version <= 0:
+                    continue
 
             conversation_dict = self._serialize_conversation(conversation)
             conversation_list.append(conversation_dict)
@@ -207,6 +210,8 @@ class ConversationImpl(ConversationManager):
         if conversation_content['attachment_count'] > 0:
             conversation_content['has_files'] = True
             req_body['has_files'] = True
+
+        conversation_content['api_version'] = 1
 
         conversation_content['is_guest'] = self._is_user_already_guest(user=user_instance,
                                                                        chatroom=chatroom_instance)
@@ -263,8 +268,7 @@ class ConversationImpl(ConversationManager):
         update_chatroom_for_users_and_send_follow_notification.delay(chatroom_id,
                                                                      self.get_member_id(),
                                                                      req_body['text'],
-                                                                     has_files=has_files,
-                                                                     is_ios=is_ios)
+                                                                     has_files=has_files)
 
     def fetch_conversation(self):
 
