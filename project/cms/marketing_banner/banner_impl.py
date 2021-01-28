@@ -1,19 +1,15 @@
 import json
 from typing import Union
-from rest_framework import status as status_codes
 from django.contrib.auth.models import User
-from django.db.models import Q
 
 from .banner_manager import BannerManager
 from ..models import MarketingBanner
 from .serializers import BannerSerializer
-from .constants import *
+from ..constants import *
 
 from togther.models import Members, Community
 
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.exception_utilities import (InvalidUserException, InvalidCommunityException,
-                                         InvalidHeaderException, CustomException)
 from utility.time_utilities import TimeUtilities
 from utility.states import platform_codes, member_states
 

@@ -8,6 +8,7 @@ from django.template import Context
 from django.conf import settings
 from django.db.models import Q
 from togther.models import *
+from cms.models import MessageTemplate
 from project.celery import app
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
@@ -19,17 +20,19 @@ from utility.states import (collabcard_states, member_states, community_states,
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
-from togther.models import Collabcard, userMemberRightsHistory
+from togther.models import Collabcard, userMemberRightsHistory, Members, Community
 from utility.encryption import encrypt, decrypt
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
 from .user_moderation_rights import (get_related_reports_for_user, check_admin_delete_right,
                                      check_admin_approve_right, check_admin_edit_community_right)
 import json
+import requests
 # from datetime import datetime,
 # url = 'https://beta.likeminds.community'
 url = settings.URL
 from .serializers import CollabcardPollsSerializer
-from .notification import get_title_from_collabcard 
+from .notification import get_title_from_collabcard
+from .static_text import CREATE_CONVERSATION_API_END_POINT
 # def send_email(subject,template,to):
 #     fail_silently=True
 #     msg = EmailMultiAlternatives(subject,
@@ -795,3 +798,52 @@ def update_report_count_in_member_engage(user, community, is_owner=False, parent
                                  community_id=community).update(open_reports=report_count,
                                                                 updated_at=time.time())
 
+
+@shared_task
+def post_owner_message_template_in_intro_room(community_id, user_id):
+
+    user_instance = User.get_user_or_raise_exception(user_id)
+    community_instance = Community.get_community_or_raise_exception(community_id)
+
+    is_member = Members.is_community_member(community_instance, user_instance)
+
+    if not is_member:
+        return
+
+    owner_member_instance = Members.get_community_owner_member_instance(community_instance)
+
+    if not owner_member_instance.exists():
+        return
+
+    owner_instance = owner_member_instance[0].member_id
+
+    template = MessageTemplate.objects.filter(community=community_instance, user=owner_instance)
+
+    if not template.exists():
+        return
+
+    intro_filter = Collabcard.objects.filter(community=community_instance,
+                                             user=user_instance,
+                                             type=card_types.CARD_INTRO)
+    if intro_filter.exists():
+        return
+
+    chatroom = intro_filter[0].card
+
+    conversation_text = template[0].message
+
+    api_url = CREATE_CONVERSATION_API_END_POINT
+
+    payload = "{chatroom_id: " + str(chatroom.id) + ", text: " + conversation_text + "}"
+
+    headers = {
+        'x-member-id': str(owner_instance.id)
+    }
+
+    response = request_api("POST", api_url, headers, payload)
+
+
+def request_api(method, api_url, headers, payload):
+    response = requests.request(method, api_url, headers=headers, data=payload)
+
+    return response

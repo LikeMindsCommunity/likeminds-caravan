@@ -27,7 +27,7 @@ urlpatterns = [
     #
     # #tools
     # path('url_shortner', url_shortner, name="url_shortner"),
+    path('automate_message', MessageTemplateForOwner.as_view(), name="automate_message"),
     path('banner/', include('cms.marketing_banner.urls')),
 
 ]
-

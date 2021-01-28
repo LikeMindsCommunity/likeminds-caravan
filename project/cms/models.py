@@ -2,6 +2,7 @@ from django.db import models
 import time
 from datetime import datetime
 from togther.models import *
+from django.contrib.auth.models import User
 from utility.time_utilities import TimeUtilities
 from django.db.models.query import QuerySet
 
@@ -254,6 +255,25 @@ class appUninstalls(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     uninstall_days = models.IntegerField(default=0)
+
+
+class MessageTemplate(models.Model):
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(MessageTemplate, self).save(*args, **kwargs)
 
 
 class MarketingBannerQuerySet(QuerySet):
