@@ -2421,7 +2421,7 @@ def get_user_fcm_details(user_instance):
 
 @app.task
 @shared_task
-def send_intro_room_evening_notifications():    
+def send_intro_room_evening_notifications():
     current_time = TimeUtilities.current_time_in_sec()
     all_communities = Community.objects.all()
     all_members = Members.objects.all()
