@@ -825,6 +825,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
     intro_filter = Collabcard.objects.filter(community=community_instance,
                                              user=user_instance,
                                              type=card_types.CARD_INTRO)
+
     if not intro_filter.exists():
         return
 
@@ -844,8 +845,6 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
     }
 
     response = request_api("POST", api_url, headers, payload)
-
-    print(response.status_code)
 
 
 def request_api(method, api_url, headers, payload):
