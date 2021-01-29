@@ -10127,13 +10127,13 @@ def members_state(request, req_dict=None):
 
             if card is None:
                 response = get_error_context(False, f"chatroom with id {collabcard_id} doesn't exists")
-                return JsonResponse(response)
+                return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
             community_id = card.community.id
 
         if not community_id:
             context = get_error_context(False, "send a valid community id or collabcard id")
-            return JsonResponse(context)
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     else:
         member_id = req_dict['member_id']
@@ -10147,7 +10147,7 @@ def members_state(request, req_dict=None):
 
     if community_instance is None:
         response = get_error_context(False, f"community with id {community_id} doesn't exists")
-        return JsonResponse(response)
+        return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     query_set = Members.objects.filter(member_id=member_id, community_id=community_instance)
 
