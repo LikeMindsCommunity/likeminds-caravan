@@ -830,6 +830,9 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
 
     chatroom = intro_filter[0].card
 
+    if chatroom.user.id == owner_instance.id:
+        return
+
     conversation_text = template[0].message
 
     api_url = CREATE_CONVERSATION_API_END_POINT

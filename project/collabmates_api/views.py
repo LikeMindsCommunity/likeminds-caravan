@@ -4648,8 +4648,6 @@ def approve_or_decline_private_community(req_dict, request):
 
             post_introduction_card_for_community(community_id, member_id, request)
 
-            post_owner_message_template_in_intro_room.delay(community_id, member_id)
-
             # removing guest status from all chatrooms after access
             collabcardState.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).update(
                 is_guest=False, remove=None, updated_at=time.time())
