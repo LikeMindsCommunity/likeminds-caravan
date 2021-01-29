@@ -1351,6 +1351,7 @@ def post_introduction_card_for_community(community_id, member_id, request):
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
                 post_owner_message_template_in_intro_room.delay(community_id, member_id)
+
                 return True
             else:
                 intro_filter.update(title=introduction_answer)
@@ -4647,8 +4648,6 @@ def approve_or_decline_private_community(req_dict, request):
             member_id = req_dict['member_id']
 
             post_introduction_card_for_community(community_id, member_id, request)
-
-            post_owner_message_template_in_intro_room.delay(community_id, member_id)
 
             # removing guest status from all chatrooms after access
             collabcardState.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).update(

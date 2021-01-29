@@ -14,22 +14,21 @@ class RequestUtilities:
 
     @staticmethod
     def fetch_request_body(request):
-
         request_body = json.loads(request.body)
 
         return request_body
 
     @staticmethod
     def is_request_web(request: object):
-        return request.META.get('HTTP_X_PLATFORM_CODE') == "web"
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "web"
 
     @staticmethod
     def is_request_android(request: object):
-        return request.META.get('HTTP_X_PLATFORM_CODE') == "an"
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "an"
 
     @staticmethod
     def is_request_ios(request: object):
-        return request.META.get('HTTP_X_PLATFORM_CODE').lower() == "ios"
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "ios"
 
     @staticmethod
     def get_request_type(request: str) -> str:
@@ -37,7 +36,7 @@ class RequestUtilities:
 
         if platform_code:
             if platform_code == "an":
-                return "android"
+                return "an"
 
             elif platform_code == "ios":
                 return "ios"
