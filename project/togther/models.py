@@ -308,6 +308,13 @@ class Collabcard(models.Model):
             }
             raise InvalidChatroomException(response)
 
+    @staticmethod
+    def get_chatroom_or_None(chatroom_id):
+        try:
+            return Collabcard.objects.get(pk=chatroom_id)
+        except:
+            return None
+
 
 class draftChatroom(models.Model):
     title = models.TextField()
