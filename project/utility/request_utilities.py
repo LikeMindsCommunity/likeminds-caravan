@@ -36,7 +36,7 @@ class RequestUtilities:
 
         if platform_code:
             if platform_code == "an":
-                return "android"
+                return "an"
 
             elif platform_code == "ios":
                 return "ios"
