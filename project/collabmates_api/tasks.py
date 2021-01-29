@@ -838,7 +838,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
 
     api_url = CREATE_CONVERSATION_API_END_POINT
 
-    payload = '{"chatroom_id": ' + str(chatroom.id) + ', "text": "' + conversation_text + '"}'
+    payload = {"chatroom_id": chatroom.id, "text": + conversation_text}
 
     headers = {
         'x-member-id': str(owner_instance.id)
@@ -848,6 +848,6 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
 
 
 def request_api(method, api_url, headers, payload):
-    response = requests.request(method, api_url, headers=headers, data=payload)
+    response = requests.request(method, api_url, headers=headers, data=json.dumps(payload))
 
     return response
