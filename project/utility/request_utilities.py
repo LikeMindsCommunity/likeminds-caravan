@@ -20,11 +20,11 @@ class RequestUtilities:
 
     @staticmethod
     def is_request_web(request: object):
-        return request.META.get('HTTP_X_PLATFORM_CODE', '') == "web"
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "web"
 
     @staticmethod
     def is_request_android(request: object):
-        return request.META.get('HTTP_X_PLATFORM_CODE', '') == "an"
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "an"
 
     @staticmethod
     def is_request_ios(request: object):
