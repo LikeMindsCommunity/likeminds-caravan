@@ -97,7 +97,7 @@ class CommunityImpl(CommunityManager):
 
         user_instance = CommunityHelper.fetch_user_instance(self.get_member_id())
 
-        if (client_type == "android" or client_type == "iOS") and not user_instance:
+        if (client_type == "an" or client_type == "ios") and not user_instance:
             response_context['error_message'] = "Invalid user_id"
             response_context['response_code'] = 400
             response_context['status'] = False

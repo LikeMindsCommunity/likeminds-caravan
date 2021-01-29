@@ -36,8 +36,11 @@ Download app : {2}'''
 CREATE_INTRO_TEXT_ADMIN = """Created this community on %s"""
 CREATE_INTRO_TEXT_MEMBER = """Joined via a private community link on %s"""
 
-INTRO_ROOM_NOTIFICATION_TITLE = "New member joined"
+INTRO_ROOM_NOTIFICATION_TITLE_SINGULAR = "New member joined"
+INTRO_ROOM_NOTIFICATION_TITLE_PLURAL = "New members joined"
 INTRO_ROOM_NOTIFICATION_SUBTITLE_SINGULAR = "Hey %s, %s just joined %s. A message from you will make them feel welcomed :)"
 INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL = "Hey %s, %s is %s members stronger. See who all joined and welcome them to the community."
-INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR = "route://collabcard?collabcard_id=%s"
+INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR = "route://chatroom_detail?chatroom_id=%s"
 INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL = "route://community_collabcard?community_id=%s&community_name=%s"
+
+INTRO_ROOM_LOOKBACK_PERIOD = 86400

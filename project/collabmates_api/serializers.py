@@ -1644,6 +1644,7 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
                                                   chatroom_instance=conversation.preview_chatroom)
         except Exception as e:
             error_logger.error(e.args)
+
     if conversation.reply:
         temp['reply_conversation'] = conversation.reply.id
 
@@ -1881,7 +1882,7 @@ def get_preview_for_url(member_id=None, preview_url=None,
                         community_instance=None, chatroom_instance=None, send_preview_text=True):
     """ function to get preview of community or chatroom """
 
-    user_instance = User.objects.get(pk=member_id)
+    user_instance = User.get_user_or_none(member_id)
 
     is_member_directory = False
     preview_type = None
@@ -2004,7 +2005,7 @@ def get_title_for_chatroom_preview(chatroom, current_user_id):
         is_open_event = chatroom.type == card_types.CARD_PUBLIC_EVENT
         additional_text = "open " if is_open_event else ""
 
-        if int(current_user_id) == int(chatroom.user.id):
+        if current_user_id and int(current_user_id) == int(chatroom.user.id):
             return f"I am hosting this {additional_text}event for {chatroom.community.name}. RSVP to join us."
         else:
 
@@ -2038,7 +2039,7 @@ def get_title_for_chatroom_preview(chatroom, current_user_id):
     elif chatroom.type == card_types.CARD_INTRO:
 
         community_name = chatroom.community.name
-        if int(current_user_id) == int(chatroom.user.id):
+        if current_user_id and int(current_user_id) == int(chatroom.user.id):
             return f"I have joined {community_name}. Join me for a chat or view my community profile here."
 
         return f"{chatroom.user.userinfo.name} joined {community_name}. Know more about them or join them for a chat here."
