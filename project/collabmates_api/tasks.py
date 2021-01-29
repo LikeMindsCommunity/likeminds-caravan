@@ -840,7 +840,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
 
     payload = {
         "chatroom_id": chatroom.id,
-        "text": + conversation_text
+        "text": conversation_text
     }
 
     headers = {
