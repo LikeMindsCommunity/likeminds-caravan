@@ -73,7 +73,8 @@ from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard
                     send_welcome_mail, send_verification_mail_for_email_sync,
                     send_tagged_user_mail, send_chatroom_owner_mail,
                     send_community_confirmation_email, update_pending_chatrooms_and_report_count,
-                    update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters)
+                    update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
+                    post_owner_message_template_in_intro_room)
 
 from .mails import *
 from .sms import *
@@ -361,14 +362,12 @@ def get_active_chatroom_member_images(community_instance, member_id):
 
 def is_draft_conversation(conversation, current_user_id):
 
-    if conversation.attachment_count > 0 and \
-            conversation.attachments_uploaded is False:
-
-        if (current_user_id and
-            NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or \
-                conversation.api_version <= 0:
-
-            return True
+    if (conversation.attachment_count > 0 and
+        conversation.attachments_uploaded is False) and\
+            ((current_user_id and
+              NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or
+             conversation.api_version <= 0):
+        return True
 
     return False
 
@@ -1350,7 +1349,9 @@ def post_introduction_card_for_community(community_id, member_id, request):
             if not intro_filter.exists():
                 create_card(request, req_dict=req_dict)
                 update_member_rights_in_conversation_engage(community_id, member_id)
-                print("created")
+
+                post_owner_message_template_in_intro_room.delay(community_id, member_id)
+
                 return True
             else:
                 intro_filter.update(title=introduction_answer)
@@ -4643,7 +4644,10 @@ def approve_or_decline_private_community(req_dict, request):
                                               request=request)
 
             # posting a intro collabcard
-            post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
+            community_id = req_dict['community_id']
+            member_id = req_dict['member_id']
+
+            post_introduction_card_for_community(community_id, member_id, request)
 
             # removing guest status from all chatrooms after access
             collabcardState.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).update(
@@ -10119,12 +10123,17 @@ def members_state(request, req_dict=None):
         collabcard_id = request.GET.get('collabcard_id')
 
         if collabcard_id and not community_id:
-            card = Collabcard.get_chatroom_or_raise_exception(collabcard_id)
+            card = Collabcard.get_chatroom_or_None(collabcard_id)
+
+            if card is None:
+                response = get_error_context(False, f"chatroom with id {collabcard_id} doesn't exists")
+                return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
             community_id = card.community.id
 
         if not community_id:
             context = get_error_context(False, "send a valid community id or collabcard id")
-            return JsonResponse(context)
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     else:
         member_id = req_dict['member_id']
@@ -10134,7 +10143,11 @@ def members_state(request, req_dict=None):
     tool_state = 0
     custom_title = "Member"
 
-    community_instance = Community.get_community_or_raise_exception(community_id)
+    community_instance = Community.get_community_or_None(community_id)
+
+    if community_instance is None:
+        response = get_error_context(False, f"community with id {community_id} doesn't exists")
+        return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     query_set = Members.objects.filter(member_id=member_id, community_id=community_instance)
 

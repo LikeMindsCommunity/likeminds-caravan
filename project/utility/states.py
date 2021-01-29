@@ -1,7 +1,19 @@
 import enum
 
 
-#  these rights can be treated as right_id mapping to enums
+class PlatformCodes:
+    ANDROID = "an"
+    IOS = "ios"
+    WEB = 'web'
+    WEB_MOBILE = "web-mobile"
+    WEB_DESKTOP = "web-desktop"
+
+    PALTFORM_CODE_LIST = [ANDROID, IOS, WEB, WEB_MOBILE, WEB_DESKTOP]
+
+
+platform_codes = PlatformCodes()
+
+
 class ManagerRights:
     MANAGER_RIGHT_DELETE_ROOMS = 0
     MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS = 1
@@ -340,6 +352,12 @@ class HomeSnackbarType(enum.Enum):
     CHATROOM_REJECTED_BY_COMMUNITY_MANAGER = 4
 
     @classmethod
-    def has_value(cls, value):
-        return value in cls._value2member_map_
-
+    def has_value(cls, value) -> bool:
+        response = False
+        try:
+            if cls.__contains__(value):
+                response = True
+        except AttributeError as e:
+            response = False
+        finally:
+            return response

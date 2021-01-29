@@ -1,0 +1,10 @@
+from django.urls import path
+from .banner_views_impl import (FetchBannerForCMSView, CreateOrUpdateBannerView,
+                                CheckBannerView, RemoveBannerView, FetchBannerView)
+
+urlpatterns = [
+    path('fetch', FetchBannerForCMSView.as_view(), name="fetch_banner_for_cms"),
+    path('submit', CreateOrUpdateBannerView.as_view(), name="create_or_update_banner"),
+    path('remove', RemoveBannerView.as_view(), name="remove_banner"),
+    path('check', CheckBannerView.as_view(), name="check_banner"),
+]

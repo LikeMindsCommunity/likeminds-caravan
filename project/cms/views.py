@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse , HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.contrib.auth import logout
 from django.conf import settings
 from django.db.models import Q
@@ -10,8 +10,14 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from .utils import *
 from .models import *
 from .forms import *
-from togther.models import communityType,communitySubtype,communityField
+from togther.models import communityType, communitySubtype, communityField, Members, Community
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+from rest_framework import status as status_codes
+from rest_framework.views import APIView
+
+from .cms_auth_utilities import CMSAuthUtilities
 
 url = settings.URL
 # uncomment to run it in localhost
@@ -26,6 +32,7 @@ if url is None:
         url = 'https://www.likeminds.community'
 
 api_url = url + '/api/'
+
 
 def dashboard(request):
     query = request.GET.get('q')
@@ -49,7 +56,7 @@ def dashboard(request):
         records = PerDayRecordOverview.objects.filter(updated_at__gte=date_1_epoch,
                                                       updated_at__lte=date_2_epoch,
                                                       community__id__in=community_ids_int)
-        communities = records.values('community__id','community__name').distinct()
+        communities = records.values('community__id', 'community__name').distinct()
         # print(communities)
         result = {}
         new_date = date_1
@@ -59,9 +66,9 @@ def dashboard(request):
             # print(communities)
             for community in communities:
                 r = records.filter(updated_at__gte=date_1.timestamp(),
-                                updated_at__lte=date_1.timestamp()+24*60*60,
-                                community__id=community['community__id'])
-                rows.append((community['community__name']+'-'+str(community['community__id'])))
+                                   updated_at__lte=date_1.timestamp() + 24 * 60 * 60,
+                                   community__id=community['community__id'])
+                rows.append((community['community__name'] + '-' + str(community['community__id'])))
                 rows.append('New Members')
                 rows.append('Cumulative members')
                 rows.append('Active members')
@@ -73,14 +80,14 @@ def dashboard(request):
                 rows.append('Intro Room Messages')
                 if r.exists():
                     r = r[0]
-                    list =[
+                    list = [
                         r.members_added,
                         r.cummulative_members,
                         r.active_users,
                         r.new_chatrooms,
                         r.new_cm_chatrooms,
                         r.new_intro_rooms,
-                        r.new_chatrooms-r.new_cm_chatrooms-r.new_intro_rooms,
+                        r.new_chatrooms - r.new_cm_chatrooms - r.new_intro_rooms,
                         r.new_messages,
                         r.new_intro_room_messages,
                     ]
@@ -88,11 +95,10 @@ def dashboard(request):
                     # print(date_1,community['community__id'],list)
                     result[date_1 - timedelta(days=1)][community['community__id']] = list
                 else:
-                    list = [0,0,0,0,0,0,0,0,0]
+                    list = [0, 0, 0, 0, 0, 0, 0, 0, 0]
                     result[date_1 - timedelta(days=1)][community['community__id']] = list
                 # print(date_1)
             date_1 = date_1 + timedelta(days=1)
-
 
         result_2 = {}
         rows_2 = []
@@ -133,7 +139,8 @@ def dashboard(request):
             cummulative_members_total = Members.objects.filter(
                 community_id__in=community_ids,
                 created_at__lte=new_date.timestamp()).values('member_id').distinct().count()
-            all_users = Userinfo.objects.filter(created_at__gte=new_date.timestamp()-24*60*60, created_at__lte=new_date.timestamp())
+            all_users = Userinfo.objects.filter(created_at__gte=new_date.timestamp() - 24 * 60 * 60,
+                                                created_at__lte=new_date.timestamp())
             user_counter = 0
             # print(new_date)
             for c in all_users:
@@ -146,8 +153,8 @@ def dashboard(request):
             # print(user_counter)
             for community in communities:
                 r = records.filter(updated_at__gte=new_date.timestamp(),
-                                updated_at__lte=new_date.timestamp()+24*60*60,
-                                community__id=community['community__id'])
+                                   updated_at__lte=new_date.timestamp() + 24 * 60 * 60,
+                                   community__id=community['community__id'])
                 # rows.append((community['community__name']+'-'+str(community['community__id'])))
                 # print(r)
                 if r.exists():
@@ -190,14 +197,14 @@ def dashboard(request):
                 unique_chatroom_total,
                 new_messages_total,
                 new_intro_room_messages_total,
-                get_percent((new_messages_total-new_intro_room_messages_total) , new_messages_total),
-                sanitize_division((new_messages_total) , communities.count()),
-                sanitize_division((new_messages_total - new_intro_room_messages_total) , communities.count()),
-                sanitize_division((new_chatroom_total) , communities.count()),
-                sanitize_division((new_chatroom_total - intro_chatroom_total) , communities.count()),
-                sanitize_division((new_messages_total - new_intro_room_messages_total) , active_members_total),
-                sanitize_division((new_chatroom_total - intro_chatroom_total) , active_members_total),
-                get_percent(active_members_total,cummulative_members_total),
+                get_percent((new_messages_total - new_intro_room_messages_total), new_messages_total),
+                sanitize_division((new_messages_total), communities.count()),
+                sanitize_division((new_messages_total - new_intro_room_messages_total), communities.count()),
+                sanitize_division((new_chatroom_total), communities.count()),
+                sanitize_division((new_chatroom_total - intro_chatroom_total), communities.count()),
+                sanitize_division((new_messages_total - new_intro_room_messages_total), active_members_total),
+                sanitize_division((new_chatroom_total - intro_chatroom_total), active_members_total),
+                get_percent(active_members_total, cummulative_members_total),
                 # (new_chatroom_total-intro_chatroom_total-new_cm_chatrooms_total)
             ]
             # print(list)
@@ -208,17 +215,16 @@ def dashboard(request):
         # print(result)
 
         context = {
-            'records':records,
-            'rows':rows,
-            'rows_2':rows_2,
-            'result':result,
-            'result_2':result_2,
-            'q':query,
+            'records': records,
+            'rows': rows,
+            'rows_2': rows_2,
+            'result': result,
+            'result_2': result_2,
+            'q': query,
         }
     else:
         context = {}
     return render(request, 'cms/dashboard.html', context)
-
 
 
 def dashboard_weekly(request):
@@ -233,15 +239,15 @@ def dashboard_weekly(request):
             community_ids_int.append(int(c_id.strip()))
         # print(date_1)
         # print(date_2)
-        #get monday of the week
+        # get monday of the week
         date_1 = datetime.strptime(date_1, '%Y-%m-%d')
         day_of_week = date_1.weekday()
         date_1 = date_1 - timedelta(days=day_of_week)
 
-        #get sunday of the week
+        # get sunday of the week
         date_2 = datetime.strptime(date_2, '%Y-%m-%d')
         day_of_week = date_2.weekday()
-        date_2 = date_2 + timedelta(days=6-day_of_week)
+        date_2 = date_2 + timedelta(days=6 - day_of_week)
 
         # print(date_1)
         # print(date_2)
@@ -251,10 +257,10 @@ def dashboard_weekly(request):
         # print(community_ids)
 
         records = PerWeekRecordOverview.objects.filter(updated_at__gte=date_1_epoch,
-                                                      updated_at__lte=date_2_epoch,
-                                                      community__id__in=community_ids_int)
+                                                       updated_at__lte=date_2_epoch,
+                                                       community__id__in=community_ids_int)
         # print(records)
-        communities = records.values('community__id','community__name').distinct()
+        communities = records.values('community__id', 'community__name').distinct()
         # print(communities)
 
         result_2 = {}
@@ -303,11 +309,11 @@ def dashboard_weekly(request):
             # print(communities)
             cummulative_members_total = Members.objects.filter(
                 community_id__in=community_ids,
-                created_at__lte=date_1.timestamp()+24*60*60*7).values('member_id').distinct().count()
+                created_at__lte=date_1.timestamp() + 24 * 60 * 60 * 7).values('member_id').distinct().count()
             for community in communities:
                 r = records.filter(updated_at__gte=date_1.timestamp(),
-                                updated_at__lte=(date_1 + timedelta(days=7)).timestamp(),
-                                community__id=community['community__id'])
+                                   updated_at__lte=(date_1 + timedelta(days=7)).timestamp(),
+                                   community__id=community['community__id'])
                 # rows.append((community['community__name']+'-'+str(community['community__id'])))
                 # print(r)
                 if r.exists():
@@ -350,14 +356,14 @@ def dashboard_weekly(request):
                 unique_chatroom_total,
                 new_messages_total,
                 new_intro_room_messages_total,
-                get_percent((new_messages_total-new_intro_room_messages_total) , new_messages_total),
-                sanitize_division((new_messages_total) , communities.count()),
-                sanitize_division((new_messages_total - new_intro_room_messages_total) , communities.count()),
-                sanitize_division((new_chatroom_total) , communities.count()),
-                sanitize_division((new_chatroom_total - intro_chatroom_total) , communities.count()),
-                sanitize_division((new_messages_total - new_intro_room_messages_total) , active_members_total),
-                sanitize_division((new_chatroom_total - intro_chatroom_total) , active_members_total),
-                get_percent(active_members_total,cummulative_members_total),
+                get_percent((new_messages_total - new_intro_room_messages_total), new_messages_total),
+                sanitize_division((new_messages_total), communities.count()),
+                sanitize_division((new_messages_total - new_intro_room_messages_total), communities.count()),
+                sanitize_division((new_chatroom_total), communities.count()),
+                sanitize_division((new_chatroom_total - intro_chatroom_total), communities.count()),
+                sanitize_division((new_messages_total - new_intro_room_messages_total), active_members_total),
+                sanitize_division((new_chatroom_total - intro_chatroom_total), active_members_total),
+                get_percent(active_members_total, cummulative_members_total),
                 # (new_chatroom_total-intro_chatroom_total-new_cm_chatrooms_total)
             ]
             # print(list)
@@ -368,21 +374,20 @@ def dashboard_weekly(request):
         # print(result)
 
         context = {
-            'records':records,
-            'rows_2':rows_2,
-            'result_2':result_2,
-            'q':query,
+            'records': records,
+            'rows_2': rows_2,
+            'result_2': result_2,
+            'q': query,
         }
     else:
         context = {}
     return render(request, 'cms/dashboard_weekly.html', context)
 
 
-
 def list_community_types(request):
     communitytypes = communityFieldTypes.objects.all().order_by('id')
     context = {
-        'communitytypes':communitytypes,
+        'communitytypes': communitytypes,
     }
     return render(request, 'cms/list_community_types.html', context)
 
@@ -395,13 +400,13 @@ def add_community_types(request):
             instance.save()
             return HttpResponseRedirect('/cms/list_community_types')
     context = {
-        'form':form,
+        'form': form,
     }
     return render(request, 'cms/add_community_types.html', context)
 
 
-def edit_community_types(request,community_type_id):
-    communitytype_instance = communityType.objects.get(id = community_type_id)
+def edit_community_types(request, community_type_id):
+    communitytype_instance = communityType.objects.get(id=community_type_id)
     form = communityFieldTypesForm(request.POST or None, instance=communitytype_instance)
     if request.method == 'POST':
         if form.is_valid():
@@ -409,7 +414,7 @@ def edit_community_types(request,community_type_id):
             instance.save()
             return HttpResponseRedirect('/cms/list_community_types')
     context = {
-        'form':form,
+        'form': form,
     }
     return render(request, 'cms/add_community_types.html', context)
 
@@ -417,7 +422,7 @@ def edit_community_types(request,community_type_id):
 def list_community_subtypes(request):
     communitysubtypes = communityFieldSubTypes.objects.all().order_by('id')
     context = {
-        'communitysubtypes':communitysubtypes,
+        'communitysubtypes': communitysubtypes,
     }
     return render(request, 'cms/list_community_subtypes.html', context)
 
@@ -430,13 +435,13 @@ def add_community_subtypes(request):
             instance.save()
             return HttpResponseRedirect('/cms/list_community_subtypes')
     context = {
-        'form':form,
+        'form': form,
     }
     return render(request, 'cms/add_community_types.html', context)
 
 
-def edit_community_subtypes(request,community_subtype_id):
-    communitysubtype_instance = communityFieldSubTypes.objects.get(id = community_subtype_id)
+def edit_community_subtypes(request, community_subtype_id):
+    communitysubtype_instance = communityFieldSubTypes.objects.get(id=community_subtype_id)
     form = communityFieldSubTypesForm(request.POST or None, instance=communitysubtype_instance)
     if request.method == 'POST':
         if form.is_valid():
@@ -444,7 +449,7 @@ def edit_community_subtypes(request,community_subtype_id):
             instance.save()
             return HttpResponseRedirect('/cms/list_community_subtypes')
     context = {
-        'form':form,
+        'form': form,
     }
     return render(request, 'cms/add_community_types.html', context)
 
@@ -472,8 +477,8 @@ def list_community_fields(request):
 
     # print(communityfields.count())
     context = {
-        'communityfields':communityfields,
-        'q':query,
+        'communityfields': communityfields,
+        'q': query,
     }
     return render(request, 'cms/list_community_fields.html', context)
 
@@ -486,13 +491,13 @@ def add_community_fields(request):
             instance.save()
             return HttpResponseRedirect('/cms/list_community_field_types')
     context = {
-        'form':form,
+        'form': form,
     }
     return render(request, 'cms/add_community_fields.html', context)
 
 
-def edit_community_fields(request,community_field_id):
-    communityfield_instance = communityField.objects.get(id = community_field_id)
+def edit_community_fields(request, community_field_id):
+    communityfield_instance = communityField.objects.get(id=community_field_id)
     form = communityFieldForm(request.POST or None, instance=communityfield_instance)
     if request.method == 'POST':
         if form.is_valid():
@@ -500,10 +505,9 @@ def edit_community_fields(request,community_field_id):
             instance.save()
             return HttpResponseRedirect('/cms/list_community_field_types')
     context = {
-        'form':form,
+        'form': form,
     }
     return render(request, 'cms/add_community_fields.html', context)
-
 
 
 def list_new_answers(request):
@@ -529,15 +533,13 @@ def list_new_answers(request):
 
     # print(communityfields.count())
     context = {
-        'new_answers':new_answers,
+        'new_answers': new_answers,
     }
     return render(request, 'cms/list_new_answers.html', context)
 
 
-
-
 def list_all_answers(request):
-    all_answers = communityAnswers.objects.all().filter(question__question_state__in=[1,2]).order_by('-id')
+    all_answers = communityAnswers.objects.all().filter(question__question_state__in=[1, 2]).order_by('-id')
     page = request.GET.get('page', 1)
     # print(communityfields.count())
     query = request.GET.get('q')
@@ -559,13 +561,58 @@ def list_all_answers(request):
 
     # print(communityfields.count())
     context = {
-        'all_answers':all_answers,
+        'all_answers': all_answers,
     }
     return render(request, 'cms/list_all_answers.html', context)
-
 
 
 def url_shortner(request):
     # records = PerDayRecordOverview.objects.all().order_by('created_at')[:10]
     context = {}
     return render(request, 'cms/url_shortner.html', context)
+
+
+class MessageTemplateForOwner(APIView):
+
+    def post(self, request, *args, **kwargs):
+
+        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
+
+        if not CMSAuthUtilities.validate_user(user_name, password):
+            CMSAuthUtilities.raise_authentication_error()
+
+        user_id = request.data.get('user_id', None)
+        community_id = request.data.get('community_id', None)
+        message_template = request.data.get('message_template', None)
+
+        if user_id is None:
+            response = get_error_context(False, 'send user_id in post params')
+            raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
+
+        if community_id is None:
+            response = get_error_context(False, 'send community_id in post params')
+            raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
+
+        if message_template is None:
+            response = get_error_context(False, 'send message template in post params')
+            raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = User.get_user_or_raise_exception(user_id)
+        community_instance = Community.get_community_or_raise_exception(community_id)
+
+        is_owner = Members.is_member_community_owner(community=community_instance,
+                                                     member=user_instance)
+
+        if not is_owner:
+            response = get_error_context(False, 'user is not a admin of this community')
+            raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
+
+        template = MessageTemplate(user=user_instance,
+                                   community=community_instance,
+                                   message=message_template).save()
+
+        response = {
+            'success': True
+        }
+
+        return JsonResponse(response)

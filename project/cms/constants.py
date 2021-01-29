@@ -1,0 +1,3 @@
+CMS_USER_NAME = 'teamGrowth'
+CMS_PASSWORD = 'TheLMGrowth@1001'
+BANNER_DEFAULT_HIDE_TIME = 86400  # 24 hours

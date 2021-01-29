@@ -5,8 +5,10 @@ from django.db.models import Q
 from utility.states import member_states, member_rights
 from django.db.models.query import QuerySet
 from rest_framework import status as status_codes
-from utility.exception_utilities import InvalidCommunityException, InvalidChatroomException, InvalidUserException
+from utility.exception_utilities import (InvalidCommunityException, InvalidChatroomException,
+                                         InvalidUserException, CustomException)
 from utility.time_utilities import TimeUtilities
+
 
 response_choices = (
     ('text', 'Text'),
@@ -72,6 +74,7 @@ class Community(models.Model):
 
     @staticmethod
     def get_community_or_raise_exception(community_id):
+
         try:
             return Community.objects.get(id=community_id)
         except:
@@ -79,7 +82,14 @@ class Community(models.Model):
                 'success': False,
                 'error_message': f"community with id {community_id} doesn't exists"
             }
-            raise InvalidCommunityException()
+            raise InvalidCommunityException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    @staticmethod
+    def get_community_or_None(community_id):
+        try:
+            return Community.objects.get(id=community_id)
+        except:
+            return None
 
 
 class communityToast(models.Model):
@@ -128,7 +138,8 @@ class Members(models.Model):
         return Members.objects.filter(community_id=community,
                                       member_id=member
                                       ).filter(Q(state=member_states.ADMIN) |
-                                               Q(state=member_states.MEMBER)).exists()
+                                               Q(state=member_states.MEMBER) |
+                                               Q(state=member_states.PROFILE_UNAVAILABLE)).exists()
 
     @staticmethod
     def get_community_member_state(community: Community, member: User) -> int:
@@ -136,6 +147,18 @@ class Members(models.Model):
         if member.exists():
             return member[0].state
         return member_states.GUEST
+
+    @staticmethod
+    def is_member_community_owner(community: Community, member: User) -> int:
+        member = Members.objects.filter(community_id=community, member_id=member, is_owner=True)
+
+        return member.exists()
+
+    @staticmethod
+    def get_community_owner_member_instance(community: Community) -> int:
+        member = Members.objects.filter(community_id=community, is_owner=True)
+
+        return member
 
     @staticmethod
     def get_member_instance_or_none(community: Community, member: User) -> object:
@@ -284,6 +307,13 @@ class Collabcard(models.Model):
                 'error_message': f'chatroom with id {chatroom_id} does not exist'
             }
             raise InvalidChatroomException(response)
+
+    @staticmethod
+    def get_chatroom_or_None(chatroom_id):
+        try:
+            return Collabcard.objects.get(pk=chatroom_id)
+        except:
+            return None
 
 
 class draftChatroom(models.Model):
