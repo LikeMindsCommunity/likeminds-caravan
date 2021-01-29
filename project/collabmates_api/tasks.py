@@ -849,8 +849,6 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
 
     response = request_api("POST", api_url, headers, payload)
 
-    print("response === ", response.status_code)
-
 
 def request_api(method, api_url, headers, payload):
     response = requests.request(method, api_url, headers=headers, data=json.dumps(payload))
