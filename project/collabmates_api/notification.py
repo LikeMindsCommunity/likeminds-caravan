@@ -8,7 +8,7 @@ import psycopg2
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.db.models import Q, F
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
@@ -1878,32 +1878,35 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         print("Error while connecting to PostgreSQL")
 
 
-
-
-
-
 @app.task
 def send_notification_to_inactive_chatroom_users():
 
     current_time = time.time()
+    INACTIVE_NOTIFICATION_START_TIME = 1603604997       #Sunday, 25 October 2020 11:19:57
 
-    inactive_chatrooms = collabcardState.objects.filter(follow_status=True,
-                                                        remove=None).filter(~Q(expiry_time=None) & Q(
-        expiry_time__lt=current_time)).filter(created_at__gt = 1603604997)
-
+    inactive_chatrooms = collabcardState.objects.\
+        filter(follow_status=True, remove=None).\
+        filter(~Q(expiry_time=None) & Q(expiry_time__lt=current_time)).\
+        filter(created_at__gt=INACTIVE_NOTIFICATION_START_TIME).\
+        filter(Q(user_id=F('card__user_id'))).\
+        select_related('card', 'user')
     user_set = set()
     user_list = []
+
     for data in inactive_chatrooms:
 
+        card_instance = data.card
+        user_instance = data.user
 
-        if data.card.type == card_types.CARD_PURPOSE and not is_member_promoter(data.card.community,data.card.user):
+        if card_instance.type == card_types.CARD_PURPOSE and \
+                not is_member_promoter(card_instance.community, card_instance.user):
             continue
 
-        key = str(data.user.id)+"--"+str(data.card.id)
+        key = str(user_instance)+"--"+str(card_instance)
+
         if key not in user_set:
+
             temp = {}
-            user_instance = data.user
-            card_instance = data.card
             notification_filter = memberNotificationFlag.objects.filter(member=user_instance,
                                                                         card=card_instance,
                                                                         code='chat_room_becoming_inactive'
@@ -1917,6 +1920,7 @@ def send_notification_to_inactive_chatroom_users():
                     notification_filter.update(updated_at=current_time)
 
                     user_list.append(temp)
+
             else:
                 instance = memberNotificationFlag()
                 instance.member = user_instance
@@ -1935,18 +1939,10 @@ def send_notification_to_inactive_chatroom_users():
                 user_list.append(temp)
 
             user_set.add(key)
-
-    end_time = time.time()
-    diff = end_time - current_time
-    print(diff)
-
     send_inactive_notification_utils(user_list)
 
 
-
-
 def send_inactive_notification_utils(user_list):
-
 
     for data in user_list:
         notification_list = []
@@ -1973,14 +1969,6 @@ def send_inactive_notification_utils(user_list):
         }
 
         notification_meta(notification_list,message)
-
-    print("Notification Sent")
-
-
-
-# x=CeleryBeatTask()
-# x.terminate_task("send_notification_to_inactive_chatroom_users")
-# x.terminate_task("run_after_10_sec")
 
 
 @shared_task
