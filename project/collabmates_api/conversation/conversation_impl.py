@@ -6,7 +6,7 @@ from rest_framework import status as status_codes
 
 from .conversation_manager import ConversationManager
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
-    get_removed_member_custom_text
+    get_removed_member_custom_text, get_conversation_instance_for_db_synching
 from ..utility import pagination
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_follow_internal,
@@ -15,7 +15,7 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
                      reverse_conversations_for_upward_pagination)
 
 from .constants import (LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION,
-                        DOWNWARD_SCROLL_DIRECTION)
+                        DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
 
 from togther.models import card_answers, collabcardState, Collabcard, Members, Community
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -23,7 +23,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
-from utility.states import member_states, collabcard_states
+from utility.states import member_states, collabcard_states, card_types
 from utility.utils import decode_meta_from_url
 from utility.firebase import update_last_answer_id
 from utility.celery_tasks import update_my_chatrooms_for_users
@@ -97,7 +97,7 @@ class ConversationImpl(ConversationManager):
     def _fetch_upward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-                                                   id__lte=conversation_id).order_by('-id')[:list_size]
+            id__lte=conversation_id).order_by('-id')[:list_size]
 
     def _fetch_downward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
@@ -139,7 +139,7 @@ class ConversationImpl(ConversationManager):
 
     def _serialize_conversation(self, conversation_instance):
 
-        conversation_serializer = conversationSerializer(conversation_instance)
+        conversation_serializer = conversationSerializer(conversation_instance, current_user_id=self.get_member_id())
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
             conversation_instance.created_at)
         preview = conversation_serializer.get('preview')
@@ -174,9 +174,11 @@ class ConversationImpl(ConversationManager):
 
         for conversation in conversations:
 
-            if conversation.attachment_count > 0 and\
-                    conversation.attachments_uploaded is False and\
-                    conversation.user.id != NumberUtilities.get_integer_from_string(self.member_id):
+            if (conversation.attachment_count > 0 and
+                conversation.attachments_uploaded is False) and (
+                    (self.get_member_id() and
+                     conversation.user.id != NumberUtilities.get_integer_from_string(self.get_member_id())) or
+                    conversation.api_version <= 0):
                 continue
 
             conversation_dict = self._serialize_conversation(conversation)
@@ -208,6 +210,8 @@ class ConversationImpl(ConversationManager):
             conversation_content['has_files'] = True
             req_body['has_files'] = True
 
+        conversation_content['api_version'] = 1
+
         conversation_content['is_guest'] = self._is_user_already_guest(user=user_instance,
                                                                        chatroom=chatroom_instance)
 
@@ -237,10 +241,9 @@ class ConversationImpl(ConversationManager):
 
     def _auto_follow_chatroom(self, chatroom_id, member_state):
 
-        if member_state == member_states.ADMIN or\
+        if member_state == member_states.ADMIN or \
                 member_state == member_states.MEMBER or \
                 member_state == member_states.PROFILE_UNAVAILABLE:
-
             payload = ConversationHelper.fetch_auto_follow_dict(member_id=self.get_member_id(),
                                                                 chatroom_id=chatroom_id,
                                                                 status=True, source="create_conversation")
@@ -263,8 +266,7 @@ class ConversationImpl(ConversationManager):
         update_chatroom_for_users_and_send_follow_notification.delay(chatroom_id,
                                                                      self.get_member_id(),
                                                                      req_body['text'],
-                                                                     has_files=has_files,
-                                                                     is_ios=is_ios)
+                                                                     has_files=has_files)
 
     def fetch_conversation(self):
 
@@ -298,13 +300,17 @@ class ConversationImpl(ConversationManager):
 
         else:
 
-            if self.get_scroll_direction() and NumberUtilities.get_integer_from_string(self.get_scroll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
-                upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
+            if self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
+                    self.get_scroll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
+                upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE,
+                                                                       self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
 
-            elif self.get_scroll_direction() and NumberUtilities.get_integer_from_string(self.get_scroll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
-                conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE, self.get_conversation_id())
+            elif self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
+                    self.get_scroll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
+                conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE,
+                                                                           self.get_conversation_id())
 
             else:
                 conversations = self._fetch_conversation_queryset()
@@ -314,7 +320,7 @@ class ConversationImpl(ConversationManager):
         return conversations
 
     def create_conversation(self, req_body: dict, is_ios: bool,
-                            is_user_guest: bool, has_files: bool) -> card_answers:
+                            is_user_guest: bool, has_files: bool) -> {}:
 
         chatroom_id = req_body.get('chatroom_id', None)
 
@@ -334,6 +340,11 @@ class ConversationImpl(ConversationManager):
         community_instance = ConversationHelper.fetch_community_instance(community_id=community_id)
 
         member_state = ConversationHelper.fetch_member_state(community=community_instance, user=user_instance)
+
+        if chatroom_instance.type == card_types.CARD_PURPOSE and\
+                member_state != member_states.ADMIN:
+
+            return {'success': False, 'error_message': ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM}
 
         self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
                                     is_guest=is_user_guest,
@@ -357,7 +368,7 @@ class ConversationImpl(ConversationManager):
 
         if not has_files:
             self._update_latest_conversation_id_to_firebase(chatroom_id,
-                                                           conversation_instance.id)
+                                                            conversation_instance.id)
 
         self._save_latest_conversation_for_members(chatroom_instance)
 
@@ -369,23 +380,33 @@ class ConversationImpl(ConversationManager):
                                has_files=has_files,
                                is_ios=is_ios)
 
-        return conversation_instance
+        conversation = get_conversation_instance_for_db_synching(conversation_instance,
+                                                                 current_user_id=self.get_member_id())
+
+        conversation_response = {
+            'success': True,
+            'id': conversation_instance.id,
+            'conversation': conversation
+        }
+
+        return conversation_response
+
 
 
 class ConversationHelper:
-    
+
     @staticmethod
     def fetch_user_instance(user_id) -> User:
         return User.get_user_or_raise_exception(user_id)
-    
+
     @staticmethod
     def fetch_community_instance(community_id) -> Community:
         return Community.get_community_or_raise_exception(community_id)
-    
+
     @staticmethod
     def fetch_chatroom_instance(chatroom_id) -> Collabcard:
         return Collabcard.get_chatroom_or_raise_exception(chatroom_id)
-    
+
     @staticmethod
     def fetch_replied_conversation(req_body):
         try:
@@ -401,7 +422,7 @@ class ConversationHelper:
                 'error_message': f'replied_conversation_id {replied_conversation_id} is wrong'
             }
             raise CustomException(response)
-    
+
     @staticmethod
     def fetch_og_tags(req_body):
         if 'og_tags' in req_body:
@@ -411,11 +432,11 @@ class ConversationHelper:
         else:
             return
         return og_tags
-    
+
     @staticmethod
     def fetch_member_state(community, user) -> int:
         return Members.get_community_member_state(community, user)
-    
+
     @staticmethod
     def fetch_auto_follow_dict(member_id, chatroom_id, status, source):
 
@@ -425,4 +446,3 @@ class ConversationHelper:
             'status': status,
             'source': source
         }
-
