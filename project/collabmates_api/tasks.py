@@ -854,3 +854,8 @@ def request_api(method, api_url, headers, payload):
     response = requests.request(method, api_url, headers=headers, data=json.dumps(payload))
 
     return response
+
+
+@app.task
+def test_beat_task():
+    print("testing the beat task")
