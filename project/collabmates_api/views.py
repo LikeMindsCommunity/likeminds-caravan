@@ -9361,12 +9361,12 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
             # creating user email
             save_user_primary_email(user_instance, email, email_state=email_states.PRIMARY)
 
-            # # send verification mail for email
-            # verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
-            #
-            # # sending a email from template
-            # send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
-            #                                       verification_link=verification_details['verify_url'], email=email)
+            # send verification mail for email
+            verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
+
+            # sending a email from template
+            send_verification_mail_for_email_sync.delay(user_name=user_instance.userinfo.name,
+                                                  verification_link=verification_details['verify_url'], email=email)
 
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
@@ -15022,5 +15022,4 @@ def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatr
         chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
 
     return chatroom_data, chatroom_id_list
-
 
