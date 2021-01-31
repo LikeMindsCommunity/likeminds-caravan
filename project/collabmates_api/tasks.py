@@ -810,14 +810,12 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
     if not is_member:
         return
 
-    owner_member_instance = Members.get_community_owner_member_instance(community_instance)
+    owner_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
 
-    if not owner_member_instance.exists():
+    if owner_user_instance is None:
         return
 
-    owner_instance = owner_member_instance[0].member_id
-
-    template = MessageTemplate.objects.filter(community=community_instance, user=owner_instance)
+    template = MessageTemplate.objects.filter(community=community_instance, user=owner_user_instance)
 
     if not template.exists():
         return
@@ -831,7 +829,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
 
     chatroom = intro_filter[0]
 
-    if chatroom.user.id == owner_instance.id:
+    if chatroom.user.id == owner_user_instance.id:
         return
 
     conversation_text = template[0].message
@@ -844,7 +842,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
     }
 
     headers = {
-        'x-member-id': str(owner_instance.id)
+        'x-member-id': str(owner_user_instance.id)
     }
 
     response = request_api("POST", api_url, headers, payload)

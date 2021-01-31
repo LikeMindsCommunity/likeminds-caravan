@@ -594,13 +594,13 @@ class MessageTemplateForOwner(APIView):
 
         community_instance = Community.get_community_or_raise_exception(community_id)
 
-        owner = Members.get_community_owner_member_instance(community=community_instance)
+        owner = Members.get_community_owner_user_instance_or_none(community=community_instance)
 
-        if not owner.exists():
+        if owner is None:
             response = get_error_context(False, 'community has no owner')
             raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
 
-        template, created = MessageTemplate.objects.update_or_create(user=owner[0].member_id,
+        template, created = MessageTemplate.objects.update_or_create(user=owner,
                                                                      community=community_instance,
                                                                      defaults={'message': message_template})
 
