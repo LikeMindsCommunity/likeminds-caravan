@@ -581,13 +581,8 @@ class MessageTemplateForOwner(APIView):
         if not CMSAuthUtilities.validate_user(user_name, password):
             CMSAuthUtilities.raise_authentication_error()
 
-        user_id = request.data.get('user_id', None)
         community_id = request.data.get('community_id', None)
         message_template = request.data.get('message_template', None)
-
-        if user_id is None:
-            response = get_error_context(False, 'send user_id in post params')
-            raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
 
         if community_id is None:
             response = get_error_context(False, 'send community_id in post params')
@@ -597,22 +592,22 @@ class MessageTemplateForOwner(APIView):
             response = get_error_context(False, 'send message template in post params')
             raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = User.get_user_or_raise_exception(user_id)
         community_instance = Community.get_community_or_raise_exception(community_id)
 
-        is_owner = Members.is_member_community_owner(community=community_instance,
-                                                     member=user_instance)
+        owner = Members.get_community_owner_user_instance_or_none(community=community_instance)
 
-        if not is_owner:
-            response = get_error_context(False, 'user is not a admin of this community')
+        if owner is None:
+            response = get_error_context(False, 'community has no owner')
             raise_custom_exception(response, status_codes.HTTP_400_BAD_REQUEST)
 
-        template = MessageTemplate(user=user_instance,
-                                   community=community_instance,
-                                   message=message_template).save()
+        template, created = MessageTemplate.objects.update_or_create(user=owner,
+                                                                     community=community_instance,
+                                                                     defaults={'message': message_template})
 
         response = {
             'success': True
         }
 
-        return JsonResponse(response)
+        staus = status_codes.HTTP_201_CREATED if created else status_codes.HTTP_200_OK
+
+        return JsonResponse(response, status=staus)

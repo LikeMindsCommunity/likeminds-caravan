@@ -206,7 +206,7 @@ urlpatterns = [
     path('close_report', api_views.close_report, name='close_report'),
 
     path('fetch_pending_chatroom', api_views.fetch_pending_chatroom, name='fetch_pending_chatroom'),
-    path('action_pending_chatroom', api_views.action_pending_chatroom, name='action_pending_chatroom'),
+    path('action_pending_chatroom', api_views.ActionPendingChatroom.as_view(), name='action_pending_chatroom'),
 
     path('fetch_management_tools', api_views.fetch_management_tools, name='fetch_management_tools'),
     path('fetch_community_setting_rights', api_views.fetch_community_setting_rights,

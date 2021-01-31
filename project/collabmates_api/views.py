@@ -15,6 +15,7 @@ from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from collections import OrderedDict
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, renderer_classes
@@ -35,7 +36,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
-                            moderation_history_types, report_Action_Types, report_Types)
+                            moderation_history_types, report_Action_Types, report_Types, HomeSnackbarType)
 from utility.tasks import (mail_triger, new_member_request, member_request_approval_or_denied,
                            send_mail_for_report_abuse, send_mail_for_query_and_feedback,
                            save_name_initial_image)
@@ -13338,122 +13339,126 @@ def fetch_pending_chatroom(request):
     return JsonResponse(context)
 
 
-@csrf_exempt
-def action_pending_chatroom(request):
-    """ function to approve a chatroom """
-    if request.method == "GET":
+class ActionPendingChatroom(APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(ActionPendingChatroom, self).dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
         context = get_error_context(False, "change HTTP method to POST")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
 
-    current_user_id = get_member_id_from_headers(request)
-    # user_instance = User.objects.get(id=current_user_id)
-    #
-    chatroom_id = request.POST.get('chatroom_id', None)
-    value = request.POST.get('value', False)
-    pre_approve = request.POST.get('pre_approve', None)
+    def post(self, request, *args, **kwargs):
 
-    if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not chatroom_id:
-        context = get_error_context(False, "send chatroom_id in params")
-        return JsonResponse(context)
+        current_user_id = RequestUtilities.get_member_id_from_headers(request)
 
-    try:
-        chatroom = Collabcard.objects.get(pk=chatroom_id)
-    except:
-        context = get_error_context(False, "Pending chatroom id does not exist or already approved or rejected")
-        return JsonResponse(context, status=400)
+        chatroom_id = request.POST.get('chatroom_id', None)
+        value = request.POST.get('value', False)
+        pre_approve = request.POST.get('pre_approve', None)
 
-    community_instance = chatroom.community
-    chatroom_creator = chatroom.user
-    has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)
-    if not has_right_approve:
-        context = get_error_context(False, "you have no right to approve chatrooms")
-        return JsonResponse(context)
+        if not current_user_id:
+            context = get_error_context(False, "send member_id in headers")
+            return JsonResponse(context)
+        if not chatroom_id:
+            context = get_error_context(False, "send chatroom_id in params")
+            return JsonResponse(context)
 
-    is_approved = (value == "true" or value is True)
+        chatroom = Collabcard.get_chatroom_or_None(chatroom_id)
+        if chatroom is None:
+            context = get_error_context(False, "Pending chatroom id does not exist or already approved or rejected")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if is_approved:
-        # creating  a copy of existing model and saving it
-        chatroom.pk = None
-        chatroom.id = None
-        chatroom.is_pending = False
-        chatroom.date_epoch = time.time()
-        chatroom.save()
-        # force refresh the object to get the new created object's' id
-        chatroom.refresh_from_db()
+        community_instance = chatroom.community
+        chatroom_creator = chatroom.user
+        has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)
+        if not has_right_approve:
+            context = get_error_context(False, "you have no right to approve chatrooms")
+            return JsonResponse(context)
 
-        func_dict = {
-            'member_id': chatroom.user_id,
-            'collabcard_id': chatroom.id,
-            'status': True,
-            'source': "create_chatroom"
-        }
-        collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+        is_approved = (value == "true" or value is True)
 
-        update_last_answer_id(chatroom.id, "")
+        if is_approved:
+            # creating  a copy of existing model and saving it
+            chatroom.pk = None
+            chatroom.id = None
+            chatroom.is_pending = False
+            chatroom.date_epoch = time.time()
+            chatroom.save()
+            # force refresh the object to get the new created object's' id
+            chatroom.refresh_from_db()
 
-        # creating a chatroom for the collabcard posted
-        create_chatroom(card_instance=chatroom, user_instance=chatroom.user,
-                        state=chatroom_states.CHATROOM_HEADER, current_user_id=chatroom.user.id)
+            func_dict = {
+                'member_id': chatroom.user_id,
+                'collabcard_id': chatroom.id,
+                'status': True,
+                'source': "create_chatroom"
+            }
+            collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
-        send_ice_breaker_notification.delay(chatroom.community.id, time.time(), day=0)
+            update_last_answer_id(chatroom.id, "")
 
-        # batch update for already existing users and saving their unseen count
-        set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
-                                                                  function_called="action_pending_chatroom")
+            # creating a chatroom for the collabcard posted
+            create_chatroom(card_instance=chatroom, user_instance=chatroom.user,
+                            state=chatroom_states.CHATROOM_HEADER, current_user_id=chatroom.user.id)
 
-    else:
-        snackbar_manager = SnackbarImpl()
-        snackbar_dict = {
-            'user_id': chatroom_creator.user,
-            'type': HomeSnackbarType.CHATROOM_REJECTED_BY_COMMUNITY_MANAGER
-        }
-        snackbar_manager.create_snackbar(snackbar_dict)
+            send_ice_breaker_notification.delay(chatroom.community.id, time.time(), day=0)
 
-    send_notification_for_pending_chatroom_approved_or_rejected.delay(chatroom.id, is_approved=is_approved)
-    # adding pending chatroom files to new chatroom
-    CollabcardPolls.objects.filter(card__id=chatroom_id).update(card=chatroom)
-    # adding pending chatroom files to new chatroom
-    Card_Attachment.objects.filter(collabcard__id=chatroom_id).update(collabcard=chatroom)
-    # deleting the old instance even if value = true or false
-    Collabcard.objects.filter(pk=chatroom_id).delete()
+            # batch update for already existing users and saving their unseen count
+            set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
+                                                                      function_called="action_pending_chatroom")
 
-    update_pending_chatroom_count_for_promoters.delay(community_instance.id)
-
-    # checking is_owner bcz, owner will be by default a CM
-    member_is_promoter = Members.objects.filter(community_id=community_instance,
-                                                member_id=chatroom_creator,
-                                                state=member_states.ADMIN).exists()
-
-    if pre_approve is not None and \
-            not member_is_promoter:
-        if pre_approve == "true" or \
-                pre_approve is True:
-
-            give_member_auto_approve_right(user=chatroom_creator, community=community_instance,
-                                           current_user_instance=current_user_instance)
-            update_rights_history_for_creation_rights_given.delay(current_user_id,
-                                                                  community_instance.id,
-                                                                  chatroom_creator.id)
         else:
-            remove_member_create_room_right(user=chatroom_creator, community=community_instance,
-                                            current_user_id=current_user_id)
-            update_rights_history_for_creation_rights_removed.delay(current_user_id,
-                                                                    community_instance.id,
-                                                                    chatroom_creator.id)
+            snackbar_manager = SnackbarImpl()
+            snackbar_dict = {
+                'user_id': chatroom_creator.id,
+                'type': HomeSnackbarType.CHATROOM_REJECTED_BY_COMMUNITY_MANAGER
+            }
+            snackbar_manager.create_snackbar(snackbar_dict)
 
-        current_user_instance = User.objects.get(pk=current_user_id)
-        save_moderation_history(user=chatroom_creator, community=community_instance,
-                                moderation_by=current_user_instance,
-                                type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+        send_notification_for_pending_chatroom_approved_or_rejected.delay(chatroom.id, is_approved=is_approved)
+        # adding pending chatroom files to new chatroom
+        CollabcardPolls.objects.filter(card__id=chatroom_id).update(card=chatroom)
+        # adding pending chatroom files to new chatroom
+        Card_Attachment.objects.filter(collabcard__id=chatroom_id).update(collabcard=chatroom)
+        # deleting the old instance even if value = true or false
+        Collabcard.objects.filter(pk=chatroom_id).delete()
 
-    info_logger.info(
-        f"ACTION_PENDING_CHATROOM - current user id = {current_user_id}, card creator id = {chatroom_creator.id}, disallow_create_chatroom = {pre_approve},"
-        f"card id = {chatroom_id}, community id = {community_instance.id}")
+        update_pending_chatroom_count_for_promoters.delay(community_instance.id)
 
-    return JsonResponse({'success': True})
+        # checking is_owner bcz, owner will be by default a CM
+        member_is_promoter = Members.objects.filter(community_id=community_instance,
+                                                    member_id=chatroom_creator,
+                                                    state=member_states.ADMIN).exists()
+
+        if pre_approve is not None and \
+                not member_is_promoter:
+
+            current_user_instance = User.objects.get(pk=current_user_id)
+
+            if pre_approve == "true" or \
+                    pre_approve is True:
+
+                give_member_auto_approve_right(user=chatroom_creator, community=community_instance,
+                                               current_user_instance=current_user_instance)
+                update_rights_history_for_creation_rights_given.delay(current_user_id,
+                                                                      community_instance.id,
+                                                                      chatroom_creator.id)
+            else:
+                remove_member_create_room_right(user=chatroom_creator, community=community_instance,
+                                                current_user_id=current_user_id)
+                update_rights_history_for_creation_rights_removed.delay(current_user_id,
+                                                                        community_instance.id,
+                                                                        chatroom_creator.id)
+            save_moderation_history(user=chatroom_creator, community=community_instance,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+
+        info_logger.info(
+            f"ACTION_PENDING_CHATROOM - current user id = {current_user_id}, card creator id = {chatroom_creator.id}, disallow_create_chatroom = {pre_approve},"
+            f"card id = {chatroom_id}, community id = {community_instance.id}")
+
+        return JsonResponse({'success': True})
 
 
 def fetch_management_tools(request):
