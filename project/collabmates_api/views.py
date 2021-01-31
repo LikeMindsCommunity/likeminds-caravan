@@ -35,7 +35,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
-                            moderation_history_types, report_Action_Types, report_Types)
+                            moderation_history_types, report_Action_Types, report_Types, HomeSnackbarType)
 from utility.tasks import (mail_triger, new_member_request, member_request_approval_or_denied,
                            send_mail_for_report_abuse, send_mail_for_query_and_feedback,
                            save_name_initial_image)
@@ -13407,7 +13407,7 @@ def action_pending_chatroom(request):
     else:
         snackbar_manager = SnackbarImpl()
         snackbar_dict = {
-            'user_id': chatroom_creator.user,
+            'user_id': chatroom_creator,
             'type': HomeSnackbarType.CHATROOM_REJECTED_BY_COMMUNITY_MANAGER
         }
         snackbar_manager.create_snackbar(snackbar_dict)
