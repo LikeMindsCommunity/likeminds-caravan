@@ -361,3 +361,22 @@ class HomeSnackbarType(enum.Enum):
             response = False
         finally:
             return response
+
+
+class SyncTypes(enum.Enum):
+    CONVERSATION = 1
+    MEMBERS = 2
+    COMMUNITY = 3
+    CHATROOM = 4
+
+    @classmethod
+    def has_value(cls, value) -> bool:
+        response = False
+        try:
+            if cls.__contains__(value):
+                response = True
+        except AttributeError as e:
+            response = False
+        finally:
+            return response
+

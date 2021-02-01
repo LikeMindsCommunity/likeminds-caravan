@@ -68,6 +68,7 @@ from .static_text import (tool_member_requests, tool_pending_chat_rooms,
                           tool_edit_community_details, tool_community_settings)
 from .static_text import (LINKED_IN_ACCESS_TOKEN_URL, LINKED_IN_USER_URL, LINKED_IN_EMAIL_URL)
 from .members import *
+from .sync.model_update import update_models_for_syncing_apis
 from .utility import *
 from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard_posted,
                     send_welcome_mail, send_verification_mail_for_email_sync,
@@ -98,12 +99,15 @@ from utility.number_utilities import NumberUtilities
 from utility.exception_utilities import (CustomException, InvalidHeaderException,
                                             InvalidCommunityException, InvalidUserException)
 from external_services.logging.logging_wrapper import LoggingWrapper
+
+
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 from rest_framework.exceptions import APIException
 url = settings.URL
 # url='http://localhost:8000'
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
+
 
 
 # /api/communities?category_id=&member_id=
@@ -250,12 +254,14 @@ def update_pending_member_count_in_engage(community):
     for member in all_members:
 
         if member.state == member_states.ADMIN or member.state == member_states.TEMP_ADMIN:
-            Member_Engage.objects.filter(community_id=community, member_id=member.member_id
-                                         ).update(pending_members=pending_members_count,
-                                                  updated_at=current_time, member_state=member.state)
+            update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                           {'community_id': community, 'member_id': member.member_id},
+                                           {'pending_members': pending_members_count,
+                                            'member_state': member.state})
         else:
-            Member_Engage.objects.filter(community_id=community, member_id=member.member_id
-                                         ).update(member_state=member.state, updated_at = current_time)
+            update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                           {'community_id': community, 'member_id': member.member_id},
+                                           {'member_state': member.state})
 
     info_logger.info("Member Engage Pending Count Updated")
 
@@ -1145,10 +1151,13 @@ def join_promoter_created_community_version_1(res, request):
 
             generate_private_link(community_instance, user_instance)
 
-            Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                updated_at=time.time())
-            Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                member_referral="", click_state=click_states.DEFAULT)
+            update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                           {'member_id': user_instance, 'community_id': community_instance},
+                                           {})
+
+            update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                           {'community_id': community_instance, 'member_id': user_instance},
+                                           {'click_state': click_states.DEFAULT})
 
             # updating the community level 3 state
 
@@ -1157,11 +1166,12 @@ def join_promoter_created_community_version_1(res, request):
 
         elif member_state == member_states.PROFILE_UNAVAILABLE:
 
-            Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                state=member_states.MEMBER, updated_at=time.time())
-
-            Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                member_state=member_states.MEMBER, click_state=click_states.DEFAULT)
+            update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                           {'member_id': user_instance, 'community_id': community_instance},
+                                           {'state': member_states.MEMBER})
+            update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                           {'community_id': community_instance, 'member_id': user_instance},
+                                           {'click_state': click_states.DEFAULT, 'member_state': member_states.MEMBER})
             post_introduction_card_for_community(community_id, member_id, request)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
 
@@ -1177,11 +1187,12 @@ def join_promoter_created_community_version_1(res, request):
 
         else:
 
-            Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                state=member_states.PENDING_MEMBER, updated_at=time.time())
-
-            Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                member_state=member_states.PENDING_MEMBER)
+            update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                           {'member_id': user_instance, 'community_id': community_instance},
+                                           {'state': member_states.PENDING_MEMBER})
+            update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                           {'community_id': community_instance, 'member_id': user_instance},
+                                           {'member_state': member_states.PENDING_MEMBER})
             # removing its data from removed members in order to consider it a new user
             removedMembers.objects.filter(community=community_instance, member=user_instance).delete()
         update_pending_member_count_in_engage(community_instance)
@@ -1309,11 +1320,15 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
         # removing its data from removed members in order to consider it a new user
         removedMembers.objects.filter(community=community_instance, member=user_instance).delete()
 
-        # removing guest status from all chatrooms after access
-        collabcardState.objects.filter(community=community_instance, user=user_instance).update(
-            is_guest=False, remove=None, updated_at=time.time())
-        card_answers.objects.filter(community=community_instance, user=user_instance).update(
-            is_guest=False, remove=None)
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'community': community_instance, 'user': user_instance},
+                                       {'is_guest': False, 'remove': None})
+
+        update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                       {'community': community_instance, 'user': user_instance},
+                                       {'is_guest': False, 'remove': None})
+
+
 
     # updating the member engage instance
     if not is_member_engage(community_instance, user_instance):
@@ -1659,12 +1674,15 @@ def edit_user(request):
     userinfo_filter = Userinfo.objects.filter(user_id=user_id)
     if type == 'image':
         userinfo_filter.update(image_link=value)
-        Members.objects.filter(member_id=user_id, image_url=None).update(image_url=value,
-                                                                         updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'member_id': user_id, 'image_url': None},
+                                       {'image_url': value})
 
     elif type == 'name':
         userinfo_filter.update(name=value)
-        Members.objects.filter(member_id=user_id).update(updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'member_id': user_id},
+                                       {})
 
     return JsonResponse({'success': True})
 
@@ -1906,7 +1924,10 @@ def edit_member_profile(request):
 
             if collabcard_id and question_instance.question_state == question_states.INTRODUCTION:
                 Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
-                collabcardState.objects.filter(card=collabcard_id, user=member_id).update(updated_at=time.time())
+                update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                               {'card': collabcard_id, 'user': member_id},
+                                               {})
+
 
             if question_instance.question_state == question_states.PROFILE_LINK:
                 save_profile_links_from_handles(question_instance, answer_instance)
@@ -2287,10 +2308,13 @@ def remove_members(community_id, member_id, removed_state):
                                    message="You are no longer a member of this community.")
 
         # saving collabcard state in update status
-        update_chatroom = collabcardState.objects.filter(community=community_instance, user=member_id).update(
-            remove=instance, updated_at=time.time())
-        update_conversations = card_answers.objects.filter(user=member_id, community=community_instance).update(
-            remove=instance)
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'community': community_instance, 'user': member_id},
+                                       {'remove': instance})
+
+        update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                       {'community': community_instance, 'user': member_id},
+                                       {'remove': instance})
 
     # your chatrooms removed
     member_removerd = Members.objects.filter(community_id=community_id, member_id=member_id).delete()
@@ -2324,10 +2348,14 @@ def remove_members(community_id, member_id, removed_state):
 def update_followed_for_rejoined_member(user, community):
     removedMembers.objects.filter(community=community, member=user).delete()
     # saving collabcard state in update status
-    card_answers.objects.filter(user=user, community=community).update(remove=None)
-
+    update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                   {'community': community, 'user': user},
+                                   {'remove': None})
     card_states = collabcardState.objects.filter(community=community, user=user)
-    card_states.update(remove=None, updated_at=time.time())
+    update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                   {'community': community, 'user': user},
+                                   {'remove': None})
+
     followed_filter = card_states.filter(follow_status=True).order_by('id')
 
     for instance in followed_filter:
@@ -2626,8 +2654,9 @@ def create_community_version_1(request):
         community_instance.purpose = purpose
         community_instance.save()
 
-        engage_filter = Member_Engage.objects.filter(community_id=community_instance.id, member_id=member_id)
-        engage_filter.update(click_state=click_states.DEFAULT)
+        update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                       {'community_id': community_instance, 'member_id': member_id},
+                                       {'click_state': click_states.DEFAULT})
 
         create_introduction_question_in_community(community_instance)
         post_purpose_collabcard_for_community(request, community_instance, member_id)
@@ -2710,8 +2739,10 @@ def create_community_questions(res):
 
     # setting the state of community in order to make it editable and saving only those questions which are changed
     if current_question_count != question_count:
-        Members.objects.filter(community_id=community_instance, state=member_states.MEMBER).update(edit_required=True,
-                                                                                                   updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'community_id': community_instance, 'state': member_states.MEMBER},
+                                       {'edit_required': True})
+
 
     return {'success': True}
 
@@ -2981,8 +3012,9 @@ def create_card(request, req_dict=None):
     context = create_card_internal(user_id, community_id, res)
 
     # updating the order time for new chatroom creation for your communities api
-    current_time_msec = int(time.time() * 1000)
-    Member_Engage.objects.filter(community_id=community_id).update(order_time=current_time_msec)
+    update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                   {'community_id': community_id},
+                                   {'order_time': TimeUtilities.current_time_in_milliseconds()})
 
     if req_dict:
         return context
@@ -3571,8 +3603,11 @@ def chatroom_mute(request):
 
     value = request.POST.get('value', False)
     collabcard_state_filter = collabcardState.objects.filter(card_id=chatroom_id, user=member_id)
+
     if value == "true":
-        collabcard_state_filter.update(mute_status=True, updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': chatroom_id, 'user': member_id},
+                                       {'mute_status': True})
     else:
         if collabcard_state_filter.exists():
             instance = collabcard_state_filter[0]
@@ -3608,7 +3643,10 @@ def chatroom_rename(request):
             collabcard_filter.update(has_been_named=True)
             user_instance = User.objects.get(id=member_id)
             send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
-        collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
+
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': card_instance},
+                                       {})
 
     else:
         context = get_error_context(False, "send correct chatroom id in post params")
@@ -3693,8 +3731,10 @@ def chatroom_delete(request):
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
         # setting the updated time of deleted chatroom
-        current_time = time.time()
-        collabcardState.objects.filter(card=collabcard_instance).update(updated_at=current_time)
+
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': collabcard_instance},
+                                       {})
 
         if is_promoter:
             send_notification_for_chatroom_deleted.delay(member_id, chatroom_id, community_id)
@@ -3775,12 +3815,11 @@ def update_activity_in_chatroom(card_instance, user_instance):
         if unread_count > 0:
 
             state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
+
             if state_filter.exists():
-                # expiry_time = get_expiry_time_of_chatroom(card_state_instance=state_filter[0])
-                state_filter[0].expiry_time = None
-                state_filter[0].updated_at = time.time()
-                state_filter[0].save()
-            # conversationEngage.objects.filter(card=card_instance,user=user_instance).update(expiry_time=expiry_time)
+                update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                               {'card': card_instance, 'user': user_instance},
+                                               {'expiry_time': None})
 
 
 def get_expiry_time_of_chatroom(card_state_instance=None):
@@ -3828,11 +3867,10 @@ def set_chatroom_active(request):
 
     if state_filter.exists():
         info_logger.info("state of data exists")
-        instance = state_filter[0]
-        instance.updated_at = time.time()
-        instance.expiry_time = updated_time
-        instance.manual_set_active = updated_time
-        instance.save()
+
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': chatroom_id, 'user': member_id},
+                                       {'expiry_time': updated_time, 'manual_set_active': updated_time})
     else:
         info_logger.info("data does not exists")
         error = "Error is comming when you making it active" + str(chatroom_id) + str(member_id)
@@ -4244,14 +4282,10 @@ def remove_promoter(request):
 
     member_id = request.POST.get('member_id')
     community_id = request.POST.get('community_id')
-    # print(member_id)
-    # print(community_id)
-    update_status = Members.objects.filter(member_id=member_id, community_id=community_id).update(
-        state=member_states.MEMBER, updated_at=time.time())
 
-    info_logger.info(community_id)
-    info_logger.info(member_id)
-    info_logger.info(update_status)
+    update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                   {'community_id': community_id, 'member_id': member_id},
+                                   {'state': member_states.MEMBER})
 
     return JsonResponse({'success': True})
 
@@ -4604,20 +4638,25 @@ def approve_or_decline_private_community(req_dict, request):
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
 
         if not is_member:
-            Members.objects.filter(member_id=req_dict['member_id'],
-                                   community_id=req_dict['community_id']).update(state=member_states.MEMBER,
-                                                                                 approved_by=current_user_instance,
-                                                                                 custom_title="Member",
-                                                                                 created_at=time.time(),
-                                                                                 updated_at=time.time(),
-                                                                                 became_member_at=time.time())
+
+            update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                           {'member_id': req_dict['member_id'],
+                                            'community_id': req_dict['community_id']},
+                                           {'state': member_states.MEMBER,
+                                            'approved_by': current_user_instance,
+                                            'custom_title': "Member",
+                                            'created_at': TimeUtilities.current_time_in_sec(),
+                                            'became_member_at': TimeUtilities.current_time_in_sec()})
+
             # giving default member rights
             give_default_member_rights(user=req_dict['member_id'], community=req_dict['community_id'])
-            Member_Engage.objects.filter(member_id=req_dict['member_id'],
-                                         community_id=req_dict['community_id']).update(
-                member_state=member_states.MEMBER,
-                updated_at=time.time(), click_state=click_states.DEFAULT,
-                rights_list=json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS))
+
+            update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                           {'community_id': req_dict['community_id'],
+                                            'member_id': req_dict['member_id']},
+                                           {'click_state': click_states.DEFAULT,
+                                            'member_state': member_states.MEMBER,
+                                            'rights_list': json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)})
 
             # updating pending member count
             community = Community.objects.get(id=req_dict['community_id'])
@@ -4650,10 +4689,14 @@ def approve_or_decline_private_community(req_dict, request):
             post_introduction_card_for_community(community_id, member_id, request)
 
             # removing guest status from all chatrooms after access
-            collabcardState.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).update(
-                is_guest=False, remove=None, updated_at=time.time())
-            card_answers.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).update(
-                is_guest=False, remove=None)
+
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'community': req_dict['community_id'], 'user': req_dict['member_id']},
+                                           {'is_guest': False, 'remove': None})
+
+            update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                           {'community': req_dict['community_id'], 'user': req_dict['member_id']},
+                                           {'is_guest': False, 'remove': None})
 
             # saving create community action step 4
             update_community_actions(community_instance=community)
@@ -5833,11 +5876,12 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                        function_called="get_chatroom_internal")
     elif user_instance and chatroom_state.exists():
         instance = chatroom_state[0]
+
         if not instance.external_seen:
-            instance.external_seen = True
-            instance.expiry_time = get_expiry_time_of_chatroom()
-            instance.updated_at = time.time()
-            instance.save()
+            expiry_time = get_expiry_time_of_chatroom()
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'card': card_instance, 'user': user_instance, 'remove': None},
+                                           {'external_seen': True, 'expiry_time': expiry_time})
 
     # sending the follow telescope
     latest_conversation = conversations_filter.last()
@@ -5979,10 +6023,12 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
                                        function_called="get_chatroom_internal_version_1")
     elif user_instance and chatroom_state.exists():
         instance = chatroom_state[0]
+
         if not instance.external_seen:
-            instance.external_seen = True
-            instance.expiry_time = get_expiry_time_of_chatroom()
-            instance.save()
+            expiry_time = get_expiry_time_of_chatroom()
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'card': card_instance, 'user': user_instance, 'remove': None},
+                                           {'external_seen': True, 'expiry_time': expiry_time})
 
     # sending the follow telescope
     latest_conversation = conversations_filter.last()
@@ -6052,11 +6098,12 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                        function_called="get_chatroom_internal_version_1")
     elif user_instance and chatroom_state.exists():
         instance = chatroom_state[0]
+
         if not instance.external_seen:
-            instance.external_seen = True
-            instance.expiry_time = get_expiry_time_of_chatroom()
-            instance.updated_at = time.time()
-            instance.save()
+            expiry_time = get_expiry_time_of_chatroom()
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'card': card_instance, 'user': user_instance, 'remove': None},
+                                           {'external_seen': True, 'expiry_time': expiry_time})
 
     if chatroom_state.exists():
         state_instance = chatroom_state[0]
@@ -6148,20 +6195,21 @@ def save_the_latest_conversation(card_instance, user_id):
             if collabcard_state_instance.last_seen_conversation:
 
                 if last_seen_conversation.id != last_conversation.id:
-                    collabcard_state_instance.last_seen_conversation = last_conversation
-                    collabcard_state_instance.expiry_time = expiry_time
-                    collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
-                    collabcard_state_instance.save()
+
+                    update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                                   {'card': card_instance, 'user': user_instance},
+                                                   {'last_seen_conversation': last_conversation,
+                                                    'expiry_time': expiry_time})
 
                     update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                              last_conversation_id=last_conversation.id,
                                                              unseen_count=0)
 
             else:
-                collabcard_state_instance.last_seen_conversation = last_conversation
-                collabcard_state_instance.expiry_time = expiry_time
-                collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
-                collabcard_state_instance.save()
+                update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                               {'card': card_instance, 'user': user_instance},
+                                               {'last_seen_conversation': last_conversation,
+                                                'expiry_time': expiry_time})
 
                 update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                          last_conversation_id=last_conversation.id,
@@ -7100,9 +7148,12 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
 
     # the person who is making the conversation marking his chatroom active for expiry time
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
+
     if state_filter.exists():
         expiry_time = get_expiry_time_of_chatroom(state_filter[0])
-        state_filter.update(expiry_time=expiry_time, updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': card_instance, 'user': user_id},
+                                       {'expiry_time': expiry_time})
 
     # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
@@ -7237,25 +7288,17 @@ def collabcard_follow(request, function_dict=None):
                                            guest_header=True)
 
         # updating the collabcard state external follow for guest member
-        collabcardState.objects.filter(card=collabcard, user=user_instance).update(external_follow=True)
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': collabcard, 'user': user_instance},
+                                       {'external_follow': True})
+
         return JsonResponse(context)
 
     expiry_time = get_expiry_time_of_chatroom()
 
     collabcard_state_filter = collabcardState.objects.filter(card=collabcard, user=user_instance)
+
     if not collabcard_state_filter.exists():
-        # collabcard_state_instance = collabcardState()
-        # collabcard_state_instance.card = collabcard
-        # collabcard_state_instance.community = community_instance
-        # collabcard_state_instance.user = user_instance
-        # collabcard_state_instance.state = 0
-        # collabcard_state_instance.created_at = time.time()
-        # collabcard_state_instance.updated_at = time.time()
-        # collabcard_state_instance.follow_status = status
-        # collabcard_state_instance.is_guest = is_guest
-        # collabcard_state_instance.external_seen = True
-        # collabcard_state_instance.expiry_time = expiry_time
-        # collabcard_state_instance.save()
 
         create_chatroom_state_instance(card_instance, user_instance, state=0,
                                        expire_at=expiry_time, external_seen=True, is_guest=is_guest,
@@ -7278,6 +7321,7 @@ def collabcard_follow(request, function_dict=None):
 
         if status:
             expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
+
             collabcard_state_filter.update(follow_status=status, updated_at=time.time(), expiry_time=expiry_time,
                                            external_seen=True, external_follow=status)
 
@@ -7344,20 +7388,41 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
 
     if collabcard_state_filter.exists():
         if collabcard_state_filter[0].follow_status == status:
+
             if collabcard_state_filter[0].is_tagged:
-                collabcard_state_filter.update(is_tagged=False, mute_status=False, updated_at=time.time())
-            print("follow hit")
+                update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                               {'card': card_instance, 'user': user_instance},
+                                               {'is_tagged': False, 'mute_status': False})
             return
 
         expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
         if is_guest:
-            collabcard_state_filter.update(follow_status=status, state=state, is_guest=is_guest,
-                                           updated_at=time.time(), source=ref_instance, expiry_time=expiry_time,
-                                           is_tagged=is_tagged, external_seen=True, mute_status=mute_status)
+
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'card': card_instance, 'user': user_instance},
+                                           {
+                                               'follow_status': status,
+                                               'state': state,
+                                               'is_guest': is_guest,
+                                               'source': ref_instance,
+                                               'expiry_time': expiry_time,
+                                               'is_tagged': is_tagged,
+                                               'external_seen': True,
+                                               'mute_status': mute_status,
+                                           })
+
         else:
-            collabcard_state_filter.update(follow_status=status, updated_at=time.time(),
-                                           expiry_time=expiry_time, is_tagged=is_tagged,
-                                           external_seen=True, mute_status=mute_status)
+
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'card': card_instance, 'user': user_instance},
+                                           {
+                                               'follow_status': status,
+                                               'expiry_time': expiry_time,
+                                               'is_tagged': is_tagged,
+                                               'external_seen': True,
+                                               'mute_status': mute_status,
+                                           })
+
 
     else:
 
@@ -7393,18 +7458,8 @@ def set_state_for_event_cards(collabcard, community_instance, user_instance, sta
         if status:  # the collabcard is the event card and followed
             try:
                 collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
-            except:
-                # for autofollowing the co-host
-                # collabcard_state_instance = collabcardState()
-                # collabcard_state_instance.card = collabcard
-                # collabcard_state_instance.community = community_instance
-                # collabcard_state_instance.user = user_instance
-                # collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
-                # collabcard_state_instance.follow_status = True
-                # collabcard_state_instance.created_at = time.time()
-                # collabcard_state_instance.updated_at = time.time()
-                # collabcard_state_instance.save()
 
+            except:
                 collabcard_state_instance = create_chatroom_state_instance(collabcard, user_instance,
                                                                            state=collabcard_states.COLLABCARD_STATE_SEEN,
                                                                            expire_at=None, external_seen=True,
@@ -7497,10 +7552,11 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
         state_instance = is_present[0]
         if state_instance.state == 0:
             state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+
             if not state_instance.external_seen:
-                state_instance.external_seen = True
-                state_instance.expiry_time = expiry_time
-                state_instance.updated_at = time.time()
+                update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                               {'card': card_instance, 'user': user_instance},
+                                               {'external_seen': True, 'expiry_time': expiry_time})
 
             state_instance.save()
 
@@ -7533,11 +7589,10 @@ def collabcard_attend(request):
     if status:
 
         try:
-            state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
-            state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
-            state_instance.attending_status = True
-            state_instance.updated_at = time.time()
-            state_instance.save()
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'card': card_instance, 'user': user_instance},
+                                           {'state': collabcard_states.COLLABCARD_STATE_ATTENDING,
+                                            'attending_status': True})
 
         except:
             create_chatroom_state_instance(card_instance, user_instance,
@@ -7554,10 +7609,9 @@ def collabcard_attend(request):
 
         state = collabcard_states.COLLABCARD_STATE_SEEN
         try:
-            collabcardState.objects.filter(card=card_instance,
-                                           user=user_instance).update(state=state,
-                                                                      attending_status=False,
-                                                                      updated_at=time.time())
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'card': card_instance, 'user': user_instance},
+                                           {'state': state, 'attending_status': False})
 
         except:
             create_chatroom_state_instance(card_instance, user_instance,
@@ -7567,7 +7621,9 @@ def collabcard_attend(request):
                                            function_called="collabcard_attend")
 
     update_event_answer_text(card_instance)  # function to update the text when a user attends an event
-    collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
+    update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                   {'card': card_instance},
+                                   {})
 
     return JsonResponse({'success': True})
 
@@ -8366,8 +8422,10 @@ def upload_files(request):
         file.width = body.get('width', None)
         file.save()
 
-        # updating updated_at for synching apis
-        collabcardState.objects.filter(user=member_id, card=card_instance).update(updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'user': member_id, 'card': card_instance},
+                                       {})
+
         uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
 
         if uploaded_files_count == card_instance.attachment_count + card_instance.pdf_count:
@@ -8376,8 +8434,10 @@ def upload_files(request):
             user_instance = User.objects.get(id=member_id)
 
             expiry_time = time.time() + HOURS_24
-            collabcardState.objects.filter(card=card_instance,
-                                           user=user_instance).update(expiry_time=expiry_time)
+
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'user': member_id, 'card': card_instance},
+                                           {'expiry_time': expiry_time})
 
             send_chatroom_creation_notification(card_instance, user_instance)
             set_chatroom_state_for_all_members_on_card_creation.delay(card_instance.community.id,
@@ -8566,7 +8626,9 @@ def upload_chatroom_attachments(body, member_id):
     save_chatroom_attachments(chatroom_instance, body)
 
     # updating updated_at for syncing apis
-    collabcardState.objects.filter(user=member_id, card=chatroom_instance).update(updated_at=time.time())
+    update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                   {'user': member_id, 'card': chatroom_instance},
+                                   {})
     # files_count = body['files_count'] if 'files_count' in body else 0
 
     uploaded_files_count = Card_Attachment.objects.filter(collabcard=chatroom_instance).count()
@@ -8584,8 +8646,10 @@ def upload_chatroom_attachments(body, member_id):
         user_instance = User.objects.get(id=member_id)
 
         expiry_time = time.time() + HOURS_24
-        collabcardState.objects.filter(card=chatroom_instance,
-                                       user=user_instance).update(expiry_time=expiry_time)
+
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': chatroom_instance, 'user': user},
+                                       {'expiry_time': expiry_time})
 
         send_chatroom_creation_notification(chatroom_instance, user_instance)
 
@@ -10292,8 +10356,10 @@ def dismiss(request):
     is_promoter = is_member_promoter(community_id=community_id, member_id=member_id)
 
     if type == "community_actions" and is_promoter:
-        Members.objects.filter(community_id=community_id, member_id=member_id).update(actions_required=False,
-                                                                                      updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'member_id': member_id,
+                                        'community_id': community_id},
+                                       {'actions_required': False})
         context['success'] = True
         return JsonResponse(context)
 
@@ -10718,7 +10784,9 @@ def edit_community_questions(request):
 
     # updating members state table for editing
     if major_change:
-        Members.objects.filter(community_id=community_instance).update(edit_required=True, updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'community_id': community_instance},
+                                       {'edit_required': True})
         send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
     edit_community_data(community_instance, user_instance, edit_field="directory")
@@ -10824,7 +10892,9 @@ def edit_questions_version_1(request):
 
     # updating members state table for editing
     if major_change:
-        Members.objects.filter(community_id=community_instance).update(edit_required=True, updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'community_id': community_instance},
+                                       {'edit_required': True})
         send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
     edit_community_data(community_instance, user_instance, edit_field="directory")
@@ -10860,8 +10930,10 @@ def edit_community_data(community_instance, user_instance, edit_field):
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
 
         # setting the updation time of edited community
-        Member_Engage.objects.filter(community_id=community_instance,
-                                     member_id=user_instance).update(updated_at=time.time())
+
+        update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                       {'community_id': community_instance, 'member_id': user_instance},
+                                       {})
 
 
 def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
@@ -12240,7 +12312,10 @@ def submit_poll(request):
             'source': "submit poll"
         }
         collabcard_follow_internal(function_dict)
-        collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
+
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': card_instance},
+                                       {})
         return JsonResponse({"success": True})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
@@ -12282,7 +12357,9 @@ def add_poll(request):
             collabcardpolls_instance.save()
             poll_list.append(CollabcardPollsSerializer(collabcardpolls_instance, user_instance, card_instance))
 
-        collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': card_instance},
+                                       {})
         return JsonResponse({"success": True, "polls": poll_list})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
@@ -12370,12 +12447,9 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
         if tag.exists():
             tag_instance = tag[0]
 
-    conversation_instance.is_deleted = True
-    conversation_instance.deleted_by_user = current_user_instance
-    conversation_instance.tag = tag_instance
-    conversation_instance.reason = reason
-    conversation_instance.last_updated = int(round(time.time() * 1000))
-    conversation_instance.save()
+    update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                   {'id': conversation_instance.id},
+                                   {'deleted_by_user': current_user_instance, 'tag': tag_instance, 'reason': reason})
 
     if int(current_user_instance.id) == int(conversation_instance.user.id):
         action_taken = report_Action_Types.RESPONSE_DELETED_BY_CREATOR
@@ -12419,10 +12493,9 @@ def edit_conversation(request):
         context = get_error_context(False, "Cannot edit deleted conversation")
         return JsonResponse(context)
     elif int(conversation.user.id) == int(member_id):
-        conversation.answer = edited_answer
-        conversation.is_edited = True
-        conversation.last_updated = int(round(time.time() * 1000))
-        conversation.save()
+        update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                       {'id': conversation_id},
+                                       {'answer': edited_answer, 'is_edited': True})
     else:
         context = get_error_context(False,
                                     "you are not the conversation creator.Only conversation creator can edit his/her message")
@@ -12695,10 +12768,10 @@ def update_community_manager_rights(request):
                 # giving all of the members rights to promoter
                 give_all_member_rights(user=user_instance, community=community_instance)
 
-                Member_Engage.objects.filter(member_id=user_instance,
-                                             community_id=community_id).update(
-                    member_state=member_states.ADMIN,
-                    rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS))
+                update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                               {'member_id': user_instance, 'community_id': community_id},
+                                               {'member_state': member_states.ADMIN,
+                                                'rights_list': json.dumps(member_rights.ALL_MEMBER_RIGHTS)})
 
                 save_moderation_history(user=user_instance, community=community_instance,
                                         moderation_by=current_user_instance,
@@ -12708,7 +12781,9 @@ def update_community_manager_rights(request):
                                                          community_id=community_id, custom_title=custom_title)
             elif custom_title_changed:
                 # updating time for all members of community
-                Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+                update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                               {'community_id': community_instance},
+                                               {})
                 send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                                  community_id=community_id,
                                                                  custom_title=custom_title)
@@ -12772,19 +12847,23 @@ def remove_community_manager(request):
             if custom_title == "Community Manager":
                 custom_title = "Member"
 
-        Members.objects.filter(community_id=community_instance,
-                               member_id=user_instance).update(state=member_states.MEMBER, custom_title=custom_title,
-                                                               parent_cm=None, parent_cm_list='[]',
-                                                               updated_at=time.time())
-        Member_Engage.objects.filter(member_id=user_instance,
-                                     community_id=community_instance).update(member_state=member_states.MEMBER,
-                                                                             pending_chatrooms=0,
-                                                                             open_reports=0)
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'community_id': community_instance},
+                                       {'state': member_states.MEMBER,
+                                        'custom_title': custom_title,
+                                        'parent_cm': None,
+                                        'parent_cm_list': '[]'})
+
+        update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                       {'member_id': user_instance, 'community_id': community_instance},
+                                       {'pending_chatrooms': 0, 'open_reports': 0})
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)
         # updating time for all members of community
-        Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'community_id': community_instance},
+                                       {})
 
         restore_member_rights_from_history(user_instance, community_instance)
 
@@ -12886,16 +12965,19 @@ def transfer_community_ownership(request):
             if previous_owner_title == "Owner":
                 previous_owner_title = "Community Manager"
 
-        Members.objects.filter(community_id=community_instance,
-                               member_id=user_instance).update(state=member_states.ADMIN, is_owner=True,
-                                                               custom_title=new_owner_title, parent_cm=None,
-                                                               parent_cm_list=None,
-                                                               updated_at=time.time())
-
-        Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
-            rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS),
-            member_state=member_states.ADMIN, click_state=click_states.DEFAULT
-        )
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'community_id': community_instance, 'member_id': user_instance},
+                                       {
+                                           'state': member_states.ADMIN,
+                                           'custom_title': new_owner_title,
+                                           'parent_cm': None,
+                                           'parent_cm_list': None,
+                                           'is_owner': True})
+        update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                       {'member_id': user_instance, 'community_id': community_instance},
+                                       {'rights_list': json.dumps(member_rights.ALL_MEMBER_RIGHTS),
+                                        'member_state': member_states.ADMIN,
+                                        'click_state': click_states.DEFAULT})
         conversationEngage.objects.filter(user=user_instance, community=community_instance).update(
             rights_list=json.dumps(member_rights.ALL_MEMBER_RIGHTS))
 
@@ -12916,7 +12998,9 @@ def transfer_community_ownership(request):
         send_notification_for_ownership_transfered.delay(prev_owner_id=current_user_id,
                                                          new_owner_id=user_id, community_id=community_id)
         # updating time for all members of community
-        Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+        update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                       {'community_id': community_instance},
+                                       {})
         info_logger.info(f"TRANSFER_OWNERSHIP_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
         return JsonResponse({'success': True})
@@ -13061,7 +13145,9 @@ def update_community_member_rights(request):
 
         if custom_title_changed:
             # updating time for all members of community
-            Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+            update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                           {'community_id': community_instance},
+                                           {})
             send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                              community_id=community_id,
                                                              custom_title=custom_title)
