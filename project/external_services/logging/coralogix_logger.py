@@ -11,21 +11,23 @@ class CoralogixLoggerImpl(LoggerManager):
     __instance__ = None
 
     def __init__(self) -> None:
-        logger = self.get_coralogix_logger_instance()
+        logger = self._get_coralogix_logger_instance()
         CoralogixLoggerImpl.__instance__ = logger
 
+    def _get_coralogix_logger_instance(self) -> object:
+        logger = logging.getLogger()
+        handler = self._coralogix_handler()
+        logger.addHandler(handler)
+
+        return logger
+
     @staticmethod
-    def get_coralogix_logger_instance() -> object:
-        logger = logging.getLogger("Python Logger")
-        logger.setLevel(logging.INFO)
-        coralogix_handler = CoralogixLogger(
+    def _coralogix_handler() -> CoralogixLogger:
+        return CoralogixLogger(
             settings.CORALOGIX_LOGGER.get('PRIVATE_API_KEY'),
             settings.CORALOGIX_LOGGER.get('APPLICATION_NAME'),
             settings.CORALOGIX_LOGGER.get('SUBSYSTEM_NAME_APP')
         )
-        logger.addHandler(coralogix_handler)
-
-        return logger
 
     @staticmethod
     def get_instance() -> object:

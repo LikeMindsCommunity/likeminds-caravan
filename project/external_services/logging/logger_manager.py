@@ -9,8 +9,8 @@ class LoggerManager(metaclass=abc.ABCMeta):
                 callable(subclass.get_instance) or
                 NotImplemented)
 
-    @abc.abstractmethod
-    def get_instance(self) -> object:
+    @staticmethod
+    def get_instance() -> object:
         """
         returns logger instance
         """
