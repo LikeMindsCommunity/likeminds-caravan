@@ -12387,7 +12387,7 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
 
     update_models_for_syncing_apis(SyncTypes.CONVERSATION,
                                    {'id': conversation_instance.id},
-                                   {'deleted_by_user': current_user_instance, 'tag': tag_instance, 'reason': reason})
+                                   {'deleted_by_user': current_user_instance, 'is_deleted': True})
 
     if int(current_user_instance.id) == int(conversation_instance.user.id):
         action_taken = report_Action_Types.RESPONSE_DELETED_BY_CREATOR
@@ -12786,7 +12786,7 @@ def remove_community_manager(request):
                 custom_title = "Member"
 
         update_models_for_syncing_apis(SyncTypes.MEMBERS,
-                                       {'community_id': community_instance},
+                                       {'community_id': community_instance, 'member_id': user_instance},
                                        {'state': member_states.MEMBER,
                                         'custom_title': custom_title,
                                         'parent_cm': None,
