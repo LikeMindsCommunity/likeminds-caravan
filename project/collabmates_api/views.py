@@ -8889,6 +8889,7 @@ def login_authenticate_version_1(request):
             res['login_json'] = dic_form
 
             context = login_with_linkedin(request, res, json_to_save, login_type=login_type)
+
             return JsonResponse(context)
 
         elif login_type == "apple":
@@ -8977,7 +8978,7 @@ def get_user_details(access_token):
 def create_user(user_name, email, id, apple_id=False):
     ''' function to create Auth-User of a user '''
 
-    user_name = user_name + "_" + id
+    user_name = user_name + "_" + str(id)
 
     user = User.objects.filter(email=email)
     if apple_id and not user.exists():
@@ -8999,7 +9000,7 @@ def create_user(user_name, email, id, apple_id=False):
 def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city=None, apple_id=None):
     ''' function to create User-Info of a user '''
 
-    userinfo = Userinfo.objects.filter(email=email)
+    userinfo = Userinfo.objects.filter(user_id=user)
     if apple_id and not userinfo.exists():
         userinfo = Userinfo.objects.filter(apple_id=apple_id)
 
@@ -9043,71 +9044,54 @@ def login_with_google(google_id_token, request, res, login_type="google"):
     mobile_no = res['mobile_no'] if 'mobile_no' in res else None
     country_code = res['country_code'] if 'country_code' in res else None
 
+    if not mobile_no or not country_code:
+        context = get_error_context(False, "Invalid mobile number or country code")
+
+        return context
+
     google_json = fetch_google_auth_data(google_id_token)
     json_to_save = google_json[0]
     res = google_json[1]
     info_logger.info(res)
     created = False
-    # context ={'success':False,'error_message':"please give permission to use your google account"}
     context = get_error_context(False, "please give permission to use your google account")
     image_link = None
+
     if 'email' in res:
         email = res['email']
         email = email.lower().strip()
 
-        user = get_user_from_email(email)  # getting the user instance from email if it is present
+        user_exists = ModelUtilities.get_model_filter(userMobiles, {'mobile_no': mobile_no})
 
-        if not user:
-            # creating a user if no user is associated with that email
-            res['id'] = res['azp']
+        if not user_exists:
 
-            user = create_user(user_name=res['name'], email=res['email'], id=res['email'])
-            user_instance = user
+            user_instance = create_user(user_name=res['name'], email=res['email'], id=mobile_no)
+
             if 'picture' in res:
-                image_link = upload_image_to_firebase(res['picture'], user.id)
-            # else:
-            #     image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+                image_link = upload_image_to_firebase(res['picture'], user_instance.id)
 
-            userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+            userinfo = create_userinfo(user=user_instance, email=res['email'], user_name=res['name'],
                                        profile_picture=image_link, login_type=login_type,
                                        json_to_save=json_to_save
                                        )
-
-            if 'picture' not in res:
-                save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
-
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
-            save_user_primary_email(user, res['email'], verified=True)
-            # mail_triger(str(user.id), request)  # both mail and notification will be sent here
-            email_exists = False
+            save_user_primary_email(user_instance, res['email'], verified=True)
 
+            if 'picture' not in res:
+                save_name_initial_image.delay(user_id=user_instance.id, user_name=res['name'])
         else:
-            userinfo = user.userinfo
-            # save_user_mobile_number(user, country_code, mobile_no, state=mobile_states.PRIMARY)
-            email_exists = True
+            user_instance = user_exists[0].user
 
-        # usr = UserinfoSerializer(userinfo)
-
-        usr = get_logged_in_user(user_instance=user)
-        # see if user has tags or not
-        has_tags = userinfo.has_tags
-
-        # # saving the OS type of user (Android,iOS,WEB)
-        # request_type = get_request_type(request)
-        # if request_type:
-        #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
-
-        # User asscoaited tags if any present
-        if has_tags:
-            tags = get_user_lpig_tags(usr['id'])
-            usr['tags'] = tags
+        usr = get_logged_in_user(user_instance=user_instance)
 
         if is_request_web(request):
-            login(request, user=userinfo.user_id, backend="django.contrib.auth.backends.ModelBackend")
+            login(request, user=user_instance, backend="django.contrib.auth.backends.ModelBackend")
 
         access = is_user_community_part(usr['id'])
-        context = {'user': usr, 'access': access, 'email_exists': email_exists, 'has_tags': has_tags}
+        email_exists = ModelUtilities.is_model_filter_exists(userEmails,
+                                                             {'email': user_instance.userinfo.email, 'verified': True})
+        context = {'user': usr, 'access': access, 'email_exists': email_exists}
 
     return context
 
@@ -9118,82 +9102,56 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
     mobile_no = res['mobile_no'] if 'mobile_no' in res else None
     country_code = res['country_code'] if 'country_code' in res else None
 
+    if not mobile_no or not country_code:
+        context = get_error_context(False, "Invalid mobile number or country code")
+
+        return context
+
     res = res['login_json']
-    user = None
-    email = None
     image_link = None
+    email = None
+
     if 'email' in res:
         email = res['email']
         # converting email to lower case and removing unwanted space
         email = email.lower().strip()
-        user = get_user_from_email(email)
 
-    elif mobile_no:
-        has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
-        if has_mobile_no.exists():
-            user = has_mobile_no[0].user
-    else:
-        user_name = res['name'] + res['id']
-        user_obj = User.objects.filter(username=user_name)
-        if user_obj.exists():
-            user = user_obj[0]
+    user_exists = ModelUtilities.get_model_filter(userMobiles, {'mobile_no': mobile_no})
 
-    if not user:
-        # creating a user if no user is associated with that email
-        user = create_user(user_name=res['name'], email=email, id=res['id'])
-        user_instance = user
-        # if there is no user then user will not have userinfo too
-        # creating user info
+    if not user_exists:
 
-        # fb_link = res['link'] if 'link' in res else None
+        user_instance = create_user(user_name=res['name'], email=email, id=mobile_no)
+
         if 'picture' in res:
-            image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
-        # else:
-        #     image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+            image_link = upload_image_to_firebase(res['picture']['data']['url'], user_instance.id)
 
         city = res['location']['name'] if 'location' in res else None
 
-        userinfo = create_userinfo(user=user, email=email, user_name=res['name'],
+        userinfo = create_userinfo(user=user_instance, email=email, user_name=res['name'],
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city,
-                                   # fb_link=fb_link
                                    )
-        if mobile_no:
-            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
-        if email:
-            save_user_primary_email(user, email, verified=True)
+
+        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+        save_user_primary_email(user_instance, email, verified=True)
 
         if 'picture' not in res:
-            save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
+            save_name_initial_image.delay(user_id=user_instance.id, user_name=res['name'])
 
-        email_exists = False
     else:
-        userinfo = user.userinfo
-        email_exists = True
-        # save_user_mobile_number(user, country_code, mobile_no, state=mobile_states.PRIMARY)
+        user_instance = user_exists[0].user
 
-        # get serialized user object
-
-    usr = get_logged_in_user(user_instance=user)
-    # see if user has tags or not
-    has_tags = userinfo.has_tags
-
-    # # saving the OS type of user (Android,iOS,WEB)
-    # request_type = get_request_type(request)
-    # if request_type:
-    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+    usr = get_logged_in_user(user_instance=user_instance)
 
     # login in when the request is web
     if is_request_web(request):
-        login(request, user=userinfo.user_id, backend="django.contrib.auth.backends.ModelBackend")
-
-    # User asscoaited tags if any present
-    if has_tags:
-        tags = get_user_lpig_tags(usr['id'])
-        usr['tags'] = tags
+        login(request, user=user_instance, backend="django.contrib.auth.backends.ModelBackend")
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'access': access, 'email_exists': email_exists, 'has_tags': has_tags}
+    email_exists = ModelUtilities.is_model_filter_exists(userEmails,
+                                                         {'email': user_instance.userinfo.email, 'verified': True})
+    context = {'user': usr, 'access': access, 'email_exists': email_exists}
+
     return context
 
 
@@ -9203,70 +9161,49 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
     mobile_no = res['mobile_no'] if 'mobile_no' in res else None
     country_code = res['country_code'] if 'country_code' in res else None
 
+    if not mobile_no or not country_code:
+        context = get_error_context(False, "Invalid mobile number or country code")
+
+        return context
+
     res = res['login_json']
-    user = None
     email = None
-    # if user is logging in with linkedIn
+
     if 'email' in res:
         email = res['email']['elements'][0]['handle~']['emailAddress']
 
-        user = get_user_from_email(email)
-
-    elif mobile_no:
-        has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
-        if has_mobile_no.exists():
-            user = has_mobile_no[0].user
-    else:
-        user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
-        user_obj = User.objects.filter(username=user_name + res['id'])
-        if user_obj.exists():
-            user = user_obj[0]
-
     profile_picture = None
-    if not user:
+
+    user_exists = ModelUtilities.get_model_filter(userMobiles, {'mobile_no': mobile_no})
+
+    if not user_exists:
 
         user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
-        user = create_user(user_name=user_name, email=email, id=res['id'])
-        user_instance = user
+        user_instance = create_user(user_name=user_name, email=email, id=mobile_no)
+
         if 'profilePicture' in res:
             profile_picture = upload_image_to_firebase(
-                res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user.id)
-        # else:
-        #     profile_picture = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+                res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user_instance.id)
 
-        userinfo = create_userinfo(user=user, email=email, user_name=user_name,
+        userinfo = create_userinfo(user=user_instance, email=email, user_name=user_name,
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
 
         if 'profilePicture' not in res:
-            save_name_initial_image.delay(user_id=user.id, user_name=user_name)
-        if mobile_no:
-            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
-        if email:
-            save_user_primary_email(user, email, verified=True)
-        email_exists = False
+            save_name_initial_image.delay(user_id=user_instance.id, user_name=user_name)
+
+        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+        save_user_primary_email(user_instance, email, verified=True)
 
     else:
-        userinfo = user.userinfo
-        email_exists = True
+        user_instance = user_exists[0].user
 
-    # usr = UserinfoSerializer(userinfo)
-    usr = get_logged_in_user(user_instance=user)
-    # see if user has tags or not
-    has_tags = userinfo.has_tags
-
-    # # saving the OS type of user (Android,iOS,WEB)
-    # request_type = get_request_type(request)
-    # if request_type:
-    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
-
-    if has_tags:
-        tags = get_user_lpig_tags(usr['id'])
-        usr['tags'] = tags
-
+    usr = get_logged_in_user(user_instance=user_instance)
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'access': access, 'email_exists': email_exists, 'has_tags': has_tags}
-    # print(context)
+    email_exists = ModelUtilities.is_model_filter_exists(userEmails,
+                                                         {'email': user_instance.userinfo.email, 'verified': True})
+    context = {'user': usr, 'access': access, 'email_exists': email_exists}
+
     return context
 
 
@@ -9350,7 +9287,6 @@ def custom_login(request, res, login_type="custom"):
 
     if email_exists:
         context['user'] = get_logged_in_user(user_instance=email_exists)
-        context['has_tags'] = email_exists.userinfo.has_tags
         context['access'] = is_user_community_part(context['user']['id'])
         context['email_exists'] = True
 
@@ -9424,6 +9360,7 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
 
             # creating user email
             save_user_primary_email(user_instance, email, email_state=email_states.PRIMARY)
+            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
             # send verification mail for email
             verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
@@ -9432,7 +9369,7 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
             send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
                                                   verification_link=verification_details['verify_url'], email=email)
 
-            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+
 
             return user_instance
         else:

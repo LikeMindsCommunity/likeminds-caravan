@@ -1485,3 +1485,12 @@ class ModelUtilities:
         update_status = model.objects.filter(**filter_dict).update(**update_dict)
 
         return update_status
+
+    @staticmethod
+    def get_model_filter(model, filter_dict):
+        return model.objects.filter(**filter_dict)
+
+    @staticmethod
+    def is_model_filter_exists(model, filter_dict):
+        return model.objects.filter(**filter_dict).exists()
+
