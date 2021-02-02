@@ -15,6 +15,7 @@ from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from collections import OrderedDict
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, renderer_classes
@@ -35,7 +36,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
-                            moderation_history_types, report_Action_Types, report_Types)
+                            moderation_history_types, report_Action_Types, report_Types, HomeSnackbarType)
 from utility.tasks import (mail_triger, new_member_request, member_request_approval_or_denied,
                            send_mail_for_report_abuse, send_mail_for_query_and_feedback,
                            save_name_initial_image)
@@ -8889,6 +8890,7 @@ def login_authenticate_version_1(request):
             res['login_json'] = dic_form
 
             context = login_with_linkedin(request, res, json_to_save, login_type=login_type)
+
             return JsonResponse(context)
 
         elif login_type == "apple":
@@ -8977,7 +8979,7 @@ def get_user_details(access_token):
 def create_user(user_name, email, id, apple_id=False):
     ''' function to create Auth-User of a user '''
 
-    user_name = user_name + "_" + id
+    user_name = user_name + "_" + str(id)
 
     user = User.objects.filter(email=email)
     if apple_id and not user.exists():
@@ -8999,7 +9001,7 @@ def create_user(user_name, email, id, apple_id=False):
 def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city=None, apple_id=None):
     ''' function to create User-Info of a user '''
 
-    userinfo = Userinfo.objects.filter(email=email)
+    userinfo = Userinfo.objects.filter(user_id=user)
     if apple_id and not userinfo.exists():
         userinfo = Userinfo.objects.filter(apple_id=apple_id)
 
@@ -9043,71 +9045,54 @@ def login_with_google(google_id_token, request, res, login_type="google"):
     mobile_no = res['mobile_no'] if 'mobile_no' in res else None
     country_code = res['country_code'] if 'country_code' in res else None
 
+    if not mobile_no or not country_code:
+        context = get_error_context(False, "Invalid mobile number or country code")
+
+        return context
+
     google_json = fetch_google_auth_data(google_id_token)
     json_to_save = google_json[0]
     res = google_json[1]
     info_logger.info(res)
     created = False
-    # context ={'success':False,'error_message':"please give permission to use your google account"}
     context = get_error_context(False, "please give permission to use your google account")
     image_link = None
+
     if 'email' in res:
         email = res['email']
         email = email.lower().strip()
 
-        user = get_user_from_email(email)  # getting the user instance from email if it is present
+        user_exists = ModelUtilities.get_model_filter(userMobiles, {'mobile_no': mobile_no})
 
-        if not user:
-            # creating a user if no user is associated with that email
-            res['id'] = res['azp']
+        if not user_exists:
 
-            user = create_user(user_name=res['name'], email=res['email'], id=res['email'])
-            user_instance = user
+            user_instance = create_user(user_name=res['name'], email=res['email'], id=mobile_no)
+
             if 'picture' in res:
-                image_link = upload_image_to_firebase(res['picture'], user.id)
-            # else:
-            #     image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+                image_link = upload_image_to_firebase(res['picture'], user_instance.id)
 
-            userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+            userinfo = create_userinfo(user=user_instance, email=res['email'], user_name=res['name'],
                                        profile_picture=image_link, login_type=login_type,
                                        json_to_save=json_to_save
                                        )
-
-            if 'picture' not in res:
-                save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
-
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
-            save_user_primary_email(user, res['email'], verified=True)
-            # mail_triger(str(user.id), request)  # both mail and notification will be sent here
-            email_exists = False
+            save_user_primary_email(user_instance, res['email'], verified=True)
 
+            if 'picture' not in res:
+                save_name_initial_image.delay(user_id=user_instance.id, user_name=res['name'])
         else:
-            userinfo = user.userinfo
-            # save_user_mobile_number(user, country_code, mobile_no, state=mobile_states.PRIMARY)
-            email_exists = True
+            user_instance = user_exists[0].user
 
-        # usr = UserinfoSerializer(userinfo)
-
-        usr = get_logged_in_user(user_instance=user)
-        # see if user has tags or not
-        has_tags = userinfo.has_tags
-
-        # # saving the OS type of user (Android,iOS,WEB)
-        # request_type = get_request_type(request)
-        # if request_type:
-        #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
-
-        # User asscoaited tags if any present
-        if has_tags:
-            tags = get_user_lpig_tags(usr['id'])
-            usr['tags'] = tags
+        usr = get_logged_in_user(user_instance=user_instance)
 
         if is_request_web(request):
-            login(request, user=userinfo.user_id, backend="django.contrib.auth.backends.ModelBackend")
+            login(request, user=user_instance, backend="django.contrib.auth.backends.ModelBackend")
 
         access = is_user_community_part(usr['id'])
-        context = {'user': usr, 'access': access, 'email_exists': email_exists, 'has_tags': has_tags}
+        email_exists = ModelUtilities.is_model_filter_exists(userEmails,
+                                                             {'email': user_instance.userinfo.email, 'verified': True})
+        context = {'user': usr, 'access': access, 'email_exists': email_exists}
 
     return context
 
@@ -9118,82 +9103,56 @@ def login_with_facebook(request, res, json_to_save, login_type="facebook"):
     mobile_no = res['mobile_no'] if 'mobile_no' in res else None
     country_code = res['country_code'] if 'country_code' in res else None
 
+    if not mobile_no or not country_code:
+        context = get_error_context(False, "Invalid mobile number or country code")
+
+        return context
+
     res = res['login_json']
-    user = None
-    email = None
     image_link = None
+    email = None
+
     if 'email' in res:
         email = res['email']
         # converting email to lower case and removing unwanted space
         email = email.lower().strip()
-        user = get_user_from_email(email)
 
-    elif mobile_no:
-        has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
-        if has_mobile_no.exists():
-            user = has_mobile_no[0].user
-    else:
-        user_name = res['name'] + res['id']
-        user_obj = User.objects.filter(username=user_name)
-        if user_obj.exists():
-            user = user_obj[0]
+    user_exists = ModelUtilities.get_model_filter(userMobiles, {'mobile_no': mobile_no})
 
-    if not user:
-        # creating a user if no user is associated with that email
-        user = create_user(user_name=res['name'], email=email, id=res['id'])
-        user_instance = user
-        # if there is no user then user will not have userinfo too
-        # creating user info
+    if not user_exists:
 
-        # fb_link = res['link'] if 'link' in res else None
+        user_instance = create_user(user_name=res['name'], email=email, id=mobile_no)
+
         if 'picture' in res:
-            image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
-        # else:
-        #     image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+            image_link = upload_image_to_firebase(res['picture']['data']['url'], user_instance.id)
 
         city = res['location']['name'] if 'location' in res else None
 
-        userinfo = create_userinfo(user=user, email=email, user_name=res['name'],
+        userinfo = create_userinfo(user=user_instance, email=email, user_name=res['name'],
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city,
-                                   # fb_link=fb_link
                                    )
-        if mobile_no:
-            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
-        if email:
-            save_user_primary_email(user, email, verified=True)
+
+        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+        save_user_primary_email(user_instance, email, verified=True)
 
         if 'picture' not in res:
-            save_name_initial_image.delay(user_id=user.id, user_name=res['name'])
+            save_name_initial_image.delay(user_id=user_instance.id, user_name=res['name'])
 
-        email_exists = False
     else:
-        userinfo = user.userinfo
-        email_exists = True
-        # save_user_mobile_number(user, country_code, mobile_no, state=mobile_states.PRIMARY)
+        user_instance = user_exists[0].user
 
-        # get serialized user object
-
-    usr = get_logged_in_user(user_instance=user)
-    # see if user has tags or not
-    has_tags = userinfo.has_tags
-
-    # # saving the OS type of user (Android,iOS,WEB)
-    # request_type = get_request_type(request)
-    # if request_type:
-    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+    usr = get_logged_in_user(user_instance=user_instance)
 
     # login in when the request is web
     if is_request_web(request):
-        login(request, user=userinfo.user_id, backend="django.contrib.auth.backends.ModelBackend")
-
-    # User asscoaited tags if any present
-    if has_tags:
-        tags = get_user_lpig_tags(usr['id'])
-        usr['tags'] = tags
+        login(request, user=user_instance, backend="django.contrib.auth.backends.ModelBackend")
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'access': access, 'email_exists': email_exists, 'has_tags': has_tags}
+    email_exists = ModelUtilities.is_model_filter_exists(userEmails,
+                                                         {'email': user_instance.userinfo.email, 'verified': True})
+    context = {'user': usr, 'access': access, 'email_exists': email_exists}
+
     return context
 
 
@@ -9203,70 +9162,49 @@ def login_with_linkedin(request, res, json_to_save, login_type="linkedIn"):
     mobile_no = res['mobile_no'] if 'mobile_no' in res else None
     country_code = res['country_code'] if 'country_code' in res else None
 
+    if not mobile_no or not country_code:
+        context = get_error_context(False, "Invalid mobile number or country code")
+
+        return context
+
     res = res['login_json']
-    user = None
     email = None
-    # if user is logging in with linkedIn
+
     if 'email' in res:
         email = res['email']['elements'][0]['handle~']['emailAddress']
 
-        user = get_user_from_email(email)
-
-    elif mobile_no:
-        has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
-        if has_mobile_no.exists():
-            user = has_mobile_no[0].user
-    else:
-        user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
-        user_obj = User.objects.filter(username=user_name + res['id'])
-        if user_obj.exists():
-            user = user_obj[0]
-
     profile_picture = None
-    if not user:
+
+    user_exists = ModelUtilities.get_model_filter(userMobiles, {'mobile_no': mobile_no})
+
+    if not user_exists:
 
         user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
-        user = create_user(user_name=user_name, email=email, id=res['id'])
-        user_instance = user
+        user_instance = create_user(user_name=user_name, email=email, id=mobile_no)
+
         if 'profilePicture' in res:
             profile_picture = upload_image_to_firebase(
-                res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user.id)
-        # else:
-        #     profile_picture = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+                res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user_instance.id)
 
-        userinfo = create_userinfo(user=user, email=email, user_name=user_name,
+        userinfo = create_userinfo(user=user_instance, email=email, user_name=user_name,
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
 
         if 'profilePicture' not in res:
-            save_name_initial_image.delay(user_id=user.id, user_name=user_name)
-        if mobile_no:
-            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
-        if email:
-            save_user_primary_email(user, email, verified=True)
-        email_exists = False
+            save_name_initial_image.delay(user_id=user_instance.id, user_name=user_name)
+
+        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+        save_user_primary_email(user_instance, email, verified=True)
 
     else:
-        userinfo = user.userinfo
-        email_exists = True
+        user_instance = user_exists[0].user
 
-    # usr = UserinfoSerializer(userinfo)
-    usr = get_logged_in_user(user_instance=user)
-    # see if user has tags or not
-    has_tags = userinfo.has_tags
-
-    # # saving the OS type of user (Android,iOS,WEB)
-    # request_type = get_request_type(request)
-    # if request_type:
-    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
-
-    if has_tags:
-        tags = get_user_lpig_tags(usr['id'])
-        usr['tags'] = tags
-
+    usr = get_logged_in_user(user_instance=user_instance)
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'access': access, 'email_exists': email_exists, 'has_tags': has_tags}
-    # print(context)
+    email_exists = ModelUtilities.is_model_filter_exists(userEmails,
+                                                         {'email': user_instance.userinfo.email, 'verified': True})
+    context = {'user': usr, 'access': access, 'email_exists': email_exists}
+
     return context
 
 
@@ -9350,7 +9288,6 @@ def custom_login(request, res, login_type="custom"):
 
     if email_exists:
         context['user'] = get_logged_in_user(user_instance=email_exists)
-        context['has_tags'] = email_exists.userinfo.has_tags
         context['access'] = is_user_community_part(context['user']['id'])
         context['email_exists'] = True
 
@@ -9424,15 +9361,16 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
 
             # creating user email
             save_user_primary_email(user_instance, email, email_state=email_states.PRIMARY)
+            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
             # send verification mail for email
             verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
 
             # sending a email from template
-            send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
+            send_verification_mail_for_email_sync.delay(user_name=user_instance.userinfo.name,
                                                   verification_link=verification_details['verify_url'], email=email)
 
-            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+
 
             return user_instance
         else:
@@ -12449,7 +12387,7 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
 
     update_models_for_syncing_apis(SyncTypes.CONVERSATION,
                                    {'id': conversation_instance.id},
-                                   {'deleted_by_user': current_user_instance, 'tag': tag_instance, 'reason': reason})
+                                   {'deleted_by_user': current_user_instance, 'is_deleted': True})
 
     if int(current_user_instance.id) == int(conversation_instance.user.id):
         action_taken = report_Action_Types.RESPONSE_DELETED_BY_CREATOR
@@ -12848,7 +12786,7 @@ def remove_community_manager(request):
                 custom_title = "Member"
 
         update_models_for_syncing_apis(SyncTypes.MEMBERS,
-                                       {'community_id': community_instance},
+                                       {'community_id': community_instance, 'member_id': user_instance},
                                        {'state': member_states.MEMBER,
                                         'custom_title': custom_title,
                                         'parent_cm': None,
@@ -13424,122 +13362,126 @@ def fetch_pending_chatroom(request):
     return JsonResponse(context)
 
 
-@csrf_exempt
-def action_pending_chatroom(request):
-    """ function to approve a chatroom """
-    if request.method == "GET":
+class ActionPendingChatroom(APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(ActionPendingChatroom, self).dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
         context = get_error_context(False, "change HTTP method to POST")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
 
-    current_user_id = get_member_id_from_headers(request)
-    # user_instance = User.objects.get(id=current_user_id)
-    #
-    chatroom_id = request.POST.get('chatroom_id', None)
-    value = request.POST.get('value', False)
-    pre_approve = request.POST.get('pre_approve', None)
+    def post(self, request, *args, **kwargs):
 
-    if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not chatroom_id:
-        context = get_error_context(False, "send chatroom_id in params")
-        return JsonResponse(context)
+        current_user_id = RequestUtilities.get_member_id_from_headers(request)
 
-    try:
-        chatroom = Collabcard.objects.get(pk=chatroom_id)
-    except:
-        context = get_error_context(False, "Pending chatroom id does not exist or already approved or rejected")
-        return JsonResponse(context, status=400)
+        chatroom_id = request.POST.get('chatroom_id', None)
+        value = request.POST.get('value', False)
+        pre_approve = request.POST.get('pre_approve', None)
 
-    community_instance = chatroom.community
-    chatroom_creator = chatroom.user
-    has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)
-    if not has_right_approve:
-        context = get_error_context(False, "you have no right to approve chatrooms")
-        return JsonResponse(context)
+        if not current_user_id:
+            context = get_error_context(False, "send member_id in headers")
+            return JsonResponse(context)
+        if not chatroom_id:
+            context = get_error_context(False, "send chatroom_id in params")
+            return JsonResponse(context)
 
-    is_approved = (value == "true" or value is True)
+        chatroom = Collabcard.get_chatroom_or_None(chatroom_id)
+        if chatroom is None:
+            context = get_error_context(False, "Pending chatroom id does not exist or already approved or rejected")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if is_approved:
-        # creating  a copy of existing model and saving it
-        chatroom.pk = None
-        chatroom.id = None
-        chatroom.is_pending = False
-        chatroom.date_epoch = time.time()
-        chatroom.save()
-        # force refresh the object to get the new created object's' id
-        chatroom.refresh_from_db()
+        community_instance = chatroom.community
+        chatroom_creator = chatroom.user
+        has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)
+        if not has_right_approve:
+            context = get_error_context(False, "you have no right to approve chatrooms")
+            return JsonResponse(context)
 
-        func_dict = {
-            'member_id': chatroom.user_id,
-            'collabcard_id': chatroom.id,
-            'status': True,
-            'source': "create_chatroom"
-        }
-        collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+        is_approved = (value == "true" or value is True)
 
-        update_last_answer_id(chatroom.id, "")
+        if is_approved:
+            # creating  a copy of existing model and saving it
+            chatroom.pk = None
+            chatroom.id = None
+            chatroom.is_pending = False
+            chatroom.date_epoch = time.time()
+            chatroom.save()
+            # force refresh the object to get the new created object's' id
+            chatroom.refresh_from_db()
 
-        # creating a chatroom for the collabcard posted
-        create_chatroom(card_instance=chatroom, user_instance=chatroom.user,
-                        state=chatroom_states.CHATROOM_HEADER, current_user_id=chatroom.user.id)
+            func_dict = {
+                'member_id': chatroom.user_id,
+                'collabcard_id': chatroom.id,
+                'status': True,
+                'source': "create_chatroom"
+            }
+            collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
-        send_ice_breaker_notification.delay(chatroom.community.id, time.time(), day=0)
+            update_last_answer_id(chatroom.id, "")
 
-        # batch update for already existing users and saving their unseen count
-        set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
-                                                                  function_called="action_pending_chatroom")
+            # creating a chatroom for the collabcard posted
+            create_chatroom(card_instance=chatroom, user_instance=chatroom.user,
+                            state=chatroom_states.CHATROOM_HEADER, current_user_id=chatroom.user.id)
 
-    else:
-        snackbar_manager = SnackbarImpl()
-        snackbar_dict = {
-            'user_id': chatroom_creator.user,
-            'type': HomeSnackbarType.CHATROOM_REJECTED_BY_COMMUNITY_MANAGER
-        }
-        snackbar_manager.create_snackbar(snackbar_dict)
+            send_ice_breaker_notification.delay(chatroom.community.id, time.time(), day=0)
 
-    send_notification_for_pending_chatroom_approved_or_rejected.delay(chatroom.id, is_approved=is_approved)
-    # adding pending chatroom files to new chatroom
-    CollabcardPolls.objects.filter(card__id=chatroom_id).update(card=chatroom)
-    # adding pending chatroom files to new chatroom
-    Card_Attachment.objects.filter(collabcard__id=chatroom_id).update(collabcard=chatroom)
-    # deleting the old instance even if value = true or false
-    Collabcard.objects.filter(pk=chatroom_id).delete()
+            # batch update for already existing users and saving their unseen count
+            set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
+                                                                      function_called="action_pending_chatroom")
 
-    update_pending_chatroom_count_for_promoters.delay(community_instance.id)
-
-    # checking is_owner bcz, owner will be by default a CM
-    member_is_promoter = Members.objects.filter(community_id=community_instance,
-                                                member_id=chatroom_creator,
-                                                state=member_states.ADMIN).exists()
-
-    if pre_approve is not None and \
-            not member_is_promoter:
-        if pre_approve == "true" or \
-                pre_approve is True:
-
-            give_member_auto_approve_right(user=chatroom_creator, community=community_instance,
-                                           current_user_instance=current_user_instance)
-            update_rights_history_for_creation_rights_given.delay(current_user_id,
-                                                                  community_instance.id,
-                                                                  chatroom_creator.id)
         else:
-            remove_member_create_room_right(user=chatroom_creator, community=community_instance,
-                                            current_user_id=current_user_id)
-            update_rights_history_for_creation_rights_removed.delay(current_user_id,
-                                                                    community_instance.id,
-                                                                    chatroom_creator.id)
+            snackbar_manager = SnackbarImpl()
+            snackbar_dict = {
+                'user_id': chatroom_creator.id,
+                'type': HomeSnackbarType.CHATROOM_REJECTED_BY_COMMUNITY_MANAGER
+            }
+            snackbar_manager.create_snackbar(snackbar_dict)
 
-        current_user_instance = User.objects.get(pk=current_user_id)
-        save_moderation_history(user=chatroom_creator, community=community_instance,
-                                moderation_by=current_user_instance,
-                                type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+        send_notification_for_pending_chatroom_approved_or_rejected.delay(chatroom.id, is_approved=is_approved)
+        # adding pending chatroom files to new chatroom
+        CollabcardPolls.objects.filter(card__id=chatroom_id).update(card=chatroom)
+        # adding pending chatroom files to new chatroom
+        Card_Attachment.objects.filter(collabcard__id=chatroom_id).update(collabcard=chatroom)
+        # deleting the old instance even if value = true or false
+        Collabcard.objects.filter(pk=chatroom_id).delete()
 
-    info_logger.info(
-        f"ACTION_PENDING_CHATROOM - current user id = {current_user_id}, card creator id = {chatroom_creator.id}, disallow_create_chatroom = {pre_approve},"
-        f"card id = {chatroom_id}, community id = {community_instance.id}")
+        update_pending_chatroom_count_for_promoters.delay(community_instance.id)
 
-    return JsonResponse({'success': True})
+        # checking is_owner bcz, owner will be by default a CM
+        member_is_promoter = Members.objects.filter(community_id=community_instance,
+                                                    member_id=chatroom_creator,
+                                                    state=member_states.ADMIN).exists()
+
+        if pre_approve is not None and \
+                not member_is_promoter:
+
+            current_user_instance = User.objects.get(pk=current_user_id)
+
+            if pre_approve == "true" or \
+                    pre_approve is True:
+
+                give_member_auto_approve_right(user=chatroom_creator, community=community_instance,
+                                               current_user_instance=current_user_instance)
+                update_rights_history_for_creation_rights_given.delay(current_user_id,
+                                                                      community_instance.id,
+                                                                      chatroom_creator.id)
+            else:
+                remove_member_create_room_right(user=chatroom_creator, community=community_instance,
+                                                current_user_id=current_user_id)
+                update_rights_history_for_creation_rights_removed.delay(current_user_id,
+                                                                        community_instance.id,
+                                                                        chatroom_creator.id)
+            save_moderation_history(user=chatroom_creator, community=community_instance,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.MEMBER_PERMISSION_EDITED)
+
+        info_logger.info(
+            f"ACTION_PENDING_CHATROOM - current user id = {current_user_id}, card creator id = {chatroom_creator.id}, disallow_create_chatroom = {pre_approve},"
+            f"card id = {chatroom_id}, community id = {community_instance.id}")
+
+        return JsonResponse({'success': True})
 
 
 def fetch_management_tools(request):
@@ -15108,5 +15050,4 @@ def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatr
         chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
 
     return chatroom_data, chatroom_id_list
-
 

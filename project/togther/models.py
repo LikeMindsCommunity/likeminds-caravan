@@ -8,7 +8,7 @@ from rest_framework import status as status_codes
 from utility.exception_utilities import (InvalidCommunityException, InvalidChatroomException,
                                          InvalidUserException, CustomException)
 from utility.time_utilities import TimeUtilities
-
+from typing import Union
 
 response_choices = (
     ('text', 'Text'),
@@ -155,10 +155,11 @@ class Members(models.Model):
         return member.exists()
 
     @staticmethod
-    def get_community_owner_member_instance(community: Community) -> int:
+    def get_community_owner_user_instance_or_none(community: Community) -> object:
         member = Members.objects.filter(community_id=community, is_owner=True)
-
-        return member
+        if member.exists():
+            return member[0].member_id
+        return None
 
     @staticmethod
     def get_member_instance_or_none(community: Community, member: User) -> object:
@@ -1485,3 +1486,12 @@ class ModelUtilities:
         update_status = model.objects.filter(**filter_dict).update(**update_dict)
 
         return update_status
+
+    @staticmethod
+    def get_model_filter(model, filter_dict):
+        return model.objects.filter(**filter_dict)
+
+    @staticmethod
+    def is_model_filter_exists(model, filter_dict):
+        return model.objects.filter(**filter_dict).exists()
+
