@@ -8,7 +8,7 @@ from rest_framework import status as status_codes
 from utility.exception_utilities import (InvalidCommunityException, InvalidChatroomException,
                                          InvalidUserException, CustomException)
 from utility.time_utilities import TimeUtilities
-from typing import Union
+
 
 response_choices = (
     ('text', 'Text'),
