@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
 from .static_files import *
-from utility.constants import BRANCH_QUICKLINK_URI
+from utility.constants import BRANCH_QUICKLINK_URI,DIRECTORY_FEATURE
 
 info_logger = LoggingWrapper.get_instance()
 
@@ -65,7 +65,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
             base_url = '%s/community/%s?aj=%s&source=members_directory' % (
                 host_url, str(community.id), str(aj))
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory", private=True)
+        long_url_item = create_link_item(base_url, community, "AppBackend", DIRECTORY_FEATURE, private=True)
         data.append(long_url_item)
 
     else:
@@ -77,7 +77,7 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
             base_url = '%s/community/%s?source=members_directory' % (
                 host_url, str(community.id))
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", "Community Members Directory")
+        long_url_item = create_link_item(base_url, community, "AppBackend", DIRECTORY_FEATURE)
         data.append(long_url_item)
 
         # creating private expired link for non logged in user
@@ -156,8 +156,11 @@ def create_link_item(base_url, community, channel, feature, private=False):
         }
     }
 
-    # to handle apps download in case of private links
-    if not private:
+    """
+    redirect to web in case of member directory 
+    download app in all other cases(public + private)
+    """
+    if feature == DIRECTORY_FEATURE:
         link_item['data']['$fallback_url'] = 'https://%s' % base_url
     else:
         link_item['data']['$desktop_url'] = 'https://%s' % base_url
