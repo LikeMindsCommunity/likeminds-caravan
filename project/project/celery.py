@@ -59,12 +59,18 @@ app.conf.beat_schedule = {
         'task': 'collabmates_api.notification.send_notification_to_inactive_chatroom_users',
         'schedule': 300,
     },
-    'send_intro_room_evening_notifications': {
-        'task': 'collabmates_api.notification.send_intro_room_evening_notifications',
-        'schedule': crontab(hour=21, minute=0),
+    # 'test_task_for_beat': {
+    #     'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
+    #     'schedule': crontab(hour=15, minute=56),
+    # },
+    'new_test_task_for_intro_room': {
+        'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
+        'schedule': crontab(hour=20, minute=53),
     },
 }
 app.conf.timezone = 'Asia/Kolkata'
+
+app.conf.enable_utc = False
 
 beat_scheduler = 'django_celery_beat.schedulers:DatabaseScheduler'
 
