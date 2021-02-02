@@ -8649,7 +8649,7 @@ def upload_chatroom_attachments(body, member_id):
         expiry_time = time.time() + HOURS_24
 
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                       {'card': chatroom_instance, 'user': user},
+                                       {'card': chatroom_instance, 'user': user_instance},
                                        {'expiry_time': expiry_time})
 
         send_chatroom_creation_notification(chatroom_instance, user_instance)
