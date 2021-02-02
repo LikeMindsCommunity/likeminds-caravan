@@ -8,7 +8,7 @@ from rest_framework import status as status_codes
 from utility.exception_utilities import (InvalidCommunityException, InvalidChatroomException,
                                          InvalidUserException, CustomException)
 from utility.time_utilities import TimeUtilities
-from typing import Union
+
 
 response_choices = (
     ('text', 'Text'),
@@ -1486,3 +1486,12 @@ class ModelUtilities:
         update_status = model.objects.filter(**filter_dict).update(**update_dict)
 
         return update_status
+
+    @staticmethod
+    def get_model_filter(model, filter_dict):
+        return model.objects.filter(**filter_dict)
+
+    @staticmethod
+    def is_model_filter_exists(model, filter_dict):
+        return model.objects.filter(**filter_dict).exists()
+

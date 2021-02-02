@@ -238,7 +238,7 @@ EMAIL_HOST_PASSWORD =  os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_BACKEND = "sgbackend.SendGridBackend"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-
+EMAIL_BACKEND = "sgbackend.SendGridBackend"
 
 
 CORS_ORIGIN_ALLOW_ALL = True
