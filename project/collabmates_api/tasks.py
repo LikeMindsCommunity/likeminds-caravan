@@ -31,7 +31,7 @@ import requests
 # url = 'https://beta.likeminds.community'
 url = settings.URL
 from .serializers import CollabcardPollsSerializer
-from .notification import get_title_from_collabcard
+from .notification import get_title_from_collabcard,send_intro_room_evening_notifications
 from .static_text import CREATE_CONVERSATION_API_END_POINT
 # def send_email(subject,template,to):
 #     fail_silently=True
@@ -852,3 +852,9 @@ def request_api(method, api_url, headers, payload):
     response = requests.request(method, api_url, headers=headers, data=json.dumps(payload))
 
     return response
+
+
+@app.task
+def task_to_send_intro_notifications():
+    # print("chal ja bhai")
+    send_intro_room_evening_notifications()

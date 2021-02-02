@@ -13396,7 +13396,8 @@ class ActionPendingChatroom(APIView):
         chatroom_creator = chatroom.user
         has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)
         if not has_right_approve:
-            context = get_error_context(False, "you have no right to approve chatrooms")
+            context = get_error_context(False, "cannot approve chatroom, missing approval right.")
+
             return JsonResponse(context)
 
         is_approved = (value == "true" or value is True)

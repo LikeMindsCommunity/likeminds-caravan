@@ -1884,12 +1884,14 @@ def send_notification_to_inactive_chatroom_users():
     current_time = time.time()
     INACTIVE_NOTIFICATION_START_TIME = 1603604997       #Sunday, 25 October 2020 11:19:57
 
-    inactive_chatrooms = collabcardState.objects.\
+    inactive_chatrooms = \
+        collabcardState.objects.\
         filter(follow_status=True, remove=None).\
         filter(~Q(expiry_time=None) & Q(expiry_time__lt=current_time)).\
         filter(created_at__gt=INACTIVE_NOTIFICATION_START_TIME).\
         filter(Q(user_id=F('card__user_id'))).\
         select_related('card', 'user')
+
     user_set = set()
     user_list = []
 
@@ -2407,8 +2409,6 @@ def get_user_fcm_details(user_instance):
     return user_details
 
 
-@app.task
-@shared_task
 def send_intro_room_evening_notifications():
     current_time = TimeUtilities.current_time_in_sec()
     all_communities = Community.objects.all()
