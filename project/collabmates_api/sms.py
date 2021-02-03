@@ -86,17 +86,30 @@ def send_retry_otp(phone_no):
     url = MSG91_SENDOTP_URI % (msg91_auth_key, template_id, phone_no)
 
     r = requests.get(url)
-    context = {}
-    result = json.loads(r.text)
+
+    if r.status_code == 200:
+        result = json.loads(r.text)
+
+    else:
+        context = {
+            'success': False,
+            'error_message': "Service down. Try again later."
+        }
+        error_logger.error("MSG91 server not responding with status code =" + (str(r.status_code)))
+
+        return context
 
     context = {}
+
     if result['type'] == 'success':
         context['success'] = True
         info_logger.info("MSG91 mobile generate otp success")
+
     else:
-        info_logger.info("MSG91 mobile generate otp fail")
+        error_logger.error("MSG91 mobile generate otp fail due to " + str(result['message']))
         context['success'] = False
         context['error_message'] = result['message']
+
     return context
 
 
@@ -120,9 +133,9 @@ def verify_retry_otp(phone_no, otp):
     context = {}
     if result['type'] == 'success':
         context['success'] = True
-        info_logger.info("MSG91 mobile generate otp success")
+        info_logger.info("MSG91 mobile verify otp success")
     else:
-        error_logger.error("MSG91 mobile generate otp fail due to " + str(result['message']))
+        error_logger.error("MSG91 mobile verify otp fail due to " + str(result['message']))
         context['success'] = False
         context['error_message'] = result['message']
 
