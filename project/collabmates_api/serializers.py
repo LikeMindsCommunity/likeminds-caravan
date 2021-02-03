@@ -1645,8 +1645,9 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
         except Exception as e:
             error_logger.error(e.args)
 
-    if conversation.reply:
-        temp['reply_conversation'] = conversation.reply.id
+    if conversation.reply and fetch_reply:
+        temp['reply_conversation'] = conversationSerializer(conversation.reply, fetch_reply=False,
+                                                            current_user_id=current_user_id)
 
     return temp
 
