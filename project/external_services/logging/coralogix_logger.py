@@ -15,8 +15,9 @@ class CoralogixLoggerImpl(LoggerManager):
         CoralogixLoggerImpl.__instance__ = logger
 
     def _get_coralogix_logger_instance(self) -> object:
-        logger = logging.getLogger()
+        logger = logging.getLogger(__class__.__name__)
         handler = self._coralogix_handler()
+        handler.setLevel(logging.INFO)
         logger.addHandler(handler)
 
         return logger
@@ -30,8 +31,13 @@ class CoralogixLoggerImpl(LoggerManager):
         )
 
     @staticmethod
-    def get_instance() -> object:
+    def get_instance() -> logging.Logger:
         if CoralogixLoggerImpl.__instance__ is None:
             CoralogixLoggerImpl()
 
         return CoralogixLoggerImpl.__instance__
+
+    def add_coralogix_handler(self, logger: logging.Logger, log_level=logging.NOTSET):
+        handler = self._coralogix_handler()
+        handler.setLevel(log_level)
+        logger.addHandler(handler)

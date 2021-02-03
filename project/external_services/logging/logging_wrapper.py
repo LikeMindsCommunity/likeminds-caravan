@@ -17,6 +17,7 @@ class LoggingWrapper(LoggerManager):
             logger = FileLoggerImpl.get_instance()
         else:
             logger = CoralogixLoggerImpl.get_instance()
+            CoralogixLoggerImpl().add_coralogix_handler(logging.getLogger(), logging.ERROR)
 
         LoggingWrapper.__instance__ = logger
 

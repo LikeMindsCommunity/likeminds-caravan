@@ -16,7 +16,7 @@ class FileLoggerImpl(LoggerManager):
         return logging.getLogger('file_logger')
 
     @staticmethod
-    def get_instance() -> object:
+    def get_instance() -> logging.Logger:
         if FileLoggerImpl.__instance__ is None:
             FileLoggerImpl()
 
