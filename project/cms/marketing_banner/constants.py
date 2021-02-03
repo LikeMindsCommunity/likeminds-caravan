@@ -1,0 +1,3 @@
+BANNER_JSON_TYPE_PLATFORM = 'platform'
+BANNER_JSON_TYPE_COMMUNITY_IDS = 'community_ids'
+BANNER_JSON_TYPE_USER_IDS = 'user_ids'
