@@ -44,3 +44,5 @@ INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR = "route://chatroom_detail?chatroom_id=%s
 INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL = "route://community_collabcard?community_id=%s&community_name=%s"
 
 INTRO_ROOM_LOOKBACK_PERIOD = 86400
+
+DIRECTORY_FEATURE = "Community Members Directory"

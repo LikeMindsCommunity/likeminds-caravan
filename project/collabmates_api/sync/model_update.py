@@ -2,8 +2,8 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import card_answers, Member_Engage, Members, collabcardState, ModelUtilities
 from utility.time_utilities import TimeUtilities
 from utility.states import SyncTypes
+
 error_logger = LoggingWrapper.get_instance()
-info_logger = LoggingWrapper.get_instance()
 
 
 def update_models_for_syncing_apis(sync_type, filter_dict, update_dict, cache_update=False):

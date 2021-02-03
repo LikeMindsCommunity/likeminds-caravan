@@ -608,6 +608,6 @@ class MessageTemplateForOwner(APIView):
             'success': True
         }
 
-        staus = status_codes.HTTP_201_CREATED if created else status_codes.HTTP_200_OK
+        status = status_codes.HTTP_201_CREATED if created else status_codes.HTTP_200_OK
 
-        return JsonResponse(response, status=staus)
+        return JsonResponse(response, status=status)

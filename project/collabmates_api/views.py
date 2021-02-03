@@ -7549,15 +7549,18 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
         create_chatroom_state_instance(card_instance, user_instance, expire_at=time.time(),
                                        function_called="collabcards_seen_internal")
         update_last_unseen_in_engage(user=user_instance, community=community)
+
     else:
+
         state_instance = is_present[0]
+
         if state_instance.state == 0:
             state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
 
             if not state_instance.external_seen:
-                update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                               {'card': card_instance, 'user': user_instance},
-                                               {'external_seen': True, 'expiry_time': expiry_time})
+                state_instance.external_seen = True
+                state_instance.expiry_time = expiry_time
+                state_instance.updated_at = TimeUtilities.current_time_in_sec()
 
             state_instance.save()
 
@@ -13396,7 +13399,8 @@ class ActionPendingChatroom(APIView):
         chatroom_creator = chatroom.user
         has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)
         if not has_right_approve:
-            context = get_error_context(False, "you have no right to approve chatrooms")
+            context = get_error_context(False, "cannot approve chatroom, missing approval right.")
+
             return JsonResponse(context)
 
         is_approved = (value == "true" or value is True)
