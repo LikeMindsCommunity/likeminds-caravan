@@ -1,4 +1,5 @@
 import abc
+import logging
 
 
 class LoggerManager(metaclass=abc.ABCMeta):
@@ -10,7 +11,7 @@ class LoggerManager(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @staticmethod
-    def get_instance() -> object:
+    def get_instance() -> logging.Logger:
         """
         returns logger instance
         """

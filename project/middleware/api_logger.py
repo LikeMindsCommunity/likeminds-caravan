@@ -71,7 +71,6 @@ class ApiLogger(MiddlewareMixin):
         if response_dict and\
                 response_dict.get('http_response_code') == 500:
             response_dict['content'] = API_500_ERROR_MESSAGE
-            return response_dict
 
         return response_dict
 

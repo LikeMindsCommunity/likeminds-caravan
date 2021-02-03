@@ -14,7 +14,7 @@ class CoralogixLoggerImpl(LoggerManager):
         logger = self._get_coralogix_logger_instance()
         CoralogixLoggerImpl.__instance__ = logger
 
-    def _get_coralogix_logger_instance(self) -> object:
+    def _get_coralogix_logger_instance(self) -> logging.Logger:
         logger = logging.getLogger(__class__.__name__)
         handler = self._coralogix_handler()
         handler.setLevel(logging.INFO)
@@ -37,7 +37,7 @@ class CoralogixLoggerImpl(LoggerManager):
 
         return CoralogixLoggerImpl.__instance__
 
-    def add_coralogix_handler(self, logger: logging.Logger, log_level=logging.NOTSET):
+    def add_coralogix_handler(self, logger: logging.Logger, log_level=logging.NOTSET) -> None:
         handler = self._coralogix_handler()
         handler.setLevel(log_level)
         logger.addHandler(handler)
