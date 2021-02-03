@@ -166,6 +166,10 @@ class ConversationImpl(ConversationManager):
         if preview:
             conversation_serializer['preview'] = preview
 
+        if conversation_instance.reply:
+            conversation_serializer['reply_conversation_object'] = conversationSerializer(conversation_instance.reply,
+                                                                                          current_user_id=self.get_member_id())
+
         return conversation_serializer
 
     def _create_conversation_list(self, conversations):
