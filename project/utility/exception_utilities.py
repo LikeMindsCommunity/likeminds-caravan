@@ -49,3 +49,9 @@ class InvalidChatroomException(BaseException):
               "error_message": "Chatroom does not exist"
               }
 
+
+class JsonDecodeException(BaseException):
+
+    detail = {"success": False,
+              "error_message": "Json decode error"
+              }

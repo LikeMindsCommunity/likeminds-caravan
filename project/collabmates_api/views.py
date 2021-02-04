@@ -7095,6 +7095,7 @@ def create_conversation(request):
     save_the_latest_conversation(card_instance, user_id)
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id)
+
     update_activity_in_chatroom_for_conversation_creation(card_instance.id, user_id=user_id)
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'],
                                                                  has_files=has_files)
@@ -8199,105 +8200,6 @@ def fetch_chatroom_feed_version_1(request):
     return JsonResponse(context)
 
 
-class fetchChatroomFeedVersion2(APIView):
-    """ api to fetch chatroom feed """
-
-    def get(self, request, *args, **kwargs):
-        query_params = request.query_params
-        community_id = query_params.get("community_id", False)
-        page = query_params.get("page", False)
-        chatroom_id = query_params.get("chatroom_id", False)
-        scroll_direction = query_params.get("scroll_direction", False)
-        active = query_params.get("active", None)
-
-        if scroll_direction and not chatroom_id:
-            context = get_error_context(False, "send chatroom id with scroll direction")
-            return JsonResponse(context)
-
-        current_time = time.time()
-        if active == "true":
-            active = True
-        elif active == "false":
-            active = False
-        else:
-            active = None
-
-        member_id = get_member_id_from_headers(request)
-        # print(member_id)
-
-        state_filter = collabcardState.objects.filter(community=community_id,
-                                                      card__is_pending=False,
-                                                      card__is_deleted=False).distinct('card_id').order_by('-card_id')
-        chatrooms = []
-        context = {}
-        if not chatroom_id and not scroll_direction:
-
-            last_seen = state_filter.filter(user=member_id).exclude(state=0).order_by('-card_id')
-
-            if not last_seen.exists():
-                chatroom_list = pagination(state_filter, page, paginate_by=5)
-                chatrooms = get_chatrooms_version_1(chatroom_list, member_id)
-            else:
-                last_seen = last_seen[0]
-
-                if active:
-                    upward = state_filter.filter(card__lte=last_seen.card.id, user=member_id).filter(
-                        Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-card')[:3]
-                    downward = state_filter.filter(card__gt=last_seen.card.id, user=member_id).filter(
-                        Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('card')[:3]
-
-                else:
-                    upward = state_filter.filter(card__lte=last_seen.card.id, user=member_id).filter(
-                        ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:3]
-
-                    downward = state_filter.filter(card__gt=last_seen.card.id, user=member_id).filter(
-                        (~Q(expiry_time=None)) & Q(expiry_time__lte=current_time)).order_by('card')[:3]
-
-                chatroom_filter = upward | downward
-                chatroom_list = chatroom_filter.order_by('card_id')
-
-                chatrooms = get_chatrooms_version_1(chatroom_list, member_id, active, is_ios=is_ios)
-
-            # context['header'] = chatroom_feed_header(community_id, member_id)
-
-        else:
-            scroll_direction = int(scroll_direction)
-            if scroll_direction == 0:  # upward scroll
-
-                if active:
-                    upward = state_filter.filter(card__lt=chatroom_id, user=member_id).filter(
-                        Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-card')[:5]
-
-                else:
-                    upward = state_filter.filter(card__lt=chatroom_id, user=member_id).filter(
-                        ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:5]
-                    print(upward.query)
-
-                upward = reverse_conversations_for_upward_pagination(upward)
-                # print(upward)
-                chatrooms = get_chatrooms_version_1(upward, member_id, active, is_ios=is_ios)
-
-            elif scroll_direction == 1:  # downward scroll
-
-                if active:
-                    downward = state_filter.filter(card__gt=chatroom_id, user=member_id).filter(
-                        Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('card')[:5]
-                else:
-                    downward = state_filter.filter(card__gt=chatroom_id, user=member_id).filter(
-                        ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('card')[:5]
-
-                chatrooms = get_chatrooms_version_1(downward, member_id, active, is_ios=is_ios)
-
-        context['chatrooms'] = chatrooms
-
-        current_time = time.time()
-        context['active_chatroom_count'] = get_active_chatrooms_count_in_community(community_id, member_id,
-                                                                                   current_time)
-        context['inactive_chatroom_count'] = get_inactive_chatrooms_count_in_community(community_id, member_id,
-                                                                                       current_time)
-        return JsonResponse(context)
-
-
 def fetch_community_chatroom_feed(request):
     '''Version 1 community collabcards'''
     context = {}
@@ -8481,9 +8383,11 @@ def upload_files(request):
             answer_instance.attachments_uploaded = True
             answer_instance.save()
 
-            update_last_answer_id(answer_instance.card.id, answer_instance.id)
-            send_follow_notification(card_id=answer_instance.card.id, user_id=answer_instance.user.id,
-                                     answer=answer_instance.answer)
+            chatroom_id = answer_instance.card.id
+            update_last_answer_id(chatroom_id, answer_instance.id)
+            update_my_chatrooms_for_users(chatroom_id=chatroom_id)
+            send_follow_notification.delay(card_id=chatroom_id, user_id=answer_instance.user.id,
+                                           answer=answer_instance.answer)
 
         conversation = get_conversation_instance_for_db_synching(answer_instance, current_user_id=member_id)
 
@@ -8697,9 +8601,11 @@ def upload_conversation_attachments(body, member_id):
         conversation_instance.attachments_uploaded = True
         conversation_instance.save()
 
-        update_last_answer_id(conversation_instance.card.id, conversation_instance.id)
-        send_follow_notification(card_id=conversation_instance.card.id, user_id=conversation_instance.user.id,
-                                 answer=conversation_instance.answer)
+        chatroom_id = conversation_instance.card.id
+        update_last_answer_id(chatroom_id, conversation_instance.id)
+        send_follow_notification.delay(card_id=chatroom_id, user_id=conversation_instance.user.id,
+                                       answer=conversation_instance.answer)
+        update_my_chatrooms_for_users(chatroom_id)
 
     conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
 

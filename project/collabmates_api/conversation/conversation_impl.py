@@ -166,6 +166,10 @@ class ConversationImpl(ConversationManager):
         if preview:
             conversation_serializer['preview'] = preview
 
+        if conversation_instance.reply:
+            conversation_serializer['reply_conversation_object'] = conversationSerializer(conversation_instance.reply,
+                                                                                          current_user_id=self.get_member_id())
+
         return conversation_serializer
 
     def _create_conversation_list(self, conversations):
@@ -258,7 +262,8 @@ class ConversationImpl(ConversationManager):
                              user_instance, self.get_member_id())
 
     def _update_home_page(self, chatroom_id, req_body, has_files, is_ios):
-        update_my_chatrooms_for_users(chatroom_id=chatroom_id)
+        user_id = self.get_member_id() if has_files else None
+        update_my_chatrooms_for_users(chatroom_id=chatroom_id, user_id=user_id)
 
         update_activity_in_chatroom_for_conversation_creation(chatroom_id,
                                                               user_id=self.get_member_id())
