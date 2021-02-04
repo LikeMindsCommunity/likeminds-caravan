@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
-from utility.exception_utilities import InvalidHeaderException, JsonDecodeException
+from utility.exception_utilities import InvalidHeaderException, JsonDecodeException, CustomException
 
 from .banner_impl import BannerImpl
 from ..cms_auth_utilities import CMSAuthUtilities
@@ -84,12 +84,19 @@ class RemoveBannerView(APIView):
 
     def post(self, request, *args, **kwargs):
 
-        banner_id = request.GET.get('banner_id')
+        banner_id = request.data.get('banner_id')
 
         user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
 
         if not CMSAuthUtilities.validate_user(user_name, password):
             CMSAuthUtilities.raise_authentication_error()
+
+        if not banner_id:
+            response = {
+                'success': False,
+                'error_message': 'send banner id in post params'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         banner_manager = BannerImpl()
         response = banner_manager.remove_banner(banner_id)
