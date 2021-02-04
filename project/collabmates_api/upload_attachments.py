@@ -10,7 +10,6 @@ import time
 
 
 def save_community_image(body, member_id):
-
     community_id = body['community_id']
 
     try:
@@ -58,31 +57,37 @@ def update_community(member_instance, community):
 
 
 def save_chatroom_attachments(chatroom_instance, body):
-    file = Card_Attachment()
-    file.collabcard = chatroom_instance
-    file.type = body.get('type', None)
-    file.file_url = body.get('url', None)
-    file.index = body.get('index', 1)
-    file.width = body.get('width', None)
-    file.height = body.get('height', None)
-    file.thumbnail_url = body.get('thumbnail_url', None)
-    file.save()
+    index = body.get('index', None)
+    attachment_context = {
+        'type': body.get('type', None),
+        'file_url': body.get('url', None),
+        'width': body.get('width', None),
+        'height': body.get('height', None),
+        'thumbnail_url': body.get('thumbnail_url', None),
+    }
+
+    file, created = Card_Attachment.objects.update_or_create(collabcard=chatroom_instance,
+                                                             index=index,
+                                                             defaults=attachment_context)
 
 
 def save_conversation_attachments(body, conversation_instance):
+    index = body.get('index', None)
 
-    file = answerAttachment()
-    file.answer = conversation_instance
-    file.type = body.get('type', None)
-    file.file_url = body.get('url', None)
-    file.index = body.get('index', None)
-    file.location_name = body.get('location_name', None)
-    file.location_lat = body.get('location_lat', None)
-    file.location_long = body.get('location_long', None)
-    file.width = body.get('width', None)
-    file.height = body.get('height', None)
-    file.thumbnail_url = body.get('thumbnail_url', None)
-    file.save()
+    attachment_context = {
+        'type': body.get('type', None),
+        'file_url': body.get('url', None),
+        'location_name': body.get('location_name', None),
+        'location_lat': body.get('location_lat', None),
+        'location_long': body.get('location_long', None),
+        'width': body.get('width', None),
+        'height': body.get('height', None),
+        'thumbnail_url': body.get('thumbnail_url', None),
+    }
+
+    file, created = answerAttachment.objects.update_or_create(answer=conversation_instance,
+                                                              index=index,
+                                                              defaults=attachment_context)
 
 
 def save_poll_attachments(body):
@@ -92,7 +97,6 @@ def save_poll_attachments(body):
 
 
 def save_draft_attachments(body):
-
     draft_id = body['draft_id']
     draft_instance = draftChatroom.objects.get(id=draft_id)
 
@@ -114,7 +118,6 @@ def save_draft_poll_attachments(body):
 
 
 def get_image_dimensions(img_dimensions):
-
     if img_dimensions is None:
         return None
 
@@ -126,4 +129,3 @@ def get_image_dimensions(img_dimensions):
 
         img_dimensions = json.dumps(img_dimensions)
     return img_dimensions
-

@@ -8537,7 +8537,6 @@ def upload_chatroom_attachments(body, member_id):
     update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                    {'user': member_id, 'card': chatroom_instance},
                                    {})
-    # files_count = body['files_count'] if 'files_count' in body else 0
 
     uploaded_files_count = Card_Attachment.objects.filter(collabcard=chatroom_instance).count()
 
