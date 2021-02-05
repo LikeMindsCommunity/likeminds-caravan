@@ -22,6 +22,7 @@ from .static_text import months_semi
 from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
 from .branch import create_community_branch_links
 from utility.constants import *
+from utility.number_utilities import NumberUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1591,7 +1592,7 @@ def report_tag_serializer(tag_instance):
 # ------------------------------- chatroom conversation data ------------------------------------
 
 
-def conversationSerializer(conversation, fetch_reply=True, current_user_id=None):
+def conversationSerializer(conversation, current_user_id=None, fetch_reply=True):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
@@ -1645,8 +1646,38 @@ def conversationSerializer(conversation, fetch_reply=True, current_user_id=None)
         except Exception as e:
             error_logger.error(e.args)
 
+    if conversation.is_guest:
+        temp['member']['is_guest'] = conversation.is_guest
+        state_filter = collabcardState.objects.filter(card=conversation.card,
+                                                      user=conversation.user, is_guest=True)
+        if state_filter.exists() and state_filter[0].source:
+            instance = state_filter[0]
+            guest_text = get_guest_custom_text(instance)
+            temp['member']['custom_intro_text'] = guest_text['custom_intro_text']
+            temp['member']['custom_click_text'] = guest_text['custom_click_text']
+
+        # if the member is removed from the community
+    elif conversation.remove:
+        instance = conversation.remove
+        removed_member_text = get_removed_member_custom_text(instance)
+        temp['member']['custom_intro_text'] = removed_member_text['custom_intro_text']
+        temp['member']['custom_click_text'] = removed_member_text['custom_click_text']
+        temp['member']['remove_state'] = removed_member_text['remove_state']
+        temp['member']['image_url'] = removed_member_text['removed_user_image_url']
+
     if conversation.reply:
         temp['reply_conversation'] = conversation.reply.id
+
+        if fetch_reply and \
+                not (conversation.reply.attachment_count > 0 and
+                     conversation.reply.attachments_uploaded is False) and (
+                    (current_user_id and
+                     conversation.user.id != NumberUtilities.get_integer_from_string(current_user_id)) or
+                    conversation.api_version <= 0):
+
+            temp['reply_conversation_object'] = conversationSerializer(conversation.reply,
+                                                                       fetch_reply=False,
+                                                                       current_user_id=current_user_id)
 
     return temp
 

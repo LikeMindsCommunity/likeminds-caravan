@@ -139,36 +139,11 @@ class ConversationImpl(ConversationManager):
 
     def _serialize_conversation(self, conversation_instance):
 
-        conversation_serializer = conversationSerializer(conversation_instance, current_user_id=self.get_member_id())
+        conversation_serializer = conversationSerializer(conversation_instance,
+                                                         fetch_reply=True,
+                                                         current_user_id=self.get_member_id())
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
             conversation_instance.created_at)
-        preview = conversation_serializer.get('preview')
-
-        if conversation_instance.is_guest:
-            conversation_serializer['member']['is_guest'] = conversation_instance.is_guest
-            state_filter = collabcardState.objects.filter(card=conversation_instance.card,
-                                                          user=conversation_instance.user, is_guest=True)
-            if state_filter.exists() and state_filter[0].source:
-                instance = state_filter[0]
-                temp = get_guest_custom_text(instance)
-                conversation_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-                conversation_serializer['member']['custom_click_text'] = temp['custom_click_text']
-
-            # if the member is removed from the community
-        elif conversation_instance.remove:
-            instance = conversation_instance.remove
-            temp = get_removed_member_custom_text(instance)
-            conversation_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
-            conversation_serializer['member']['custom_click_text'] = temp['custom_click_text']
-            conversation_serializer['member']['remove_state'] = temp['remove_state']
-            conversation_serializer['member']['image_url'] = temp['removed_user_image_url']
-
-        if preview:
-            conversation_serializer['preview'] = preview
-
-        if conversation_instance.reply:
-            conversation_serializer['reply_conversation_object'] = conversationSerializer(conversation_instance.reply,
-                                                                                          current_user_id=self.get_member_id())
 
         return conversation_serializer
 
@@ -395,7 +370,6 @@ class ConversationImpl(ConversationManager):
         }
 
         return conversation_response
-
 
 
 class ConversationHelper:
