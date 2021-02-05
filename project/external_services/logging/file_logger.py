@@ -8,15 +8,15 @@ class FileLoggerImpl(LoggerManager):
     __instance__ = None
 
     def __init__(self) -> None:
-        logger = self.get_file_logger_instance()
+        logger = self._get_file_logger_instance()
         FileLoggerImpl.__instance__ = logger
 
     @staticmethod
-    def get_file_logger_instance() -> object:
+    def _get_file_logger_instance() -> logging.Logger:
         return logging.getLogger('file_logger')
 
     @staticmethod
-    def get_instance() -> object:
+    def get_instance() -> logging.Logger:
         if FileLoggerImpl.__instance__ is None:
             FileLoggerImpl()
 

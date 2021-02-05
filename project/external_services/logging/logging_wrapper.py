@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 
 from external_services.logging.coralogix_logger import CoralogixLoggerImpl
@@ -15,6 +17,7 @@ class LoggingWrapper(LoggerManager):
             logger = FileLoggerImpl.get_instance()
         else:
             logger = CoralogixLoggerImpl.get_instance()
+            CoralogixLoggerImpl().add_coralogix_handler(logging.getLogger(), logging.ERROR)
 
         LoggingWrapper.__instance__ = logger
 
@@ -30,7 +33,7 @@ class LoggingWrapper(LoggerManager):
             returns coralogix logger
     """
     @staticmethod
-    def get_instance() -> object:
+    def get_instance() -> logging.Logger:
         if LoggingWrapper.__instance__ is None:
             LoggingWrapper()
 

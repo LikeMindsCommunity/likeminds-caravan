@@ -604,7 +604,7 @@ def get_custom_data_for_new_chatroom_created(card):
 
 
 @shared_task
-def send_follow_notification(card_id,user_id,answer):
+def send_follow_notification(card_id, user_id, answer):
 
     '''function to send notification to followed members who have responded or follow'''
 

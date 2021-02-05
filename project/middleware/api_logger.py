@@ -5,6 +5,7 @@ from django.utils.deprecation import MiddlewareMixin
 
 from external_services.logging.coralogix_api_client import CoralogixApiClient
 from external_services.logging.logging_wrapper import LoggingWrapper
+from .constants import API_500_ERROR_MESSAGE
 
 
 class ApiLogger(MiddlewareMixin):
@@ -18,6 +19,7 @@ class ApiLogger(MiddlewareMixin):
         try:
             request_dict = self._process_request_object(request)
             response_dict = self._process_response_object(response)
+            response_dict = self._process_response_dict(response_dict)
             log_object_dict = self._make_log_object(request_dict, response_dict)
             self._send_to_logger(log_object_dict)
 
@@ -61,6 +63,14 @@ class ApiLogger(MiddlewareMixin):
             'http_response_code': response.status_code,
             'content': response.content.decode('utf-8')
         }
+
+        return response_dict
+
+    @staticmethod
+    def _process_response_dict(response_dict: dict) -> dict:
+        if response_dict and\
+                response_dict.get('http_response_code') == 500:
+            response_dict['content'] = API_500_ERROR_MESSAGE
 
         return response_dict
 

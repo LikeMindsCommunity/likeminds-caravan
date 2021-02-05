@@ -244,7 +244,10 @@ EMAIL_BACKEND = "sgbackend.SendGridBackend"
 CORS_ORIGIN_ALLOW_ALL = True
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
-    'x-member-id','x-platform-code'
+    'x-member-id',
+    'x-platform-code',
+    'x-username',
+    'x-password',
 ]
 
 FCM_DJANGO_SETTINGS = {

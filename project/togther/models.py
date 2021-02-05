@@ -8,6 +8,7 @@ from rest_framework import status as status_codes
 from utility.exception_utilities import (InvalidCommunityException, InvalidChatroomException,
                                          InvalidUserException, CustomException)
 from utility.time_utilities import TimeUtilities
+from typing import Union
 
 
 response_choices = (
@@ -134,12 +135,22 @@ class Members(models.Model):
         return self.member_id.userinfo.name + "__" + self.community_id.name
 
     @staticmethod
-    def is_community_member(community: Community, member: User) -> bool:
+    def is_community_member(community: Community, member: Union[User, str, int]) -> bool:
         return Members.objects.filter(community_id=community,
                                       member_id=member
                                       ).filter(Q(state=member_states.ADMIN) |
                                                Q(state=member_states.MEMBER) |
                                                Q(state=member_states.PROFILE_UNAVAILABLE)).exists()
+
+    @staticmethod
+    def is_user_community_member_in_community_list(community_id_list: list, member: Union[User, str, int]) -> bool:
+        return Members.objects\
+            .filter(community_id__in=community_id_list,
+                    member_id=member)\
+            .filter(Q(state=member_states.ADMIN) |
+                    Q(state=member_states.MEMBER) |
+                    Q(state=member_states.PROFILE_UNAVAILABLE))\
+            .exists()
 
     @staticmethod
     def get_community_member_state(community: Community, member: User) -> int:
