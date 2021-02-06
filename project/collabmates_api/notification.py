@@ -41,6 +41,7 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR,
                                INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL)
 
+from django.db import connection
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -209,11 +210,11 @@ def notification_meta(notification_list,message,calling_notification=""):
 def get_connection():
     '''function to create a postgres connection'''
     try:
-        connection = psycopg2.connect(user=db_user,
-                                      password=db_password,
-                                      host=db_host,
-                                      port=db_port,
-                                      database=db_database)
+        # connection = psycopg2.connect(user=db_user,
+        #                               password=db_password,
+        #                               host=db_host,
+        #                               port=db_port,
+        #                               database=db_database)
         return connection
 
     except (Exception, psycopg2.Error) as error:
