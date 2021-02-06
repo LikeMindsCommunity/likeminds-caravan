@@ -5439,30 +5439,47 @@ def conversation_meta(request):
 
     conversation_id = request.GET.get('conversation_id')
     chatroom_id = request.GET.get('chatroom_id')
+
     if not conversation_id or not chatroom_id:
         context = get_error_context(False, "send conversation_id and chatroom_id in post params")
         return JsonResponse(context)
 
     user_id = get_member_id_from_headers(request)
+
     if not user_id:
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context)
 
-    card_instance = Collabcard.get_chatroom_or_raise_exception(chatroom_id)
-    feedback = True
-    if card_instance.community.id == feedback_community_id:
-        feedback = False
+    card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
-    answer_id = int(conversation_id)
-    answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
-    chatroom = get_answer_data(answer, card_instance.community.id,
-                               current_user_id=user_id)
+    if card_instance is None:
+        context = get_error_context(False, f"chatroom_id {chatroom_id} does not exist")
+        return JsonResponse(context)
 
-    context = {
-        'conversations': chatroom
-    }
+    answer_id = NumberUtilities.get_integer_from_string(conversation_id)
+    conversation_instances = card_answers.objects\
+        .filter(card=card_instance, id__gte=answer_id)\
+        .filter(~Q(user__id=user_id))
+
+    conversation_list = []
+
+    for conversation in conversation_instances:
+        
+        if not is_draft_conversation(conversation, user_id):
+            conversation_serializer = conversationSerializer(conversation,
+                                                             fetch_reply=True,
+                                                             current_user_id=user_id)
+            conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
+                conversation.created_at)
+            conversation_list.append(conversation_serializer)
+
     # saving the latest conversation
     save_the_latest_conversation(card_instance, user_id)
+
+    context = {
+        'conversations': conversation_list
+    }
+
     return JsonResponse(context)
 
 
@@ -7843,52 +7860,6 @@ def community_collabcard_meta(request):
         return JsonResponse({'collabcards': card_list, 'community': community})
 
     return JsonResponse({'collabcards': card_list})
-
-
-def get_last_conversation(conversation_filter, member_id, chatroom_id):
-    '''function to get last conversation and last unseen conversation'''
-
-    has_seen = conversationMemberState.objects.filter(card_id=chatroom_id, user_id=member_id)
-
-    if has_seen.exists():
-        conversation_id = has_seen[0].conversation.id
-        next_conversation = card_answers.objects.filter(id__gt=conversation_id, card=chatroom_id,
-                                                        state=chatroom_states.ANSWER)
-        unseen_count = next_conversation.count()
-
-        if not next_conversation:
-
-            conversation = conversationSerializer(has_seen[0].conversation)
-        else:
-            conversation = conversationSerializer(next_conversation[0])
-
-        conversation_files = get_answer_files(conversation['id'])
-
-        if 'location' in conversation_files:
-            conversation['location'] = conversation_files['location']
-        conversation['images'] = conversation_files['image']
-        conversation['audios'] = conversation_files['audios']
-        conversation['videos'] = conversation_files['videos']
-        conversation['pdf'] = conversation_files['pdf']
-        conversation['attachments'] = conversation_files['attachments']
-
-        return (conversation, unseen_count)
-    elif conversation_filter.exists():
-        conversation = conversationSerializer(conversation_filter[0])
-        unseen_count = conversation_filter.count()
-        conversation_files = get_answer_files(conversation['id'])
-
-        if 'location' in conversation_files:
-            conversation['location'] = conversation_files['location']
-        conversation['images'] = conversation_files['image']
-        conversation['audios'] = conversation_files['audios']
-        conversation['videos'] = conversation_files['videos']
-        conversation['pdf'] = conversation_files['pdf']
-        conversation['attachments'] = conversation_files['attachments']
-
-        return (conversation, unseen_count)
-    else:
-        return (None, 0)
 
 
 def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
