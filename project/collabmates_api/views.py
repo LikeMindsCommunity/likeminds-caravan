@@ -10499,78 +10499,90 @@ def edit_community_questions(request):
 
     member_id = get_member_id_from_headers(request)
     if not member_id:
-        return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
+        response = get_error_context(False, 'Send member id in headers')
+        return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    user_instance = User.objects.get(pk=member_id)
+    try:
+        user_instance = User.objects.get(pk=member_id)
+    except:
+        response = get_error_context(False, f'user with id {member_id} does not exist')
+        return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
     res = json.loads(request.body)
 
     # error messages
     if 'community_id' not in res:
-        return JsonResponse({'success': False, 'error_message': "send community id in request body"})
+        response = get_error_context(False, 'send community id in request body')
+        return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if 'questions' not in res:
-        return JsonResponse({'success': False, 'error_message': "send questions list"})
+        response = get_error_context(False, 'send questions data in request body')
+        return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     questions_list = res['questions']
-    community_instance = Community.objects.get(id=res['community_id'])
 
-    current_questionId_set = set(
-        communityQuestions.objects.filter(community=community_instance).values_list('id', flat=True))
+    try:
+        community_instance = Community.objects.get(id=res['community_id'])
+    except:
+        response = get_error_context(False, f"community with id {res['community_id']} does not exist")
+        return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    current_questionId_set = set(communityQuestions.objects
+                                 .filter(community=community_instance)
+                                 .values_list('id', flat=True))
     latest_questionId_set = set()
 
     major_change = False
     for question in questions_list:
 
         if 'id' in question:
-            question_instance = communityQuestions.objects.get(pk=question['id'])
 
-            # checking current question for major change
-            # if question_instance.question_state != question['state']:
-            #     major_change = True
-            #
-            # elif question_instance.value != question['value']:
-            #     major_change = True
+            try:
+                question_instance = communityQuestions.objects.get(pk=question['id'])
+            except:
+                response = get_error_context(False, f"question with id {question['id']} does not exist")
+                return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            # if (question_instance.optional is True and question['optional'] is False):
-            #     major_change = True
-
-            if question_instance.question_state == question_states.CHOICE_MULTIPLE or question_instance.question_state == question_states.CHOICE_SINGLE and not \
-                    question['field']:
+            if question_instance.question_state == question_states.CHOICE_MULTIPLE or\
+                    question_instance.question_state == question_states.CHOICE_SINGLE and\
+                    not question['field']:
                 current_choices = json.loads(question['value'])
                 value_list = []
+
                 for i in current_choices:
                     value_list.append(i['value'])
-
-                # print(value_list)
 
                 # taking the user options from filter
                 filter_list = list(
                     questionFilters.objects.filter(question=question['id']).values_list('filter', flat=True).distinct())
-                # print(filter_list)
 
                 for data in filter_list:
+
                     if data not in value_list:
-                        dropdown_list = list(
-                            questionFilters.objects.filter(question=question['id'], filter=data).values_list(
-                                'member_id', flat=True).distinct())
+                        dropdown_list = list(questionFilters.objects
+                                             .filter(question=question['id'], filter=data)
+                                             .values_list('member_id', flat=True)
+                                             .distinct())
                         questionFilters.objects.filter(question=question['id'], filter=data)
 
-                        delete_option = questionFilters.objects.filter(question=question['id'], filter=data).delete()
+                        questionFilters.objects.filter(question=question['id'], filter=data).delete()
 
                         for user_id in dropdown_list:
                             dropdown_option = list(
                                 questionFilters.objects.filter(question=question['id'], member_id=user_id).values_list(
                                     'filter', flat=True).distinct())
-                            print(dropdown_option)
+
                             if dropdown_option:
                                 value = ""
-                                for i in dropdown_option:
-                                    value = i + "$#"
+
+                                for option in dropdown_option:
+                                    value = option + "$#"
 
                                 value = value[:-2]
                                 answer_filter = communityAnswers.objects.filter(question=question['id'],
                                                                                 member_id=user_id)
                                 answer_filter.update(question_answer=value)
+
                             else:
                                 info_logger.info("delete case")
                                 answer_filter = communityAnswers.objects.filter(question=question['id'],
@@ -10590,14 +10602,10 @@ def edit_community_questions(request):
 
             major_change = True
 
-    # print(current_questionId_set)
-    # print(latest_questionId_set)
-
     diff = current_questionId_set - latest_questionId_set
 
     if len(diff) > 0:
-        delete_status = communityQuestions.objects.filter(pk__in=diff).delete()
-        print(delete_status)
+        communityQuestions.objects.filter(pk__in=diff).delete()
 
     # updating members state table for editing
     if major_change:
