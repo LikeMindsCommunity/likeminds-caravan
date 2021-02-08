@@ -999,7 +999,6 @@ def get_community_id_of_guest(member_id):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        
         guest_community_id_list = []
 
         for community_id in data:
@@ -1049,7 +1048,6 @@ def get_members_of_community(community_id_list, last_updated, page, limit):
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
-        
         member_date = process_member_data(res)
 
         return member_date
@@ -1077,7 +1075,6 @@ def get_member_responses_for_community(community_id_list):
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
-        
         responses_dict = get_dictionary_of_member_responses(res)
 
         return responses_dict
@@ -1211,7 +1208,6 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
@@ -1296,7 +1292,6 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
@@ -1382,7 +1377,6 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
@@ -1466,7 +1460,6 @@ def fetch_chatroom_with_videos(limit, page, card_list):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
