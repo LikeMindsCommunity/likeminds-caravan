@@ -257,7 +257,7 @@ def get_community_name(community_id):
         curr.execute(sql)
         community_name = curr.fetchone()[0]
         curr.close()
-        conn.close()
+
         return community_name
 
     except (Exception, psycopg2.Error) as error:
@@ -386,7 +386,7 @@ def send_notification_to_admins(community_id,name):
 
         #send_notification_to_multiple_devices(token_list,message)
         curr.close()
-        connection.close()
+
     except (Exception, psycopg2.Error) as error:
 
         print ("Error while connecting to PostgreSQL", error)
@@ -620,7 +620,7 @@ def send_follow_notification(card_id, user_id, answer):
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
         answerer_name=curr.fetchone()
         curr.close()
-        connection.close()
+
         message={}
 
         card = Collabcard.objects.get(id=card_id)
@@ -1059,7 +1059,7 @@ def send_notification_to_all_admins(community_id,name,current_promoter_id):
         }
         send_notification_to_multiple_devices(token_list,message)
         curr.close()
-        connection.close()
+
     except (Exception, psycopg2.Error) as error:
 
         print ("Error while connecting to PostgreSQL", error)
