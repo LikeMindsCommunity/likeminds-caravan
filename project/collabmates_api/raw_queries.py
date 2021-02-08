@@ -452,7 +452,6 @@ def delete_previous_data_for_user(user_id):
         curr.execute(sql, parameter)
         conn.commit()
         curr.close()
-        
         info_logger.info("Record deleted successfully for user:,", user_id)
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting  to PostgreSQL %s", error)
@@ -652,7 +651,6 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
@@ -692,7 +690,6 @@ def fetch_chatroom_polls(chatroom_id_list):
 
         data = curr.fetchall()
         curr.close()
-        
         poll_data = {}
         for poll in data:
             card_id = poll[0]
@@ -758,7 +755,6 @@ def fetch_member_poll_votes(chatroom_id_list):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        
         vote_dict = {}
 
         for vote in data:
@@ -965,7 +961,6 @@ def get_community_id_list(member_id):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        
         community_id_set = set()
 
         for community_id in data:

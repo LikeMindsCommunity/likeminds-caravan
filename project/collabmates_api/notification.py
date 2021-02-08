@@ -620,7 +620,6 @@ def send_follow_notification(card_id, user_id, answer):
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
         answerer_name=curr.fetchone()
         curr.close()
-
         message={}
 
         card = Collabcard.objects.get(id=card_id)
