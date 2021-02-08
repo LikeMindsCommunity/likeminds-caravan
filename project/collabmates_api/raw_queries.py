@@ -850,8 +850,8 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        
         chatroom_id_list = get_chatroom_id_list(data)
+
         return data, chatroom_id_list
 
 
