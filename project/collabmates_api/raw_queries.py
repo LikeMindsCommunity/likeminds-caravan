@@ -38,8 +38,6 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
         conn.commit()
         info_logger.info("conversation engage updated successfully")
         curr.close()
-        conn.close()
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -71,10 +69,8 @@ def get_active_chatrooms_count_in_community(community_id, user_id, current_time)
         curr.execute(sql)
         count = curr.fetchone()
         curr.close()
-        conn.close()
 
         return count[0]
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -106,10 +102,8 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
         curr.execute(sql)
         count = curr.fetchone()
         curr.close()
-        conn.close()
 
         return count[0]
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -127,10 +121,8 @@ def get_inactive_followed_chatrooms_count(user_id, current_time):
         curr.execute(sql)
         count = curr.fetchone()
         curr.close()
-        conn.close()
 
         return count[0]
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
@@ -152,10 +144,8 @@ def get_active_my_chatrooms_count(user_id, current_time):
         curr.execute(sql)
         count = curr.fetchone()
         curr.close()
-        conn.close()
 
         return count[0]
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -183,10 +173,8 @@ def get_active_followed_chatrooms(user_id, current_time, page, limit=10):
         for id in res:
             engage_list.append(id[0])
         curr.close()
-        conn.close()
 
         return engage_list
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
@@ -214,10 +202,8 @@ def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10):
         for id in res:
             engage_list.append(id[0])
         curr.close()
-        conn.close()
 
         return engage_list
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -245,10 +231,8 @@ def get_draft_chatrooms_on_home_screen(user_id, page, limit=10):
             if data[2]:
                 draft_list.append(data[0])
         curr.close()
-        conn.close()
 
         return draft_list
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -269,8 +253,6 @@ def update_community_purpose_card(community_id, card_id):
         conn.commit()
         info_logger.info("purpose updated successfully")
         curr.close()
-        conn.close()
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -284,7 +266,7 @@ def get_all_data(sql):
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
-        conn.close()
+        
         if res:
             return res
         return []
@@ -454,7 +436,7 @@ def ranking_tags(tag):
         count = curr.rowcount
         info_logger.info(count, "Record inserted successfully into community_rank table")
         curr.close()
-        conn.close()
+        
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting  to PostgreSQL %s", error)
 
@@ -470,7 +452,6 @@ def delete_previous_data_for_user(user_id):
         curr.execute(sql, parameter)
         conn.commit()
         curr.close()
-        conn.close()
         info_logger.info("Record deleted successfully for user:,", user_id)
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting  to PostgreSQL %s", error)
@@ -670,7 +651,6 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
@@ -710,7 +690,6 @@ def fetch_chatroom_polls(chatroom_id_list):
 
         data = curr.fetchall()
         curr.close()
-        conn.close()
         poll_data = {}
         for poll in data:
             card_id = poll[0]
@@ -776,7 +755,6 @@ def fetch_member_poll_votes(chatroom_id_list):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
         vote_dict = {}
 
         for vote in data:
@@ -872,8 +850,8 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
         chatroom_id_list = get_chatroom_id_list(data)
+
         return data, chatroom_id_list
 
 
@@ -952,7 +930,6 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
 
         chatroom_id_list = get_chatroom_id_list(data)
 
@@ -984,7 +961,6 @@ def get_community_id_list(member_id):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
         community_id_set = set()
 
         for community_id in data:
@@ -1018,7 +994,6 @@ def get_community_id_of_guest(member_id):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
         guest_community_id_list = []
 
         for community_id in data:
@@ -1068,7 +1043,6 @@ def get_members_of_community(community_id_list, last_updated, page, limit):
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
-        conn.close()
         member_date = process_member_data(res)
 
         return member_date
@@ -1096,7 +1070,6 @@ def get_member_responses_for_community(community_id_list):
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
-        conn.close()
         responses_dict = get_dictionary_of_member_responses(res)
 
         return responses_dict
@@ -1230,7 +1203,6 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
@@ -1315,7 +1287,6 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
@@ -1401,7 +1372,6 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
@@ -1485,7 +1455,6 @@ def fetch_chatroom_with_videos(limit, page, card_list):
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
-        conn.close()
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
