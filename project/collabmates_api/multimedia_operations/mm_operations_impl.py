@@ -16,7 +16,7 @@ class MultimediaOperationsImpl(MultimediaOperationsManager):
     def set_s3_bucket(self, s3_bucket: dict) -> None:
         self.s3_bucket = s3_bucket
 
-    def generate_presigned_post(self, object_name: str) -> dict:
+    def generate_presigned_post(self, object_path: str) -> dict:
         s3_client = S3ClientImpl(self.get_s3_bucket())
-        return s3_client.generate_presigned_post(object_name,
+        return s3_client.generate_presigned_post(object_path,
                                                  S3_CONSTANTS.get('PRE_SIGNED_URI_EXPIRATION_DELAY'))

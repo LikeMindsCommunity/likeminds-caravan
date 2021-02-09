@@ -1,12 +1,16 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status as status_codes
+
+from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.request_utilities import RequestUtilities
 from utility.exception_utilities import InvalidHeaderException, JsonDecodeException, CustomException
 
 from .banner_impl import BannerImpl
 from ..cms_auth_utilities import CMSAuthUtilities
+from ..utils import get_error_context
 
+error_logger = LoggingWrapper.get_instance()
 
 class FetchBannerView(APIView):
     """ inheriting API view class for using class based views in django """
@@ -102,6 +106,35 @@ class RemoveBannerView(APIView):
         response = banner_manager.remove_banner(banner_id)
 
         return JsonResponse(response)
+
+
+class GetUriForUpload(APIView):
+    """ inheriting API view class for using class based views in django """
+
+    def get(self, request) -> JsonResponse:
+
+        try:
+            user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
+
+            if not CMSAuthUtilities.validate_user(user_name, password):
+                CMSAuthUtilities.raise_authentication_error()
+
+            path = request.GET.get('path')
+            if not path:
+                context = get_error_context(False, 'object path missing in request')
+                return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            banner_manager = BannerImpl()
+            response = banner_manager.get_upload_uri(path)
+
+            return JsonResponse(response, safe=False)
+
+        except Exception as e:
+            message = 'api error' + str(e)
+            error_logger.error(message)
+            context = get_error_context(False, 'something went wrong')
+
+            return JsonResponse(context, safe=False, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class BannerRequestUtilities:

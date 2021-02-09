@@ -21,23 +21,23 @@ class S3ClientImpl(S3ClientManager):
     def set_s3_bucket(self, s3_bucket: dict) -> None:
         self.s3_bucket = s3_bucket
 
-    def generate_presigned_post(self, object_name: str, expiration: int) -> dict:
+    def generate_presigned_post(self, object_path: str, expiration: int) -> dict:
         return self._generate_presigned_post_internal(self.get_s3_bucket().get('name'),
-                                                      object_name,
+                                                      object_path,
                                                       None,
                                                       None,
                                                       expiration)
 
     def _generate_presigned_post_internal(self,
                                           bucket_name: str,
-                                          object_name: str,
+                                          object_path: str,
                                           fields=None,
                                           conditions=None,
                                           expiration=3600) -> dict:
         """
         Generate a presigned URL S3 POST request to upload a file
         :param bucket_name: string
-        :param object_name: string
+        :param object_path: string
         :param fields: Dictionary of prefilled form fields
         :param conditions: List of conditions to include in the policy
         :param expiration: Time in seconds for the presigned URL to remain valid
@@ -53,7 +53,7 @@ class S3ClientImpl(S3ClientManager):
                                  aws_secret_access_key=settings.AWS_CREDENTIALS.get('SECRET_KEY'))
         try:
             response = s3_client.generate_presigned_post(bucket_name,
-                                                         object_name,
+                                                         object_path,
                                                          Fields=fields,
                                                          Conditions=conditions,
                                                          ExpiresIn=expiration)

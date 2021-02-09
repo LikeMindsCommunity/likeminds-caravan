@@ -62,6 +62,14 @@ CORALOGIX_LOGGER = {
     'SUBSYSTEM_NAME_APP': 'Backend_App_System'
 }
 
+S3_BUCKETS = {
+    'media_bucket': {
+        'arn': 'arn:aws:s3:::prod-likeminds-media',
+        'name': 'prod-likeminds-media',
+        'region': 'ap-south-1'
+    }
+}
+
 GHUPSHUP_KEY = "45314393fb4505a15ff19d175d0c92f1"
 
 OTP_TEMPLATE_ID = '5fcfb2806e0eaa3000589d5c'
