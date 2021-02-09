@@ -380,3 +380,20 @@ class SyncTypes(enum.Enum):
         finally:
             return response
 
+
+class SyncNotificationTypes(enum.Enum):
+
+    SINGLE_MEMBER = 1
+    ALL_MEMBERS = 2
+
+    @classmethod
+    def has_value(cls, value) -> bool:
+        response = False
+        try:
+            if cls.__contains__(value):
+                response = True
+        except AttributeError as e:
+            response = False
+        finally:
+            return response
+

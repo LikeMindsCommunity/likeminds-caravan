@@ -1047,13 +1047,15 @@ def join_community_responses_version_1(request):
     info_logger.info("Join community request\n")
     info_logger.info(request.body)
     res = json.loads(request.body)
-
     info_logger.info("Join community res\n")
     info_logger.info(res)
     info_logger.info("\n")
     community_id = res['community_id']
     info_logger.info("Inside private\n")
     join_promoter_created_community_version_1(res, request)
+
+    send_sync_notification.delay({'community_id': community_id,
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
 
     return JsonResponse({'success': True})
 
@@ -2225,6 +2227,9 @@ def remove_from_member(request):
                             f"REMOVE_MEMBER_API (REMOVED CASE) -current user id = {member_id}, user id = {member}"
                             f", community id = {community_id}")
 
+                        send_sync_notification.delay({'community_id':community_id,
+                                                'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
+
                     else:
                         return JsonResponse(
                             {'success': False, 'error_message': "Cannot the Owner of this community"})
@@ -2245,6 +2250,8 @@ def remove_from_member(request):
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
             update_pending_member_count_in_engage(community_instance)
+            send_sync_notification.delay({'community_id': community_id,
+                                          'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
 
             return JsonResponse({'success': True})
 
@@ -2272,7 +2279,8 @@ def remove_from_member(request):
 
             remove_all_member_rights(community_instance, user_instance)
             remove_all_manager_rights(community_instance, user_instance)
-
+            send_sync_notification.delay({'community_id': community_id,
+                                          'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False,
@@ -3023,8 +3031,10 @@ def create_card(request, req_dict=None):
     # sending the local chatroom object for syncing in local db of clients
     member_data = {'member_id': user_id, 'current_user_id': user_id, 'state_instance': None}
     chatroom_obj = GetChatroomInstanceSerializer(context['card_instance'], context=member_data, many=False)
-
     context = {'success': True, 'collabcard': context['collabcard'], 'chatroom_local': chatroom_obj.data}
+
+    send_sync_notification.delay({'chatroom_id':context['chatroom_local']['id'],
+                            'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
     return JsonResponse(context)
 
 
@@ -3051,7 +3061,11 @@ def create_poll(request):
     member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
     chatroom_obj = GetChatroomInstanceSerializer(context['card_instance'], context=member_data, many=False)
 
-    return JsonResponse({'success': True, 'collabcard': context['collabcard'], 'chatroom_local': chatroom_obj.data})
+    context = {'success': True, 'collabcard': context['collabcard'], 'chatroom_local': chatroom_obj.data}
+
+    send_sync_notification.delay({'chatroom_id': context['chatroom_local']['id'],
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
+    return JsonResponse(context)
 
 
 def create_chatroom_instance(res, community_instance, user_instance, has_auto_approve_right=False):
@@ -3594,12 +3608,15 @@ def chatroom_mute(request):
 
     if not chatroom_id:
         context = get_error_context(False, "send chatroom id as post parameters")
-        return JsonResponse(context)
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     member_id = get_member_id_from_headers(request)
+
     if not member_id:
         context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     value = request.POST.get('value', False)
     collabcard_state_filter = collabcardState.objects.filter(card_id=chatroom_id, user=member_id)
@@ -3617,6 +3634,10 @@ def chatroom_mute(request):
             instance.is_tagged = False
             instance.save()
             # collabcard_state_filter.update(mute_status=False,is_tagged=False,updated_at=time.time())
+
+    send_sync_notification.delay({'chatroom_id': chatroom_id,
+                                  'member_id': member_id,
+                                  'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER})
 
     return JsonResponse({'success': True})
 
@@ -3652,6 +3673,8 @@ def chatroom_rename(request):
         context = get_error_context(False, "send correct chatroom id in post params")
         return JsonResponse(context)
 
+    send_sync_notification.delay({'chatroom_id': chatroom_id,
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
     return JsonResponse({"success": True})
 
 
@@ -3738,6 +3761,9 @@ def chatroom_delete(request):
 
         if is_promoter:
             send_notification_for_chatroom_deleted.delay(member_id, chatroom_id, community_id)
+
+        send_sync_notification.delay({'chatroom_id': chatroom_id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
 
     except Exception as e:
 
@@ -3846,7 +3872,7 @@ def set_chatroom_active(request):
 
     if not member_id:
         context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     chatroom_id = res['chatroom_id']
     duration = res['duration'] if 'duration' in res else HOURS_24
@@ -3878,6 +3904,10 @@ def set_chatroom_active(request):
         context = get_error_context(False, error)
 
         return JsonResponse(context)
+
+    send_sync_notification.delay({'chatroom_id': chatroom_id,
+                                  'member_id': member_id,
+                                  'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER})
 
     return JsonResponse({"success": True})
 
@@ -4616,7 +4646,9 @@ def request_response(request, req_dict=None):
         'accepted': accepted
     }
     approve_or_decline_private_community(req_dict, request)
-    # update_pending_member_count_in_engage(req_dict['community_id'])
+
+    send_sync_notification.delay({'community_id': community_id,
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
 
     return JsonResponse({'success': True})
 
@@ -5539,6 +5571,10 @@ def mark_read(request):
 
     chatroom_instance = Collabcard.objects.get(id=chatroom_id)
     save_the_latest_conversation(chatroom_instance, member_id)
+
+    send_sync_notification.delay({'chatroom_id': chatroom_instance.id,
+                                  'member_id': member_id,
+                                  'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER})
 
     return JsonResponse({'success': True})
 
@@ -7091,9 +7127,6 @@ def create_conversation(request):
         ans.og_tags = json.dumps(decode_meta_from_url(res['share_link']))
         ans.save()
 
-    if not has_files:
-        update_last_answer_id(card_instance.id, ans.id)
-
     # auto following the collabcard if answer is created
     if current_state['state'] == member_states.ADMIN or current_state['state'] == member_states.MEMBER or current_state[
         'state'] == member_states.PROFILE_UNAVAILABLE:
@@ -7115,6 +7148,9 @@ def create_conversation(request):
     update_activity_in_chatroom_for_conversation_creation(card_instance.id, user_id=user_id)
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'],
                                                                  has_files=has_files)
+
+    if not has_files:
+        update_last_answer_id(card_instance.id, ans.id)
 
     context = {"current_user_id": member_id, "fetch_reply": True}
     conversation = CardAnswersDBSyncSerializer(ans, context=context, many=False)
@@ -7149,6 +7185,8 @@ def update_chatroom_for_users_and_send_follow_notification(card_instance_id, use
     """ function to send follow notifications to users who are following the chatroom """
     if not has_files:
         send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
+        send_sync_notification({'chatroom_id': card_instance_id,
+                                'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
 
 
 def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user_id):
@@ -7310,6 +7348,9 @@ def collabcard_follow(request, function_dict=None):
                                        {'card': collabcard, 'user': user_instance},
                                        {'external_follow': True})
 
+        send_sync_notification.delay({'chatroom_id': collabcard_id,
+                                      'member_id':current_member_id,
+                                      'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER})
         return JsonResponse(context)
 
     expiry_time = get_expiry_time_of_chatroom()
@@ -7367,9 +7408,12 @@ def collabcard_follow(request, function_dict=None):
 
     # custom_cache.clear()
     update_my_chatrooms_for_users(chatroom_id=collabcard.id, user_id=current_member_id)
-    print("working")
-    # updating the activity in chatroom
+
     update_activity_in_chatroom(card_instance, user_instance)
+    send_sync_notification.delay({'chatroom_id': collabcard_id,
+                                  'member_id': current_member_id,
+                                  'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER})
+
     return JsonResponse({'success': True})
 
 
@@ -7548,6 +7592,10 @@ def collabcards_seen(request):
 
     collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
 
+    send_sync_notification.delay({'community_id': community_id,
+                                  'member_id': user_id,
+                                  'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER})
+
     return JsonResponse({'success': True})
 
 
@@ -7646,6 +7694,8 @@ def collabcard_attend(request):
                                    {'card': card_instance},
                                    {})
 
+    send_sync_notification.delay({'chatroom_id': collabcard_id,
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
     return JsonResponse({'success': True})
 
 
@@ -8256,9 +8306,12 @@ def upload_files(request):
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
 
+    community_id_for_sync = None
+
     if 'community_id' in body and body['community_id']:
         # if image to be updated in community
         community_id = body['community_id']
+        community_id_for_sync = community_id
         community = Community.objects.get(id=community_id)
         community.image_link = body['url']
         community.image_link_round = body['url']
@@ -8288,7 +8341,7 @@ def upload_files(request):
         collabcard_id = body['collabcard_id']
 
         card_instance = Collabcard.objects.get(id=collabcard_id)
-
+        community_id_for_sync = card_instance.community.id
         file = Card_Attachment()
         file.collabcard = card_instance
         file.type = attachment_type
@@ -8333,6 +8386,8 @@ def upload_files(request):
         answer_instance.last_updated = int(round(time.time() * 1000))
         answer_instance.save()
 
+        community_id_for_sync = answer_instance.community.id
+
         file = answerAttachment()
         file.answer = answer_instance
         file.type = attachment_type
@@ -8367,6 +8422,7 @@ def upload_files(request):
             instance = CollabcardPolls.objects.get(id=body['poll_id'])
             instance.image_url = body['url']
             instance.save()
+            answer_instance = instance.card.id
         except:
             return JsonResponse({'success': False, 'error_message': "Send valid poll id"})
 
@@ -8405,6 +8461,9 @@ def upload_files(request):
     if chatroom_local:
         context['chatroom_local'] = chatroom_local.data
 
+    if community_id_for_sync:
+        send_sync_notification.delay({'community_id': community_id_for_sync,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
     return JsonResponse(context)
 
 
@@ -8417,6 +8476,36 @@ def upload_files_version_1(request):
     status = status_codes.HTTP_200_OK if success else status_codes.HTTP_400_BAD_REQUEST
 
     return JsonResponse(context, status=status)
+
+
+def get_community_id_from_v1_upload_files(res):
+    community_id = None
+
+    if 'community_id' in res and res['community_id']:
+        community_id = res['community_id']
+
+    elif 'chatroom_id' in res and res['chatroom_id']:
+        chatroom_id = res['chatroom_id']
+        community_instance = Collabcard.get_community_of_chatroom_or_none(chatroom_id)
+
+        if community_instance:
+            community_id = community_instance.id
+
+    elif 'conversation_id' in res and res['conversation_id']:
+
+        answer_instance = ModelUtilities.get_model_instance_or_none(card_answers, res['conversation_id'])
+
+        if answer_instance:
+            community_id = answer_instance.community.id
+
+    elif 'poll_id' in res and res['poll_id']:
+
+        poll_instance = ModelUtilities.get_model_instance_or_none(card_answers, res['poll_id'])
+
+        if poll_instance:
+            community_id = poll_instance.card.community.id
+
+    return community_id
 
 
 def save_attachments(request):
@@ -8487,6 +8576,11 @@ def save_attachments(request):
     if chatroom_local:
         context['chatroom_local'] = chatroom_local.data
 
+    community_id = get_community_id_from_v1_upload_files(body)
+
+    if community_id:
+        send_sync_notification.delay({'community_id': community_id,
+                                'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
     return context
 
 
@@ -8579,7 +8673,6 @@ def upload_conversation_attachments(body, member_id):
     conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
 
     return conversation
-
 
 ############# functions for  login flow   ##########################
 
@@ -9985,6 +10078,10 @@ def skip_community(request):
 
     # updating the member joined level
     set_levels_on_ctc(community_instance, "Level 2")
+
+    send_sync_notification.delay({'community_id': community_id,
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS,
+                                  })
     return JsonResponse({'success': True})
 
 
@@ -10442,7 +10539,8 @@ def edit_community(request):
     serialized_object = CommunitySerializer(community, current_user_id=member_id)
     new_dict = {}
     new_dict.update(serialized_object)
-
+    send_sync_notification.delay({'community_id': community_id,
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
     return JsonResponse({'success': True, 'community': new_dict})
 
 
@@ -10488,6 +10586,8 @@ def edit_community_version_1(request):
         community_instance.save()
 
         # edit_community_data(community_instance, user_instance, edit_field=purpose)
+        send_sync_notification.delay({'community_id': community_id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
 
     return JsonResponse({'success': True})
 
@@ -10615,6 +10715,8 @@ def edit_community_questions(request):
 
     edit_community_data(community_instance, user_instance, edit_field="directory")
 
+    send_sync_notification.delay({'community_id': community_instance.id,
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
     return JsonResponse({'success': True})
 
 
@@ -10722,6 +10824,9 @@ def edit_questions_version_1(request):
         send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
     edit_community_data(community_instance, user_instance, edit_field="directory")
+
+    send_sync_notification.delay({'community_id': community_instance.id,
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
 
     return JsonResponse({'success': True})
 
@@ -12140,6 +12245,8 @@ def submit_poll(request):
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': card_instance},
                                        {})
+        send_sync_notification.delay({'chatroom_id': collabcard_id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
         return JsonResponse({"success": True})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
@@ -12184,6 +12291,9 @@ def add_poll(request):
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': card_instance},
                                        {})
+        send_sync_notification.delay({'community_id': card_instance.community.id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
+
         return JsonResponse({"success": True, "polls": poll_list})
 
     context = get_error_context(success=False, error_message="Change HTTP method to POST")
@@ -12252,13 +12362,24 @@ def delete_conversation(request):
         return JsonResponse(context)
 
     conversation_list = []
+    community_id = None
+
     for conversation_id in conversation_ids:
-        conversation = card_answers.objects.get(pk=conversation_id)
+
+        try:
+            conversation = card_answers.objects.get(pk=conversation_id)
+        except Exception as e:
+            error_logger.error(e.args)
+            continue
 
         update_conversation_delete_status(conversation, current_user_instance, reason=reason, tag_id=tag_id)
-
         conversation_dict = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+        community_id = conversation_dict['community_id']
         conversation_list.append(conversation_dict)
+
+    if community_id:
+        send_sync_notification.delay({'community_id': community_id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
 
     return JsonResponse({'success': True, 'conversations': conversation_list})
 
@@ -12325,9 +12446,11 @@ def edit_conversation(request):
                                     "you are not the conversation creator.Only conversation creator can edit his/her message")
         return JsonResponse(context)
 
-    conversation = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+    conversation_dict = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+    send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS,
+                                  'community_id': conversation.community.id})
 
-    return JsonResponse({'success': True, 'conversation': conversation})
+    return JsonResponse({'success': True, 'conversation': conversation_dict})
 
 
 def fetch_preview(request):
@@ -12547,6 +12670,10 @@ def update_community_manager_rights(request):
             info_logger.info(log)
 
             save_owner_title(custom_title, admin, community_instance, user_instance)
+            send_sync_notification.delay({'community_id': community_id,
+                                    'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER,
+                                    'member_id': current_user_id})
+
             return JsonResponse({'success': True})
 
         rights_added, removed_rights = save_added_removed_rights_for_manager(community_instance,
@@ -12591,7 +12718,6 @@ def update_community_manager_rights(request):
 
                 # giving all of the members rights to promoter
                 give_all_member_rights(user=user_instance, community=community_instance)
-
                 update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                                {'member_id': user_instance, 'community_id': community_id},
                                                {'member_state': member_states.ADMIN,
@@ -12617,6 +12743,10 @@ def update_community_manager_rights(request):
 
         info_logger.info(f"UPDATING_CM_RIGHTS current user id = {current_user_id},"
                          f" user id = {user_id}, community id = {community_id}")
+
+        send_sync_notification.delay({'community_id': community_id,
+                                'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER,
+                                'member_id': current_user_id})
 
         return JsonResponse({'success': True})
     else:
@@ -12694,6 +12824,10 @@ def remove_community_manager(request):
         info_logger.info(f"REMOVE_COMMUNITY_MANAGER_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
         send_notification_for_removed_cm.delay(user_id, community_id)
+
+        send_sync_notification.delay({'community_id':community_id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
+
         return JsonResponse({'success': True})
 
     else:
@@ -12827,6 +12961,9 @@ def transfer_community_ownership(request):
                                        {})
         info_logger.info(f"TRANSFER_OWNERSHIP_API  current user id = {current_user_id}, user id = {user_id}"
                          f", community id = {community_id}")
+
+        send_sync_notification.delay({'community_id': community_id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
         return JsonResponse({'success': True})
 
     else:
@@ -12977,7 +13114,8 @@ def update_community_member_rights(request):
                                                              custom_title=custom_title)
 
         update_member_rights_history.delay(rights_added, rights_removed, current_user_id, community_id, user_id)
-
+        send_sync_notification.delay({'community_id': community_id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS})
         return JsonResponse({'success': True})
     else:
         context = get_error_context(False, "user is not a admin")
