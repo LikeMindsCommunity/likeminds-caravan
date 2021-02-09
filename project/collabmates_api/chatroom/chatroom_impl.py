@@ -529,7 +529,7 @@ class ChatroomImpl(ChatroomManager):
 
         ChatroomHelper.update_time_for_community_members_on_card_creation(community_instance)
 
-        send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS,
+        send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                       'community_id': community_id})
 
         context = {

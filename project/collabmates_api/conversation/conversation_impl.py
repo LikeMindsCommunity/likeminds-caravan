@@ -363,7 +363,7 @@ class ConversationImpl(ConversationManager):
         conversation = get_conversation_instance_for_db_synching(conversation_instance,
                                                                  current_user_id=self.get_member_id())
 
-        send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS,
+        send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                       'community_id': community_id})
 
         conversation_response = {
