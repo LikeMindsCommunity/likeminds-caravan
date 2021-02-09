@@ -3175,8 +3175,6 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     if card.type == card_types.CARD_POLL and has_auto_approve_right:
         send_chatroom_creation_notifications_and_mails(card, user_instance)
-        schedule_poll_end_notification.delay(community_instance.name, community_instance.id, card_types.CARD_POLL,
-                                             card.end_date, card.id)
 
     if has_auto_approve_right or is_intro_card:
         # create relevant flags for first time conversation
