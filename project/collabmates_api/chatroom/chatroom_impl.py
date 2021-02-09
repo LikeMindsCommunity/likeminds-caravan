@@ -368,9 +368,6 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_type == card_types.CARD_POLL and user_has_auto_approve_right:
             # sending polls notification
             send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance)
-            schedule_poll_end_notification.delay(community_name, community_id,
-                                                 card_types.CARD_POLL, card_content['end_date'],
-                                                 self.get_chatroom_id())
 
         if user_has_auto_approve_right or is_intro_chatroom:
             # create relevant flags for first time conversation
