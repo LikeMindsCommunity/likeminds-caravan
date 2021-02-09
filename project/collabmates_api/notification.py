@@ -44,7 +44,10 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_SUBTITLE_SINGULAR,
                                INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR,
-                               INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL)
+                               INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL,
+                               SYNC_NOTIFICATION_TITLE,
+                               SYNC_NOTIFICATION_SUBTITLE,
+                               SYNC_NOTIFICATION_ROUTE)
 
 from django.db import connection
 
@@ -2599,3 +2602,87 @@ def get_notification_list_intro_notification(user_instance):
     user_details = get_user_fcm_details(user_instance=user_instance)
     notification_list.append(user_details)
     return notification_list
+
+
+
+def query_executer(query):
+
+    """executes a query and returns a response"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        curr.execute(query)
+        res = curr.fetchall()
+        curr.close()
+        conn.close()
+
+        return res
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error(error)
+
+        return []
+
+
+def get_android_users_tokens_for_silent_sync_notification(community_id, member_id=None):
+
+    if not member_id:
+        sql = """SELECT togther_userDevices.fcm_token
+                 FROM togther_members
+                 INNER JOIN togther_userDevices
+                     ON togther_members.member_id_id = togther_userDevices.user_id
+                 WHERE togther_userDevices.mobile_os='Android'
+                        AND togther_members.community_id_id=%s""" % (str(community_id))
+    else:
+        sql = """SELECT togther_userDevices.fcm_token
+                 FROM togther_members
+                 INNER JOIN togther_userDevices
+                     ON togther_members.member_id_id = togther_userDevices.user_id
+                 WHERE togther_userDevices.mobile_os='Android'
+                        AND togther_members.community_id_id=%s
+                        AND togther_members.member_id_id=%s""" % (str(community_id),str(member_id))
+
+    result_set = query_executer(sql)
+
+    token_list = []
+
+    for data in result_set:
+        token_list.append(data[0])
+
+    return token_list
+
+
+@shared_task
+def send_sync_notification(notification_dict):
+
+    if not SyncNotificationTypes.has_value(notification_dict['sync_notification_type']):
+        error_logger.error("Invalid sync notification type")
+
+        return
+
+    chatroom_id = notification_dict.get('chatroom_id')
+
+    if chatroom_id:
+        community_instance = Collabcard.get_community_of_chatroom_or_none(chatroom_id)
+
+        if community_instance:
+            notification_dict['community_id'] = community_instance.id
+
+    message = {
+        'payload': {
+            'route': SYNC_NOTIFICATION_ROUTE
+        }
+    }
+
+    token_list = []
+    if notification_dict['sync_notification_type'] == SyncNotificationTypes.ALL_MEMBERS:
+        token_list = get_android_users_tokens_for_silent_sync_notification(notification_dict['community_id'])
+
+    elif notification_dict['sync_notification_type'] == SyncNotificationTypes.SINGLE_MEMBER:
+        token_list = get_android_users_tokens_for_silent_sync_notification(notification_dict['community_id'],
+                                                                    notification_dict['member_id'])
+
+    if len(token_list) > 0:
+        send_notification_for_android(token_list, message)
+

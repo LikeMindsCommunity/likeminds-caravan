@@ -43,9 +43,16 @@ INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL = "Hey %s, %s is %s members stronger. Se
 INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR = "route://chatroom_detail?chatroom_id=%s"
 INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL = "route://community_collabcard?community_id=%s&community_name=%s"
 
+
+SYNC_NOTIFICATION_TITLE = "Sync"
+SYNC_NOTIFICATION_SUBTITLE = "To sync local DB"
+SYNC_NOTIFICATION_ROUTE = "route://sync"
+
+
 INTRO_ROOM_LOOKBACK_PERIOD = 86400
 
 DIRECTORY_FEATURE = "Community Members Directory"
+
 HOURS_24 = 86400
 MINUTES_30 = 1800
 MINUTES_10 = 600
@@ -53,3 +60,4 @@ MINUTES_5 = 300
 MINUTES_2 = 120
 
 VALID_URLS_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+

@@ -327,6 +327,16 @@ class Collabcard(models.Model):
         except:
             return None
 
+    @staticmethod
+    def get_community_of_chatroom_or_none(chatroom_id):
+        card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+        community_instance = None
+
+        if card_instance:
+            community_instance = card_instance.community
+
+        return community_instance
+
 
 class draftChatroom(models.Model):
     title = models.TextField()
@@ -1505,4 +1515,16 @@ class ModelUtilities:
     @staticmethod
     def is_model_filter_exists(model, filter_dict):
         return model.objects.filter(**filter_dict).exists()
+
+    @staticmethod
+    def get_model_instance_or_none(model, pk):
+
+        instance = None
+        try:
+            instance = model.objects.get(id=pk)
+
+        except Exception as e:
+            pass
+
+        return instance
 
