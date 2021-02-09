@@ -2676,10 +2676,11 @@ def send_sync_notification(notification_dict):
     }
 
     token_list = []
-    if notification_dict['sync_notification_type'] == SyncNotificationTypes.ALL_MEMBERS:
+
+    if notification_dict['sync_notification_type'] == SyncNotificationTypes.ALL_MEMBERS.value:
         token_list = get_android_users_tokens_for_silent_sync_notification(notification_dict['community_id'])
 
-    elif notification_dict['sync_notification_type'] == SyncNotificationTypes.SINGLE_MEMBER:
+    elif notification_dict['sync_notification_type'] == SyncNotificationTypes.SINGLE_MEMBER.value:
         token_list = get_android_users_tokens_for_silent_sync_notification(notification_dict['community_id'],
                                                                     notification_dict['member_id'])
 
