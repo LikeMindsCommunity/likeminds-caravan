@@ -25,7 +25,9 @@ from utility.states import (member_states, manager_rights, member_rights, modera
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
 from utility.celery_beat_tasks import CeleryBeatTask
-from utility.constants import INTRO_ROOM_LOOKBACK_PERIOD
+from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
+                               MINUTES_2, HOURS_24, MINUTES_5,
+                               MINUTES_10, MINUTES_30, VALID_URLS_REGEX)
 from project.celery import app
 from utility.states import *
 
@@ -36,7 +38,6 @@ import traceback
 from datetime import datetime, timedelta
 from .serializers import get_answer_files, get_collabcard_files
 from .static_text import *
-from utility.constants import HOURS_24, MINUTES_5, MINUTES_10, MINUTES_30
 from utility.time_utilities import TimeUtilities
 from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_TITLE_SINGULAR,
@@ -44,7 +45,6 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR,
                                INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL)
-
 
 from django.db import connection
 
@@ -534,8 +534,6 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
             route = 'route://poll_chatroom?chatroom_id=' + str(kwargs['card_id'])
 
-            schedule_poll_end_notification(card)
-
         else:
             title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
@@ -570,57 +568,62 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
 
 
 @shared_task
-def schedule_poll_end_notification(card_instance):
-    args = [card_instance.id]
-
-    poll_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.expiry_time)
-    task_begin_time = TimeUtilities.convert_epoch_to_datetime_in_IST(poll_end_time)
-    task_expiry_time = TimeUtilities.add_minutes_to_datetime(task_begin_time, minutes=MINUTES_5)
-
-    poll_room_ending_notification.apply_async(args=args,
-                                              kwargs={},
-                                              eta=task_begin_time,
-                                              expires=task_expiry_time)
-
+def schedule_poll_end_notification(community_name, community_id, typ, date_time, card_id):
+    task_name = str(card_id) + "_poll_expiry_or_event_remainder_notification"
+    date_time = date_time/1000
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+    args = [community_name, community_id, typ,card_id,task_name]
+    task_path = "collabmates_api.notification.poll_expiry_or_event_remainder_notification"
+    kwargs = {}
+    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                            date_time=date_time, interval=False, crontab=True)
 
 def schedule_online_event_future_notification(card_instance):
     card_id = card_instance.id
-    card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.end_date)
-    task_begin_time = TimeUtilities.convert_epoch_to_datetime_in_IST(card_end_time)
-    task_begin_time = TimeUtilities.subtract_minutes_from_datetime(task_begin_time, MINUTES_10)
-    task_expiry_time = TimeUtilities.add_minutes_to_datetime(task_begin_time, minutes=MINUTES_5)
+    task_name = 'online_event_with_id_' + str(card_id)
+    task_path = 'collabmates_api.notification.online_event_remainder_notification_10_min'
 
-    args = [card_id]
+    date_time = int(str(card_instance.end_date)[:10]) - 600  # subtracting 10 minutes
 
-    online_event_remainder_notification_10_min.apply_async(args=args,
-                                                           kwargs={},
-                                                           eta=task_begin_time,
-                                                           expires=task_expiry_time)
+    celerybeatask = CeleryBeatTask()
+    args = [card_id, task_name]
+    kwargs = {}
+
+    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                            date_time=date_time, crontab=True)
 
 
 def schedule_offline_event_future_notifications(card_instance):
 
+    celerybeatask = CeleryBeatTask()
+
     card_id = card_instance.id
-    card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.end_date)
-    args = [card_id]
+    card_end_time = int(str(card_instance.end_date)[:10])
 
     # scheduling event remainder before 24 hours
-    card_end_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(card_end_time)
-    task_begin_time = TimeUtilities.subtract_hours_from_datetime(card_end_date_time, HOURS_24)
-    task_expiry_time = TimeUtilities.add_minutes_to_datetime(task_begin_time, minutes=MINUTES_5)
+    _24_h_task_name = 'offline_event_24_hours_with_id_' + str(card_id)
+    _24_h_task_path = 'collabmates_api.notification.offline_event_remainder_notification_24_hours'
 
-    online_event_remainder_notification_10_min.apply_async(args=args,
-                                                           eta=task_begin_time,
-                                                           expires=task_expiry_time)
+    _24_h_date_time = card_end_time - 86400  # subtracting 24 hours
+
+    args = [card_id, _24_h_task_name]
+    kwargs = {}
+
+    celerybeatask.create_dynamic_clery_task(args, kwargs, _24_h_task_name, _24_h_task_path,
+                                            date_time=_24_h_date_time, crontab=True)
 
     # scheduling event remainder before 30 minutes
-    task_begin_time = TimeUtilities.subtract_minutes_from_datetime(card_end_date_time, MINUTES_30)
-    task_expiry_time = TimeUtilities.add_minutes_to_datetime(task_begin_time, minutes=MINUTES_5)
+    _30_min_task_name = 'offline_event_30_min_with_id_' + str(card_id)
+    _30_min_task_path = 'collabmates_api.notification.offline_event_remainder_notification_30_minutes'
 
-    online_event_remainder_notification_10_min.apply_async(args=args,
-                                                           kwargs={},
-                                                           eta=task_begin_time,
-                                                           expires=task_expiry_time)
+    _30_min_date_time = card_end_time - 1800  # subtracting 10 minutes
+
+    args = [card_id, _30_min_task_name]
+    kwargs = {}
+
+    celerybeatask.create_dynamic_clery_task(args, kwargs, _30_min_task_name, _30_min_task_path,
+                                            date_time=_30_min_date_time, crontab=True)
 
 
 def get_user_data_for_event_notifications(card_instance, sub_title, route):
@@ -647,12 +650,148 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
         notification_list.append(get_user_fcm_details(card_owner))
 
     message = {'payload': {
-        'title': str(card_title),
-        'sub_title': sub_title,
+        'title': EVENT_NOTIFICATIONS_TITLE,
+        'sub_title': str(card_title) + sub_title,
         'route': route
     }}
 
     return notification_list, message
+
+
+def fetch_all_valid_urls(string):
+
+    regex = VALID_URLS_REGEX
+    valid_urls = re.findall(regex, string)
+
+    return [x[0] for x in valid_urls]
+
+
+@app.task
+@shared_task
+def online_event_remainder_notification_2_min(card_id, task_name=None, **kwargs):
+    """ function to send notification to all members when event/poll is going to start/end """
+    try:
+        card_instance = Collabcard.objects.get(pk=card_id)
+        sub_title = ONLINE_EVENT_NOTIFICATION_SUB_TITLE
+
+        valid_urls = fetch_all_valid_urls(card_instance.online_link)
+
+        if len(valid_urls) == 0:
+            return
+
+        route = ONLINE_EVENT_NOTIFICATION_ROUTE % valid_urls[0]
+
+        notification_list, message = get_user_data_for_event_notifications(card_id, sub_title, route)
+
+        notification_meta(notification_list, message)
+
+        # disable the task , to prevent it from triggering in future
+        if task_name:
+            beat_task = CeleryBeatTask()
+            beat_task.terminate_task(task_name=task_name)
+
+    except Exception as e:
+        error_logger.error(f"online_event_remainder_notification_2_min : {e}")
+
+
+@app.task
+@shared_task
+def offline_event_remainder_notification_24_hours(card_id, task_name=None, **kwargs):
+    """ function to send notification to all members when event/poll is going to start/end """
+    try:
+        card_instance = Collabcard.objects.get(pk=card_id)
+
+        sub_title = OFFLINE_EVENT_NOTIFICATION_24_H_SUB_TITLE
+        route = OFFLINE_EVENT_NOTIFICATION_24_H_ROUTE % card_id
+
+        notification_list, message = get_user_data_for_event_notifications(card_instance, sub_title, route)
+
+        notification_meta(notification_list, message)
+
+        # disable the task , to prevent it from triggering in future
+        if task_name:
+            beat_task = CeleryBeatTask()
+            beat_task.terminate_task(task_name=task_name)
+
+    except Exception as e:
+        error_logger.error(f"offline_event_remainder_notification_24_hours : {e}")
+
+
+@app.task
+@shared_task
+def offline_event_remainder_notification_30_minutes(card_id, task_name=None, **kwargs):
+    """ function to send notification to all members when event/poll is going to start/end """
+    try:
+        card_instance = Collabcard.objects.get(pk=card_id)
+
+        sub_title = OFFLINE_EVENT_NOTIFICATION_30_M_SUB_TITLE
+        route = OFFLINE_EVENT_NOTIFICATION_30_M_ROUTE % card_id
+
+        notification_list, message = get_user_data_for_event_notifications(card_instance, sub_title, route)
+
+        notification_meta(notification_list, message)
+
+        # disable the task , to prevent it from triggering in future
+        if task_name:
+            beat_task = CeleryBeatTask()
+            beat_task.terminate_task(task_name=task_name)
+
+    except Exception as e:
+        error_logger.error(f"offline_event_remainder_notification_30_minutes : {e}")
+
+
+@app.task
+@shared_task
+def poll_room_ending_notification(card_id, **kwargs):
+    """ function to send notification to all members when event/poll is going to start/end """
+    try:
+        print("poll_room_ending_notification_running")
+        card_instance = Collabcard.objects.get(pk=card_id)
+        card_owner = card_instance.user
+        owner_flag = False
+        card_title = get_title_from_collabcard(card_instance)
+
+        collabcardState.objects.filter(card=card_id).update(updated_at=time.time())
+
+        members = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
+        notification_list = []
+        for member in members:
+
+            if card_owner.id == member.user.id:
+                owner_flag = True
+
+            notification_list.append(get_user_fcm_details(member.user))
+
+        # if card owner did not vote, add him to notification list
+        if owner_flag is False:
+            notification_list.append(get_user_fcm_details(card_owner))
+
+        sub_title = POLL_EXPIRY_NOTIFICATION_SUB_TITLE
+        route = POLL_EXPIRY_NOTIFICATION_ROUTE % card_id
+
+        message = {'payload': {
+            'title': str(card_title),
+            'sub_title': sub_title,
+            'route': route
+        }}
+
+        notification_meta(notification_list, message)
+
+    except Exception as e:
+        error_logger.error(f"poll_room_ending_notification : {e}")
+
+
+def schedule_poll_end_notification_new(card_instance):
+    args = [card_instance.id]
+
+    poll_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.expiry_time)
+    task_begin_time = TimeUtilities.convert_epoch_to_datetime_in_IST(poll_end_time)
+    task_expiry_time = TimeUtilities.add_minutes_to_datetime(task_begin_time, minutes=MINUTES_5)
+
+    poll_room_ending_notification.apply_async(args=args,
+                                              kwargs={},
+                                              eta=task_begin_time,
+                                              expires=task_expiry_time)
 
 
 @app.task
@@ -1090,20 +1229,12 @@ def send_notification_to_event_co_hosts(co_hosts, card_id, event_title, event_cr
         temp['mobile_os'] = notification_details[1]
         notification_list.append(temp)
 
-    message = {}
-    # message['payload']={
-    #     "title" : event_creater +" made you co-host of this event",
-    #     "sub_title" : event_title,
-    #     "route":"route://collabcard?collabcard_id="+str(card_id)
-    # }
-    # <<Harsh>> added you as a host for <<event name>> in <<community_name>>. View details
-    message['payload'] = {
-        "title": "You are a co-host!",
-        "sub_title": event_creater + " added you as a host for " + event_title + " in " + community_name,
-        "route": "route://collabcard?collabcard_id=" + str(card_id)
-    }
-    # print(notification_list)
-    # print(message)
+    message = {'payload': {
+        "title": EVENT_CO_HOST_NOTIFICATION_TITLE,
+        "sub_title": EVENT_CO_HOST_NOTIFICATION_SUB_TITLE % (event_creater, event_title, community_name),
+        "route": EVENT_CO_HOST_NOTIFICATION_ROUTE % str(card_id)
+    }}
+
     notification_meta(notification_list, message)
 
 

@@ -27,6 +27,27 @@ class TimeUtilities:
         return millisec // 1000
 
     @staticmethod
+    def get_epoch_time(hours=0, minutes=0):
+        epoch_time = hours * 3600 + minutes * 60
+        return epoch_time
+
+    @staticmethod
+    def add_minutes_to_epoch_time(epoch_time, minutes):
+        return epoch_time + TimeUtilities.get_epoch_time(minutes=minutes)
+
+    @staticmethod
+    def add_hours_to_epoch_time(epoch_time, hours):
+        return epoch_time + TimeUtilities.get_epoch_time(hours=hours)
+
+    @staticmethod
+    def subtract_minutes_from_epoch_time(epoch_time, minutes):
+        return epoch_time - TimeUtilities.get_epoch_time(minutes=minutes)
+
+    @staticmethod
+    def subtract_hours_from_epoch_time(epoch_time, hours):
+        return epoch_time - TimeUtilities.get_epoch_time(hours=hours)
+
+    @staticmethod
     def get_indian_time_zone():
         return tz.gettz('IST')
 
