@@ -387,13 +387,7 @@ class SyncNotificationTypes(enum.Enum):
     ALL_MEMBERS = 2
 
     @classmethod
-    def has_value(cls, value) -> bool:
-        response = False
-        try:
-            if cls.__contains__(value):
-                response = True
-        except AttributeError as e:
-            response = False
-        finally:
-            return response
+    def has_value(cls, value):
+        return value in cls._value2member_map_
+
 
