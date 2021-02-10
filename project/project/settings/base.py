@@ -334,3 +334,4 @@ LOGGING = {
 
 BRANCH_KEY = 'key_live_lkM4vHEWt2Mhx2hJxxtU8deburgYWup4'
 
+MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN')

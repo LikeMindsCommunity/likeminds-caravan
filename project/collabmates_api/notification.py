@@ -49,6 +49,7 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                SYNC_NOTIFICATION_SUBTITLE,
                                SYNC_NOTIFICATION_ROUTE)
 
+from external_services.mixpanel.mixpanel_impl import MixpanelImpl
 from django.db import connection
 
 error_logger = LoggingWrapper.get_instance()
@@ -158,6 +159,11 @@ def get_devices_of_users(user_id):
     return user_devices
 
 
+def track_notification(user_id, notification_payload):
+    MixpanelImpl().track_notification(str(user_id),
+                                      properties=notification_payload)
+
+
 def notification_meta(notification_list, message, calling_notification=""):
     # print(notification_list,message)
     '''function to process notification to send'''
@@ -172,6 +178,7 @@ def notification_meta(notification_list, message, calling_notification=""):
         user_devices = get_devices_of_users(user_id)
 
         for device in user_devices:
+
             if device['mobile_os'] == "Android":
                 token_list = [device['fcm_token']]
                 send_notification_for_android(token_list, message)
@@ -182,26 +189,7 @@ def notification_meta(notification_list, message, calling_notification=""):
                 else:
                     send_notification_for_ios(token_list, message)
 
-    # for data in notification_list:
-    #     if data['fcm_token']:
-    #         if data['mobile_os'] == "Android":
-    #             token_list_android.append(data['fcm_token'])
-    #         else:
-    #             token_list_ios.append(data['fcm_token'])
-    #             #functionalities for iOS flow
-    #             if 'message' in data:
-    #                 send_notification_for_ios(token_list_ios, data['message'])
-    #             else:
-    #                 send_notification_for_ios(token_list_ios,message)
-    #             token_list_ios = []
-    #
-    #         #print(data)
-    #
-    # if token_list_android:
-    #     send_notification_for_android(token_list_android,message)
-
-    # if token_list_ios:
-    #     send_notification_for_ios(token_list_ios,message)
+        track_notification(user_id, notification_payload=message['payload'])
 
 
 def get_connection():
@@ -782,6 +770,9 @@ def offline_event_remainder_notification_30_minutes(card_id, **kwargs):
 
     except Exception as e:
         error_logger.error(f"offline_event_remainder_notification_30_minutes {e.args}")
+
+
+offline_event_remainder_notification_30_minutes(7496)
 
 
 def get_custom_data_for_new_chatroom_created(card):
