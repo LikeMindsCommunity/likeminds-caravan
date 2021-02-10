@@ -443,10 +443,12 @@ def send_tagged_user_mail_scheduled(user_id,card_id,tagged_member_list,has_seen)
 
                 # to = ['himanshu@likeminds.community']
                 to = [email]
+                categories = [
+                    "User engagement",
+                    "Tagged"
+                ]
 
-                print(to)
-                send_email(subject, template, to)
-                print(email_context)
+                send_email(subject, template, to, categories=categories)
 
 @shared_task
 def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
@@ -512,10 +514,14 @@ def send_chatroom_owner_mail_scheduled(user_id, card_id, last_conversation_id,me
             template = get_template("mails/owner_inactive_email.html").render(email_context)
 
             to = [email]
-            # to = ['himanshu@likeminds.community']
 
-            send_email(subject, template, to)
-            print(email_context)
+            categories = [
+                "User engagement",
+                "Message Waiting"
+            ]
+
+            send_email(subject, template, to, categories=categories)
+
             flag = memberNotificationFlag.objects.get(member_id=user_id,code='mail_card_owner_inactivity',card=card_instance)
             flag.flag = False
             flag.save()
@@ -706,6 +712,15 @@ def send_poll_results_announcement_mail(card_id, task_name):
                                          f"{community_instance.name}<hello@likeminds.community>",
                                          to)
             msg.attach_alternative(template, "text/html")
+
+            categories = [
+                "beta" if settings.IS_BETA else "prod",
+                "User engagement",
+                "Poll Results"
+            ]
+
+            msg.categories = categories
+
             msg.send(fail_silently)
 
     card_instance.disable_poll_announcement_mail = True

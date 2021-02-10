@@ -32,13 +32,19 @@ def mail_triger(member_id, request):
 
 
 @shared_task
-def send_email(subject, template, to_mails_list):
+def send_email(subject, template, to_mails_list, categories=None):
+
     fail_silently = False
     msg = EmailMultiAlternatives(subject,
                                  template,
                                  "LikeMinds<hello@likeminds.community>",
                                  to_mails_list, )
     msg.attach_alternative(template, "text/html")
+
+    if categories is not None:
+        categories.append("beta" if settings.IS_BETA else "prod")
+        msg.categories = categories
+        
     msg.send(fail_silently)
     return
 

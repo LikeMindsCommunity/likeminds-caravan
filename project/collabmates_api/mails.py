@@ -153,18 +153,30 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
     members = Members.objects.filter(community_id=community_id, state=1)
 
     for member in members:
+
+        categories = [
+            "CM activation",
+        ]
+
         if level == 1:
             template = 'mails/level_1_email.html'
             subject = str(member.member_id.userinfo.name) + ", reminding you to invite the inner circle!"
+            categories.append("Invite inner circle")
+
         elif level == 2:
             template = 'mails/level_2_email.html'
             subject = str(member.member_id.userinfo.name) + ", reminding you to set up your directory!"
+            categories.append("Create Directory")
+
         elif level == 3:
             template = 'mails/level_3_email.html'
             subject = str(member.member_id.userinfo.name) + ", reminding you to get 10 member profiles in directory!"
+            categories.append("Get 10 members")
+
         else:
             template = 'mails/level_4_email.html'
             subject = str(member.member_id.userinfo.name) + ", let’s get your community off to a great start!"
+            categories.append("Invite members")
 
         notification_list = [
             'send_8am_level_mails_to_admin_mailer'
@@ -189,8 +201,8 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
             template = get_template(template).render(email_context)
             email = get_user_email(member.member_id_id)
             to = [email]
-            # to = ['himanshu@likeminds.community']
-            send_email(subject, template, to)
+
+            send_email(subject, template, to, categories=categories)
 
 
 @shared_task

@@ -772,9 +772,6 @@ def offline_event_remainder_notification_30_minutes(card_id, **kwargs):
         error_logger.error(f"offline_event_remainder_notification_30_minutes {e.args}")
 
 
-offline_event_remainder_notification_30_minutes(7496)
-
-
 def get_custom_data_for_new_chatroom_created(card):
     """ function to get data for custom notification """
 
