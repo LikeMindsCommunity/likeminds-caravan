@@ -368,10 +368,14 @@ def send_verification_mail_for_email_sync(user_name,verification_link,email):
                 'angellist_link': angellist_link
                }
     template = get_template("mails/verify_email_template.html").render(context)
-    #print(context)
+
+    categories = [
+        "Verify email"
+    ]
 
     to = [email]
-    send_email(subject, template, to)
+    send_email(subject, template, to, categories=categories)
+
 
 @shared_task
 def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
