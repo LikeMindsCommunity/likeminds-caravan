@@ -4,6 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 from django.conf import settings
 
+from external_services.amazon_s3.constants import PUBLIC_READ_ACL
 from external_services.amazon_s3.s3_client_manager import S3ClientManager
 
 
@@ -22,10 +23,17 @@ class S3ClientImpl(S3ClientManager):
         self.s3_bucket = s3_bucket
 
     def generate_presigned_post(self, object_path: str, expiration: int) -> dict:
+
+        fields = dict()
+        self._add_public_read_acl_fields(fields)
+
+        conditions = list()
+        self._add_public_read_acl_condition(conditions)
+
         return self._generate_presigned_post_internal(self.get_s3_bucket().get('name'),
                                                       object_path,
-                                                      None,
-                                                      None,
+                                                      fields,
+                                                      conditions,
                                                       expiration)
 
     def _generate_presigned_post_internal(self,
@@ -62,3 +70,11 @@ class S3ClientImpl(S3ClientManager):
             return dict()
 
         return response
+
+    @staticmethod
+    def _add_public_read_acl_fields(fields: dict) -> None:
+        fields.update(PUBLIC_READ_ACL)
+
+    @staticmethod
+    def _add_public_read_acl_condition(conditions: list) -> None:
+        conditions.append(PUBLIC_READ_ACL)
