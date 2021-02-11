@@ -33,6 +33,7 @@ url = settings.URL
 from .serializers import CollabcardPollsSerializer
 from .notification import get_title_from_collabcard,send_intro_room_evening_notifications
 from .static_text import CREATE_CONVERSATION_API_END_POINT
+from utility.mail_category_constants import *
 # def send_email(subject,template,to):
 #     fail_silently=True
 #     msg = EmailMultiAlternatives(subject,
@@ -369,8 +370,11 @@ def send_verification_mail_for_email_sync(user_name,verification_link,email):
                }
     template = get_template("mails/verify_email_template.html").render(context)
 
+    setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
+
     categories = [
-        "Verify email"
+        setting_category,
+        f"{setting_category} - {MAIL_CATEGORY_VERIFY_EMAIL}"
     ]
 
     to = [email]
@@ -447,9 +451,13 @@ def send_tagged_user_mail_scheduled(user_id,card_id,tagged_member_list,has_seen)
 
                 # to = ['himanshu@likeminds.community']
                 to = [email]
+
+                setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
+
                 categories = [
-                    "User engagement",
-                    "Tagged"
+                    f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT} - {MAIL_CATEGORY_TAGGED}",
+                    f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT}",
+                    setting_category,
                 ]
 
                 send_email(subject, template, to, categories=categories)
@@ -519,9 +527,12 @@ def send_chatroom_owner_mail_scheduled(user_id, card_id, last_conversation_id,me
 
             to = [email]
 
+            setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
+
             categories = [
-                "User engagement",
-                "Message Waiting"
+                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT} - {MAIL_CATEGORY_MESSAGE_WAITING}",
+                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT}",
+                setting_category,
             ]
 
             send_email(subject, template, to, categories=categories)
@@ -648,10 +659,8 @@ def send_poll_results_announcement_mail(card_id, task_name):
     voted_members = set(MemberPollVotes.objects.filter(card=card_id).values_list("user", flat=True))
     followed_members = set(collabcardState.objects.filter(
         card=card_id, mute_status=False, external_follow=True).values_list("user", flat=True))
-    print("voted members ====   ", voted_members)
-    print("followed members ====   ", followed_members)
+
     final_users_list = voted_members | followed_members
-    print("final_users_list ====   ", final_users_list)
 
     if card_creator_id not in final_users_list:
         final_users_list.add(card_creator_id)
@@ -717,10 +726,12 @@ def send_poll_results_announcement_mail(card_id, task_name):
                                          to)
             msg.attach_alternative(template, "text/html")
 
+            setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
+
             categories = [
-                "beta" if settings.IS_BETA else "prod",
-                "User engagement",
-                "Poll Results"
+                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT} - {MAIL_CATEGORY_POLL_RESULTS}",
+                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT}",
+                setting_category,
             ]
 
             msg.categories = categories
