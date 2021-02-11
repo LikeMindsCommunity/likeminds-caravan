@@ -27,21 +27,16 @@ from .user_moderation_rights import (get_related_reports_for_user, check_admin_d
                                      check_admin_approve_right, check_admin_edit_community_right)
 import json
 import requests
-# from datetime import datetime,
-# url = 'https://beta.likeminds.community'
-url = settings.URL
 from .serializers import CollabcardPollsSerializer
 from .notification import get_title_from_collabcard,send_intro_room_evening_notifications
 from .static_text import CREATE_CONVERSATION_API_END_POINT
 from utility.mail_category_constants import *
-# def send_email(subject,template,to):
-#     fail_silently=True
-#     msg = EmailMultiAlternatives(subject,
-#                                 template,
-#                                 "Collabmates<hello@collabmates.com>",
-#                                 [to],)
-#     msg.attach_alternative(template, "text/html")
-#     return msg.send(fail_silently)
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
+url = settings.URL
+
 
 @shared_task
 def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,proposedAdminState):
@@ -838,16 +833,19 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
     is_member = Members.is_community_member(community_instance, user_instance)
 
     if not is_member:
+        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at is_member condition")
         return
 
     owner_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
 
     if owner_user_instance is None:
+        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner existence check")
         return
 
     template = MessageTemplate.objects.filter(community=community_instance, user=owner_user_instance)
 
     if not template.exists():
+        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at template existence check")
         return
 
     intro_filter = Collabcard.objects.filter(community=community_instance,
@@ -855,11 +853,13 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
                                              type=card_types.CARD_INTRO)
 
     if not intro_filter.exists():
+        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at intro room existence check")
         return
 
     chatroom = intro_filter[0]
 
     if chatroom.user.id == owner_user_instance.id:
+        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner id and chatroom creator id matching check")
         return
 
     conversation_text = template[0].message
@@ -876,6 +876,8 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
     }
 
     response = request_api("POST", api_url, headers, payload)
+    info_logger.info(
+        f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, response status_code = {response.status_code}")
 
 
 def request_api(method, api_url, headers, payload):
