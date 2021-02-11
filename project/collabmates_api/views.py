@@ -2282,6 +2282,8 @@ def remove_from_member(request):
             send_sync_notification.delay({'community_id': community_id,
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
+            send_notification_to_managers_when_member_leaves_community.delay(member_id, community_id)
+
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False,

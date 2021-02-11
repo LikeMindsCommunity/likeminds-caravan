@@ -356,3 +356,6 @@ OFFLINE_EVENT_NOTIFICATION_30_M_SUB_TITLE = 'Your event is starting in 30 minute
 OFFLINE_EVENT_NOTIFICATION_30_M_ROUTE = 'route://chatroom_detail?chatroom_id=%s'
 POLL_EXPIRY_NOTIFICATION_SUB_TITLE = 'Your poll ended. Tap to see results'
 POLL_EXPIRY_NOTIFICATION_ROUTE = 'route://poll_chatroom?chatroom_id=%s&poll_end=true'
+
+MEMBER_LEFT_COMMUNITY_NOTIFICATION_SUB_TITLE = "%s has left your community."
+COMMUNITY_DETAIL_ROUTE = f"route://community?community_id=%s&community_name=%s"

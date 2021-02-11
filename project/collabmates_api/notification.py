@@ -2472,7 +2472,46 @@ def get_notification_list_intro_notification(user_instance):
     return notification_list
 
 
+@shared_task
+def send_notification_to_managers_when_member_leaves_community(user_id, community_id):
+    try:
+        community_instance = Community.objects.get(pk=community_id)
+    except Community.DoesNotExist:
+        error_logger.error(f"send_notification_for_removed_cm - community id {community_id} does not exist")
+        return
 
+    try:
+        user_instance = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        error_logger.error(f"send_notification_for_removed_cm - user id {user_id} does not exist")
+        return
+
+    community_name = community_instance.name
+
+    managers_ids = list(Members.objects
+                        .filter(community_id=community_instance,
+                                state=member_states.ADMIN)
+                        .values_list("member_id__id", flat=True))
+
+    notification_list = []
+    for manager_id in managers_ids:
+        user_details = {
+            "id": manager_id
+        }
+        notification_list.append(user_details)
+
+    sub_title = MEMBER_LEFT_COMMUNITY_NOTIFICATION_SUB_TITLE % user_instance.userinfo.name
+    route = COMMUNITY_DETAIL_ROUTE %(community_id, community_name)
+
+    message = {'payload': {
+        "title": community_name,
+        "sub_title": sub_title,
+        'route': route
+    }}
+
+    notification_meta(notification_list, message)
+
+    
 def query_executer(query):
 
     """executes a query and returns a response"""
@@ -2554,4 +2593,3 @@ def send_sync_notification(notification_dict):
 
     if len(token_list) > 0:
         send_notification_for_android(token_list, message)
-
