@@ -49,6 +49,7 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                SYNC_NOTIFICATION_SUBTITLE,
                                SYNC_NOTIFICATION_ROUTE)
 
+
 from external_services.mixpanel.mixpanel_impl import MixpanelImpl
 from django.db import connection
 
@@ -822,7 +823,6 @@ def send_follow_notification(card_id, user_id, answer):
         curr.execute("select name from togther_userinfo where user_id_id=%s", [user_id])
         answerer_name = curr.fetchone()
         curr.close()
-
         message={}
 
         card = Collabcard.objects.get(id=card_id)
@@ -1243,10 +1243,10 @@ def send_notification_to_all_admins(community_id, name, current_promoter_id):
         }
         send_notification_to_multiple_devices(token_list, message)
         curr.close()
-
+        
     except (Exception, psycopg2.Error) as error:
 
-        print("Error while connecting to PostgreSQL", error)
+        print ("Error while connecting to PostgreSQL", error)
 
 
 # utility functions
