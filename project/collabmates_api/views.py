@@ -13790,7 +13790,6 @@ class SyncChatrooms(APIView):
 
         if chatroom_id:
             state_filter = collabcardState.objects.filter(card=chatroom_id, user=member_id)
-
             if state_filter.exists():
                 chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id)
             else:
@@ -13899,6 +13898,13 @@ class SyncChatrooms(APIView):
                 if data[32] > 0:
                     chatroom['end_date'] = data[32]
 
+                chatroom['duration'] = data[41]
+
+                if data[42]:
+                    chatroom['location'] = data[42]
+                    chatroom['location_lat'] = data[43]
+                    chatroom['location_long'] = data[44]
+
             if data[36]:
                 chatroom['og_tags'] = json.loads(data[36])
 
@@ -13913,11 +13919,6 @@ class SyncChatrooms(APIView):
                 max_last_updated = data[39]
 
             chatroom['community_name'] = data[40]
-            if chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
-                chatroom['duration'] = data[41]
-                chatroom['location'] = data[42]
-                chatroom['location_lat'] = data[43]
-                chatroom['location_long'] = data[44]
 
             chatrooms.append(chatroom)
 
@@ -14231,8 +14232,9 @@ class SyncChatroomsDiff(APIView):
             if data[32] > 0:
                 chatroom['end_date'] = data[32]
 
-            if chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
-                chatroom['duration'] = data[41]
+            chatroom['duration'] = data[41]
+
+            if data[42]:
                 chatroom['location'] = data[42]
                 chatroom['location_lat'] = data[43]
                 chatroom['location_long'] = data[44]
