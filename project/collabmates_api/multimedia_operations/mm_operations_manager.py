@@ -10,7 +10,7 @@ class MultimediaOperationsManager(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @abc.abstractmethod
-    def generate_presigned_post(self, object_name: str) -> dict:
+    def generate_presigned_post(self, object_path: str) -> dict:
         """
         generate a pre-signed url for multimedia upload
         """

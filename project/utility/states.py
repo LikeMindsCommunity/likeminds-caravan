@@ -380,3 +380,14 @@ class SyncTypes(enum.Enum):
         finally:
             return response
 
+
+class SyncNotificationTypes(enum.Enum):
+
+    SINGLE_MEMBER = 1
+    ALL_MEMBERS = 2
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
+
+

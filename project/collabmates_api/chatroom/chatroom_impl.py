@@ -15,7 +15,7 @@ from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_
                      create_chatroom, get_latest_conversation_members, )
 from ..tasks import update_pending_chatroom_count_for_promoters
 from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts,
-                            schedule_poll_end_notification, send_ice_breaker_notification)
+                            schedule_poll_end_notification, send_ice_breaker_notification, send_sync_notification)
 from ..user.user_impl import UserHelper
 
 
@@ -23,7 +23,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls)
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.states import chatroom_states, member_states, card_types, collabcard_states
+from utility.states import chatroom_states, member_states, card_types, collabcard_states, SyncNotificationTypes
 
 from utility.request_utilities import RequestUtilities
 from utility.utils import decode_meta_from_url, check_notification_flag
@@ -368,9 +368,6 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_type == card_types.CARD_POLL and user_has_auto_approve_right:
             # sending polls notification
             send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance)
-            schedule_poll_end_notification.delay(community_name, community_id,
-                                                 card_types.CARD_POLL, card_content['end_date'],
-                                                 self.get_chatroom_id())
 
         if user_has_auto_approve_right or is_intro_chatroom:
             # create relevant flags for first time conversation
@@ -531,6 +528,9 @@ class ChatroomImpl(ChatroomManager):
                                                                           community_id)
 
         ChatroomHelper.update_time_for_community_members_on_card_creation(community_instance)
+
+        send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
+                                      'community_id': community_id})
 
         context = {
             'chatroom': ChatroomHelper.fetch_serialized_chatroom(self.get_member_id(), chatroom_instance,

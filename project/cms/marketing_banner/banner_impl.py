@@ -1,6 +1,11 @@
 import json
 from typing import Union
+
+from django.conf import settings
+from django.http import JsonResponse
 from rest_framework import status as status_codes
+
+from collabmates_api.multimedia_operations.mm_operations_impl import MultimediaOperationsImpl
 from .banner_manager import BannerManager
 from ..models import MarketingBanner
 from .serializers import BannerSerializer
@@ -12,7 +17,8 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.time_utilities import TimeUtilities
 from utility.states import platform_codes
 from utility.number_utilities import NumberUtilities
-from utility.exception_utilities import JsonDecodeException
+from utility.exception_utilities import JsonDecodeException, ResourceNotFoundException
+from ..utils import get_error_context
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -245,6 +251,22 @@ class BannerImpl(BannerManager):
         banner_data = self._serialize_banners(queryset)
 
         return {'banners': banner_data}
+
+    @staticmethod
+    def get_upload_uri(path: str) -> dict:
+
+        s3_bucket_name = 'media_bucket'
+        bucket = settings.S3_BUCKETS.get(s3_bucket_name)
+        if not bucket:
+            message = str('RESOURCE_NOT_FOUND cannot find S3 bucket: {bucket_name}')\
+                .format(bucket_name=s3_bucket_name)
+            error_logger.error(message)
+            raise ResourceNotFoundException(status_code=status_codes.HTTP_404_NOT_FOUND,
+                                            detail=message)
+
+        multimedia_operations_manager = MultimediaOperationsImpl(bucket)
+
+        return multimedia_operations_manager.generate_presigned_post(path)
 
 
 class BannerImplUtilities:

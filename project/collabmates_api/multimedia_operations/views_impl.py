@@ -1,10 +1,12 @@
+from django.conf import settings
 from django.http import JsonResponse
+
+from rest_framework import status as status_codes
 
 from collabmates_api.multimedia_operations.mm_operations_impl import MultimediaOperationsImpl
 from collabmates_api.multimedia_operations.views_manager import ViewsManager
 from utility.request_utilities import RequestUtilities
 from collabmates_api.views import get_error_context
-from external_services.amazon_s3.buckets import S3_BUCKETS
 
 
 class ViewsImpl(ViewsManager):
@@ -12,18 +14,18 @@ class ViewsImpl(ViewsManager):
     def generate_presigned_post(self) -> JsonResponse:
         try:
             request = self
-            conversation_id, file_name = ViewsHelper.validate_request(request)
+            path = ViewsHelper.validate_request(request)
 
         except Exception as e:
             context = get_error_context(False, str(e))
 
-            return JsonResponse(context, status=400)
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         else:
-            bucket = S3_BUCKETS.get('media_bucket')
+            s3_bucket_name = 'media_bucket'
+            bucket = settings.S3_BUCKETS.get(s3_bucket_name)
             multimedia_operations_manager = MultimediaOperationsImpl(bucket)
-            object_name = ViewsHelper.create_s3_media_object_path(conversation_id, file_name)
-            api_response = multimedia_operations_manager.generate_presigned_post(object_name)
+            api_response = multimedia_operations_manager.generate_presigned_post(path)
 
             return JsonResponse({"api_response": api_response})
 
@@ -31,30 +33,15 @@ class ViewsImpl(ViewsManager):
 class ViewsHelper:
 
     @staticmethod
-    def validate_request(request):
+    def validate_request(request) -> str:
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        conversation_id = request.GET.get('conversation_id')
-        file_name = request.GET.get('file_name')
+        path = request.GET.get('path')
 
         if not member_id:
             raise TypeError('member id is missing from request')
 
-        elif not conversation_id:
-            raise TypeError('conversation id is missing from request')
+        elif not path:
+            raise TypeError('object path is missing from request')
 
-        elif not file_name:
-            raise TypeError("file name is missing from request")
-
-        return conversation_id, file_name
-
-    @staticmethod
-    def create_s3_media_object_path(*args) -> str:
-        prefix = 'conversation'
-        forward_slash = '/'
-        object_name = prefix
-
-        for arg in args:
-            object_name += (forward_slash + arg)
-
-        return object_name
+        return path

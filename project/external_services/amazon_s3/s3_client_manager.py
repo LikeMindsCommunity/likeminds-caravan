@@ -10,7 +10,7 @@ class S3ClientManager(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @abc.abstractmethod
-    def generate_presigned_post(self, object_name: str, expiration: int) -> dict:
+    def generate_presigned_post(self, object_path: str, expiration: int) -> dict:
         """
         returns a pre-signed url for multimedia upload
         """

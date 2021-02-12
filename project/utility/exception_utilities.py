@@ -55,3 +55,10 @@ class JsonDecodeException(BaseException):
     detail = {"success": False,
               "error_message": "Json decode error"
               }
+
+
+class ResourceNotFoundException(BaseException):
+
+    detail = {"success": False,
+              "error_message": "resource not found on the server"
+              }

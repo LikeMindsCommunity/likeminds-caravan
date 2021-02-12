@@ -4,6 +4,8 @@ from rest_framework.views import APIView
 from ..rest_api import GetChatroomInstanceSerializer
 from utility.request_utilities import RequestUtilities
 from utility.exception_utilities import InvalidHeaderException
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 
 class FetchChatroomView(APIView):
@@ -22,6 +24,10 @@ class FetchChatroomView(APIView):
 
 
 class CreateChatroomView(APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(CreateChatroomView, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
 

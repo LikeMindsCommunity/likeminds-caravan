@@ -12,7 +12,7 @@ from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_follow_internal,
                      save_the_latest_conversation, update_activity_in_chatroom_for_conversation_creation,
                      update_chatroom_for_users_and_send_follow_notification,
-                     reverse_conversations_for_upward_pagination)
+                     reverse_conversations_for_upward_pagination, send_sync_notification)
 
 from .constants import (LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
@@ -23,7 +23,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
-from utility.states import member_states, collabcard_states, card_types
+from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes
 from utility.utils import decode_meta_from_url
 from utility.firebase import update_last_answer_id
 from utility.celery_tasks import update_my_chatrooms_for_users
@@ -362,6 +362,9 @@ class ConversationImpl(ConversationManager):
 
         conversation = get_conversation_instance_for_db_synching(conversation_instance,
                                                                  current_user_id=self.get_member_id())
+
+        send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
+                                      'community_id': community_id})
 
         conversation_response = {
             'success': True,
