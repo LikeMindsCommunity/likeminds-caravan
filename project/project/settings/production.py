@@ -81,3 +81,17 @@ ADMINS = [
     ('Himanshu', 'himanshu@likeminds.community')
 ]
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.getenv('CACHE_LOCATION'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+CACHE_CREDENTIALS = {
+    'host': os.getenv('CACHE_HOST'),
+    'port': os.getenv('CACHE_PORT')
+}
