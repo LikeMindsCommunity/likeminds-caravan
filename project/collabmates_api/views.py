@@ -2282,6 +2282,8 @@ def remove_from_member(request):
             send_sync_notification.delay({'community_id': community_id,
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
+            send_notification_to_managers_when_member_leaves_community.delay(member_id, community_id)
+
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False,
@@ -12382,6 +12384,9 @@ def delete_conversation(request):
             continue
 
         update_conversation_delete_status(conversation, current_user_instance, reason=reason, tag_id=tag_id)
+
+        conversation.refresh_from_db()
+        
         conversation_dict = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
         community_id = conversation_dict['community_id']
         conversation_list.append(conversation_dict)
@@ -12395,11 +12400,6 @@ def delete_conversation(request):
 
 def update_conversation_delete_status(conversation_instance, current_user_instance,
                                       reason=None, tag_id=None):
-    tag_instance = None
-    if tag_id:
-        tag = Report_Tags.objects.filter(tag_id=tag_id)
-        if tag.exists():
-            tag_instance = tag[0]
 
     update_models_for_syncing_apis(SyncTypes.CONVERSATION,
                                    {'id': conversation_instance.id},

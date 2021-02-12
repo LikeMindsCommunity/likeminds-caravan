@@ -19,6 +19,7 @@ from utility.encryption import encrypt, decrypt
 from .static_files import GOOGLE_PLAYSTORE, APPLE_APPSTORE, APP_LOGO
 from celery import shared_task
 import json
+from utility.mail_category_constants import *
 from datetime import datetime, timedelta
 
 url = settings.URL
@@ -147,31 +148,41 @@ def send_8am_level_mails_to_admin_scheduler(community_id, start_time, level=1,da
         return
 
 
-
 def send_8am_level_mails_to_admin_mailer(community_id, days, level):
     community_instance = Community.objects.get(id=community_id)
     members = Members.objects.filter(community_id=community_id, state=1)
 
     for member in members:
+
+        setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
+
+        category = f"{setting_category} - {MAIL_CATEGORY_CM_ACTIVATION} - %s"
+
         if level == 1:
             template = 'mails/level_1_email.html'
             subject = str(member.member_id.userinfo.name) + ", reminding you to invite the inner circle!"
+            category = category % MAIL_CATEGORY_INVITE_INNER_CIRCLE
+
         elif level == 2:
             template = 'mails/level_2_email.html'
             subject = str(member.member_id.userinfo.name) + ", reminding you to set up your directory!"
+            category = category % MAIL_CATEGORY_CREATE_DIRECTORY
+
         elif level == 3:
             template = 'mails/level_3_email.html'
             subject = str(member.member_id.userinfo.name) + ", reminding you to get 10 member profiles in directory!"
+            category = category % MAIL_CATEGORY_GET_10_MEMBERS
+
         else:
             template = 'mails/level_4_email.html'
             subject = str(member.member_id.userinfo.name) + ", let’s get your community off to a great start!"
+            category = category % MAIL_CATEGORY_INVITE_MEMBERS
 
         notification_list = [
             'send_8am_level_mails_to_admin_mailer'
         ]
 
         if check_notification_flag(member.member_id.id, notification_list, card_id=None, community_id=None):
-            # subject = str(member.userinfo.name) + " is waiting for your response! "
             email_context = {
                 'subject': subject,
                 'member_name': member.member_id.userinfo.name,
@@ -181,7 +192,7 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
                 'ios_app_download_link': ios_app_download_link,
                 'playstore_image': GOOGLE_PLAYSTORE,
                 'applestore_image': APPLE_APPSTORE,
-                'blog_link_1':'http://bit.ly/lmcm_guide',
+                'blog_link_1': 'http://bit.ly/lmcm_guide',
                 'app_image': APP_LOGO,
                 'cta_url': url + '/community/' + str(community_id),
                 'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(member.member_id_id) + '&code=send_8am_level_mails_to_admin_mailer'
@@ -189,8 +200,14 @@ def send_8am_level_mails_to_admin_mailer(community_id, days, level):
             template = get_template(template).render(email_context)
             email = get_user_email(member.member_id_id)
             to = [email]
-            # to = ['himanshu@likeminds.community']
-            send_email(subject, template, to)
+
+            categories = [
+                category,
+                f"{setting_category} - {MAIL_CATEGORY_CM_ACTIVATION}",
+                setting_category,
+            ]
+
+            send_email(subject, template, to, categories=categories)
 
 
 @shared_task

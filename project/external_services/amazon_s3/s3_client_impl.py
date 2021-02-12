@@ -4,6 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 from django.conf import settings
 
+from external_services.amazon_s3.constants import PUBLIC_READ_ACL
 from external_services.amazon_s3.s3_client_manager import S3ClientManager
 
 
@@ -21,23 +22,30 @@ class S3ClientImpl(S3ClientManager):
     def set_s3_bucket(self, s3_bucket: dict) -> None:
         self.s3_bucket = s3_bucket
 
-    def generate_presigned_post(self, object_name: str, expiration: int) -> dict:
+    def generate_presigned_post(self, object_path: str, expiration: int) -> dict:
+
+        fields = dict()
+        self._add_public_read_acl_fields(fields)
+
+        conditions = list()
+        self._add_public_read_acl_condition(conditions)
+
         return self._generate_presigned_post_internal(self.get_s3_bucket().get('name'),
-                                                      object_name,
-                                                      None,
-                                                      None,
+                                                      object_path,
+                                                      fields,
+                                                      conditions,
                                                       expiration)
 
     def _generate_presigned_post_internal(self,
                                           bucket_name: str,
-                                          object_name: str,
+                                          object_path: str,
                                           fields=None,
                                           conditions=None,
                                           expiration=3600) -> dict:
         """
         Generate a presigned URL S3 POST request to upload a file
         :param bucket_name: string
-        :param object_name: string
+        :param object_path: string
         :param fields: Dictionary of prefilled form fields
         :param conditions: List of conditions to include in the policy
         :param expiration: Time in seconds for the presigned URL to remain valid
@@ -53,7 +61,7 @@ class S3ClientImpl(S3ClientManager):
                                  aws_secret_access_key=settings.AWS_CREDENTIALS.get('SECRET_KEY'))
         try:
             response = s3_client.generate_presigned_post(bucket_name,
-                                                         object_name,
+                                                         object_path,
                                                          Fields=fields,
                                                          Conditions=conditions,
                                                          ExpiresIn=expiration)
@@ -62,3 +70,11 @@ class S3ClientImpl(S3ClientManager):
             return dict()
 
         return response
+
+    @staticmethod
+    def _add_public_read_acl_fields(fields: dict) -> None:
+        fields.update(PUBLIC_READ_ACL)
+
+    @staticmethod
+    def _add_public_read_acl_condition(conditions: list) -> None:
+        conditions.append(PUBLIC_READ_ACL)

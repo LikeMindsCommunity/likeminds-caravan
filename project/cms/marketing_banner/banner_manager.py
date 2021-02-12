@@ -9,7 +9,8 @@ class BannerManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_banner_for_cms') and callable(subclass.fetch_banner_for_cms)) and
                 (hasattr(subclass, 'create_or_update_banner') and callable(subclass.create_or_update_banner)) and
                 (hasattr(subclass, 'remove_banner') and callable(subclass.remove_banner)) and
-                (hasattr(subclass, 'check_banner') and callable(subclass.check_banner))) or
+                (hasattr(subclass, 'check_banner') and callable(subclass.check_banner))) and
+                (hasattr(subclass, 'get_upload_uri') and callable(subclass.get_upload_uri)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -44,5 +45,12 @@ class BannerManager(metaclass=abc.ABCMeta):
     def check_banner(self, start_time, end_time) -> dict:
         """
         checking and returning the banners in given time interval
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def get_upload_uri(path: str) -> dict:
+        """
+        returns pre-signed post uri for media upload on given path
         """
         raise NotImplementedError

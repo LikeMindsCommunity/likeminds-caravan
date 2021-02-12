@@ -49,6 +49,8 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                SYNC_NOTIFICATION_SUBTITLE,
                                SYNC_NOTIFICATION_ROUTE)
 
+
+from external_services.mixpanel.mixpanel_impl import MixpanelImpl
 from django.db import connection
 
 error_logger = LoggingWrapper.get_instance()
@@ -158,6 +160,11 @@ def get_devices_of_users(user_id):
     return user_devices
 
 
+def track_notification(user_id, notification_payload):
+    MixpanelImpl().track_notification(str(user_id),
+                                      properties=notification_payload)
+
+
 def notification_meta(notification_list, message, calling_notification=""):
     # print(notification_list,message)
     '''function to process notification to send'''
@@ -172,6 +179,7 @@ def notification_meta(notification_list, message, calling_notification=""):
         user_devices = get_devices_of_users(user_id)
 
         for device in user_devices:
+
             if device['mobile_os'] == "Android":
                 token_list = [device['fcm_token']]
                 send_notification_for_android(token_list, message)
@@ -182,26 +190,7 @@ def notification_meta(notification_list, message, calling_notification=""):
                 else:
                     send_notification_for_ios(token_list, message)
 
-    # for data in notification_list:
-    #     if data['fcm_token']:
-    #         if data['mobile_os'] == "Android":
-    #             token_list_android.append(data['fcm_token'])
-    #         else:
-    #             token_list_ios.append(data['fcm_token'])
-    #             #functionalities for iOS flow
-    #             if 'message' in data:
-    #                 send_notification_for_ios(token_list_ios, data['message'])
-    #             else:
-    #                 send_notification_for_ios(token_list_ios,message)
-    #             token_list_ios = []
-    #
-    #         #print(data)
-    #
-    # if token_list_android:
-    #     send_notification_for_android(token_list_android,message)
-
-    # if token_list_ios:
-    #     send_notification_for_ios(token_list_ios,message)
+        track_notification(user_id, notification_payload=message['payload'])
 
 
 def get_connection():
@@ -244,6 +233,19 @@ def get_token_for_fcm(member_id, flag=None):
 
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
+
+
+def get_user_fcm_details(user_instance):
+    user_fcm_token = user_instance.userinfo.fcm_token
+    user_mobile_os = user_instance.userinfo.mobile_os
+
+    user_details = {
+        "id": user_instance.id,
+        'fcm_token': user_fcm_token,
+        'mobile_os': user_mobile_os,
+    }
+
+    return user_details
 
 
 def get_community_name(community_id):
@@ -614,8 +616,6 @@ def schedule_offline_event_future_notifications(card_instance):
     card_id = card_instance.id
     args = [card_id]
 
-    card_end_time = int(str(card_instance.end_date)[:10])
-
     card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.date_time)
     task_begin_epoch_time = TimeUtilities.subtract_hours_from_epoch_time(card_end_time, hours=24)
     task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
@@ -650,7 +650,7 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
 
     collabcardstates = collabcardState.objects.filter(card=card_id,
                                                       attending_status=True,
-                                                      removed_status=None)
+                                                      remove=None)
 
     notification_list = []
     for ccs in collabcardstates:
@@ -729,14 +729,12 @@ def online_event_remainder_notification_2_min(card_id, **kwargs):
         card_instance = Collabcard.objects.get(pk=card_id)
         sub_title = ONLINE_EVENT_NOTIFICATION_SUB_TITLE
         route = ONLINE_EVENT_NOTIFICATION_ROUTE % card_instance.online_link
-        # route = f'route://chatroom_detail?chatroom_id={card_id}'
 
-        notification_list, message = get_user_data_for_event_notifications(card_id, sub_title, route)
-
+        notification_list, message = get_user_data_for_event_notifications(card_instance, sub_title, route)
         notification_meta(notification_list, message)
 
-    except:
-        error_logger.error("Error while connecting to PostgreSQL")
+    except Exception as e:
+        error_logger.error(f"online_event_remainder_notification_2_min {e.args}")
 
 
 @app.task
@@ -753,8 +751,8 @@ def offline_event_remainder_notification_24_hours(card_id, **kwargs):
 
         notification_meta(notification_list, message)
 
-    except:
-        error_logger.error("Error while connecting to PostgreSQL")
+    except Exception as e:
+        error_logger.error(f"offline_event_remainder_notification_24_hours {e.args}")
 
 
 @app.task
@@ -771,8 +769,8 @@ def offline_event_remainder_notification_30_minutes(card_id, **kwargs):
 
         notification_meta(notification_list, message)
 
-    except:
-        print("Error while connecting to PostgreSQL")
+    except Exception as e:
+        error_logger.error(f"offline_event_remainder_notification_30_minutes {e.args}")
 
 
 def get_custom_data_for_new_chatroom_created(card):
@@ -825,7 +823,6 @@ def send_follow_notification(card_id, user_id, answer):
         curr.execute("select name from togther_userinfo where user_id_id=%s", [user_id])
         answerer_name = curr.fetchone()
         curr.close()
-
         message={}
 
         card = Collabcard.objects.get(id=card_id)
@@ -1246,10 +1243,10 @@ def send_notification_to_all_admins(community_id, name, current_promoter_id):
         }
         send_notification_to_multiple_devices(token_list, message)
         curr.close()
-
+        
     except (Exception, psycopg2.Error) as error:
 
-        print("Error while connecting to PostgreSQL", error)
+        print ("Error while connecting to PostgreSQL", error)
 
 
 # utility functions
@@ -2396,19 +2393,6 @@ def send_notification_for_removed_cm(user_id, community_id):
     notification_meta(notification_list, message)
 
 
-def get_user_fcm_details(user_instance):
-    user_fcm_token = user_instance.userinfo.fcm_token
-    user_mobile_os = user_instance.userinfo.mobile_os
-
-    user_details = {
-        "id": user_instance.id,
-        'fcm_token': user_fcm_token,
-        'mobile_os': user_mobile_os,
-    }
-
-    return user_details
-
-
 def send_intro_room_evening_notifications():
     current_time = TimeUtilities.current_time_in_sec()
     all_communities = Community.objects.all()
@@ -2488,7 +2472,46 @@ def get_notification_list_intro_notification(user_instance):
     return notification_list
 
 
+@shared_task
+def send_notification_to_managers_when_member_leaves_community(user_id, community_id):
+    try:
+        community_instance = Community.objects.get(pk=community_id)
+    except Community.DoesNotExist:
+        error_logger.error(f"send_notification_for_removed_cm - community id {community_id} does not exist")
+        return
 
+    try:
+        user_instance = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        error_logger.error(f"send_notification_for_removed_cm - user id {user_id} does not exist")
+        return
+
+    community_name = community_instance.name
+
+    managers_ids = list(Members.objects
+                        .filter(community_id=community_instance,
+                                state=member_states.ADMIN)
+                        .values_list("member_id__id", flat=True))
+
+    notification_list = []
+    for manager_id in managers_ids:
+        user_details = {
+            "id": manager_id
+        }
+        notification_list.append(user_details)
+
+    sub_title = MEMBER_LEFT_COMMUNITY_NOTIFICATION_SUB_TITLE % user_instance.userinfo.name
+    route = COMMUNITY_DETAIL_ROUTE %(community_id, community_name)
+
+    message = {'payload': {
+        "title": community_name,
+        "sub_title": sub_title,
+        'route': route
+    }}
+
+    notification_meta(notification_list, message)
+
+    
 def query_executer(query):
 
     """executes a query and returns a response"""
@@ -2570,4 +2593,3 @@ def send_sync_notification(notification_dict):
 
     if len(token_list) > 0:
         send_notification_for_android(token_list, message)
-
