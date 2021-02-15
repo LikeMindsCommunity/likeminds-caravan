@@ -1389,6 +1389,13 @@ def post_introduction_card_for_community(community_id, member_id):
                 'create_intro': 1
             }
 
+            master_intro = ModelUtilities.get_model_filter(Collabcard,
+                                                                {'community': community_id,
+                                                                 'type': card_types.CARD_MASTER_INTRO})
+            if not master_intro:
+                return
+
+
             intro_filter = Collabcard.objects.filter(community=community_id, user=member_id, type=card_types.CARD_INTRO)
 
             if not intro_filter.exists():
@@ -1406,7 +1413,7 @@ def post_introduction_card_for_community(community_id, member_id):
                     ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
                                                 {'has_files': True, 'attachment_count': 1,
                                                  'attachments_uploaded': True})
-                    create_conversation_context_for_intro_chatrooms(card_instance, user_instance)
+                    create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro[0])
 
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
@@ -1419,20 +1426,14 @@ def post_introduction_card_for_community(community_id, member_id):
     return False
 
 
-def create_conversation_context_for_intro_chatrooms(card_instance, user_instance):
-
-    intro_card_filter = ModelUtilities.get_model_filter(Collabcard,
-                                                          {'community': card_instance.community,
-                                                           'type': card_types.CARD_MASTER_INTRO})
-    if not intro_card_filter:
-        return
+def create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro):
 
     preview_url = settings.URL + "/collabcard/"+str(card_instance.id)
 
     conversation_context = {}
     community_instance = card_instance.community
     conversation_context['answer'] = ""
-    conversation_context['card'] = intro_card_filter[0]
+    conversation_context['card'] = master_intro
     conversation_context['user'] = user_instance
     conversation_context['community'] = community_instance
 
@@ -1451,7 +1452,7 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
 
     func_dict = {
         'member_id': user_instance.id,
-        'collabcard_id': intro_card_filter[0].id,
+        'collabcard_id': master_intro.id,
         'status': True,
         'source': "create_conversation_context_for_intro_chatrooms"
     }
