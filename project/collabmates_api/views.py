@@ -534,24 +534,24 @@ def my_chatrooms_version_1(request):
         last_conversation = instance.last_conversation
 
         if last_conversation and not is_draft_conversation(last_conversation, member_id):
-            last_conversation = conversationSerializer(last_conversation, current_user_id=member_id)
+            last_conversation_dict = conversationSerializer(last_conversation, current_user_id=member_id)
             preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
 
             if preview:
-                last_conversation['preview'] = preview
+                last_conversation_dict['preview'] = preview
 
-            chatroom['last_conversation'] = last_conversation
+            chatroom['last_conversation'] = last_conversation_dict
 
             second_last_conversation = instance.second_last_conversation
 
             if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id):
-                second_last_conversation = conversationSerializer(second_last_conversation, current_user_id=member_id)
+                second_last_conversation_dict = conversationSerializer(second_last_conversation, current_user_id=member_id)
                 preview = generate_internal_link_preview_for_conversation(second_last_conversation, member_id)
 
                 if preview:
-                    last_conversation['preview'] = preview
+                    second_last_conversation_dict['preview'] = preview
 
-                chatroom['second_last_conversation'] = second_last_conversation
+                chatroom['second_last_conversation'] = second_last_conversation_dict
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
@@ -1395,7 +1395,6 @@ def post_introduction_card_for_community(community_id, member_id):
             if not master_intro:
                 return
 
-
             intro_filter = Collabcard.objects.filter(community=community_id, user=member_id, type=card_types.CARD_INTRO)
 
             if not intro_filter.exists():
@@ -1427,6 +1426,7 @@ def post_introduction_card_for_community(community_id, member_id):
 
 
 def create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro):
+
 
     preview_url = settings.URL + "/collabcard/"+str(card_instance.id)
 
