@@ -1432,7 +1432,7 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
 
     conversation_context = {}
     community_instance = card_instance.community
-    conversation_context['answer'] = ""
+    conversation_context['answer'] = card_instance.title
     conversation_context['card'] = master_intro
     conversation_context['user'] = user_instance
     conversation_context['community'] = community_instance
@@ -15570,3 +15570,4 @@ def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatr
         chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
 
     return chatroom_data, chatroom_id_list
+
