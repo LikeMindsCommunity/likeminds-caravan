@@ -2923,9 +2923,9 @@ def post_member_directly_link(user_instance, community_instance):
         return
 
     card_instance = card_filter[0]
-    member_directory_link = url + "/members_directory/" + str(community_instance.id)
+    member_directory_link = url + "/community/" + str(community_instance.id)
     conversation = card_answers()
-    conversation.answer = """Here is a link to our member directory: %s""" % member_directory_link
+    conversation.answer = "Here is a link to view our member directory"
     conversation.card = card_instance
     conversation.user = user_instance
     conversation.community = community_instance
