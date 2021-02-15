@@ -14706,7 +14706,7 @@ class SyncConversation(APIView):
                         try:
                             conversation_context['preview'] = get_preview_for_url(preview_url=conversation[13])
                         except Exception as e:
-                            error_logger.error("error occured", e.args)
+                            error_logger.error("error occured"+ str(e.args))
                             continue
 
                         update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_chatroom_id,
@@ -14714,8 +14714,13 @@ class SyncConversation(APIView):
                                                                     'preview_object': conversation_context['preview'],
                                                                     'conversation_id': conversation_context['id']})
                 else:
-                    conversation_context['preview'] = get_preview_for_url(member_id=member_id,
+
+                    try:
+                        conversation_context['preview'] = get_preview_for_url(member_id=member_id,
                                                                           preview_url=conversation[13])
+                    except Exception as e:
+                        error_logger.error("error occured"+ str(e.args))
+                        continue
 
             conversation_list.append(conversation_context)
 
