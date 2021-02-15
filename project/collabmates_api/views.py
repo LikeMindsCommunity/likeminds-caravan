@@ -14671,27 +14671,6 @@ class SyncConversation(APIView):
             if conversation[12]:
                 conversation_context['deleted_by'] = conversation[12]
 
-            if conversation[13]:
-
-                if conversation[16] and conversation[17] == "chatroom":
-
-                    preview_chatroom_id = conversation[16]
-                    key = CHATROOM_PREVIW_CACHE_KEY % (str(preview_chatroom_id),str(conversation_context['id']))
-                    preview = CacheImpl.get_cache(key)
-
-                    if preview:
-                        conversation_context['preview'] = preview
-
-                    else:
-                        conversation_context['preview'] = get_preview_for_url(preview_url=conversation[13])
-                        update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_chatroom_id,
-                                                                    'preview_url': conversation[13],
-                                                                    'preview_object': conversation_context['preview'],
-                                                                    'conversation_id':conversation_context['id']})
-                else:
-                    conversation_context['preview'] = get_preview_for_url(member_id=member_id,
-                                                                          preview_url=conversation[13])
-
             if conversation[14]:
                 conversation_context['reply_conversation'] = conversation[14]
 
@@ -14710,6 +14689,33 @@ class SyncConversation(APIView):
 
             if max_last_updated < conversation[15]:
                 max_last_updated = conversation[15]
+
+            if conversation[13]:
+
+                if conversation[16] and conversation[17] == "chatroom":
+
+                    preview_chatroom_id = conversation[16]
+                    key = CHATROOM_PREVIW_CACHE_KEY % (str(preview_chatroom_id),str(conversation_context['id']))
+                    preview = CacheImpl.get_cache(key)
+
+                    if preview:
+                        conversation_context['preview'] = preview
+
+                    else:
+
+                        try:
+                            conversation_context['preview'] = get_preview_for_url(preview_url=conversation[13])
+                        except Exception as e:
+                            error_logger.error("error occured", e.args)
+                            continue
+
+                        update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_chatroom_id,
+                                                                    'preview_url': conversation[13],
+                                                                    'preview_object': conversation_context['preview'],
+                                                                    'conversation_id': conversation_context['id']})
+                else:
+                    conversation_context['preview'] = get_preview_for_url(member_id=member_id,
+                                                                          preview_url=conversation[13])
 
             conversation_list.append(conversation_context)
 
