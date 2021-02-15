@@ -7,12 +7,14 @@ from rest_framework import status as status_codes
 from .conversation_manager import ConversationManager
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
     get_removed_member_custom_text, get_conversation_instance_for_db_synching
+from ..sync.model_update import update_models_for_syncing_apis
 from ..utility import pagination
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_follow_internal,
                      save_the_latest_conversation, update_activity_in_chatroom_for_conversation_creation,
                      update_chatroom_for_users_and_send_follow_notification,
-                     reverse_conversations_for_upward_pagination, send_sync_notification)
+                     reverse_conversations_for_upward_pagination, send_sync_notification,
+                     generate_internal_link_preview_for_conversation)
 
 from .constants import (LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
@@ -23,10 +25,10 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
-from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes
+from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes
 from utility.utils import decode_meta_from_url
 from utility.firebase import update_last_answer_id
-from utility.celery_tasks import update_my_chatrooms_for_users
+from utility.celery_tasks import update_my_chatrooms_for_users, update_multiple_previews_in_chatroom
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 
@@ -123,17 +125,7 @@ class ConversationImpl(ConversationManager):
 
     def _generate_internal_link_preview(self, conversation_instance):
 
-        preview = {}
-
-        if conversation_instance.internal_link:
-            try:
-                preview = get_preview_for_url(self.get_member_id(),
-                                              conversation_instance.internal_link,
-                                              community_instance=conversation_instance.preview_community,
-                                              chatroom_instance=conversation_instance.preview_chatroom,
-                                              send_preview_text=False)
-            except Exception as e:
-                error_logger.error(e.args)
+        preview = generate_internal_link_preview_for_conversation(conversation_instance, self.get_member_id())
 
         return preview
 
@@ -144,6 +136,11 @@ class ConversationImpl(ConversationManager):
                                                          current_user_id=self.get_member_id())
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
             conversation_instance.created_at)
+
+        preview = self._generate_internal_link_preview(conversation_instance)
+
+        if preview:
+            conversation_serializer['preview'] = preview
 
         return conversation_serializer
 
@@ -286,7 +283,6 @@ class ConversationImpl(ConversationManager):
                                                                        self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
-
             elif self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
                     self.get_scroll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
                 conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE,
@@ -359,6 +355,13 @@ class ConversationImpl(ConversationManager):
         self._update_home_page(chatroom_id, req_body,
                                has_files=has_files,
                                is_ios=is_ios)
+        chatroom_preview_update_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                       {'preview_chatroom': chatroom_instance, 'preview_type': "chatroom"},
+                                       {})
+
+        if chatroom_preview_update_count:
+            preview_chatroom_id = chatroom_instance.id
+            update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
 
         conversation = get_conversation_instance_for_db_synching(conversation_instance,
                                                                  current_user_id=self.get_member_id())
