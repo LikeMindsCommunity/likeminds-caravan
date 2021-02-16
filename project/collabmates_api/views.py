@@ -6364,11 +6364,11 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type
                                             )
-
-    context['chatroom_actions'] = chatroom_actions
-    context['participant_count'] = collabcardState.objects.filter(follow_status=True,
-                                                                  card=card_instance, remove=None,
-                                                                  is_tagged=False).count()
+    if card_instance.type != card_types.CARD_MASTER_INTRO:
+        context['chatroom_actions'] = chatroom_actions
+        context['participant_count'] = collabcardState.objects.filter(follow_status=True,
+                                                                      card=card_instance, remove=None,
+                                                                      is_tagged=False).count()
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
 
     if not conversation_member_filter.exists():
