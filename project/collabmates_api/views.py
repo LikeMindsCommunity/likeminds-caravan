@@ -3106,6 +3106,10 @@ def set_preview_with_preview_dict(instance, res, user_id):
             preview_chatroom = Collabcard.objects.get(pk=preview['chatroom']["id"])
             instance.preview_chatroom = preview_chatroom
 
+            if preview['preview_type'] == "chatroom":
+                update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_chatroom.id,
+                                                           'preview_object': preview,
+                                                           'conversation_id': instance.id})
         if 'internal_link' not in res:
             if 'internal_link' in preview and preview['internal_link']:
                 instance.internal_link = get_preview_url(preview['internal_link'])
