@@ -243,7 +243,7 @@ class Collabcard(models.Model):
     date_epoch = models.BigIntegerField(default=-9223372036854775808)
     answer_text = models.CharField(max_length=100, default='')
     share_link = models.CharField(max_length=2048, default='')
-    og_tags = models.CharField(max_length=2048, default='')
+    og_tags = models.TextField(default='')
 
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
@@ -344,7 +344,7 @@ class draftChatroom(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     answer_text = models.CharField(max_length=100, default='')
     share_link = models.CharField(max_length=2048, default='')
-    og_tags = models.CharField(max_length=2048, default='')
+    og_tags = models.TextField(default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
     video_count = models.IntegerField(default=0, null=True)
