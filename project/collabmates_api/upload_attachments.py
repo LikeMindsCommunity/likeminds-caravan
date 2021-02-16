@@ -2,7 +2,7 @@ from utility.firebase import upload_community_thumbnail
 from togther.models import (Collabcard, Community,
                             createCommunityAction, communityUpdate, Card_Attachment,
                             draftPolls, draftChatroom, draftChatroomFiles,
-                            CollabcardPolls, answerAttachment)
+                            CollabcardPolls, answerAttachment, Members, Userinfo)
 from django.contrib.auth.models import User
 import json
 import ast
@@ -129,3 +129,20 @@ def get_image_dimensions(img_dimensions):
 
         img_dimensions = json.dumps(img_dimensions)
     return img_dimensions
+
+
+def get_user_image_based_on_community(user_id, community_id):
+
+    image_url = ""
+    member_filter = Members.objects.filter(member_id=user_id, community_id=community_id)
+
+    if member_filter.exists() and member_filter[0].image_url:
+        image_url = member_filter[0].image_url
+
+    else:
+        userinfo_filter = Userinfo.objects.filter(user_id=user_id)
+
+        if userinfo_filter.exists() and userinfo_filter[0].image_link:
+            image_url = userinfo_filter[0].image_link
+
+    return image_url

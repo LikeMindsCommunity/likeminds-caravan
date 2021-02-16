@@ -15,12 +15,17 @@ class TimeUtilities:
         return time.strftime('%H:%M', time.localtime(epoch_time))
 
     @staticmethod
+    def convert_epoch_time_in_date(epoch_time) -> str:
+        return time.strftime('%d %b %Y', time.localtime(epoch_time))
+
+    @staticmethod
     def current_time_in_sec() -> int:
         return int(time.time())
 
     @staticmethod
     def current_time_in_milliseconds() -> int:
         return int((time.time() * 1000))
+
 
     @staticmethod
     def convert_milliseconds_to_sec(millisec: Union[int, str]) -> int:
@@ -71,3 +76,4 @@ class TimeUtilities:
     @staticmethod
     def subtract_hours_from_datetime(date_time, hours):
         return date_time - timedelta(hours=hours)
+

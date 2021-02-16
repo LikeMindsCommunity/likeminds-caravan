@@ -2522,7 +2522,6 @@ def query_executer(query):
         curr.execute(query)
         res = curr.fetchall()
         curr.close()
-        conn.close()
 
         return res
 

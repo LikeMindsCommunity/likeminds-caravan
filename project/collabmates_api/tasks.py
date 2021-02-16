@@ -29,7 +29,7 @@ import json
 import requests
 from .serializers import CollabcardPollsSerializer
 from .notification import get_title_from_collabcard,send_intro_room_evening_notifications
-from .static_text import CREATE_CONVERSATION_API_END_POINT
+from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -876,6 +876,12 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
     }
 
     response = request_api("POST", api_url, headers, payload)
+    current_time = TimeUtilities.current_time_in_sec()
+    expiry_time_for_inactive = current_time - HOURS_24
+    ModelUtilities.model_update(collabcardState, {'card': chatroom,
+                                                  'user': owner_user_instance},
+                                {'expiry_time': expiry_time_for_inactive,
+                                 'updated_at': current_time})
     info_logger.info(
         f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, response status_code = {response.status_code}")
 

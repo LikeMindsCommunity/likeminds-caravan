@@ -359,3 +359,7 @@ POLL_EXPIRY_NOTIFICATION_ROUTE = 'route://poll_chatroom?chatroom_id=%s&poll_end=
 
 MEMBER_LEFT_COMMUNITY_NOTIFICATION_SUB_TITLE = "%s has left your community."
 COMMUNITY_DETAIL_ROUTE = f"route://community?community_id=%s&community_name=%s"
+
+MASTER_INTRO_TITLE_TEXT = "This chat room has introductions of all members of the community. Greet members in their respective intro rooms to make them feel welcomed."
+
+CHATROOM_PREVIW_CACHE_KEY = "chatroom_preview_%s_%s"

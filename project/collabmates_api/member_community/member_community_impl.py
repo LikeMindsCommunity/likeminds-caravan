@@ -15,7 +15,7 @@ from togther.models import Member_Engage, Community, Members, collabcardState
 
 from utility.utils import create_notification_flag
 from utility.time_utilities import TimeUtilities
-from utility.states import member_states
+from utility.states import member_states, card_types
 
 
 class MemberCommunityImpl(MemberCommunityManager):
@@ -179,7 +179,7 @@ class MemberCommunityHelper:
         current_time = TimeUtilities.current_time_in_sec()
         state_filter = collabcardState.objects.filter(
             community=community_instance, user=member_id, card__is_deleted=False
-            ).select_related('card').filter(Q(expiry_time=None) |
+            ).exclude(card__type=card_types.CARD_INTRO).select_related('card').filter(Q(expiry_time=None) |
                                             Q(expiry_time__gt=current_time)
                                             ).order_by('-expiry_time', '-card')
         temp = {}
