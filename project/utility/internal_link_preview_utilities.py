@@ -1,9 +1,10 @@
-from togther.models import Community, Collabcard
+from togther.models import Community, Collabcard, card_answers
 from .constants import BRANCH_DECODE_URI
 from collabmates_api.static_text import BRANCH_LINK_PREFIX_ANDROID, BRANCH_LINK_PREFIX_IOS
 import requests
 from collabmates_api.serializers import get_preview_for_url
 from django.conf import settings
+from .celery_tasks import update_preview_of_chatroom_in_cache
 
 
 class PreviewUtilities:
@@ -45,9 +46,12 @@ class PreviewUtilities:
 
         if 'internal_link' in res and res['internal_link']:
             self.set_preview_with_internal_link(instance, res, user_id)
+            self.set_previw_object_in_cache(res, instance)
 
-        if 'preview' in res:
+        if 'preview' in res and res['preview']:
             self.set_preview_with_preview_dict(instance, res, user_id)
+            self.set_previw_object_in_cache(res, instance)
+
 
     def set_preview_with_internal_link(self, instance, res, user_id):
         try:
@@ -82,3 +86,12 @@ class PreviewUtilities:
         instance.internal_link = None
         instance.preview_community = None
         instance.preview_chatroom = None
+
+    def set_previw_object_in_cache(self, res, instance):
+
+        preview_obj = res.get('preview')
+
+        if preview_obj and isinstance(instance, card_answers) and preview_obj.get('preview_type') == "chatroom":
+            update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_obj['chatroom']["id"],
+                                                       'preview_object': preview_obj,
+                                                       'conversation_id': instance.id})

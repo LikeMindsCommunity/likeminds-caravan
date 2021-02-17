@@ -196,12 +196,6 @@ class ConversationImpl(ConversationManager):
     def _set_preview_for_conversation(self, conversation_instance, req_body):
         preview_utilities = PreviewUtilities()
         preview_utilities.set_preview_object(conversation_instance, req_body, self.get_member_id())
-        preview_obj = req_body.get('preview')
-
-        if preview_obj and preview_obj.get('preview_type') == "chatroom":
-            update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_obj['chatroom']["id"],
-                                                       'preview_object': preview_obj,
-                                                       'conversation_id': conversation_instance.id})
         self._save_conversation(conversation_instance)
 
     def _create_conversation_instance(self, conversation_content):

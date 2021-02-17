@@ -36,6 +36,7 @@ from utility.celery_tasks import (save_community_purpose_card,
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail, upload_community_files)
+from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
@@ -2660,7 +2661,55 @@ def get_conversation_users(instance):
 
 
 ############# functions for  create flow of card,community and members   ##########################
+def set_community_actions(community_instance):
+    '''function to set community action for community profiling'''
 
+    action_status = communityLevels.objects.filter(community=community_instance)
+
+    if not action_status:
+        # first level
+        instance = communityLevels()
+        instance.community = community_instance
+        instance.level = "Level 1"
+        instance.title = "Create onboarding room"
+        instance.sub_title = "Break the ice for new members. Tell what this community stands for."
+        instance.state = community_level_states.COMPLETE
+        instance.image = IMAGE_LEVEL_1
+        instance.save()
+
+        # second level
+        instance = communityLevels()
+        instance.community = community_instance
+        instance.level = "Level 2"
+        instance.title = "Invite your inner circle"
+        instance.sub_title = "Bring 5 trusted people you want to build this community with."
+        instance.joined_members = 0
+        instance.max_members = 1 if settings.IS_BETA else 5
+        instance.state = community_level_states.PENDING
+        instance.image = IMAGE_LEVEL_2
+        instance.save()
+
+        # third level
+        instance = communityLevels()
+        instance.community = community_instance
+        instance.level = "Level 3"
+        instance.title = "Community Directory"
+        instance.state = community_level_states.LOCKED
+        instance.joined_members = 0
+        instance.max_members = 1 if settings.IS_BETA else 10
+        instance.image = IMAGE_LEVEL_3
+        instance.save()
+
+        # fourth level
+        instance = communityLevels()
+        instance.community = community_instance
+        instance.level = "Level 4"
+        instance.title = "Growth"
+        instance.state = community_level_states.LOCKED
+        instance.joined_members = 0
+        instance.max_members = 1 if settings.IS_BETA else 10
+        instance.image = IMAGE_LEVEL_4
+        instance.save()
 
 @csrf_exempt
 def create_community_version_1(request):
@@ -2923,7 +2972,7 @@ def post_member_directly_link(user_instance, community_instance):
         return
 
     card_instance = card_filter[0]
-    member_directory_link = url + "/community/" + str(community_instance.id)
+    member_directory_link = url + "/community/" + str(community_instance.id) + "?source=members_directory"
     conversation = card_answers()
     conversation.answer = "Here is a link to view our member directory"
     conversation.card = card_instance
@@ -3022,105 +3071,6 @@ def update_community(res):
         return communty_serailized_object
 
     return "Not a valid community"
-
-
-def set_community_actions(community_instance):
-    '''function to set community action for community profiling'''
-
-    action_status = communityLevels.objects.filter(community=community_instance)
-
-    if not action_status:
-        # first level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 1"
-        instance.title = "Create onboarding room"
-        instance.sub_title = "Break the ice for new members. Tell what this community stands for."
-        instance.state = community_level_states.COMPLETE
-        instance.image = IMAGE_LEVEL_1
-        instance.save()
-
-        # second level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 2"
-        instance.title = "Invite your inner circle"
-        instance.sub_title = "Bring 5 trusted people you want to build this community with."
-        instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA else 5
-        instance.state = community_level_states.PENDING
-        instance.image = IMAGE_LEVEL_2
-        instance.save()
-
-        # third level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 3"
-        instance.title = "Community Directory"
-        instance.state = community_level_states.LOCKED
-        instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA else 10
-        instance.image = IMAGE_LEVEL_3
-        instance.save()
-
-        # fourth level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 4"
-        instance.title = "Growth"
-        instance.state = community_level_states.LOCKED
-        instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA else 10
-        instance.image = IMAGE_LEVEL_4
-        instance.save()
-
-
-def set_preview_object(instance, res, user_id):
-    if 'internal_link' in res and res['internal_link']:
-        set_preview_with_internal_link(instance, res, user_id)
-
-    if 'preview' in res:
-        set_preview_with_preview_dict(instance, res, user_id)
-
-
-def set_preview_with_internal_link(instance, res, user_id):
-    try:
-        internal_link = get_preview_url(res['internal_link'])
-        instance.internal_link = internal_link
-
-        if 'preview' not in res and internal_link is not None:
-            preview = get_preview_for_url(user_id, internal_link)
-            res['preview'] = preview
-    except:
-        remove_preview_instance(instance)
-
-
-def set_preview_with_preview_dict(instance, res, user_id):
-    try:
-        preview = res['preview']
-        instance.preview_type = preview['preview_type']
-        preview_community = Community.objects.get(pk=preview['community']["id"])
-        instance.preview_community = preview_community
-
-        if 'chatroom' in preview:
-            preview_chatroom = Collabcard.objects.get(pk=preview['chatroom']["id"])
-            instance.preview_chatroom = preview_chatroom
-
-            if preview['preview_type'] == "chatroom":
-                update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_chatroom.id,
-                                                           'preview_object': preview,
-                                                           'conversation_id': instance.id})
-        if 'internal_link' not in res:
-            if 'internal_link' in preview and preview['internal_link']:
-                instance.internal_link = get_preview_url(preview['internal_link'])
-    except:
-        remove_preview_instance(instance)
-
-
-def remove_preview_instance(instance):
-    instance.internal_link = None
-    instance.preview_community = None
-    instance.preview_chatroom = None
 
 
 @csrf_exempt
@@ -3284,7 +3234,9 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         og_tags = decode_meta_from_url(res['share_link'])
         card.og_tags = json.dumps(og_tags)
 
-    set_preview_object(card, res, user_instance.id)
+
+    preview_utilities = PreviewUtilities()
+    preview_utilities.set_preview_object(card, res, user_instance.id)
 
     is_intro_card = card_type == card_types.CARD_INTRO
     if not has_auto_approve_right and not is_intro_card:
@@ -3554,7 +3506,8 @@ def create_draft_collabcard(request, res=None):
         og_tags = decode_meta_from_url(res['share_link'])
         card.og_tags = json.dumps(og_tags)
 
-    set_preview_object(card, res, user_instance.id)
+    preview_utilities = PreviewUtilities()
+    preview_utilities.set_preview_object(card, res, user_instance.id)
 
     card.date_epoch = time.time()  # card creation time
     card.save()
@@ -3792,6 +3745,13 @@ def chatroom_rename(request):
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': card_instance},
                                        {})
+        chatroom_preview_update_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                                                       {'preview_chatroom': card_instance,
+                                                                        'preview_type': "chatroom"}, {})
+
+        if chatroom_preview_update_count:
+            preview_chatroom_id = card_instance.id
+            update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
 
     else:
         context = get_error_context(False, "send correct chatroom id in post params")
@@ -7287,8 +7247,8 @@ def create_conversation(request):
     ans.attachment_count = 1 if has_files else 0
     ans.attachments_uploaded = False
 
-    set_preview_object(ans, res, member_id)
-
+    preview_utilities = PreviewUtilities()
+    preview_utilities.set_preview_object(ans, res, member_id)
     ans.save()
 
     # saving the og tags if present
