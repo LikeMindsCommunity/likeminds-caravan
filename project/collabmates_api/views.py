@@ -8594,7 +8594,9 @@ def upload_files(request):
             send_follow_notification.delay(card_id=chatroom_id, user_id=answer_instance.user.id,
                                            answer=answer_instance.answer)
 
-        conversation = get_conversation_instance_for_db_synching(answer_instance, current_user_id=member_id)
+        conversation_context = {"current_user_id": member_id, "fetch_reply": True}
+        conversation = CardAnswersDBSyncSerializer(answer_instance, context=conversation_context, many=False).data
+
 
     elif 'poll_id' in body and body['poll_id']:
 
@@ -8852,7 +8854,8 @@ def upload_conversation_attachments(body, member_id):
                                        answer=conversation_instance.answer)
         update_my_chatrooms_for_users(chatroom_id)
 
-    conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
+    conversation_context = {"current_user_id": member_id, "fetch_reply": True}
+    conversation = CardAnswersDBSyncSerializer(conversation_instance, context=conversation_context, many=False).data
 
     return conversation
 
@@ -12564,10 +12567,11 @@ def delete_conversation(request):
         update_conversation_delete_status(conversation, current_user_instance, reason=reason, tag_id=tag_id)
 
         conversation.refresh_from_db()
-        
-        conversation_dict = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
-        community_id = conversation_dict['community_id']
+
+        conversation_context = {"current_user_id": member_id, "fetch_reply": True}
+        conversation_dict = CardAnswersDBSyncSerializer(conversation, context=conversation_context, many=False).data
         conversation_list.append(conversation_dict)
+        community_id = conversation_dict['community_id']
 
     if community_id:
         send_sync_notification.delay({'community_id': community_id,
@@ -12633,7 +12637,9 @@ def edit_conversation(request):
                                     "you are not the conversation creator.Only conversation creator can edit his/her message")
         return JsonResponse(context)
 
-    conversation_dict = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+    context = {"current_user_id": member_id, "fetch_reply": True}
+    conversation_dict = CardAnswersDBSyncSerializer(conversation, context=context, many=False).data
+
     send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                   'community_id': conversation.community.id})
 

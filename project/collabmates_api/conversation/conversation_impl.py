@@ -5,6 +5,7 @@ from typing import Union
 from rest_framework import status as status_codes
 
 from .conversation_manager import ConversationManager
+from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
     get_removed_member_custom_text, get_conversation_instance_for_db_synching
 from ..sync.model_update import update_models_for_syncing_apis
@@ -370,8 +371,8 @@ class ConversationImpl(ConversationManager):
             preview_chatroom_id = chatroom_instance.id
             update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
 
-        conversation = get_conversation_instance_for_db_synching(conversation_instance,
-                                                                 current_user_id=self.get_member_id())
+        context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
+        conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
 
         send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                       'community_id': community_id})
