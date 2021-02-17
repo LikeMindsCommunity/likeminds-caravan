@@ -1424,7 +1424,7 @@ def post_introduction_card_for_community(community_id, member_id):
 
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
-                post_owner_message_template_in_intro_room(community_id, member_id)
+                post_owner_message_template_in_intro_room.delay(community_id, member_id)
 
                 return True
             else:
@@ -7228,6 +7228,9 @@ def create_conversation(request):
     user_instance = User.objects.get(id=member_id)
 
     current_state = members_state(request, {'community_id': card_instance.community.id, 'member_id': user_instance.id})
+
+    if card_instance.type == card_types.CARD_MASTER_INTRO:
+        return JsonResponse({'success': False, 'error_message': "Responding is disabled"})
 
     if card_instance.type == card_types.CARD_PURPOSE and\
             current_state['state'] != member_states.ADMIN:
