@@ -4062,6 +4062,11 @@ def fetch_share_url(request):
         except Exception as e:
             context = get_error_context(False, e.args)
             return JsonResponse(context)
+
+        if card_instance.type == card_types.CARD_MASTER_INTRO:
+
+            return JsonResponse({'success': False},status = status_codes.HTTP_400_BAD_REQUEST)
+
         chatroom_share = {}
         share = get_share_url_text(card_instance, member_id)
         chatroom_share['share_url'] = share['share_url']
@@ -5831,10 +5836,14 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
 
     purpose_card = False
     intro_card = False
-    if card_status['type'] == card_types.CARD_PURPOSE:
+    master_intro_card = False
+
+    if card_status['type'] == card_types.CARD_PURPOSE :
         purpose_card = True
     elif card_status['type'] == card_types.CARD_INTRO:
         intro_card = True
+    elif card_status['type'] == card_types.CARD_MASTER_INTRO:
+        master_intro_card = True
 
     final_dict = None
     if creator and card_status['mute_status']:
@@ -5861,7 +5870,7 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
     actions = []
 
     for action in final:
-        if purpose_card:
+        if purpose_card or master_intro_card:
             if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
@@ -5871,6 +5880,10 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
 
             if promoter or creator:
                 if action['id'] == chatroom_actions.ACTION_RENAME or action['id'] == chatroom_actions.ACTION_DELETE:
+                    continue
+
+            if master_intro_card:
+                if action['id'] == chatroom_actions.ACTION_INVITE:
                     continue
 
         elif intro_card and creator:
