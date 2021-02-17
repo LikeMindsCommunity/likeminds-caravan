@@ -1614,7 +1614,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
         "answer": conversation.answer,
         "state": conversation.state,
         'is_edited': conversation.is_edited,
-        'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(conversation.created_at),
+        'created_at': conversation.created_at,
         'has_files': conversation.has_files,
         'attachment_count': conversation.attachment_count,
         'attachments_uploaded': conversation.attachments_uploaded,

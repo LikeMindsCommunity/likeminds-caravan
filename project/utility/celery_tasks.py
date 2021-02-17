@@ -373,7 +373,11 @@ def update_preview_of_chatroom_in_cache(preview_info):
     preview_object = preview_info.get('preview_object')
 
     if not preview_object:
-        preview_object = get_preview_for_url(preview_url)
+        try:
+            preview_object = get_preview_for_url(preview_url)
+        except Exception as e:
+            error_logger.error((str(e.args)))
+            return
 
     CacheImpl.set_cache(key, preview_object)
 
@@ -389,9 +393,14 @@ def update_multiple_previews_in_chatroom(preview_info):
 
         for conversation in preview_filter:
 
-            preview_dict = get_preview_for_url(preview_url=conversation.internal_link,
-                                               community_instance=conversation.preview_community,
-                                               chatroom_instance=conversation.preview_chatroom)
+            try:
+                preview_dict = get_preview_for_url(preview_url=conversation.internal_link,
+                                                   community_instance=conversation.preview_community,
+                                                   chatroom_instance=conversation.preview_chatroom)
+            except Exception as e:
+                error_logger.error(str(e.args))
+                continue
+
             update_preview_of_chatroom_in_cache({'chatroom_id': conversation.preview_chatroom.id,
                                                  'preview_object': preview_dict,
                                                  'conversation_id': conversation.id})
