@@ -1065,7 +1065,14 @@ def private_link_app_invite(community_instance, unique_code, created_by=None, sh
 def join_community_responses_version_1(request):
     info_logger.info("Join community request\n")
     info_logger.info(request.body)
-    res = json.loads(request.body)
+
+    try:
+        res = json.loads(request.body)
+    except Exception as e:
+        context = get_error_context(False, e.args)
+
+        return JsonResponse(context, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
     info_logger.info("Join community res\n")
     info_logger.info(res)
     info_logger.info("\n")
