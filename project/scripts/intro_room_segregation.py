@@ -2,9 +2,10 @@ import time
 
 from django.contrib.auth.models import User
 
+from collabmates_api.upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
 from collabmates_api.views import post_master_introductions_for_community, \
     create_conversation_context_for_intro_chatrooms, post_member_directly_link
-from togther.models import Members, Collabcard, collabcardState, Community
+from togther.models import Members, Collabcard, collabcardState, Community, ModelUtilities
 
 
 def get_all_live_communities():
@@ -51,9 +52,22 @@ def set_all_introduction_cards():
                                                  community=card_instance.community)
         if master_intro:
             master_intro_instance = master_intro[0]
+            image_url = get_user_image_based_on_community(card_instance.user.id, card_instance.community.id)
+
+            if image_url:
+                save_chatroom_attachments(card_instance, body={
+                    'url': image_url,
+                    'type': "image",
+                    'index': 1
+                })
+                ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
+                                            {'has_files': True, 'attachment_count': 1,
+                                             'attachments_uploaded': True})
+
             create_conversation_context_for_intro_chatrooms(card_instance, card_instance.user, master_intro_instance)
-            collabcardState.objects.filter(card=card_instance).update(updated_at=time.time())
-            print(card_instance.id)
+            ModelUtilities.model_update(collabcardState, {'card': card_instance}, {})
+
+
 
 
 def intro_room_segregation():
