@@ -7229,6 +7229,9 @@ def create_conversation(request):
 
     current_state = members_state(request, {'community_id': card_instance.community.id, 'member_id': user_instance.id})
 
+    if card_instance.type == card_types.CARD_MASTER_INTRO:
+        return JsonResponse({'success': False, 'error_message': "Responding is disabled"})
+
     if card_instance.type == card_types.CARD_PURPOSE and\
             current_state['state'] != member_states.ADMIN:
 

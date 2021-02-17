@@ -324,6 +324,9 @@ class ConversationImpl(ConversationManager):
 
             return {'success': False, 'error_message': ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM}
 
+        if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
+            return {'success': False, 'error_message': "Responding is disabled"}
+
         self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
                                     is_guest=is_user_guest,
                                     aj=req_body.get('aj', None),
