@@ -1456,8 +1456,8 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
     conversation_context['internal_link'] = settings.URL + "/collabcard/"+str(card_instance.id)
     conversation_context['preview_type'] = "chatroom"
 
-    answer_instance = card_answers(**conversation_context).save()
-
+    answer_instance = card_answers(**conversation_context)
+    answer_instance.save()
     func_dict = {
         'member_id': user_instance.id,
         'collabcard_id': master_intro.id,
