@@ -294,8 +294,9 @@ class ConversationImpl(ConversationManager):
                 conversations = self._fetch_conversation_queryset()
 
             conversations = self._create_conversation_list(conversations)
-            chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
-            self._save_latest_conversation_for_members(chatroom_instance)
+
+        chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
+        self._save_latest_conversation_for_members(chatroom_instance)
 
 
         return conversations
