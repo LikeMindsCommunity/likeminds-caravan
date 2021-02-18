@@ -1507,7 +1507,9 @@ def post_master_introductions_for_community(community_id, member_id):
                                                           'type': card_types.CARD_MASTER_INTRO}):
         return
 
-    create_card_internal(member_id,community_id,res)
+    context = create_card_internal(member_id,community_id, res)
+
+    return context
 
 
 def update_hidden_fields_in_questions(user_instance, community_instance):
