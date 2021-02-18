@@ -44,7 +44,7 @@ def post_master_intro_cards_in_community():
         community_id = data['community_id']
         member_id = data['member_id']
         context = post_master_introductions_for_community(community_id, member_id)
-
+        print(context.get('collabcard'))
         update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                        {'community_id': community_id},
                                        {'order_time': TimeUtilities.current_time_in_milliseconds()})
@@ -81,13 +81,6 @@ def set_all_introduction_cards(master_community_list):
                     ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
                                                 {'has_files': True, 'attachment_count': 1,
                                                  'attachments_uploaded': True})
-
-                answer_filter = card_answers.objects.filter(card=master_intro_instance, user=card_instance.user)
-
-                if answer_filter:
-                    print(answer_filter[0])
-                    print("already exists")
-                    continue
 
                 answer_instance = create_conversation_context_for_intro_chatrooms(card_instance, card_instance.user,
                                                                                   master_intro_instance)

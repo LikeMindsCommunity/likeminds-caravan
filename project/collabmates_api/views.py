@@ -113,7 +113,6 @@ url = settings.URL
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
-
 # /api/communities?category_id=&member_id=
 
 ############# functions for community api ##########################
@@ -6099,7 +6098,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance)
 
-    context['participant_count'] = collabcardState.objects.filter(follow_status=True, card=card_instance,
+    if card_instance.type != card_types.CARD_MASTER_INTRO:
+        context['participant_count'] = collabcardState.objects.filter(follow_status=True, card=card_instance,
                                                                   remove=None, is_tagged=False).count()
 
     conversation_users_meta = get_chatroom_user_images_for_web(card_instance.id)
@@ -6351,7 +6351,9 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                             )
 
     context['chatroom_actions'] = chatroom_actions
-    context['participant_count'] = collabcardState.objects.filter(follow_status=True,
+
+    if card_instance.type != card_types.CARD_MASTER_INTRO:
+        context['participant_count'] = collabcardState.objects.filter(follow_status=True,
                                                                       card=card_instance, remove=None,
                                                                       is_tagged=False).count()
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
