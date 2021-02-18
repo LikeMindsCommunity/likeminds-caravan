@@ -48,9 +48,16 @@ def post_master_intro_cards_in_community():
         update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                        {'community_id': community_id},
                                        {'order_time': TimeUtilities.current_time_in_milliseconds()})
-        print(context)
+        chatroom_id = context['collabard']['id']
         user_instance = User.objects.get(id=member_id)
         community_instance = Community.objects.get(id=community_id)
+
+        conversation_filter = card_answers.objects.filter(card=chatroom_id, user=user_instance, preview_type="directory")
+
+        if conversation_filter:
+            print("directory already posted")
+            continue
+
         post_member_directly_link(user_instance, community_instance)
         master_community_list.append(community_id)
 
