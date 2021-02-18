@@ -298,7 +298,6 @@ class ConversationImpl(ConversationManager):
         chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
         self._save_latest_conversation_for_members(chatroom_instance)
 
-
         return conversations
 
     def create_conversation(self, req_body: dict, is_ios: bool,
