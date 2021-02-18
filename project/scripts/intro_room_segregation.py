@@ -31,7 +31,7 @@ def get_all_live_communities():
             })
 
             community_set.add(community_id)
-    community_list = [{'community_id': 49220, 'member_id': 496}]
+
     return community_list
 
 
