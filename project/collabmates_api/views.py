@@ -114,7 +114,6 @@ error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
 
-
 # /api/communities?category_id=&member_id=
 
 ############# functions for community api ##########################
@@ -1500,7 +1499,7 @@ def post_master_introductions_for_community(community_id, member_id):
         'community_id': community_id,
         'title': MASTER_INTRO_TITLE_TEXT,
         'type': card_types.CARD_MASTER_INTRO,
-        'header': "Introductions"
+        'header': MASTER_INTRO_HEADER
     }
 
     if ModelUtilities.is_model_filter_exists(Collabcard, {'community': community_id,

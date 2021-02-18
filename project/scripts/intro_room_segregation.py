@@ -6,7 +6,9 @@ from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from collabmates_api.upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
 from collabmates_api.views import post_master_introductions_for_community, \
     create_conversation_context_for_intro_chatrooms, post_member_directly_link
-from togther.models import Members, Collabcard, collabcardState, Community, ModelUtilities
+
+from togther.models import Members, Collabcard, collabcardState, Community, ModelUtilities, card_answers
+
 from utility.states import SyncTypes
 from utility.time_utilities import TimeUtilities
 
@@ -80,6 +82,12 @@ def set_all_introduction_cards(master_community_list):
                                                 {'has_files': True, 'attachment_count': 1,
                                                  'attachments_uploaded': True})
 
+                answer_filter = card_answers.objects.filter(card=master_intro_instance, user=card_instance.user)
+
+                if answer_filter:
+                    print(answer_filter[0])
+                    continue
+
                 answer_instance = create_conversation_context_for_intro_chatrooms(card_instance, card_instance.user,
                                                                                   master_intro_instance)
                 print(answer_instance)
@@ -97,6 +105,5 @@ def intro_room_segregation():
     diff = end_time - start_time
 
     print(diff)
-
 
 intro_room_segregation()
