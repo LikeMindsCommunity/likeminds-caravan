@@ -86,6 +86,7 @@ def set_all_introduction_cards(master_community_list):
 
                 if answer_filter:
                     print(answer_filter[0])
+                    print("already exists")
                     continue
 
                 answer_instance = create_conversation_context_for_intro_chatrooms(card_instance, card_instance.user,
