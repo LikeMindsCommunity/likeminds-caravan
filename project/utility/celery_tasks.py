@@ -374,7 +374,7 @@ def update_preview_of_chatroom_in_cache(preview_info):
 
     if not preview_object:
         try:
-            preview_object = get_preview_for_url(preview_url)
+            preview_object = get_preview_for_url(preview_url=preview_url)
         except Exception as e:
             error_logger.error((str(e.args)))
             return
