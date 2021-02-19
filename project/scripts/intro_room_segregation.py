@@ -21,7 +21,7 @@ def get_all_live_communities(page):
     community_filter = Members.objects.filter(state=1).order_by('-id')
 
     if page:
-        community_filter = pagination(community_filter, page, paginate_by=100)
+        community_filter = pagination(community_filter, page, paginate_by=200)
 
     community_set = set()
     community_list = []
