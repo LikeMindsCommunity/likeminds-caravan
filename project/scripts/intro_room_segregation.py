@@ -12,6 +12,8 @@ from togther.models import Members, Collabcard, collabcardState, Community, Mode
 
 from utility.states import SyncTypes
 from utility.time_utilities import TimeUtilities
+from external_services.logging.logging_wrapper import LoggingWrapper
+info_logger = LoggingWrapper.get_instance()
 
 
 def get_all_live_communities(page):
@@ -52,6 +54,7 @@ def post_master_intro_cards_in_community(community_list):
 
         if context:
             print(context['collabcard']['id'])
+            info_logger.info(context['collabcard']['id'])
 
         update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                        {'community_id': community_id},
@@ -94,6 +97,7 @@ def set_all_introduction_cards(master_community_list):
                 answer_instance = create_conversation_context_for_intro_chatrooms(card_instance, card_instance.user,
                                                                                   master_intro_instance)
                 print(answer_instance)
+                info_logger.info(answer_instance)
 
                 ModelUtilities.model_update(collabcardState, {'card': card_instance}, {})
                 print("\n")
@@ -107,8 +111,10 @@ def intro_room_segregation(page=None):
     master_community_list = post_master_intro_cards_in_community(community_list)
 
     print("sleeping for 10 minutes")
+    info_logger.info("sleeping for 10 minutes")
     time.sleep(600)
     print("waking after 10 minutes")
+    info_logger.info("waking after 10 minutes")
     set_all_introduction_cards(master_community_list)
     end_time = time.time()
     diff = end_time - start_time
