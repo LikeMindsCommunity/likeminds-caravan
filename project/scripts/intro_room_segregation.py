@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from collabmates_api.upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
+from collabmates_api.utility import pagination
 from collabmates_api.views import post_master_introductions_for_community, \
     create_conversation_context_for_intro_chatrooms, post_member_directly_link
 
@@ -13,9 +14,12 @@ from utility.states import SyncTypes
 from utility.time_utilities import TimeUtilities
 
 
-def get_all_live_communities():
+def get_all_live_communities(page):
 
     community_filter = Members.objects.filter(state=1).order_by('id')
+
+    if page:
+        community_filter = pagination(community_filter, page, paginate_by=100)
 
     community_set = set()
     community_list = []
@@ -36,9 +40,9 @@ def get_all_live_communities():
     return community_list
 
 
-def post_master_intro_cards_in_community():
+def post_master_intro_cards_in_community(community_list):
 
-    community_list = get_all_live_communities()
+
     master_community_list = []
 
     for data in community_list:
@@ -96,10 +100,12 @@ def set_all_introduction_cards(master_community_list):
                 time.sleep(3)
 
 
-def intro_room_segregation():
+def intro_room_segregation(page=None):
 
     start_time = time.time()
-    master_community_list = post_master_intro_cards_in_community()
+    community_list = get_all_live_communities(page)
+    master_community_list = post_master_intro_cards_in_community(community_list)
+
     print("sleeping for 10 minutes")
     time.sleep(600)
     print("waking after 10 minutes")
@@ -109,4 +115,4 @@ def intro_room_segregation():
 
     print(diff)
 
-intro_room_segregation()
+
