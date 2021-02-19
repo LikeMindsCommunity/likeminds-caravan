@@ -18,7 +18,7 @@ info_logger = LoggingWrapper.get_instance()
 
 def get_all_live_communities(page):
 
-    community_filter = Members.objects.filter(state=1).order_by('id')
+    community_filter = Members.objects.filter(state=1).order_by('-id')
 
     if page:
         community_filter = pagination(community_filter, page, paginate_by=100)
