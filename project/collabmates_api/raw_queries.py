@@ -1490,7 +1490,7 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
 
         if not chatroom_id_tupple:
 
-            return []
+            return [], []
 
         sql = """SELECT id,
                          answer,
@@ -1545,7 +1545,7 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
         chatroom_id_tupple = get_tuple_from_array(chatroom_list)
 
         if not chatroom_id_tupple:
-            return []
+            return [], []
 
         sql = """SELECT id,
                          answer,
