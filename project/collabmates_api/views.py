@@ -113,10 +113,7 @@ url = settings.URL
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
-
-
 # /api/communities?category_id=&member_id=
-
 ############# functions for community api ##########################
 @api_view(['GET', 'POST'])
 @renderer_classes([JSONRenderer, TemplateHTMLRenderer])
@@ -1500,14 +1497,16 @@ def post_master_introductions_for_community(community_id, member_id):
         'community_id': community_id,
         'title': MASTER_INTRO_TITLE_TEXT,
         'type': card_types.CARD_MASTER_INTRO,
-        'header': "Introductions"
+        'header': MASTER_INTRO_HEADER
     }
 
     if ModelUtilities.is_model_filter_exists(Collabcard, {'community': community_id,
                                                           'type': card_types.CARD_MASTER_INTRO}):
         return
 
-    create_card_internal(member_id,community_id,res)
+    context = create_card_internal(member_id,community_id, res)
+
+    return context
 
 
 def update_hidden_fields_in_questions(user_instance, community_instance):
@@ -6098,7 +6097,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance)
 
-    context['participant_count'] = collabcardState.objects.filter(follow_status=True, card=card_instance,
+    if card_instance.type != card_types.CARD_MASTER_INTRO:
+        context['participant_count'] = collabcardState.objects.filter(follow_status=True, card=card_instance,
                                                                   remove=None, is_tagged=False).count()
 
     conversation_users_meta = get_chatroom_user_images_for_web(card_instance.id)
@@ -6350,7 +6350,9 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                             )
 
     context['chatroom_actions'] = chatroom_actions
-    context['participant_count'] = collabcardState.objects.filter(follow_status=True,
+
+    if card_instance.type != card_types.CARD_MASTER_INTRO:
+        context['participant_count'] = collabcardState.objects.filter(follow_status=True,
                                                                       card=card_instance, remove=None,
                                                                       is_tagged=False).count()
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)

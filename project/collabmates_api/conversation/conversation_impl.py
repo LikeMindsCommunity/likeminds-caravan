@@ -101,7 +101,7 @@ class ConversationImpl(ConversationManager):
     def _fetch_upward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-            id__lte=conversation_id).order_by('-id')[:list_size]
+            id__lt=conversation_id).order_by('-id')[:list_size]
 
     def _fetch_downward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
@@ -294,6 +294,9 @@ class ConversationImpl(ConversationManager):
                 conversations = self._fetch_conversation_queryset()
 
             conversations = self._create_conversation_list(conversations)
+
+        chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
+        self._save_latest_conversation_for_members(chatroom_instance)
 
         return conversations
 
