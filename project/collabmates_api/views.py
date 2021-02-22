@@ -6404,20 +6404,20 @@ def save_the_latest_conversation(card_instance, user_id):
 
                 if last_seen_conversation.id != last_conversation.id:
 
-                    update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                                   {'card': card_instance, 'user': user_instance},
-                                                   {'last_seen_conversation': last_conversation,
-                                                    'expiry_time': expiry_time})
-
+                    collabcard_state_instance.last_seen_conversation = last_conversation
+                    collabcard_state_instance.expiry_time = expiry_time
+                    collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+                    collabcard_state_instance.save()
                     update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                              last_conversation_id=last_conversation.id,
                                                              unseen_count=0)
 
             else:
-                update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                               {'card': card_instance, 'user': user_instance},
-                                               {'last_seen_conversation': last_conversation,
-                                                'expiry_time': expiry_time})
+
+                collabcard_state_instance.last_seen_conversation = last_conversation
+                collabcard_state_instance.expiry_time = expiry_time
+                collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+                collabcard_state_instance.save()
 
                 update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                          last_conversation_id=last_conversation.id,

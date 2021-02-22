@@ -103,10 +103,15 @@ class ConversationImpl(ConversationManager):
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
             id__lt=conversation_id).order_by('-id')[:list_size]
 
+    def _fetch_upward_conversation_with_conversation_queryset(self, list_size, conversation_id):
+        return card_answers.objects.select_related('reply', 'preview_community',
+                                                   'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
+            id__lte=conversation_id).order_by('-id')[:list_size]
+
     def _fetch_downward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-            id__gt=conversation_id).order_by('-id')[:list_size]
+            id__gt=conversation_id).order_by('id')[:list_size]
 
     def _paged_queryset(self, conversation_filter):
         page = self.get_page()
@@ -269,7 +274,7 @@ class ConversationImpl(ConversationManager):
 
             else:
 
-                upward_conversation = self._fetch_upward_conversation_queryset(LIST_SIZE, last_seen.id)
+                upward_conversation = self._fetch_upward_conversation_with_conversation_queryset(LIST_SIZE, last_seen.id)
                 downward_conversation = self._fetch_downward_conversation_queryset(LIST_SIZE, last_seen.id)
 
                 # merging both conversations
