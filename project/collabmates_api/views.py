@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import F, When, Q
+from django.db.models import F, When, Q, Sum
 from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -579,6 +579,13 @@ def my_chatrooms_version_1(request):
                'inactive_chatroom_count': in_active_chatroom_count,
                'total_pages': total_pages
                }
+
+    if page == 1:
+        total_unseen_count = conversationEngage.objects \
+            .filter(user=current_user_instance, unseen_count__gt=0) \
+            .aggregate(total=Sum('unseen_count'))
+
+        context['total_unseen_count'] = total_unseen_count['total']
 
     return JsonResponse(context)
 
