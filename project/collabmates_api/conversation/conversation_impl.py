@@ -20,7 +20,7 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
 from .constants import (LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
 
-from togther.models import card_answers, collabcardState, Collabcard, Members, Community
+from togther.models import card_answers, collabcardState, Collabcard, Members, Community, ModelUtilities
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
@@ -368,11 +368,9 @@ class ConversationImpl(ConversationManager):
         self._update_home_page(chatroom_id, req_body,
                                has_files=has_files,
                                is_ios=is_ios)
-        chatroom_preview_update_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
-                                       {'preview_chatroom': chatroom_instance, 'preview_type': "chatroom"},
-                                       {})
 
-        if chatroom_preview_update_count:
+        if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': chatroom_instance,
+                                                                'preview_type': "chatroom"}):
             preview_chatroom_id = chatroom_instance.id
             update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
 

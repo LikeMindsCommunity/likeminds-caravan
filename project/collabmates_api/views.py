@@ -2058,10 +2058,9 @@ def edit_member_profile(request):
                 update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                                {'card': collabcard_id, 'user': member_id},
                                                {})
-                update_preview_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
-                                               {'preview_chatroom': collabcard_id},
-                                               {})
-                if update_preview_count:
+
+                if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': collabcard_id,
+                                                                        'preview_type': "chatroom"}):
                     update_preview = True
 
             if question_instance.question_state == question_states.PROFILE_LINK:
@@ -7328,10 +7327,8 @@ def create_conversation(request):
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id)
 
-    chatroom_preview_update_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
-                                   {'preview_chatroom': card_instance, 'preview_type': "chatroom"}, {})
-
-    if chatroom_preview_update_count:
+    if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': card_instance,
+                                                            'preview_type': "chatroom"}):
         preview_chatroom_id = card_instance.id
         update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
 
