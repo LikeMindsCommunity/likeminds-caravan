@@ -404,3 +404,6 @@ def update_multiple_previews_in_chatroom(preview_info):
             update_preview_of_chatroom_in_cache({'chatroom_id': conversation.preview_chatroom.id,
                                                  'preview_object': preview_dict,
                                                  'conversation_id': conversation.id})
+            conversation.last_updated = TimeUtilities.current_time_in_milliseconds()
+            conversation.save()
+

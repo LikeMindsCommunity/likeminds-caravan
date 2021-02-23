@@ -960,6 +960,13 @@ def questions(request):
 
     member_id = get_member_id_from_headers(request)
 
+    user_instance = get_user_or_none(member_id)
+
+    if not user_instance:
+        context = get_error_context(False,"Invalid member id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     community_id = request.GET.get('community_id')
     if not community_id:
         context = get_error_context(False, "send community id in get params")
@@ -1987,8 +1994,9 @@ def edit_member_profile(request):
 
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
-
     member_id = get_member_id_from_headers(request)
+    update_preview = False
+
     if not member_id:
         member_id = request.GET.get('member_id', None)
 
@@ -2050,11 +2058,10 @@ def edit_member_profile(request):
                 update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                                {'card': collabcard_id, 'user': member_id},
                                                {})
-                update_preview_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
-                                               {'preview_chatroom': collabcard_id},
-                                               {})
-                if update_preview_count:
-                    update_multiple_previews_in_chatroom.delay({'chatroom_id': collabcard_id})
+
+                if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': collabcard_id,
+                                                                        'preview_type': "chatroom"}):
+                    update_preview = True
 
             if question_instance.question_state == question_states.PROFILE_LINK:
                 save_profile_links_from_handles(question_instance, answer_instance)
@@ -2065,19 +2072,29 @@ def edit_member_profile(request):
     # setting edit status in members table
     member_filter = Members.objects.filter(community_id=community_instance, member_id=user_instance)
     member_filter.update(edit_required=False, updated_at=time.time())
-    if 'image_url' in res:
-        member_filter.update(image_url=res['image_url'])
+
+    if 'image_url' in res and res['image_url']:
+        member_filter.update(image_url=res['image_url'], updated_at=TimeUtilities.current_time_in_sec())
+        ModelUtilities.model_update(Card_Attachment,
+                                    {'collabcard_id': collabcard_id},
+                                    {'file_url': res['image_url']})
+        update_preview = True
 
     # posting a introduction collabcard
     if collabcard_id == 0:
         post_introduction_card_for_community(community_instance.id, user_instance.id)
+        update_preview = False
 
     # update level of community
     set_levels_on_ctc(community_instance, "Level 3", promoter=is_promoter)
 
     question_answer = ""
+
     if form_response:
         question_answer = form_response[1]
+
+    if update_preview:
+        update_multiple_previews_in_chatroom.delay({'chatroom_id': collabcard_id})
 
     # setting the level click state when the promoter set-up directory and update the click state
     present_level = communityLevels.objects.filter(community=community_instance, level="Level 3",
@@ -7310,10 +7327,8 @@ def create_conversation(request):
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id)
 
-    chatroom_preview_update_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
-                                   {'preview_chatroom': card_instance, 'preview_type': "chatroom"}, {})
-
-    if chatroom_preview_update_count:
+    if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': card_instance,
+                                                            'preview_type': "chatroom"}):
         preview_chatroom_id = card_instance.id
         update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
 
@@ -8332,7 +8347,14 @@ def fetch_chatroom_feed_version_1(request):
         last_seen = state_filter.filter(~Q(state=0)).order_by('-card_id')
 
         if not last_seen.exists():
-            chatroom_list = pagination(state_filter, page, paginate_by=5)
+
+            if active:
+                chatroom_list = state_filter.filter(Q(expiry_time=None)
+                                                    | Q(expiry_time__gt=current_time)).order_by('card_id')[:5]
+            else:
+                chatroom_list = state_filter.filter(~Q(expiry_time=None)
+                                                    & Q(expiry_time__lte=current_time)).order_by('card_id')[:5]
+
             chatrooms = get_chatrooms_version_1(chatroom_list, member_id, is_ios=is_ios)
         else:
 

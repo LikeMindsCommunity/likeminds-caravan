@@ -43,3 +43,20 @@ class CacheImpl(CacheManager):
         redis_connection = redis.Redis(host=settings.CACHE_CREDENTIALS['host'], port=settings.CACHE_CREDENTIALS['port'])
         redis_connection.ping()
 
+    @staticmethod
+    def delete_key(key) -> bool:
+
+        status = False
+        try:
+
+            if key in cache:
+                cache.delete(key)
+
+                status = True
+
+        except Exception as e:
+            error_logger.error(e.args)
+            status = False
+
+        return status
+
