@@ -960,6 +960,13 @@ def questions(request):
 
     member_id = get_member_id_from_headers(request)
 
+    user_instance = get_user_or_none(member_id)
+
+    if not user_instance:
+        context = get_error_context(False,"Invalid member id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     community_id = request.GET.get('community_id')
     if not community_id:
         context = get_error_context(False, "send community id in get params")
