@@ -8349,9 +8349,11 @@ def fetch_chatroom_feed_version_1(request):
         if not last_seen.exists():
 
             if active:
-                chatroom_list = state_filter.filter(Q(expiry_time=None) | Q(expiry_time__gt=current_time))[:5]
+                chatroom_list = state_filter.filter(Q(expiry_time=None)
+                                                    | Q(expiry_time__gt=current_time)).order_by('card_id')[:5]
             else:
-                chatroom_list = state_filter.filter(~Q(expiry_time=None) & Q(expiry_time__lte=current_time))[:5]
+                chatroom_list = state_filter.filter(~Q(expiry_time=None)
+                                                    & Q(expiry_time__lte=current_time)).order_by('card_id')[:5]
 
             chatrooms = get_chatrooms_version_1(chatroom_list, member_id, is_ios=is_ios)
         else:
