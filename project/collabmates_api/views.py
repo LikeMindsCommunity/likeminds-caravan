@@ -13992,8 +13992,10 @@ class SyncChatrooms(APIView):
 
         if chatroom_id:
             state_filter = collabcardState.objects.filter(card=chatroom_id, user=member_id)
+
             if state_filter.exists():
-                chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id)
+                chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id,
+                                                                          last_updated=last_updated)
             else:
                 chatroom = get_chatroom_data_in_case_of_guest(chatroom_id, member_id)
 
@@ -15413,7 +15415,7 @@ class SyncCommunities(APIView):
 
         paginate_by = query_params.get('page_size', 200)
 
-        last_updated = query_params.get('last_updated', None)
+        last_updated = query_params.get('last_updated', 0)
 
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
@@ -15426,7 +15428,7 @@ class SyncCommunities(APIView):
             return JsonResponse(communities)
 
         if chatroom_id:
-            chatroom_context = fetch_community_of_chatroom(chatroom_id, member_id)
+            chatroom_context = fetch_community_of_chatroom(chatroom_id, member_id, last_updated=last_updated)
 
             return JsonResponse(chatroom_context)
 
@@ -15472,17 +15474,39 @@ class SyncCommunities(APIView):
             return JsonResponse(communities)
 
 
-def fetch_community_of_chatroom(chatroom_id, member_id):
+def fetch_community_of_chatroom(chatroom_id, member_id, last_updated=0):
 
-    state_filter = Collabcard.objects.filter(id=chatroom_id).select_related('community')
+    community_instance = Collabcard.get_community_of_chatroom_or_none(chatroom_id)
 
-    if state_filter.exists():
-        temp = CommunitySerializerV1([state_filter[0].community], context={"current_user_id": member_id}, many=True)
+    if not community_instance:
+        return {'communities': []}
 
-        chatroom_context =  {'communities': temp.data}
+    engage_filter = ModelUtilities.get_model_filter(Member_Engage, {'community_id': community_instance,
+                                                                    'member_id': member_id})
+    if engage_filter.exists():
+        last_updated_filter = engage_filter.filter(updated_at__gt=last_updated)
 
+        if last_updated_filter:
+            temp = CommunitySerializerV1([last_updated_filter[0].community_id], context={"current_user_id": member_id},
+                                         many=True)
+            community_context = temp.data
+            chatroom_context = {'communities': community_context, 'last_updated':last_updated_filter[0].updated_at}
+
+            return chatroom_context
+
+        else:
+            return {'communities': []}
     else:
-        chatroom_context = get_error_context(False, "in-correct chatroom id")
+        state_filter = Collabcard.objects.filter(id=chatroom_id).select_related('community')
+
+        if state_filter.exists():
+            temp = CommunitySerializerV1([state_filter[0].community], context={"current_user_id": member_id},
+                                         many=True)
+
+            chatroom_context = {'communities': temp.data}
+
+        else:
+            chatroom_context = {'communities': []}
 
     return chatroom_context
 
