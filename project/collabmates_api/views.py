@@ -7245,6 +7245,13 @@ def create_conversation(request):
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
+    platform_code = RequestUtilities.get_request_type(request)
+
+    if platform_code == INVALID_PLATFORM:
+        platform_code = None
+
+    device_id = RequestUtilities.get_device_id_from_headers(request)
+
     res = json.loads(request.body)
 
     is_guest = False
@@ -7292,6 +7299,8 @@ def create_conversation(request):
     ans.created_at = time.time()
     ans.has_files = has_files
     ans.api_version = 0
+    ans.device_id = device_id
+    ans.platform = platform_code
     if replied_conversation:
         ans.reply = replied_conversation
 
