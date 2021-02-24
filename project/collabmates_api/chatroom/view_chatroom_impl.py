@@ -47,3 +47,24 @@ class CreateChatroomView(APIView):
         return JsonResponse({'success': True,
                              'chatroom': context['chatroom'],
                              'chatroom_local': chatroom_obj.data})
+
+
+class SetChatroomActiveView(APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(SetChatroomActiveView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.fetch_request_body(request)
+
+        chatroom_manager = ChatroomImpl(member_id)
+        context = chatroom_manager.set_chatroom_active(req_body)
+
+        return JsonResponse(context)

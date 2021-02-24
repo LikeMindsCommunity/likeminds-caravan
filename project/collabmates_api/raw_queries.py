@@ -784,7 +784,7 @@ def fetch_member_poll_votes(chatroom_id_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def fetch_chatroom_id_query(chatroom_id, user_id):
+def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -845,9 +845,10 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
         WHERE togther_collabcardState.user_id=%s
                 AND togther_collabcardState.card_id=%s
                 AND togther_collabcardState.remove_id is NULL 
+                AND togther_collabcardState.updated_at > %s
         
         """ % (
-            str(user_id), str(chatroom_id))
+            str(user_id), str(chatroom_id), str(last_updated))
 
         curr.execute(sql)
         data = curr.fetchall()

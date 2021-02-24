@@ -5,8 +5,9 @@ class ChatroomManager(metaclass=abc.ABCMeta):
 
     @classmethod
     def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'fetch_chatroom') and
-                callable(subclass.fetch_chatroom) or
+        return ((hasattr(subclass, 'fetch_chatroom') and callable(subclass.fetch_chatroom)) and
+                (hasattr(subclass, 'create_chatroom') and callable(subclass.create_chatroom)) and
+                (hasattr(subclass, 'set_chatroom_active') and callable(subclass.set_chatroom_active)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -20,5 +21,12 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def create_chatroom(self, req_body: dict) -> dict:
         """
         create chatroom
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def set_chatroom_active(self, req_body: dict) -> dict:
+        """
+        make chatroom active or in-active
         """
         raise NotImplementedError
