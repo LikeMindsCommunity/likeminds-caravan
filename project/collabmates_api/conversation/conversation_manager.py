@@ -19,7 +19,7 @@ class ConversationManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def create_conversation(self, req_body: dict, is_ios: bool,
-                            is_user_guest: bool, has_files: bool) -> {}:
+                            is_user_guest: bool, has_files: bool, **kwargs) -> {}:
         """
         create conversation
         """

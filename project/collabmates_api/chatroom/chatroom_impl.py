@@ -7,7 +7,8 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..serializers import (get_preview_for_url, get_chatroom_instance, CommunitySerializer,
-                           CollabcardSerializer, UserinfoSerializer)
+                           CollabcardSerializer, UserinfoSerializer, HOURS_24)
+from ..sync.model_update import update_models_for_syncing_apis
 from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_time_of_chatroom,
                      create_chatroom_state_instance, get_icons_states_of_chatroom_version_1,
                      save_the_latest_conversation, collabcard_follow_internal,
@@ -23,7 +24,8 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls)
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.states import chatroom_states, member_states, card_types, collabcard_states, SyncNotificationTypes
+from utility.states import chatroom_states, member_states, card_types, collabcard_states, SyncNotificationTypes, \
+    SyncTypes
 
 from utility.request_utilities import RequestUtilities
 from utility.utils import decode_meta_from_url, check_notification_flag
@@ -540,6 +542,40 @@ class ChatroomImpl(ChatroomManager):
 
         return context
 
+    def set_chatroom_active(self, req_body: dict) -> dict:
+        """api to make chatroom active or in-active"""
+
+        chatroom_id = req_body['chatroom_id']
+        duration = req_body.get('duration', HOURS_24)
+        status = req_body['value']
+
+        current_time = TimeUtilities.current_time_in_sec()
+
+        updated_time = (current_time + int(duration)) if status else (current_time - HOURS_24)
+
+        state_filter = collabcardState.objects.filter(card=chatroom_id, user=self.get_member_id())
+
+        if state_filter.exists():
+            update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                           {'card': chatroom_id, 'user': self.get_member_id()},
+                                           {'expiry_time': updated_time, 'manual_set_active': updated_time})
+        else:
+            error = f"Chatroom state does not exist for this user {self.get_member_id()} in chatroom {chatroom_id}"
+            info_logger.info(f"set_chatroom_active - {error}")
+
+            response = {
+                "success": False,
+                'error_message': error
+            }
+
+            return response
+
+        send_sync_notification.delay({'chatroom_id': chatroom_id,
+                                      'member_id': self.get_member_id(),
+                                      'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
+
+        return {"success": True}
+
 
 class ChatroomHelper:
 
@@ -590,7 +626,7 @@ class ChatroomHelper:
         return User.get_user_or_raise_exception(user_id)
 
     @staticmethod
-    def fetch_user_info_instance(user_instance: object):
+    def fetch_user_info_instance(user_instance: User):
         return user_instance.userinfo
 
     @staticmethod
@@ -598,8 +634,8 @@ class ChatroomHelper:
         return Community.get_community_or_raise_exception(community_id=community_id)
 
     @staticmethod
-    def fetch_serialized_chatroom(member_id: Union[str, int], chatroom_instance: object,
-                                  community_instance: object, user_info_instance: object):
+    def fetch_serialized_chatroom(member_id: Union[str, int], chatroom_instance: Collabcard,
+                                  community_instance: Community, user_info_instance: object):
         chatroom = CollabcardSerializer(chatroom_instance,
                                         member_id,
                                         community_instance,
@@ -614,17 +650,17 @@ class ChatroomHelper:
         return UserinfoSerializer(user_info_instance)
 
     @staticmethod
-    def check_user_auto_approve_right(user: object, community: object) -> bool:
+    def check_user_auto_approve_right(user: User, community: Community) -> bool:
         return userMemberRights.check_member_auto_approve_right(user=user,
                                                                 community=community)
 
     @staticmethod
-    def fetch_member_state_in_community(community: object, user: object) -> int:
+    def fetch_member_state_in_community(community: Community, user: User) -> int:
         return Members.get_community_member_state(community,
                                                   user)
 
     @staticmethod
-    def is_user_community_member_or_raise_exception(community: object, user: object) -> bool:
+    def is_user_community_member_or_raise_exception(community: Community, user: User) -> bool:
         is_member = Members.is_community_member(community=community,
                                                 member=user)
         if not is_member:
@@ -635,5 +671,5 @@ class ChatroomHelper:
         return is_member
 
     @staticmethod
-    def update_time_for_community_members_on_card_creation(community: object) -> None:
+    def update_time_for_community_members_on_card_creation(community: Community) -> None:
         Collabcard.update_time_for_community_members(community)

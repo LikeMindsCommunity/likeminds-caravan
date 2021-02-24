@@ -29,8 +29,8 @@ from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes
 from utility.utils import decode_meta_from_url
 from utility.firebase import update_last_answer_id
-from utility.celery_tasks import update_my_chatrooms_for_users, update_multiple_previews_in_chatroom, \
-    update_preview_of_chatroom_in_cache
+from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
+                                  update_preview_of_chatroom_in_cache)
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 
@@ -305,8 +305,8 @@ class ConversationImpl(ConversationManager):
 
         return conversations
 
-    def create_conversation(self, req_body: dict, is_ios: bool,
-                            is_user_guest: bool, has_files: bool) -> {}:
+    def create_conversation(self, req_body: dict, is_ios: bool = False,
+                            is_user_guest: bool = False, has_files: bool = False, **kwargs) -> {}:
 
         chatroom_id = req_body.get('chatroom_id', None)
 
@@ -317,9 +317,15 @@ class ConversationImpl(ConversationManager):
             }
             raise InvalidChatroomException(response)
 
-        user_instance = ConversationHelper.fetch_user_instance(user_id=self.get_member_id())
+        if 'user_instance' in kwargs:
+            user_instance = kwargs['user_instance']
+        else:
+            user_instance = ConversationHelper.fetch_user_instance(user_id=self.get_member_id())
 
-        chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
+        if 'chatroom_instance' in kwargs:
+            chatroom_instance = kwargs['chatroom_instance']
+        else:
+            chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
 
         community_id = chatroom_instance.community.id
 
@@ -327,9 +333,8 @@ class ConversationImpl(ConversationManager):
 
         member_state = ConversationHelper.fetch_member_state(community=community_instance, user=user_instance)
 
-        if chatroom_instance.type == card_types.CARD_PURPOSE and\
+        if chatroom_instance.type == card_types.CARD_PURPOSE and \
                 member_state != member_states.ADMIN:
-
             return {'success': False, 'error_message': ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM}
 
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
