@@ -5591,7 +5591,9 @@ def fetch_chatroom_version_2(request):
 
 
 def conversation_meta(request):
-    '''api to perfrom firebase operations on conversation for real time messaging'''
+    """api to perform firebase operations on conversation for real time messaging"""
+
+    device_id = RequestUtilities.get_device_id_from_headers(request)
 
     conversation_id = request.GET.get('conversation_id')
     chatroom_id = request.GET.get('chatroom_id')
@@ -5614,12 +5616,14 @@ def conversation_meta(request):
 
     answer_id = NumberUtilities.get_integer_from_string(conversation_id)
     conversation_instances = card_answers.objects\
-        .filter(card=card_instance, id__gte=answer_id)\
-        .filter(~Q(user__id=user_id))
+        .filter(card=card_instance, id__gte=answer_id)
 
     conversation_list = []
 
     for conversation in conversation_instances:
+
+        if conversation.device_id == device_id:
+            continue
         
         if not is_draft_conversation(conversation, user_id):
             conversation_serializer = conversationSerializer(conversation,

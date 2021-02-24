@@ -39,11 +39,13 @@ class CreateConversation(APIView):
 
         req_body = RequestUtilities.fetch_request_body(request)
         is_ios = RequestUtilities.is_request_ios(request)
+        platform = RequestUtilities.get_request_type(request)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
 
         is_user_guest = ConversationViewsHelper.is_user_guest(req_body)
         has_files = ConversationViewsHelper.has_files(req_body, is_ios)
 
-        conversation_manager = ConversationImpl(member_id)
+        conversation_manager = ConversationImpl(member_id, platform_code=platform, device_id=device_id)
         conversation_response = conversation_manager.create_conversation(req_body, is_ios,
                                                                          is_user_guest, has_files)
 

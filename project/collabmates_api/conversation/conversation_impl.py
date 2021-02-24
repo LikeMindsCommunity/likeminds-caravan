@@ -45,10 +45,12 @@ class ConversationImpl(ConversationManager):
     conversation_id = None
     page = None
     paginate_by = None
+    device_id = None
+    platform_code = None
 
     def __init__(self, member_id: str, chatroom_id: str = None, scroll_direction: str = None,
-                 conversation_id: str = None, page: str = None,
-                 paginate_by: str = None):
+                 conversation_id: str = None, page: str = None, paginate_by: str = None,
+                 device_id: str = None, platform_code: str = None):
 
         self.member_id = member_id
         self.chatroom_id = chatroom_id
@@ -56,6 +58,8 @@ class ConversationImpl(ConversationManager):
         self.conversation_id = conversation_id
         self.page = page
         self.paginate_by = paginate_by
+        self.device_id = device_id
+        self.platform_code = platform_code
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -194,6 +198,8 @@ class ConversationImpl(ConversationManager):
             req_body['has_files'] = True
 
         conversation_content['api_version'] = 1
+        conversation_content['device_id'] = self.device_id
+        conversation_content['platform'] = self.platform_code
 
         conversation_content['is_guest'] = self._is_user_already_guest(user=user_instance,
                                                                        chatroom=chatroom_instance)
