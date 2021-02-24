@@ -5904,9 +5904,8 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
                 if action['id'] == chatroom_actions.ACTION_RENAME or action['id'] == chatroom_actions.ACTION_DELETE:
                     continue
 
-            if master_intro_card:
-                if action['id'] == chatroom_actions.ACTION_INVITE:
-                    continue
+            if action['id'] == chatroom_actions.ACTION_INVITE:
+                continue
 
         elif intro_card and creator:
             if action['id'] == chatroom_actions.ACTION_FOLLOW or \
