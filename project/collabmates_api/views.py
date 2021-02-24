@@ -4085,9 +4085,9 @@ def fetch_share_url(request):
             context = get_error_context(False, e.args)
             return JsonResponse(context)
 
-        if card_instance.type == card_types.CARD_MASTER_INTRO:
+        if card_instance.type == card_types.CARD_MASTER_INTRO or card_instance.type == card_types.CARD_PURPOSE:
 
-            return JsonResponse({'success': False},status = status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_share = {}
         share = get_share_url_text(card_instance, member_id)
