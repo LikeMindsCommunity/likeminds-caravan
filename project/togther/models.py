@@ -484,8 +484,8 @@ class card_answers(models.Model):
     attachments_uploaded = models.BooleanField(default=False, null=True)
 
     api_version = models.IntegerField(default=0)
-    device_id = models.TextField()
-    platform = models.TextField()
+    device_id = models.TextField(null=True)
+    platform = models.TextField(null=True)
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
