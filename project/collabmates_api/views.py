@@ -10577,8 +10577,7 @@ def config(request):
     version_code = get_version_code_from_headers(request)
     Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
 
-    # sendign mobile number exists key
-
+    # sending mobile number exists key
     mobile_no_exists = userMobiles.objects.filter(user=member_id).exists()
 
     context['success'] = True
@@ -10587,17 +10586,16 @@ def config(request):
     access = is_user_community_part(member_id)
     context['access'] = access
 
-    ##mixpanel changes
+    # mixpanel changes
     try:
         user_detail = get_mixpanel_statistics(member_id)
         context['user_detail'] = user_detail
     except Exception as e:
         error_logger.error(e)
 
-
     context['updatePriority'] = 0
 
-    #set installed flags in case of mobile devices
+    # set installed flags in case of mobile devices
     if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
         set_installed_flag(member_id)
 
@@ -10645,7 +10643,14 @@ def get_mixpanel_statistics(member_id):
                                                                                                     time.localtime(
                                                                                                         user_profile.created_at))
 
-    member_filter = Members.objects.filter(member_id=member_id, state=member_states.MEMBER)
+    member_states_list = [
+        member_states.ADMIN,
+        member_states.PENDING_MEMBER,
+        member_states.MEMBER,
+        member_states.PROFILE_UNAVAILABLE
+    ]
+
+    member_filter = Members.objects.filter(member_id=member_id, state__in=member_states_list)
 
     user_metrics['count_communities_joined'] = member_filter.count()
 
