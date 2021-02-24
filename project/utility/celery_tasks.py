@@ -416,7 +416,8 @@ def update_member_images_for_account(member_filter, image_url):
         community_instance = data.community_id
 
         intro_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
-                                                                    'type': card_types.INTRO})
+                                                                    'type': card_types.CARD_INTRO})
+
         if intro_filter.exists():
             card_instance = intro_filter[0]
             ModelUtilities.model_update(Card_Attachment,
