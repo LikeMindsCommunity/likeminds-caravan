@@ -30,7 +30,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage, update_my_chatrooms_for_users,
                                   set_chatroom_state_for_all_members_on_card_creation,
                                   get_chatroom_user_images_for_web, update_preview_of_chatroom_in_cache,
-                                  update_multiple_previews_in_chatroom
+                                  update_multiple_previews_in_chatroom, update_preview_for_account_image_change
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -1802,10 +1802,15 @@ def edit_user(request):
 
     userinfo_filter = Userinfo.objects.filter(user_id=user_id)
     if type == 'image':
-        userinfo_filter.update(image_link=value)
-        update_models_for_syncing_apis(SyncTypes.MEMBERS,
-                                       {'member_id': user_id, 'image_url': None},
-                                       {'image_url': value})
+
+        userinfo_instance = userinfo_filter[0]
+        previous_image_url = userinfo_instance.image_link
+        userinfo_instance.image_link = value
+        userinfo_instance.save()
+
+        update_preview_for_account_image_change.delay({'user_id': user_id,
+                                                 'image_url': value,
+                                                 'previous_image_url':previous_image_url})
 
     elif type == 'name':
         userinfo_filter.update(name=value)

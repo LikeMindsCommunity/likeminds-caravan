@@ -11,6 +11,8 @@ import time
 from django.db.models import Q
 import json
 
+from utility.states import card_types
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -407,3 +409,40 @@ def update_multiple_previews_in_chatroom(preview_info):
             conversation.last_updated = TimeUtilities.current_time_in_milliseconds()
             conversation.save()
 
+
+def update_member_images_for_account(member_filter, image_url):
+
+    for data in member_filter:
+        community_instance = data.community_id
+
+        intro_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
+                                                                    'type': card_types.INTRO})
+        if intro_filter.exists():
+            card_instance = intro_filter[0]
+            ModelUtilities.model_update(Card_Attachment,
+                                        {'collabcard_id': card_instance.id},
+                                        {'file_url': image_url})
+            update_multiple_previews_in_chatroom({'chatroom_id': card_instance.id})
+        data.image_url = image_url
+        data.updated_at = TimeUtilities.current_time_in_sec()
+        data.save()
+
+
+@shared_task()
+def update_preview_for_account_image_change(preview_info):
+
+    user_id = preview_info.get('user_id')
+    image_url = preview_info.get('image_url')
+    previous_image_url = preview_info.get('previous_image_url')
+
+    if not user_id or not image_url:
+        return
+
+    member_filter = ModelUtilities.get_model_filter(Members, {'member_id_id': user_id,
+                                                              'image_url': None})
+
+    update_member_images_for_account(member_filter, image_url)
+
+    member_filter = ModelUtilities.get_model_filter(Members, {'member_id_id': user_id,
+                                                              'image_url': previous_image_url})
+    update_member_images_for_account(member_filter, image_url)
