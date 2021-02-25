@@ -15305,8 +15305,13 @@ def sync_members(request):
     if members_type == "guest":
 
         if chatroom_id:
-            guest_filter = collabcardState.objects.filter(is_guest=True, card=chatroom_id, remove=None).order_by('id')
 
+            if not last_updated:
+                guest_filter = collabcardState.objects.filter(is_guest=True, card=chatroom_id, remove=None).order_by('id')
+            else:
+                guest_filter = collabcardState.objects.filter(is_guest=True, card=chatroom_id,
+                               remove=None,
+                               updated_at__gt=last_updated).order_by('id')
         elif community_id:
             guest_filter = collabcardState.objects.filter(is_guest=True, community=community_id).distinct(
                 'user').order_by('user')
