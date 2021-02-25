@@ -5599,6 +5599,7 @@ def conversation_meta(request):
     """api to perform firebase operations on conversation for real time messaging"""
 
     device_id = RequestUtilities.get_device_id_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
 
     conversation_id = request.GET.get('conversation_id')
     chatroom_id = request.GET.get('chatroom_id')
@@ -5627,7 +5628,8 @@ def conversation_meta(request):
 
     for conversation in conversation_instances:
 
-        if conversation.device_id == device_id:
+        if conversation.device_id == device_id and\
+                conversation.platform == platform_code:
             continue
         
         if not is_draft_conversation(conversation, user_id):
@@ -7250,10 +7252,7 @@ def create_conversation(request):
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
-    platform_code = RequestUtilities.get_request_type(request)
-
-    if platform_code == INVALID_PLATFORM:
-        platform_code = None
+    platform_code = RequestUtilities.get_platform_code(request)
 
     device_id = RequestUtilities.get_device_id_from_headers(request)
 

@@ -41,11 +41,8 @@ class CreateConversation(APIView):
 
         req_body = RequestUtilities.fetch_request_body(request)
         is_ios = RequestUtilities.is_request_ios(request)
-        platform_code = RequestUtilities.get_request_type(request)
+        platform_code = RequestUtilities.get_platform_code(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
-
-        if platform_code == INVALID_PLATFORM:
-            platform_code = None
 
         is_user_guest = ConversationViewsHelper.is_user_guest(req_body)
         has_files = ConversationViewsHelper.has_files(req_body, is_ios)
