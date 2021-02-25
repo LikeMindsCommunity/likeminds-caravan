@@ -32,7 +32,7 @@ class RequestUtilities:
         return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "ios"
 
     @staticmethod
-    def get_request_type(request: str) -> str:
+    def get_request_type(request: object) -> str:
         platform_code = request.META.get('HTTP_X_PLATFORM_CODE', '').lower()
 
         if platform_code:
@@ -52,6 +52,13 @@ class RequestUtilities:
                 return "web-desktop"
 
         return INVALID_PLATFORM
+
+    @staticmethod
+    def get_platform_code(request: object):
+        platform_code = request.META.get('HTTP_X_PLATFORM_CODE', None)
+
+        if platform_code is not None:
+            return platform_code.lower()
 
     @staticmethod
     def get_user_name_from_headers(request: object) -> str:

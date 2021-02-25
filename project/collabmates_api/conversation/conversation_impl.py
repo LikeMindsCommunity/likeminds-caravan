@@ -155,7 +155,7 @@ class ConversationImpl(ConversationManager):
 
         return conversation_serializer
 
-    def _create_conversation_list(self, conversations):
+    def _create_conversation_list(self, conversations, last_conversation_id=None):
 
         conversation_list = []
 
@@ -169,9 +169,14 @@ class ConversationImpl(ConversationManager):
                 continue
 
             conversation_dict = self._serialize_conversation(conversation)
+
+            if last_conversation_id and last_conversation_id == conversation_dict['id']:
+                conversation_dict['last_seen'] = True
+
             conversation_list.append(conversation_dict)
 
         return conversation_list
+
 
     def _is_user_already_guest(self, chatroom, user):
         return collabcardState.objects.filter(card=chatroom,
@@ -286,7 +291,8 @@ class ConversationImpl(ConversationManager):
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
                 conversations = conversations.order_by('id')
-                conversations = self._create_conversation_list(conversations)
+                
+                conversations = self._create_conversation_list(conversations, last_conversation_id=last_seen.id)
 
         else:
 
