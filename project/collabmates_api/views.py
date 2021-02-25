@@ -30,7 +30,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage, update_my_chatrooms_for_users,
                                   set_chatroom_state_for_all_members_on_card_creation,
                                   get_chatroom_user_images_for_web, update_preview_of_chatroom_in_cache,
-                                  update_multiple_previews_in_chatroom
+                                  update_multiple_previews_in_chatroom, update_preview_for_account_image_change
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -1802,10 +1802,15 @@ def edit_user(request):
 
     userinfo_filter = Userinfo.objects.filter(user_id=user_id)
     if type == 'image':
-        userinfo_filter.update(image_link=value)
-        update_models_for_syncing_apis(SyncTypes.MEMBERS,
-                                       {'member_id': user_id, 'image_url': None},
-                                       {'image_url': value})
+
+        userinfo_instance = userinfo_filter[0]
+        previous_image_url = userinfo_instance.image_link
+        userinfo_instance.image_link = value
+        userinfo_instance.save()
+
+        update_preview_for_account_image_change.delay({'user_id': user_id,
+                                                 'image_url': value,
+                                                 'previous_image_url':previous_image_url})
 
     elif type == 'name':
         userinfo_filter.update(name=value)
@@ -4085,9 +4090,9 @@ def fetch_share_url(request):
             context = get_error_context(False, e.args)
             return JsonResponse(context)
 
-        if card_instance.type == card_types.CARD_MASTER_INTRO:
+        if card_instance.type == card_types.CARD_MASTER_INTRO or card_instance.type == card_types.CARD_PURPOSE:
 
-            return JsonResponse({'success': False},status = status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_share = {}
         share = get_share_url_text(card_instance, member_id)
@@ -5591,7 +5596,9 @@ def fetch_chatroom_version_2(request):
 
 
 def conversation_meta(request):
-    '''api to perfrom firebase operations on conversation for real time messaging'''
+    """api to perform firebase operations on conversation for real time messaging"""
+
+    device_id = RequestUtilities.get_device_id_from_headers(request)
 
     conversation_id = request.GET.get('conversation_id')
     chatroom_id = request.GET.get('chatroom_id')
@@ -5614,12 +5621,14 @@ def conversation_meta(request):
 
     answer_id = NumberUtilities.get_integer_from_string(conversation_id)
     conversation_instances = card_answers.objects\
-        .filter(card=card_instance, id__gte=answer_id)\
-        .filter(~Q(user__id=user_id))
+        .filter(card=card_instance, id__gte=answer_id)
 
     conversation_list = []
 
     for conversation in conversation_instances:
+
+        if conversation.device_id == device_id:
+            continue
         
         if not is_draft_conversation(conversation, user_id):
             conversation_serializer = conversationSerializer(conversation,
@@ -5904,9 +5913,8 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
                 if action['id'] == chatroom_actions.ACTION_RENAME or action['id'] == chatroom_actions.ACTION_DELETE:
                     continue
 
-            if master_intro_card:
-                if action['id'] == chatroom_actions.ACTION_INVITE:
-                    continue
+            if action['id'] == chatroom_actions.ACTION_INVITE:
+                continue
 
         elif intro_card and creator:
             if action['id'] == chatroom_actions.ACTION_FOLLOW or \
@@ -7242,6 +7250,13 @@ def create_conversation(request):
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
+    platform_code = RequestUtilities.get_request_type(request)
+
+    if platform_code == INVALID_PLATFORM:
+        platform_code = None
+
+    device_id = RequestUtilities.get_device_id_from_headers(request)
+
     res = json.loads(request.body)
 
     is_guest = False
@@ -7289,6 +7304,8 @@ def create_conversation(request):
     ans.created_at = time.time()
     ans.has_files = has_files
     ans.api_version = 0
+    ans.device_id = device_id
+    ans.platform = platform_code
     if replied_conversation:
         ans.reply = replied_conversation
 
