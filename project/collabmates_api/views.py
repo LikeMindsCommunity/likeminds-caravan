@@ -7685,6 +7685,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                'is_tagged': is_tagged,
                                                'external_seen': True,
                                                'mute_status': mute_status,
+                                               'state': state
                                            })
 
 
