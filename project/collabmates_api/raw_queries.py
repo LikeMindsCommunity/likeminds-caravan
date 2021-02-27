@@ -1563,7 +1563,9 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
                          deleted_by_user_id,
                          internal_link,
                          reply_id,
-                         last_updated
+                         last_updated,
+                         preview_chatroom_id,
+                         preview_type
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
