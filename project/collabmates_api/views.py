@@ -14633,10 +14633,7 @@ class SyncConversation(APIView):
                 conversations_data = CardAnswersDBSyncSerializer(conversation_filter, context=context, many=True)
                 conversations = conversations_data.data
 
-                for conversation in conversation_filter:
-
-                    if max_last_updated < conversation.last_updated:
-                        max_last_updated = conversation.last_updated
+                max_last_updated = get_attachments_filtered_conversations(conversation_filter, conversations, member_id)
 
                 context = {
                     'conversations': conversations,
@@ -14666,7 +14663,6 @@ class SyncConversation(APIView):
                                                                                                         paginate_by,
                                                                                                         last_updated,
                                                                                                         community_id)
-
             conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
             conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                    conversation_files_dict,
@@ -14711,6 +14707,13 @@ class SyncConversation(APIView):
             conversation_context['chatroom_id'] = conversation[8]
             conversation_context['member_id'] = conversation[9]
             conversation_context['community_id'] = conversation[10]
+
+            if self.is_attachments_uploaded(conversation_context['attachment_count'],
+                                            conversation_context['attachments_uploaded'],
+                                            member_id,
+                                            conversation[18],
+                                            conversation_context['member_id']):
+                continue
 
             if conversation[11]:
                 conversation_context['og_tags'] = json.loads(conversation[11])
@@ -14970,6 +14973,15 @@ class SyncConversation(APIView):
             chatroom_list = get_id_list_of_chatrooms(condition_dict)
 
         return chatroom_list
+
+    def is_attachments_uploaded(self, attachment_count, attachment_uploaded, member_id, api_version, conversation_creator_id):
+
+        if (attachment_count > 0 and attachment_uploaded is False) \
+                                and ((NumberUtilities.get_integer_from_string(member_id)!= conversation_creator_id)
+                                or api_version <= 0):
+            return True
+
+        return False
 
 
 class SyncConversationDiff(APIView):
