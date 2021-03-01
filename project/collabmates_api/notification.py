@@ -916,7 +916,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['chatroom_name'] = chatroom_name
         temp['chatroom_title'] = conversation.card.title
         temp['chatroom_user_name'] = conversation.user.userinfo.name
-        temp['chatroom_user_image'] = conversation.user.userinfo.image_link
+        temp['chatroom_user_image'] = ""
         temp['chatroom_id'] = conversation.card.id
 
         temp['notification_id'] = str(conversation.card.id) + "_followed"
