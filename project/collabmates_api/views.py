@@ -2698,52 +2698,55 @@ def get_conversation_users(instance):
 def set_community_actions(community_instance):
     '''function to set community action for community profiling'''
 
-    action_status = communityLevels.objects.filter(community=community_instance)
-
-    if not action_status:
+    if not ModelUtilities.is_model_filter_exists(communityLevels, {'community': community_instance}):
         # first level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 1"
-        instance.title = "Create onboarding room"
-        instance.sub_title = "Break the ice for new members. Tell what this community stands for."
-        instance.state = community_level_states.COMPLETE
-        instance.image = IMAGE_LEVEL_1
-        instance.save()
+        communityLevels.create_instance({
+            'community': community_instance,
+            'level': 'Level 1',
+            'title': 'Create onboarding room',
+            'sub_title': 'Break the ice for new members. Tell what this community stands for.',
+            'level_state': community_level_states.COMPLETE,
+            'image': IMAGE_LEVEL_1,
+            'joined_members':None,
+            'max_members':None
+        })
 
         # second level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 2"
-        instance.title = "Invite your inner circle"
-        instance.sub_title = "Bring 5 trusted people you want to build this community with."
-        instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA else 5
-        instance.state = community_level_states.PENDING
-        instance.image = IMAGE_LEVEL_2
-        instance.save()
+        communityLevels.create_instance({
+            'community': community_instance,
+            'level': 'Level 2',
+            'title': 'Invite your inner circle',
+            'sub_title': 'Bring 5 trusted people you want to build this community with.',
+            'level_state': community_level_states.PENDING,
+            'image': IMAGE_LEVEL_2,
+            'joined_members': 0,
+            'max_members': 1 if settings.IS_BETA else 5
+        })
 
         # third level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 3"
-        instance.title = "Community Directory"
-        instance.state = community_level_states.LOCKED
-        instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA else 10
-        instance.image = IMAGE_LEVEL_3
-        instance.save()
+        communityLevels.create_instance({
+            'community': community_instance,
+            'level': 'Level 3',
+            'title': 'Community Directory',
+            'sub_title': 'Help members know each other. Ask members to complete their profile for the directory or add new members.',
+            'level_state': community_level_states.LOCKED,
+            'image': IMAGE_LEVEL_3,
+            'joined_members': 0,
+            'max_members': 1 if settings.IS_BETA else 10
+        })
 
         # fourth level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 4"
-        instance.title = "Growth"
-        instance.state = community_level_states.LOCKED
-        instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA else 10
-        instance.image = IMAGE_LEVEL_4
-        instance.save()
+        communityLevels.create_instance({
+            'community': community_instance,
+            'level': 'Level 4',
+            'title': 'Growth',
+            'sub_title': None,
+            'level_state': community_level_states.LOCKED,
+            'image': IMAGE_LEVEL_4,
+            'joined_members': 0,
+            'max_members': 1 if settings.IS_BETA else 10
+        })
+
 
 @csrf_exempt
 def create_community_version_1(request):

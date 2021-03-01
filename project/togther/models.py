@@ -524,6 +524,9 @@ class collabcardState(models.Model):
     class Meta:
         unique_together = (('card', 'user'),)
 
+    def __str__(self):
+        return str(self.user.id) + "__" + str(self.card.id)
+
 
 class conversationMemberState(models.Model):
     '''function to save member state of conversation'''
@@ -1145,6 +1148,20 @@ class communityLevels(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
 
     level_click_state = models.IntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+
+        instance = communityLevels()
+        instance.community = create_info['community']
+        instance.level = create_info['level']
+        instance.title = create_info['title']
+        instance.sub_title = create_info['sub_title']
+        instance.state = create_info['level_state']
+        instance.image = create_info['image']
+        instance.joined_members = create_info['joined_members']
+        instance.max_members = create_info['max_members']
+        instance.save()
 
 
 class communityUpdate(models.Model):
