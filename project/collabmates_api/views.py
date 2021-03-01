@@ -2866,7 +2866,7 @@ def create_community_version_1(request):
         create_introduction_question_in_community(community_instance)
         post_purpose_collabcard_for_community(request, community_instance, member_id)
         post_master_introductions_for_community(community_id, member_id)
-        post_member_directly_link(user_instance, community_instance)
+        post_member_directory_link(user_instance, community_instance)
         # send mails to ask cm to upgrade level
         send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=1, day=0, counter=0)
 
@@ -2997,7 +2997,7 @@ def create_introduction_question_in_community(community_instance):
     questions_instance.save()
 
 
-def post_member_directly_link(user_instance, community_instance):
+def post_member_directory_link(user_instance, community_instance):
 
     card_filter = Collabcard.objects.filter(user=user_instance, community=community_instance,
                                             type=card_types.CARD_MASTER_INTRO)
@@ -14730,7 +14730,6 @@ class SyncConversation(APIView):
                 conversation_files_response = self.process_conversation_files(conversation_files)
                 conversation_context['images'] = conversation_files_response['images']
                 conversation_context['pdf'] = conversation_files_response['pdf']
-                conversation_context['videos'] = conversation_files_response['videos']
                 conversation_context['audios'] = conversation_files_response['audios']
                 conversation_context['attachments'] = conversation_files_response['attachments']
 
@@ -14781,14 +14780,11 @@ class SyncConversation(APIView):
         conversation_files_response = {
             'images': [],
             'pdf': [],
-            'videos': [],
             'audios': [],
             'attachments': [],
             'location': {}
         }
-        image_list = []
-        video_list = []
-
+        attachment_list = []
 
         for file in conversation_files:
 
@@ -14805,22 +14801,21 @@ class SyncConversation(APIView):
                     attachment_image_context['width'] = file['width']
 
                 conversation_files_response['images'].append(img_attachment)
-                image_list.append(attachment_image_context)
+                attachment_list.append(attachment_image_context)
 
             elif file['type'] == 'video' and  file['file_url']:
-                video_attachment = {'video_url': file['file_url'], 'index': file['index'], 'type': file['type']}
                 attachment_video_context = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
 
                 if file['height']:
-                    video_attachment['height'] = file['height']
                     attachment_video_context['height'] = file['height']
 
                 if file['width']:
-                    video_attachment['width'] = file['width']
                     attachment_video_context['width'] = file['width']
 
-                conversation_files_response['videos'].append(video_attachment)
-                video_list.append(attachment_video_context)
+                if file['thumbnail_url']:
+                    attachment_video_context['thumbnail_url'] = file['thumbnail_url']
+
+                attachment_list.append(attachment_video_context)
 
             elif file['type'] == "audio" and file['file_url']:
                 audio_attachment = {'audio_url': file['file_url'], 'index': file['index'], 'type': file['type']}
@@ -14853,23 +14848,9 @@ class SyncConversation(APIView):
 
                 conversation_files_response['location'] = location
 
-
-        attachment_list = image_list + video_list
-        conversation_files_response['attachments'] = self.compute_attachment_list(attachment_list)
-
+        conversation_files_response['attachments'] = attachment_list
         return conversation_files_response
 
-    def compute_attachment_list(self, attachment_list):
-
-        for data in attachment_list:
-
-            if data.get('video_url'):
-                data['url'] = data.pop('video_url')
-
-            if data.get('image_url'):
-                data['url'] = data.pop('image_url')
-
-        return attachment_list
 
     def get_user_related_chatroom_list(self, chatroom_status, chatroom_expire_status, member_id):
         """

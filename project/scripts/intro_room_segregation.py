@@ -6,7 +6,7 @@ from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from collabmates_api.upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
 from collabmates_api.utility import pagination
 from collabmates_api.views import post_master_introductions_for_community, \
-    create_conversation_context_for_intro_chatrooms, post_member_directly_link
+    create_conversation_context_for_intro_chatrooms, post_member_directory_link
 
 from togther.models import Members, Collabcard, collabcardState, Community, ModelUtilities, card_answers
 
@@ -62,7 +62,7 @@ def post_master_intro_cards_in_community(community_list):
 
         user_instance = User.objects.get(id=member_id)
         community_instance = Community.objects.get(id=community_id)
-        post_member_directly_link(user_instance, community_instance)
+        post_member_directory_link(user_instance, community_instance)
         master_community_list.append(community_id)
         print("\n")
         time.sleep(5)
