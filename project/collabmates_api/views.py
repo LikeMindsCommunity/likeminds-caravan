@@ -1505,7 +1505,6 @@ def post_master_introductions_for_community(community_id, member_id):
 
     """function to post the master introduction card"""
     res = {
-
         'member_id': member_id,
         'community_id': community_id,
         'title': MASTER_INTRO_TITLE_TEXT,
