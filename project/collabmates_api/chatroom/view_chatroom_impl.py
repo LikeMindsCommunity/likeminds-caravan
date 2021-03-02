@@ -65,6 +65,6 @@ class SetChatroomActiveView(APIView):
         req_body = RequestUtilities.fetch_request_body(request)
 
         chatroom_manager = ChatroomImpl(member_id)
-        context = chatroom_manager.set_chatroom_active(req_body)
+        context = chatroom_manager.set_chatroom_active_or_inactive(req_body)
 
         return JsonResponse(context)

@@ -70,7 +70,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
     }
 
     chatroom_manager = ChatroomImpl(member_id=owner_user_instance.id)
-    chatroom_response = chatroom_manager.set_chatroom_active(chatroom_req_body)
+    chatroom_response = chatroom_manager.set_chatroom_active_or_inactive(chatroom_req_body)
 
     info_logger.info(
         f"post_owner_message_template_in_intro_room inactivate chatroom for owner - user_id = {user_id}, community_id = {community_id}, chatroom_id = {chatroom.id}, response = {chatroom_response}")

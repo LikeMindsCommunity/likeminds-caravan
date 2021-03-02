@@ -542,7 +542,7 @@ class ChatroomImpl(ChatroomManager):
 
         return context
 
-    def set_chatroom_active(self, req_body: dict) -> dict:
+    def set_chatroom_active_or_inactive(self, req_body: dict) -> dict:
         """api to make chatroom active or in-active"""
 
         chatroom_id = req_body['chatroom_id']
@@ -561,7 +561,7 @@ class ChatroomImpl(ChatroomManager):
                                            {'expiry_time': updated_time, 'manual_set_active': updated_time})
         else:
             error = f"Chatroom state does not exist for this user {self.get_member_id()} in chatroom {chatroom_id}"
-            info_logger.info(f"set_chatroom_active - {error}")
+            error_logger.error(f"set_chatroom_active_or_inactive - {error}")
 
             response = {
                 "success": False,

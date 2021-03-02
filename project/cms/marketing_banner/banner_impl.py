@@ -126,13 +126,13 @@ class BannerImpl(BannerManager):
         return MarketingBanner.objects.filter(start_epoch_time__gte=start_time,
                                               end_epoch_time__lte=end_time).order_by('-id')
 
-    def _replace_overlapped_banners(self, banner_list, over_lap_id_list):
+    def _replace_overlapped_banners(self, banner_list, over_lap_id):
 
         final_banner_list = []
 
         for banner in banner_list:
 
-            if banner['id'] == over_lap_id_list:
+            if banner['id'] == over_lap_id:
                 final_banner_list.append(banner)
 
                 return final_banner_list

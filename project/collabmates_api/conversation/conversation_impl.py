@@ -318,7 +318,8 @@ class ConversationImpl(ConversationManager):
         return conversations
 
     def create_conversation(self, req_body: dict, is_ios: bool = False,
-                            is_user_guest: bool = False, has_files: bool = False, **kwargs) -> {}:
+                            is_user_guest: bool = False, has_files: bool = False,
+                            user_instance: User = None, chatroom_instance: Collabcard = None) -> {}:
 
         chatroom_id = req_body.get('chatroom_id', None)
 
@@ -329,14 +330,10 @@ class ConversationImpl(ConversationManager):
             }
             raise InvalidChatroomException(response)
 
-        if 'user_instance' in kwargs:
-            user_instance = kwargs['user_instance']
-        else:
+        if user_instance is None:
             user_instance = ConversationHelper.fetch_user_instance(user_id=self.get_member_id())
 
-        if 'chatroom_instance' in kwargs:
-            chatroom_instance = kwargs['chatroom_instance']
-        else:
+        if chatroom_instance is None:
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
 
         community_id = chatroom_instance.community.id
