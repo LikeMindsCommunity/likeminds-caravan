@@ -58,16 +58,13 @@ def update_last_answer_id(card_id,answer_id):
     print('Data Updated successfully in firebase')
 
 
-
-
 def upload_image_to_firebase(image_url,user_id):
 
     image_data = requests.get(image_url).content
     user_id=str(user_id)
-    storage.child("files").child("user").child(user_id).put(image_data)
-    image_url=storage.child("files").child("user").child(user_id).get_url(None)
+    storage.child("files").child("profile").child(user_id).put(image_data)
+    image_url=storage.child("files").child("profile").child(user_id).get_url(None)
     return image_url
-
 
 
 def is_url_image_valid(image_url):
