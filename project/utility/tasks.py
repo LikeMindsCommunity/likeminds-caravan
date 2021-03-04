@@ -258,3 +258,4 @@ def send_mail_for_query_and_feedback(mail_dict):
         to_list = ['rastogi.fresh88@gmail.com']
 
     send_email(subject, template, to_list)
+
