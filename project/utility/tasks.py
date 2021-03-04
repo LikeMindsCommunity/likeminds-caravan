@@ -7,7 +7,6 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from togther.models import *
 from PIL import Image, ImageDraw, ImageFont
-from utility.firebase import upload_user_initial_image
 import os
 from .utils import *
 import random
@@ -258,53 +257,3 @@ def send_mail_for_query_and_feedback(mail_dict):
         to_list = ['rastogi.fresh88@gmail.com']
 
     send_email(subject, template, to_list)
-
-
-@shared_task
-def save_name_initial_image(user_id, user_name):
-
-    colour_codes = ["#2196F3", "#03A9F4", "#fdbd39", "#F44336", "#9C27B0", "#FFEB3B", "#d0021b", "#28d0021b"]
-    chosen_color = random.randint(0, len(colour_codes)-1)
-    width, length = 216, 216
-
-    name_initial = user_name[0]
-    font = ImageFont.truetype("static/fonts/Roboto-Medium.ttf", 140, encoding="unic")
-
-    canvas = Image.new(mode='RGBA', size=(width, length), color=colour_codes[chosen_color])
-    draw = ImageDraw.Draw(canvas)
-    text_width, text_height = draw.textsize(name_initial, font=font)
-
-    draw.text(((width - text_width) / 2, (length - text_height) / 2 - 20), name_initial, 'white', font)
-
-    # cropping into circular image
-    big_size = (canvas.size[0] * 2, canvas.size[1] * 2)
-    mask = Image.new('L', big_size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0) + big_size, fill=255)
-    mask = mask.resize(canvas.size, Image.ANTIALIAS)
-    canvas.putalpha(mask)
-
-    image_name = f"media/media/user_profile/{user_id}_profile_image.png"
-    canvas.save(image_name, "PNG")
-    # canvas.show()
-
-    local_image_url = url + "/" + image_name
-
-    image_url = upload_user_initial_image(user_id, image=local_image_url, url=True)
-
-    if image_url:
-        user_info = Userinfo.objects.get(user_id=user_id)
-        user_info.image_link = image_url
-        user_info.save()
-
-    os.remove(image_name)
-
-
-# mail_dict={}
-# mail_dict['user_name'] = "Mahesh Royals"
-# mail_dict['email'] = "test@gmail.com"
-# mail_dict['collabcard_link'] ="www.google.com"
-# mail_dict['content'] = "What is this about I don't know anything about it and I don't want to know either"
-# mail_dict['collabcard_id'] = 181
-
-#send_mail_for_query_and_feedback(mail_dict)

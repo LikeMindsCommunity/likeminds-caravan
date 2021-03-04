@@ -73,7 +73,6 @@ urlpatterns = [
     path('create_answer', api_views.create_answer, name="create_answer"),
     path('create_conversation', api_views.create_conversation, name="create_conversation"),
 
-    path('login',api_views.login_authenticate,name = 'login'),
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
     path('generate_otp',api_views.generate_otp,name = 'generate_otp'),
     path('verify_otp',api_views.verify_otp,name = 'verify_otp'),
