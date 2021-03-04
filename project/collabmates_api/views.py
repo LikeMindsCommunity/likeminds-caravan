@@ -8763,6 +8763,10 @@ def login_authenticate_version_1(request):
 
             context = custom_login(request, res, login_type="custom")
 
+            if context.get('error_message'):
+
+                return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
             return JsonResponse(context)
     else:
         context = get_error_context(False, "Send a post request")
@@ -9157,9 +9161,10 @@ def custom_login(request, res, login_type="custom"):
         image_url = res['image_url']
 
     else:
-        image_url = ""
+        return {'success': False, 'error_message': "Please upload a profile picture"}
 
     user_acquired = None
+
     if 'user_acquired' in res:
         user_acquired = res['user_acquired']
 
