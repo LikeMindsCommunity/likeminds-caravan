@@ -7260,6 +7260,8 @@ def create_conversation(request):
 
     res = json.loads(request.body)
 
+    temporary_id = res.get('temporary_id')
+
     is_guest = False
     if 'aj' in res and 'source_id' in res:
         if res['aj'] and res['source_id']:
@@ -7357,9 +7359,10 @@ def create_conversation(request):
         update_last_answer_id(card_instance.id, ans.id)
 
     context = {"current_user_id": member_id, "fetch_reply": True}
-    conversation = CardAnswersDBSyncSerializer(ans, context=context, many=False)
+    conversation = CardAnswersDBSyncSerializer(ans, context=context, many=False).data
+    conversation['temporary_id'] = temporary_id
 
-    return JsonResponse({'success': True, 'id': ans.id, 'conversation': conversation.data})
+    return JsonResponse({'success': True, 'id': ans.id, 'conversation': conversation})
 
 
 def conversation_tagging(request, res, card_instance, user_instance, member_id):

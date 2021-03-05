@@ -51,7 +51,11 @@ class CreateConversation(APIView):
         conversation_manager = ConversationImpl(member_id, platform_code=platform_code, device_id=device_id)
         conversation_response = conversation_manager.create_conversation(req_body, is_ios,
                                                                          is_user_guest, has_files)
-        conversation_response['temporary_id'] = temporary_id
+
+        if conversation_response.get('error_message'):
+            return JsonResponse(conversation_response, status=400)
+
+        conversation_response['conversation']['temporary_id'] = temporary_id
         return JsonResponse(conversation_response)
 
 
