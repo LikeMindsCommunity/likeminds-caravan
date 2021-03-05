@@ -2,10 +2,10 @@ from .base import *
 
 DEBUG = False
 
-URL = "https://www.likeminds.community"
-WEB_URL = "https://web.likeminds.community"
+URL = os.getenv('PRODUCTION_URL')
+WEB_URL = os.getenv('PRODUCTION_WEB_URL')
 
-DB_HOST = "collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com"
+DB_HOST = os.getenv('PRODUCTION_DB_HOST')
 
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
@@ -13,35 +13,35 @@ DB_HOST = "collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': "togther",
-        'USER': "nateshr",
-        'PASSWORD': "connectNRpostgresql",
-        'HOST': "collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com",
+        'NAME': os.getenv('PRODUCTION_DB_NAME'),
+        'USER': os.getenv('PRODUCTION_DB_USER'),
+        'PASSWORD': os.getenv('PRODUCTION_DB_PASSWORD'),
+        'HOST': os.getenv('PRODUCTION_DB_HOST'),
         'PORT': '5432',
     }
 }
-
+print(DATABASES)
 FIREBASE_CONFIG = {
-    'apiKey': "AIzaSyCmu_u-n31x2WMQlWAciP5RDXGn2qMuXrg",
-    'authDomain':"collabmates-3d601.firebaseapp.com",
-    'databaseURL': "https://collabmates-3d601.firebaseio.com",
-    'projectId': "collabmates-3d601",
-    'storageBucket': "collabmates-3d601.appspot.com",
-    'messagingSenderId': "645716458793",
-    'appId': "1:645716458793:web:779debf3286d6049"
+    'apiKey': os.getenv('FIREBASE_API_KEY'),
+    'authDomain': os.getenv('FIREBASE_AUTH_DOMAIN'),
+    'databaseURL': os.getenv('FIREBASE_DATABASE_URL'),
+    'projectId': os.getenv('FIREBASE_PROJECT_ID'),
+    'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET'),
+    'messagingSenderId': os.getenv('FIREBASE_MESSAGING_SENDER_ID'),
+    'appId': os.getenv('FIREBASE_APP_ID')
 }
-
+print(FIREBASE_CONFIG)
 # variable to check if ther server is beta server
 
 IS_BETA = False
 
 TIME_ZONE = 'Asia/Kolkata'
 
-ALLOWED_HOSTS = ["collabmates.com", "13.235.165.26",
-                 "www.collabmates.com", "likeminds.community",
-                 "www.likeminds.community"]
-
-FCM_SERVER_KEY = "AIzaSyCmu_u-n31x2WMQlWAciP5RDXGn2qMuXrg"
+ALLOWED_HOSTS = [os.getenv("PRODUCTION_ALLOWED_HOST_1"), os.getenv("PRODUCTION_ALLOWED_HOST_2"),
+                 os.getenv("PRODUCTION_ALLOWED_HOST_3"), os.getenv("PRODUCTION_ALLOWED_HOST_4"),
+                 os.getenv("PRODUCTION_ALLOWED_HOST_5")]
+print(ALLOWED_HOSTS)
+FCM_SERVER_KEY = os.getenv('PRODUCTION_FCM_SERVER_KEY')
 
 # variable for google sign in oauth client ID
 # GOOGLE_OAUTH_CLIENT_ID=os.getenv('PROD_GOOGLE_OAUTH_CLIENT_ID')
@@ -49,14 +49,14 @@ FCM_SERVER_KEY = "AIzaSyCmu_u-n31x2WMQlWAciP5RDXGn2qMuXrg"
 GOOGLE_OAUTH_CLIENT_ID = "645716458793-rprdna1adps5s7pigsrjasko3ot3ljfl.apps.googleusercontent.com"
 
 AWS_CREDENTIALS = {
-    'ACCESS_KEY': "AKIA3HMTDICCWBSGV67Z",
-    'SECRET_KEY':  "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"
+    'ACCESS_KEY': os.getenv('AWS_S3_ACCESS_KEY'),
+    'SECRET_KEY': os.getenv('AWS_S3_SECRET_KEY')
 }
 
 USE_INTERNAL_FILE_LOGGER = False
 
 CORALOGIX_LOGGER = {
-    'PRIVATE_API_KEY':"ca80efdf-f108-6cdf-d206-4028c9de2392",
+    'PRIVATE_API_KEY': os.getenv('CORALOGIX_LOGGER_PRIVATE_API_KEY'),
     'APPLICATION_NAME': 'LikeMinds_Prod',
     'SUBSYSTEM_NAME_API': 'Backend_App_Api',
     'SUBSYSTEM_NAME_APP': 'Backend_App_System'
@@ -84,7 +84,7 @@ ADMINS = [
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': "redis://lm-redis-prod-001.5pevj6.0001.aps1.cache.amazonaws.com:6379",
+        'LOCATION': os.getenv('CACHE_LOCATION'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }
@@ -92,6 +92,6 @@ CACHES = {
 }
 
 CACHE_CREDENTIALS = {
-    'host': "lm-redis-prod-001.5pevj6.0001.aps1.cache.amazonaws.com",
-    'port': "6379"
+    'host': os.getenv('CACHE_HOST'),
+    'port': os.getenv('CACHE_PORT')
 }
