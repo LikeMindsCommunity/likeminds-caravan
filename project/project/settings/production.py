@@ -2,10 +2,10 @@ from .base import *
 
 DEBUG = False
 
-URL = os.getenv('PROD_URL')
-WEB_URL = os.getenv('PROD_WEB_URL')
+URL = os.getenv('PRODUCTION_URL')
+WEB_URL = os.getenv('PRODUCTION_WEB_URL')
 
-DB_HOST = os.getenv('PROD_DB_HOST')
+DB_HOST = os.getenv('PRODUCTION_DB_HOST')
 
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
@@ -13,10 +13,10 @@ DB_HOST = os.getenv('PROD_DB_HOST')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.getenv('PROD_DB_NAME'),
-        'USER': os.getenv('PROD_DB_USER'),
-        'PASSWORD': os.getenv('PROD_DB_PASSWORD'),
-        'HOST': os.getenv('PROD_DB_HOST'),
+        'NAME': os.getenv('PRODUCTION_DB_NAME'),
+        'USER': os.getenv('PRODUCTION_DB_USER'),
+        'PASSWORD': os.getenv('PRODUCTION_DB_PASSWORD'),
+        'HOST': os.getenv('PRODUCTION_DB_HOST'),
         'PORT': '5432',
     }
 }
@@ -37,11 +37,11 @@ IS_BETA = False
 
 TIME_ZONE = 'Asia/Kolkata'
 
-ALLOWED_HOSTS = [os.getenv("PROD_ALLOWED_HOST_1"), os.getenv("PROD_ALLOWED_HOST_2"),
-                 os.getenv("PROD_ALLOWED_HOST_3"), os.getenv("PROD_ALLOWED_HOST_4"),
-                 os.getenv("PROD_ALLOWED_HOST_5")]
+ALLOWED_HOSTS = [os.getenv("PRODUCTION_ALLOWED_HOST_1"), os.getenv("PRODUCTION_ALLOWED_HOST_2"),
+                 os.getenv("PRODUCTION_ALLOWED_HOST_3"), os.getenv("PRODUCTION_ALLOWED_HOST_4"),
+                 os.getenv("PRODUCTION_ALLOWED_HOST_5")]
 
-FCM_SERVER_KEY = os.getenv('PROD_FCM_SERVER_KEY')
+FCM_SERVER_KEY = os.getenv('PRODUCTION_FCM_SERVER_KEY')
 
 # variable for google sign in oauth client ID
 # GOOGLE_OAUTH_CLIENT_ID=os.getenv('PROD_GOOGLE_OAUTH_CLIENT_ID')
