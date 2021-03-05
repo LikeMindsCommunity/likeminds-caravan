@@ -61,6 +61,7 @@ def get_active_chatrooms_count_in_community(community_id, user_id, current_time)
                 FROM togther_collabcard
                 WHERE community_id=%s
                         AND is_pending=false
+                        AND type != 1
                         AND is_deleted=false
                         AND (attachment_count = 0
                         OR attachments_uploaded=true))
@@ -95,6 +96,7 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
                 WHERE community_id=%s
                         AND is_pending=false
                         AND is_deleted=false
+                        AND type != 1
                         AND (attachment_count = 0
                         OR attachments_uploaded = true) )
                 """ % (str(community_id), str(user_id), str(current_time), str(community_id))
@@ -782,7 +784,7 @@ def fetch_member_poll_votes(chatroom_id_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def fetch_chatroom_id_query(chatroom_id, user_id):
+def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -843,9 +845,10 @@ def fetch_chatroom_id_query(chatroom_id, user_id):
         WHERE togther_collabcardState.user_id=%s
                 AND togther_collabcardState.card_id=%s
                 AND togther_collabcardState.remove_id is NULL 
+                AND togther_collabcardState.updated_at > %s
         
         """ % (
-            str(user_id), str(chatroom_id))
+            str(user_id), str(chatroom_id), str(last_updated))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1474,13 +1477,188 @@ def get_active_inactive_status_query(active_status, current_time):
     return status_query
 
 
-if envir:
-    if __name__ == "__main__":
-        info_logger.info("python file")
-        start_time = time.time()
-        ranking_all_users_and_communities()
+def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, last_updated):
 
-        end_time = time.time()
+    """
+    return the conversations of chatrooms based on chatroom list
+    """
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        offset = (int(page) - 1) * int(limit)
+        last_updated = int(last_updated)
+        chatroom_id_tupple = get_tuple_from_array(chatroom_list)
 
-        info_logger.info("Execution Time--")
-        info_logger.info(end_time - start_time)
+        if not chatroom_id_tupple:
+
+            return [], []
+
+        sql = """SELECT id,
+                         answer,
+                         created_at,
+                         state,
+                         is_edited,
+                         has_files,
+                         attachment_count,
+                         attachments_uploaded,
+                         card_id,
+                         user_id,
+                         community_id,
+                         og_tags,
+                         deleted_by_user_id,
+                         internal_link,
+                         reply_id,
+                         last_updated,
+                         preview_chatroom_id,
+                         preview_type,
+                         api_version
+                FROM togther_card_answers
+                WHERE last_updated > %s
+                        AND card_id IN %s
+                ORDER BY  last_updated limit %s offset %s
+               """ % (str(last_updated), str(chatroom_id_tupple), str(limit), str(offset))
+
+        curr.execute(sql)
+        data = curr.fetchall()
+        curr.close()
+
+        files_answer_id = []
+
+        for ans in data:
+
+            if ans[5]:
+                files_answer_id.append(ans[0])
+
+        return data, files_answer_id
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, last_updated, community_id):
+    """
+    return the conversations of chatrooms based on chatroom list
+    """
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        offset = (int(page) - 1) * int(limit)
+        last_updated = int(last_updated)
+        chatroom_id_tupple = get_tuple_from_array(chatroom_list)
+
+        if not chatroom_id_tupple:
+            return [], []
+
+        sql = """SELECT id,
+                         answer,
+                         created_at,
+                         state,
+                         is_edited,
+                         has_files,
+                         attachment_count,
+                         attachments_uploaded,
+                         card_id,
+                         user_id,
+                         community_id,
+                         og_tags,
+                         deleted_by_user_id,
+                         internal_link,
+                         reply_id,
+                         last_updated,
+                         preview_chatroom_id,
+                         preview_type,
+                         api_version
+                FROM togther_card_answers
+                WHERE last_updated > %s
+                        AND card_id IN %s
+                        AND community_id = %s
+                ORDER BY  last_updated limit %s offset %s
+               """ % (str(last_updated), str(chatroom_id_tupple), str(community_id), str(limit), str(offset))
+
+        curr.execute(sql)
+        data = curr.fetchall()
+        curr.close()
+
+        files_answer_id = []
+
+        for ans in data:
+
+            if ans[5]:
+                files_answer_id.append(ans[0])
+
+        return data, files_answer_id
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_conversation_files_based_on_conversation_list(conversation_list):
+
+    """The function returns a dictionary containing files based on answer id"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        conversation_id_tupple = get_tuple_from_array(conversation_list)
+        conversation_files_dict = dict()
+
+        if not conversation_id_tupple:
+
+            return {}
+
+        sql = """select  
+                        answer_id,
+                        file_url,
+                        type,
+                        location_name,
+                        location_lat,
+                        location_long,
+                        index,
+                        height,
+                        width,
+                        thumbnail_url
+               from togther_answerAttachment  where answer_id  in %s order by id 
+               """ % (str(conversation_id_tupple))
+
+        curr.execute(sql)
+        data = curr.fetchall()
+        curr.close()
+
+        for file in data:
+
+            conversation_id = file[0]
+
+            if conversation_id not in conversation_files_dict:
+                temp = {
+                    'file_url': file[1],
+                    'type': file[2],
+                    'location_name': file[3],
+                    'location_lat': file[4],
+                    'location_long': file[5],
+                    'index': file[6],
+                    'height': file[7],
+                    'width': file[8],
+                    'thumbnail_url': file[9]
+                }
+
+                conversation_files_dict[conversation_id] = [temp]
+
+            else:
+                temp = {
+                    'file_url': file[1],
+                    'type': file[2],
+                    'location_name': file[3],
+                    'location_lat': file[4],
+                    'location_long': file[5],
+                    'index': file[6],
+                    'height': file[7],
+                    'width': file[8],
+                    'thumbnail_url': file[9]
+                }
+                conversation_files_dict[conversation_id].append(temp)
+
+        return conversation_files_dict
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+

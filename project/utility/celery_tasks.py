@@ -1,11 +1,17 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
-from collabmates_api.serializers import get_user_profile
+from django.conf import settings
+
+from collabmates_api.serializers import get_user_profile, get_preview_for_url
+from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY
+from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
 import time
 from django.db.models import Q
 import json
+
+from utility.states import card_types
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -76,9 +82,9 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
     '''function to update the unseen  collabcard in engage'''
 
     total_chatrooms = collabcardState.objects.filter(community=community, user=user,
-                                                     card__is_deleted=False).distinct('card_id').count()
+                                                     card__is_deleted=False).exclude(card__type=1).distinct('card_id').count()
     seen_chatrooms = collabcardState.objects.filter(community=community, user=user, external_seen=True,
-                                                    card__is_deleted=False).distinct('card').count()
+                                                    card__is_deleted=False).exclude(card__type=1).distinct('card').count()
 
     diff = total_chatrooms - seen_chatrooms
 
@@ -151,7 +157,7 @@ def get_new_chatroom_members(member_id, community_id):
 def fetch_new_chatroom_creater_images(member_id, community_id):
     unseen_chatrooms = collabcardState.objects.filter(user=member_id, community_id=community_id,
                                                       external_seen=False,
-                                                      card__is_deleted=False).distinct('card')
+                                                      card__is_deleted=False).exclude(card__type=1).distinct('card')
 
     member_set = set()
     member_list = []
@@ -345,3 +351,100 @@ def get_chatroom_user_images_for_web(chatroom_id):
     }
 
     return conversation_meta
+
+
+@shared_task
+def update_preview_of_chatroom_in_cache(preview_info):
+
+    """ function to update the preview of chatroom """
+
+    preview_url = preview_info.get('preview_url')
+    chatroom_id = preview_info.get('chatroom_id')
+    conversation_id = preview_info.get('conversation_id')
+
+    if not conversation_id:
+        return
+
+    if not preview_url and not chatroom_id:
+        return
+
+    elif not preview_url:
+        preview_url = settings.URL + "/collabcard/" + str(chatroom_id)
+
+    key = CHATROOM_PREVIW_CACHE_KEY % (str(chatroom_id), str(conversation_id))
+    preview_object = preview_info.get('preview_object')
+
+    if not preview_object:
+        try:
+            preview_object = get_preview_for_url(preview_url=preview_url)
+        except Exception as e:
+            error_logger.error((str(e.args)))
+            return
+
+    CacheImpl.set_cache(key, preview_object)
+
+
+@shared_task
+def update_multiple_previews_in_chatroom(preview_info):
+
+    preview_chatroom_id = preview_info.get('chatroom_id')
+
+    if preview_chatroom_id:
+        preview_filter = ModelUtilities.get_model_filter(card_answers, {'preview_chatroom': preview_chatroom_id,
+                                                                        'preview_type': "chatroom"})
+
+        for conversation in preview_filter:
+
+            try:
+                preview_dict = get_preview_for_url(preview_url=conversation.internal_link,
+                                                   community_instance=conversation.preview_community,
+                                                   chatroom_instance=conversation.preview_chatroom)
+            except Exception as e:
+                error_logger.error(str(e.args))
+                continue
+
+            update_preview_of_chatroom_in_cache({'chatroom_id': conversation.preview_chatroom.id,
+                                                 'preview_object': preview_dict,
+                                                 'conversation_id': conversation.id})
+            conversation.last_updated = TimeUtilities.current_time_in_milliseconds()
+            conversation.save()
+
+
+def update_member_images_for_account(member_filter, image_url):
+
+    for data in member_filter:
+        community_instance = data.community_id
+        user_instance = data.member_id
+        intro_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
+                                                                    'type': card_types.CARD_INTRO,
+                                                                    'user': user_instance})
+
+        if intro_filter.exists():
+            card_instance = intro_filter[0]
+            ModelUtilities.model_update(Card_Attachment,
+                                        {'collabcard_id': card_instance.id},
+                                        {'file_url': image_url})
+            update_multiple_previews_in_chatroom({'chatroom_id': card_instance.id})
+        data.image_url = image_url
+        data.updated_at = TimeUtilities.current_time_in_sec()
+        data.save()
+
+
+@shared_task()
+def update_preview_for_account_image_change(preview_info):
+
+    user_id = preview_info.get('user_id')
+    image_url = preview_info.get('image_url')
+    previous_image_url = preview_info.get('previous_image_url')
+
+    if not user_id or not image_url:
+        return
+
+    member_filter = ModelUtilities.get_model_filter(Members, {'member_id_id': user_id,
+                                                              'image_url': None})
+
+    update_member_images_for_account(member_filter, image_url)
+
+    member_filter = ModelUtilities.get_model_filter(Members, {'member_id_id': user_id,
+                                                              'image_url': previous_image_url})
+    update_member_images_for_account(member_filter, image_url)

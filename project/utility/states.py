@@ -149,6 +149,7 @@ class CollabcardTypes:
     CARD_HIDDEN = 4
     CARD_PUBLIC_EVENT = 6
     CARD_PURPOSE = 7
+    CARD_MASTER_INTRO = 9
 
 
 card_types = CollabcardTypes()

@@ -243,7 +243,7 @@ class Collabcard(models.Model):
     date_epoch = models.BigIntegerField(default=-9223372036854775808)
     answer_text = models.CharField(max_length=100, default='')
     share_link = models.CharField(max_length=2048, default='')
-    og_tags = models.CharField(max_length=2048, default='')
+    og_tags = models.TextField(default='')
 
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
@@ -344,7 +344,7 @@ class draftChatroom(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     answer_text = models.CharField(max_length=100, default='')
     share_link = models.CharField(max_length=2048, default='')
-    og_tags = models.CharField(max_length=2048, default='')
+    og_tags = models.TextField(default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
     video_count = models.IntegerField(default=0, null=True)
@@ -484,6 +484,8 @@ class card_answers(models.Model):
     attachments_uploaded = models.BooleanField(default=False, null=True)
 
     api_version = models.IntegerField(default=0)
+    device_id = models.TextField(null=True)
+    platform = models.TextField(null=True)
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
@@ -521,6 +523,9 @@ class collabcardState(models.Model):
 
     class Meta:
         unique_together = (('card', 'user'),)
+
+    def __str__(self):
+        return str(self.user.id) + "__" + str(self.card.id)
 
 
 class conversationMemberState(models.Model):
@@ -1143,6 +1148,20 @@ class communityLevels(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
 
     level_click_state = models.IntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+
+        instance = communityLevels()
+        instance.community = create_info['community']
+        instance.level = create_info['level']
+        instance.title = create_info['title']
+        instance.sub_title = create_info['sub_title']
+        instance.state = create_info['level_state']
+        instance.image = create_info['image']
+        instance.joined_members = create_info['joined_members']
+        instance.max_members = create_info['max_members']
+        instance.save()
 
 
 class communityUpdate(models.Model):

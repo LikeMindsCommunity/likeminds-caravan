@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import F, When, Q
+from django.db.models import F, When, Q, Sum
 from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -20,7 +20,8 @@ from collections import OrderedDict
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
-from togther.forms import *
+
+from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from random import randint
 # utility functions
@@ -28,11 +29,13 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage, update_my_chatrooms_for_users,
                                   set_chatroom_state_for_all_members_on_card_creation,
-                                  get_chatroom_user_images_for_web
+                                  get_chatroom_user_images_for_web, update_preview_of_chatroom_in_cache,
+                                  update_multiple_previews_in_chatroom, update_preview_for_account_image_change
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail, upload_community_files)
+from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.states import (collabcard_states, member_states, question_states, community_states,
                             deleted_members, card_types, chatroom_states, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
@@ -76,8 +79,8 @@ from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard
                     send_tagged_user_mail, send_chatroom_owner_mail,
                     send_community_confirmation_email, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
-                    post_owner_message_template_in_intro_room)
-
+                    )
+from .owner_message_template import post_owner_message_template_in_intro_room
 from .mails import *
 from .sms import *
 
@@ -93,7 +96,7 @@ from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
                                  save_conversation_attachments, save_poll_attachments,
                                  save_draft_attachments, save_draft_poll_attachments,
-                                 get_image_dimensions)
+                                 get_user_image_based_on_community)
 from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
 from utility.number_utilities import NumberUtilities
@@ -109,10 +112,7 @@ url = settings.URL
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
-
-
 # /api/communities?category_id=&member_id=
-
 ############# functions for community api ##########################
 @api_view(['GET', 'POST'])
 @renderer_classes([JSONRenderer, TemplateHTMLRenderer])
@@ -267,40 +267,35 @@ def update_pending_member_count_in_engage(community):
     info_logger.info("Member Engage Pending Count Updated")
 
 
+def generate_internal_link_preview_for_conversation(conversation, current_user_id):
+
+    preview_dict = {}
+
+    if conversation.internal_link:
+        try:
+            if conversation.preview_chatroom and conversation.preview_type == "chatroom":
+                key = CHATROOM_PREVIW_CACHE_KEY % (str(conversation.preview_chatroom.id), str(conversation.id))
+                preview = CacheImpl.get_cache(key)
+
+                if preview:
+                    preview_dict = preview
+
+                else:
+                    preview_dict = get_preview_for_url(current_user_id, conversation.internal_link,
+                                                       community_instance=conversation.preview_community,
+                                                       chatroom_instance=conversation.preview_chatroom)
+                    update_preview_of_chatroom_in_cache.delay({'chatroom_id': conversation.preview_chatroom.id,
+                                                         'preview_object': preview_dict,
+                                                         'conversation_id': conversation.id})
+            else:
+                preview_dict = get_preview_for_url(current_user_id, conversation.internal_link,
+                                                   community_instance=conversation.preview_community,
+                                                   chatroom_instance=conversation.preview_chatroom)
+        except Exception as e:
+            error_logger.error(e.args)
+
+    return preview_dict
 # home screen apis
-
-def get_new_chatroom_member_images(member_id, community_id):
-    last_instance = collabcardState.objects.filter(user=member_id, community=community_id).filter(~Q(state=0)).last()
-
-    if last_instance:
-        last_card = last_instance.card
-        unseen_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=False,
-                                                     is_deleted=False, id__gt=last_card.id).distinct('user_id')
-    else:
-        unseen_chatrooms = Collabcard.objects.filter(community=community_id,
-                                                     is_pending=False, is_deleted=False).distinct('user_id')
-
-    member_list = []
-    for card in unseen_chatrooms:
-
-        member_filter = Members.objects.filter(member_id=card.user, community_id=community_id)
-        if member_filter.exists():
-            image_url = card.user.userinfo.image_link if card.user.userinfo.image_link else ''
-            member_instance = member_filter[0]
-            if member_instance.image_url:
-                image_url = member_instance.image_url
-        else:
-            image_url = REMOVED_USER_URL
-
-        member = get_user_profile(card.user.id, community_id, send_profile=False)
-        member['image_url'] = image_url
-        member_list.append(member)
-
-        if len(member_list) > 3:
-            break
-
-    return member_list
-
 
 def get_active_chatroom_member_images(community_instance, member_id):
     current_time = time.time()
@@ -429,13 +424,22 @@ def my_chatrooms(request):
         last_conversation = instance.last_conversation
 
         if last_conversation and not is_draft_conversation(last_conversation, member_id):
-            chatroom['last_conversation'] = conversationSerializer(last_conversation, current_user_id=member_id)
+            last_conversation = conversationSerializer(last_conversation, current_user_id=member_id)
+            preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
 
+            if preview:
+                last_conversation['preview'] = preview
+            chatroom['last_conversation'] = last_conversation
             second_last_conversation = instance.second_last_conversation
 
             if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id):
-                chatroom['second_last_conversation'] = conversationSerializer(second_last_conversation,
-                                                                              current_user_id=member_id)
+                second_last_conversation = conversationSerializer(second_last_conversation, current_user_id=member_id)
+                preview = generate_internal_link_preview_for_conversation(second_last_conversation, member_id)
+
+                if preview:
+                    last_conversation['preview'] = preview
+
+                chatroom['second_last_conversation'] = second_last_conversation
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
@@ -527,13 +531,24 @@ def my_chatrooms_version_1(request):
         last_conversation = instance.last_conversation
 
         if last_conversation and not is_draft_conversation(last_conversation, member_id):
-            chatroom['last_conversation'] = conversationSerializer(last_conversation, current_user_id=member_id)
+            last_conversation_dict = conversationSerializer(last_conversation, current_user_id=member_id)
+            preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
+
+            if preview:
+                last_conversation_dict['preview'] = preview
+
+            chatroom['last_conversation'] = last_conversation_dict
 
             second_last_conversation = instance.second_last_conversation
 
             if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id):
-                chatroom['second_last_conversation'] = conversationSerializer(second_last_conversation,
-                                                                              current_user_id=member_id)
+                second_last_conversation_dict = conversationSerializer(second_last_conversation, current_user_id=member_id)
+                preview = generate_internal_link_preview_for_conversation(second_last_conversation, member_id)
+
+                if preview:
+                    second_last_conversation_dict['preview'] = preview
+
+                chatroom['second_last_conversation'] = second_last_conversation_dict
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
         chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
@@ -563,6 +578,16 @@ def my_chatrooms_version_1(request):
                'inactive_chatroom_count': in_active_chatroom_count,
                'total_pages': total_pages
                }
+
+    if page == 1:
+        total_unseen_count = conversationEngage.objects \
+            .filter(user=current_user_instance, unseen_count__gt=0) \
+            .aggregate(total=Sum('unseen_count'))
+
+        if total_unseen_count['total'] is None:
+            total_unseen_count['total'] = 0
+
+        context['total_unseen_count'] = total_unseen_count['total']
 
     return JsonResponse(context)
 
@@ -617,9 +642,17 @@ def fetch_chatroom_inactive(request):
 
     member_id = get_member_id_from_headers(request)
     context = {}
+
     if not member_id:
         context = get_error_context(False, "send x-member-id in headers")
         return JsonResponse(context)
+
+    user_instance = User.get_user_or_none(member_id)
+
+    if user_instance is None:
+        context = get_error_context(False, "Invalid member id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_time = time.time()
 
@@ -642,7 +675,6 @@ def fetch_chatroom_inactive(request):
                                                             remove=None).filter(
             ~Q(expiry_time=None) & Q(expiry_time__lt=current_time)).order_by('-expiry_time')
 
-        user_instance = User.objects.get(id=member_id)
         inactive_count = inactive_chatrooms.count()
         create_or_update_inActiveChatroomsCount_instance(user_instance, inactive_count)
         if inactive_count:
@@ -937,6 +969,13 @@ def questions(request):
 
     member_id = get_member_id_from_headers(request)
 
+    user_instance = get_user_or_none(member_id)
+
+    if not user_instance:
+        context = get_error_context(False,"Invalid member id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     community_id = request.GET.get('community_id')
     if not community_id:
         context = get_error_context(False, "send community id in get params")
@@ -1046,13 +1085,27 @@ def private_link_app_invite(community_instance, unique_code, created_by=None, sh
 def join_community_responses_version_1(request):
     info_logger.info("Join community request\n")
     info_logger.info(request.body)
-    res = json.loads(request.body)
+
+    try:
+        res = json.loads(request.body)
+    except Exception as e:
+        context = get_error_context(False, e.args)
+
+        return JsonResponse(context, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
     info_logger.info("Join community res\n")
     info_logger.info(res)
     info_logger.info("\n")
     community_id = res['community_id']
     info_logger.info("Inside private\n")
-    join_promoter_created_community_version_1(res, request)
+
+    try:
+        join_promoter_created_community_version_1(res, request)
+
+    except Exception as e:
+        context = get_error_context(False, e.args)
+
+        return JsonResponse(context, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
     send_sync_notification.delay({'community_id': community_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -1134,7 +1187,7 @@ def join_promoter_created_community_version_1(res, request):
 
         auto_join_community(community_instance, user_instance, shared_user_instance)
         set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
-        post_introduction_card_for_community(community_id, member_id, request)
+        post_introduction_card_for_community(community_id, member_id)
 
         # saving create community action level3
         update_community_actions(community_instance)
@@ -1150,7 +1203,7 @@ def join_promoter_created_community_version_1(res, request):
         if member_state == member_states.ADMIN:
 
             # post_purpose_collabcard_for_community(request, community_instance, member_id)
-            post_introduction_card_for_community(community_id, member_id, request)
+            post_introduction_card_for_community(community_id, member_id)
 
             generate_private_link(community_instance, user_instance)
 
@@ -1175,7 +1228,7 @@ def join_promoter_created_community_version_1(res, request):
             update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                            {'community_id': community_instance, 'member_id': user_instance},
                                            {'click_state': click_states.DEFAULT, 'member_state': member_states.MEMBER})
-            post_introduction_card_for_community(community_id, member_id, request)
+            post_introduction_card_for_community(community_id, member_id)
             set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
 
             communityToast.objects.filter(community=community_instance, user=user_instance).delete()
@@ -1345,10 +1398,11 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
         update_member_rights_in_member_engage.delay(community_instance.id, user_instance.id)
 
 
-def post_introduction_card_for_community(community_id, member_id, request):
+def post_introduction_card_for_community(community_id, member_id):
     '''function to get introduction card of community'''
 
     check_intro = communityQuestions.objects.filter(community=community_id, question_state=question_states.INTRODUCTION)
+
     if check_intro.exists():
         question_id = check_intro[0].id
         introduction_answer_list = communityAnswers.objects.filter(community=community_id, member=member_id,
@@ -1362,19 +1416,80 @@ def post_introduction_card_for_community(community_id, member_id, request):
                 'type': 1,
                 'create_intro': 1
             }
-            request.method = "POST"
+
+            master_intro = ModelUtilities.get_model_filter(Collabcard,
+                                                                {'community': community_id,
+                                                                 'type': card_types.CARD_MASTER_INTRO})
+            if not master_intro:
+                return
+
             intro_filter = Collabcard.objects.filter(community=community_id, user=member_id, type=card_types.CARD_INTRO)
+
             if not intro_filter.exists():
-                create_card(request, req_dict=req_dict)
+                context = create_card_internal(member_id, community_id, req_dict)
+                card_instance = context.get('card_instance')
+                user_instance = User.get_user_or_none(member_id)
+                image_url = get_user_image_based_on_community(member_id, community_id)
+
+                if card_instance and image_url:
+                    save_chatroom_attachments(card_instance, body={
+                        'url': image_url,
+                        'type': "image",
+                        'index': 1
+                    })
+                    ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
+                                                {'has_files': True, 'attachment_count': 1,
+                                                 'attachments_uploaded': True})
+                    create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro[0])
+
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
-                post_owner_message_template_in_intro_room.delay(community_id, member_id)
+                post_owner_message_template_in_intro_room(community_id, member_id)
 
                 return True
             else:
                 intro_filter.update(title=introduction_answer)
 
     return False
+
+
+def create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro):
+
+
+    preview_url = settings.URL + "/collabcard/"+str(card_instance.id)
+
+    conversation_context = {}
+    community_instance = card_instance.community
+    conversation_context['answer'] = card_instance.title
+    conversation_context['card'] = master_intro
+    conversation_context['user'] = user_instance
+    conversation_context['community'] = community_instance
+
+    conversation_context['created_at'] = TimeUtilities.current_time_in_sec()
+    conversation_context['has_files'] = False
+
+    conversation_context['attachment_count'] = 0
+    conversation_context['attachments_uploaded'] = False
+    conversation_context['api_version'] = 1
+    conversation_context['preview_chatroom'] = card_instance
+    conversation_context['preview_community'] = community_instance
+    conversation_context['internal_link'] = settings.URL + "/collabcard/"+str(card_instance.id)
+    conversation_context['preview_type'] = "chatroom"
+
+    answer_instance = card_answers(**conversation_context)
+    answer_instance.save()
+    func_dict = {
+        'member_id': user_instance.id,
+        'collabcard_id': master_intro.id,
+        'status': True,
+        'source': "create_conversation_context_for_intro_chatrooms"
+    }
+    collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+    update_preview_of_chatroom_in_cache.delay({'chatroom_id': card_instance.id,
+                                         'preview_url': preview_url,
+                                         'conversation_id': answer_instance.id})
+
+    return answer_instance
 
 
 def post_purpose_collabcard_for_community(request, community_instance, member_id):
@@ -1394,6 +1509,26 @@ def post_purpose_collabcard_for_community(request, community_instance, member_id
     context = create_card(request, req_dict=req_dict)
 
     return context['card_instance']
+
+
+def post_master_introductions_for_community(community_id, member_id):
+
+    """function to post the master introduction card"""
+    res = {
+        'member_id': member_id,
+        'community_id': community_id,
+        'title': MASTER_INTRO_TITLE_TEXT,
+        'type': card_types.CARD_MASTER_INTRO,
+        'header': MASTER_INTRO_HEADER
+    }
+
+    if ModelUtilities.is_model_filter_exists(Collabcard, {'community': community_id,
+                                                          'type': card_types.CARD_MASTER_INTRO}):
+        return
+
+    context = create_card_internal(member_id,community_id, res)
+
+    return context
 
 
 def update_hidden_fields_in_questions(user_instance, community_instance):
@@ -1676,10 +1811,15 @@ def edit_user(request):
 
     userinfo_filter = Userinfo.objects.filter(user_id=user_id)
     if type == 'image':
-        userinfo_filter.update(image_link=value)
-        update_models_for_syncing_apis(SyncTypes.MEMBERS,
-                                       {'member_id': user_id, 'image_url': None},
-                                       {'image_url': value})
+
+        userinfo_instance = userinfo_filter[0]
+        previous_image_url = userinfo_instance.image_link
+        userinfo_instance.image_link = value
+        userinfo_instance.save()
+
+        update_preview_for_account_image_change.delay({'user_id': user_id,
+                                                 'image_url': value,
+                                                 'previous_image_url':previous_image_url})
 
     elif type == 'name':
         userinfo_filter.update(name=value)
@@ -1867,8 +2007,9 @@ def edit_member_profile(request):
 
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
-
     member_id = get_member_id_from_headers(request)
+    update_preview = False
+
     if not member_id:
         member_id = request.GET.get('member_id', None)
 
@@ -1931,6 +2072,9 @@ def edit_member_profile(request):
                                                {'card': collabcard_id, 'user': member_id},
                                                {})
 
+                if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': collabcard_id,
+                                                                        'preview_type': "chatroom"}):
+                    update_preview = True
 
             if question_instance.question_state == question_states.PROFILE_LINK:
                 save_profile_links_from_handles(question_instance, answer_instance)
@@ -1941,19 +2085,29 @@ def edit_member_profile(request):
     # setting edit status in members table
     member_filter = Members.objects.filter(community_id=community_instance, member_id=user_instance)
     member_filter.update(edit_required=False, updated_at=time.time())
-    if 'image_url' in res:
-        member_filter.update(image_url=res['image_url'])
+
+    if 'image_url' in res and res['image_url']:
+        member_filter.update(image_url=res['image_url'], updated_at=TimeUtilities.current_time_in_sec())
+        ModelUtilities.model_update(Card_Attachment,
+                                    {'collabcard_id': collabcard_id},
+                                    {'file_url': res['image_url']})
+        update_preview = True
 
     # posting a introduction collabcard
     if collabcard_id == 0:
-        post_introduction_card_for_community(community_instance.id, user_instance.id, request)
+        post_introduction_card_for_community(community_instance.id, user_instance.id)
+        update_preview = False
 
     # update level of community
     set_levels_on_ctc(community_instance, "Level 3", promoter=is_promoter)
 
     question_answer = ""
+
     if form_response:
         question_answer = form_response[1]
+
+    if update_preview:
+        update_multiple_previews_in_chatroom.delay({'chatroom_id': collabcard_id})
 
     # setting the level click state when the promoter set-up directory and update the click state
     present_level = communityLevels.objects.filter(community=community_instance, level="Level 3",
@@ -2550,6 +2704,57 @@ def get_conversation_users(instance):
 
 
 ############# functions for  create flow of card,community and members   ##########################
+def set_community_actions(community_instance):
+    '''function to set community action for community profiling'''
+
+    if not ModelUtilities.is_model_filter_exists(communityLevels, {'community': community_instance}):
+        # first level
+        communityLevels.create_instance({
+            'community': community_instance,
+            'level': 'Level 1',
+            'title': 'Create onboarding room',
+            'sub_title': 'Break the ice for new members. Tell what this community stands for.',
+            'level_state': community_level_states.COMPLETE,
+            'image': IMAGE_LEVEL_1,
+            'joined_members':None,
+            'max_members':None
+        })
+
+        # second level
+        communityLevels.create_instance({
+            'community': community_instance,
+            'level': 'Level 2',
+            'title': 'Invite your inner circle',
+            'sub_title': 'Bring 5 trusted people you want to build this community with.',
+            'level_state': community_level_states.PENDING,
+            'image': IMAGE_LEVEL_2,
+            'joined_members': 0,
+            'max_members': 1 if settings.IS_BETA else 5
+        })
+
+        # third level
+        communityLevels.create_instance({
+            'community': community_instance,
+            'level': 'Level 3',
+            'title': 'Community Directory',
+            'sub_title': 'Help members know each other. Ask members to complete their profile for the directory or add new members.',
+            'level_state': community_level_states.LOCKED,
+            'image': IMAGE_LEVEL_3,
+            'joined_members': 0,
+            'max_members': 1 if settings.IS_BETA else 10
+        })
+
+        # fourth level
+        communityLevels.create_instance({
+            'community': community_instance,
+            'level': 'Level 4',
+            'title': 'Growth',
+            'sub_title': None,
+            'level_state': community_level_states.LOCKED,
+            'image': IMAGE_LEVEL_4,
+            'joined_members': 0,
+            'max_members': 1 if settings.IS_BETA else 10
+        })
 
 
 @csrf_exempt
@@ -2672,7 +2877,8 @@ def create_community_version_1(request):
 
         create_introduction_question_in_community(community_instance)
         post_purpose_collabcard_for_community(request, community_instance, member_id)
-
+        post_master_introductions_for_community(community_id, member_id)
+        post_member_directory_link(user_instance, community_instance)
         # send mails to ask cm to upgrade level
         send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=1, day=0, counter=0)
 
@@ -2692,12 +2898,6 @@ def create_community_version_1(request):
             # updating the community level click state
             communityLevels.objects.filter(community=community_instance, level="Level 3").update(
                 level_click_state=level_click_states.DIRECTORY_CREATED)
-
-            card_filter = Collabcard.objects.filter(user=user_instance, community=community_instance,
-                                                    type=card_types.CARD_PURPOSE)
-
-            if card_filter.exists():
-                post_member_directly_link(card_filter[0], user_instance, community_instance)
 
             send_notification_for_directory_creation.delay(community_id, time.time(), day=0)
 
@@ -2809,14 +3009,26 @@ def create_introduction_question_in_community(community_instance):
     questions_instance.save()
 
 
-def post_member_directly_link(card_instance, user_instance, community_instance):
-    member_directory_link = url + "/members_directory/" + str(community_instance.id)
+def post_member_directory_link(user_instance, community_instance):
+
+    card_filter = Collabcard.objects.filter(user=user_instance, community=community_instance,
+                                            type=card_types.CARD_MASTER_INTRO)
+
+    if not card_filter.exists():
+        return
+
+    card_instance = card_filter[0]
+    member_directory_link = url + "/community/" + str(community_instance.id) + "?source=members_directory"
     conversation = card_answers()
-    conversation.answer = """Here is a link to our member directory: %s""" % (member_directory_link)
+    conversation.answer = "Here is a link to view our member directory"
     conversation.card = card_instance
     conversation.user = user_instance
-    conversation.community = card_instance.community
-    conversation.created_at = time.time()
+    conversation.community = community_instance
+    conversation.created_at = TimeUtilities.current_time_in_sec()
+    conversation.internal_link = member_directory_link
+    conversation.preview_community = community_instance
+    conversation.preview_type = "directory"
+    conversation.api_version = 1
     conversation.save()
 
 
@@ -2905,101 +3117,6 @@ def update_community(res):
         return communty_serailized_object
 
     return "Not a valid community"
-
-
-def set_community_actions(community_instance):
-    '''function to set community action for community profiling'''
-
-    action_status = communityLevels.objects.filter(community=community_instance)
-
-    if not action_status:
-        # first level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 1"
-        instance.title = "Create onboarding room"
-        instance.sub_title = "Break the ice for new members. Tell what this community stands for."
-        instance.state = community_level_states.COMPLETE
-        instance.image = IMAGE_LEVEL_1
-        instance.save()
-
-        # second level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 2"
-        instance.title = "Invite your inner circle"
-        instance.sub_title = "Bring 5 trusted people you want to build this community with."
-        instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA else 5
-        instance.state = community_level_states.PENDING
-        instance.image = IMAGE_LEVEL_2
-        instance.save()
-
-        # third level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 3"
-        instance.title = "Community Directory"
-        instance.state = community_level_states.LOCKED
-        instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA else 10
-        instance.image = IMAGE_LEVEL_3
-        instance.save()
-
-        # fourth level
-        instance = communityLevels()
-        instance.community = community_instance
-        instance.level = "Level 4"
-        instance.title = "Growth"
-        instance.state = community_level_states.LOCKED
-        instance.joined_members = 0
-        instance.max_members = 1 if settings.IS_BETA else 10
-        instance.image = IMAGE_LEVEL_4
-        instance.save()
-
-
-def set_preview_object(instance, res, user_id):
-    if 'internal_link' in res and res['internal_link']:
-        set_preview_with_internal_link(instance, res, user_id)
-
-    if 'preview' in res:
-        set_preview_with_preview_dict(instance, res, user_id)
-
-
-def set_preview_with_internal_link(instance, res, user_id):
-    try:
-        internal_link = get_preview_url(res['internal_link'])
-        instance.internal_link = internal_link
-
-        if 'preview' not in res and internal_link is not None:
-            preview = get_preview_for_url(user_id, internal_link)
-            res['preview'] = preview
-    except:
-        remove_preview_instance(instance)
-
-
-def set_preview_with_preview_dict(instance, res, user_id):
-    try:
-        preview = res['preview']
-        instance.preview_type = preview['preview_type']
-        preview_community = Community.objects.get(pk=preview['community']["id"])
-        instance.preview_community = preview_community
-
-        if 'chatroom' in preview:
-            preview_chatroom = Collabcard.objects.get(pk=preview['chatroom']["id"])
-            instance.preview_chatroom = preview_chatroom
-
-        if 'internal_link' not in res:
-            if 'internal_link' in preview and preview['internal_link']:
-                instance.internal_link = get_preview_url(preview['internal_link'])
-    except:
-        remove_preview_instance(instance)
-
-
-def remove_preview_instance(instance):
-    instance.internal_link = None
-    instance.preview_community = None
-    instance.preview_chatroom = None
 
 
 @csrf_exempt
@@ -3163,7 +3280,9 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         og_tags = decode_meta_from_url(res['share_link'])
         card.og_tags = json.dumps(og_tags)
 
-    set_preview_object(card, res, user_instance.id)
+
+    preview_utilities = PreviewUtilities()
+    preview_utilities.set_preview_object(card, res, user_instance.id)
 
     is_intro_card = card_type == card_types.CARD_INTRO
     if not has_auto_approve_right and not is_intro_card:
@@ -3433,7 +3552,8 @@ def create_draft_collabcard(request, res=None):
         og_tags = decode_meta_from_url(res['share_link'])
         card.og_tags = json.dumps(og_tags)
 
-    set_preview_object(card, res, user_instance.id)
+    preview_utilities = PreviewUtilities()
+    preview_utilities.set_preview_object(card, res, user_instance.id)
 
     card.date_epoch = time.time()  # card creation time
     card.save()
@@ -3671,6 +3791,13 @@ def chatroom_rename(request):
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': card_instance},
                                        {})
+        chatroom_preview_update_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                                                       {'preview_chatroom': card_instance,
+                                                                        'preview_type': "chatroom"}, {})
+
+        if chatroom_preview_update_count:
+            preview_chatroom_id = card_instance.id
+            update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
 
     else:
         context = get_error_context(False, "send correct chatroom id in post params")
@@ -3974,6 +4101,11 @@ def fetch_share_url(request):
         except Exception as e:
             context = get_error_context(False, e.args)
             return JsonResponse(context)
+
+        if card_instance.type == card_types.CARD_MASTER_INTRO or card_instance.type == card_types.CARD_PURPOSE:
+
+            return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+
         chatroom_share = {}
         share = get_share_url_text(card_instance, member_id)
         chatroom_share['share_url'] = share['share_url']
@@ -4649,7 +4781,13 @@ def request_response(request, req_dict=None):
         'community_id': community_id,
         'accepted': accepted
     }
-    approve_or_decline_private_community(req_dict, request)
+
+    try:
+        approve_or_decline_private_community(req_dict, request)
+    except Exception as e:
+        context = get_error_context(False, e.args)
+
+        return JsonResponse(context, status = status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
     send_sync_notification.delay({'community_id': community_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -4722,7 +4860,7 @@ def approve_or_decline_private_community(req_dict, request):
             community_id = req_dict['community_id']
             member_id = req_dict['member_id']
 
-            post_introduction_card_for_community(community_id, member_id, request)
+            post_introduction_card_for_community(community_id, member_id)
 
             # removing guest status from all chatrooms after access
 
@@ -5470,7 +5608,10 @@ def fetch_chatroom_version_2(request):
 
 
 def conversation_meta(request):
-    '''api to perfrom firebase operations on conversation for real time messaging'''
+    """api to perform firebase operations on conversation for real time messaging"""
+
+    device_id = RequestUtilities.get_device_id_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
 
     conversation_id = request.GET.get('conversation_id')
     chatroom_id = request.GET.get('chatroom_id')
@@ -5493,17 +5634,25 @@ def conversation_meta(request):
 
     answer_id = NumberUtilities.get_integer_from_string(conversation_id)
     conversation_instances = card_answers.objects\
-        .filter(card=card_instance, id__gte=answer_id)\
-        .filter(~Q(user__id=user_id))
+        .filter(card=card_instance, id__gte=answer_id)
 
     conversation_list = []
 
     for conversation in conversation_instances:
+
+        if conversation.device_id == device_id and\
+                conversation.platform == platform_code:
+            continue
         
         if not is_draft_conversation(conversation, user_id):
             conversation_serializer = conversationSerializer(conversation,
                                                              fetch_reply=True,
                                                              current_user_id=user_id)
+            preview = generate_internal_link_preview_for_conversation(conversation, user_id)
+
+            if preview:
+                conversation_serializer['preview'] = preview
+
             conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
                 conversation.created_at)
             conversation_list.append(conversation_serializer)
@@ -5666,11 +5815,29 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             context['deleted_by'] = ans.deleted_by_user.id
 
         if ans.internal_link:
+
             try:
-                context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
-                                                         community_instance=ans.preview_community,
-                                                         chatroom_instance=ans.preview_chatroom,
-                                                         send_preview_text=False)
+                if ans.preview_chatroom and ans.preview_type == "chatroom":
+                    key = "chatroom_preview_"+str(ans.preview_chatroom.id)
+                    preview = CacheImpl.get_cache(key)
+
+                    if preview:
+                        context['preview'] = preview
+
+                    else:
+                        context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
+                                                                 community_instance=ans.preview_community,
+                                                                 chatroom_instance=ans.preview_chatroom,
+                                                                 send_preview_text=False)
+                        update_preview_of_chatroom_in_cache.delay({'preview_object': context['preview'],
+                                                                   'chatroom_id': ans.preview_chatroom.id,
+                                                                   'conversation_id':ans.id})
+
+                else:
+                    context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
+                                                             community_instance=ans.preview_community,
+                                                             chatroom_instance=ans.preview_chatroom,
+                                                             send_preview_text=False)
             except Exception as e:
                 error_logger.error(e.args)
 
@@ -5714,10 +5881,14 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
 
     purpose_card = False
     intro_card = False
-    if card_status['type'] == card_types.CARD_PURPOSE:
+    master_intro_card = False
+
+    if card_status['type'] == card_types.CARD_PURPOSE :
         purpose_card = True
     elif card_status['type'] == card_types.CARD_INTRO:
         intro_card = True
+    elif card_status['type'] == card_types.CARD_MASTER_INTRO:
+        master_intro_card = True
 
     final_dict = None
     if creator and card_status['mute_status']:
@@ -5744,7 +5915,7 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
     actions = []
 
     for action in final:
-        if purpose_card:
+        if purpose_card or master_intro_card:
             if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
@@ -5755,6 +5926,9 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
             if promoter or creator:
                 if action['id'] == chatroom_actions.ACTION_RENAME or action['id'] == chatroom_actions.ACTION_DELETE:
                     continue
+
+            if action['id'] == chatroom_actions.ACTION_INVITE:
+                continue
 
         elif intro_card and creator:
             if action['id'] == chatroom_actions.ACTION_FOLLOW or \
@@ -5968,7 +6142,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance)
 
-    context['participant_count'] = collabcardState.objects.filter(follow_status=True, card=card_instance,
+    if card_instance.type != card_types.CARD_MASTER_INTRO:
+        context['participant_count'] = collabcardState.objects.filter(follow_status=True, card=card_instance,
                                                                   remove=None, is_tagged=False).count()
 
     conversation_users_meta = get_chatroom_user_images_for_web(card_instance.id)
@@ -5977,6 +6152,15 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                                          conversation_users_meta['last_conversation_user'],
                                                          conversation_users_meta['second_last_conversation_user'])
     context['conversation_users'] = conversation_users
+
+    if card_instance.type == card_types.CARD_MASTER_INTRO and user_instance:
+        update_models_for_syncing_apis(SyncTypes.CHATROOM, {
+            'community': card_instance.community,
+            'user': user_instance,
+            'card__type': card_types.CARD_INTRO,
+            'state': 0}, {'state': 1,
+                          'external_seen': True,
+                          'expiry_time': get_expiry_time_of_chatroom()})
 
     return context
 
@@ -6211,16 +6395,28 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                             )
 
     context['chatroom_actions'] = chatroom_actions
-    context['participant_count'] = collabcardState.objects.filter(follow_status=True,
-                                                                  card=card_instance, remove=None,
-                                                                  is_tagged=False).count()
+
+    if card_instance.type != card_types.CARD_MASTER_INTRO:
+        context['participant_count'] = collabcardState.objects.filter(follow_status=True,
+                                                                      card=card_instance, remove=None,
+                                                                      is_tagged=False).count()
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
+
     if not conversation_member_filter.exists():
         placeholder = create_introduction_card_placeholder(card_instance, user_id)
         if placeholder:
             context['placeholder'] = placeholder
 
     save_the_latest_conversation(card_instance, user_id)
+
+    if card_instance.type == card_types.CARD_MASTER_INTRO and user_instance:
+        update_models_for_syncing_apis(SyncTypes.CHATROOM, {
+            'community': card_instance.community,
+            'user': user_instance,
+            'card__type': card_types.CARD_INTRO,
+            'state': 0}, {'state': 1,
+                         'external_seen': True,
+                         'expiry_time': get_expiry_time_of_chatroom()})
 
     return context
 
@@ -6253,20 +6449,20 @@ def save_the_latest_conversation(card_instance, user_id):
 
                 if last_seen_conversation.id != last_conversation.id:
 
-                    update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                                   {'card': card_instance, 'user': user_instance},
-                                                   {'last_seen_conversation': last_conversation,
-                                                    'expiry_time': expiry_time})
-
+                    collabcard_state_instance.last_seen_conversation = last_conversation
+                    collabcard_state_instance.expiry_time = expiry_time
+                    collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+                    collabcard_state_instance.save()
                     update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                              last_conversation_id=last_conversation.id,
                                                              unseen_count=0)
 
             else:
-                update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                               {'card': card_instance, 'user': user_instance},
-                                               {'last_seen_conversation': last_conversation,
-                                                'expiry_time': expiry_time})
+
+                collabcard_state_instance.last_seen_conversation = last_conversation
+                collabcard_state_instance.expiry_time = expiry_time
+                collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+                collabcard_state_instance.save()
 
                 update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
                                                          last_conversation_id=last_conversation.id,
@@ -7068,7 +7264,13 @@ def create_conversation(request):
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
+    platform_code = RequestUtilities.get_platform_code(request)
+
+    device_id = RequestUtilities.get_device_id_from_headers(request)
+
     res = json.loads(request.body)
+
+    temporary_id = res.get('temporary_id')
 
     is_guest = False
     if 'aj' in res and 'source_id' in res:
@@ -7079,6 +7281,9 @@ def create_conversation(request):
     user_instance = User.objects.get(id=member_id)
 
     current_state = members_state(request, {'community_id': card_instance.community.id, 'member_id': user_instance.id})
+
+    if card_instance.type == card_types.CARD_MASTER_INTRO:
+        return JsonResponse({'success': False, 'error_message': "Responding is disabled"})
 
     if card_instance.type == card_types.CARD_PURPOSE and\
             current_state['state'] != member_states.ADMIN:
@@ -7112,14 +7317,16 @@ def create_conversation(request):
     ans.created_at = time.time()
     ans.has_files = has_files
     ans.api_version = 0
+    ans.device_id = device_id
+    ans.platform = platform_code
     if replied_conversation:
         ans.reply = replied_conversation
 
     ans.attachment_count = 1 if has_files else 0
     ans.attachments_uploaded = False
 
-    set_preview_object(ans, res, member_id)
-
+    preview_utilities = PreviewUtilities()
+    preview_utilities.set_preview_object(ans, res, member_id)
     ans.save()
 
     # saving the og tags if present
@@ -7149,6 +7356,11 @@ def create_conversation(request):
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id)
 
+    if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': card_instance,
+                                                            'preview_type': "chatroom"}):
+        preview_chatroom_id = card_instance.id
+        update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
+
     update_activity_in_chatroom_for_conversation_creation(card_instance.id, user_id=user_id)
     update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'],
                                                                  has_files=has_files)
@@ -7157,9 +7369,10 @@ def create_conversation(request):
         update_last_answer_id(card_instance.id, ans.id)
 
     context = {"current_user_id": member_id, "fetch_reply": True}
-    conversation = CardAnswersDBSyncSerializer(ans, context=context, many=False)
+    conversation = CardAnswersDBSyncSerializer(ans, context=context, many=False).data
+    conversation['temporary_id'] = temporary_id
 
-    return JsonResponse({'success': True, 'id': ans.id, 'conversation': conversation.data})
+    return JsonResponse({'success': True, 'id': ans.id, 'conversation': conversation})
 
 
 def conversation_tagging(request, res, card_instance, user_instance, member_id):
@@ -7204,7 +7417,6 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
         ~Q(user=user_id)).update(
         expiry_time=None, updated_at=time.time())
 
-    print(update_status)
 
     # the person who is making the conversation marking his chatroom active for expiry time
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
@@ -7488,6 +7700,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                'is_tagged': is_tagged,
                                                'external_seen': True,
                                                'mute_status': mute_status,
+                                               'state': state
                                            })
 
 
@@ -8155,33 +8368,41 @@ def fetch_chatroom_feed_version_1(request):
 
     state_filter = collabcardState.objects.filter(community=community_id,
                                                   card__is_pending=False,
-                                                  card__is_deleted=False).distinct('card_id').order_by('-card_id')
+                                                  card__is_deleted=False,
+                                                  user=member_id).exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
 
     chatrooms = []
     context = {}
     if not chatroom_id and not scroll_direction:
 
-        last_seen = state_filter.filter(user=member_id).filter(~Q(state=0)).order_by('-card_id')
+        last_seen = state_filter.filter(~Q(state=0)).order_by('-card_id')
 
         if not last_seen.exists():
-            chatroom_list = pagination(state_filter, page, paginate_by=5)
+
+            if active:
+                chatroom_list = state_filter.filter(Q(expiry_time=None)
+                                                    | Q(expiry_time__gt=current_time)).order_by('card_id')[:5]
+            else:
+                chatroom_list = state_filter.filter(~Q(expiry_time=None)
+                                                    & Q(expiry_time__lte=current_time)).order_by('card_id')[:5]
+
             chatrooms = get_chatrooms_version_1(chatroom_list, member_id, is_ios=is_ios)
         else:
 
             last_seen = last_seen[0]
 
             if active:
-                upward = state_filter.filter(card__lte=last_seen.card.id, user=member_id).filter(
+                upward = state_filter.filter(card__lte=last_seen.card.id).filter(
                     Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-card')[:3]
-                downward = state_filter.filter(card__gt=last_seen.card.id, user=member_id).filter(
+                downward = state_filter.filter(card__gt=last_seen.card.id).filter(
                     Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('card')[:3]
 
             else:
 
-                upward = state_filter.filter(card__lte=last_seen.card.id, user=member_id).filter(
+                upward = state_filter.filter(card__lte=last_seen.card.id).filter(
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:3]
 
-                downward = state_filter.filter(card__gt=last_seen.card.id, user=member_id).filter(
+                downward = state_filter.filter(card__gt=last_seen.card.id).filter(
                     (~Q(expiry_time=None)) & Q(expiry_time__lte=current_time)).order_by('card')[:3]
 
             chatroom_filter = upward | downward
@@ -8194,16 +8415,14 @@ def fetch_chatroom_feed_version_1(request):
         if scroll_direction == 0:  # upward scroll
 
             if active:
-                upward = state_filter.filter(card__lt=chatroom_id, user=member_id).filter(
+                upward = state_filter.filter(card__lt=chatroom_id).filter(
                     Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-card')[:5]
 
             else:
-                upward = state_filter.filter(card__lt=chatroom_id, user=member_id).filter(
+                upward = state_filter.filter(card__lt=chatroom_id).filter(
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:5]
-                print(upward.query)
 
             upward = reverse_conversations_for_upward_pagination(upward)
-            # print(upward)
             chatrooms = get_chatrooms_version_1(upward, member_id, active, is_ios=is_ios)
 
         elif scroll_direction == 1:  # downward scroll
@@ -8420,7 +8639,9 @@ def upload_files(request):
             send_follow_notification.delay(card_id=chatroom_id, user_id=answer_instance.user.id,
                                            answer=answer_instance.answer)
 
-        conversation = get_conversation_instance_for_db_synching(answer_instance, current_user_id=member_id)
+        conversation_context = {"current_user_id": member_id, "fetch_reply": True}
+        conversation = CardAnswersDBSyncSerializer(answer_instance, context=conversation_context, many=False).data
+
 
     elif 'poll_id' in body and body['poll_id']:
 
@@ -8678,7 +8899,8 @@ def upload_conversation_attachments(body, member_id):
                                        answer=conversation_instance.answer)
         update_my_chatrooms_for_users(chatroom_id)
 
-    conversation = get_conversation_instance_for_db_synching(conversation_instance, current_user_id=member_id)
+    conversation_context = {"current_user_id": member_id, "fetch_reply": True}
+    conversation = CardAnswersDBSyncSerializer(conversation_instance, context=conversation_context, many=False).data
 
     return conversation
 
@@ -10273,8 +10495,7 @@ def config(request):
     version_code = get_version_code_from_headers(request)
     Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
 
-    # sendign mobile number exists key
-
+    # sending mobile number exists key
     mobile_no_exists = userMobiles.objects.filter(user=member_id).exists()
 
     context['success'] = True
@@ -10283,17 +10504,16 @@ def config(request):
     access = is_user_community_part(member_id)
     context['access'] = access
 
-    ##mixpanel changes
+    # mixpanel changes
     try:
         user_detail = get_mixpanel_statistics(member_id)
         context['user_detail'] = user_detail
     except Exception as e:
         error_logger.error(e)
 
-
     context['updatePriority'] = 0
 
-    #set installed flags in case of mobile devices
+    # set installed flags in case of mobile devices
     if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
         set_installed_flag(member_id)
 
@@ -10341,7 +10561,14 @@ def get_mixpanel_statistics(member_id):
                                                                                                     time.localtime(
                                                                                                         user_profile.created_at))
 
-    member_filter = Members.objects.filter(member_id=member_id, state=member_states.MEMBER)
+    member_states_list = [
+        member_states.ADMIN,
+        member_states.PENDING_MEMBER,
+        member_states.MEMBER,
+        member_states.PROFILE_UNAVAILABLE
+    ]
+
+    member_filter = Members.objects.filter(member_id=member_id, state__in=member_states_list)
 
     user_metrics['count_communities_joined'] = member_filter.count()
 
@@ -10752,7 +10979,11 @@ def edit_community_data(community_instance, user_instance, edit_field):
             member_directory_route = """route://members_directory?community_id=%s&community_name=%s""" % (
                 str(community_instance.id), quote(community_instance.name))
             bubble_text = "<<" + user_name + """ edited member directory. Tap to view.""" + "|" + member_directory_route + ">>"
-            edit_announcement_bubbles(card_instance, user_instance, bubble_text)
+            master_intro = ModelUtilities.get_model_filter(Collabcard,{'community':community_instance,
+                                                                          'type': card_types.CARD_MASTER_INTRO})
+            if master_intro:
+                card_instance = master_intro[0]
+                edit_announcement_bubbles(card_instance, user_instance, bubble_text)
 
         # setting the updation time of edited community
 
@@ -12272,10 +12503,11 @@ def delete_conversation(request):
         update_conversation_delete_status(conversation, current_user_instance, reason=reason, tag_id=tag_id)
 
         conversation.refresh_from_db()
-        
-        conversation_dict = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
-        community_id = conversation_dict['community_id']
+
+        conversation_context = {"current_user_id": member_id, "fetch_reply": True}
+        conversation_dict = CardAnswersDBSyncSerializer(conversation, context=conversation_context, many=False).data
         conversation_list.append(conversation_dict)
+        community_id = conversation_dict['community_id']
 
     if community_id:
         send_sync_notification.delay({'community_id': community_id,
@@ -12341,7 +12573,9 @@ def edit_conversation(request):
                                     "you are not the conversation creator.Only conversation creator can edit his/her message")
         return JsonResponse(context)
 
-    conversation_dict = get_conversation_instance_for_db_synching(conversation, current_user_id=member_id)
+    context = {"current_user_id": member_id, "fetch_reply": True}
+    conversation_dict = CardAnswersDBSyncSerializer(conversation, context=context, many=False).data
+
     send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                   'community_id': conversation.community.id})
 
@@ -13678,7 +13912,8 @@ class SyncChatrooms(APIView):
             state_filter = collabcardState.objects.filter(card=chatroom_id, user=member_id)
 
             if state_filter.exists():
-                chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id)
+                chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id,
+                                                                          last_updated=last_updated)
             else:
                 chatroom = get_chatroom_data_in_case_of_guest(chatroom_id, member_id)
 
@@ -13785,6 +14020,13 @@ class SyncChatrooms(APIView):
                 if data[32] > 0:
                     chatroom['end_date'] = data[32]
 
+                chatroom['duration'] = data[41]
+
+                if data[42]:
+                    chatroom['location'] = data[42]
+                    chatroom['location_lat'] = data[43]
+                    chatroom['location_long'] = data[44]
+
             if data[36]:
                 chatroom['og_tags'] = json.loads(data[36])
 
@@ -13799,11 +14041,6 @@ class SyncChatrooms(APIView):
                 max_last_updated = data[39]
 
             chatroom['community_name'] = data[40]
-            if chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
-                chatroom['duration'] = data[41]
-                chatroom['location'] = data[42]
-                chatroom['location_lat'] = data[43]
-                chatroom['location_long'] = data[44]
 
             chatrooms.append(chatroom)
 
@@ -14117,8 +14354,9 @@ class SyncChatroomsDiff(APIView):
             if data[32] > 0:
                 chatroom['end_date'] = data[32]
 
-            if chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
-                chatroom['duration'] = data[41]
+            chatroom['duration'] = data[41]
+
+            if data[42]:
                 chatroom['location'] = data[42]
                 chatroom['location_lat'] = data[43]
                 chatroom['location_long'] = data[44]
@@ -14281,49 +14519,351 @@ class SyncConversation(APIView):
         chatroom_expire_status = query_params.get('chatroom_expire_status', '')
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
+        max_last_updated = 0
+        conversations = []
 
         if chatroom_id:
-            # sending all the conversations in a particular chatroom
+            # seen conversation support for old versions of android users to be removed after stable release
             seen_conversation = request.GET.get('seen_conversation')
+
             if seen_conversation:
                 conversation_filter = card_answers.objects.filter(card=chatroom_id, id__gt=seen_conversation).order_by(
-                    'last_updated')
-            elif last_updated:
-                conversation_filter = card_answers.objects.filter(card=chatroom_id,
-                                                                  last_updated__gt=last_updated).order_by('last_updated')
+                    'id')
+                conversation_filter = pagination(conversation_filter, page, paginate_by)
+                context = {"current_user_id": member_id, "fetch_reply": True}
+                conversations_data = CardAnswersDBSyncSerializer(conversation_filter, context=context, many=True)
+                conversations = conversations_data.data
+
+                max_last_updated = get_attachments_filtered_conversations(conversation_filter, conversations, member_id)
+
+                context = {
+                    'conversations': conversations,
+                }
+
+                if max_last_updated:
+                    context['max_last_updated'] = max_last_updated
+
+                return JsonResponse(context)
+
             else:
-                conversation_filter = card_answers.objects.filter(card=chatroom_id).order_by('last_updated')
+                chatroom_list = [chatroom_id]
+                conversation_data, files_answer_id = get_conversation_data_based_on_chatroom_list(chatroom_list, page,
+                                                                                                  paginate_by,
+                                                                                                  last_updated)
+                conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
+                conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
+                                                                                       conversation_files_dict,
+                                                                                       member_id)
+
         elif community_id:
-            # sending all the conversation in a particular community
-            if not last_updated:
-                conversation_filter = card_answers.objects.filter(community=community_id).order_by('last_updated')
-            else:
-                conversation_filter = card_answers.objects.filter(community=community_id,
-                                                                  last_updated__gt=last_updated).order_by('last_updated')
+
+            chatroom_list = self.get_user_community_related_chatroom_list(chatroom_status, chatroom_expire_status,
+                                                                          member_id, community_id)
+            conversation_data, files_answer_id = get_community_conversation_data_based_on_chatroom_list(chatroom_list,
+                                                                                                        page,
+                                                                                                        paginate_by,
+                                                                                                        last_updated,
+                                                                                                        community_id)
+            conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
+            conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
+                                                                                   conversation_files_dict,
+                                                                                   member_id)
+
         else:
-            conversation_filter = get_user_related_conversations(chatroom_status, chatroom_expire_status,
-                                                                 member_id, last_updated)
 
-        conversation_filter = conversation_filter.select_related('preview_community', 'preview_chatroom')
-
-        conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
-
-        context = {"current_user_id": member_id, "fetch_reply": True}
-        conversations_data = CardAnswersDBSyncSerializer(conversation_list, context=context, many=True)
-        conversations = conversations_data.data
-
-        max_last_updated = get_attachments_filtered_conversations(conversation_list,
-                                                                  conversations,
-                                                                  member_id)
+            chatroom_list = self.get_user_related_chatroom_list(chatroom_status, chatroom_expire_status, member_id)
+            conversation_data, files_answer_id = get_conversation_data_based_on_chatroom_list(chatroom_list, page,
+                                                                                              paginate_by, last_updated)
+            conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
+            conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
+                                                                                   conversation_files_dict,
+                                                                                   member_id)
 
         context = {
-            'conversations': conversations,
+            'conversations': conversations
         }
 
         if max_last_updated:
             context['max_last_updated'] = max_last_updated
 
         return JsonResponse(context)
+
+    def get_processed_conversation_data(self, conversation_data, conversation_files_dict, member_id):
+
+        conversation_list = []
+        max_last_updated = 0
+
+        for conversation in conversation_data:
+            conversation_context = dict()
+            conversation_context['id'] = conversation[0]
+            conversation_context['answer'] = conversation[1]
+            conversation_context['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(conversation[2])
+            conversation_context['date'] = TimeUtilities.convert_epoch_time_in_date(conversation[2])
+            conversation_context['created_epoch'] = conversation[2]
+            conversation_context['state'] = conversation[3]
+            conversation_context['is_edited'] = conversation[4]
+            conversation_context['has_files'] = conversation[5]
+            conversation_context['attachment_count'] = conversation[6]
+            conversation_context['attachments_uploaded'] = conversation[7]
+            conversation_context['chatroom_id'] = conversation[8]
+            conversation_context['member_id'] = conversation[9]
+            conversation_context['community_id'] = conversation[10]
+
+            if self.is_attachments_uploaded(conversation_context['attachment_count'],
+                                            conversation_context['attachments_uploaded'],
+                                            member_id,
+                                            conversation[18],
+                                            conversation_context['member_id']):
+                continue
+
+            if conversation[11]:
+                conversation_context['og_tags'] = json.loads(conversation[11])
+
+            if conversation[12]:
+                conversation_context['deleted_by'] = conversation[12]
+
+            if conversation[14]:
+                conversation_context['reply_conversation'] = conversation[14]
+
+            conversation_files = conversation_files_dict.get(conversation_context['id'])
+
+            if conversation_context['has_files'] and conversation_files:
+                conversation_files_response = self.process_conversation_files(conversation_files)
+                conversation_context['images'] = conversation_files_response['images']
+                conversation_context['pdf'] = conversation_files_response['pdf']
+                conversation_context['audios'] = conversation_files_response['audios']
+                conversation_context['attachments'] = conversation_files_response['attachments']
+
+                if conversation_files_response['location']:
+                    conversation_context['location'] = conversation_files_response['location']
+
+            if max_last_updated < conversation[15]:
+                max_last_updated = conversation[15]
+
+            if conversation[13]:
+
+                if conversation[16] and conversation[17] == "chatroom":
+
+                    preview_chatroom_id = conversation[16]
+                    key = CHATROOM_PREVIW_CACHE_KEY % (str(preview_chatroom_id),str(conversation_context['id']))
+                    preview = CacheImpl.get_cache(key)
+
+                    if preview:
+                        conversation_context['preview'] = preview
+
+                    else:
+
+                        try:
+                            conversation_context['preview'] = get_preview_for_url(preview_url=conversation[13])
+                        except Exception as e:
+                            error_logger.error("error occured"+ str(e.args))
+                            continue
+
+                        update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_chatroom_id,
+                                                                    'preview_url': conversation[13],
+                                                                    'preview_object': conversation_context['preview'],
+                                                                    'conversation_id': conversation_context['id']})
+                else:
+
+                    try:
+                        conversation_context['preview'] = get_preview_for_url(member_id=member_id,
+                                                                          preview_url=conversation[13])
+                    except Exception as e:
+                        error_logger.error("error occured"+ str(e.args))
+                        continue
+
+            conversation_list.append(conversation_context)
+
+        return conversation_list, max_last_updated
+
+    def process_conversation_files(self, conversation_files):
+
+        conversation_files_response = {
+            'images': [],
+            'pdf': [],
+            'audios': [],
+            'attachments': [],
+            'location': {}
+        }
+        attachment_list = []
+
+        for file in conversation_files:
+
+            if file['type'] == 'image' and  file['file_url']:
+                img_attachment = {'image_url': file['file_url'], 'index': file['index'], 'type': file['type']}
+                attachment_image_context = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
+
+                if file['height']:
+                    img_attachment['height'] = file['height']
+                    attachment_image_context['height'] = file['height']
+
+                if file['width']:
+                    img_attachment['width'] = file['width']
+                    attachment_image_context['width'] = file['width']
+
+                conversation_files_response['images'].append(img_attachment)
+                attachment_list.append(attachment_image_context)
+
+            elif file['type'] == 'video' and  file['file_url']:
+                attachment_video_context = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
+
+                if file['height']:
+                    attachment_video_context['height'] = file['height']
+
+                if file['width']:
+                    attachment_video_context['width'] = file['width']
+
+                if file['thumbnail_url']:
+                    attachment_video_context['thumbnail_url'] = file['thumbnail_url']
+
+                attachment_list.append(attachment_video_context)
+
+            elif file['type'] == "audio" and file['file_url']:
+                audio_attachment = {'audio_url': file['file_url'], 'index': file['index'], 'type': file['type']}
+
+                if file['height']:
+                    audio_attachment['height'] = file['height']
+
+                if file['width']:
+                    audio_attachment['width'] = file['width']
+
+                conversation_files_response['audio'].append(audio_attachment)
+
+            elif file['type'] == "pdf" and file['file_url']:
+                pdf_attachment = {'pdf_file': file['file_url'], 'index': file['index'], 'type': file['type']}
+
+                if file['height']:
+                    pdf_attachment['height'] = file['height']
+
+                if file['width']:
+                    pdf_attachment['width'] = file['width']
+
+                conversation_files_response['pdf'].append(pdf_attachment)
+
+            elif file['type'] == "location":
+                location = {
+                    'location_name': file['location_name'],
+                    'location_lat': file['location_lat'],
+                    'location_long': file['location_long']
+                }
+
+                conversation_files_response['location'] = location
+
+        conversation_files_response['attachments'] = attachment_list
+        return conversation_files_response
+
+
+    def get_user_related_chatroom_list(self, chatroom_status, chatroom_expire_status, member_id):
+        """
+            This function returns conversation filter based on different conditions of chatroom
+            chatroom_status = followed/unfollowed
+            chatroom_expire_status = active/ inactive
+        """
+        chatroom_list = []
+        if chatroom_status and chatroom_expire_status:
+
+            if chatroom_status == "followed" and chatroom_expire_status == "active":
+                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
+
+            elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
+                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
+
+            elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
+                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
+
+            elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
+                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
+
+        elif chatroom_status:
+
+            if chatroom_status == "followed":
+                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict)
+
+            elif chatroom_status == "unfollowed":
+                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict)
+
+        elif chatroom_expire_status:
+
+            if chatroom_expire_status == "active":
+                condition_dict = {'user': member_id, 'remove': None}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
+
+            elif chatroom_expire_status == "inactive":
+                condition_dict = {'user': member_id, 'remove': None}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
+
+        else:
+            condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict)
+
+        return chatroom_list
+
+    def get_user_community_related_chatroom_list(self, chatroom_status, chatroom_expire_status, member_id,
+                                                 community_id):
+        """
+            This function returns conversation filter based on different conditions of community chatroom
+            chatroom_status = followed/unfollowed
+            chatroom_expire_status = active/ inactive
+        """
+        chatroom_list = []
+        if chatroom_status and chatroom_expire_status:
+
+            if chatroom_status == "followed" and chatroom_expire_status == "active":
+                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None, 'community': community_id}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
+
+            elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
+                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None, 'community': community_id}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
+
+            elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
+                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None, 'community': community_id}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
+
+            elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
+                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None, 'community': community_id}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
+
+        elif chatroom_status:
+
+            if chatroom_status == "followed":
+                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None, 'community': community_id}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict)
+
+            elif chatroom_status == "unfollowed":
+                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None, 'community': community_id}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict)
+
+        elif chatroom_expire_status:
+
+            if chatroom_expire_status == "active":
+                condition_dict = {'user': member_id, 'remove': None, 'community': community_id}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
+
+            elif chatroom_expire_status == "inactive":
+                condition_dict = {'user': member_id, 'remove': None, 'community': community_id}
+                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
+
+        else:
+            condition_dict = {'user': member_id, 'follow_status': False, 'remove': None, 'community': community_id}
+            chatroom_list = get_id_list_of_chatrooms(condition_dict)
+
+        return chatroom_list
+
+    def is_attachments_uploaded(self, attachment_count, attachment_uploaded, member_id, api_version, conversation_creator_id):
+
+        if (attachment_count > 0 and attachment_uploaded is False) \
+                                and ((NumberUtilities.get_integer_from_string(member_id)!= conversation_creator_id)
+                                or api_version <= 0):
+            return True
+
+        return False
 
 
 class SyncConversationDiff(APIView):
@@ -14408,7 +14948,6 @@ def get_user_related_conversations(chatroom_status, chatroom_expire_status, memb
         chatroom_expire_status = active/ inactive
     """
     chatroom_list = []
-
     if chatroom_status and chatroom_expire_status:
 
         if chatroom_status == "followed" and chatroom_expire_status == "active":
@@ -14661,8 +15200,13 @@ def sync_members(request):
     if members_type == "guest":
 
         if chatroom_id:
-            guest_filter = collabcardState.objects.filter(is_guest=True, card=chatroom_id, remove=None).order_by('id')
 
+            if not last_updated:
+                guest_filter = collabcardState.objects.filter(is_guest=True, card=chatroom_id, remove=None).order_by('id')
+            else:
+                guest_filter = collabcardState.objects.filter(is_guest=True, card=chatroom_id,
+                               remove=None,
+                               updated_at__gt=last_updated).order_by('id')
         elif community_id:
             guest_filter = collabcardState.objects.filter(is_guest=True, community=community_id).distinct(
                 'user').order_by('user')
@@ -14787,7 +15331,7 @@ class SyncCommunities(APIView):
 
         paginate_by = query_params.get('page_size', 200)
 
-        last_updated = query_params.get('last_updated', None)
+        last_updated = query_params.get('last_updated', 0)
 
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
@@ -14800,7 +15344,7 @@ class SyncCommunities(APIView):
             return JsonResponse(communities)
 
         if chatroom_id:
-            chatroom_context = fetch_community_of_chatroom(chatroom_id, member_id)
+            chatroom_context = fetch_community_of_chatroom(chatroom_id, member_id, last_updated=last_updated)
 
             return JsonResponse(chatroom_context)
 
@@ -14846,17 +15390,39 @@ class SyncCommunities(APIView):
             return JsonResponse(communities)
 
 
-def fetch_community_of_chatroom(chatroom_id, member_id):
+def fetch_community_of_chatroom(chatroom_id, member_id, last_updated=0):
 
-    state_filter = Collabcard.objects.filter(id=chatroom_id).select_related('community')
+    community_instance = Collabcard.get_community_of_chatroom_or_none(chatroom_id)
 
-    if state_filter.exists():
-        temp = CommunitySerializerV1([state_filter[0].community], context={"current_user_id": member_id}, many=True)
+    if not community_instance:
+        return {'communities': []}
 
-        chatroom_context =  {'communities': temp.data}
+    engage_filter = ModelUtilities.get_model_filter(Member_Engage, {'community_id': community_instance,
+                                                                    'member_id': member_id})
+    if engage_filter.exists():
+        last_updated_filter = engage_filter.filter(updated_at__gt=last_updated)
 
+        if last_updated_filter:
+            temp = CommunitySerializerV1([last_updated_filter[0].community_id], context={"current_user_id": member_id},
+                                         many=True)
+            community_context = temp.data
+            chatroom_context = {'communities': community_context, 'last_updated':last_updated_filter[0].updated_at}
+
+            return chatroom_context
+
+        else:
+            return {'communities': []}
     else:
-        chatroom_context = get_error_context(False, "in-correct chatroom id")
+        state_filter = Collabcard.objects.filter(id=chatroom_id).select_related('community')
+
+        if state_filter.exists():
+            temp = CommunitySerializerV1([state_filter[0].community], context={"current_user_id": member_id},
+                                         many=True)
+
+            chatroom_context = {'communities': temp.data}
+
+        else:
+            chatroom_context = {'communities': []}
 
     return chatroom_context
 

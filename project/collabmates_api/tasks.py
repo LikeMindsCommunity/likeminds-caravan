@@ -29,7 +29,7 @@ import json
 import requests
 from .serializers import CollabcardPollsSerializer
 from .notification import get_title_from_collabcard,send_intro_room_evening_notifications
-from .static_text import CREATE_CONVERSATION_API_END_POINT
+from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -822,62 +822,6 @@ def update_report_count_in_member_engage(user, community, is_owner=False, parent
     Member_Engage.objects.filter(member_id=user,
                                  community_id=community).update(open_reports=report_count,
                                                                 updated_at=time.time())
-
-
-@shared_task
-def post_owner_message_template_in_intro_room(community_id, user_id):
-
-    user_instance = User.get_user_or_raise_exception(user_id)
-    community_instance = Community.get_community_or_raise_exception(community_id)
-
-    is_member = Members.is_community_member(community_instance, user_instance)
-
-    if not is_member:
-        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at is_member condition")
-        return
-
-    owner_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
-
-    if owner_user_instance is None:
-        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner existence check")
-        return
-
-    template = MessageTemplate.objects.filter(community=community_instance, user=owner_user_instance)
-
-    if not template.exists():
-        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at template existence check")
-        return
-
-    intro_filter = Collabcard.objects.filter(community=community_instance,
-                                             user=user_instance,
-                                             type=card_types.CARD_INTRO)
-
-    if not intro_filter.exists():
-        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at intro room existence check")
-        return
-
-    chatroom = intro_filter[0]
-
-    if chatroom.user.id == owner_user_instance.id:
-        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner id and chatroom creator id matching check")
-        return
-
-    conversation_text = template[0].message
-
-    api_url = CREATE_CONVERSATION_API_END_POINT
-
-    payload = {
-        "chatroom_id": chatroom.id,
-        "text": conversation_text
-    }
-
-    headers = {
-        'x-member-id': str(owner_user_instance.id)
-    }
-
-    response = request_api("POST", api_url, headers, payload)
-    info_logger.info(
-        f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, response status_code = {response.status_code}")
 
 
 def request_api(method, api_url, headers, payload):

@@ -1,6 +1,9 @@
 from django.conf import settings
 SERVER_URL = settings.URL
 
+if SERVER_URL is None:
+    SERVER_URL = 'https://beta.likeminds.community'
+
 # variables
 HOURS_24 = 86400
 #HOURS_24 = 200
@@ -348,6 +351,7 @@ EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%S added you as a host for %s in %s"
 EVENT_CO_HOST_NOTIFICATION_ROUTE = 'route://chatroom_detail?chatroom_id=%s'
 EVENT_NOTIFICATIONS_TITLE = "Event Reminder!"
 CREATE_CONVERSATION_API_END_POINT = f"{settings.URL}/api/conversation/create"
+UPLOAD_FILES_V1_API_END_POINT = f"{settings.URL}/api/v1/upload_files"
 ONLINE_EVENT_NOTIFICATION_SUB_TITLE = 'is going to start soon. Please join it online now.'
 ONLINE_EVENT_NOTIFICATION_ROUTE = 'route://browser?link=%s'
 OFFLINE_EVENT_NOTIFICATION_24_H_SUB_TITLE = 'is taking place tomorrow. Please make arrangements to reach there on time.'
@@ -359,3 +363,8 @@ POLL_EXPIRY_NOTIFICATION_ROUTE = 'route://poll_chatroom?chatroom_id=%s&poll_end=
 
 MEMBER_LEFT_COMMUNITY_NOTIFICATION_SUB_TITLE = "%s has left your community."
 COMMUNITY_DETAIL_ROUTE = f"route://community?community_id=%s&community_name=%s"
+
+MASTER_INTRO_TITLE_TEXT = "This chat room has introductions of all members of the community. Greet members in their respective intro rooms to make them feel welcomed."
+MASTER_INTRO_HEADER = "Introductions "+u"\U0001F590"
+
+CHATROOM_PREVIW_CACHE_KEY = "chatroom_preview_%s_%s"

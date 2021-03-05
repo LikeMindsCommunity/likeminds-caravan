@@ -126,16 +126,18 @@ class BannerImpl(BannerManager):
         return MarketingBanner.objects.filter(start_epoch_time__gte=start_time,
                                               end_epoch_time__lte=end_time).order_by('-id')
 
-    def _replace_overlapped_banners(self, banner_list, over_lap_id_list):
+    def _replace_overlapped_banners(self, banner_list, over_lap_id):
 
         final_banner_list = []
 
         for banner in banner_list:
 
-            if banner['id'] not in over_lap_id_list:
+            if banner['id'] == over_lap_id:
                 final_banner_list.append(banner)
 
-        return final_banner_list
+                return final_banner_list
+
+        return banner_list
 
     def _is_user_member_of_any_community_in_list(self, banner) -> bool:
 
@@ -168,7 +170,7 @@ class BannerImpl(BannerManager):
 
     def _filter_banner_for_user(self, queryset) -> dict:
 
-        over_lap_id_list = []
+        over_lap_id = None
         banner_list = []
 
         for banner in queryset:
@@ -190,15 +192,16 @@ class BannerImpl(BannerManager):
                         not self._is_user_member_of_any_community_in_list(banner):
                     continue
 
-                if banner.overlap_id:
-                    over_lap_id_list.append(banner.overlap_id)
+                if over_lap_id is None:
+                    over_lap_id = banner.overlap_id if banner.overlap_id is not None else 0
 
                 banner_list.append(self._serialize_banners(banner, many=False))
 
-        final_banner_list = self._replace_overlapped_banners(banner_list, over_lap_id_list)
+        if over_lap_id is not None:
+            banner_list = self._replace_overlapped_banners(banner_list, over_lap_id)
 
-        if len(final_banner_list) > 0:
-            return {'banner': final_banner_list[0]}
+        if len(banner_list) > 0:
+            return {'banner': banner_list[0]}
 
         return {}
 

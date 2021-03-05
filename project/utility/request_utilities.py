@@ -1,5 +1,6 @@
 import json
 from .number_utilities import NumberUtilities
+from .constants import INVALID_PLATFORM
 
 
 class RequestUtilities:
@@ -31,7 +32,7 @@ class RequestUtilities:
         return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "ios"
 
     @staticmethod
-    def get_request_type(request: str) -> str:
+    def get_request_type(request: object) -> str:
         platform_code = request.META.get('HTTP_X_PLATFORM_CODE', '').lower()
 
         if platform_code:
@@ -50,7 +51,14 @@ class RequestUtilities:
             elif platform_code == "web-desktop":
                 return "web-desktop"
 
-        return "Invalid request"
+        return INVALID_PLATFORM
+
+    @staticmethod
+    def get_platform_code(request: object):
+        platform_code = request.META.get('HTTP_X_PLATFORM_CODE', None)
+
+        if platform_code is not None:
+            return platform_code.lower()
 
     @staticmethod
     def get_user_name_from_headers(request: object) -> str:
@@ -59,3 +67,7 @@ class RequestUtilities:
     @staticmethod
     def get_password_from_headers(request: object) -> str:
         return request.META.get('HTTP_X_PASSWORD')
+
+    @staticmethod
+    def get_device_id_from_headers(request: object) -> str:
+        return request.META.get('HTTP_X_DEVICE_ID')

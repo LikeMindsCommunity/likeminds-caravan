@@ -4,6 +4,7 @@ from urllib.parse import parse_qsl, urlsplit
 from django.conf import settings
 from django.db.models import Q
 
+from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
 from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_community_id, \
@@ -23,7 +24,6 @@ from .user_moderation_rights import check_member_invite_private_right, check_adm
 from .branch import create_community_branch_links
 from utility.constants import *
 from utility.number_utilities import NumberUtilities
-
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 url = settings.URL
@@ -330,11 +330,12 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
 
-    share = get_share_url_text(card, user)
-    collabcard['share_url'] = share['share_url']
-    collabcard['creator_share_url'] = share['creator_share_url']
-    collabcard['link_created_at'] = share['link_created_at']
-    collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
+    if not preview:
+        share = get_share_url_text(card, user)
+        collabcard['share_url'] = share['share_url']
+        collabcard['creator_share_url'] = share['creator_share_url']
+        collabcard['link_created_at'] = share['link_created_at']
+        collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
 
     return collabcard
 
@@ -626,20 +627,20 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=member_id, preview=preview)
 
     # get chatroom status
-    status = get_status_of_collabcard(member_id, card_instance, state_instance)
-    collabcard_serializer['state'] = status['state']
-    collabcard_serializer['mute_status'] = status['mute_status']
-    collabcard_serializer['follow_status'] = status['follow_status']
-    collabcard_serializer['attending_status'] = status['attending_status']
-    collabcard_serializer['is_guest'] = status['is_guest']
-    collabcard_serializer['active'] = False
-    collabcard_serializer['is_tagged'] = status['is_tagged']
+    if not preview:
+        status = get_status_of_collabcard(member_id, card_instance, state_instance)
+        collabcard_serializer['state'] = status['state']
+        collabcard_serializer['mute_status'] = status['mute_status']
+        collabcard_serializer['follow_status'] = status['follow_status']
+        collabcard_serializer['attending_status'] = status['attending_status']
+        collabcard_serializer['is_guest'] = status['is_guest']
+        collabcard_serializer['active'] = False
+        collabcard_serializer['is_tagged'] = status['is_tagged']
 
-    expiry_time = status['expiry_time']
+        expiry_time = status['expiry_time']
 
-    if not expiry_time or expiry_time >= int(time.time()):
-        collabcard_serializer['active'] = True
-
+        if not expiry_time or expiry_time >= int(time.time()):
+            collabcard_serializer['active'] = True
 
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id,
                                                 send_profile=send_profile)
@@ -778,7 +779,6 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
     return collabcard_status
 
 
-
 def get_member_images_of_chatroom(conversation_filter):
     """ function to give member images of chatrooms """
     unique_members = set()
@@ -853,6 +853,7 @@ def get_member_instances_for_footer_images_in_chatroom(card_instance):
         member_data = get_user_profile(conversation.user, community_instance, send_profile=False, remove=remove)
         member_data['community_id'] = community_instance.id
         member_data['chatroom_id'] = card_instance.id
+        member_data['image_url'] = image_url
         conversation_members.append(member_data)
 
         count += 1
@@ -1654,14 +1655,6 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
 
     temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
 
-    if conversation.internal_link:
-        try:
-            temp['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
-                                                  community_instance=conversation.preview_community,
-                                                  chatroom_instance=conversation.preview_chatroom)
-        except Exception as e:
-            error_logger.error(e.args)
-
     if conversation.is_guest:
         temp['member']['is_guest'] = conversation.is_guest
         state_filter = collabcardState.objects.filter(card=conversation.card,
@@ -2024,6 +2017,9 @@ def get_preview_for_url(member_id=None, preview_url=None,
             context["action"] = "VIEW POLL"
             if send_preview_text:
                 context["preview_text"] = "Preview of the poll will be added later"
+
+        elif chatroom_instance.type == card_types.CARD_INTRO:
+            context["action"] = "SAY HI"
         else:
             context["action"] = "VIEW CHAT ROOM"
 
