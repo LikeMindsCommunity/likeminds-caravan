@@ -584,6 +584,9 @@ def my_chatrooms_version_1(request):
             .filter(user=current_user_instance, unseen_count__gt=0) \
             .aggregate(total=Sum('unseen_count'))
 
+        if total_unseen_count['total'] is None:
+            total_unseen_count['total'] = 0
+
         context['total_unseen_count'] = total_unseen_count['total']
 
     return JsonResponse(context)
@@ -639,9 +642,17 @@ def fetch_chatroom_inactive(request):
 
     member_id = get_member_id_from_headers(request)
     context = {}
+
     if not member_id:
         context = get_error_context(False, "send x-member-id in headers")
         return JsonResponse(context)
+
+    user_instance = User.get_user_or_none(member_id)
+
+    if user_instance is None:
+        context = get_error_context(False, "Invalid member id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_time = time.time()
 
@@ -664,7 +675,6 @@ def fetch_chatroom_inactive(request):
                                                             remove=None).filter(
             ~Q(expiry_time=None) & Q(expiry_time__lt=current_time)).order_by('-expiry_time')
 
-        user_instance = User.objects.get(id=member_id)
         inactive_count = inactive_chatrooms.count()
         create_or_update_inActiveChatroomsCount_instance(user_instance, inactive_count)
         if inactive_count:
