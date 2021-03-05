@@ -17,7 +17,7 @@ def strip_scheme(url):
     return parsed.geturl().replace(scheme, '', 1)
 
 
-host_url = strip_scheme(settings.URL)
+host_url = "https://www.likeminds.community"
 
 
 def create_community_branch_links(community_id, shared_by_id, aj=None):
