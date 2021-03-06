@@ -18,10 +18,11 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 info_logger = LoggingWrapper.get_instance()
 
 
-def perform_soft_delete_for_dublicate_intro_rooms():
-    community_list = [49792, 49825, 49813, 49751, 49722, 49788, 49694]
+def perform_soft_delete_for_dublicate_intro_rooms(community_list):
+
 
     for community_id in community_list:
+
         master_intro = ModelUtilities.get_model_filter(Collabcard, {'type': 9, 'community': community_id})
 
         if master_intro:
@@ -37,8 +38,8 @@ def perform_soft_delete_for_dublicate_intro_rooms():
 
 
 def post_introductions_card_for_communities(community_list):
-    for community in community_list:
 
+    for community in community_list:
         master_community_list = []
         member_filter = ModelUtilities.get_model_filter(Members,
                                                         {'state': 1, 'is_owner': True, 'community_id': community})
@@ -122,9 +123,10 @@ def saving_updated_at_for_intro_rooms_for_syncing():
 
 def create_introduction_card_conversations():
     # community_list = [49792, 49825, 49813, 49751, 49722, 49788, 49694]
-    community_list = [49632]  # LMCM community
 
+    community_list = [49632]  # LMCM community
     start_time = TimeUtilities.current_time_in_sec()
+    perform_soft_delete_for_dublicate_intro_rooms(community_list)
     post_introductions_card_for_communities(community_list)
     #save_individual_intro_card_in_cache(community_list)
     end_time = TimeUtilities.current_time_in_sec()
