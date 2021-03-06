@@ -51,6 +51,9 @@ def post_introductions_card_for_communities(community_list):
             community_id = community_instance.id
             member_id = user_instance.id
 
+            print(community_id)
+            print(member_id)
+
             context = post_master_introductions_for_community(user_instance.id, community_instance.id)
 
             if context:
@@ -61,8 +64,6 @@ def post_introductions_card_for_communities(community_list):
                                            {'community_id': community_id},
                                            {'order_time': TimeUtilities.current_time_in_milliseconds()})
 
-            user_instance = User.objects.get(id=member_id)
-            community_instance = Community.objects.get(id=community_id)
             post_member_directory_link(user_instance, community_instance)
             master_community_list.append(community_id)
             print("\n")
