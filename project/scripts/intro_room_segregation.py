@@ -123,6 +123,7 @@ def saving_updated_at_for_intro_rooms_for_syncing():
 def create_introduction_card_conversations():
     # community_list = [49792, 49825, 49813, 49751, 49722, 49788, 49694]
     community_list = [49632]  # LMCM community
+
     start_time = TimeUtilities.current_time_in_sec()
     post_introductions_card_for_communities(community_list)
     #save_individual_intro_card_in_cache(community_list)
