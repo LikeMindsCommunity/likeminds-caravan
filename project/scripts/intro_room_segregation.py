@@ -20,13 +20,11 @@ info_logger = LoggingWrapper.get_instance()
 
 def perform_soft_delete_for_dublicate_intro_rooms(community_list):
 
-
     for community_id in community_list:
-
         master_intro = ModelUtilities.get_model_filter(Collabcard, {'type': 9, 'community': community_id})
 
-        if master_intro:
-            instance = master_intro[0]
+        for data in master_intro:
+            instance = data
             instance.is_deleted = True
             instance.deleted_by_user = instance.user
             instance.save()
@@ -38,7 +36,6 @@ def perform_soft_delete_for_dublicate_intro_rooms(community_list):
 
 
 def post_introductions_card_for_communities(community_list):
-
     for community in community_list:
         master_community_list = []
         member_filter = ModelUtilities.get_model_filter(Members,
@@ -76,7 +73,7 @@ def save_individual_intro_card_in_cache(community_list):
 
         for card_instance in card_filter:
             master_intro = Collabcard.objects.filter(type=9,
-                                                     community=card_instance.community, is_delted=False)
+                                                     community=card_instance.community, is_deleted=False)
 
             if master_intro:
                 master_intro_instance = master_intro[0]
@@ -119,9 +116,8 @@ def saving_updated_at_for_intro_rooms_for_syncing():
 
 
 def create_introduction_card_conversations():
-    # community_list = [49792, 49825, 49813, 49751, 49722, 49788, 49694]
 
-    community_list = [49751]  # LMCM community
+    community_list = [49792, 49825, 49813, 49722, 49694]
     start_time = TimeUtilities.current_time_in_sec()
     perform_soft_delete_for_dublicate_intro_rooms(community_list)
     post_introductions_card_for_communities(community_list)
