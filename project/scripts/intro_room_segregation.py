@@ -76,7 +76,7 @@ def save_individual_intro_card_in_cache(community_list):
 
         for card_instance in card_filter:
             master_intro = Collabcard.objects.filter(type=9,
-                                                     community=card_instance.community)
+                                                     community=card_instance.community, is_delted=False)
 
             if master_intro:
                 master_intro_instance = master_intro[0]
