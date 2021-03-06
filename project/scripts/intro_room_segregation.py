@@ -52,10 +52,7 @@ def post_introductions_card_for_communities(community_list):
             community_id = community_instance.id
             member_id = user_instance.id
 
-            print(community_id)
-            print(member_id)
-
-            context = post_master_introductions_for_community(user_instance.id, community_instance.id)
+            context = post_master_introductions_for_community(community_id, member_id)
 
             if context:
                 print(context['collabcard']['id'])
