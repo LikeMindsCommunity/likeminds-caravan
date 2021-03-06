@@ -84,7 +84,7 @@ def save_individual_intro_card_in_cache(community_list):
 
                 if image_url:
 
-                    if not ModelUtilities.is_model_filter_exists(Card_Attachment, {'image_url': image_url,
+                    if not ModelUtilities.is_model_filter_exists(Card_Attachment, {'file_url': image_url,
                                                                                    'collabcard': card_instance}):
                         save_chatroom_attachments(card_instance, body={
                             'url': image_url,
