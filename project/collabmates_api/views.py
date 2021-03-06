@@ -1523,8 +1523,7 @@ def post_master_introductions_for_community(community_id, member_id):
     }
 
     if ModelUtilities.is_model_filter_exists(Collabcard, {'community': community_id,
-                                                          'type': card_types.CARD_MASTER_INTRO,
-                                                          'is_deleted':False}):
+                                                          'type': card_types.CARD_MASTER_INTRO}):
         return
 
     context = create_card_internal(member_id,community_id, res)
