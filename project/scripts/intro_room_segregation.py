@@ -116,9 +116,9 @@ def saving_updated_at_for_intro_rooms_for_syncing():
 
 
 def create_introduction_card_conversations():
-    # community_list = [49792, 49825, 49813, 49751, 49722, 49788, 49694]
+    #community_list = [49792, 49825, 49813, 49722, 49788, 49694]
 
-    community_list = [49751]  # LMCM community
+    community_list = [49788]  # Football mania community
     start_time = TimeUtilities.current_time_in_sec()
     perform_soft_delete_for_dublicate_intro_rooms(community_list)
     post_introductions_card_for_communities(community_list)
