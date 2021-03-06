@@ -20,13 +20,11 @@ info_logger = LoggingWrapper.get_instance()
 
 def perform_soft_delete_for_dublicate_intro_rooms(community_list):
 
-
     for community_id in community_list:
-
         master_intro = ModelUtilities.get_model_filter(Collabcard, {'type': 9, 'community': community_id})
 
-        if master_intro:
-            instance = master_intro[0]
+        for data in master_intro:
+            instance = data
             instance.is_deleted = True
             instance.deleted_by_user = instance.user
             instance.save()
@@ -38,7 +36,6 @@ def perform_soft_delete_for_dublicate_intro_rooms(community_list):
 
 
 def post_introductions_card_for_communities(community_list):
-
     for community in community_list:
         master_community_list = []
         member_filter = ModelUtilities.get_model_filter(Members,
