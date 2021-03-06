@@ -28,11 +28,11 @@ def perform_soft_delete_for_dublicate_intro_rooms(community_list):
         if master_intro:
             instance = master_intro[0]
             instance.is_deleted = True
-            instance.deleted_by = instance.user
+            instance.deleted_by_user = instance.user
             instance.save()
             current_time = TimeUtilities.current_time_in_sec()
             ModelUtilities.model_update(collabcardState, {'card': instance}, {'updated_at': current_time})
-            log = "Instance deleted -- %s" % (str(instance.card.id))
+            log = "Instance deleted -- %s" % (str(instance))
 
             print(log)
 
@@ -116,7 +116,7 @@ def saving_updated_at_for_intro_rooms_for_syncing():
         current_time = TimeUtilities.current_time_in_sec()
         ModelUtilities.model_update(collabcardState, {'card': card_instance}, {'updated_at': current_time})
         time.sleep(0.5)
-        log = "updated time -- %s" % (str(card_instance.id))
+        log = "updated time -- %s" % (str(card_instance))
 
         print(log)
 
