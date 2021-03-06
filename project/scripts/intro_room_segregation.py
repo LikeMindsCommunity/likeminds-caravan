@@ -125,7 +125,7 @@ def create_introduction_card_conversations():
     start_time = TimeUtilities.current_time_in_sec()
     perform_soft_delete_for_dublicate_intro_rooms(community_list)
     post_introductions_card_for_communities(community_list)
-    #save_individual_intro_card_in_cache(community_list)
+    save_individual_intro_card_in_cache(community_list)
     end_time = TimeUtilities.current_time_in_sec()
 
     print(end_time - start_time)
