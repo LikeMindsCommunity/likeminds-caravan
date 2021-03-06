@@ -18,27 +18,28 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 info_logger = LoggingWrapper.get_instance()
 
 
-def perform_soft_delete_for_dublicate_intro_rooms():
-    community_list = [49792, 49825, 49813, 49751, 49722, 49788, 49694]
+def perform_soft_delete_for_dublicate_intro_rooms(community_list):
+
 
     for community_id in community_list:
+
         master_intro = ModelUtilities.get_model_filter(Collabcard, {'type': 9, 'community': community_id})
 
         if master_intro:
             instance = master_intro[0]
             instance.is_deleted = True
-            instance.deleted_by = instance.user
+            instance.deleted_by_user = instance.user
             instance.save()
             current_time = TimeUtilities.current_time_in_sec()
             ModelUtilities.model_update(collabcardState, {'card': instance}, {'updated_at': current_time})
-            log = "Instance deleted -- %s" % (str(instance.card.id))
+            log = "Instance deleted -- %s" % (str(instance))
 
             print(log)
 
 
 def post_introductions_card_for_communities(community_list):
-    for community in community_list:
 
+    for community in community_list:
         master_community_list = []
         member_filter = ModelUtilities.get_model_filter(Members,
                                                         {'state': 1, 'is_owner': True, 'community_id': community})
@@ -51,7 +52,7 @@ def post_introductions_card_for_communities(community_list):
             community_id = community_instance.id
             member_id = user_instance.id
 
-            context = post_master_introductions_for_community(user_instance.id, community_instance.id)
+            context = post_master_introductions_for_community(community_id, member_id)
 
             if context:
                 print(context['collabcard']['id'])
@@ -61,8 +62,6 @@ def post_introductions_card_for_communities(community_list):
                                            {'community_id': community_id},
                                            {'order_time': TimeUtilities.current_time_in_milliseconds()})
 
-            user_instance = User.objects.get(id=member_id)
-            community_instance = Community.objects.get(id=community_id)
             post_member_directory_link(user_instance, community_instance)
             master_community_list.append(community_id)
             print("\n")
@@ -85,7 +84,7 @@ def save_individual_intro_card_in_cache(community_list):
 
                 if image_url:
 
-                    if not ModelUtilities.is_model_filter_exists(Card_Attachment, {'image_url': image_url,
+                    if not ModelUtilities.is_model_filter_exists(Card_Attachment, {'file_url': image_url,
                                                                                    'collabcard': card_instance}):
                         save_chatroom_attachments(card_instance, body={
                             'url': image_url,
@@ -114,17 +113,19 @@ def saving_updated_at_for_intro_rooms_for_syncing():
         current_time = TimeUtilities.current_time_in_sec()
         ModelUtilities.model_update(collabcardState, {'card': card_instance}, {'updated_at': current_time})
         time.sleep(0.5)
-        log = "updated time -- %s" % (str(card_instance.id))
+        log = "updated time -- %s" % (str(card_instance))
 
         print(log)
 
 
 def create_introduction_card_conversations():
     # community_list = [49792, 49825, 49813, 49751, 49722, 49788, 49694]
+
     community_list = [49751]  # LMCM community
     start_time = TimeUtilities.current_time_in_sec()
+    perform_soft_delete_for_dublicate_intro_rooms(community_list)
     post_introductions_card_for_communities(community_list)
-    #save_individual_intro_card_in_cache(community_list)
+    save_individual_intro_card_in_cache(community_list)
     end_time = TimeUtilities.current_time_in_sec()
 
     print(end_time - start_time)
