@@ -3013,7 +3013,7 @@ def create_introduction_question_in_community(community_instance):
 def post_member_directory_link(user_instance, community_instance):
 
     card_filter = Collabcard.objects.filter(user=user_instance, community=community_instance,
-                                            type=card_types.CARD_MASTER_INTRO)
+                                            type=card_types.CARD_MASTER_INTRO, is_deleted=False)
 
     if not card_filter.exists():
         return
