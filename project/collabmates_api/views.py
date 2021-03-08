@@ -783,17 +783,39 @@ def community(request, community_id, req_dict=None):
     ''' Community detail page '''
 
     # handling web redirection to playstore and app store
+    community = Community.get_community_or_None(community_id)
+
+    if not community:
+        error_msg = "cannot find community with id"
+        context = get_error_context(False, error_msg)
+        error_logger.error(error_msg)
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     if is_request_web(request):
         context = get_redirection_links_for_android_ios(request, community_id)
+
         if context:
             return JsonResponse(context, safe=False)
 
-    community = Community.objects.get(id=community_id)
     member_id = get_member_id_from_headers(request)
+
+    if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
+
+        user_instance = User.get_user_or_none(member_id)
+
+        if not user_instance:
+            error_msg = "cannot find member with id"
+            context = get_error_context(False, error_msg)
+            error_logger.error(error_msg)
+
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     is_promoter = False
     is_owner = False
     block_leave_community = False
     member_list = Members.objects.filter(community_id=community, member_id=member_id)
+
     promoter_instance = 0
     current_user_instance = None
     new_dict = {}
@@ -822,6 +844,7 @@ def community(request, community_id, req_dict=None):
     else:
         block_leave_community = True
 
+
     if is_promoter:
         serialized_object = CommunitySerializer(community, promoter_id=current_user_instance,
                                                 is_owner=is_owner, current_user_id=member_id,
@@ -830,7 +853,6 @@ def community(request, community_id, req_dict=None):
         serialized_object = CommunitySerializer(community, current_user_id=member_id,
                                                 current_user_instance=current_user_instance)
 
-    community_state = get_state_of_community(community)
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
