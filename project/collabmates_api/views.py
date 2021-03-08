@@ -9405,7 +9405,7 @@ def custom_login(request, res, login_type="custom"):
         image_url = res['image_url']
 
     else:
-        return {'success': False, 'error_message': "Please upload a profile picture"}
+        image_url = ""
 
     user_acquired = None
 
@@ -15560,4 +15560,5 @@ def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatr
         chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
 
     return chatroom_data, chatroom_id_list
+
 
