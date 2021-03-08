@@ -786,7 +786,10 @@ def community(request, community_id, req_dict=None):
     community = Community.get_community_or_None(community_id)
 
     if not community:
-        context = get_error_context(False, "send correct community id")
+        error_msg = "cannot find community with id"
+        context = get_error_context(False, error_msg)
+
+        error_logger.error(error_msg)
 
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -803,8 +806,10 @@ def community(request, community_id, req_dict=None):
         user_instance = User.get_user_or_none(member_id)
 
         if not user_instance:
-            context = get_error_context(False, "send correct member id in headers")
-
+            error_msg = "cannot find community with id"
+            context = get_error_context(False, error_msg)
+            error_logger.error(error_msg)
+            
             return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     is_promoter = False
