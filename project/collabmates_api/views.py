@@ -12568,6 +12568,7 @@ def edit_conversation(request):
         update_models_for_syncing_apis(SyncTypes.CONVERSATION,
                                        {'id': conversation_id},
                                        {'answer': edited_answer, 'is_edited': True})
+        conversation.refresh_from_db()
     else:
         context = get_error_context(False,
                                     "you are not the conversation creator.Only conversation creator can edit his/her message")
