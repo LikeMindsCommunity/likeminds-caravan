@@ -8,6 +8,8 @@ from urllib.request import urlopen
 import os
 from PIL import Image
 from io import BytesIO
+
+from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community,Tags_lpig
 import json
 from django.http.response import JsonResponse
@@ -43,29 +45,39 @@ firebase = pyrebase.initialize_app(firebaseConfig)
 database=firebase.database()
 storage = firebase.storage()
 
+error_logger = LoggingWrapper.get_instance()
+
 
 def update_last_answer_id(card_id,answer_id):
 
-    '''function to update last answer id when a new answer is posted'''
+    """function to update last answer id when a new answer is posted"""
 
-    card_id=str(card_id)
-    data={
-        'answer_id':str(answer_id)
-    }
+    try:
+        card_id=str(card_id)
+        data={
+            'answer_id':str(answer_id)
+        }
 
-    database.child("collabcards").child(card_id).child("collabcard").update(data)
+        database.child("collabcards").child(card_id).child("collabcard").update(data)
 
-    print('Data Updated successfully in firebase')
+    except Exception as e:
+        error_logger.error(e)
 
 
 def upload_image_to_firebase(image_url,user_id):
 
-    image_data = requests.get(image_url).content
-    user_id = str(user_id)
-    storage.child("files").child("profile").child(user_id).put(image_data)
-    image_url = storage.child("files").child("profile").child(user_id).get_url(None)
+    try:
+        image_data = requests.get(image_url).content
+        user_id = str(user_id)
+        storage.child("files").child("profile").child(user_id).put(image_data)
+        image_url = storage.child("files").child("profile").child(user_id).get_url(None)
 
-    return image_url
+        return image_url
+
+    except Exception as e:
+        error_logger.error(e)
+
+        return None
 
 
 def is_url_image_valid(image_url):
