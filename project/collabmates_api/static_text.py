@@ -196,6 +196,10 @@ mark_active = {'id': 11, 'title': 'Mark active'}
 
 mark_inactive = {'id': 12, 'title': 'Mark inactive'}
 
+pin_chatroom = {'id': 13, 'title': "Pin chat room"}
+
+unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
+
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
 
@@ -368,3 +372,7 @@ MASTER_INTRO_TITLE_TEXT = "This chat room has introductions of all members of th
 MASTER_INTRO_HEADER = "Introductions "+u"\U0001F590"
 
 CHATROOM_PREVIW_CACHE_KEY = "chatroom_preview_%s_%s"
+
+PIN_CHATROOM_TITLE = "Chat room pinned!"
+PIN_SUBTITLE = """Your community manager %s has just pinned %s on everyone’s feed."""
+PIN_ROUTE = """"route://collabcard?collabcard_id=%s"""

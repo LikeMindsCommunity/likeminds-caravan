@@ -1,4 +1,5 @@
 from __future__ import absolute_import, unicode_literals
+
 from celery import shared_task
 from django.conf import settings
 
@@ -11,7 +12,8 @@ import time
 from django.db.models import Q
 import json
 
-from utility.states import card_types
+from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
+from utility.states import card_types, chatroom_states
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -28,8 +30,8 @@ def save_community_purpose_card(community_id, card_id):
 @shared_task
 def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, **kwargs):
     card_instance = Collabcard.objects.get(id=card_id)
-    all_members = Members.objects\
-        .filter(community_id=community_id)\
+    all_members = Members.objects \
+        .filter(community_id=community_id) \
         .filter(Q(state=member_states.ADMIN) |
                 Q(state=member_states.MEMBER) |
                 Q(state=member_states.PROFILE_UNAVAILABLE))
@@ -56,7 +58,8 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, *
                 info_logger.info(e.args)
 
                 if "function_called" in kwargs:
-                    info_logger.info(f"set_chatroom_state_for_all_members_on_card_creation called by function {kwargs['function_called']}")
+                    info_logger.info(
+                        f"set_chatroom_state_for_all_members_on_card_creation called by function {kwargs['function_called']}")
 
                 info_logger.info("Duplicate key creation in collabcardState table")
 
@@ -67,8 +70,8 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, *
 def update_last_unseen_in_engage_on_card_creation(community_id, is_seen=True):
     """function to update the unseen  collabcard in engage when a new collabcard is posted in community
        for all members in the community"""
-    community_members = Members.objects\
-        .filter(community_id=community_id)\
+    community_members = Members.objects \
+        .filter(community_id=community_id) \
         .filter(Q(state=member_states.ADMIN) |
                 Q(state=member_states.MEMBER) |
                 Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
@@ -82,9 +85,11 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
     '''function to update the unseen  collabcard in engage'''
 
     total_chatrooms = collabcardState.objects.filter(community=community, user=user,
-                                                     card__is_deleted=False).exclude(card__type=1).distinct('card_id').count()
+                                                     card__is_deleted=False).exclude(card__type=1).distinct(
+        'card_id').count()
     seen_chatrooms = collabcardState.objects.filter(community=community, user=user, external_seen=True,
-                                                    card__is_deleted=False).exclude(card__type=1).distinct('card').count()
+                                                    card__is_deleted=False).exclude(card__type=1).distinct(
+        'card').count()
 
     diff = total_chatrooms - seen_chatrooms
 
@@ -199,8 +204,8 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
     else:
         user_list = [user_id]
 
-    conversations = card_answers.objects\
-        .filter(card_id=chatroom_id, state=0)\
+    conversations = card_answers.objects \
+        .filter(card_id=chatroom_id, state=0) \
         .filter(Q(attachment_count=0) |
                 Q(attachments_uploaded=True) |
                 Q(api_version=1)) \
@@ -209,12 +214,12 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
     second_last = None
 
     if last_conversation:
-        second_last = card_answers.objects\
-            .filter(card_id=chatroom_id, state=0)\
+        second_last = card_answers.objects \
+            .filter(card_id=chatroom_id, state=0) \
             .filter(Q(attachment_count=0) |
                     Q(attachments_uploaded=True) |
-                    Q(api_version=1))\
-            .filter(~Q(user=last_conversation.user))\
+                    Q(api_version=1)) \
+            .filter(~Q(user=last_conversation.user)) \
             .last()
 
     last_conversations = get_latest_conversation_members(chatroom_id)
@@ -355,7 +360,6 @@ def get_chatroom_user_images_for_web(chatroom_id):
 
 @shared_task
 def update_preview_of_chatroom_in_cache(preview_info):
-
     """ function to update the preview of chatroom """
 
     preview_url = preview_info.get('preview_url')
@@ -386,7 +390,6 @@ def update_preview_of_chatroom_in_cache(preview_info):
 
 @shared_task
 def update_multiple_previews_in_chatroom(preview_info):
-
     preview_chatroom_id = preview_info.get('chatroom_id')
 
     if preview_chatroom_id:
@@ -411,7 +414,6 @@ def update_multiple_previews_in_chatroom(preview_info):
 
 
 def update_member_images_for_account(member_filter, image_url):
-
     for data in member_filter:
         community_instance = data.community_id
         user_instance = data.member_id
@@ -430,9 +432,8 @@ def update_member_images_for_account(member_filter, image_url):
         data.save()
 
 
-@shared_task()
+@shared_task
 def update_preview_for_account_image_change(preview_info):
-
     user_id = preview_info.get('user_id')
     image_url = preview_info.get('image_url')
     previous_image_url = preview_info.get('previous_image_url')
@@ -448,3 +449,98 @@ def update_preview_for_account_image_change(preview_info):
     member_filter = ModelUtilities.get_model_filter(Members, {'member_id_id': user_id,
                                                               'image_url': previous_image_url})
     update_member_images_for_account(member_filter, image_url)
+
+
+@shared_task
+def unpin_the_chatroom(card_id):
+    ModelUtilities.model_update(Collabcard, {'id': card_id}, {'pinned': False})
+
+
+def schedule_chatroom_unpinning_after_event_completion(card_instance):
+    card_id = card_instance.id
+    args = [card_id]
+
+    card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.date_time)
+    task_begin_epoch_time = card_end_time
+    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
+
+    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
+    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
+
+    unpin_the_chatroom.apply_async(args=args, kwargs={},
+                                   eta=task_begin_date_time,
+                                   expires=task_expiry_date_time)
+
+
+def update_chatroom_conversation_count_in_cache(count_info):
+    chatroom_id = count_info.get('chatroom_id')
+
+    if not chatroom_id:
+        return
+
+    key = CONVERSATIONS_COUNT_CACHE_KEY % str(chatroom_id)
+    previous_count = CacheImpl.get_cache(key)
+
+    if previous_count:
+        previous_count['conversations_count'] = previous_count['conversations_count'] + 1
+
+    else:
+
+        conversations_count = count_info.get('conversations_count')
+
+        if not conversations_count:
+            conversations_count = ModelUtilities.get_model_filter(card_answers,
+                                                                  {'card': chatroom_id,
+                                                                   'state': chatroom_states.ANSWER}).filter(
+                Q(attachment_count=0)
+                | Q(attachments_uploaded=True)).count()
+
+        CacheImpl.set_cache(key, {'total_responses_count': conversations_count})
+
+
+def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
+    chatroom_id = conversation_creator_info.get('chatroom_id')
+
+    if not chatroom_id:
+        return
+
+    key = CONVERSATIONS_DISTINCT_CREATORS_KEY % str(chatroom_id)
+    conversation_creator_dict = CacheImpl.get_cache(key)
+
+    if conversation_creator_dict:
+        user_id = conversation_creator_info.get('user_id')
+
+        if not user_id:
+            return
+
+        conversation_creator_list = conversation_creator_dict['conversation_creator_list']
+
+        list_len = len(conversation_creator_list)
+
+        if list_len and (user_id not in conversation_creator_list):
+
+            if list_len == 5:
+                conversation_creator_list.pop(0)
+
+            conversation_creator_list.append(user_id)
+
+    else:
+
+        conversation_creator_list = conversation_creator_info.get('conversation_creator_list')
+
+        if not conversation_creator_list:
+            conversation_creator_list = []
+            conversation_filter = card_answers.objects \
+                                      .filter(card=chatroom_id, state=chatroom_states.ANSWER) \
+                                      .filter(Q(attachment_count=0) |
+                                              Q(attachments_uploaded=True)) \
+                                      .distinct('user') \
+                                      .order_by('user', '-id')[:5]
+
+            for data in conversation_filter:
+                user_id = data.user.id
+                conversation_creator_list.append(user_id)
+
+        if conversation_creator_list:
+            conversation_creator_dict['conversation_creator_list'] = conversation_creator_list
+            CacheImpl.set_cache(key, conversation_creator_dict)

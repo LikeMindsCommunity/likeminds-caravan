@@ -1,3 +1,4 @@
+import json
 import traceback
 
 from django.conf import settings
@@ -39,7 +40,7 @@ class ApiLogger(MiddlewareMixin):
             'content_params': request.content_params,
             'headers': self._process_request_headers(request.META),
             'query': request.GET,
-            'body': request.POST
+            'body': self._process_request_post_body(request)
         }
 
         return request_dict
@@ -56,6 +57,21 @@ class ApiLogger(MiddlewareMixin):
         }
 
         return headers_dict
+
+    def _process_request_post_body(self, request: {}) -> dict:
+
+        try:
+            post_body = dict()
+
+            if request.POST:
+                post_body = dict(request.POST)
+            elif request.body:
+                post_body = json.loads(request.body)
+
+            return post_body
+        except Exception:
+            self.logger.error('error parsing request body')
+            return dict()
 
     @staticmethod
     def _process_response_object(response: {}) -> dict:
@@ -87,6 +103,14 @@ class ApiLogger(MiddlewareMixin):
         if getattr(settings, 'USE_INTERNAL_FILE_LOGGER', False):
             self._send_to_internal_logger(log_object_dict)
         else:
+            """
+            for coralogix logger we need to disable
+            full text response for 200 OK status 
+            """
+            if getattr(settings, 'OMIT_200_OK_FULL_RESPONSE', False) and \
+                    log_object_dict['response']['http_response_code'] == 200:
+                log_object_dict['response']['content'] = dict()
+
             api_client = CoralogixApiClient()
             api_client.call_logging_api(log_object_dict)
 

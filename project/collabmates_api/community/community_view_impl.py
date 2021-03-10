@@ -1,9 +1,9 @@
 from django.http import JsonResponse
-from collabmates_api.community.community_impl import CommunityImpl, CommunityHelper
+from collabmates_api.community.community_impl import CommunityImpl
 from utility.request_utilities import RequestUtilities
 from rest_framework.views import APIView
 from external_services.logging.logging_wrapper import LoggingWrapper
-from togther.models import Community, User
+
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()

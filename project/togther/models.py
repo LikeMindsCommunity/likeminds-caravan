@@ -303,6 +303,9 @@ class Collabcard(models.Model):
     disable_poll_announcement_mail = models.BooleanField(default=False)
     has_files = models.BooleanField(default=False)
 
+    pinned = models.BooleanField(default=False)
+    pinned_time = models.BigIntegerField(default=0)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = int(time.time() * 1000)
@@ -489,8 +492,14 @@ class card_answers(models.Model):
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
+
+        current_time_milli = TimeUtilities.current_time_in_milliseconds()
+
         if self.last_updated == 0:
-            self.last_updated = int(round(time.time() * 1000))
+            self.last_updated = current_time_milli
+
+        if self.created_at < 0:
+            self.created_at = current_time_milli
 
         super(card_answers, self).save(*args, **kwargs)
 
@@ -523,9 +532,6 @@ class collabcardState(models.Model):
 
     class Meta:
         unique_together = (('card', 'user'),)
-
-    def __str__(self):
-        return str(self.user.id) + "__" + str(self.card.id)
 
 
 class conversationMemberState(models.Model):

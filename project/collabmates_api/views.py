@@ -30,7 +30,10 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage, update_my_chatrooms_for_users,
                                   set_chatroom_state_for_all_members_on_card_creation,
                                   get_chatroom_user_images_for_web, update_preview_of_chatroom_in_cache,
-                                  update_multiple_previews_in_chatroom, update_preview_for_account_image_change
+                                  update_multiple_previews_in_chatroom, update_preview_for_account_image_change,
+                                  schedule_chatroom_unpinning_after_event_completion,
+                                  update_chatroom_conversation_count_in_cache,
+                                  update_chatroom_conversation_creators_in_cache
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -1462,7 +1465,8 @@ def post_introduction_card_for_community(community_id, member_id):
                     ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
                                                 {'has_files': True, 'attachment_count': 1,
                                                  'attachments_uploaded': True})
-                    create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro[0])
+
+                create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro[0])
 
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
@@ -1486,10 +1490,7 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
     conversation_context['card'] = master_intro
     conversation_context['user'] = user_instance
     conversation_context['community'] = community_instance
-
-    conversation_context['created_at'] = TimeUtilities.current_time_in_sec()
     conversation_context['has_files'] = False
-
     conversation_context['attachment_count'] = 0
     conversation_context['attachments_uploaded'] = False
     conversation_context['api_version'] = 1
@@ -3046,7 +3047,6 @@ def post_member_directory_link(user_instance, community_instance):
     conversation.card = card_instance
     conversation.user = user_instance
     conversation.community = community_instance
-    conversation.created_at = TimeUtilities.current_time_in_sec()
     conversation.internal_link = member_directory_link
     conversation.preview_community = community_instance
     conversation.preview_type = "directory"
@@ -3302,7 +3302,6 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         og_tags = decode_meta_from_url(res['share_link'])
         card.og_tags = json.dumps(og_tags)
 
-
     preview_utilities = PreviewUtilities()
     preview_utilities.set_preview_object(card, res, user_instance.id)
 
@@ -3312,6 +3311,13 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     card.member_state = res['member_state']
     card.date_epoch = int(time.time())  # card creation time
+
+    if card.type == card_types.CARD_PURPOSE \
+            or card.type == card_types.CARD_MASTER_INTRO \
+            or card.type == card_types.CARD_EVENT \
+            or card.type == card_types.PUBLIC_EVENT:
+        card.pinned = True
+        card.pinned_time = TimeUtilities.current_time_in_milliseconds()
 
     card.save()
     # add ownerflag here
@@ -3453,6 +3459,10 @@ def create_card_internal(user_id, community_id, res):
 
     else:
         update_pending_chatroom_count_for_promoters.delay(community_id)
+
+    if card_instance.type == card_types.CARD_EVENT \
+            or card_instance.type == card_types.CARD_PUBLIC_EVENT:
+        schedule_chatroom_unpinning_after_event_completion(card_instance)
 
     context = {
         'collabcard': collabcard,
@@ -3648,7 +3658,6 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
     instance.user = user_instance
     instance.community = card_instance.community
     instance.state = state
-    instance.created_at = time.time()
     instance.save()
 
 
@@ -5893,7 +5902,7 @@ def get_answer_bubble_context_for_web(ans):
     return answer_bubble
 
 
-def get_chatroom_actions(card_status, creator, promoter=False, current_user_instance=None,
+def get_chatroom_actions(card_status, creator, card_instance, promoter=False, current_user_instance=None,
                          community_instance=None, is_child=False, request_type=""):
     ''' function to get chatroom actions '''
 
@@ -5905,7 +5914,7 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
     intro_card = False
     master_intro_card = False
 
-    if card_status['type'] == card_types.CARD_PURPOSE :
+    if card_status['type'] == card_types.CARD_PURPOSE:
         purpose_card = True
     elif card_status['type'] == card_types.CARD_INTRO:
         intro_card = True
@@ -5979,6 +5988,13 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
             actions.append(mark_inactive)
         else:
             actions.append(mark_active)
+
+    if promoter and len(actions):
+
+        if card_instance.pinned:
+            actions.insert(1,unpin_chatroom)
+        else:
+            actions.insert(1,pin_chatroom)
 
     return actions
 
@@ -6110,7 +6126,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
                                             current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type
@@ -6269,7 +6285,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
                                             current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type
@@ -6410,7 +6426,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
                                             current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type
@@ -6542,7 +6558,7 @@ def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
 
 
 def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id, current_user_id,
-                             guest_header=False):
+                             guest_header=False, created_at=TimeUtilities.current_time_in_milliseconds()):
     aj_expired = is_chatroom_join_expired(aj, source_id, card_instance.id)
     status = is_member_verified(community_id, current_user_id)
     state_filter = collabcardState.objects.filter(card=card_instance, user=current_user_id, is_guest=True)
@@ -6550,12 +6566,11 @@ def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id
     if not aj_expired and not status and not state_filter.exists():
         context['aj_expired'] = aj_expired
         if guest_header:
-            create_guest_header(current_user_id, source_id, card_instance, current_user_id)
+            create_guest_header(current_user_id, source_id, card_instance, current_user_id, created_at=created_at)
 
             func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True,
                          'is_guest': True, 'source_id': source_id, 'source': "guest access"}
             collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
-
 
     elif not status and not state_filter.exists():
         context['aj_expired'] = aj_expired
@@ -6579,7 +6594,8 @@ def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id
     return context
 
 
-def create_guest_header(guest_id, invitee_id, card_instance, current_user_id):
+def create_guest_header(guest_id, invitee_id, card_instance, current_user_id,
+                        created_at=TimeUtilities.current_time_in_milliseconds()):
     try:
         guest_instance = User.objects.get(id=guest_id)
         invitee_instance = User.objects.get(id=invitee_id)
@@ -6601,7 +6617,7 @@ def create_guest_header(guest_id, invitee_id, card_instance, current_user_id):
         instance.user = guest_instance
         instance.state = chatroom_states.CHATROOM_GUEST
         instance.community = card_instance.community
-        instance.created_at = time.time()
+        instance.created_at = created_at
         instance.save()
 
 
@@ -7247,7 +7263,6 @@ def create_answer(request):
     ans.card = card_instance
     ans.user = user_instance
     ans.community = card_instance.community
-    ans.created_at = time.time()
     ans.save()
 
     update_last_answer_id(card_id, ans.id)
@@ -7293,6 +7308,7 @@ def create_conversation(request):
     res = json.loads(request.body)
 
     temporary_id = res.get('temporary_id')
+    created_at = res.get('created_at', TimeUtilities.current_time_in_milliseconds())
 
     is_guest = False
     if 'aj' in res and 'source_id' in res:
@@ -7315,7 +7331,8 @@ def create_conversation(request):
     if is_guest and (current_state['state'] == 0 or current_state['state'] == member_states.PENDING_MEMBER):
         context = {}
         context = adding_guest_in_chatroom(context, card_instance, res['aj'], res['source_id'],
-                                           card_instance.community.id, member_id, guest_header=True)
+                                           card_instance.community.id, member_id, guest_header=True,
+                                           created_at=created_at)
 
     ##checking weather the conversation creater is a guest or not
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance, is_guest=True)
@@ -7336,8 +7353,8 @@ def create_conversation(request):
     ans.user = user_instance
     ans.community = card_instance.community
     ans.is_guest = state_filter.exists()
-    ans.created_at = time.time()
     ans.has_files = has_files
+    ans.created_at = created_at
     ans.api_version = 0
     ans.device_id = device_id
     ans.platform = platform_code
@@ -7421,7 +7438,12 @@ def conversation_tagging(request, res, card_instance, user_instance, member_id):
 
 @shared_task
 def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, res_text, has_files=False):
+
     """ function to send follow notifications to users who are following the chatroom """
+
+    update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance_id})
+    update_chatroom_conversation_creators_in_cache({'chatroom_id': card_instance_id, 'user_id': user_id})
+
     if not has_files:
         send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
         send_sync_notification({'chatroom_id': card_instance_id,
@@ -11023,7 +11045,6 @@ def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
     instance.user = user_instance
     instance.community = card_instance.community
     instance.state = chatroom_states.CHATROOM_COMMUNITY_EDIT
-    instance.created_at = time.time()
     instance.save()
 
 
