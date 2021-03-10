@@ -3315,7 +3315,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     if card.type == card_types.CARD_PURPOSE \
             or card.type == card_types.CARD_MASTER_INTRO \
             or card.type == card_types.CARD_EVENT \
-            or card.type == card_types.PUBLIC_EVENT:
+            or card.type == card_types.CARD_PUBLIC_EVENT:
         card.pinned = True
         card.pinned_time = TimeUtilities.current_time_in_milliseconds()
 

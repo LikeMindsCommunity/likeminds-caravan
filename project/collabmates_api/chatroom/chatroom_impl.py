@@ -220,7 +220,7 @@ class ChatroomImpl(ChatroomManager):
         if card_content['type'] == card_types.CARD_PURPOSE \
                 or card_content['type'] == card_types.CARD_MASTER_INTRO \
                 or card_content['type'] == card_types.CARD_EVENT \
-                or card_content['type'] == card_types.PUBLIC_EVENT:
+                or card_content['type'] == card_types.CARD_PUBLIC_EVENT:
 
             card_content['pinned'] = True
             card_content['pinned_time'] = TimeUtilities.current_time_in_milliseconds()
