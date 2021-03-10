@@ -30,7 +30,6 @@ class CreateChatroomView(APIView):
         return super(CreateChatroomView, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
         if not member_id:
@@ -56,7 +55,6 @@ class SetChatroomActiveView(APIView):
         return super(SetChatroomActiveView, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
         if not member_id:
@@ -68,3 +66,54 @@ class SetChatroomActiveView(APIView):
         context = chatroom_manager.set_chatroom_active_or_inactive(req_body)
 
         return JsonResponse(context)
+
+
+class PinUnpinChatroomView(APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(PinUnpinChatroomView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        request_validate = PinUnpinChatroomViewHelper.validate_request_for_pin_unpin_chatroom(request)
+
+        if request_validate.get('error_message'):
+            return JsonResponse(request_validate, status=400)
+
+        req_body = request_validate
+
+        chatroom_manager = ChatroomImpl(member_id, req_body['chatroom_id'])
+
+        context = chatroom_manager.pin_or_unpin_chatroom(req_body)
+
+        if context.get('error_message'):
+            return JsonResponse(context, status=400)
+
+        return JsonResponse(context)
+
+
+class PinUnpinChatroomViewHelper:
+
+    @staticmethod
+    def validate_request_for_pin_unpin_chatroom(request) -> {}:
+
+        request_body = RequestUtilities.load_request_body(request)
+
+        if not request_body:
+            return {'error_message': "Invalid request body", 'status': 400}
+
+        if 'chatroom_id' not in request_body or not request_body['chatroom_id']:
+            return {'error_message': "send chatroom id", 'status': 400}
+
+        if 'value' not in request_body:
+            return {'error_message': "send value in request body", 'status': 400}
+
+        if 'notify' not in request_body:
+            return {'error_message': "send notify status", 'status': 400}
+
+        return request_body

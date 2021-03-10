@@ -71,3 +71,13 @@ class RequestUtilities:
     @staticmethod
     def get_device_id_from_headers(request: object) -> str:
         return request.META.get('HTTP_X_DEVICE_ID')
+
+    @staticmethod
+    def load_request_body(request):
+
+        try:
+            request_body = json.loads(request.body)
+        except Exception as e:
+            request_body = {}
+
+        return request_body

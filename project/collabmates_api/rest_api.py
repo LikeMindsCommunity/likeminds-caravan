@@ -233,48 +233,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         self.promoter_id = self.context.get('promoter_id', None)
         self.is_owner = self.context.get('is_owner', False)
         self.current_user_instance = self.context.get('current_user_instance', None)
-
-    def get_manager_share_url(self, community):
-        url_dict = {}
-        private_link = generate_private_link(community_instance=community,
-                                             promoter_instance=self.promoter_id)
-        if self.current_user_id:
-            private_link = private_link + f"&shared_by={self.current_user_id}"
-        url_dict['private_link'] = private_link
-        if url_dict['members_count'] <= 10:
-            url_dict[
-                'private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
-                community.name, private_link)
-        else:
-            url_dict[
-                'private_link_text_admin'] = """Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s""" % (
-                community.name, private_link)
-        private_link_members_directory = private_link + "&source=members_directory"
-        url_dict['private_link_members_directory'] = private_link_members_directory
-
-        if self.is_owner:
-            private_link_text_members_directory = f"I have created a community directory for {community.name} on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}"
-
-        else:
-            private_link_text_members_directory = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
-
-        url_dict['private_link_text_members_directory'] = private_link_text_members_directory
-
-        return url_dict
-
-    def get_member_share_url(self, community):
-        url_dict = {}
-        if check_member_invite_private_right(self.current_user_instance, community):
-            private_link = generate_private_link(community_instance=community,
-                                                 promoter_instance=self.current_user_instance)
-            if self.current_user_id:
-                private_link = private_link + f"&shared_by={self.current_user_id}"
-
-            url_dict['private_link_text_member'] = f"Join {community.name} on LikeMinds with my exclusive link. For security, this is valid only for next 24 hours: {private_link}"
-
-            private_link_members_directory = private_link + "&source=members_directory"
-            url_dict['members_directory_link_for_members'] = f'Directory for our community has been setup on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: {private_link_members_directory}'
-        return url_dict
+        self.restrict_members_count = self.context.get('restrict_members_count', False)
 
     def to_representation(self, community):
         data = super(CommunitySerializerV1, self).to_representation(community)
@@ -299,7 +258,10 @@ class CommunitySerializerV1(serializers.ModelSerializer):
             elif data[field.field_name] is None:
                 del data[field.field_name]
 
-        data['members_count'] = get_members_count_in_community(community)
+        if self.restrict_members_count:
+            data['members_count'] = 0
+        else:
+            data['members_count'] = get_members_count_in_community(community)
 
         return data
 

@@ -30,7 +30,10 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage, update_my_chatrooms_for_users,
                                   set_chatroom_state_for_all_members_on_card_creation,
                                   get_chatroom_user_images_for_web, update_preview_of_chatroom_in_cache,
-                                  update_multiple_previews_in_chatroom, update_preview_for_account_image_change
+                                  update_multiple_previews_in_chatroom, update_preview_for_account_image_change,
+                                  schedule_chatroom_unpinning_after_event_completion,
+                                  update_chatroom_conversation_count_in_cache,
+                                  update_chatroom_conversation_creators_in_cache
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -3298,7 +3301,6 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         og_tags = decode_meta_from_url(res['share_link'])
         card.og_tags = json.dumps(og_tags)
 
-
     preview_utilities = PreviewUtilities()
     preview_utilities.set_preview_object(card, res, user_instance.id)
 
@@ -3308,6 +3310,13 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     card.member_state = res['member_state']
     card.date_epoch = int(time.time())  # card creation time
+
+    if card.type == card_types.CARD_PURPOSE \
+            or card.type == card_types.CARD_MASTER_INTRO \
+            or card.type == card_types.CARD_EVENT \
+            or card.type == card_types.PUBLIC_EVENT:
+        card.pinned = True
+        card.pinned_time = TimeUtilities.current_time_in_milliseconds()
 
     card.save()
     # add ownerflag here
@@ -3449,6 +3458,10 @@ def create_card_internal(user_id, community_id, res):
 
     else:
         update_pending_chatroom_count_for_promoters.delay(community_id)
+
+    if card_instance.type == card_types.CARD_EVENT \
+            or card_instance.type == card_types.CARD_PUBLIC_EVENT:
+        schedule_chatroom_unpinning_after_event_completion(card_instance)
 
     context = {
         'collabcard': collabcard,
@@ -5888,7 +5901,7 @@ def get_answer_bubble_context_for_web(ans):
     return answer_bubble
 
 
-def get_chatroom_actions(card_status, creator, promoter=False, current_user_instance=None,
+def get_chatroom_actions(card_status, creator, card_instance, promoter=False, current_user_instance=None,
                          community_instance=None, is_child=False, request_type=""):
     ''' function to get chatroom actions '''
 
@@ -5900,7 +5913,7 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
     intro_card = False
     master_intro_card = False
 
-    if card_status['type'] == card_types.CARD_PURPOSE :
+    if card_status['type'] == card_types.CARD_PURPOSE:
         purpose_card = True
     elif card_status['type'] == card_types.CARD_INTRO:
         intro_card = True
@@ -5974,6 +5987,13 @@ def get_chatroom_actions(card_status, creator, promoter=False, current_user_inst
             actions.append(mark_inactive)
         else:
             actions.append(mark_active)
+
+    if promoter and len(actions):
+
+        if card_instance.pinned:
+            actions.insert(1,unpin_chatroom)
+        else:
+            actions.insert(1,pin_chatroom)
 
     return actions
 
@@ -6105,7 +6125,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
                                             current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type
@@ -6264,7 +6284,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
                                             current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type
@@ -6405,7 +6425,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
                                             current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type
@@ -7417,7 +7437,12 @@ def conversation_tagging(request, res, card_instance, user_instance, member_id):
 
 @shared_task
 def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, res_text, has_files=False):
+
     """ function to send follow notifications to users who are following the chatroom """
+
+    update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance_id})
+    update_chatroom_conversation_creators_in_cache({'chatroom_id': card_instance_id, 'user_id': user_id})
+
     if not has_files:
         send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
         send_sync_notification({'chatroom_id': card_instance_id,

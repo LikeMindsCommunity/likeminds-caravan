@@ -303,6 +303,9 @@ class Collabcard(models.Model):
     disable_poll_announcement_mail = models.BooleanField(default=False)
     has_files = models.BooleanField(default=False)
 
+    pinned = models.BooleanField(default=False)
+    pinned_time = models.BigIntegerField(default=0)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = int(time.time() * 1000)
@@ -529,9 +532,6 @@ class collabcardState(models.Model):
 
     class Meta:
         unique_together = (('card', 'user'),)
-
-    def __str__(self):
-        return str(self.user.id) + "__" + str(self.card.id)
 
 
 class conversationMemberState(models.Model):
