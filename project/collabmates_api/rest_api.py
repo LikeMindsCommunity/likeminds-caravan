@@ -367,13 +367,14 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
 
     def get_created_at(self, card):
-        return time.strftime('%H:%M', time.localtime(card.date_epoch))
+
+        return TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch)
 
     def get_date(self, card):
-        return time.strftime('%d %b %Y', time.localtime(card.date_epoch))
+        return TimeUtilities.convert_epoch_time_in_date(card.date_epoch)
 
     def get_card_creation_time(self, card):
-        return time.strftime('%I:%M %p', time.localtime(card.date_epoch))
+        return TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(card.date_epoch)
 
     def get_expiry_time(self, card):
         if card.type == card_types.CARD_POLL:
@@ -895,7 +896,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         self.current_user_id = self.context.get('current_user_id', None)
 
     def get_date(self, obj):
-        return time.strftime('%d %b %Y', time.localtime(obj.created_at))
+        return TimeUtilities.convert_epoch_time_in_date(obj.created_at)
 
     def get_deleted_by(self, obj):
         if obj.deleted_by_user is not None:
@@ -925,7 +926,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 del data["user"]
 
             elif field.field_name == "created_at" and data['created_at'] is not None:
-                data['created_at'] = time.strftime('%H:%M', time.localtime(data['created_at']))
+                data['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(data['created_at'])
 
             elif field.field_name == "og_tags":
                 if data['og_tags'] is not None:

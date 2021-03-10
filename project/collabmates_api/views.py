@@ -1462,7 +1462,7 @@ def post_introduction_card_for_community(community_id, member_id):
                     ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
                                                 {'has_files': True, 'attachment_count': 1,
                                                  'attachments_uploaded': True})
-                    create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro[0])
+                create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro[0])
 
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
@@ -1486,10 +1486,7 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
     conversation_context['card'] = master_intro
     conversation_context['user'] = user_instance
     conversation_context['community'] = community_instance
-
-    conversation_context['created_at'] = TimeUtilities.current_time_in_sec()
     conversation_context['has_files'] = False
-
     conversation_context['attachment_count'] = 0
     conversation_context['attachments_uploaded'] = False
     conversation_context['api_version'] = 1
@@ -3046,7 +3043,6 @@ def post_member_directory_link(user_instance, community_instance):
     conversation.card = card_instance
     conversation.user = user_instance
     conversation.community = community_instance
-    conversation.created_at = TimeUtilities.current_time_in_sec()
     conversation.internal_link = member_directory_link
     conversation.preview_community = community_instance
     conversation.preview_type = "directory"
@@ -3648,7 +3644,6 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
     instance.user = user_instance
     instance.community = card_instance.community
     instance.state = state
-    instance.created_at = time.time()
     instance.save()
 
 
@@ -6542,7 +6537,7 @@ def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
 
 
 def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id, current_user_id,
-                             guest_header=False):
+                             guest_header=False, created_at=TimeUtilities.current_time_in_milliseconds()):
     aj_expired = is_chatroom_join_expired(aj, source_id, card_instance.id)
     status = is_member_verified(community_id, current_user_id)
     state_filter = collabcardState.objects.filter(card=card_instance, user=current_user_id, is_guest=True)
@@ -6550,12 +6545,11 @@ def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id
     if not aj_expired and not status and not state_filter.exists():
         context['aj_expired'] = aj_expired
         if guest_header:
-            create_guest_header(current_user_id, source_id, card_instance, current_user_id)
+            create_guest_header(current_user_id, source_id, card_instance, current_user_id, created_at=created_at)
 
             func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True,
                          'is_guest': True, 'source_id': source_id, 'source': "guest access"}
             collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
-
 
     elif not status and not state_filter.exists():
         context['aj_expired'] = aj_expired
@@ -6579,7 +6573,8 @@ def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id
     return context
 
 
-def create_guest_header(guest_id, invitee_id, card_instance, current_user_id):
+def create_guest_header(guest_id, invitee_id, card_instance, current_user_id,
+                        created_at=TimeUtilities.current_time_in_milliseconds()):
     try:
         guest_instance = User.objects.get(id=guest_id)
         invitee_instance = User.objects.get(id=invitee_id)
@@ -6601,7 +6596,7 @@ def create_guest_header(guest_id, invitee_id, card_instance, current_user_id):
         instance.user = guest_instance
         instance.state = chatroom_states.CHATROOM_GUEST
         instance.community = card_instance.community
-        instance.created_at = time.time()
+        instance.created_at = created_at
         instance.save()
 
 
@@ -7247,7 +7242,6 @@ def create_answer(request):
     ans.card = card_instance
     ans.user = user_instance
     ans.community = card_instance.community
-    ans.created_at = time.time()
     ans.save()
 
     update_last_answer_id(card_id, ans.id)
@@ -7293,6 +7287,7 @@ def create_conversation(request):
     res = json.loads(request.body)
 
     temporary_id = res.get('temporary_id')
+    created_at = res.get('created_at', TimeUtilities.current_time_in_milliseconds())
 
     is_guest = False
     if 'aj' in res and 'source_id' in res:
@@ -7315,7 +7310,8 @@ def create_conversation(request):
     if is_guest and (current_state['state'] == 0 or current_state['state'] == member_states.PENDING_MEMBER):
         context = {}
         context = adding_guest_in_chatroom(context, card_instance, res['aj'], res['source_id'],
-                                           card_instance.community.id, member_id, guest_header=True)
+                                           card_instance.community.id, member_id, guest_header=True,
+                                           created_at=created_at)
 
     ##checking weather the conversation creater is a guest or not
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance, is_guest=True)
@@ -7336,8 +7332,8 @@ def create_conversation(request):
     ans.user = user_instance
     ans.community = card_instance.community
     ans.is_guest = state_filter.exists()
-    ans.created_at = time.time()
     ans.has_files = has_files
+    ans.created_at = created_at
     ans.api_version = 0
     ans.device_id = device_id
     ans.platform = platform_code
@@ -11023,7 +11019,6 @@ def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
     instance.user = user_instance
     instance.community = card_instance.community
     instance.state = chatroom_states.CHATROOM_COMMUNITY_EDIT
-    instance.created_at = time.time()
     instance.save()
 
 

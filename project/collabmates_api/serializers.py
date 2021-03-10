@@ -28,15 +28,6 @@ error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 url = settings.URL
 
-from datetime import datetime, date
-
-
-#
-# class CommunitySerializer(serializers.HyperlinkedModelSerializer):
-#     class Meta:
-#         model = Community
-#         fields = ('id','name', 'purpose', 'image_url' ,'about', 'location')
-
 
 def CommunitySerializer(community, promoter_id=0, is_owner=False,
                         current_user_id=None, current_user_instance=None):
@@ -221,10 +212,10 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'answers_count': card.answers_count,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
-        'card_creation_time': time.strftime('%I:%M %p', time.localtime(card.date_epoch)),
+        'card_creation_time': TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(card.date_epoch),
         "community_name": card.community.name,
-        "date": time.strftime('%d %b %Y', time.localtime(card.date_epoch)),
-        "created_at": time.strftime('%H:%M', time.localtime(card.date_epoch)),
+        "date": TimeUtilities.convert_epoch_time_in_date(card.date_epoch),
+        "created_at": TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch),
         "date_epoch": card.date_epoch
     }
 
@@ -360,9 +351,9 @@ def draftChatroomSerializer(card, user, community=None):
         'duration': card.duration,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
-        'card_creation_time': time.strftime('%B %d at %H:%M', time.localtime(card.date_epoch)),
-        'created_at':time.strftime('%H:%M', time.localtime(card.date_epoch)),
-        'community_name':card.community.name
+        'card_creation_time': TimeUtilities.convert_epoch_time_in_date(card.date_epoch),
+        'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch),
+        'community_name': card.community.name
 
     }
 
@@ -530,7 +521,7 @@ def get_share_url_text(card, user_id):
     '''function to share url text'''
 
     share = {}
-    share['link_created_at'] = get_date_time_from_timestamp(time.time())
+    share['link_created_at'] = get_date_time_from_timestamp(TimeUtilities.current_time_in_sec())
     if not user_id:
         card_url = url + '/collabcard/' + str(card.id)
 
@@ -639,7 +630,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
 
         expiry_time = status['expiry_time']
 
-        if not expiry_time or expiry_time >= int(time.time()):
+        if not expiry_time or expiry_time >= TimeUtilities.current_time_in_sec():
             collabcard_serializer['active'] = True
 
     collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id,
@@ -672,19 +663,19 @@ def get_removed_member_custom_text(instance):
     temp = {}
     # instance = status['remove']
     remove_state = instance.removed_state
+
+    current_date = TimeUtilities.convert_epoch_time_in_date(instance.created_at)
+
     if remove_state == deleted_members.LEFT:
-        temp['custom_intro_text'] = """Left the community on %s""" % (
-            time.strftime("%d %B %Y", time.localtime(instance.created_at)))
-        temp[
-            'custom_click_text'] = """The profile you are trying to access does not exist. %s left the community on %s""" % (
-            instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+        temp['custom_intro_text'] = """Left the community on %s""" % current_date
+        temp['custom_click_text'] = """The profile you are trying to access does not exist. %s left the community on %s""" % (
+            instance.member.userinfo.name, current_date)
 
     elif remove_state == deleted_members.REMOVED:
-        temp['custom_intro_text'] = """Removed from the community on  %s""" % (
-            time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+        temp['custom_intro_text'] = """Removed from the community on  %s""" % current_date
         temp[
             'custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
-            instance.member.userinfo.name, time.strftime("%d %B %Y", time.localtime(instance.created_at)))
+            instance.member.userinfo.name,  current_date)
 
     temp['remove_state'] = remove_state
     temp['removed_user_image_url'] = REMOVED_USER_URL
@@ -695,12 +686,14 @@ def get_guest_custom_text(instance):
     '''function to check the guest member of the chatroom and sending the custom text'''
 
     temp = {}
+
+    created_at = TimeUtilities.convert_epoch_time_in_date(instance.created_at)
+
     temp['custom_intro_text'] = """Joined as a guest via %s’s invite link on %s""" % (
-        instance.source.userinfo.name, time.strftime('%d %B %Y', time.localtime(instance.created_at)))
-    temp[
-        'custom_click_text'] = """The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s""" % (
+        instance.source.userinfo.name,  created_at)
+    temp['custom_click_text'] = """The profile you are trying to access does not exist. %s joined this chatroom as a guest via %s’s invite link on %s""" % (
         instance.user.userinfo.name, instance.source.userinfo.name,
-        time.strftime('%d %B %Y', time.localtime(instance.created_at)))
+        created_at)
 
     return temp
 
@@ -869,8 +862,6 @@ def get_member_instances_for_footer_images_in_chatroom(card_instance):
     return temp
 
 
-
-
 def CollabcardPollsSerializer(poll, user, card):
     """ Poll serializer """
     # print("user--",user)
@@ -891,7 +882,7 @@ def CollabcardPollsSerializer(poll, user, card):
         polls['no_votes'] = poll_detail[0]
         polls['percentage'] = int(poll_detail[1])
 
-    elif card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date // 1000 <= time.time():
+    elif card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date // 1000 <= TimeUtilities.current_time_in_sec():
 
         poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
         polls['poll_count'] = poll_detail[0]
@@ -909,12 +900,6 @@ def CollabcardPollsSerializer(poll, user, card):
         # polls['member'] = member_profile[0]
         polls['member'] = get_user_profile(user_id=poll.user.id, community_id=card_instance.community.id,
                                            send_profile=False)
-
-    # if card.end_date // 1000 <= time.time():
-    #     poll_detail = poll_percentage(card, poll)
-    #
-    #     polls['poll_count'] = poll_detail[0]
-    #     polls['percentage'] = int(poll_detail[1])
 
     return polls
 
@@ -987,9 +972,6 @@ def draftPollsSerializers(poll):
 
     if poll.image_url:
         polls['image_url'] = poll.image_url
-
-    # if card.end_date // 1000 <= time.time():
-    #     poll_detail = poll_percentage(card, poll)
 
     polls['poll_count'] = 0
     polls['percentage'] = 0
@@ -1287,7 +1269,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
 
         community_profile['member_since'] = "Member of %s since %s" % (
             member_instance.community_id.name,
-            time.strftime('%b %d %Y', time.localtime(member_instance.created_at)))
+            TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(member_instance.created_at))
 
     elif member_instance.state == member_states.PENDING_MEMBER:
         community_profile['member_since'] = "Verification pending for " + member_instance.community_id.name
@@ -1297,8 +1279,9 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         answer_filter = communityAnswers.objects.filter(community=community_id).filter(
             member=member_instance.member_id).order_by('id')
         if not answer_filter.exists():
-            community_profile['custom_intro_text'] = """Created this community on %s""" % (
-                time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+            community_profile['custom_intro_text'] = """Created this community on %s""" % \
+                                                     TimeUtilities.convert_epoch_time_in_date(member_instance.created_at)
+
 
     if member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
 
@@ -1307,11 +1290,11 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
 
         if not answer_filter.exists():
             community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
-                time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+                TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
             community_profile[
                 'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
                 member_instance.member_id.userinfo.name,
-                time.strftime("%d %B %Y", time.localtime(member_instance.created_at)))
+                TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
 
     # add menu for all members api and fetch community profile API
 
@@ -1653,7 +1636,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
                                          current_user_id=current_user_id, send_profile=False, remove=remove)
     temp['member'] = member_profile[0]
 
-    temp['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
+    temp['date'] = TimeUtilities.convert_epoch_time_in_date(conversation.created_at)
 
     if conversation.is_guest:
         temp['member']['is_guest'] = conversation.is_guest
@@ -1777,7 +1760,7 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
         "answer": conversation.answer,
         "state": conversation.state,
         'is_edited': conversation.is_edited,
-        'created_at': time.strftime('%H:%M', time.localtime(conversation.created_at)),
+        'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(conversation.created_at),
         'has_files': conversation.has_files,
         'attachment_count': conversation.attachment_count,
         'attachments_uploaded': conversation.attachments_uploaded,
@@ -1809,7 +1792,7 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
     if conversation.is_deleted:
         conversation_dict['deleted_by'] = conversation.deleted_by_user.id
 
-    conversation_dict['date'] = time.strftime('%d %b %Y', time.localtime(conversation.created_at))
+    conversation_dict['date'] = TimeUtilities.convert_epoch_time_in_date(conversation.created_at)
 
     if conversation.internal_link:
         try:
@@ -1829,7 +1812,6 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
     # member_id = member_instance.member_id.id
 
     community_name = member_instance.community_id.name
-    locale_time = time.localtime(member_instance.created_at)
 
     community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id,
                                          send_profile=send_profile)
@@ -1847,8 +1829,7 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
         # community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
         #     str(community_id), str(member_id))
 
-        community_profile['member_since'] = "Member of " + community_name + " since " + time.strftime('%b %d %Y',
-                                                                                                      locale_time)
+        community_profile['member_since'] = "Member of " + community_name + " since " + TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(member_instance.created_at)
     elif member_instance.state == member_states.PENDING_MEMBER:
         community_profile['member_since'] = "Verification pending for " + community_name
 
@@ -1859,8 +1840,8 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
 
         if not answer_filter.exists():
             # if 'question_answers' not in community_profile:
-            community_profile['custom_intro_text'] = """Created this community on %s""" % (
-                time.strftime("%d %B %Y", locale_time))
+            community_profile['custom_intro_text'] = """Created this community on %s""" % \
+                                                     TimeUtilities.convert_epoch_time_in_date(member_instance.created_at)
 
     if (member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE):
 
@@ -1871,10 +1852,10 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
             # if 'question_answers' not in community_profile:
 
             community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
-                time.strftime("%d %B %Y", locale_time))
+                TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
             community_profile['custom_click_text'] = CUSTOM_CLICK_TEXT % (
                 member_instance.member_id.userinfo.name,
-                time.strftime("%d %B %Y", locale_time))
+                TimeUtilities.convert_epoch_time_to_date_month_year(member_instance.created_at))
 
     community_profile['community_id'] = community_id
 
