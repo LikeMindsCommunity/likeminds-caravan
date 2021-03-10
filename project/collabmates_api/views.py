@@ -1465,6 +1465,7 @@ def post_introduction_card_for_community(community_id, member_id):
                     ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
                                                 {'has_files': True, 'attachment_count': 1,
                                                  'attachments_uploaded': True})
+
                 create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro[0])
 
                 update_member_rights_in_conversation_engage(community_id, member_id)
