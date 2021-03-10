@@ -439,7 +439,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         if remove_state == deleted_members.LEFT:
             temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_LEFT % created_time
-            temp['custom_click_text'] = CUSTOM_CLICK_TEXT_LEFT % created_time
+            temp['custom_click_text'] = CUSTOM_CLICK_TEXT_LEFT % (userinfo_instance.name, created_time)
 
         elif remove_state == deleted_members.REMOVED:
             temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_DELETED % created_time
