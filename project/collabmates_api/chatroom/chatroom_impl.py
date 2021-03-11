@@ -626,7 +626,7 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_instance.save()
 
-        if notify is True:
+        if notify is True and value is True:
             send_pin_chatroom_notification.delay(community_instance.id, self.get_member_id(), self.get_chatroom_id())
 
         return {'success': True}
