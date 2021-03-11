@@ -460,7 +460,7 @@ def schedule_chatroom_unpinning_after_event_completion(card_instance):
     card_id = card_instance.id
     args = [card_id]
 
-    card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.date_time)
+    card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.end_date)
     task_begin_epoch_time = card_end_time
     task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
 
