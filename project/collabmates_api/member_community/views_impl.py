@@ -42,7 +42,7 @@ class FetchCommunityFeed(APIView):
 
         community_id = request.GET.get('community_id')
 
-        pin_status = request.GET.get('pin_status', False)
+        pin_status = request.GET.get('pinned', False)
         pin_status = StringUtilities.get_boolean_from_string(pin_status)
 
         community_manager = MemberCommunityImpl(member_id, community_id)
