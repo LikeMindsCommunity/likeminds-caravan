@@ -98,7 +98,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not isinstance(community_id, Community):
             community_id = Community.objects.get(pk=community_id)
 
-        context = {"current_user_id": member_id, 'restrict_members_count': True}
+        context = {"current_user_id": member_id}
         return CommunitySerializerV1(community_id, context=context, many=False).data
 
     def _add_admin_info(self, member_community: dict, community: {}) -> None:
