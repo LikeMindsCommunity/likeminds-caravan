@@ -15,7 +15,7 @@ from .constants import ACTIVE_USER_LIMIT, CHATROOM_COUNT_LIMIT, INVITE_MEMBERS, 
     CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_DELETED
 from .member_community_manager import MemberCommunityManager
 from .constants import FEED_UPWARD_SCROLL, FEED_DOWNWARD_SCROLL
-from ..raw_queries import fetch_chatroom_polls, fetch_member_poll_votes
+from ..raw_queries import fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query
 from ..user_moderation_rights import check_admin_approve_right
 from ..utility import pagination
 from ..views import get_home_screen_community_actions, get_active_chatroom_member_images
@@ -362,30 +362,32 @@ class MemberCommunityImpl(MemberCommunityManager):
     @staticmethod
     def fetch_members_based_on_user_list(user_list, community_instance) -> {}:
 
-        member_filter = Members.objects.filter(community_id=community_instance, member_id__in=user_list). \
-            select_related('member_id', 'member_id__userinfo')
         member_dict = {}
+        member_list = get_members_based_on_user_list_query(user_list, community_instance.id)
+        for data in member_list:
 
-        for data in member_filter:
-            user_instance = data.member_id
-
-            if not member_dict.get(user_instance.id):
+            if not member_dict.get(data['member_id']):
                 member = {
-                    'id': user_instance.id,
-                    'name': user_instance.userinfo.name,
-                    'state': data.state,
-                    'is_owner': data.is_owner,
+                    'id': data['member_id'],
+                    'name': data['name'],
+                    'state': data['state'],
+                    'is_owner': data['is_owner'],
                 }
 
-                if data.image_url:
-                    member['image_url'] = data.image_url
-                elif user_instance.userinfo.image_link:
-                    member['image_url'] = user_instance.userinfo.image_link
+                if data['image_url']:
+                    image_url = data['image_url']
 
-                if data.custom_title and not data.custom_title == 'Member':
-                    member['custom_title'] = data.custom_title
+                elif data['image_link']:
+                    image_url = data['image_link']
+                else:
+                    image_url = ""
 
-                member_dict[user_instance.id] = member
+                member['image_url'] = image_url
+
+                if data['custom_title'] and not data['custom_title'] == 'Member':
+                    member['custom_title'] = data['custom_title']
+
+                member_dict[data['member_id']] = member
 
         return member_dict
 
