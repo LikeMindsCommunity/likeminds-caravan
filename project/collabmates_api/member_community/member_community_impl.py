@@ -1,4 +1,3 @@
-
 from django.contrib.auth.models import User
 from rest_framework.utils import json
 from django.db.models import Q
@@ -394,9 +393,14 @@ class MemberCommunityImpl(MemberCommunityManager):
     def compute_user_id_list_of_chatroom_creators(chatroom_list) -> []:
 
         user_list = []
+        user_set = set()
 
         for data in chatroom_list:
-            user_list.append(data.card.user.id)
+            user_id = data.card.user_id
+
+            if user_id not in user_set:
+                user_list.append(user_id)
+                user_set.add(user_id)
 
         return user_list
 
@@ -470,17 +474,16 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return remove_member
 
-    @staticmethod
-    def compute_co_host_of_chatroom_events(member_set, co_host_list) -> []:
+    def compute_co_host_of_chatroom_events(self, co_host_list, community_instance) -> []:
 
         co_hosts = []
+        member_dict = self.fetch_members_based_on_user_list(co_host_list, community_instance)
 
         for data in co_host_list:
-            temp = NumberUtilities.get_integer_from_string(data)
-            member = member_set.get(temp)
+            user_id = NumberUtilities.get_integer_from_string(data)
 
-            if member:
-                co_hosts.append(member)
+            if user_id in member_dict:
+                co_hosts.append(member_dict[user_id])
 
         return co_hosts
 
@@ -614,7 +617,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return conversation_members
 
-    def process_chatroom(self, card_instance, state_instance, community_instance, member_dict, poll_data,
+    def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes) -> {}:
 
         chatroom_context = MemberCommunityHelper.serialize_chatroom(card_instance)
@@ -641,9 +644,10 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             chatroom_context.update(poll_serializer)
 
-        if card_instance.type == card_types.CARD_EVENT:
+        if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT:
             co_host_list = chatroom_context.get('co_hosts') if chatroom_context.get('co_hosts') else []
-            co_hosts = self.compute_co_host_of_chatroom_events(member_dict, co_host_list)
+
+            co_hosts = self.compute_co_host_of_chatroom_events(co_host_list, community_instance)
 
             if co_hosts:
                 chatroom_context['co_hosts'] = co_hosts
@@ -677,7 +681,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             card_instance = data.card
             state_instance = data
             card_creator_id = card_instance.user.id
-            chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance, member_dict
+            chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
                                                      , poll_data, poll_votes)
             if card_creator_id in member_dict:
                 chatroom_context['member'] = member_dict[card_creator_id]
@@ -1051,7 +1055,6 @@ class MemberCommunityHelper:
             try:
                 co_host_list = json.loads(card_instance.co_hosts)
             except Exception as e:
-                error_logger.error(e.args)
                 co_host_list = []
 
             chatroom_context['co_hosts'] = co_host_list
