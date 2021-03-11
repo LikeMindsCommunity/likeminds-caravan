@@ -482,11 +482,12 @@ def update_chatroom_conversation_count_in_cache(count_info):
     previous_count = CacheImpl.get_cache(key)
 
     if previous_count:
-        previous_count['conversations_count'] = previous_count['conversations_count'] + 1
+        total_responses_count = previous_count.get('total_responses_count', 0) + 1
+        previous_count['total_responses_count'] = total_responses_count
 
     else:
 
-        conversations_count = count_info.get('conversations_count')
+        conversations_count = count_info.get('total_responses_count')
 
         if not conversations_count:
             conversations_count = ModelUtilities.get_model_filter(card_answers,

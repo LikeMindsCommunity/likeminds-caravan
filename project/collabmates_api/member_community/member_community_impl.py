@@ -583,7 +583,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                                    | Q(
                 attachments_uploaded=True)).count()
             update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance.id,
-                                                         'conversations_count': conversations_count})
+                                                         'total_responses_count': conversations_count})
 
             return conversations_count
 
