@@ -98,7 +98,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not isinstance(community_id, Community):
             community_id = Community.objects.get(pk=community_id)
 
-        context = {"current_user_id": member_id, 'restrict_members_count': True}
+        context = {"current_user_id": member_id}
         return CommunitySerializerV1(community_id, context=context, many=False).data
 
     def _add_admin_info(self, member_community: dict, community: {}) -> None:
@@ -583,7 +583,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                                    | Q(
                 attachments_uploaded=True)).count()
             update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance.id,
-                                                         'conversations_count': conversations_count})
+                                                         'total_responses_count': conversations_count})
 
             return conversations_count
 

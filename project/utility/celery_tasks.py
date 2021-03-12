@@ -460,7 +460,7 @@ def schedule_chatroom_unpinning_after_event_completion(card_instance):
     card_id = card_instance.id
     args = [card_id]
 
-    card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.date_time)
+    card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.end_date)
     task_begin_epoch_time = card_end_time
     task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
 
@@ -482,11 +482,12 @@ def update_chatroom_conversation_count_in_cache(count_info):
     previous_count = CacheImpl.get_cache(key)
 
     if previous_count:
-        previous_count['conversations_count'] = previous_count['conversations_count'] + 1
+        total_responses_count = previous_count.get('total_responses_count', 0) + 1
+        previous_count['total_responses_count'] = total_responses_count
 
     else:
 
-        conversations_count = count_info.get('conversations_count')
+        conversations_count = count_info.get('total_responses_count')
 
         if not conversations_count:
             conversations_count = ModelUtilities.get_model_filter(card_answers,

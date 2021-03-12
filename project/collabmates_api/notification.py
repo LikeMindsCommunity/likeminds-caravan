@@ -930,11 +930,17 @@ def get_custom_data_for_new_conversation_created(user_id):
         last_instance = card_answers.objects.filter(card=conversation.card, state=0).last()
 
         if last_instance:
+            userinfo_instance = last_instance.user.userinfo
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
-            temp['chatroom_last_conversation_user_name'] = last_instance.user.userinfo.name
-            temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
-            temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
+            temp['chatroom_last_conversation_user_name'] = userinfo_instance.name
+            temp['chatroom_last_conversation_user_image'] = userinfo_instance.image_link
+            created_at = last_instance.created_at
+
+            if TimeUtilities.is_epoch_in_milliseconds(created_at):
+                created_at = TimeUtilities.convert_milliseconds_to_sec(created_at)
+
+            temp['chatroom_last_conversation_timestamp'] = created_at
 
             if last_instance.has_files or \
                     last_instance.attachment_count > 0:
