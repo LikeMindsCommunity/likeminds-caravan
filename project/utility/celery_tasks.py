@@ -13,6 +13,7 @@ from django.db.models import Q
 import json
 
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
+from utility.number_utilities import NumberUtilities
 from utility.states import card_types, chatroom_states
 
 error_logger = LoggingWrapper.get_instance()
@@ -512,7 +513,9 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
 
     if conversation_creator_dict:
         user_id = conversation_creator_info.get('user_id')
-        print(user_id)
+
+        user_id = NumberUtilities.get_integer_from_string(user_id)
+
         if not user_id:
             return
 
@@ -543,7 +546,7 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
                                       .order_by('user', '-id')[:5]
 
             for data in conversation_filter:
-                user_id = data.user.id
+                user_id = data.user_id
                 conversation_creator_list.append(user_id)
 
         if conversation_creator_list:
