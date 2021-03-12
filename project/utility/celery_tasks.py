@@ -533,7 +533,7 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
                 conversation_creator_list.pop(0)
 
             conversation_creator_list.append(user_id)
-
+            conversation_creator_dict['conversation_creator_list'] = conversation_creator_list
             CacheImpl.set_cache(key, conversation_creator_dict)
 
     else:
