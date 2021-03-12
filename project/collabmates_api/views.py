@@ -1441,7 +1441,8 @@ def post_introduction_card_for_community(community_id, member_id):
 
             master_intro = ModelUtilities.get_model_filter(Collabcard,
                                                                 {'community': community_id,
-                                                                 'type': card_types.CARD_MASTER_INTRO})
+                                                                 'type': card_types.CARD_MASTER_INTRO,
+                                                                 'is_deleted': False})
             if not master_intro:
                 return
 
