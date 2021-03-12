@@ -15189,29 +15189,57 @@ def sync_members(request):
     if members_type == "removed_members":
 
         if chatroom_id:
-            removed_members = collabcardState.objects.filter(card=chatroom_id).filter(~Q(remove=None)).order_by('id')
+
+            community_instance = Collabcard.get_community_of_chatroom_or_none(chatroom_id)
+
+            if not community_instance:
+                context = {'members': []}
+
+                return JsonResponse(context,status=status_codes.HTTP_400_BAD_REQUEST)
+
             max_last_updated = 0
-            members = []
-            removed_members = pagination(removed_members, page, paginate_by=paginate_by)
-            user_set = set()
-            for data in removed_members:
-                key = data.user.id
-                if key not in user_set:
-                    community_profile = get_user_profile(data.user, data.community.id, current_user_id=member_id,
-                                                         send_profile=False, remove=True)
-                    if max_last_updated < data.updated_at:
-                        max_last_updated = data.updated_at
-                    members.append(community_profile)
-                    user_set.add(key)
+            member_list = []
+
+            chatroom_removed_members = \
+                set(collabcardState.objects.filter(card=chatroom_id).filter(~Q(remove=None)).values_list('user'
+                                                                                                         , flat=True))
+
+            if not last_updated:
+                remove_member_filter = removedMembers.objects.filter(community=community_instance).order_by('id')
+
+            else:
+                remove_member_filter = removedMembers.objects.filter(community=community_instance,
+                                                                     created_at__gt=last_updated).order_by('id')
+
+            for data in remove_member_filter:
+
+                user_id = data.member_id
+
+                if user_id in chatroom_removed_members:
+
+                    if max_last_updated < data.created_at:
+                        max_last_updated = data.created_at
+
+                    member_data = get_removed_member_instance(data)
+                    member_list.append(member_data)
 
             context = {
-                'members': members,
-                'max_last_updated': max_last_updated
+                'members': member_list,
             }
+
+            if max_last_updated:
+                context['max_last_updated'] = max_last_updated
+
             return JsonResponse(context)
 
         elif community_id:
-            remove_member_filter = removedMembers.objects.filter(community=community_id).order_by('id')
+
+            if not last_updated:
+                remove_member_filter = removedMembers.objects.filter(community=community_id).order_by('id')
+
+            else:
+                remove_member_filter = removedMembers.objects.filter(community=community_id, created_at__gt=last_updated).order_by('id')
+
         else:
             if not last_updated:
                 remove_member_filter = removedMembers.objects.order_by('id')
