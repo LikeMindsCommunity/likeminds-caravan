@@ -480,11 +480,13 @@ def update_chatroom_conversation_count_in_cache(count_info):
         return
 
     key = CONVERSATIONS_COUNT_CACHE_KEY % str(chatroom_id)
+    print(key)
     previous_count = CacheImpl.get_cache(key)
-
+    print(previous_count)
     if previous_count:
         total_responses_count = previous_count.get('total_responses_count', 0) + 1
         previous_count['total_responses_count'] = total_responses_count
+        print("set",previous_count)
 
     else:
 
@@ -496,7 +498,7 @@ def update_chatroom_conversation_count_in_cache(count_info):
                                                                    'state': chatroom_states.ANSWER}).filter(
                 Q(attachment_count=0)
                 | Q(attachments_uploaded=True)).count()
-
+        print(conversations_count)
         CacheImpl.set_cache(key, {'total_responses_count': conversations_count})
 
 
