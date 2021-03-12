@@ -2628,7 +2628,7 @@ def send_pin_chatroom_notification(community_id, member_id, chatroom_id):
     message = {'payload': {
         "title": PIN_CHATROOM_TITLE,
         "sub_title": PIN_SUBTITLE % (promoter_name, get_title_from_collabcard(card_instance)),
-        'route': PIN_ROUTE
+        'route': PIN_ROUTE % str(card_instance.id)
     }}
 
     notification_meta(notification_list, message)

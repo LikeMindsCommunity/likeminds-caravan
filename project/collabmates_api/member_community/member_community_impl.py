@@ -12,7 +12,7 @@ from utility.string_utilities import StringUtilities
 from .constants import ACTIVE_USER_LIMIT, CHATROOM_COUNT_LIMIT, INVITE_MEMBERS, NEW_CHATROOM, DIRECTORY, PINNED, \
     COMMUNITY_DETAILS, INVITE_MEMBERS_ROUTE, NEW_CHATROOM_ROUTE, DIRECTORY_ROUTE, PINNED_ROUTE, COMMUNITY_DETAILS_ROUTE, \
     PINNED_TOP_BAR_TITLE, PINNED_TOP_BAR_IMAGE, CUSTOM_INTRO_TEXT_LEFT, CUSTOM_CLICK_TEXT_LEFT, \
-    CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_DELETED
+    CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_DELETED, MEMBER_COMMUNITY_PROFILE_ROUTE, MEMBER_SINCE_TEXT
 from .member_community_manager import MemberCommunityManager
 from .constants import FEED_UPWARD_SCROLL, FEED_DOWNWARD_SCROLL
 from ..raw_queries import fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query
@@ -364,6 +364,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         member_dict = {}
         member_list = get_members_based_on_user_list_query(user_list, community_instance.id)
+        community_name = community_instance.name
+
         for data in member_list:
 
             if not member_dict.get(data['member_id']):
@@ -372,6 +374,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'name': data['name'],
                     'state': data['state'],
                     'is_owner': data['is_owner'],
+                    'community_id': data['community_id'],
+                    'route': MEMBER_COMMUNITY_PROFILE_ROUTE % (str(data['community_id']), str(data['member_id'])),
+                    'member_since': MEMBER_SINCE_TEXT % (community_name,
+                                                         TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(
+                                                             data['created_at']))
                 }
 
                 if data['image_url']:
@@ -603,7 +610,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if member:
                 member_data = member
                 member_data['chatroom_id'] = card_instance.id
-                member_data['community_id'] = community_instance.id
+
             else:
                 user_instance = User.get_user_or_none(user_id)
                 userinfo_instance = user_instance.userinfo

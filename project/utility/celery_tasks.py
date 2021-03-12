@@ -506,16 +506,18 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
         return
 
     key = CONVERSATIONS_DISTINCT_CREATORS_KEY % str(chatroom_id)
+    print("key",key)
     conversation_creator_dict = CacheImpl.get_cache(key)
+    print("conversation_creation_dict", conversation_creator_dict)
 
     if conversation_creator_dict:
         user_id = conversation_creator_info.get('user_id')
-
+        print(user_id)
         if not user_id:
             return
 
         conversation_creator_list = conversation_creator_dict['conversation_creator_list']
-
+        print("conversation_creator_list")
         list_len = len(conversation_creator_list)
 
         if list_len and (user_id not in conversation_creator_list):
@@ -524,6 +526,8 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
                 conversation_creator_list.pop(0)
 
             conversation_creator_list.append(user_id)
+
+            print("appended_list", conversation_creator_list)
 
     else:
 
@@ -544,4 +548,7 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
 
         if conversation_creator_list:
             conversation_creator_dict['conversation_creator_list'] = conversation_creator_list
+
+            print("set_dict", conversation_creator_dict)
+
             CacheImpl.set_cache(key, conversation_creator_dict)
