@@ -13,6 +13,7 @@ from django.db.models import Q
 import json
 
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
+from utility.number_utilities import NumberUtilities
 from utility.states import card_types, chatroom_states
 
 error_logger = LoggingWrapper.get_instance()
@@ -486,7 +487,7 @@ def update_chatroom_conversation_count_in_cache(count_info):
         previous_count['total_responses_count'] = total_responses_count
 
     else:
-
+        previous_count = {}
         conversations_count = count_info.get('total_responses_count')
 
         if not conversations_count:
@@ -496,7 +497,8 @@ def update_chatroom_conversation_count_in_cache(count_info):
                 Q(attachment_count=0)
                 | Q(attachments_uploaded=True)).count()
 
-        CacheImpl.set_cache(key, {'total_responses_count': conversations_count})
+        previous_count['total_responses_count'] = conversations_count
+    CacheImpl.set_cache(key, previous_count)
 
 
 def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
@@ -506,18 +508,17 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
         return
 
     key = CONVERSATIONS_DISTINCT_CREATORS_KEY % str(chatroom_id)
-    print("key",key)
     conversation_creator_dict = CacheImpl.get_cache(key)
-    print("conversation_creation_dict", conversation_creator_dict)
 
     if conversation_creator_dict:
         user_id = conversation_creator_info.get('user_id')
-        print(user_id)
+
+        user_id = NumberUtilities.get_integer_from_string(user_id)
+
         if not user_id:
             return
 
         conversation_creator_list = conversation_creator_dict['conversation_creator_list']
-        print("conversation_creator_list")
         list_len = len(conversation_creator_list)
 
         if list_len and (user_id not in conversation_creator_list):
@@ -526,8 +527,8 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
                 conversation_creator_list.pop(0)
 
             conversation_creator_list.append(user_id)
-
-            print("appended_list", conversation_creator_list)
+            conversation_creator_dict['conversation_creator_list'] = conversation_creator_list
+            CacheImpl.set_cache(key, conversation_creator_dict)
 
     else:
 
@@ -543,7 +544,7 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
                                       .order_by('user', '-id')[:5]
 
             for data in conversation_filter:
-                user_id = data.user.id
+                user_id = data.user_id
                 conversation_creator_list.append(user_id)
 
         if conversation_creator_list:
