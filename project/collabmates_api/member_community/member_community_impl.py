@@ -613,6 +613,10 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             else:
                 user_instance = User.get_user_or_none(user_id)
+
+                if not user_instance:
+                    continue
+
                 userinfo_instance = user_instance.userinfo
 
                 if user_instance:

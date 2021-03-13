@@ -1863,7 +1863,7 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
 
 
 def get_removed_member_instance(instance):
-    community_id = instance.community.id
+    community_id = instance.community_id
     user_profile = get_user_profile(instance.member, community_id, send_profile=False, remove=True)
     removed = get_removed_member_custom_text(instance)
     user_profile['custom_intro_text'] = removed['custom_intro_text']
