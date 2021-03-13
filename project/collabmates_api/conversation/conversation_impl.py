@@ -177,7 +177,6 @@ class ConversationImpl(ConversationManager):
 
         return conversation_list
 
-
     def _is_user_already_guest(self, chatroom, user):
         return collabcardState.objects.filter(card=chatroom,
                                               user=user,
@@ -223,12 +222,14 @@ class ConversationImpl(ConversationManager):
     def _save_conversation(self, conversation_instance):
         conversation_instance.save()
 
-    def _add_guest_in_chatroom(self, chatroom_instance, community_id, member_state, is_guest, aj, source_id):
+    def _add_guest_in_chatroom(self, chatroom_instance, community_id, member_state, is_guest, aj, source_id,
+                               created_at=TimeUtilities.current_time_in_milliseconds()):
 
         if is_guest and (member_state == member_states.GUEST or member_state == member_states.PENDING_MEMBER):
             context = {}
             context = adding_guest_in_chatroom(context, chatroom_instance, aj, source_id,
-                                               community_id, self.get_member_id(), guest_header=True)
+                                               community_id, self.get_member_id(), guest_header=True,
+                                               created_at=created_at)
 
     def _update_latest_conversation_id_to_firebase(self, chatroom_id, conversation_id):
         update_last_answer_id(chatroom_id, conversation_id)
@@ -285,13 +286,13 @@ class ConversationImpl(ConversationManager):
 
             else:
 
-                upward_conversation = self._fetch_upward_conversation_with_conversation_queryset(LIST_SIZE, last_seen.id)
+                upward_conversation = self._fetch_upward_conversation_with_conversation_queryset(LIST_SIZE,
+                                                                                                 last_seen.id)
                 downward_conversation = self._fetch_downward_conversation_queryset(LIST_SIZE, last_seen.id)
 
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
                 conversations = conversations.order_by('id')
-                
                 conversations = self._create_conversation_list(conversations, last_conversation_id=last_seen.id)
 
         else:
@@ -322,6 +323,7 @@ class ConversationImpl(ConversationManager):
                             user_instance: User = None, chatroom_instance: Collabcard = None) -> {}:
 
         chatroom_id = req_body.get('chatroom_id', None)
+        created_at = req_body.get('created_at', TimeUtilities.current_time_in_milliseconds())
 
         if not chatroom_id:
             response = {
@@ -352,7 +354,8 @@ class ConversationImpl(ConversationManager):
         self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
                                     is_guest=is_user_guest,
                                     aj=req_body.get('aj', None),
-                                    source_id=req_body.get('source_id', None))
+                                    source_id=req_body.get('source_id', None),
+                                    created_at=created_at)
 
         conversation_content = {}
 
@@ -361,7 +364,7 @@ class ConversationImpl(ConversationManager):
                                               has_files)
         conversation_content['reply'] = ConversationHelper.fetch_replied_conversation(req_body)
         conversation_content['og_tags'] = ConversationHelper.fetch_og_tags(req_body)
-
+        conversation_content['created_at'] = created_at
         conversation_instance = self._create_conversation_instance(conversation_content)
         self._set_preview_for_conversation(conversation_instance, req_body)
 
