@@ -489,8 +489,14 @@ class card_answers(models.Model):
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
+
+        current_time_milli = TimeUtilities.current_time_in_milliseconds()
+
         if self.last_updated == 0:
-            self.last_updated = int(round(time.time() * 1000))
+            self.last_updated = current_time_milli
+
+        if self.created_at < 0:
+            self.created_at = current_time_milli
 
         super(card_answers, self).save(*args, **kwargs)
 
