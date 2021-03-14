@@ -5785,9 +5785,9 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             user_context['image_url'] = temp['removed_user_image_url']
 
         # time_text = get_time_text(ans.created_at)
-        time_text = time.strftime('%H:%M', time.localtime(ans.created_at))
+        time_text = TimeUtilities.convert_epoch_time_in_hh_mm(ans.created_at)
 
-        date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
+        date = TimeUtilities.convert_epoch_time_to_date_month_year(ans.created_at)
         attachements = get_answer_files(ans.id)
 
         context = {
