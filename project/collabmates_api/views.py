@@ -5787,7 +5787,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
         # time_text = get_time_text(ans.created_at)
         time_text = TimeUtilities.convert_epoch_time_in_hh_mm(ans.created_at)
 
-        date = TimeUtilities.convert_epoch_time_to_date_month_year(ans.created_at)
+        date = TimeUtilities.convert_epoch_time_in_date(ans.created_at)
         attachements = get_answer_files(ans.id)
 
         context = {
