@@ -1489,7 +1489,6 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
     conversation_context['user'] = user_instance
     conversation_context['community'] = community_instance
 
-    conversation_context['created_at'] = TimeUtilities.current_time_in_sec()
     conversation_context['has_files'] = False
 
     conversation_context['attachment_count'] = 0
@@ -3048,7 +3047,6 @@ def post_member_directory_link(user_instance, community_instance):
     conversation.card = card_instance
     conversation.user = user_instance
     conversation.community = community_instance
-    conversation.created_at = TimeUtilities.current_time_in_sec()
     conversation.internal_link = member_directory_link
     conversation.preview_community = community_instance
     conversation.preview_type = "directory"
@@ -3650,7 +3648,6 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
     instance.user = user_instance
     instance.community = card_instance.community
     instance.state = state
-    instance.created_at = time.time()
     instance.save()
 
 
@@ -6603,7 +6600,6 @@ def create_guest_header(guest_id, invitee_id, card_instance, current_user_id):
         instance.user = guest_instance
         instance.state = chatroom_states.CHATROOM_GUEST
         instance.community = card_instance.community
-        instance.created_at = time.time()
         instance.save()
 
 
@@ -7249,7 +7245,6 @@ def create_answer(request):
     ans.card = card_instance
     ans.user = user_instance
     ans.community = card_instance.community
-    ans.created_at = time.time()
     ans.save()
 
     update_last_answer_id(card_id, ans.id)
@@ -7338,7 +7333,6 @@ def create_conversation(request):
     ans.user = user_instance
     ans.community = card_instance.community
     ans.is_guest = state_filter.exists()
-    ans.created_at = time.time()
     ans.has_files = has_files
     ans.api_version = 0
     ans.device_id = device_id
@@ -11025,7 +11019,6 @@ def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
     instance.user = user_instance
     instance.community = card_instance.community
     instance.state = chatroom_states.CHATROOM_COMMUNITY_EDIT
-    instance.created_at = time.time()
     instance.save()
 
 
