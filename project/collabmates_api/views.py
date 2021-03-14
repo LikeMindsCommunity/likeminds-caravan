@@ -8506,8 +8506,11 @@ def fetch_community_chatroom_feed(request):
         context = get_error_context(False, "send correct community id")
         return JsonResponse(context)
 
-    chatroom_filter = Collabcard.objects.filter(community=community_instance,
-                                                is_pending=False, is_deleted=False).order_by('-id')
+    chatroom_filter = \
+        Collabcard.objects.filter(community=community_instance,
+                                  is_pending=False,
+                                  is_deleted=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
+
     total_chatrooms = chatroom_filter.count()
     chatroom_list = []
     for chatroom in chatroom_filter:
