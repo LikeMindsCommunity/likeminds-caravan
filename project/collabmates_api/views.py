@@ -1444,7 +1444,8 @@ def post_introduction_card_for_community(community_id, member_id):
 
             master_intro = ModelUtilities.get_model_filter(Collabcard,
                                                                 {'community': community_id,
-                                                                 'type': card_types.CARD_MASTER_INTRO})
+                                                                 'type': card_types.CARD_MASTER_INTRO,
+                                                                 'is_deleted': False})
             if not master_intro:
                 return
 
@@ -5795,9 +5796,9 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             user_context['image_url'] = temp['removed_user_image_url']
 
         # time_text = get_time_text(ans.created_at)
-        time_text = time.strftime('%H:%M', time.localtime(ans.created_at))
+        time_text = TimeUtilities.convert_epoch_time_in_hh_mm(ans.created_at)
 
-        date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
+        date = TimeUtilities.convert_epoch_time_in_date(ans.created_at)
         attachements = get_answer_files(ans.id)
 
         context = {
