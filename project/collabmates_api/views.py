@@ -15105,6 +15105,7 @@ def sync_members(request):
                 chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
                                                           community_id=community_instance, updated_at__gt=last_updated)
 
+
             for member_instance in chatroom_members:
 
                 if max_last_updated < member_instance.updated_at:
@@ -15183,6 +15184,7 @@ def sync_members(request):
             else:
                 remove_member_filter = removedMembers.objects.filter(community=community_instance,
                                                                      created_at__gt=last_updated).order_by('id')
+            remove_member_filter = pagination(remove_member_filter, page, paginate_by=paginate_by)
 
             for data in remove_member_filter:
 
