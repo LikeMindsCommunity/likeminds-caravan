@@ -50,10 +50,12 @@ INSTALLED_APPS = [
     'utility',
     'django_celery_beat',
     'cms',
+    'django_prometheus',
 ]
 
 
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -66,7 +68,7 @@ MIDDLEWARE = [
     'utility.custom_middleware.AppendOrRemoveSlashMiddleware',
     'middleware.api_logger.ApiLogger',
     # 'middleware.InternalServerErrorMiddleware.InternalServerErrorHandlerMiddleware',
-
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 

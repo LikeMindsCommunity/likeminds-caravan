@@ -8972,6 +8972,7 @@ def login_authenticate_version_1(request):
     ''' function to login a user '''
 
     if request.method == 'POST':
+        start_time = time.time()
         res = json.loads(request.body)
         # print(res)
         login_type = res['type']
@@ -9032,6 +9033,8 @@ def login_authenticate_version_1(request):
             # insert code here
 
             context = custom_login(request, res, login_type="custom")
+            end_time = time.time()
+            info_logger.info(f"LOGIN VIEW RESPONSE TIME = {end_time - start_time}")
 
             if context.get('error_message'):
 
