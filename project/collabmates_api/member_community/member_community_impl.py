@@ -774,7 +774,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'chatrooms': chatroom_context_list}
 
     @staticmethod
-    def create_feed_actions(community_instance) -> []:
+    def create_feed_actions(community_instance, pinned_top_bar) -> []:
 
         actions = []
         community_id = StringUtilities.get_string_from_integer(community_instance.id)
@@ -789,7 +789,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         actions.append(INVITE_MEMBERS)
         actions.append(NEW_CHATROOM)
         actions.append(DIRECTORY)
-        actions.append(PINNED)
+
+        if pinned_top_bar:
+            actions.append(PINNED)
+    
         actions.append(COMMUNITY_DETAILS)
 
         return actions
@@ -837,14 +840,16 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
 
-        actions = self.create_feed_actions(community_instance)
-        community = self._community_serializer(community_instance, self.get_member_id())
-        feed_context = {'actions': actions, 'community': community}
-
+        feed_context = dict()
         pinned_top_bar = self.create_pinned_chatrooms_header(community_instance)
 
         if pinned_top_bar:
             feed_context['pinned_top_bar'] = pinned_top_bar
+
+        actions = self.create_feed_actions(community_instance, pinned_top_bar)
+        community = self._community_serializer(community_instance, self.get_member_id())
+        feed_context['actions'] = actions
+        feed_context['community'] = community
 
         return feed_context
 
