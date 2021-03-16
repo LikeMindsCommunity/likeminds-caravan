@@ -1446,6 +1446,7 @@ def post_introduction_card_for_community(community_id, member_id):
                                                                 {'community': community_id,
                                                                  'type': card_types.CARD_MASTER_INTRO,
                                                                  'is_deleted': False})
+
             if not master_intro:
                 return
 
@@ -1522,8 +1523,15 @@ def post_purpose_collabcard_for_community(request, community_instance, member_id
     '''function to post purpose card for community'''
 
     introduction_answer = community_instance.purpose
+
     if not introduction_answer:
+
         return
+
+    if ModelUtilities.is_model_filter_exists(Collabcard, {'community': community_instance.id,
+                                                          'type': card_types.CARD_PURPOSE}):
+        return
+
     req_dict = {
 
         'member_id': member_id,
@@ -1549,7 +1557,8 @@ def post_master_introductions_for_community(community_id, member_id):
     }
 
     if ModelUtilities.is_model_filter_exists(Collabcard, {'community': community_id,
-                                                          'type': card_types.CARD_MASTER_INTRO}):
+                                                          'type': card_types.CARD_MASTER_INTRO,
+                                                          }):
         return
 
     context = create_card_internal(member_id,community_id, res)
@@ -3009,6 +3018,10 @@ def create_introduction_question_in_community(community_instance):
 
     if field_filter.exists():
         help_text = field_filter[0].help_text
+
+    if ModelUtilities.is_model_filter_exists(communityQuestions,
+                                             {'community': community_instance}):
+        return
 
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
