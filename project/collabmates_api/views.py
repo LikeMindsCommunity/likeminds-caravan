@@ -6541,7 +6541,7 @@ def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
 
 
 def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id, current_user_id,
-                             guest_header=False):
+                             guest_header=False, created_at=TimeUtilities.current_time_in_milliseconds()):
     aj_expired = is_chatroom_join_expired(aj, source_id, card_instance.id)
     status = is_member_verified(community_id, current_user_id)
     state_filter = collabcardState.objects.filter(card=card_instance, user=current_user_id, is_guest=True)
@@ -6549,7 +6549,7 @@ def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id
     if not aj_expired and not status and not state_filter.exists():
         context['aj_expired'] = aj_expired
         if guest_header:
-            create_guest_header(current_user_id, source_id, card_instance, current_user_id)
+            create_guest_header(current_user_id, source_id, card_instance, current_user_id, created_at=created_at)
 
             func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True,
                          'is_guest': True, 'source_id': source_id, 'source': "guest access"}
@@ -6578,7 +6578,8 @@ def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id
     return context
 
 
-def create_guest_header(guest_id, invitee_id, card_instance, current_user_id):
+def create_guest_header(guest_id, invitee_id, card_instance, current_user_id,
+                        created_at=TimeUtilities.current_time_in_milliseconds()):
     try:
         guest_instance = User.objects.get(id=guest_id)
         invitee_instance = User.objects.get(id=invitee_id)
@@ -6600,6 +6601,7 @@ def create_guest_header(guest_id, invitee_id, card_instance, current_user_id):
         instance.user = guest_instance
         instance.state = chatroom_states.CHATROOM_GUEST
         instance.community = card_instance.community
+        instance.created_at = created_at
         instance.save()
 
 
@@ -7290,6 +7292,7 @@ def create_conversation(request):
     res = json.loads(request.body)
 
     temporary_id = res.get('temporary_id')
+    created_at = res.get('created_at', TimeUtilities.current_time_in_milliseconds())
 
     is_guest = False
     if 'aj' in res and 'source_id' in res:
@@ -7312,7 +7315,8 @@ def create_conversation(request):
     if is_guest and (current_state['state'] == 0 or current_state['state'] == member_states.PENDING_MEMBER):
         context = {}
         context = adding_guest_in_chatroom(context, card_instance, res['aj'], res['source_id'],
-                                           card_instance.community.id, member_id, guest_header=True)
+                                           card_instance.community.id, member_id, guest_header=True,
+                                           created_at=created_at)
 
     ##checking weather the conversation creater is a guest or not
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance, is_guest=True)
@@ -7337,6 +7341,8 @@ def create_conversation(request):
     ans.api_version = 0
     ans.device_id = device_id
     ans.platform = platform_code
+    ans.created_at = created_at
+
     if replied_conversation:
         ans.reply = replied_conversation
 
