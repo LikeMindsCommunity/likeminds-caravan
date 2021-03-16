@@ -1511,8 +1511,15 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
     }
     collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
     update_preview_of_chatroom_in_cache.delay({'chatroom_id': card_instance.id,
-                                         'preview_url': preview_url,
-                                         'conversation_id': answer_instance.id})
+                                                'preview_url': preview_url,
+                                                'conversation_id': answer_instance.id})
+
+    update_my_chatrooms_for_users(chatroom_id=master_intro.id)
+    ModelUtilities.get_model_filter(collabcardState,
+                                    {'card': card_instance,
+                                     'follow_status': True,
+                                     'remove': None}).\
+        filter(~Q(user=user_instance)).update(expiry_time=None, updated_at=TimeUtilities.current_time_in_sec())
 
     update_my_chatrooms_for_users.delay(chatroom_id=master_intro.id)
 
