@@ -1516,12 +1516,10 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
 
     update_my_chatrooms_for_users(chatroom_id=master_intro.id)
     ModelUtilities.get_model_filter(collabcardState,
-                                    {'card': card_instance,
+                                    {'card': master_intro,
                                      'follow_status': True,
                                      'remove': None}).\
         filter(~Q(user=user_instance)).update(expiry_time=None, updated_at=TimeUtilities.current_time_in_sec())
-
-    update_my_chatrooms_for_users.delay(chatroom_id=master_intro.id)
 
     return answer_instance
 
