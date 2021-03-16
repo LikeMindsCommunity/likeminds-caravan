@@ -27,6 +27,7 @@ from dashboard.views import admin_login
 # handler500 = 'utility.exceptions.handler500'
 
 urlpatterns = [
+    url('', include('django_prometheus.urls')),
     #url(r'^login/$', auth_views.LoginView, name='login'),
     url(r'^logout/$', auth_views.LogoutView, name='logout'),
     #url(r'^oauth/', include('social_django.urls', namespace='social')),  # <--
