@@ -1513,6 +1513,8 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
                                          'preview_url': preview_url,
                                          'conversation_id': answer_instance.id})
 
+    update_my_chatrooms_for_users.delay(chatroom_id=master_intro.id)
+
     return answer_instance
 
 
