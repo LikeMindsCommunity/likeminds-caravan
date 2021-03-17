@@ -240,6 +240,7 @@ class userAcquition(models.Model):
     device_id = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
     platform = models.TextField(null=True)
+    chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
