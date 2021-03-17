@@ -9435,13 +9435,13 @@ def decode_landing_type_from_url(user_acquisition_url):
 
         path_list = url_path.split("/")
 
-        if path_list[2] == "community":
+        if path_list[1] == "community":
             url_path_dict['landing_type'] = "community"
-            url_path_dict['community_id'] = path_list[3]
+            url_path_dict['community_id'] = path_list[2]
 
-        elif path_list[2] == "collabcard":
+        elif path_list[1] == "collabcard":
             url_path_dict['landing_type'] = "collabcard"
-            url_path_dict['chatroom_id'] = path_list[3]
+            url_path_dict['chatroom_id'] = path_list[2]
 
     except Exception as e:
         error_logger.error(e)
