@@ -110,6 +110,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 from rest_framework.exceptions import APIException
+from urllib import parse
 url = settings.URL
 # url='http://localhost:8000'
 error_logger = LoggingWrapper.get_instance()
@@ -9425,6 +9426,127 @@ def login_with_apple(request, res, json_to_save, login_type="apple"):
     context = {'user': usr, 'access': access, 'email_exists': email_exists, 'has_tags': has_tags}
     return context
 
+def decode_landing_type_from_url(user_acquisition_url):
+
+    url_path_dict = {}
+
+    try:
+        url_path = parse.urlparse(user_acquisition_url).path
+
+        path_list = url_path.split("/")
+
+        if path_list[2] == "community":
+            url_path_dict['landing_type'] = "community"
+            url_path_dict['community_id'] = path_list[3]
+
+        elif path_list[2] == "collabcard":
+            url_path_dict['landing_type'] = "collabcard"
+            url_path_dict['chatroom_id'] = path_list[3]
+
+    except Exception as e:
+        error_logger.error(e)
+
+    return url_path_dict
+
+
+def decode_user_acquisition_url(request, user_instance, user_acquisition_url):
+
+    user_acquired = {}
+    url_path_dict = decode_landing_type_from_url(user_acquisition_url)
+
+    try:
+        query_def = parse.parse_qs(parse.urlparse(user_acquisition_url).query)
+
+        if query_def.get('aj'):
+            user_acquired['link_type'] = "private"
+        else:
+            user_acquired['link_type'] = "public"
+
+        user_acquired['user_id'] = user_instance.id
+
+        user_acquired.update(url_path_dict)
+
+        if query_def.get('utm_source'):
+            user_acquired['utm_source'] = query_def['utm_source']
+
+        if query_def.get('utm_campaign'):
+            user_acquired['utm_campaign'] = query_def['utm_campaign']
+
+        if query_def.get('utm_campaign'):
+            user_acquired['utm_campaign'] = query_def['utm_campaign']
+
+        if query_def.get('shared_by'):
+            user_acquired['shared_by'] = query_def['shared_by']
+
+
+        if query_def.get('source'):
+
+            if query_def['source'][0] == "members_directory":
+                user_acquired['landing_type'] = "directory_link"
+
+        platform_code = RequestUtilities.get_platform_code(request)
+
+        if platform_code:
+            user_acquired['platform'] = platform_code
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
+        if device_id:
+            user_acquired = device_id
+
+    except Exception as e:
+        error_logger.error(e)
+
+    return user_acquired
+
+
+def save_userAcquition_analytics(user_instance, user_acquired):
+    '''saving the analytics of acquired user'''
+
+    user_filter = userAcquition.objects.filter(user=user_instance)
+
+    if not user_filter.exists():
+
+        instance = userAcquition()
+        instance.user = user_instance
+        instance.landing_type = user_acquired['landing_type'] if 'landing_type' in user_acquired else ''
+        instance.link_type = user_acquired['link_type'] if 'link_type' in user_acquired else ''
+
+        instance.utm_source = user_acquired['utm_source'] if 'utm_source' in user_acquired else ''
+        instance.utm_campaign = user_acquired['utm_campaign'] if 'utm_campaign' in user_acquired else ''
+        instance.utm_medium = user_acquired['utm_medium'] if 'utm_medium' in user_acquired else ''
+        instance.platform = user_acquired['platform'] if 'platform' in user_acquired else ''
+
+        instance.device_id = user_acquired['device_id'] if 'device_id' in user_acquired else ''
+
+        if 'community_id' in user_acquired and user_acquired['community_id']:
+            community_instance = Community.get_community_or_None(user_acquired['community_id'])
+
+            if not community_instance:
+                log = "incorrect community id : %s" % (user_acquired['community_id'])
+                error_logger.error(log)
+
+                return
+
+            instance.community = community_instance
+
+        if 'shared_by' in user_acquired and user_acquired['shared_by']:
+            shared_user_instance = User.objects.get(id=user_acquired['shared_by'])
+            instance.shared = shared_user_instance
+
+        if user_acquired.get('chatroom_id'):
+
+            card_instance = Collabcard.get_chatroom_or_None(user_acquired['chatroom_id'])
+
+            if not card_instance:
+                log = "incorrect chatroom id : %s" % (user_acquired['chatroom_id'])
+                error_logger.error(log)
+
+                return
+            instance.chatroom = card_instance
+
+        instance.save()
+
 
 def custom_login(request, res, login_type="custom"):
     context = {}
@@ -9456,13 +9578,11 @@ def custom_login(request, res, login_type="custom"):
     else:
         image_url = ""
 
-    user_acquired = None
+    user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type)
 
-    if 'user_acquired' in res:
-        user_acquired = res['user_acquired']
-
-    user_instance = create_custom_user(name, mobile_no, country_code, email, image_url, login_type,
-                                       user_acquired=user_acquired)
+    if res.get('user_acquisition_url'):
+        user_acquired = decode_user_acquisition_url(request, user_instance, res['user_acquisition_url'])
+        save_userAcquition_analytics(user_instance, user_acquired)
 
     if is_request_web(request):
         phone_no = str(country_code) + str(mobile_no)
@@ -9487,7 +9607,7 @@ def custom_login(request, res, login_type="custom"):
     return context
 
 
-def create_custom_user(name, mobile_no, country_code, email, image_url, login_type, user_acquired=None):
+def create_custom_user(name, mobile_no, country_code, email, image_url, login_type):
     has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
     user_name = name + "_" + str(mobile_no)
 
@@ -9512,11 +9632,6 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
             userinfo_instance.user_id = user_instance
             userinfo_instance.save()
 
-            # saving the analytics of user
-            print(user_acquired)
-            if user_acquired:
-                save_userAcquition_analytics(user_instance, user_acquired)
-
             # creating user email
             save_user_primary_email(user_instance, email, email_state=email_states.PRIMARY)
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
@@ -9528,43 +9643,11 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
             send_verification_mail_for_email_sync.delay(user_name=user_instance.userinfo.name,
                                                   verification_link=verification_details['verify_url'], email=email)
 
-
-
             return user_instance
         else:
             return has_user[0]
 
     return has_mobile_no[0].user
-
-
-def save_userAcquition_analytics(user_instance, user_acquired):
-    '''saving the analytics of acquired user'''
-
-    user_filter = userAcquition.objects.filter(user=user_instance)
-
-    if not user_filter.exists():
-
-        instance = userAcquition()
-        instance.user = user_instance
-        instance.landing_type = user_acquired['landing_type'] if 'landing_type' in user_acquired else ''
-        instance.link_type = user_acquired['link_type'] if 'link_type' in user_acquired else ''
-
-        instance.utm_source = user_acquired['utm_source'] if 'utm_source' in user_acquired else ''
-        instance.utm_campaign = user_acquired['utm_campaign'] if 'utm_campaign' in user_acquired else ''
-        instance.utm_medium = user_acquired['utm_medium'] if 'utm_medium' in user_acquired else ''
-        instance.platform = user_acquired['platform'] if 'platform' in user_acquired else ''
-
-        instance.device_id = user_acquired['device_id'] if 'device_id' in user_acquired else ''
-
-        if 'community_id' in user_acquired and user_acquired['community_id']:
-            community_instance = Community.objects.get(id=user_acquired['community_id'])
-            instance.community = community_instance
-
-        if 'shared_by' in user_acquired and user_acquired['shared_by']:
-            shared_user_instance = User.objects.get(id=user_acquired['shared_by'])
-            instance.shared = shared_user_instance
-
-        instance.save()
 
 
 @csrf_exempt
