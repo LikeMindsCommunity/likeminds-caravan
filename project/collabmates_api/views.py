@@ -9435,13 +9435,13 @@ def decode_landing_type_from_url(user_acquisition_url):
 
         path_list = url_path.split("/")
 
-        if path_list[2] == "community":
+        if path_list[1] == "community":
             url_path_dict['landing_type'] = "community"
-            url_path_dict['community_id'] = path_list[3]
+            url_path_dict['community_id'] = path_list[2]
 
-        elif path_list[2] == "collabcard":
+        elif path_list[1] == "collabcard":
             url_path_dict['landing_type'] = "collabcard"
-            url_path_dict['chatroom_id'] = path_list[3]
+            url_path_dict['chatroom_id'] = path_list[2]
 
     except Exception as e:
         error_logger.error(e)
@@ -9467,16 +9467,16 @@ def decode_user_acquisition_url(request, user_instance, user_acquisition_url):
         user_acquired.update(url_path_dict)
 
         if query_def.get('utm_source'):
-            user_acquired['utm_source'] = query_def['utm_source']
+            user_acquired['utm_source'] = query_def['utm_source'][0]
 
         if query_def.get('utm_campaign'):
-            user_acquired['utm_campaign'] = query_def['utm_campaign']
+            user_acquired['utm_campaign'] = query_def['utm_campaign'][0]
 
         if query_def.get('utm_campaign'):
-            user_acquired['utm_campaign'] = query_def['utm_campaign']
+            user_acquired['utm_campaign'] = query_def['utm_campaign'][0]
 
         if query_def.get('shared_by'):
-            user_acquired['shared_by'] = query_def['shared_by']
+            user_acquired['shared_by'] = query_def['shared_by'][0]
 
 
         if query_def.get('source'):
