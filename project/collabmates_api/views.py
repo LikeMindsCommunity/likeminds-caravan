@@ -9467,16 +9467,16 @@ def decode_user_acquisition_url(request, user_instance, user_acquisition_url):
         user_acquired.update(url_path_dict)
 
         if query_def.get('utm_source'):
-            user_acquired['utm_source'] = query_def['utm_source']
+            user_acquired['utm_source'] = query_def['utm_source'][0]
 
         if query_def.get('utm_campaign'):
-            user_acquired['utm_campaign'] = query_def['utm_campaign']
+            user_acquired['utm_campaign'] = query_def['utm_campaign'][0]
 
         if query_def.get('utm_campaign'):
-            user_acquired['utm_campaign'] = query_def['utm_campaign']
+            user_acquired['utm_campaign'] = query_def['utm_campaign'][0]
 
         if query_def.get('shared_by'):
-            user_acquired['shared_by'] = query_def['shared_by']
+            user_acquired['shared_by'] = query_def['shared_by'][0]
 
 
         if query_def.get('source'):
