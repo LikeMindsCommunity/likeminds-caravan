@@ -9436,11 +9436,11 @@ def decode_landing_type_from_url(user_acquisition_url):
         path_list = url_path.split("/")
 
         if path_list[1] == "community":
-            url_path_dict['landing_type'] = "community"
+            url_path_dict['landing_type'] = "community_join"
             url_path_dict['community_id'] = path_list[2]
 
         elif path_list[1] == "collabcard":
-            url_path_dict['landing_type'] = "collabcard"
+            url_path_dict['landing_type'] = "chatroom_join"
             url_path_dict['chatroom_id'] = path_list[2]
 
     except Exception as e:
@@ -9469,8 +9469,8 @@ def decode_user_acquisition_url(request, user_instance, user_acquisition_url):
         if query_def.get('utm_source'):
             user_acquired['utm_source'] = query_def['utm_source'][0]
 
-        if query_def.get('utm_campaign'):
-            user_acquired['utm_campaign'] = query_def['utm_campaign'][0]
+        if query_def.get('utm_medium'):
+            user_acquired['utm_medium'] = query_def['utm_medium'][0]
 
         if query_def.get('utm_campaign'):
             user_acquired['utm_campaign'] = query_def['utm_campaign'][0]
