@@ -9495,7 +9495,7 @@ def decode_user_acquisition_url(request, user_instance, user_acquisition_url):
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
         if device_id:
-            user_acquired = device_id
+            user_acquired['device_id'] = device_id
 
     except Exception as e:
         error_logger.error(e)
