@@ -224,24 +224,20 @@ SOCIAL_AUTH_PIPELINE = (
     # Update the user record with any changed info from the auth service.
     'social_core.pipeline.user.user_details',
 
-    #create userinfo after as soon as user creation is done
+    # create userinfo after as soon as user creation is done
     'utility.userinfo_pipeline.update_userinfo',
 
 )
 
-TEAM = [('Team Growth', 'growth@likeminds.community')]
-
-
+TEAM = ['growth@likeminds.community']
 
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 EMAIL_HOST = os.getenv('EMAIL_HOST')
-EMAIL_HOST_USER =  os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD =  os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_BACKEND = "sgbackend.SendGridBackend"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_BACKEND = "sgbackend.SendGridBackend"
-
 
 CORS_ORIGIN_ALLOW_ALL = True
 

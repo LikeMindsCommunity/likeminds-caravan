@@ -315,15 +315,25 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
                                                                user=self.get_member_id()).exclude(
-                card__type=card_types.CARD_INTRO).filter(~Q(state=0)).only('card').order_by('-card_id')
+                card__type=card_types.CARD_INTRO).only('card', 'state').order_by('card_id')
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                user=self.get_member_id()).exclude(
-                card__type=card_types.CARD_INTRO).filter(~Q(state=0)).only('card').order_by('-card_id')
+                card__type=card_types.CARD_INTRO).only('card', 'state').order_by('card_id')
 
-        return chatroom_queryset[:1]
+        last_seen_chatroom = None
+
+        for data in chatroom_queryset:
+
+            if data.state != 0:
+                last_seen_chatroom = data
+
+            else:
+                break
+
+        return last_seen_chatroom
 
     @staticmethod
     def extract_chatrooms_on_scroll(chatroom_id, scroll_direction, chatroom_queryset, limit_size=10) -> []:
@@ -715,8 +725,7 @@ class MemberCommunityImpl(MemberCommunityManager):
     def fetch_feed(self, pin_status, chatroom_id=None, scroll_direction=None) -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())
-        chatroom_list = []
-        chatroom_context_list = []
+
         if not community_instance:
             return {'error_message': "Invalid community_id", 'status': 400}
 
@@ -729,11 +738,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                 chatroom_list = self.extract_chatrooms_without_scroll(chatroom_queryset, limit_size=5)
 
             else:
-                last_seen_chatroom_id = last_seen_chatroom[0].card_id
+                last_seen_chatroom_id = last_seen_chatroom.card_id
                 chatroom_list = self.fetch_community_chatrooms_queryset_with_last_seen_chatroom(pin_status,
                                                                                                 last_seen_chatroom_id,
                                                                                                 limit_size=5)
-
         else:
 
             chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
