@@ -303,8 +303,8 @@ class Collabcard(models.Model):
     disable_poll_announcement_mail = models.BooleanField(default=False)
     has_files = models.BooleanField(default=False)
 
-    pinned = models.BooleanField(default=False)
-    pinned_time = models.BigIntegerField(default=0)
+    is_pinned = models.BooleanField(default=False)
+    pinning_time = models.BigIntegerField(default=0)
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:

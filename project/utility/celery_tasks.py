@@ -550,6 +550,4 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
         if conversation_creator_list:
             conversation_creator_dict['conversation_creator_list'] = conversation_creator_list
 
-            print("set_dict", conversation_creator_dict)
-
             CacheImpl.set_cache(key, conversation_creator_dict)

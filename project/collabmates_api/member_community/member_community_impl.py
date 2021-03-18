@@ -236,7 +236,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
-                                                               card__pinned=pin_status,
+                                                               card__is_pinned=pin_status,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
@@ -256,7 +256,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
-                                                               card__pinned=pin_status,
+                                                               card__is_pinned=pin_status,
                                                                user=self.get_member_id(),
                                                                card__id__gte=last_seen_id).select_related('card',
                                                                                                           'card__user'). \
@@ -278,10 +278,10 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
-                                                               card__pinned=pin_status,
+                                                               card__is_pinned=pin_status,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinned_time')
+                exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
@@ -313,7 +313,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
-                                                               card__pinned=pin_status,
+                                                               card__is_pinned=pin_status,
                                                                user=self.get_member_id()).exclude(
                 card__type=card_types.CARD_INTRO).filter(~Q(state=0)).only('card').order_by('-card_id')
         else:
@@ -803,8 +803,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         pinned_top_bar = {}
 
         pinned_chatrooms = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
-                                                                        'pinned': True, 'is_deleted': False}). \
-            only('header').order_by('-pinned_time')
+                                                                        'is_pinned': True, 'is_deleted': False}). \
+            only('header').order_by('-pinning_time')
 
         if pinned_chatrooms:
 

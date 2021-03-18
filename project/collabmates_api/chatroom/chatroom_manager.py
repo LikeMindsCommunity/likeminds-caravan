@@ -37,6 +37,6 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
         """
-        make chatroom active or in-active
+        make chatroom pin or unpin
         """
         raise NotImplementedError
