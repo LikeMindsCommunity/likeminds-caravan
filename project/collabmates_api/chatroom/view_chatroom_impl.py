@@ -80,12 +80,10 @@ class PinUnpinChatroomView(APIView):
         if not member_id:
             raise InvalidHeaderException()
 
-        request_validate = PinUnpinChatroomViewHelper.validate_request_for_pin_unpin_chatroom(request)
+        req_body = PinUnpinChatroomViewHelper.validate_request_for_pin_unpin_chatroom(request)
 
-        if request_validate.get('error_message'):
-            return JsonResponse(request_validate, status=400)
-
-        req_body = request_validate
+        if req_body.get('error_message'):
+            return JsonResponse(req_body, status=400)
 
         chatroom_manager = ChatroomImpl(member_id, req_body['chatroom_id'])
 

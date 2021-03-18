@@ -217,13 +217,13 @@ class ChatroomImpl(ChatroomManager):
     @staticmethod
     def fill_pinned_information(card_content):
 
-        if card_content['type'] == card_types.CARD_PURPOSE \
-                or card_content['type'] == card_types.CARD_MASTER_INTRO \
-                or card_content['type'] == card_types.CARD_EVENT \
-                or card_content['type'] == card_types.CARD_PUBLIC_EVENT:
+        if card_content['type'] == card_types.CARD_PURPOSE or\
+                card_content['type'] == card_types.CARD_MASTER_INTRO or\
+                card_content['type'] == card_types.CARD_EVENT or\
+                card_content['type'] == card_types.CARD_PUBLIC_EVENT:
 
-            card_content['pinned'] = True
-            card_content['pinned_time'] = TimeUtilities.current_time_in_milliseconds()
+            card_content['is_pinned'] = True
+            card_content['pinning_time'] = TimeUtilities.current_time_in_milliseconds()
 
     def _fill_chatroom_attachment_count(self, card_content, req_body):
         card_content['image_count'] = req_body.get('image_count', 0)
@@ -550,8 +550,8 @@ class ChatroomImpl(ChatroomManager):
         send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                       'community_id': community_id})
 
-        if chatroom_instance.type == card_types.CARD_EVENT \
-                or chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
+        if chatroom_instance.type == card_types.CARD_EVENT or\
+                chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
             schedule_chatroom_unpinning_after_event_completion(chatroom_instance)
 
         context = {
@@ -614,15 +614,15 @@ class ChatroomImpl(ChatroomManager):
                                                                'community_id': community_instance}):
             return {'error_message': "You need to be promoter in order to pin unpin", 'success': False}
 
-        pinned_status = chatroom_instance.pinned
+        pinned_status = chatroom_instance.is_pinned
 
         if pinned_status is value:
             return {'success': True}
 
-        chatroom_instance.pinned = value
+        chatroom_instance.is_pinned = value
 
         if value:
-            chatroom_instance.pinned_time = TimeUtilities.current_time_in_milliseconds()
+            chatroom_instance.pinning_time = TimeUtilities.current_time_in_milliseconds()
 
         chatroom_instance.save()
 

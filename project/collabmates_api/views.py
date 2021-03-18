@@ -3334,12 +3334,12 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.member_state = res['member_state']
     card.date_epoch = int(time.time())  # card creation time
 
-    if card.type == card_types.CARD_PURPOSE \
-            or card.type == card_types.CARD_MASTER_INTRO \
-            or card.type == card_types.CARD_EVENT \
-            or card.type == card_types.CARD_PUBLIC_EVENT:
-        card.pinned = True
-        card.pinned_time = TimeUtilities.current_time_in_milliseconds()
+    if card.type == card_types.CARD_PURPOSE or \
+            card.type == card_types.CARD_MASTER_INTRO or \
+            card.type == card_types.CARD_EVENT or \
+            card.type == card_types.CARD_PUBLIC_EVENT:
+        card.is_pinned = True
+        card.pinning_time = TimeUtilities.current_time_in_milliseconds()
 
     card.save()
     # add ownerflag here
@@ -6013,7 +6013,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     if promoter and len(actions):
 
-        if card_instance.pinned:
+        if card_instance.is_pinned:
             actions.insert(1,unpin_chatroom)
         else:
             actions.insert(1,pin_chatroom)
