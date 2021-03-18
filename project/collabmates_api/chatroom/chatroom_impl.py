@@ -5,6 +5,8 @@ from typing import Union
 from rest_framework import status as status_codes
 from django.contrib.auth.models import User
 from django.db.models import Q
+
+from utility.string_utilities import StringUtilities
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..serializers import (get_preview_for_url, get_chatroom_instance, CommunitySerializer,
                            CollabcardSerializer, UserinfoSerializer, HOURS_24)
@@ -16,13 +18,13 @@ from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_
                      create_chatroom, get_latest_conversation_members, )
 from ..tasks import update_pending_chatroom_count_for_promoters
 from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts,
-                            schedule_poll_end_notification, send_ice_breaker_notification, send_sync_notification)
+                            schedule_poll_end_notification, send_ice_breaker_notification, send_sync_notification,
+                            send_pin_chatroom_notification)
 from ..user.user_impl import UserHelper
-
 
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
-                            CollabcardPolls, draftChatroom, draftPolls)
+                            CollabcardPolls, draftChatroom, draftPolls, ModelUtilities)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import chatroom_states, member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes
@@ -30,12 +32,12 @@ from utility.states import chatroom_states, member_states, card_types, collabcar
 from utility.request_utilities import RequestUtilities
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
-from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation, get_chatroom_user_images_for_web
+from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation, get_chatroom_user_images_for_web, \
+    schedule_chatroom_unpinning_after_event_completion
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (InvalidUserException, InvalidCommunityException,
                                          InvalidHeaderException, CustomException)
 from utility.time_utilities import TimeUtilities
-
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -155,7 +157,8 @@ class ChatroomImpl(ChatroomManager):
         if self.get_member_id() and int(self.get_member_id()) == card_instance.user.id:
             is_card_creator = True
         # sending the chatroom actions
-        chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, promoter=is_promoter,
+        chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
+                                                promoter=is_promoter,
                                                 current_user_instance=self.get_member_id(),
                                                 community_instance=card_instance.community, is_child=is_child
                                                 )
@@ -202,13 +205,25 @@ class ChatroomImpl(ChatroomManager):
 
     def _chatroom_participants_count(self, card_instance):
 
-        return collabcardState.objects.filter(follow_status=True, card=card_instance, remove=None, is_tagged=False).count()
+        return collabcardState.objects.filter(follow_status=True, card=card_instance, remove=None,
+                                              is_tagged=False).count()
 
     def _fill_chatroom_basic_info(self, card_content, title, community, user, chatroom_type):
         card_content['title'] = title
         card_content['community'] = community
         card_content['user'] = user
         card_content['type'] = chatroom_type
+
+    @staticmethod
+    def fill_pinned_information(card_content):
+
+        if card_content['type'] == card_types.CARD_PURPOSE or\
+                card_content['type'] == card_types.CARD_MASTER_INTRO or\
+                card_content['type'] == card_types.CARD_EVENT or\
+                card_content['type'] == card_types.CARD_PUBLIC_EVENT:
+
+            card_content['is_pinned'] = True
+            card_content['pinning_time'] = TimeUtilities.current_time_in_milliseconds()
 
     def _fill_chatroom_attachment_count(self, card_content, req_body):
         card_content['image_count'] = req_body.get('image_count', 0)
@@ -506,6 +521,7 @@ class ChatroomImpl(ChatroomManager):
         self._add_og_tags(req_body=req_body, card_content=card_content)
         self._check_and_set_chatroom_pending_status(card_content, is_intro_card, user_has_auto_approve_right)
         card_content['member_state'] = member_state
+        self.fill_pinned_information(card_content)
 
         chatroom_instance = self._create_chatroom_with_contents(card_content=card_content)
         self.set_chatroom_id(chatroom_instance.id)
@@ -533,6 +549,10 @@ class ChatroomImpl(ChatroomManager):
 
         send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                       'community_id': community_id})
+
+        if chatroom_instance.type == card_types.CARD_EVENT or\
+                chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
+            schedule_chatroom_unpinning_after_event_completion(chatroom_instance)
 
         context = {
             'chatroom': ChatroomHelper.fetch_serialized_chatroom(self.get_member_id(), chatroom_instance,
@@ -576,6 +596,41 @@ class ChatroomImpl(ChatroomManager):
 
         return {"success": True}
 
+    def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
+
+        chatroom_id = self.get_chatroom_id()
+        value = req_body['value']
+        notify = req_body['notify']
+
+        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+        if not chatroom_instance:
+            return {'error_message': "invalid chatroom id", 'success': False}
+
+        community_instance = chatroom_instance.community
+
+        if not ModelUtilities.is_model_filter_exists(Members, {'state': member_states.ADMIN,
+                                                               'member_id': self.get_member_id(),
+                                                               'community_id': community_instance}):
+            return {'error_message': "You need to be promoter in order to pin unpin", 'success': False}
+
+        pinned_status = chatroom_instance.is_pinned
+
+        if pinned_status is value:
+            return {'success': True}
+
+        chatroom_instance.is_pinned = value
+
+        if value:
+            chatroom_instance.pinning_time = TimeUtilities.current_time_in_milliseconds()
+
+        chatroom_instance.save()
+
+        if notify is True and value is True:
+            send_pin_chatroom_notification.delay(community_instance.id, self.get_member_id(), self.get_chatroom_id())
+
+        return {'success': True}
+
 
 class ChatroomHelper:
 
@@ -612,7 +667,7 @@ class ChatroomHelper:
 
     @staticmethod
     def get_follow_user_dict(user_id: Union[str, int], chatroom_id: Union[str, int],
-                             is_tagged: bool, status: bool, source:str):
+                             is_tagged: bool, status: bool, source: str):
         return {
             'member_id': user_id,
             'collabcard_id': chatroom_id,

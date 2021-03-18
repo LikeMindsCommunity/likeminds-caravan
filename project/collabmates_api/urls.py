@@ -236,7 +236,8 @@ urlpatterns = [
     path('v1/get_tagging_list', api_views.GetTaggingList.as_view(), name='get_tagging_list_v1'),
     path('community/', include('collabmates_api.community.urls')),
     path('banner/fetch', FetchBannerView.as_view(), name='fetch_banner_for_user'),
-    path('home_snackbar/', include('collabmates_api.snackbar.urls'))
+    path('home_snackbar/', include('collabmates_api.snackbar.urls')),
+    path('community_member/', include('collabmates_api.member_community.urls'))
 
 ]
 

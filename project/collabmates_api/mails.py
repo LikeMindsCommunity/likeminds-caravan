@@ -217,14 +217,12 @@ def send_created_community_email_to_team(context):
     template = get_template("mails/send_community_created_mail_to_webmaster.html").render(context)
 
     if is_beta:
-        to = ['himanshu@likeminds.community',]
+        to = ['himanshu@likeminds.community', ]
     else:
         to = settings.TEAM
 
-    print(context,to)
-
     send_email(subject, template, to)
-    # print(template)
+
 
 @shared_task
 def send_report_mail_to_team(subject, report_instance_id):

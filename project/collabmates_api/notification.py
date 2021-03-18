@@ -2598,3 +2598,37 @@ def send_sync_notification(notification_dict):
 
     if len(token_list) > 0:
         send_notification_for_android(token_list, message)
+
+@shared_task
+def send_pin_chatroom_notification(community_id, member_id, chatroom_id):
+
+    member_filter = Members.objects.filter(community_id=community_id).filter(Q(state=member_states.ADMIN)
+                                                                            | Q(state=member_states.MEMBER)
+                                                                             |Q(state=member_states.PROFILE_UNAVAILABLE)).prefetch_related('member_id')
+
+    card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+    if not card_instance:
+        return
+
+    notification_list = []
+    promoter_name = ""
+    for data in member_filter:
+        user_id = data.member_id.id
+
+        if str(user_id) == member_id:
+            promoter_name = data.member_id.userinfo.name
+            continue
+
+        temp = {
+            'id': user_id
+        }
+        notification_list.append(temp)
+
+    message = {'payload': {
+        "title": PIN_CHATROOM_TITLE,
+        "sub_title": PIN_SUBTITLE % (promoter_name, get_title_from_collabcard(card_instance)),
+        'route': PIN_ROUTE % str(card_instance.id)
+    }}
+
+    notification_meta(notification_list, message)

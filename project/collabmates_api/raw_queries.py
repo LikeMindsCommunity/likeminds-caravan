@@ -268,7 +268,7 @@ def get_all_data(sql):
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
-        
+
         if res:
             return res
         return []
@@ -438,7 +438,7 @@ def ranking_tags(tag):
         count = curr.rowcount
         info_logger.info(count, "Record inserted successfully into community_rank table")
         curr.close()
-        
+
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting  to PostgreSQL %s", error)
 
@@ -981,7 +981,6 @@ def get_community_id_list(member_id):
 
 
 def get_community_id_of_guest(member_id):
-
     """function to get community id for which the user id guest"""
 
     try:
@@ -1202,7 +1201,7 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
         
             """ % (
-                str(user_id), str(last_updated), follow_status, str(limit), str(offset))
+            str(user_id), str(last_updated), follow_status, str(limit), str(offset))
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
@@ -1285,7 +1284,7 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
                 AND togther_collabcardState.updated_at > %s
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
               """ % (
-                str(user_id), str(status_query), str(last_updated), str(limit), str(offset))
+            str(user_id), str(status_query), str(last_updated), str(limit), str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1370,7 +1369,7 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                 AND togther_collabcardState.updated_at > %s
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
               """ % (
-                str(user_id), str(status_query), follow_status, str(last_updated), str(limit), str(offset))
+            str(user_id), str(status_query), follow_status, str(last_updated), str(limit), str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1453,7 +1452,7 @@ def fetch_chatroom_with_videos(limit, page, card_list):
                 WHERE togther_collabcard.has_files is true
                         AND togther_collabcard.id IN %s
                 ORDER BY  togther_collabcard.id limit %s offset %s """ % (
-                str(card_list), str(limit), str(offset))
+            str(card_list), str(limit), str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1467,18 +1466,18 @@ def fetch_chatroom_with_videos(limit, page, card_list):
 
 
 def get_active_inactive_status_query(active_status, current_time):
-
     if active_status:
-        status_query = """(togther_collabcardState.expiry_time is null or togther_collabcardState.expiry_time > %s)""" % (str(current_time))
+        status_query = """(togther_collabcardState.expiry_time is null or togther_collabcardState.expiry_time > %s)""" % (
+            str(current_time))
 
     else:
-        status_query = """(togther_collabcardState.expiry_time is not null and togther_collabcardState.expiry_time < %s)""" % (str(current_time))
+        status_query = """(togther_collabcardState.expiry_time is not null and togther_collabcardState.expiry_time < %s)""" % (
+            str(current_time))
 
     return status_query
 
 
 def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, last_updated):
-
     """
     return the conversations of chatrooms based on chatroom list
     """
@@ -1490,7 +1489,6 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
         chatroom_id_tupple = get_tuple_from_array(chatroom_list)
 
         if not chatroom_id_tupple:
-
             return [], []
 
         sql = """SELECT id,
@@ -1593,7 +1591,6 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
 
 
 def get_conversation_files_based_on_conversation_list(conversation_list):
-
     """The function returns a dictionary containing files based on answer id"""
 
     try:
@@ -1603,7 +1600,6 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
         conversation_files_dict = dict()
 
         if not conversation_id_tupple:
-
             return {}
 
         sql = """select  
@@ -1662,3 +1658,58 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
+
+def get_members_based_on_user_list_query(user_list, community_id):
+
+    """returns the members of the community based on user list"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        user_tupple = get_tuple_from_array(user_list)
+
+        if not user_tupple:
+            return []
+
+        sql = """SELECT "togther_members"."member_id_id",
+                         "togther_members"."community_id_id",
+                         "togther_members"."state",
+                         "togther_members"."image_url",
+                         "togther_members"."is_owner",
+                         "togther_members"."custom_title",
+                         "togther_userinfo"."name",
+                         "togther_userinfo"."image_link",
+                         "togther_members"."created_at"
+                FROM "togther_members"
+                INNER JOIN "togther_userinfo"
+                    ON ("togther_members"."member_id_id" = "togther_userinfo"."user_id_id")
+                WHERE ("togther_members"."community_id_id" = %s
+                        AND "togther_members"."member_id_id" IN %s)""" % (str(community_id), str(user_tupple))
+
+        curr.execute(sql)
+        member_data = curr.fetchall()
+        curr.close()
+
+        member_list = []
+
+        for data in member_data:
+
+            member_dict = dict()
+            member_dict['member_id'] = data[0]
+            member_dict['community_id'] = data[1]
+            member_dict['state'] = data[2]
+            member_dict['image_url'] = data[3]
+            member_dict['is_owner'] = data[4]
+            member_dict['custom_title'] = data[5]
+            member_dict['name'] = data[6]
+            member_dict['image_link'] = data[7]
+            member_dict['created_at'] = data[8]
+            member_list.append(member_dict)
+
+        return member_list
+
+    except (Exception, psycopg2.Error) as error:
+        print(error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return []
