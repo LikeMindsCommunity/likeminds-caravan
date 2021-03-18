@@ -323,7 +323,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                user=self.get_member_id()).exclude(
                 card__type=card_types.CARD_INTRO).filter(~Q(state=0)).only('card').order_by('-card_id')
 
-        return chatroom_queryset
+        return chatroom_queryset[:1]
 
     @staticmethod
     def extract_chatrooms_on_scroll(chatroom_id, scroll_direction, chatroom_queryset, limit_size=10) -> []:
@@ -803,7 +803,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         pinned_top_bar = {}
 
         pinned_chatrooms = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
-                                                                        'pinned': True}). \
+                                                                        'pinned': True, 'is_deleted': False}). \
             only('header').order_by('-pinned_time')
 
         if pinned_chatrooms:
