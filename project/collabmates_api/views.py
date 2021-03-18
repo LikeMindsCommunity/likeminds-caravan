@@ -15334,7 +15334,6 @@ def sync_members(request):
             else:
                 remove_member_filter = removedMembers.objects.filter(community=community_instance,
                                                                      created_at__gt=last_updated).order_by('id')
-            remove_member_filter = pagination(remove_member_filter, page, paginate_by=paginate_by)
 
             remove_member_filter = pagination(remove_member_filter, page, paginate_by=paginate_by)
 
