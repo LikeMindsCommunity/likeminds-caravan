@@ -3877,6 +3877,9 @@ def chatroom_delete(request):
     reason = request.POST.get('reason', None)
     disallow_create_chatroom = request.POST.get('disallow_create_chatroom', None)
 
+    if disallow_create_chatroom is not None:
+        disallow_create_chatroom = disallow_create_chatroom.lower() == "true"
+
     if draft_id:
         draftChatroom.objects.filter(id=draft_id).delete()
         return JsonResponse({'success': True})
@@ -3921,7 +3924,7 @@ def chatroom_delete(request):
                                                     member_id=card_creator,
                                                     state=member_states.ADMIN).exists()
 
-        if (disallow_create_chatroom or disallow_create_chatroom == "true") and \
+        if disallow_create_chatroom and \
                 not member_is_promoter:
             remove_member_create_room_right(card_creator, community_instance,
                                             current_user_id=member_id)
