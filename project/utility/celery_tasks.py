@@ -454,7 +454,7 @@ def update_preview_for_account_image_change(preview_info):
 
 @shared_task
 def unpin_the_chatroom(card_id):
-    ModelUtilities.model_update(Collabcard, {'id': card_id}, {'pinned': False})
+    ModelUtilities.model_update(Collabcard, {'id': card_id}, {'is_pinned': False})
 
 
 def schedule_chatroom_unpinning_after_event_completion(card_instance):
