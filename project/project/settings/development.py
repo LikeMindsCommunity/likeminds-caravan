@@ -10,11 +10,12 @@ DB_HOST = os.getenv('DEVELOPMENT_DB_HOST')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.getenv('DEVELOPMENT_DB_NAME'),
-        'USER': os.getenv('DEVELOPMENT_DB_USER'),
-        'PASSWORD':os.getenv('DEVELOPMENT_DB_PASSWORD'),
-        'HOST': os.getenv('DEVELOPMENT_DB_HOST'),
+        'NAME': os.getenv('BETA_DB_NAME'),
+        'USER': os.getenv('BETA_DB_USER'),
+        'PASSWORD':os.getenv('BETA_DB_PASSWORD'),
+        'HOST': os.getenv('BETA_DB_HOST'),
         'PORT': '5432',
+        'CONN_MAX_AGE': None
     }
 }
 
