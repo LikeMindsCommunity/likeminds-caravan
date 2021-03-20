@@ -175,12 +175,18 @@ class Members(models.Model):
     @staticmethod
     def get_member_instance_or_none(community: Community, member: User) -> object:
 
-        member = Members.objects.filter(community_id=community, member_id=member)
+        member = Members.objects.filter(community_id=community, member_id=member).prefetch_related('member_id',
+                                                                                                   'approved_by')
 
         if member.exists():
             return member[0]
 
         return None
+
+    @ staticmethod
+    def get_managers_list(community: Community) -> list:
+        return list(Members.objects.filter(community_id=community, state=member_states.ADMIN)
+                    .values_list("member_id__id", flat=True))
 
 
 class removedMembers(models.Model):
@@ -222,6 +228,32 @@ class Userinfo(models.Model):
 
     def __str__(self):
         return self.name
+
+    @staticmethod
+    def get_userinfo_or_raise_exception(user_id):
+        try:
+            return Userinfo.objects.get(user_id_id=user_id)
+        except:
+            response = {
+                'success': False,
+                'error_message': f'Userinfo for user with id {user_id} does not exist'
+            }
+            raise InvalidChatroomException(response)
+
+    @staticmethod
+    def get_userinfo_or_None(user_id):
+        try:
+            return Userinfo.objects.get(user_id_id=user_id)
+        except:
+            return None
+
+    @staticmethod
+    def get_username(user_id):
+        try:
+            instance = Userinfo.objects.get(user_id_id=user_id)
+            return instance.name
+        except:
+            return None
 
 
 # Collabcard Report Module
@@ -306,6 +338,9 @@ class Collabcard(models.Model):
     is_pinned = models.BooleanField(default=False)
     pinning_time = models.BigIntegerField(default=0)
 
+    is_secret = models.BooleanField(default=False, null=True)
+    secret_chatroom_participants = models.TextField(null=True)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = int(time.time() * 1000)
@@ -317,6 +352,19 @@ class Collabcard(models.Model):
         try:
             return Collabcard.objects.get(pk=chatroom_id)
         except:
+            response = {
+                'success': False,
+                'error_message': f'chatroom with id {chatroom_id} does not exist'
+            }
+            raise InvalidChatroomException(response)
+
+    @staticmethod
+    def get_chatroom_with_joins_or_raise_exception(chatroom_id):
+
+        chatroom = Collabcard.objects.filter(pk=chatroom_id).select_related('community', 'user')
+        if chatroom.exists():
+            return chatroom[0]
+        else:
             response = {
                 'success': False,
                 'error_message': f'chatroom with id {chatroom_id} does not exist'
@@ -529,6 +577,8 @@ class collabcardState(models.Model):
 
     manual_set_active = models.BigIntegerField(null=True)
     last_seen_conversation = models.ForeignKey(card_answers, null=True, on_delete=models.SET_NULL)
+
+    secret_chatroom_left = models.BooleanField(default=False, null=True)
 
     class Meta:
         unique_together = (('card', 'user'),)

@@ -200,6 +200,8 @@ pin_chatroom = {'id': 13, 'title': "Pin chat room"}
 
 unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
 
+leave_chatroom = {'id': 15, 'title': "Leave chatroom"}
+
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
 
@@ -376,3 +378,9 @@ CHATROOM_PREVIW_CACHE_KEY = "chatroom_preview_%s_%s"
 PIN_CHATROOM_TITLE = "Chat room pinned!"
 PIN_SUBTITLE = "Your community manager %s has just pinned %s on everyone’s feed."
 PIN_ROUTE = "route://chatroom_detail?chatroom_id=%s"
+
+SECRET_CHATROOM_ADD_SUBTITLE = "You have been added to %s"
+SECRET_CHATROOM_ADD_ROUTE = "route://chatroom_detail?chatroom_id=%s"
+
+SECRET_CHATROOM_REMOVED_SUBTITLE = "You have been removed from %s"
+SECRET_CHATROOM_REMOVED_ROUTE = "route://chatroom_detail?chatroom_id=%s"
