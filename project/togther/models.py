@@ -338,7 +338,7 @@ class Collabcard(models.Model):
     is_pinned = models.BooleanField(default=False)
     pinning_time = models.BigIntegerField(default=0)
 
-    is_secret = models.BooleanField(default=False, null=True)
+    is_secret = models.BooleanField(default=False)
     secret_chatroom_participants = models.TextField(null=True)
 
     @staticmethod
@@ -438,6 +438,9 @@ class draftChatroom(models.Model):
                                           related_name='draft_chatroom_preview_community')
     preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True,
                                          related_name='draft_chatroom_preview_chatroom')
+    
+    is_secret = models.BooleanField(default=False)
+    secret_chatroom_participants = models.TextField(null=True)
 
 
 class inActiveChatroomsCount(models.Model):
@@ -578,7 +581,7 @@ class collabcardState(models.Model):
     manual_set_active = models.BigIntegerField(null=True)
     last_seen_conversation = models.ForeignKey(card_answers, null=True, on_delete=models.SET_NULL)
 
-    secret_chatroom_left = models.BooleanField(default=False, null=True)
+    secret_chatroom_left = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('card', 'user'),)
