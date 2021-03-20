@@ -8,11 +8,10 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
-from dotenv import load_dotenv
-load_dotenv()
-
 from corsheaders.defaults import default_headers
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-#SECURE_SSL_REDIRECT = True
+# SECURE_SSL_REDIRECT = True
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Force HTTPS in the final URIs
@@ -118,7 +117,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-#for encrypting and decryption for link
+# for encrypting and decryption for link
 ENCRYPT_KEY = b'yo0TkK34DzXNAr9sTEnT-vajau2ntgd6oFvwZt0k3dQ='
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
@@ -159,8 +158,8 @@ SOCIAL_AUTH_FACEBOOK_SECRET = os.getenv('SOCIAL_AUTH_FACEBOOK_SECRET')
 SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
 SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {'fields': 'id,name,email', }
 
-SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY')        #Client ID
-SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET')  #Client Secret
+SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY')        # Client ID
+SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET')  # Client Secret
 # SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress','rw_company_admin','w_share']
 
 
@@ -178,7 +177,7 @@ SOCIAL_AUTH_LINKEDIN_OAUTH2_EXTRA_DATA = [
     ('formattedName', 'name'),
     ('emailAddress', 'email_address'),
     ('pictureUrl', 'picture_url'),
-    ('publicProfileUrl', 'profile_url'),]
+    ('publicProfileUrl', 'profile_url')]
 
 SOCIAL_AUTH_PIPELINE = (
     # Get the information we can about the user and return it in a simple
@@ -254,7 +253,7 @@ FCM_DJANGO_SETTINGS = {
     "DELETE_INACTIVE_DEVICES": False
 }
 
-GOOGLE_API_KEY=os.getenv('GOOGLE_API_KEY')
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 
 
 EMAIL_GHUPSHAP_KEY = "015472e4127a7c6aff548e84b06e4cf3"
@@ -290,8 +289,8 @@ LOGGING = {
             'formatter': 'large',
         },
         'console': {
-            'level':'INFO',
-            'class':'logging.handlers.RotatingFileHandler',
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': 'utility/logs/collabmates.log',
             'maxBytes': 1024 * 10 * 10,  # 10 MB
             'backupCount': 5,

@@ -139,7 +139,7 @@ urlpatterns = [
     path('decode_url', api_views.decode_url, name='decode_url'),
 
     path('all_members', api_views.all_members, name='all_members'),
-    path('v1/all_members', api_views.all_members_version_1, name='all_members_version_1'),
+    path('v1/all_members', api_views.AllMembersVersion1.as_view(), name='all_members_version_1'),
     path('get_tagging_list', api_views.get_tagging_list, name='get_tagging_list'),
 
     path('member_activity', api_views.member_activity, name='member_activity'),

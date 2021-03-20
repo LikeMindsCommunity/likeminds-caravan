@@ -315,7 +315,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'preview', 'deleted_by', 'header',
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
-                  'poll_type', 'last_seen_conversation'
+                  'poll_type', 'last_seen_conversation', 'is_secret', 'secret_chatroom_participants'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -389,7 +389,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         return co_host_list
 
-    def get_images(self,card):
+    def get_images(self, card):
 
         images = []
 
@@ -421,7 +421,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         pdf = []
 
         if card.has_files or\
-                card.attachment_count > 0:
+                card.attachment_count > 0 or\
+                card.pdf_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="pdf")
 
             for file in files:
@@ -612,6 +613,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     data['answer_text'] = get_answer_text_for_poll(card, self.current_user_id)
                 else:
                     del data['answer_text']
+
+            elif field.field_name == "secret_chatroom_participants" and data['secret_chatroom_participants'] is not None:
+                data['secret_chatroom_participants'] = json.loads(data['secret_chatroom_participants'])
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
