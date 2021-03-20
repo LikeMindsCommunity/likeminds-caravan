@@ -14313,7 +14313,7 @@ class SyncChatrooms(APIView):
             if chatroom['is_secret']:
                 chatroom['secret_chatroom_participants'] = json.loads(data[48])
 
-            chatroom['secret_chatroom_left'] = json.loads(data[49])
+            chatroom['secret_chatroom_left'] = data[49]
 
             chatrooms.append(chatroom)
 
@@ -14596,7 +14596,7 @@ class SyncChatroomsDiff(APIView):
                         if chatroom['is_secret']:
                             chatroom['secret_chatroom_participants'] = json.loads(data[48])
 
-                        chatroom['secret_chatroom_left'] = json.loads(data[49])
+                        chatroom['secret_chatroom_left'] = data[49]
 
                         chatrooms.append(chatroom)
 
@@ -15645,7 +15645,7 @@ class SyncCommunities(APIView):
 
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
-        guest = query_params.get('guest','')
+        guest = query_params.get('guest', '')
         context = {"current_user_id": member_id}
 
         if guest == "true":
@@ -15671,16 +15671,17 @@ class SyncCommunities(APIView):
 
             if last_updated:
                 engage_filter = Member_Engage.objects.filter(member_id=member_id, updated_at__gt=last_updated
-                                                             ).select_related('community_id').order_by('id')
+                                                             ).select_related('community_id').order_by('updated_at')
             else:
                 engage_filter = Member_Engage.objects.filter(member_id=member_id
-                                                             ).select_related('community_id').order_by('id')
+                                                             ).select_related('community_id').order_by('updated_at')
 
         paginated_query_set = get_paginated_queryset_with_maxpages(engage_filter, page, paginate_by=paginate_by)
         engage_filter = paginated_query_set['page_list']
         temp = YourCommunitySerializer(engage_filter, context=context, many=True)
 
         max_last_updated = 0
+
         for data in engage_filter:
 
             if max_last_updated < data.updated_at:
@@ -15691,13 +15692,7 @@ class SyncCommunities(APIView):
 
             return JsonResponse(context)
 
-        else:
-
-            max_pages = paginated_query_set['last_page']
-            page = page - max_pages
-            communities = fetch_guest_communities(member_id, page, paginate_by)
-
-            return JsonResponse(communities)
+        return JsonResponse({'communities': []})
 
 
 def fetch_community_of_chatroom(chatroom_id, member_id, last_updated=0):
