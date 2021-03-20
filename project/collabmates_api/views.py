@@ -14313,7 +14313,7 @@ class SyncChatrooms(APIView):
             if chatroom['is_secret']:
                 chatroom['secret_chatroom_participants'] = json.loads(data[48])
 
-            chatroom['secret_chatroom_left'] = json.loads(data[49])
+            chatroom['secret_chatroom_left'] = data[49]
 
             chatrooms.append(chatroom)
 
@@ -14596,7 +14596,7 @@ class SyncChatroomsDiff(APIView):
                         if chatroom['is_secret']:
                             chatroom['secret_chatroom_participants'] = json.loads(data[48])
 
-                        chatroom['secret_chatroom_left'] = json.loads(data[49])
+                        chatroom['secret_chatroom_left'] = data[49]
 
                         chatrooms.append(chatroom)
 
