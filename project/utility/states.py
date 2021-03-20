@@ -134,6 +134,9 @@ class ChatroomActions:
     ACTION_REPORT = 10
     ACTION_MARK_ACTIVE = 11
     ACTION_MARK_INACTIVE = 12
+    ACTION_PIN_CHATROOM = 13
+    ACTION_UNPIN_CHATROOM = 14
+    ACTION_LEAVE_CHATROOM = 15
 
 
 chatroom_actions = ChatroomActions()
@@ -184,8 +187,11 @@ class ChatroomStates:
     CHATROOM_UNFOLLOW = 3
     CHATROOM_CREATER = 4
     CHATROOM_COMMUNITY_EDIT = 5
-
     CHATROOM_GUEST = 6
+
+    CHATROOM_ADD_PARTICIPANT = 7
+    LEAVE_CHATROOM = 8
+    REMOVED_FROM_CHATROOM = 9
 
 
 chatroom_states = ChatroomStates()

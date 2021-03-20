@@ -3163,6 +3163,16 @@ def update_community(res):
     return "Not a valid community"
 
 
+def send_follow_notifications_to_secret_room_participants(chatroom_id, participants_list):
+    from .chatroom.chatroom_impl import ChatroomHelper
+
+    for user_id in participants_list:
+        req_dict = ChatroomHelper.get_follow_user_dict(user_id, chatroom_id,
+                                                       is_tagged=False, status=True,
+                                                       source="create_chatroom")
+        collabcard_follow_internal(req_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+
+
 @csrf_exempt
 def create_card(request, req_dict=None):
     ''' function to create a card '''
@@ -3341,6 +3351,17 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
         card.is_pinned = True
         card.pinning_time = TimeUtilities.current_time_in_milliseconds()
 
+    if res.get("is_secret", False) and \
+            res.get("secret_chatroom_participants", None):
+
+        card.is_secret = True
+        secret_chatroom_participants = res.get("secret_chatroom_participants", None)
+
+        if secret_chatroom_participants:
+            cm_list = set(Members.get_managers_list(community=community_instance))
+            final_participants_list = list(set(secret_chatroom_participants) | cm_list)
+            card.secret_chatroom_participants = json.dumps(final_participants_list)
+
     card.save()
     # add ownerflag here
 
@@ -3474,10 +3495,13 @@ def create_card_internal(user_id, community_id, res):
 
     if has_auto_approve_right or is_intro_card or create_intro:
         # batch update for already existing users and saving their unseen count
-        if card_instance.attachment_count == 0:
+        if card_instance.attachment_count == 0 and not card_instance.is_secret:
             set_chatroom_state_for_all_members_on_card_creation.delay(community_id, card_id=card_instance.id,
                                                                       function_called="create_card_internal")
         # update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
+        elif card_instance.is_secret:
+            participants_list = json.loads(card_instance.secret_chatroom_participants)
+            send_follow_notifications_to_secret_room_participants(card_instance.id, participants_list)
 
     else:
         update_pending_chatroom_count_for_promoters.delay(community_id)
@@ -3610,6 +3634,13 @@ def create_draft_collabcard(request, res=None):
     preview_utilities.set_preview_object(card, res, user_instance.id)
 
     card.date_epoch = time.time()  # card creation time
+
+    if res.get("is_secret", False) and \
+            res.get("secret_chatroom_participants", None):
+
+        card.is_secret = True
+        card.secret_chatroom_participants = res.get("secret_chatroom_participants", None)
+
     card.save()
 
     # deleting the existing polls
@@ -3644,41 +3675,74 @@ def create_draft_collabcard(request, res=None):
 def create_chatroom(card_instance, user_instance, state, current_user_id=None, answer=""):
     '''function to create chat-room and perform follow unfollow operations'''
     # handling answer states
+
+    community_instance = card_instance.community
+
     if not answer:
 
         user_name = user_instance.userinfo.name
-        # member_ids = [user_instance.id]
-        # community_profile = get_user_profile(user_instance.id, card_instance.community.id, current_user_id,
-        #                                      send_profile=False)
-        # if community_profile:
-        #     community_profile = community_profile
-        #     user_route = "route://member_profile/" + str(user_instance.id) + "?member=" + quote(str(community_profile))
-        # else:
+
+        community_id = community_instance.id
+        community_name = community_instance.name
+
         user_route = "route://member_profile/" + str(user_instance.id) + "?member_id=" + str(user_instance.id)
-        user_name = "<<" + user_name + "|" + user_route + "&community_id=" + str(card_instance.community.id) + ">>"
+        user_name = "<<" + user_name + "|" + user_route + "&community_id=" + str(community_id) + ">>"
 
         if state == chatroom_states.CHATROOM_HEADER:
 
-            community = CommunitySerializer(card_instance.community, current_user_id=current_user_id)
-            community_route = "route://community?community_id=" + str(community['id'])
-            community_name = "<<" + str(community['name']) + "|" + community_route + ">>"
-            if (card_instance.type == card_types.CARD_POLL):
+            community_route = "route://community?community_id=" + str(community_id)
+            community_name = "<<" + str(community_name) + "|" + community_route + ">>"
+
+            if card_instance.is_secret:
+                secret_participants_count = len(json.loads(card_instance.secret_chatroom_participants))
+
+                prefix = "others"
+                if secret_participants_count == 2:
+                    prefix = "other"
+
+                answer = f"{user_name} started this secret chatroom with {secret_participants_count-1} {prefix}"
+
+            elif (card_instance.type == card_types.CARD_POLL):
                 answer = user_name + " started this poll in " + community_name
+
             else:
                 answer = user_name + " started this chatroom in " + community_name
 
         elif state == chatroom_states.CHATROOM_FOLLOW:
             answer = user_name + " followed this chatroom"
+
         elif state == chatroom_states.CHATROOM_UNFOLLOW:
             answer = user_name + " unfollwed this chatroom"
+
         elif state == chatroom_states.CHATROOM_COMMUNITY_EDIT:
             answer = user_name + " edited community purpose"
+
+        elif state == chatroom_states.CHATROOM_ADD_PARTICIPANT:
+            if current_user_id is not None:
+                current_user_name = Userinfo.get_username(current_user_id)
+
+                current_user_route = f"route://member_profile/{current_user_id}?member_id={current_user_id}"
+                encoded_current_user_name = f"<<{current_user_name}|{current_user_route}&community_id={community_id}>>"
+
+                answer = f"{encoded_current_user_name} added {user_name}"
+
+        elif state == chatroom_states.LEAVE_CHATROOM:
+            answer = user_name + " left this chatroom"
+
+        elif state == chatroom_states.REMOVED_FROM_CHATROOM:
+            if current_user_id is not None:
+                current_user_name = Userinfo.get_username(current_user_id)
+
+                current_user_route = f"route://member_profile/{current_user_id}?member_id={current_user_id}"
+                encoded_current_user_name = f"<<{current_user_name}|{current_user_route}&community_id={community_id}>>"
+
+                answer = f"{encoded_current_user_name} removed {user_name}"
 
     instance = card_answers()
     instance.answer = answer
     instance.card = card_instance
     instance.user = user_instance
-    instance.community = card_instance.community
+    instance.community = community_instance
     instance.state = state
     instance.save()
 
@@ -4233,6 +4297,7 @@ def fetch_share_url(request):
         return JsonResponse({'community_share': community_share, 'success': True})
 
     return JsonResponse({'error_message': "Invalid request", 'success': False}, status=400)
+
 
 def generate_links_for_guest_web(community_id,member_id):
 
@@ -5928,16 +5993,15 @@ def get_answer_bubble_context_for_web(ans):
 
 
 def get_chatroom_actions(card_status, creator, card_instance, promoter=False, current_user_instance=None,
-                         community_instance=None, is_child=False, request_type=""):
-    ''' function to get chatroom actions '''
-
-    is_ios = False
-    if request_type == "iOS":
-        is_ios = True
+                         community_instance=None, is_child=False, request_type="", parent_list=None):
+    """ function to get chatroom actions """
 
     purpose_card = False
     intro_card = False
     master_intro_card = False
+
+    if parent_list is None:
+        parent_list = []
 
     if card_status['type'] == card_types.CARD_PURPOSE:
         purpose_card = True
@@ -5997,14 +6061,21 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         elif action['id'] == chatroom_actions.ACTION_DELETE:
             if is_child and not creator:
                 continue
-            if promoter and not creator:
-                if not admin_has_delete_right:
-                    continue
+
+            if promoter and\
+                    not creator and\
+                    not admin_has_delete_right:
+                continue
 
         elif action['id'] == chatroom_actions.ACTION_REPORT:
-            if promoter and not creator:
-                if admin_has_delete_right:
-                    continue
+            if promoter and\
+                    not creator and\
+                    admin_has_delete_right:
+                continue
+
+        elif card_instance.is_secret and\
+                action['id'] == chatroom_actions.ACTION_INVITE:
+            continue
 
         actions.append(action)
 
@@ -6014,12 +6085,29 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         else:
             actions.append(mark_active)
 
-    if promoter and len(actions):
+    if promoter and\
+            len(actions) and\
+            not card_instance.is_secret:
 
         if card_instance.is_pinned:
-            actions.insert(1,unpin_chatroom)
+            actions.insert(1, unpin_chatroom)
         else:
-            actions.insert(1,pin_chatroom)
+            actions.insert(1, pin_chatroom)
+
+    if card_instance.is_secret and\
+            current_user_instance is not None:
+
+        if isinstance(current_user_instance, User):
+            current_user_id = current_user_instance.id
+        else:
+            current_user_id = NumberUtilities.get_integer_from_string(current_user_instance)
+
+        participants_list = json.loads(card_instance.secret_chatroom_participants)
+
+        if not promoter and\
+                not creator and\
+                current_user_id in participants_list:
+            actions.append(leave_chatroom)
 
     return actions
 
@@ -6132,6 +6220,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     is_promoter = False
     is_child = False
+    parent_list = []
     member_instance = Members.objects.filter(member_id=user_id,
                                              community_id=card_instance.community).filter(Q(state=member_states.ADMIN))
     if member_instance.exists():
@@ -6154,7 +6243,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
                                             current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type
+                                            request_type=request_type, parent_list=parent_list
                                             )
 
     latest_conversations = save_the_latest_conversation(card_instance, user_id)
@@ -6292,6 +6381,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 
     is_promoter = False
     is_child = False
+    parent_list = []
     member_instance = Members.objects.filter(member_id=user_id,
                                              community_id=card_instance.community).filter(Q(state=member_states.ADMIN))
     if member_instance.exists():
@@ -6313,7 +6403,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
                                             current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type
+                                            request_type=request_type, parent_list=parent_list
                                             )
 
     # getting the state of chatroom against the user
@@ -6432,6 +6522,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
     is_promoter = False
     is_child = False
+    parent_list = []
     member_instance = Members.objects.filter(member_id=user_id,
                                              community_id=card_instance.community).filter(Q(state=member_states.ADMIN))
     if member_instance.exists():
@@ -6454,15 +6545,19 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
                                             current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type
+                                            request_type=request_type, parent_list=parent_list
                                             )
 
     context['chatroom_actions'] = chatroom_actions
 
     if card_instance.type != card_types.CARD_MASTER_INTRO:
-        context['participant_count'] = collabcardState.objects.filter(follow_status=True,
-                                                                      card=card_instance, remove=None,
-                                                                      is_tagged=False).count()
+        if card_instance.is_secret:
+            secret_room_participants = json.loads(card_instance.secret_chatroom_participants)
+            context['participant_count'] = len(secret_room_participants)
+        else:
+            context['participant_count'] = collabcardState.objects.filter(follow_status=True,
+                                                                          card=card_instance, remove=None,
+                                                                          is_tagged=False).count()
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
 
     if not conversation_member_filter.exists():
@@ -7772,7 +7867,6 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                'state': state
                                            })
 
-
     else:
 
         if is_tagged:
@@ -8211,6 +8305,10 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
             continue
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id)
+
+        if chatroom_instance['secret_chatroom_left']:
+            continue
+
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER
                                                           ).filter(Q(attachment_count=0) |
@@ -8366,8 +8464,12 @@ def fetch_chatroom_feed(request):
 
     if not chatroom_id and not scroll_direction:
 
-        last_seen = collabcardState.objects.filter(community=community_id, user=member_id).filter(~Q(state=0)).order_by(
-            '-card_id')
+        last_seen = collabcardState.objects\
+            .filter(community=community_id,
+                    user=member_id,
+                    secret_chatroom_left=False)\
+            .filter(~Q(state=0))\
+            .order_by('-card_id')
         if not last_seen.exists():
             chatroom_list = pagination(chatroom_filter, page, paginate_by=5)
             chatrooms = get_chatrooms(chatroom_list, member_id, is_ios=is_ios)
@@ -8438,7 +8540,9 @@ def fetch_chatroom_feed_version_1(request):
     state_filter = collabcardState.objects.filter(community=community_id,
                                                   card__is_pending=False,
                                                   card__is_deleted=False,
-                                                  user=member_id).exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
+                                                  user=member_id,
+                                                  secret_chatroom_left=False)\
+        .exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
 
     chatrooms = []
     context = {}
@@ -8665,10 +8769,11 @@ def upload_files(request):
                                            {'user': member_id, 'card': card_instance},
                                            {'expiry_time': expiry_time})
 
+            if not card_instance.is_secret:
+                set_chatroom_state_for_all_members_on_card_creation.delay(card_instance.community.id,
+                                                                          card_id=collabcard_id,
+                                                                          function_called="upload_files_version_1")
             send_chatroom_creation_notification(card_instance, user_instance)
-            set_chatroom_state_for_all_members_on_card_creation.delay(card_instance.community.id,
-                                                                      card_id=collabcard_id,
-                                                                      function_called="upload_files")
 
         member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
         chatroom_local = GetChatroomInstanceSerializer(card_instance, context=member_data, many=False)
@@ -8905,7 +9010,7 @@ def upload_chatroom_attachments(body, member_id):
 
     uploaded_files_count = Card_Attachment.objects.filter(collabcard=chatroom_instance).count()
 
-    if uploaded_files_count == chatroom_instance.attachment_count:
+    if uploaded_files_count == chatroom_instance.attachment_count + chatroom_instance.pdf_count:
 
         video_count = Card_Attachment.objects.filter(collabcard=chatroom_instance,
                                                      type='video').count()
@@ -8923,11 +9028,11 @@ def upload_chatroom_attachments(body, member_id):
                                        {'card': chatroom_instance, 'user': user_instance},
                                        {'expiry_time': expiry_time})
 
+        if not chatroom_instance.is_secret:
+            set_chatroom_state_for_all_members_on_card_creation.delay(chatroom_instance.community.id,
+                                                                      card_id=chatroom_id,
+                                                                      function_called="upload_files_version_1")
         send_chatroom_creation_notification(chatroom_instance, user_instance)
-
-        set_chatroom_state_for_all_members_on_card_creation.delay(chatroom_instance.community.id,
-                                                                  card_id=chatroom_id,
-                                                                  function_called="upload_files_version_1")
 
     member_data = {'member_id': member_id,
                    'current_user_id': member_id,
@@ -11328,19 +11433,23 @@ def all_members(request):
     else:
         return JsonResponse(context)
 
-@api_view(['GET', 'POST'])
-@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
-def all_members_version_1(request):
 
-    '''version 1 api for sending members of community with different community type'''
+class AllMembersVersion1(APIView):
 
-    context = get_all_members_version_1(request)
+    def get(self, request, *args, **kwargs):
 
-    if request.accepted_renderer.format == '*/*':
-        info_logger.info("html format")
-        return render(request, 'filtered_members.html', context)
-    else:
-        return JsonResponse(context)
+        member_id = get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        context = get_all_members_version_1(request)
+
+        if request.accepted_renderer.format == '*/*':
+            info_logger.info("html format")
+            return render(request, 'filtered_members.html', context)
+        else:
+            return JsonResponse(context)
 
 
 def get_tagging_list(request):
@@ -14199,6 +14308,13 @@ class SyncChatrooms(APIView):
 
             chatroom['community_name'] = data[40]
 
+            chatroom['is_secret'] = data[47]
+
+            if chatroom['is_secret']:
+                chatroom['secret_chatroom_participants'] = json.loads(data[48])
+
+            chatroom['secret_chatroom_left'] = json.loads(data[49])
+
             chatrooms.append(chatroom)
 
         if max_last_updated:
@@ -14474,6 +14590,13 @@ class SyncChatroomsDiff(APIView):
                             chatroom['deleted_by'] = data[38]
 
                         chatroom['community_name'] = data[40]
+
+                        chatroom['is_secret'] = data[47]
+
+                        if chatroom['is_secret']:
+                            chatroom['secret_chatroom_participants'] = json.loads(data[48])
+
+                        chatroom['secret_chatroom_left'] = json.loads(data[49])
 
                         chatrooms.append(chatroom)
 

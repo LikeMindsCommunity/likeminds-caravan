@@ -52,6 +52,7 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
 
 from external_services.mixpanel.mixpanel_impl import MixpanelImpl
 from django.db import connection
+from utility.number_utilities import NumberUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -236,13 +237,9 @@ def get_token_for_fcm(member_id, flag=None):
 
 
 def get_user_fcm_details(user_instance):
-    user_fcm_token = user_instance.userinfo.fcm_token
-    user_mobile_os = user_instance.userinfo.mobile_os
 
     user_details = {
         "id": user_instance.id,
-        'fcm_token': user_fcm_token,
-        'mobile_os': user_mobile_os,
     }
 
     return user_details
@@ -465,50 +462,63 @@ def send_notification_to_new_promoter(context):
 
 @shared_task
 def send_notification_for_new_collabcard_posted(community_id, collabcard_title, card_creater_id, card_creater_name,
-                                                **kwargs):
+                                                card_id, **kwargs):
     ''' function to send notification to all members when new collabcard is posted '''
 
     try:
-        connection = get_connection()
-        curr = connection.cursor()
-        sql = "select member_id_id, state from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=4 or state=9) "
-        parameter_list = [community_id, card_creater_id]
-        curr.execute(sql, parameter_list)
-        member_list = curr.fetchall()
-
-        card_id = kwargs['card_id']
         card = Collabcard.objects.get(id=card_id)
 
         notification_list_member = []
+        tagged_users_list = []
+        user_names = ''
 
-        tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+        if card.is_secret:
+            participants = json.loads(card.secret_chatroom_participants)
 
-        blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
-                                                                  blocked_member=card_creater_id).values_list(
-            "blocked_by__id", flat=True))
-        eligible_admin_ids = []
-        if card.is_pending:
-            eligible_admin_ids = list(userAdminRights.objects.filter(community=community_id,
-                                                                     right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS).values_list(
-                "user__id", flat=True))
+            for user_id in participants:
 
-        # print(member_list)
-        for member in member_list:
-            member_id = member[0]
-            member_state = member[1]
-            if card.is_pending:
-                if member_state != member_states.ADMIN:
-                    continue
-                elif member_id not in eligible_admin_ids:
+                if NumberUtilities.get_integer_from_string(card_creater_id) == user_id:
                     continue
 
-            temp = {}
-            temp['id'] = member_id
-            notification_details = get_token_for_fcm(member[0], True)
-            temp['fcm_token'] = notification_details[0]
-            temp['mobile_os'] = notification_details[1]
-            if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
+                temp = {
+                    'id': user_id
+                }
                 notification_list_member.append(temp)
+        else:
+            connection = get_connection()
+            curr = connection.cursor()
+            sql = "select member_id_id, state from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=4 or state=9) "
+            parameter_list = [community_id, card_creater_id]
+            curr.execute(sql, parameter_list)
+            member_list = curr.fetchall()
+
+            tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+
+            blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
+                                                                      blocked_member=card_creater_id).values_list(
+                "blocked_by__id", flat=True))
+            eligible_admin_ids = []
+            if card.is_pending:
+                eligible_admin_ids = list(userAdminRights.objects.filter(community=community_id,
+                                                                         right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS).values_list(
+                    "user__id", flat=True))
+
+            for member in member_list:
+                member_id = member[0]
+                member_state = member[1]
+                if card.is_pending:
+                    if member_state != member_states.ADMIN:
+                        continue
+                    elif member_id not in eligible_admin_ids:
+                        continue
+
+                temp = {}
+                temp['id'] = member_id
+                notification_details = get_token_for_fcm(member[0], True)
+                temp['fcm_token'] = notification_details[0]
+                temp['mobile_os'] = notification_details[1]
+                if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
+                    notification_list_member.append(temp)
 
         custom_payload = get_custom_data_for_new_chatroom_created(card)
 
@@ -518,13 +528,17 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         message = {}
         typ = kwargs['type'] if 'type' in kwargs else 0
 
+        title = community_name
+
         if card.is_pending:
-            title = community_name
             sub_title = str(card_creater_name) + " has created a new chat room " + str(collabcard_title)
             route = 'route://chatroom_detail?chatroom_id=' + str(kwargs['card_id'])
 
+        elif card.is_secret:
+            sub_title = str(card_creater_name) + " started a new secret chatroom: " + str(collabcard_title) + ". Join now!"
+            route = 'route://collabcard?collabcard_id=' + str(kwargs['card_id'])
+
         elif typ == card_types.CARD_EVENT or typ == card_types.CARD_PUBLIC_EVENT:
-            title = community_name
             sub_title = str(card_creater_name) + " created a new event: " + str(collabcard_title) + ". Join now!"
             route = 'route://event_chatroom?chatroom_id=' + str(kwargs['card_id'])
 
@@ -541,7 +555,6 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             schedule_poll_end_notification(kwargs['card_id'])
 
         else:
-            title = community_name
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
             route = 'route://collabcard?collabcard_id=' + str(kwargs['card_id'])
 
@@ -650,7 +663,7 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
 
     collabcardstates = collabcardState.objects.filter(card=card_id,
                                                       attending_status=True,
-                                                      remove=None)
+                                                      remove=None).select_related('user')
 
     notification_list = []
     for ccs in collabcardstates:
@@ -658,11 +671,11 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
         if card_owner.id == ccs.user.id:
             owner_flag = True
 
-        notification_list.append(get_user_fcm_details(ccs.user))
+        notification_list.append({'id': ccs.user.id})
 
     # add owner to notification list
     if owner_flag is False:
-        notification_list.append(get_user_fcm_details(card_owner))
+        notification_list.append({'id': card_owner.id})
 
     message = {'payload': {
         'title': EVENT_NOTIFICATIONS_TITLE,
@@ -693,18 +706,18 @@ def poll_room_ending_notification(card_id, **kwargs):
 
         collabcardState.objects.filter(card=card_id).update(updated_at=time.time())
 
-        members = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
+        members = MemberPollVotes.objects.filter(card=card_id).order_by('-id').select_related('user')
         notification_list = []
         for member in members:
 
             if card_owner.id == member.user.id:
                 owner_flag = True
 
-            notification_list.append(get_user_fcm_details(member.user))
+            notification_list.append({'id': member.user.id})
 
         # if card owner did not vote, add him to notification list
         if owner_flag is False:
-            notification_list.append(get_user_fcm_details(card_owner))
+            notification_list.append({'id': card_owner.id})
 
         sub_title = POLL_EXPIRY_NOTIFICATION_SUB_TITLE
         route = POLL_EXPIRY_NOTIFICATION_ROUTE % card_id
@@ -2599,6 +2612,7 @@ def send_sync_notification(notification_dict):
     if len(token_list) > 0:
         send_notification_for_android(token_list, message)
 
+
 @shared_task
 def send_pin_chatroom_notification(community_id, member_id, chatroom_id):
 
@@ -2630,5 +2644,67 @@ def send_pin_chatroom_notification(community_id, member_id, chatroom_id):
         "sub_title": PIN_SUBTITLE % (promoter_name, get_title_from_collabcard(card_instance)),
         'route': PIN_ROUTE % str(card_instance.id)
     }}
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_removed_secret_room_participant(user_id, chatroom_id):
+    try:
+        chatroom_instance = Collabcard.objects.get(pk=chatroom_id)
+    except Collabcard.DoesNotExist:
+        error_logger.error(f"send_notification_for_removed_secret_room_participant - chatroom id {chatroom_id} does not exist")
+        return
+
+    community_name = chatroom_instance.community.name
+
+    notification_list = []
+
+    temp = {
+        'id': user_id
+    }
+
+    notification_list.append(temp)
+
+    sub_title = SECRET_CHATROOM_REMOVED_SUBTITLE % chatroom_instance.header
+    route = SECRET_CHATROOM_REMOVED_ROUTE % chatroom_id
+
+    message = {'payload': {
+        "title": community_name,
+        "sub_title": sub_title,
+        'route': route
+    }
+    }
+
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_new_secret_room_participant(user_id, chatroom_id):
+    try:
+        chatroom_instance = Collabcard.objects.get(pk=chatroom_id)
+    except Collabcard.DoesNotExist:
+        error_logger.error(f"send_notification_for_new_secret_room_participant - chatroom id {chatroom_id} does not exist")
+        return
+
+    community_name = chatroom_instance.community.name
+
+    notification_list = []
+
+    temp = {
+        'id': user_id
+    }
+
+    notification_list.append(temp)
+
+    sub_title = SECRET_CHATROOM_ADD_SUBTITLE % chatroom_instance.header
+    route = SECRET_CHATROOM_ADD_ROUTE % chatroom_id
+
+    message = {'payload': {
+        "title": community_name,
+        "sub_title": sub_title,
+        'route': route
+    }
+    }
 
     notification_meta(notification_list, message)
