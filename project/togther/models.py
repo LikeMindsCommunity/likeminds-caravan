@@ -73,6 +73,18 @@ class Community(models.Model):
     def __str__(self):
         return self.name
 
+    # saving the last updated in milliseconds
+    def save(self, *args, **kwargs):
+
+        current_time = TimeUtilities.current_time_in_sec()
+
+        if self.created_at < 0:
+            self.created_at = current_time
+        
+        self.updated_at = current_time
+
+        super(Community, self).save(*args, **kwargs)
+
     @staticmethod
     def get_community_or_raise_exception(community_id):
 

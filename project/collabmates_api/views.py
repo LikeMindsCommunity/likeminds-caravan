@@ -15649,9 +15649,9 @@ class SyncCommunities(APIView):
         context = {"current_user_id": member_id}
 
         if guest == "true":
-            communities = fetch_guest_communities(member_id, page, paginate_by)
+            community_context = fetch_guest_communities(member_id, last_updated=last_updated)
 
-            return JsonResponse(communities)
+            return JsonResponse(community_context)
 
         if chatroom_id:
             chatroom_context = fetch_community_of_chatroom(chatroom_id, member_id, last_updated=last_updated)
@@ -15742,25 +15742,36 @@ def create_community_context(community_id, member_id):
     return {'communities': communities}
 
 
-def fetch_guest_communities(member_id , page, paginate_by):
+def fetch_guest_communities(member_id, last_updated=0):
 
-    state_filter = collabcardState.objects.filter(is_guest=True, user_id=member_id).distinct('community').select_related('community').order_by('community')
-    guest_community_relation = list(Member_Engage.objects.filter(member_id=member_id).values_list('community_id',flat=True))
-    state_filter = pagination(state_filter, page, paginate_by)
-    guest_communities = fill_guest_communities(state_filter, member_id, guest_community_relation)
+    community_list = list(collabcardState.objects.filter(is_guest=True, user_id=member_id).
+                          distinct('community').values_list('community_id', flat=True))
 
-    return {
-            'communities': guest_communities
-        }
+    guest_community_relation = list(Member_Engage.objects.filter(member_id=member_id).values_list('community_id',
+                                                                                                  flat=True))
+
+    state_filter = Community.objects.filter(id__in=community_list, updated_at__gt=last_updated).order_by('updated_at')
+
+    guest_communities, max_last_updated = fill_guest_communities(state_filter, member_id, guest_community_relation)
+
+    if max_last_updated:
+
+        return {
+                'communities': guest_communities,
+                'max_last_updated' : max_last_updated
+            }
+
+    return {'communities': guest_communities}
 
 
 def fill_guest_communities(state_filter, member_id, guest_community_relation):
 
-    context = {"current_user_id": member_id}
+    context = {"current_user_id": member_id, 'restrict_members_count': True}
+
     communities = []
-    
-    for data in state_filter:
-        community_instance = data.community
+    max_last_updated = 0
+
+    for community_instance in state_filter:
 
         if community_instance.id in guest_community_relation:
             continue
@@ -15768,7 +15779,10 @@ def fill_guest_communities(state_filter, member_id, guest_community_relation):
         community_list = CommunitySerializerV1(community_instance, context=context, many=False)
         communities.append(community_list.data)
 
-    return communities
+        if max_last_updated < community_instance.updated_at:
+            max_last_updated = community_instance.updated_at
+
+    return communities, max_last_updated
 
 
 def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
