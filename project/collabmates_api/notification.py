@@ -532,15 +532,15 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
 
         if card.is_pending:
             sub_title = str(card_creater_name) + " has created a new chat room " + str(collabcard_title)
-            route = 'route://chatroom_detail?chatroom_id=' + str(kwargs['card_id'])
+            route = 'route://chatroom_detail?chatroom_id=' + str(card_id)
 
         elif card.is_secret:
             sub_title = str(card_creater_name) + " started a new secret chatroom: " + str(collabcard_title) + ". Join now!"
-            route = 'route://collabcard?collabcard_id=' + str(kwargs['card_id'])
+            route = 'route://collabcard?collabcard_id=' + str(card_id)
 
         elif typ == card_types.CARD_EVENT or typ == card_types.CARD_PUBLIC_EVENT:
             sub_title = str(card_creater_name) + " created a new event: " + str(collabcard_title) + ". Join now!"
-            route = 'route://event_chatroom?chatroom_id=' + str(kwargs['card_id'])
+            route = 'route://event_chatroom?chatroom_id=' + str(card_id)
 
             if card.online_link is None or card.online_link == '':
                 schedule_offline_event_future_notifications(card)
@@ -551,12 +551,12 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         elif typ == card_types.CARD_POLL:
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
-            route = 'route://poll_chatroom?chatroom_id=' + str(kwargs['card_id'])
-            schedule_poll_end_notification(kwargs['card_id'])
+            route = 'route://poll_chatroom?chatroom_id=' + str(card_id)
+            schedule_poll_end_notification(card_id)
 
         else:
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
-            route = 'route://collabcard?collabcard_id=' + str(kwargs['card_id'])
+            route = 'route://collabcard?collabcard_id=' + str(card_id)
 
         message['payload'] = {
             'title': title,
@@ -577,7 +577,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             for member_id in tagged_users_list:
 
                 if not str(member_id) == str(card_creater_id):
-                    send_notification_to_tagged_users(card_id=kwargs['card_id'],
+                    send_notification_to_tagged_users(card_id=card_id,
                                                       answerer_name=card_creater_name,
                                                       answer=new_title_text,
                                                       user_id=member_id, user_names=user_names)

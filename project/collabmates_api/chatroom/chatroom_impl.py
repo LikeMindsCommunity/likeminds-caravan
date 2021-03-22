@@ -745,7 +745,8 @@ class ChatroomImpl(ChatroomManager):
         ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=user_instance,
                                      state=chatroom_state, current_user_id=self.get_member_id())
 
-        send_notification_for_removed_secret_room_participant.delay(self.get_member_id(), self.get_chatroom_id())
+        if chatroom_state == chatroom_states.REMOVED_FROM_CHATROOM:
+            send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
     def add_secret_chatroom_participant(self, req_body: dict) -> dict:
 

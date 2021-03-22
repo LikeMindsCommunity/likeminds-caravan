@@ -3531,7 +3531,7 @@ def send_chatroom_creation_notification(card_instance, user_instance):
     date_time = card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time
 
     """
-    dont send the notifications for new intro room
+    do not send notifications for new intro room
     TODO: update logic with new intro room update
     """
 
