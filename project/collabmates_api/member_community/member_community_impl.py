@@ -274,6 +274,26 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return chatroom_queryset
 
+    def fetch_community_chatrooms_queryset_without_last_seen(self, pin_status) -> []:
+
+        if pin_status:
+            chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
+                                                               card__is_pending=False,
+                                                               card__is_deleted=False,
+                                                               card__is_pinned=pin_status,
+                                                               user=self.get_member_id()).select_related('card',
+                                                                                                         'card__user'). \
+                exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
+        else:
+            chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
+                                                               card__is_pending=False,
+                                                               card__is_deleted=False,
+                                                               user=self.get_member_id()).select_related('card',
+                                                                                                         'card__user'). \
+                exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
+
+        return chatroom_queryset
+
     def fetch_chatroom_queryset_for_web(self, pin_status):
 
         if pin_status:

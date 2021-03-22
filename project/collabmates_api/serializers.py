@@ -748,6 +748,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         'expiry_time': None,
         'is_tagged': False,
         'attending_status': False,
+        'secret_chatroom_left': False
     }
 
     if not member_id:
