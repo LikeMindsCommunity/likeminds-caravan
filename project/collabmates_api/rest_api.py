@@ -797,7 +797,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'og_tags', 'deleted_by', 'is_edited', 'reply', 'internal_link',
                   'has_files', 'date', 'images', 'pdf', 'audios', 'videos',
                   'attachment_count', 'attachments_uploaded',
-                  'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch')
+                  'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch', 'temporary_id')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)

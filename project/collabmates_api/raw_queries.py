@@ -1530,7 +1530,8 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
                          last_updated,
                          preview_chatroom_id,
                          preview_type,
-                         api_version
+                         api_version,
+                         temporary_id
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
@@ -1586,7 +1587,8 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
                          last_updated,
                          preview_chatroom_id,
                          preview_type,
-                         api_version
+                         api_version,
+                         temporary_id
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s

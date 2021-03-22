@@ -7478,6 +7478,8 @@ def create_conversation(request):
     ans.api_version = 0
     ans.device_id = device_id
     ans.platform = platform_code
+    ans.temporary_id = temporary_id
+
     if replied_conversation:
         ans.reply = replied_conversation
 
@@ -7529,7 +7531,6 @@ def create_conversation(request):
 
     context = {"current_user_id": member_id, "fetch_reply": True}
     conversation = CardAnswersDBSyncSerializer(ans, context=context, many=False).data
-    conversation['temporary_id'] = temporary_id
 
     return JsonResponse({'success': True, 'id': ans.id, 'conversation': conversation})
 
@@ -14799,8 +14800,6 @@ class SyncConversation(APIView):
         chatroom_expire_status = query_params.get('chatroom_expire_status', '')
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
-        max_last_updated = 0
-        conversations = []
 
         if chatroom_id:
             # seen conversation support for old versions of android users to be removed after stable release
@@ -14951,6 +14950,9 @@ class SyncConversation(APIView):
                     except Exception as e:
                         error_logger.error("error occured"+ str(e.args))
                         continue
+
+            if conversation[19]:
+                conversation_context['temporary_id'] = conversation[19]
 
             conversation_list.append(conversation_context)
 

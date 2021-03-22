@@ -1677,6 +1677,9 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
                                                                        fetch_reply=False,
                                                                        current_user_id=current_user_id)
 
+    if conversation.temporary_id:
+        temp['temporary_id'] = conversation.temporary_id
+
     return temp
 
 

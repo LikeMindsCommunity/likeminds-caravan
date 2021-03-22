@@ -552,6 +552,7 @@ class card_answers(models.Model):
     api_version = models.IntegerField(default=0)
     device_id = models.TextField(null=True)
     platform = models.TextField(null=True)
+    temporary_id = models.TextField(null=True)
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
