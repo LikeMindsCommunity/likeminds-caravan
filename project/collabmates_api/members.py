@@ -302,8 +302,9 @@ def get_secret_chatroom_participants(chatroom_instance, community_id, current_us
     # removing and adding current user id, so as to show his profile on top
     # following this procedure in order to ensure current user id is present at the first page and not duplicated
     # and also to reduce a query to fetch current user profile separately
-    participants_list.remove(current_user_id)
-    participants_list.insert(0, current_user_id)
+    if current_user_id in participants_list:
+        participants_list.remove(current_user_id)
+        participants_list.insert(0, current_user_id)
 
     paginated_participants_list = paginate_list(participants_list, page, paginate_by=10)
 
@@ -340,7 +341,6 @@ def get_secret_chatroom_participants(chatroom_instance, community_id, current_us
     is_owner = False
     is_room_creator = current_user_id == chatroom_instance.user.id
     is_parent_to_creator = False
-    promoter_instance = None
 
     if current_user_member_instance is not None:
         is_owner = current_user_member_instance.is_owner
@@ -381,7 +381,6 @@ def get_all_members(request, req_dict=None):
         current_user_instance = None
         print(e.args)
 
-
     is_filter = request.GET.get('is_filter', False)
 
     filter_list = request.GET.get('filter', None)
@@ -390,15 +389,16 @@ def get_all_members(request, req_dict=None):
     # functionality for user filteration based on options
     context = {}
 
-    #flow for sending members of chatrooms
-    if collabcard_id and is_request_web(request):
-        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,page_no=page)
-        # print(members)
-        context = {'members': members}
-        return context
-
+    # flow for sending members of chat rooms
     if collabcard_id:
-        context = send_participants_of_chatroom(collabcard_id, filter_list, community_id, current_user_id, page=page)
+        chatroom_instance = Collabcard.objects.get(pk=collabcard_id)
+
+        if is_request_web(request):
+            members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id,page_no=page)
+            context = {'members': members}
+            return context
+
+        context = send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=page)
         return context
 
     promoter_instance = None
@@ -432,7 +432,7 @@ def get_all_members(request, req_dict=None):
 
     context = {'members': members,'community':community}
 
-    ##sending total members and pending members count
+    # sending total members and pending members count
     context['total_members'] = community['members_count']
     context['total_filtered_members'] = total_filtered_members
 
@@ -613,7 +613,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
 
         if current_filter.exists():
             current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
-                                             send_profile=current_user_filter.state == member_states.PENDING_MEMBER,
+                                             send_profile=True,
                                              all_members_api=True, is_promoter=is_promoter,
                                              is_owner=is_owner)
 
@@ -627,7 +627,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
     for member in member_list:
         member_id = member.member_id.id
         userinfo_serialized_object = MembersSerializer(member, community_id, current_user_id=current_user_id,
-                                                       send_profile=member.state == member_states.PENDING_MEMBER,
+                                                       send_profile=True,
                                                        all_members_api=True, is_promoter=is_promoter,
                                                        is_owner=is_owner, user_admin_rights=user_admin_rights)
 
@@ -672,7 +672,7 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
 
             if member_set and current_user_id and int(current_user_id) in member_set:
                 current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
-                                                 send_profile=current_user_filter.state == member_states.PENDING_MEMBER,
+                                                 send_profile=True,
                                                  all_members_api=True, is_promoter=is_promoter,
                                                  is_owner=is_owner)
 
@@ -686,12 +686,11 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
 
                 if member_set and current_user_id and int(current_user_id) in member_set:
                     current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
-                                                     send_profile=current_user_filter.state == member_states.PENDING_MEMBER,
+                                                     send_profile=True,
                                                      all_members_api=True, is_promoter=is_promoter,
                                                      is_owner=is_owner)
 
-
-    #logic for pagination of members for filters
+    # logic for pagination of members for filters
     if current_user_id and int(current_user_id) in member_set:
         member_set.remove(int(current_user_id))
     member_ids = list(member_set)
@@ -701,7 +700,7 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
         user_admin_rights = check_all_manager_rights(current_user_id, community_id)
 
     member_instances_list = get_members_profile(list(member_ids), community_id, current_user_id=current_user_id,
-                                                send_profile=False, all_members_api=True, is_promoter=is_promoter,
+                                                send_profile=True, all_members_api=True, is_promoter=is_promoter,
                                                 is_owner=is_owner, user_admin_rights=user_admin_rights)
 
     if current_user:
@@ -782,7 +781,7 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
 
         if member_set and user_instance.id not in member_set:
             continue
-        user_context = get_members_profile([user_instance.id], community_id, current_user_id, send_profile=False)
+        user_context = get_members_profile([user_instance.id], community_id, current_user_id)
         user_context = user_context[0]
         user_context['collabcard_state'] = instance.state
         user_context['attending_status'] = instance.attending_status

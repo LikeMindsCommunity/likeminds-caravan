@@ -4316,7 +4316,7 @@ def generate_links_for_guest_web(community_id,member_id):
     elif community_id:
         branch_link = create_community_branch_links(community_id, None, aj=None)
         return branch_link
-    
+
 # api to deprecate
 @csrf_exempt
 def collabcard_poll(request):
@@ -5772,7 +5772,7 @@ def conversation_meta(request):
         if conversation.device_id == device_id and\
                 conversation.platform == platform_code:
             continue
-        
+
         if not is_draft_conversation(conversation, user_id):
             conversation_serializer = conversationSerializer(conversation,
                                                              fetch_reply=True,
@@ -6665,7 +6665,6 @@ def save_the_member_conversation_state(card_instance, user_instance, conversatio
             conversation_member_instance.user = user_instance
             conversation_member_instance.updated_at = TimeUtilities.current_time_in_sec()
             conversation_member_instance.save()
-
 
 
 def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
@@ -9198,7 +9197,7 @@ def linked_in_authentication(request):
     if not code:
         context = get_error_context(False, "code is not correct")
         return context
-    
+
     response = get_access_token(request_body)
     info_logger.info(response)
 
@@ -9211,13 +9210,13 @@ def linked_in_authentication(request):
 
 
 def get_access_token(request_body):
-    
+
     code = request_body.get('code', None)
     grant_type = request_body.get('grant_type', None)
     redirect_uri = request_body.get('redirect_uri', None)
     client_id = request_body.get('client_id', None)
     client_secret = request_body.get('client_secret', None)
-    
+
     params = {
         'client_id': client_id,
         'client_secret': client_secret,
@@ -11482,7 +11481,7 @@ class GetTaggingList(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = get_member_id_from_headers(request)
-        
+
         if not member_id:
             raise InvalidHeaderException()
 
@@ -14403,7 +14402,7 @@ class SyncChatrooms(APIView):
 
                     files['videos'].append(video_file)
                     attachments.append(video_attachment)
-                    
+
         files['attachments'] = attachments
 
         return files
@@ -14512,103 +14511,126 @@ class SyncChatroomsDiff(APIView):
 
         chatrooms = []
 
+        chatroom_data = []
+
+        poll_data = {}
+        poll_votes = {}
+
+        common_list = []
+
         if not is_synced:
+
+            user_instance = User.get_user_or_raise_exception(member_id)
+
             if (version_code > VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and
                 is_platform_android) or \
                     (version_code > VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS and
                      is_platform_ios):
-
-                user_instance = User.get_user_or_raise_exception(member_id)
 
                 card_list = set(Card_Attachment.objects.filter(type='video').values_list('collabcard', flat=True))
                 card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
 
                 common_list = tuple(card_state_list & card_list)
 
-                poll_data = {}
-                poll_votes = {}
+            if (version_code > SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN and
+                is_platform_android) or \
+                    (version_code > SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_iOS and
+                     is_platform_ios):
 
-                if len(common_list) > 0:
+                user_instance = User.get_user_or_raise_exception(member_id)
 
-                    poll_data = fetch_chatroom_polls(common_list)
-                    poll_votes = fetch_member_poll_votes(common_list)
+                card_state_list = set(collabcardState.objects.filter(user=user_instance,
+                                                                     card__is_secret=True).values_list('card', flat=True))
+                get_members_data_for_collabcard
+                common_list = tuple(card_state_list)
 
-                    chatroom_data, chatroom_id_list = fetch_chatroom_with_videos(paginate_by, page, common_list)
+        if len(common_list) > 0:
 
-                    for data in chatroom_data:
+            poll_data = fetch_chatroom_polls(common_list)
+            poll_votes = fetch_member_poll_votes(common_list)
 
-                        attachment_count = data[45]
-                        attachments_uploaded = data[46]
+            chatroom_data, chatroom_id_list = fetch_chatroom_with_videos(paginate_by, page, common_list)
 
-                        if attachment_count > 0 and \
-                                attachments_uploaded is False:
-                            if int(member_id) != int(data[14]):
-                                continue
+        if len(common_list) > 0:
+            poll_data = fetch_chatroom_polls(common_list)
+            poll_votes = fetch_member_poll_votes(common_list)
 
-                        chatroom = {}
-                        chatroom['id'] = data[0]
-                        chatroom['title'] = data[1]
-                        chatroom['community_id'] = data[2]
-                        chatroom['answer_text'] = data[3]
-                        chatroom['image_count'] = data[4]
-                        chatroom['pdf_count'] = data[5]
-                        chatroom['video_count'] = data[6]
-                        chatroom['audio_count'] = data[7]
-                        chatroom['attachment_count'] = attachment_count
-                        chatroom['attachments_uploaded'] = attachments_uploaded
-                        chatroom['type'] = data[8]
-                        chatroom['date_time'] = data[9]
-                        chatroom['is_pending'] = data[10]
-                        chatroom['attending_count'] = data[11]
-                        chatroom['polls_count'] = data[12]
-                        chatroom['date_epoch'] = data[13]
-                        chatroom['card_creation_time'] = time.strftime('%I:%M %p', time.localtime(chatroom['date_epoch']))
-                        chatroom['created_at'] = time.strftime('%H:%M', time.localtime(chatroom['date_epoch']))
-                        chatroom['date'] = time.strftime('%d %b %Y', time.localtime(chatroom['date_epoch']))
-                        chatroom['member_id'] = data[14]
+            chatroom_data, chatroom_id_list = fetch_chatroom_with_videos(paginate_by, page, common_list)
 
-                        if member_id and chatroom['member_id'] == int(member_id):
-                            chatroom['has_been_named'] = data[15]
+        for data in chatroom_data:
 
-                        chatroom['header'] = self._get_header(data[16], chatroom['title'])
+            attachment_count = data[45]
+            attachments_uploaded = data[46]
 
-                        chatroom['state'] = data[17]
-                        chatroom['mute_status'] = data[18]
-                        chatroom['follow_status'] = data[19]
-                        chatroom['is_guest'] = data[20]
-                        chatroom['is_tagged'] = data[21]
+            if attachment_count > 0 and \
+                    attachments_uploaded is False:
+                if int(member_id) != int(data[14]):
+                    continue
 
-                        if data[22]:
-                            chatroom['last_seen_conversation'] = data[22]
+            chatroom = {}
+            chatroom['id'] = data[0]
+            chatroom['title'] = data[1]
+            chatroom['community_id'] = data[2]
+            chatroom['answer_text'] = data[3]
+            chatroom['image_count'] = data[4]
+            chatroom['pdf_count'] = data[5]
+            chatroom['video_count'] = data[6]
+            chatroom['audio_count'] = data[7]
+            chatroom['attachment_count'] = attachment_count
+            chatroom['attachments_uploaded'] = attachments_uploaded
+            chatroom['type'] = data[8]
+            chatroom['date_time'] = data[9]
+            chatroom['is_pending'] = data[10]
+            chatroom['attending_count'] = data[11]
+            chatroom['polls_count'] = data[12]
+            chatroom['date_epoch'] = data[13]
+            chatroom['card_creation_time'] = time.strftime('%I:%M %p', time.localtime(chatroom['date_epoch']))
+            chatroom['created_at'] = time.strftime('%H:%M', time.localtime(chatroom['date_epoch']))
+            chatroom['date'] = time.strftime('%d %b %Y', time.localtime(chatroom['date_epoch']))
+            chatroom['member_id'] = data[14]
 
-                        chatroom['chatroom_expiry_time'] = data[23]
-                        chatroom['attending_status'] = data[24]
+            if member_id and chatroom['member_id'] == int(member_id):
+                chatroom['has_been_named'] = data[15]
 
-                        self._add_attachements(chatroom, data)
+            chatroom['header'] = self._get_header(data[16], chatroom['title'])
 
-                        self._add_poll_data(chatroom, data, poll_data, poll_votes, member_id)
-                        self._add_event_data(chatroom, data)
+            chatroom['state'] = data[17]
+            chatroom['mute_status'] = data[18]
+            chatroom['follow_status'] = data[19]
+            chatroom['is_guest'] = data[20]
+            chatroom['is_tagged'] = data[21]
 
-                        if data[36]:
-                            chatroom['og_tags'] = json.loads(data[36])
+            if data[22]:
+                chatroom['last_seen_conversation'] = data[22]
 
-                        if data[37]:
-                            chatroom['preview'] = get_preview_for_url(member_id=member_id,
-                                                                      preview_url=data[37],
-                                                                      send_preview_text=False)
-                        if data[38]:
-                            chatroom['deleted_by'] = data[38]
+            chatroom['chatroom_expiry_time'] = data[23]
+            chatroom['attending_status'] = data[24]
 
-                        chatroom['community_name'] = data[40]
+            self._add_attachements(chatroom, data)
 
-                        chatroom['is_secret'] = data[47]
+            self._add_poll_data(chatroom, data, poll_data, poll_votes, member_id)
+            self._add_event_data(chatroom, data)
 
-                        if chatroom['is_secret']:
-                            chatroom['secret_chatroom_participants'] = json.loads(data[48])
+            if data[36]:
+                chatroom['og_tags'] = json.loads(data[36])
 
-                        chatroom['secret_chatroom_left'] = data[49]
+            if data[37]:
+                chatroom['preview'] = get_preview_for_url(member_id=member_id,
+                                                          preview_url=data[37],
+                                                          send_preview_text=False)
+            if data[38]:
+                chatroom['deleted_by'] = data[38]
 
-                        chatrooms.append(chatroom)
+            chatroom['community_name'] = data[40]
+
+            chatroom['is_secret'] = data[47]
+
+            if chatroom['is_secret']:
+                chatroom['secret_chatroom_participants'] = json.loads(data[48])
+
+            chatroom['secret_chatroom_left'] = data[49]
+
+            chatrooms.append(chatroom)
 
         return JsonResponse({'chatrooms': chatrooms})
 
