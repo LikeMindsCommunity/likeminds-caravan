@@ -1522,6 +1522,14 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
                                      'remove': None}).\
         filter(~Q(user=user_instance)).update(expiry_time=None, updated_at=TimeUtilities.current_time_in_sec())
 
+    update_my_chatrooms_for_users(chatroom_id=master_intro.id)
+
+    ModelUtilities.get_model_filter(collabcardState, {'card': master_intro,
+                                                      'follow_status': True,
+                                                      'remove': None}).filter(~Q(user=user_instance)).update(
+        expiry_time=None,
+        updated_at=TimeUtilities.current_time_in_sec())
+
     return answer_instance
 
 
@@ -3531,7 +3539,7 @@ def send_chatroom_creation_notification(card_instance, user_instance):
     date_time = card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time
 
     """
-    dont send the notifications for new intro room
+    do not send notifications for new intro room
     TODO: update logic with new intro room update
     """
 
@@ -7478,6 +7486,9 @@ def create_conversation(request):
     ans.api_version = 0
     ans.device_id = device_id
     ans.platform = platform_code
+    ans.temporary_id = temporary_id
+    ans.created_at = created_at
+
     if replied_conversation:
         ans.reply = replied_conversation
 
@@ -7529,7 +7540,6 @@ def create_conversation(request):
 
     context = {"current_user_id": member_id, "fetch_reply": True}
     conversation = CardAnswersDBSyncSerializer(ans, context=context, many=False).data
-    conversation['temporary_id'] = temporary_id
 
     return JsonResponse({'success': True, 'id': ans.id, 'conversation': conversation})
 
@@ -14799,8 +14809,6 @@ class SyncConversation(APIView):
         chatroom_expire_status = query_params.get('chatroom_expire_status', '')
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
-        max_last_updated = 0
-        conversations = []
 
         if chatroom_id:
             # seen conversation support for old versions of android users to be removed after stable release
@@ -14951,6 +14959,9 @@ class SyncConversation(APIView):
                     except Exception as e:
                         error_logger.error("error occured"+ str(e.args))
                         continue
+
+            if conversation[19]:
+                conversation_context['temporary_id'] = conversation[19]
 
             conversation_list.append(conversation_context)
 
@@ -15368,6 +15379,7 @@ def sync_members(request):
                 chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
                                                           community_id=community_instance, updated_at__gt=last_updated)
 
+
             for member_instance in chatroom_members:
 
                 if max_last_updated < member_instance.updated_at:
@@ -15649,9 +15661,9 @@ class SyncCommunities(APIView):
         context = {"current_user_id": member_id}
 
         if guest == "true":
-            communities = fetch_guest_communities(member_id, page, paginate_by)
+            community_context = fetch_guest_communities(member_id, last_updated=last_updated)
 
-            return JsonResponse(communities)
+            return JsonResponse(community_context)
 
         if chatroom_id:
             chatroom_context = fetch_community_of_chatroom(chatroom_id, member_id, last_updated=last_updated)
@@ -15742,25 +15754,36 @@ def create_community_context(community_id, member_id):
     return {'communities': communities}
 
 
-def fetch_guest_communities(member_id , page, paginate_by):
+def fetch_guest_communities(member_id, last_updated=0):
 
-    state_filter = collabcardState.objects.filter(is_guest=True, user_id=member_id).distinct('community').select_related('community').order_by('community')
-    guest_community_relation = list(Member_Engage.objects.filter(member_id=member_id).values_list('community_id',flat=True))
-    state_filter = pagination(state_filter, page, paginate_by)
-    guest_communities = fill_guest_communities(state_filter, member_id, guest_community_relation)
+    community_list = list(collabcardState.objects.filter(is_guest=True, user_id=member_id).
+                          distinct('community').values_list('community_id', flat=True))
 
-    return {
-            'communities': guest_communities
-        }
+    guest_community_relation = list(Member_Engage.objects.filter(member_id=member_id).values_list('community_id',
+                                                                                                  flat=True))
+
+    state_filter = Community.objects.filter(id__in=community_list, updated_at__gt=last_updated).order_by('updated_at')
+
+    guest_communities, max_last_updated = fill_guest_communities(state_filter, member_id, guest_community_relation)
+
+    if max_last_updated:
+
+        return {
+                'communities': guest_communities,
+                'max_last_updated' : max_last_updated
+            }
+
+    return {'communities': guest_communities}
 
 
 def fill_guest_communities(state_filter, member_id, guest_community_relation):
 
-    context = {"current_user_id": member_id}
+    context = {"current_user_id": member_id, 'restrict_members_count': True}
+
     communities = []
-    
-    for data in state_filter:
-        community_instance = data.community
+    max_last_updated = 0
+
+    for community_instance in state_filter:
 
         if community_instance.id in guest_community_relation:
             continue
@@ -15768,7 +15791,10 @@ def fill_guest_communities(state_filter, member_id, guest_community_relation):
         community_list = CommunitySerializerV1(community_instance, context=context, many=False)
         communities.append(community_list.data)
 
-    return communities
+        if max_last_updated < community_instance.updated_at:
+            max_last_updated = community_instance.updated_at
+
+    return communities, max_last_updated
 
 
 def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):

@@ -200,7 +200,7 @@ class ConversationImpl(ConversationManager):
         if conversation_content['attachment_count'] > 0:
             conversation_content['has_files'] = True
             req_body['has_files'] = True
-
+        conversation_content['temporary_id'] = req_body.get('temporary_id')
         conversation_content['api_version'] = 1
         conversation_content['device_id'] = self.device_id
         conversation_content['platform'] = self.platform_code

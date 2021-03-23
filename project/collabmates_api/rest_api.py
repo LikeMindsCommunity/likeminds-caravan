@@ -160,6 +160,8 @@ class YourCommunitySerializer(serializers.ModelSerializer):
 
 class CommunitySerializerV1(serializers.ModelSerializer):
 
+    members_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Community
         fields = ('id', 'name', 'purpose', 'about', 'image_url', 'members_count',
@@ -172,6 +174,14 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         self.is_owner = self.context.get('is_owner', False)
         self.current_user_instance = self.context.get('current_user_instance', None)
         self.restrict_members_count = self.context.get('restrict_members_count', False)
+
+    def get_members_count(self, instance):
+
+        if self.restrict_members_count:
+
+            return None
+
+        return get_members_count_in_community(instance)
 
     def to_representation(self, community):
         data = super(CommunitySerializerV1, self).to_representation(community)
@@ -195,11 +205,6 @@ class CommunitySerializerV1(serializers.ModelSerializer):
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
-
-        if self.restrict_members_count:
-            data['members_count'] = 0
-        else:
-            data['members_count'] = get_members_count_in_community(community)
 
         return data
 
@@ -792,7 +797,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'og_tags', 'deleted_by', 'is_edited', 'reply', 'internal_link',
                   'has_files', 'date', 'images', 'pdf', 'audios', 'videos',
                   'attachment_count', 'attachments_uploaded',
-                  'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch')
+                  'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch', 'temporary_id')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)
