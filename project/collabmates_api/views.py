@@ -1522,6 +1522,14 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
                                      'remove': None}).\
         filter(~Q(user=user_instance)).update(expiry_time=None, updated_at=TimeUtilities.current_time_in_sec())
 
+    update_my_chatrooms_for_users(chatroom_id=master_intro.id)
+
+    ModelUtilities.get_model_filter(collabcardState, {'card': master_intro,
+                                                      'follow_status': True,
+                                                      'remove': None}).filter(~Q(user=user_instance)).update(
+        expiry_time=None,
+        updated_at=TimeUtilities.current_time_in_sec())
+
     return answer_instance
 
 
@@ -7479,6 +7487,7 @@ def create_conversation(request):
     ans.device_id = device_id
     ans.platform = platform_code
     ans.temporary_id = temporary_id
+    ans.created_at = created_at
 
     if replied_conversation:
         ans.reply = replied_conversation
@@ -15369,6 +15378,7 @@ def sync_members(request):
             else:
                 chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
                                                           community_id=community_instance, updated_at__gt=last_updated)
+
 
             for member_instance in chatroom_members:
 
