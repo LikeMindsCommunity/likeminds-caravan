@@ -352,6 +352,9 @@ VIDEO_ATTACHMENT_FILL_TEXT = "\n * This is a video message. Please update your a
 VIDEO_SYNC_TRIGGER_VERSION_CODE_AN = 84
 VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS = 84
 
+SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN = 100
+SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_iOS = 100
+
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
 EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%S added you as a host for %s in %s"
 EVENT_CO_HOST_NOTIFICATION_ROUTE = 'route://chatroom_detail?chatroom_id=%s'
@@ -383,4 +386,4 @@ SECRET_CHATROOM_ADD_SUBTITLE = "You have been added to %s"
 SECRET_CHATROOM_ADD_ROUTE = "route://chatroom_detail?chatroom_id=%s"
 
 SECRET_CHATROOM_REMOVED_SUBTITLE = "You have been removed from %s"
-SECRET_CHATROOM_REMOVED_ROUTE = "route://chatroom_detail?chatroom_id=%s"
+SECRET_CHATROOM_REMOVED_ROUTE = "route://main"

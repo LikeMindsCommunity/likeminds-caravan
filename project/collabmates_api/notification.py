@@ -2653,7 +2653,7 @@ def send_notification_for_removed_secret_room_participant(user_id, chatroom_id):
     try:
         chatroom_instance = Collabcard.objects.get(pk=chatroom_id)
     except Collabcard.DoesNotExist:
-        error_logger.error(f"send_notification_for_removed_secret_room_participant - chatroom id {chatroom_id} does not exist")
+        error_logger.error(f"send_notification_for_removed_secret_room_participant - chatroom with id {chatroom_id} does not exist")
         return
 
     community_name = chatroom_instance.community.name
@@ -2667,7 +2667,7 @@ def send_notification_for_removed_secret_room_participant(user_id, chatroom_id):
     notification_list.append(temp)
 
     sub_title = SECRET_CHATROOM_REMOVED_SUBTITLE % chatroom_instance.header
-    route = SECRET_CHATROOM_REMOVED_ROUTE % chatroom_id
+    route = SECRET_CHATROOM_REMOVED_ROUTE
 
     message = {'payload': {
         "title": community_name,
