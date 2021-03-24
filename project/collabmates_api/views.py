@@ -13266,7 +13266,8 @@ def remove_community_manager(request):
 
         update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                        {'member_id': user_instance, 'community_id': community_instance},
-                                       {'pending_chatrooms': 0, 'open_reports': 0})
+                                       {'pending_chatrooms': 0, 'open_reports': 0,
+                                        'member_state': member_states.MEMBER})
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=current_user_instance,
                                 type=moderation_history_types.REMOVED_AS_COMMUNITY_MANAGER)

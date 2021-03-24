@@ -743,7 +743,7 @@ def restore_member_rights_from_history(user, community):
 
     rights_list = []
     for right in member_rights:
-
+        # if right enabled by CM or history does not exist for that right to the user in that community
         if check_history_exists(user, community, right, enabled_by_cm=True) or \
                 not check_rights_history_existence(user, community, right):
             rights_list.append(right.state)
