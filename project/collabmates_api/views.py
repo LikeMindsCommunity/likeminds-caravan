@@ -6145,7 +6145,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     # user has not done the scrolling
     conversations_filter = card_answers.objects.select_related('reply', 'preview_community',
                                                                'preview_chatroom').filter(card=card_instance).order_by(
-        'id')
+        'created_at')
 
     total_response_count = card_answers.objects.filter(card=card_instance,
                                                        state=chatroom_states.ANSWER
@@ -6173,13 +6173,13 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         else:
             conversation_instance = instance_filter[0].conversation
 
-            upward_conversation = conversations_filter.filter(id__lte=conversation_instance.id).order_by('-id')[:10]
+            upward_conversation = conversations_filter.filter(id__lte=conversation_instance.id).order_by('-created_at')[:10]
 
             downward_conversation = conversations_filter.filter(id__gt=conversation_instance.id)[:10]
 
             # merging both conversations
             conversations = upward_conversation | downward_conversation
-            conversations = conversations.order_by('id')
+            conversations = conversations.order_by('created_at')
 
             conversations = get_answer_data(conversations, card_instance.community.id,
                                             current_user_id=user_id, last_seen=conversation_instance,
@@ -6194,11 +6194,11 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             return context
 
         if scroll_direction == 0:  # upward scroll
-            upward_list = conversations_filter.filter(id__lt=conversation_id).order_by('-id')[:20]
+            upward_list = conversations_filter.filter(id__lt=conversation_id).order_by('-created_at')[:20]
             conversations = reverse_conversations_for_upward_pagination(upward_list)
 
         elif scroll_direction == 1:  # downward scroll
-            conversations = conversations_filter.filter(id__gt=conversation_id)[:20]
+            conversations = conversations_filter.filter(id__gt=conversation_id).order_by('created_at')[:20]
         else:
             conversations = conversations_filter
 
