@@ -1470,8 +1470,7 @@ def fetch_chatroom_with_videos(limit, page, card_list):
                     ON togther_collabcardState.card_id = togther_collabcard.id
                 INNER JOIN togther_community
                     ON togther_community.id = togther_collabcard.community_id
-                WHERE togther_collabcard.has_files is true
-                        AND togther_collabcard.id IN %s
+                WHERE togther_collabcard.id IN %s
                 ORDER BY  togther_collabcard.id limit %s offset %s """ % (
             str(card_list), str(limit), str(offset))
 

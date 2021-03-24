@@ -3829,7 +3829,8 @@ def create_chatroom_engagement(card_instance, user_instance, func_dict=None, mem
 
 def update_seen_status_for_new_user_in_chatroom(community_instance, user_instance):
     collabcard_filter = Collabcard.objects.filter(community=community_instance,
-                                                  is_pending=False, is_deleted=False).order_by('id')
+                                                  is_pending=False, is_deleted=False,
+                                                  is_secret=False).order_by('id')
 
     for card_instance in collabcard_filter:
 
@@ -8305,13 +8306,21 @@ def community_collabcard_meta(request):
 def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
     """function to get chatrooms"""
 
+    member_id = NumberUtilities.get_integer_from_string(member_id)
+
     chatrooms = []
     for card_instance in chatroom_list:
 
         if card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False and\
-                int(member_id) != card_instance.user.id:
+                member_id != card_instance.user_id:
             continue
+
+        if card_instance.is_secret:
+            participants_list = json.loads(card_instance.secret_chatroom_participants)
+
+            if member_id not in participants_list:
+                continue
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id)
 
@@ -8340,10 +8349,11 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
 
         if active is True and chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
+
         if active is False and not chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
 
-        if active == None:
+        if active is None:
             chatrooms.append(chatroom_instance)
 
     return chatrooms
@@ -8351,7 +8361,7 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
 
 def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False):
     '''function to get chatrooms'''
-
+    member_id = NumberUtilities.get_integer_from_string(member_id)
     chatrooms = []
 
     for data in chatroom_list:
@@ -8359,10 +8369,19 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False)
 
         if card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False and\
-                int(member_id) != card_instance.user.id:
+                member_id != card_instance.user_id:
             continue
 
+        if card_instance.is_secret:
+            participants_list = json.loads(card_instance.secret_chatroom_participants)
+
+            if member_id not in participants_list:
+                continue
+
         chatroom_instance = get_chatroom_instance(card_instance, member_id, state_instance=data, send_profile=False)
+
+        if chatroom_instance['secret_chatroom_left']:
+            continue
 
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER
@@ -8464,6 +8483,9 @@ def fetch_chatroom_feed(request):
         active = None
 
     member_id = get_member_id_from_headers(request)
+    if member_id is None:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
 
     chatroom_filter = Collabcard.objects.filter(community=community_id,
                                                 is_pending=False, is_deleted=False).order_by('id')
@@ -8544,7 +8566,9 @@ def fetch_chatroom_feed_version_1(request):
         active = None
 
     member_id = get_member_id_from_headers(request)
-    # print(member_id)
+    if member_id is None:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
 
     state_filter = collabcardState.objects.filter(community=community_id,
                                                   card__is_pending=False,
@@ -14503,6 +14527,9 @@ class SyncChatroomsDiff(APIView):
 
         query_params = request.query_params
 
+        previous_app_version = query_params.get('previous_app_version', 0)
+        previous_app_version = NumberUtilities.get_integer_from_string(previous_app_version)
+
         page = query_params.get('page', 1)
         page = int(page)
 
@@ -14516,42 +14543,30 @@ class SyncChatroomsDiff(APIView):
         poll_data = {}
         poll_votes = {}
 
+        video_chatroom_list = set()
+        secret_chatroom_list = set()
+
         common_list = []
 
         if not is_synced:
 
             user_instance = User.get_user_or_raise_exception(member_id)
 
-            if (version_code > VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and
-                is_platform_android) or \
-                    (version_code > VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS and
-                     is_platform_ios):
+            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN:
+                video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
+                common_list = tuple(video_chatroom_list)
 
-                card_list = set(Card_Attachment.objects.filter(type='video').values_list('collabcard', flat=True))
-                card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
+            if version_code >= SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN:
 
-                common_list = tuple(card_state_list & card_list)
+                secret_chatroom_list = self._get_secret_chatrooms_of_user(user_instance)
+                common_list = tuple(secret_chatroom_list)
 
-            if (version_code > SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN and
-                is_platform_android) or \
-                    (version_code > SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_iOS and
-                     is_platform_ios):
-
-                user_instance = User.get_user_or_raise_exception(member_id)
-
-                card_state_list = set(collabcardState.objects.filter(user=user_instance,
-                                                                     card__is_secret=True).values_list('card', flat=True))
-                get_members_data_for_collabcard
-                common_list = tuple(card_state_list)
+            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and\
+                    version_code >= SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN:
+                common_list = tuple(secret_chatroom_list | video_chatroom_list)
 
         if len(common_list) > 0:
 
-            poll_data = fetch_chatroom_polls(common_list)
-            poll_votes = fetch_member_poll_votes(common_list)
-
-            chatroom_data, chatroom_id_list = fetch_chatroom_with_videos(paginate_by, page, common_list)
-
-        if len(common_list) > 0:
             poll_data = fetch_chatroom_polls(common_list)
             poll_votes = fetch_member_poll_votes(common_list)
 
@@ -14809,6 +14824,20 @@ class SyncChatroomsDiff(APIView):
             draft_response = {'chatrooms': chatrooms, 'max_last_updated': max_last_updated}
 
         return draft_response
+
+    def _get_video_chatrooms_of_user(self, user_instance):
+        card_list = set(Card_Attachment.objects.filter(type='video').values_list('collabcard', flat=True))
+        card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
+
+        return card_state_list & card_list
+
+    def _get_secret_chatrooms_of_user(self, user_instance):
+
+        secret_chatroom_list = set(collabcardState.objects.filter(user=user_instance,
+                                                                  card__is_secret=True)
+                                   .values_list('card', flat=True))
+
+        return secret_chatroom_list
 
 
 class SyncConversation(APIView):
