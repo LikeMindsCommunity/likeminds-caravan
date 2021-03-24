@@ -2424,8 +2424,6 @@ def remove_from_member(request):
                         send_notification_for_removed_member.delay(admin_id=member_id,
                                                                    removed_user_id=member, community_id=community_id)
 
-                        remove_all_member_rights(community_instance, user_instance)
-                        remove_all_manager_rights(community_instance, user_instance)
                         info_logger.info(
                             f"REMOVE_MEMBER_API (REMOVED CASE) -current user id = {member_id}, user id = {member}"
                             f", community id = {community_id}")
@@ -2482,6 +2480,7 @@ def remove_from_member(request):
 
             remove_all_member_rights(community_instance, user_instance)
             remove_all_manager_rights(community_instance, user_instance)
+
             send_sync_notification.delay({'community_id': community_id,
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
@@ -3801,9 +3800,9 @@ def create_chatroom_engagement(card_instance, user_instance, func_dict=None, mem
         expire_time = func_dict['expiry_time']
     rights_list = None
     if member_state == member_states.ADMIN:
-        rights_list = member_rights.ALL_MEMBER_RIGHTS
+        rights_list = json.dumps(member_rights.ALL_MEMBER_RIGHTS)
     elif member_state == member_states.MEMBER or member_state == member_states.PROFILE_UNAVAILABLE:
-        rights_list = member_rights.DEFAULT_MEMBER_RIGHTS
+        rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
 
     if not instance_list.exists():
         instance = conversationEngage()
@@ -3963,8 +3962,9 @@ def chatroom_delete(request):
 
     try:
         collabcard_instance = Collabcard.objects.get(id=chatroom_id)
-        community_id = collabcard_instance.community.id
         community_instance = collabcard_instance.community
+        community_id = community_instance.id
+
         card_creator = collabcard_instance.user
         current_user_instance = User.objects.get(pk=member_id)
 
@@ -4913,11 +4913,15 @@ def request_response(request, req_dict=None):
     }
 
     try:
-        approve_or_decline_private_community(req_dict, request)
+        context = approve_or_decline_private_community(req_dict, request)
+        if context is not None:
+            if context.get('success') is False:
+                return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     except Exception as e:
         context = get_error_context(False, e.args)
 
-        return JsonResponse(context, status = status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse(context, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
     send_sync_notification.delay({'community_id': community_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -4930,42 +4934,49 @@ def approve_or_decline_private_community(req_dict, request):
 
     current_user_id = get_member_id_from_headers(request)
 
+    community_id = req_dict.get('community_id', None)
+    if community_id is None:
+        return get_error_context(False, f"send community id in body")
+
+    # updating pending member count
+    community = Community.get_community_or_None(req_dict['community_id'])
+
+    if community is None:
+        return get_error_context(False, f"community with id {community_id} does not exists")
+
     if not current_user_id:
-        context = get_error_context(False, "send member id in headers")
-        return context
+        return get_error_context(False, "send member id in headers")
 
     current_user_instance = User.objects.get(pk=current_user_id)
     promoter_name = current_user_instance.userinfo.name
 
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
-        is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
+        is_member = is_member_verified(community=community_id, user_instance=req_dict['member_id'])
 
         if not is_member:
 
             update_models_for_syncing_apis(SyncTypes.MEMBERS,
                                            {'member_id': req_dict['member_id'],
-                                            'community_id': req_dict['community_id']},
+                                            'community_id': community_id},
                                            {'state': member_states.MEMBER,
                                             'approved_by': current_user_instance,
                                             'custom_title': "Member",
                                             'created_at': TimeUtilities.current_time_in_sec(),
                                             'became_member_at': TimeUtilities.current_time_in_sec()})
 
-            # giving default member rights
-            give_default_member_rights(user=req_dict['member_id'], community=req_dict['community_id'])
-
             update_models_for_syncing_apis(SyncTypes.COMMUNITY,
-                                           {'community_id': req_dict['community_id'],
+                                           {'community_id': community_id,
                                             'member_id': req_dict['member_id']},
                                            {'click_state': click_states.DEFAULT,
                                             'member_state': member_states.MEMBER,
                                             'rights_list': json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)})
 
-            # updating pending member count
-            community = Community.objects.get(id=req_dict['community_id'])
+            # giving default member rights
+            give_default_member_rights(user=req_dict['member_id'], community=community_id)
+
             members_count = community.members_count + 1
-            Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
+            Community.objects.filter(id=community_id).update(members_count=members_count)
 
             accepted_user = User.objects.get(pk=req_dict['member_id'])
 
@@ -4978,7 +4989,7 @@ def approve_or_decline_private_community(req_dict, request):
                                     moderation_by=current_user_instance,
                                     type=history_type)
             info_logger.info(f"JOIN_REQUEST_ACCEPETED current user id = {current_user_id}, user id = {accepted_user.id}"
-                             f", commuinty id = {community.id}")
+                             f", commuinty id = {community_id}")
             # updating pending members count
             update_pending_member_count_in_engage(req_dict['community_id'])
 
@@ -4987,7 +4998,6 @@ def approve_or_decline_private_community(req_dict, request):
                                               request=request)
 
             # posting a intro collabcard
-            community_id = req_dict['community_id']
             member_id = req_dict['member_id']
 
             post_introduction_card_for_community(community_id, member_id)
@@ -4995,21 +5005,21 @@ def approve_or_decline_private_community(req_dict, request):
             # removing guest status from all chatrooms after access
 
             update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                           {'community': req_dict['community_id'], 'user': req_dict['member_id']},
+                                           {'community': community_id, 'user': req_dict['member_id']},
                                            {'is_guest': False, 'remove': None})
 
             update_models_for_syncing_apis(SyncTypes.CONVERSATION,
-                                           {'community': req_dict['community_id'], 'user': req_dict['member_id']},
+                                           {'community': community_id, 'user': req_dict['member_id']},
                                            {'is_guest': False, 'remove': None})
 
             # saving create community action step 4
             update_community_actions(community_instance=community)
 
             # deleting the community toast message when the request is accepted
-            communityToast.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).delete()
+            communityToast.objects.filter(community=community_id, user=req_dict['member_id']).delete()
 
             # deleting if the user left the community before
-            removedMembers.objects.filter(community=req_dict['community_id'], member=req_dict['member_id']).delete()
+            removedMembers.objects.filter(community=community_id, member=req_dict['member_id']).delete()
 
             # send sms
             notification_list = [
@@ -5028,27 +5038,27 @@ def approve_or_decline_private_community(req_dict, request):
 
             # sending mails and notifications
             # send notification
-            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],
+            send_notification_for_join_requests.delay(community_id, True, req_dict['member_id'],
                                                       promoter_name)
-            send_community_confirmation_email.delay(req_dict['member_id'], req_dict['community_id'])
+            send_community_confirmation_email.delay(req_dict['member_id'], community_id)
 
     else:
 
-        Members.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
+        Members.objects.filter(member_id=req_dict['member_id'], community_id=community_id).delete()
 
         # delete the member engage table record for the user
-        Member_Engage.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
+        Member_Engage.objects.filter(member_id=req_dict['member_id'], community_id=community_id).delete()
 
         # delete the responses of user to community questions, if any
-        communityAnswers.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
+        communityAnswers.objects.filter(member_id=req_dict['member_id'], community_id=community_id).delete()
         # updating pending members count
-        update_pending_member_count_in_engage(req_dict['community_id'])
+        update_pending_member_count_in_engage(community_id)
         # saving the community toast change
-        toast_filter = communityToast.objects.filter(community=req_dict['community_id'], user=req_dict['member_id'])
+        toast_filter = communityToast.objects.filter(community=community_id, user=req_dict['member_id'])
         toast_filter.update(
             toast_message="Your request for joining this community was rejected. You can apply again to join this community")
 
-        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'], promoter_name)
+        send_notification_for_join_requests.delay(community_id, False, req_dict['member_id'], promoter_name)
 
 
 def set_state_for_onboarding_chatroom(community_instance, user_id, request):
@@ -13543,6 +13553,7 @@ def update_community_member_rights(request):
                                                              custom_title=custom_title)
 
         update_member_rights_history.delay(rights_added, rights_removed, current_user_id, community_id, user_id)
+
         send_sync_notification.delay({'community_id': community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
@@ -14090,9 +14101,6 @@ def update_community_rights(request):
     if not community_id:
         context = get_error_context(False, "send community_id in body")
         return JsonResponse(context)
-    # if not selected_rights:
-    #     context = get_error_context(False, "send rights in body")
-    #     return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
     current_user_instance = User.objects.get(pk=current_user_id)
@@ -14134,6 +14142,8 @@ def update_community_rights(request):
         info_logger.info(
             f"UPDATING_COMMUNITY_SETTINGS - current user id = {current_user_id}"
             f"community id = {community_id}")
+
+        update_member_rights_list_for_community_members.delay(community_id)
 
         return JsonResponse({'success': True})
     else:
