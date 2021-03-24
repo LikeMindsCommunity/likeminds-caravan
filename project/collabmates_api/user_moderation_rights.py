@@ -12,8 +12,7 @@ from django.db.models import Q
 from .static_text import *
 import time
 import json
-
-from .sync.model_update import update_models_for_syncing_apis
+from utility.time_utilities import TimeUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -61,9 +60,9 @@ def give_default_member_rights(user, community):
 
     rights_added = json.dumps(rights_added)
 
-    update_models_for_syncing_apis(SyncTypes.COMMUNITY,
-                                   {'member_id': user, 'community_id': community},
-                                   {'rights_list': rights_added})
+    Member_Engage.objects.filter(member_id=user,
+                                 community_id=community).update(rights_list=rights_list,
+                                                                updated_at=TimeUtilities.current_time_in_sec())
 
     conversationEngage.objects.filter(user=user,
                                       community_id=community).update(rights_list=rights_added)
@@ -752,9 +751,9 @@ def restore_member_rights_from_history(user, community):
 
     rights_list = json.dumps(rights_list)
 
-    update_models_for_syncing_apis(SyncTypes.COMMUNITY,
-                                   {'member_id': user, 'community_id': community},
-                                   {'rights_list': rights_list})
+    Member_Engage.objects.filter(member_id=user,
+                                 community_id=community).update(rights_list=rights_list,
+                                                                updated_at=TimeUtilities.current_time_in_sec())
 
     conversationEngage.objects.filter(user=user,
                                       community=community).update(rights_list=rights_list)
@@ -922,9 +921,9 @@ def save_member_rights_in_engage(selected_rights, user_instance, community_insta
     final_rights = [right["state"] for right in selected_rights if right["is_selected"]]
     rights_list = json.dumps(final_rights)
 
-    update_models_for_syncing_apis(SyncTypes.COMMUNITY,
-                                   {'member_id': user_instance, 'community_id': community_instance},
-                                   {'rights_list': rights_list})
+    Member_Engage.objects.filter(member_id=user_instance,
+                                 community_id=community_instance).update(rights_list=rights_list,
+                                                                updated_at=TimeUtilities.current_time_in_sec())
 
     conversationEngage.objects.filter(user=user_instance,
                                       community=community_instance).update(rights_list=rights_list)
@@ -947,9 +946,9 @@ def update_member_rights_in_member_engage(community_id, user_id):
 
     rights_list = json.dumps(rights_list)
 
-    update_models_for_syncing_apis(SyncTypes.COMMUNITY,
-                                   {'member_id': user, 'community_id': community},
-                                   {'rights_list': rights_list})
+    Member_Engage.objects.filter(member_id=user,
+                                 community_id=community).update(rights_list=rights_list,
+                                                                updated_at=TimeUtilities.current_time_in_sec())
 
 
 @shared_task()
