@@ -415,8 +415,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         attachments = []
 
         if card.has_files or\
-                card.attachment_count > 0:
-            files = Card_Attachment.objects.filter(collabcard=card).filter(Q(type="video") | Q(type="image"))
+                card.attachment_count > 0 or\
+                card.pdf_count > 0:
+            files = Card_Attachment.objects.filter(collabcard=card)
 
             for file in files:
                 attachment_file = {'url': file.file_url, 'index': file.index, 'type': file.type}

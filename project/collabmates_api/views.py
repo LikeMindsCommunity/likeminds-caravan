@@ -2424,8 +2424,6 @@ def remove_from_member(request):
                         send_notification_for_removed_member.delay(admin_id=member_id,
                                                                    removed_user_id=member, community_id=community_id)
 
-                        remove_all_member_rights(community_instance, user_instance)
-                        remove_all_manager_rights(community_instance, user_instance)
                         info_logger.info(
                             f"REMOVE_MEMBER_API (REMOVED CASE) -current user id = {member_id}, user id = {member}"
                             f", community id = {community_id}")
@@ -2482,6 +2480,7 @@ def remove_from_member(request):
 
             remove_all_member_rights(community_instance, user_instance)
             remove_all_manager_rights(community_instance, user_instance)
+
             send_sync_notification.delay({'community_id': community_id,
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
@@ -3274,7 +3273,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     card.attachment_count = attachment_count
     card.attachments_uploaded = False
-    if attachment_count > 0:
+    if attachment_count > 0 or card.pdf_count > 0:
         card.has_files = True
 
     card.date_time = res['date_time'] if ('date_time' in res) else 0
@@ -3801,9 +3800,9 @@ def create_chatroom_engagement(card_instance, user_instance, func_dict=None, mem
         expire_time = func_dict['expiry_time']
     rights_list = None
     if member_state == member_states.ADMIN:
-        rights_list = member_rights.ALL_MEMBER_RIGHTS
+        rights_list = json.dumps(member_rights.ALL_MEMBER_RIGHTS)
     elif member_state == member_states.MEMBER or member_state == member_states.PROFILE_UNAVAILABLE:
-        rights_list = member_rights.DEFAULT_MEMBER_RIGHTS
+        rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
 
     if not instance_list.exists():
         instance = conversationEngage()
@@ -3829,7 +3828,8 @@ def create_chatroom_engagement(card_instance, user_instance, func_dict=None, mem
 
 def update_seen_status_for_new_user_in_chatroom(community_instance, user_instance):
     collabcard_filter = Collabcard.objects.filter(community=community_instance,
-                                                  is_pending=False, is_deleted=False).order_by('id')
+                                                  is_pending=False, is_deleted=False,
+                                                  is_secret=False).order_by('id')
 
     for card_instance in collabcard_filter:
 
@@ -3962,8 +3962,9 @@ def chatroom_delete(request):
 
     try:
         collabcard_instance = Collabcard.objects.get(id=chatroom_id)
-        community_id = collabcard_instance.community.id
         community_instance = collabcard_instance.community
+        community_id = community_instance.id
+
         card_creator = collabcard_instance.user
         current_user_instance = User.objects.get(pk=member_id)
 
@@ -4912,11 +4913,15 @@ def request_response(request, req_dict=None):
     }
 
     try:
-        approve_or_decline_private_community(req_dict, request)
+        context = approve_or_decline_private_community(req_dict, request)
+        if context is not None:
+            if context.get('success') is False:
+                return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     except Exception as e:
         context = get_error_context(False, e.args)
 
-        return JsonResponse(context, status = status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse(context, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
     send_sync_notification.delay({'community_id': community_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -4929,42 +4934,49 @@ def approve_or_decline_private_community(req_dict, request):
 
     current_user_id = get_member_id_from_headers(request)
 
+    community_id = req_dict.get('community_id', None)
+    if community_id is None:
+        return get_error_context(False, f"send community id in body")
+
+    # updating pending member count
+    community = Community.get_community_or_None(req_dict['community_id'])
+
+    if community is None:
+        return get_error_context(False, f"community with id {community_id} does not exists")
+
     if not current_user_id:
-        context = get_error_context(False, "send member id in headers")
-        return context
+        return get_error_context(False, "send member id in headers")
 
     current_user_instance = User.objects.get(pk=current_user_id)
     promoter_name = current_user_instance.userinfo.name
 
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
-        is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
+        is_member = is_member_verified(community=community_id, user_instance=req_dict['member_id'])
 
         if not is_member:
 
             update_models_for_syncing_apis(SyncTypes.MEMBERS,
                                            {'member_id': req_dict['member_id'],
-                                            'community_id': req_dict['community_id']},
+                                            'community_id': community_id},
                                            {'state': member_states.MEMBER,
                                             'approved_by': current_user_instance,
                                             'custom_title': "Member",
                                             'created_at': TimeUtilities.current_time_in_sec(),
                                             'became_member_at': TimeUtilities.current_time_in_sec()})
 
-            # giving default member rights
-            give_default_member_rights(user=req_dict['member_id'], community=req_dict['community_id'])
-
             update_models_for_syncing_apis(SyncTypes.COMMUNITY,
-                                           {'community_id': req_dict['community_id'],
+                                           {'community_id': community_id,
                                             'member_id': req_dict['member_id']},
                                            {'click_state': click_states.DEFAULT,
                                             'member_state': member_states.MEMBER,
                                             'rights_list': json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)})
 
-            # updating pending member count
-            community = Community.objects.get(id=req_dict['community_id'])
+            # giving default member rights
+            give_default_member_rights(user=req_dict['member_id'], community=community_id)
+
             members_count = community.members_count + 1
-            Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
+            Community.objects.filter(id=community_id).update(members_count=members_count)
 
             accepted_user = User.objects.get(pk=req_dict['member_id'])
 
@@ -4977,7 +4989,7 @@ def approve_or_decline_private_community(req_dict, request):
                                     moderation_by=current_user_instance,
                                     type=history_type)
             info_logger.info(f"JOIN_REQUEST_ACCEPETED current user id = {current_user_id}, user id = {accepted_user.id}"
-                             f", commuinty id = {community.id}")
+                             f", commuinty id = {community_id}")
             # updating pending members count
             update_pending_member_count_in_engage(req_dict['community_id'])
 
@@ -4986,7 +4998,6 @@ def approve_or_decline_private_community(req_dict, request):
                                               request=request)
 
             # posting a intro collabcard
-            community_id = req_dict['community_id']
             member_id = req_dict['member_id']
 
             post_introduction_card_for_community(community_id, member_id)
@@ -4994,21 +5005,21 @@ def approve_or_decline_private_community(req_dict, request):
             # removing guest status from all chatrooms after access
 
             update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                           {'community': req_dict['community_id'], 'user': req_dict['member_id']},
+                                           {'community': community_id, 'user': req_dict['member_id']},
                                            {'is_guest': False, 'remove': None})
 
             update_models_for_syncing_apis(SyncTypes.CONVERSATION,
-                                           {'community': req_dict['community_id'], 'user': req_dict['member_id']},
+                                           {'community': community_id, 'user': req_dict['member_id']},
                                            {'is_guest': False, 'remove': None})
 
             # saving create community action step 4
             update_community_actions(community_instance=community)
 
             # deleting the community toast message when the request is accepted
-            communityToast.objects.filter(community=req_dict['community_id'], user=req_dict['member_id']).delete()
+            communityToast.objects.filter(community=community_id, user=req_dict['member_id']).delete()
 
             # deleting if the user left the community before
-            removedMembers.objects.filter(community=req_dict['community_id'], member=req_dict['member_id']).delete()
+            removedMembers.objects.filter(community=community_id, member=req_dict['member_id']).delete()
 
             # send sms
             notification_list = [
@@ -5027,27 +5038,27 @@ def approve_or_decline_private_community(req_dict, request):
 
             # sending mails and notifications
             # send notification
-            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],
+            send_notification_for_join_requests.delay(community_id, True, req_dict['member_id'],
                                                       promoter_name)
-            send_community_confirmation_email.delay(req_dict['member_id'], req_dict['community_id'])
+            send_community_confirmation_email.delay(req_dict['member_id'], community_id)
 
     else:
 
-        Members.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
+        Members.objects.filter(member_id=req_dict['member_id'], community_id=community_id).delete()
 
         # delete the member engage table record for the user
-        Member_Engage.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
+        Member_Engage.objects.filter(member_id=req_dict['member_id'], community_id=community_id).delete()
 
         # delete the responses of user to community questions, if any
-        communityAnswers.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
+        communityAnswers.objects.filter(member_id=req_dict['member_id'], community_id=community_id).delete()
         # updating pending members count
-        update_pending_member_count_in_engage(req_dict['community_id'])
+        update_pending_member_count_in_engage(community_id)
         # saving the community toast change
-        toast_filter = communityToast.objects.filter(community=req_dict['community_id'], user=req_dict['member_id'])
+        toast_filter = communityToast.objects.filter(community=community_id, user=req_dict['member_id'])
         toast_filter.update(
             toast_message="Your request for joining this community was rejected. You can apply again to join this community")
 
-        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'], promoter_name)
+        send_notification_for_join_requests.delay(community_id, False, req_dict['member_id'], promoter_name)
 
 
 def set_state_for_onboarding_chatroom(community_instance, user_id, request):
@@ -8305,13 +8316,21 @@ def community_collabcard_meta(request):
 def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
     """function to get chatrooms"""
 
+    member_id = NumberUtilities.get_integer_from_string(member_id)
+
     chatrooms = []
     for card_instance in chatroom_list:
 
         if card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False and\
-                int(member_id) != card_instance.user.id:
+                member_id != card_instance.user_id:
             continue
+
+        if card_instance.is_secret:
+            participants_list = json.loads(card_instance.secret_chatroom_participants)
+
+            if member_id not in participants_list:
+                continue
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id)
 
@@ -8340,10 +8359,11 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
 
         if active is True and chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
+
         if active is False and not chatroom_instance['active']:
             chatrooms.append(chatroom_instance)
 
-        if active == None:
+        if active is None:
             chatrooms.append(chatroom_instance)
 
     return chatrooms
@@ -8351,7 +8371,7 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
 
 def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False):
     '''function to get chatrooms'''
-
+    member_id = NumberUtilities.get_integer_from_string(member_id)
     chatrooms = []
 
     for data in chatroom_list:
@@ -8359,10 +8379,19 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False)
 
         if card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False and\
-                int(member_id) != card_instance.user.id:
+                member_id != card_instance.user_id:
             continue
 
+        if card_instance.is_secret:
+            participants_list = json.loads(card_instance.secret_chatroom_participants)
+
+            if member_id not in participants_list:
+                continue
+
         chatroom_instance = get_chatroom_instance(card_instance, member_id, state_instance=data, send_profile=False)
+
+        if chatroom_instance['secret_chatroom_left']:
+            continue
 
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER
@@ -8464,6 +8493,9 @@ def fetch_chatroom_feed(request):
         active = None
 
     member_id = get_member_id_from_headers(request)
+    if member_id is None:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
 
     chatroom_filter = Collabcard.objects.filter(community=community_id,
                                                 is_pending=False, is_deleted=False).order_by('id')
@@ -8544,7 +8576,9 @@ def fetch_chatroom_feed_version_1(request):
         active = None
 
     member_id = get_member_id_from_headers(request)
-    # print(member_id)
+    if member_id is None:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
 
     state_filter = collabcardState.objects.filter(community=community_id,
                                                   card__is_pending=False,
@@ -8705,7 +8739,8 @@ def upload_files(request):
     body = request.GET
 
     member_id = get_member_id_from_headers(request)
-
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    is_android = RequestUtilities.is_request_android(request)
     conversation = None
     chatroom_local = None
 
@@ -8767,7 +8802,12 @@ def upload_files(request):
 
         uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
 
-        if uploaded_files_count == card_instance.attachment_count + card_instance.pdf_count:
+        if is_android and version_code >= UPLOAD_FILES_API_CHECK_VERSION_CODE_AN:
+            all_files_uploaded = uploaded_files_count == card_instance.attachment_count
+        else:
+            all_files_uploaded = uploaded_files_count == card_instance.attachment_count + card_instance.pdf_count
+
+        if all_files_uploaded:
             card_instance.attachments_uploaded = True
             card_instance.save()
             user_instance = User.objects.get(id=member_id)
@@ -8948,7 +8988,15 @@ def save_attachments(request):
             return context
 
     elif 'chatroom_id' in body and body['chatroom_id']:
-        chatroom_local = upload_chatroom_attachments(body, member_id)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        is_android = RequestUtilities.is_request_android(request)
+        is_ios = RequestUtilities.is_request_ios(request)
+
+        chatroom_local = upload_chatroom_attachments(body, member_id,
+                                                     version_code=version_code,
+                                                     is_android=is_android,
+                                                     is_ios=is_ios)
 
         if 'success' in chatroom_local and not chatroom_local['success']:
             return chatroom_local
@@ -8999,7 +9047,7 @@ def save_attachments(request):
     return context
 
 
-def upload_chatroom_attachments(body, member_id):
+def upload_chatroom_attachments(body, member_id, version_code=0, is_android=False, is_ios=False):
     """ function to upload chatroom attachments """
 
     chatroom_id = body['chatroom_id']
@@ -9019,8 +9067,12 @@ def upload_chatroom_attachments(body, member_id):
 
     uploaded_files_count = Card_Attachment.objects.filter(collabcard=chatroom_instance).count()
 
-    if uploaded_files_count == chatroom_instance.attachment_count + chatroom_instance.pdf_count:
+    if is_android and version_code >= UPLOAD_FILES_API_CHECK_VERSION_CODE_AN:
+        all_files_uploaded = uploaded_files_count == chatroom_instance.attachment_count
+    else:
+        all_files_uploaded = uploaded_files_count == chatroom_instance.attachment_count + chatroom_instance.pdf_count
 
+    if all_files_uploaded:
         video_count = Card_Attachment.objects.filter(collabcard=chatroom_instance,
                                                      type='video').count()
         if video_count > 0:
@@ -13519,6 +13571,7 @@ def update_community_member_rights(request):
                                                              custom_title=custom_title)
 
         update_member_rights_history.delay(rights_added, rights_removed, current_user_id, community_id, user_id)
+
         send_sync_notification.delay({'community_id': community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
@@ -14066,9 +14119,6 @@ def update_community_rights(request):
     if not community_id:
         context = get_error_context(False, "send community_id in body")
         return JsonResponse(context)
-    # if not selected_rights:
-    #     context = get_error_context(False, "send rights in body")
-    #     return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
     current_user_instance = User.objects.get(pk=current_user_id)
@@ -14110,6 +14160,8 @@ def update_community_rights(request):
         info_logger.info(
             f"UPDATING_COMMUNITY_SETTINGS - current user id = {current_user_id}"
             f"community id = {community_id}")
+
+        update_member_rights_list_for_community_members.delay(community_id)
 
         return JsonResponse({'success': True})
     else:
@@ -14259,7 +14311,9 @@ class SyncChatrooms(APIView):
             chatroom['chatroom_expiry_time'] = data[23]
             chatroom['attending_status'] = data[24]
 
-            chatroom_files = self._get_chatroom_files(chatroom['id'], data[25])
+            has_files = data[25] or chatroom['pdf_count'] > 0 or chatroom['attachment_count'] > 0
+
+            chatroom_files = self._get_chatroom_files(chatroom['id'], has_files)
             chatroom['images'] = chatroom_files['images']
             chatroom['pdf'] = chatroom_files['pdf']
             chatroom['audios'] = chatroom_files['audios']
@@ -14378,7 +14432,9 @@ class SyncChatrooms(APIView):
 
                 elif file.type == "pdf":
                     pdf = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
+                    pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
                     files['pdf'].append(pdf)
+                    attachments.append(pdf_attachment)
 
                 elif file.type == "audio":
                     audio_file = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
@@ -14503,6 +14559,9 @@ class SyncChatroomsDiff(APIView):
 
         query_params = request.query_params
 
+        previous_app_version = query_params.get('previous_app_version', 0)
+        previous_app_version = NumberUtilities.get_integer_from_string(previous_app_version)
+
         page = query_params.get('page', 1)
         page = int(page)
 
@@ -14516,42 +14575,30 @@ class SyncChatroomsDiff(APIView):
         poll_data = {}
         poll_votes = {}
 
+        video_chatroom_list = set()
+        secret_chatroom_list = set()
+
         common_list = []
 
         if not is_synced:
 
             user_instance = User.get_user_or_raise_exception(member_id)
 
-            if (version_code > VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and
-                is_platform_android) or \
-                    (version_code > VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS and
-                     is_platform_ios):
+            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN:
+                video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
+                common_list = tuple(video_chatroom_list)
 
-                card_list = set(Card_Attachment.objects.filter(type='video').values_list('collabcard', flat=True))
-                card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
+            if version_code >= SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN:
 
-                common_list = tuple(card_state_list & card_list)
+                secret_chatroom_list = self._get_secret_chatrooms_of_user(user_instance)
+                common_list = tuple(secret_chatroom_list)
 
-            if (version_code > SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN and
-                is_platform_android) or \
-                    (version_code > SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_iOS and
-                     is_platform_ios):
-
-                user_instance = User.get_user_or_raise_exception(member_id)
-
-                card_state_list = set(collabcardState.objects.filter(user=user_instance,
-                                                                     card__is_secret=True).values_list('card', flat=True))
-                get_members_data_for_collabcard
-                common_list = tuple(card_state_list)
+            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and\
+                    version_code >= SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN:
+                common_list = tuple(secret_chatroom_list | video_chatroom_list)
 
         if len(common_list) > 0:
 
-            poll_data = fetch_chatroom_polls(common_list)
-            poll_votes = fetch_member_poll_votes(common_list)
-
-            chatroom_data, chatroom_id_list = fetch_chatroom_with_videos(paginate_by, page, common_list)
-
-        if len(common_list) > 0:
             poll_data = fetch_chatroom_polls(common_list)
             poll_votes = fetch_member_poll_votes(common_list)
 
@@ -14674,7 +14721,9 @@ class SyncChatroomsDiff(APIView):
                 chatroom['location_long'] = data[44]
 
     def _add_attachements(self, chatroom, data):
-        chatroom_files = self._get_chatroom_files(chatroom['id'], data[25])
+        has_files = data[25] or chatroom['pdf_count'] > 0 or chatroom['attachment_count'] > 0
+
+        chatroom_files = self._get_chatroom_files(chatroom['id'], has_files)
         chatroom['images'] = chatroom_files['image']
         chatroom['pdf'] = chatroom_files['pdf']
         chatroom['audios'] = chatroom_files['audio']
@@ -14719,10 +14768,9 @@ class SyncChatroomsDiff(APIView):
 
                 files[file.type].append(file_dict)
 
-                if file.type == "image" or file.type == "video":
-                    attachment_dict = file_dict.copy()
-                    attachment_dict['url'] = attachment_dict.pop(f'{file.type}_url')
-                    attachments.append(attachment_dict)
+                attachment_dict = file_dict.copy()
+                attachment_dict['url'] = attachment_dict.pop(f'{file.type}_url')
+                attachments.append(attachment_dict)
 
         files['attachments'] = attachments
 
@@ -14809,6 +14857,20 @@ class SyncChatroomsDiff(APIView):
             draft_response = {'chatrooms': chatrooms, 'max_last_updated': max_last_updated}
 
         return draft_response
+
+    def _get_video_chatrooms_of_user(self, user_instance):
+        card_list = set(Card_Attachment.objects.filter(type='video').values_list('collabcard', flat=True))
+        card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
+
+        return card_state_list & card_list
+
+    def _get_secret_chatrooms_of_user(self, user_instance):
+
+        secret_chatroom_list = set(collabcardState.objects.filter(user=user_instance,
+                                                                  card__is_secret=True)
+                                   .values_list('card', flat=True))
+
+        return secret_chatroom_list
 
 
 class SyncConversation(APIView):
