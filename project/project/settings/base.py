@@ -245,6 +245,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-platform-code',
     'x-username',
     'x-password',
+    'x-device-id',
 ]
 
 FCM_DJANGO_SETTINGS = {
