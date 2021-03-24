@@ -3266,13 +3266,17 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.user = user_instance
     card.type = card_type
 
-    card.image_count = res['image_count'] if ('image_count' in res) else 0
-    card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+    card.image_count = res.get('image_count', 0)
+    card.pdf_count = res.get('pdf_count', 0)
 
     attachment_count = card.image_count
 
+    if attachment_count == 0 and card.pdf_count > 0:
+        attachment_count = card.pdf_count
+
     card.attachment_count = attachment_count
     card.attachments_uploaded = False
+
     if attachment_count > 0 or card.pdf_count > 0:
         card.has_files = True
 
@@ -8802,10 +8806,7 @@ def upload_files(request):
 
         uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
 
-        if is_android and version_code >= UPLOAD_FILES_API_CHECK_VERSION_CODE_AN:
-            all_files_uploaded = uploaded_files_count == card_instance.attachment_count
-        else:
-            all_files_uploaded = uploaded_files_count == card_instance.attachment_count + card_instance.pdf_count
+        all_files_uploaded = uploaded_files_count == card_instance.attachment_count
 
         if all_files_uploaded:
             card_instance.attachments_uploaded = True
@@ -9067,10 +9068,7 @@ def upload_chatroom_attachments(body, member_id, version_code=0, is_android=Fals
 
     uploaded_files_count = Card_Attachment.objects.filter(collabcard=chatroom_instance).count()
 
-    if is_android and version_code >= UPLOAD_FILES_API_CHECK_VERSION_CODE_AN:
-        all_files_uploaded = uploaded_files_count == chatroom_instance.attachment_count
-    else:
-        all_files_uploaded = uploaded_files_count == chatroom_instance.attachment_count + chatroom_instance.pdf_count
+    all_files_uploaded = uploaded_files_count == chatroom_instance.attachment_count
 
     if all_files_uploaded:
         video_count = Card_Attachment.objects.filter(collabcard=chatroom_instance,
