@@ -3273,7 +3273,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     card.attachment_count = attachment_count
     card.attachments_uploaded = False
-    if attachment_count > 0:
+    if attachment_count > 0 or card.pdf_count > 0:
         card.has_files = True
 
     card.date_time = res['date_time'] if ('date_time' in res) else 0
@@ -8739,7 +8739,8 @@ def upload_files(request):
     body = request.GET
 
     member_id = get_member_id_from_headers(request)
-
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    is_android = RequestUtilities.is_request_android(request)
     conversation = None
     chatroom_local = None
 
@@ -8801,7 +8802,12 @@ def upload_files(request):
 
         uploaded_files_count = Card_Attachment.objects.filter(collabcard=card_instance).count()
 
-        if uploaded_files_count == card_instance.attachment_count + card_instance.pdf_count:
+        if is_android and version_code >= UPLOAD_FILES_API_CHECK_VERSION_CODE_AN:
+            all_files_uploaded = uploaded_files_count == card_instance.attachment_count
+        else:
+            all_files_uploaded = uploaded_files_count == card_instance.attachment_count + card_instance.pdf_count
+
+        if all_files_uploaded:
             card_instance.attachments_uploaded = True
             card_instance.save()
             user_instance = User.objects.get(id=member_id)
@@ -8982,7 +8988,15 @@ def save_attachments(request):
             return context
 
     elif 'chatroom_id' in body and body['chatroom_id']:
-        chatroom_local = upload_chatroom_attachments(body, member_id)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        is_android = RequestUtilities.is_request_android(request)
+        is_ios = RequestUtilities.is_request_ios(request)
+
+        chatroom_local = upload_chatroom_attachments(body, member_id,
+                                                     version_code=version_code,
+                                                     is_android=is_android,
+                                                     is_ios=is_ios)
 
         if 'success' in chatroom_local and not chatroom_local['success']:
             return chatroom_local
@@ -9033,7 +9047,7 @@ def save_attachments(request):
     return context
 
 
-def upload_chatroom_attachments(body, member_id):
+def upload_chatroom_attachments(body, member_id, version_code=0, is_android=False, is_ios=False):
     """ function to upload chatroom attachments """
 
     chatroom_id = body['chatroom_id']
@@ -9053,8 +9067,12 @@ def upload_chatroom_attachments(body, member_id):
 
     uploaded_files_count = Card_Attachment.objects.filter(collabcard=chatroom_instance).count()
 
-    if uploaded_files_count == chatroom_instance.attachment_count + chatroom_instance.pdf_count:
+    if is_android and version_code >= UPLOAD_FILES_API_CHECK_VERSION_CODE_AN:
+        all_files_uploaded = uploaded_files_count == chatroom_instance.attachment_count
+    else:
+        all_files_uploaded = uploaded_files_count == chatroom_instance.attachment_count + chatroom_instance.pdf_count
 
+    if all_files_uploaded:
         video_count = Card_Attachment.objects.filter(collabcard=chatroom_instance,
                                                      type='video').count()
         if video_count > 0:
@@ -14293,7 +14311,9 @@ class SyncChatrooms(APIView):
             chatroom['chatroom_expiry_time'] = data[23]
             chatroom['attending_status'] = data[24]
 
-            chatroom_files = self._get_chatroom_files(chatroom['id'], data[25])
+            has_files = data[25] or chatroom['pdf_count'] > 0 or chatroom['attachment_count'] > 0
+
+            chatroom_files = self._get_chatroom_files(chatroom['id'], has_files)
             chatroom['images'] = chatroom_files['images']
             chatroom['pdf'] = chatroom_files['pdf']
             chatroom['audios'] = chatroom_files['audios']
@@ -14412,7 +14432,9 @@ class SyncChatrooms(APIView):
 
                 elif file.type == "pdf":
                     pdf = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
+                    pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
                     files['pdf'].append(pdf)
+                    attachments.append(pdf_attachment)
 
                 elif file.type == "audio":
                     audio_file = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
@@ -14699,7 +14721,9 @@ class SyncChatroomsDiff(APIView):
                 chatroom['location_long'] = data[44]
 
     def _add_attachements(self, chatroom, data):
-        chatroom_files = self._get_chatroom_files(chatroom['id'], data[25])
+        has_files = data[25] or chatroom['pdf_count'] > 0 or chatroom['attachment_count'] > 0
+
+        chatroom_files = self._get_chatroom_files(chatroom['id'], has_files)
         chatroom['images'] = chatroom_files['image']
         chatroom['pdf'] = chatroom_files['pdf']
         chatroom['audios'] = chatroom_files['audio']
@@ -14744,10 +14768,9 @@ class SyncChatroomsDiff(APIView):
 
                 files[file.type].append(file_dict)
 
-                if file.type == "image" or file.type == "video":
-                    attachment_dict = file_dict.copy()
-                    attachment_dict['url'] = attachment_dict.pop(f'{file.type}_url')
-                    attachments.append(attachment_dict)
+                attachment_dict = file_dict.copy()
+                attachment_dict['url'] = attachment_dict.pop(f'{file.type}_url')
+                attachments.append(attachment_dict)
 
         files['attachments'] = attachments
 

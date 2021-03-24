@@ -251,7 +251,7 @@ class ChatroomImpl(ChatroomManager):
         card_content['attachment_count'] = req_body.get('attachment_count', 0)
         card_content['attachments_uploaded'] = False
 
-        if card_content['attachment_count'] > 0:
+        if card_content['attachment_count'] > 0 or card_content['pdf_count'] > 0:
             card_content['has_files'] = True
             req_body['has_files'] = True
 

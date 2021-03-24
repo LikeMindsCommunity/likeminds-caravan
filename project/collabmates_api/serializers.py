@@ -519,7 +519,11 @@ def get_collabcard_files(card_id, draft=False):
                 pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url, 'index': file.index}
+
+            pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
             pdf.append(pdf_url)
+            attachments.append(pdf_attachment)
 
     return img_list, pdf, audio_list, video_list, attachments
 
@@ -1747,7 +1751,9 @@ def get_answer_files(answer_id):
         elif file.type == 'pdf':
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
+                pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
                 pdf.append(pdf_url)
+                attachments_list.append(pdf_attachment)
 
         elif file.type == "location":
             location = {
