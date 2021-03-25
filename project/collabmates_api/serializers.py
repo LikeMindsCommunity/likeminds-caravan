@@ -41,7 +41,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     }
 
     if not current_user_instance and current_user_id:
-        current_user_instance  = User.objects.get(pk=current_user_id)
+        current_user_instance = User.objects.get(pk=current_user_id)
 
     user_has_share_permission = False
 
@@ -109,13 +109,13 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     elif current_user_instance:
 
         if user_has_share_permission:
-            private_link = generate_private_link(community_instance=community,
-                                                 promoter_instance=current_user_instance)
+            # private_link = generate_private_link(community_instance=community,
+            #                                      promoter_instance=current_user_instance)
 
             new_dict[
                 'private_link_text_member'] = PRIVATE_LINK_FOR_PERMITTED_USER % (community.name, branch_links[1]['url'])
 
-            private_link_members_directory = branch_links[1]['url']
+            # private_link_members_directory = branch_links[1]['url']
             new_dict[
                 'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
             community.name, branch_links[2]['url'])
@@ -216,8 +216,12 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "community_name": card.community.name,
         "date": TimeUtilities.convert_epoch_time_in_date(card.date_epoch),
         "created_at": TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch),
-        "date_epoch": card.date_epoch
+        "date_epoch": card.date_epoch,
+        'is_secret': card.is_secret,
     }
+
+    if card.secret_chatroom_participants:
+        collabcard['secret_chatroom_participants'] = json.loads(card.secret_chatroom_participants)
 
     if card.attachments_uploaded is None:
         collabcard['attachments_uploaded'] = False
@@ -353,9 +357,12 @@ def draftChatroomSerializer(card, user, community=None):
         'polls_count': card.polls_count,
         'card_creation_time': TimeUtilities.convert_epoch_time_in_date(card.date_epoch),
         'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch),
-        'community_name': card.community.name
-
+        'community_name': card.community.name,
+        'is_secret': card.is_secret,
     }
+
+    if card.secret_chatroom_participants:
+        chatroom['secret_chatroom_participants'] = json.loads(card.secret_chatroom_participants)
 
     if card.attachments_uploaded is None:
         chatroom['attachments_uploaded'] = False
@@ -512,7 +519,11 @@ def get_collabcard_files(card_id, draft=False):
                 pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url, 'index': file.index}
+
+            pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
             pdf.append(pdf_url)
+            attachments.append(pdf_attachment)
 
     return img_list, pdf, audio_list, video_list, attachments
 
@@ -627,6 +638,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['is_guest'] = status['is_guest']
         collabcard_serializer['active'] = False
         collabcard_serializer['is_tagged'] = status['is_tagged']
+        collabcard_serializer['secret_chatroom_left'] = status['secret_chatroom_left']
 
         expiry_time = status['expiry_time']
 
@@ -740,6 +752,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         'expiry_time': None,
         'is_tagged': False,
         'attending_status': False,
+        'secret_chatroom_left': False
     }
 
     if not member_id:
@@ -758,6 +771,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
             collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
             collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
             collabcard_status['attending_status'] = collabcard_state[0].attending_status
+            collabcard_status['secret_chatroom_left'] = collabcard_state[0].secret_chatroom_left
     else:
         collabcard_status['state'] = state_instance.state
         collabcard_status['mute_status'] = state_instance.mute_status
@@ -768,6 +782,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         collabcard_status['expiry_time'] = state_instance.expiry_time
         collabcard_status['is_tagged'] = state_instance.is_tagged
         collabcard_status['attending_status'] = state_instance.attending_status
+        collabcard_status['secret_chatroom_left'] = state_instance.secret_chatroom_left
 
     return collabcard_status
 
@@ -1666,6 +1681,9 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
                                                                        fetch_reply=False,
                                                                        current_user_id=current_user_id)
 
+    if conversation.temporary_id:
+        temp['temporary_id'] = conversation.temporary_id
+
     return temp
 
 
@@ -1733,7 +1751,9 @@ def get_answer_files(answer_id):
         elif file.type == 'pdf':
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
+                pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
                 pdf.append(pdf_url)
+                attachments_list.append(pdf_attachment)
 
         elif file.type == "location":
             location = {

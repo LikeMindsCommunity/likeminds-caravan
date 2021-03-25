@@ -1,11 +1,13 @@
 from django.http import JsonResponse
-from ..chatroom.chatroom_impl import ChatroomImpl
 from rest_framework.views import APIView
-from ..rest_api import GetChatroomInstanceSerializer
+from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
-from utility.exception_utilities import InvalidHeaderException
+from utility.exception_utilities import InvalidHeaderException, CustomException
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from ..rest_api import GetChatroomInstanceSerializer
+from ..chatroom.chatroom_impl import ChatroomImpl
+from ..mixins import TransactionMixin
 
 
 class FetchChatroomView(APIView):
@@ -115,3 +117,63 @@ class PinUnpinChatroomViewHelper:
             return {'error_message': "send notify status", 'status': 400}
 
         return request_body
+
+
+class LeaveSecretChatroomView(TransactionMixin, APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(LeaveSecretChatroomView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        header_member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not header_member_id:
+            raise InvalidHeaderException()
+
+        chatroom_id = request.data.get('chatroom_id', None)
+        member_id = request.data.get('member_id', None)
+
+        chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=chatroom_id)
+
+        chatroom_manager.leave_secret_chatroom(member_id)
+
+        context = {
+            "success": True
+        }
+
+        return JsonResponse(context)
+
+
+class AddSecretChatroomParticipantView(TransactionMixin, APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(AddSecretChatroomParticipantView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.fetch_request_body(request)
+
+        chatroom_id = req_body.get('chatroom_id', None)
+
+        if chatroom_id is None:
+            response = {
+                'success': False,
+                'error_message': 'send chatroom id in body'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
+
+        chatroom_manager.add_secret_chatroom_participant(req_body)
+
+        context = {
+            "success": True
+        }
+
+        return JsonResponse(context)

@@ -6,12 +6,13 @@ from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             moderationHistory, Report, Report_Tags, communityRightsSettings,
                             Community, removedMembers, userMemberRightsHistory,
                             Member_Engage, conversationEngage)
-from utility.states import (member_states, manager_rights, member_rights, moderation_history_types)
+from utility.states import (member_states, manager_rights, member_rights, moderation_history_types, SyncTypes)
 from django.contrib.auth.models import User
 from django.db.models import Q
 from .static_text import *
 import time
 import json
+from utility.time_utilities import TimeUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -50,12 +51,22 @@ def give_default_member_rights(user, community):
 
         try:
             if right.state in community_settings:
-                rights_added.append(right.id)
+                rights_added.append(right.state)
                 userMemberRights(user=user, community=community, right=right).save()
             else:
                 rights_removed.append(right.id)
         except:
             error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
+
+    rights_added = json.dumps(rights_added)
+
+    Member_Engage.objects.filter(member_id=user,
+                                 community_id=community).update(rights_list=rights_list,
+                                                                updated_at=TimeUtilities.current_time_in_sec())
+
+    conversationEngage.objects.filter(user=user,
+                                      community_id=community).update(rights_list=rights_added)
+
 
 
 def give_all_manager_rights(user, community):
@@ -460,6 +471,9 @@ def give_member_create_room_right(user, community):
 
 
 def give_right_to_all_members(community, right):
+
+    community_id = community.id
+
     community_members = Members.objects.select_related("member_id").filter(
         community_id=community).filter(Q(state=member_states.MEMBER) |
                                        Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
@@ -470,11 +484,14 @@ def give_right_to_all_members(community, right):
             if not check_history_exists(user, community, right, enabled_by_cm=False) or \
                     not check_rights_history_existence(user=user, community=community, right=right):
                 save_member_right(user=user, community=community, right=right)
+
         except:
-            error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
+            error_logger.error(f"member right already exist for user {user.id} in community {community_id}")
 
 
 def remove_right_for_all_members(community, right):
+    community_id = community.id
+
     community_members = Members.objects.select_related("member_id").filter(
         community_id=community).filter(Q(state=member_states.MEMBER) |
                                        Q(state=member_states.KNOWN_NOMINATED_PROMOTER) |
@@ -486,6 +503,9 @@ def remove_right_for_all_members(community, right):
             if check_history_exists(user, community, right, enabled_by_cm=False) or \
                     not check_rights_history_existence(user=user, community=community, right=right):
                 userMemberRights.objects.filter(user=user, community=community, right=right).delete()
+
+                update_member_rights_in_member_engage.delay(community_id, user.id)
+                update_member_rights_in_conversation_engage.delay(community_id, user.id)
         except:
             error_logger.error(f"community settings {community.id} does not have right {right.id} to delete")
 
@@ -596,6 +616,7 @@ def remove_all_member_rights(community, user):
     try:
         userMemberRights.objects.filter(user=user, community=community).delete()
         userMemberRightsHistory.objects.filter(user=user, community=community).delete()
+
     except:
         error_logger.error(f"member rights does not exist to delete for member id {user.id} in {community.id}")
 
@@ -722,14 +743,18 @@ def restore_member_rights_from_history(user, community):
 
     rights_list = []
     for right in member_rights:
-
+        # if right enabled by CM or history does not exist for that right to the user in that community
         if check_history_exists(user, community, right, enabled_by_cm=True) or \
                 not check_rights_history_existence(user, community, right):
             rights_list.append(right.state)
             save_member_right(user=user, community=community, right=right)
 
+    rights_list = json.dumps(rights_list)
+
     Member_Engage.objects.filter(member_id=user,
-                                 community_id=community).update(rights_list=rights_list)
+                                 community_id=community).update(rights_list=rights_list,
+                                                                updated_at=TimeUtilities.current_time_in_sec())
+
     conversationEngage.objects.filter(user=user,
                                       community=community).update(rights_list=rights_list)
 
@@ -895,29 +920,67 @@ def save_member_rights_in_engage(selected_rights, user_instance, community_insta
     """ function to save rights list in engage table """
     final_rights = [right["state"] for right in selected_rights if right["is_selected"]]
     rights_list = json.dumps(final_rights)
+
     Member_Engage.objects.filter(member_id=user_instance,
-                                 community_id=community_instance).update(rights_list=rights_list)
+                                 community_id=community_instance).update(rights_list=rights_list,
+                                                                updated_at=TimeUtilities.current_time_in_sec())
+
     conversationEngage.objects.filter(user=user_instance,
                                       community=community_instance).update(rights_list=rights_list)
 
 
 @shared_task()
 def update_member_rights_in_member_engage(community_id, user_id):
-    community = Community.objects.get(pk=community_id)
-    user = User.objects.get(pk=user_id)
+    if isinstance(community_id, Community):
+        community = community_id
+    else:
+        community = Community.objects.get(pk=community_id)
+
+    if isinstance(user_id, User):
+        user = user_id
+    else:
+        user = User.objects.get(pk=user_id)
 
     rights_list = list(userMemberRights.objects.filter(user=user,
                                                        community=community).values_list("right__state", flat=True))
+
+    rights_list = json.dumps(rights_list)
+
     Member_Engage.objects.filter(member_id=user,
-                                 community_id=community).update(rights_list=rights_list)
+                                 community_id=community).update(rights_list=rights_list,
+                                                                updated_at=TimeUtilities.current_time_in_sec())
 
 
 @shared_task()
 def update_member_rights_in_conversation_engage(community_id, user_id):
-    community = Community.objects.get(pk=community_id)
-    user = User.objects.get(pk=user_id)
+
+    if isinstance(community_id, Community):
+        community = community_id
+    else:
+        community = Community.objects.get(pk=community_id)
+
+    if isinstance(user_id, User):
+        user = user_id
+    else:
+        user = User.objects.get(pk=user_id)
 
     rights_list = list(userMemberRights.objects.filter(user=user,
                                                        community=community).values_list("right__state", flat=True))
+    rights_list = json.dumps(rights_list)
     conversationEngage.objects.filter(user=user,
                                       community_id=community).update(rights_list=rights_list)
+
+
+@shared_task
+def update_member_rights_list_for_community_members(community_id):
+
+    community = Community.objects.get(pk=community_id)
+    community_members = Members.objects.select_related("member_id").filter(
+        community_id=community).filter(Q(state=member_states.MEMBER) |
+                                       Q(state=member_states.PROFILE_UNAVAILABLE)).select_related('member_id')
+
+    for member in community_members:
+        user = member.member_id
+
+        update_member_rights_in_member_engage(community, user)
+        update_member_rights_in_conversation_engage(community, user)

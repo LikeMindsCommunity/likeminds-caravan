@@ -200,6 +200,8 @@ pin_chatroom = {'id': 13, 'title': "Pin chat room"}
 
 unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
 
+leave_chatroom = {'id': 15, 'title': "Leave chatroom"}
+
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
 
@@ -347,8 +349,11 @@ LINKED_IN_USER_URL = 'https://api.linkedin.com/v2/me?projection=(id,firstName,em
 LINKED_IN_EMAIL_URL = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token='
 
 VIDEO_ATTACHMENT_FILL_TEXT = "\n * This is a video message. Please update your app *"
-VIDEO_SYNC_TRIGGER_VERSION_CODE_AN = 84
-VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS = 84
+
+VIDEO_SYNC_TRIGGER_VERSION_CODE_AN = 85
+VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS = 85
+
+SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN = 108
 
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
 EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%S added you as a host for %s in %s"
@@ -376,3 +381,9 @@ CHATROOM_PREVIW_CACHE_KEY = "chatroom_preview_%s_%s"
 PIN_CHATROOM_TITLE = "Chat room pinned!"
 PIN_SUBTITLE = "Your community manager %s has just pinned %s on everyone’s feed."
 PIN_ROUTE = "route://chatroom_detail?chatroom_id=%s"
+
+SECRET_CHATROOM_ADD_SUBTITLE = "You have been added to %s"
+SECRET_CHATROOM_ADD_ROUTE = "route://chatroom_detail?chatroom_id=%s"
+
+SECRET_CHATROOM_REMOVED_SUBTITLE = "You have been removed from %s"
+SECRET_CHATROOM_REMOVED_ROUTE = "route://main"

@@ -100,22 +100,22 @@ class ConversationImpl(ConversationManager):
     def _fetch_conversation_queryset(self):
         return card_answers.objects.select_related('reply', 'preview_community',
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()
-                                                                              ).order_by('id')
+                                                                              ).order_by('created_at')
 
     def _fetch_upward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-            id__lt=conversation_id).order_by('-id')[:list_size]
+            id__lt=conversation_id).order_by('-created_at')[:list_size]
 
     def _fetch_upward_conversation_with_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-            id__lte=conversation_id).order_by('-id')[:list_size]
+            id__lte=conversation_id).order_by('-created_at')[:list_size]
 
     def _fetch_downward_conversation_queryset(self, list_size, conversation_id):
         return card_answers.objects.select_related('reply', 'preview_community',
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-            id__gt=conversation_id).order_by('id')[:list_size]
+            id__gt=conversation_id).order_by('created_at')[:list_size]
 
     def _paged_queryset(self, conversation_filter):
         page = self.get_page()
@@ -200,7 +200,7 @@ class ConversationImpl(ConversationManager):
         if conversation_content['attachment_count'] > 0:
             conversation_content['has_files'] = True
             req_body['has_files'] = True
-
+        conversation_content['temporary_id'] = req_body.get('temporary_id')
         conversation_content['api_version'] = 1
         conversation_content['device_id'] = self.device_id
         conversation_content['platform'] = self.platform_code
@@ -292,7 +292,7 @@ class ConversationImpl(ConversationManager):
 
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
-                conversations = conversations.order_by('id')
+                conversations = conversations.order_by('created_at')
                 conversations = self._create_conversation_list(conversations, last_conversation_id=last_seen.id)
 
         else:

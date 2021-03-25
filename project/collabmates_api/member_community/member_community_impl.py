@@ -230,23 +230,25 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'your_communities': community_list}
 
-    def fetch_community_chatrooms_queryset_without_last_seen(self, pin_status) -> []:
+    def fetch_community_chatrooms_queryset_with_web_scroll(self, pin_status, chatroom_id, limit_size=5) -> []:
 
         if pin_status:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
-                                                               user=self.get_member_id()).select_related('card',
+                                                               user=self.get_member_id(),
+                                                               card_id__lt=chatroom_id).select_related('card',
                                                                                                          'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
+                exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
-                                                               user=self.get_member_id()).select_related('card',
+                                                               user=self.get_member_id(),
+                                                               card_id__lt=chatroom_id).select_related('card',
                                                                                                          'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
+                exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
 
         return chatroom_queryset
 
@@ -269,6 +271,26 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__id__gte=last_seen_id).select_related('card',
                                                                                                           'card__user'). \
                                     exclude(card__type=card_types.CARD_INTRO).order_by('card_id')[:limit_size]
+
+        return chatroom_queryset
+
+    def fetch_community_chatrooms_queryset_without_last_seen(self, pin_status) -> []:
+
+        if pin_status:
+            chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
+                                                               card__is_pending=False,
+                                                               card__is_deleted=False,
+                                                               card__is_pinned=pin_status,
+                                                               user=self.get_member_id()).select_related('card',
+                                                                                                         'card__user'). \
+                exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
+        else:
+            chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
+                                                               card__is_pending=False,
+                                                               card__is_deleted=False,
+                                                               user=self.get_member_id()).select_related('card',
+                                                                                                         'card__user'). \
+                exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
 
         return chatroom_queryset
 
@@ -773,9 +795,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if not chatroom_instance:
                 return {'error_message': "Invalid chatroom id", 'status': 400}
 
-            chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(pin_status)
-            chatroom_list = self.extract_chatrooms_on_scroll(chatroom_id, scroll_direction, chatroom_queryset,
-                                                             limit_size=5)
+            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_id)
 
         chatroom_context_list = self.process_chatroom_list(chatroom_list, community_instance)
 
@@ -1045,6 +1065,7 @@ class MemberCommunityHelper:
                             'date_time': card_instance.date_time,
                             'duration': card_instance.duration,
                             'is_pending': card_instance.is_pending,
+                            'is_secret': card_instance.is_secret,
                             'answers_count': card_instance.answers_count,
                             'attending_count': card_instance.attending_count,
                             'polls_count': card_instance.polls_count,
@@ -1054,6 +1075,9 @@ class MemberCommunityHelper:
                             'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(card_instance.date_epoch),
                             'card_creation_time': TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(
                                 card_instance.date_epoch)}
+
+        if card_instance.card_instance.is_secret:
+            chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)
 
         if card_instance.og_tags:
             chatroom_context['og_tags'] = json.loads(card_instance.og_tags)
