@@ -250,7 +250,7 @@ class Userinfo(models.Model):
                 'success': False,
                 'error_message': f'Userinfo for user with id {user_id} does not exist'
             }
-            raise InvalidChatroomException(response)
+            raise CustomException(response)
 
     @staticmethod
     def get_userinfo_or_None(user_id):

@@ -487,7 +487,22 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         else:
             connection = get_connection()
             curr = connection.cursor()
-            sql = "select member_id_id, state from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=4 or state=9) "
+            sql = """
+                    SELECT 
+                        member_id_id,
+                        state
+                    FROM 
+                        togther_members
+                    WHERE 
+                        community_id_id=%s
+                        AND member_id_id !=%s
+                        AND 
+                        (
+                            state = 1 or
+                            state = 4 or
+                            state = 9
+                        )
+                  """
             parameter_list = [community_id, card_creater_id]
             curr.execute(sql, parameter_list)
             member_list = curr.fetchall()

@@ -1065,6 +1065,7 @@ class MemberCommunityHelper:
                             'date_time': card_instance.date_time,
                             'duration': card_instance.duration,
                             'is_pending': card_instance.is_pending,
+                            'is_secret': card_instance.is_secret,
                             'answers_count': card_instance.answers_count,
                             'attending_count': card_instance.attending_count,
                             'polls_count': card_instance.polls_count,
@@ -1074,6 +1075,9 @@ class MemberCommunityHelper:
                             'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(card_instance.date_epoch),
                             'card_creation_time': TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(
                                 card_instance.date_epoch)}
+
+        if card_instance.is_secret:
+            chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)
 
         if card_instance.og_tags:
             chatroom_context['og_tags'] = json.loads(card_instance.og_tags)
