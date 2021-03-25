@@ -4243,11 +4243,16 @@ def fetch_share_url(request):
         chatroom_share = {}
 
         if not card_instance.is_secret:
-
             share = get_share_url_text(card_instance, member_id)
             chatroom_share['share_url'] = share['share_url']
             chatroom_share['creator_share_url'] = share['creator_share_url']
             chatroom_share['link_created_at'] = share['link_created_at']
+                             
+        else:
+            chatroom_share['share_url'] = ''
+            chatroom_share['creator_share_url'] = ''
+            chatroom_share['link_created_at'] = ''
+
 
         return JsonResponse({'chatroom_share': chatroom_share, 'success': True})
 
