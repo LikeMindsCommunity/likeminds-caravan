@@ -504,6 +504,21 @@ class ChatroomImpl(ChatroomManager):
         self._save_external_seen_in_chatroom_state(card_instance, user_instance)
         self._save_latest_conversation_on_screen(card_instance)
 
+        can_access_secret_chatroom = False
+
+        if card_instance.is_secret and self.get_member_id() is not None:
+            member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
+            try:
+                can_access_secret_chatroom = member_id in json.loads(card_instance.secret_chatroom_participants)
+            except Exception as e:
+                response = {
+                    'success': False,
+                    'error_message': f"{e.args}"
+                }
+                raise CustomException(response, status_code=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        chatroom_obj['can_access_secret_chatroom'] = can_access_secret_chatroom
+
         return chatroom_obj
 
     def create_chatroom(self, req_body: dict) -> dict:
@@ -641,6 +656,9 @@ class ChatroomImpl(ChatroomManager):
 
         if not chatroom_instance:
             return {'error_message': "invalid chatroom id", 'success': False}
+
+        if chatroom_instance.is_secret:
+            return {'error_message': "secret chatroom cannot be pinned", 'success': False}
 
         community_instance = chatroom_instance.community
 

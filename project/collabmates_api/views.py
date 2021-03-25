@@ -4241,10 +4241,13 @@ def fetch_share_url(request):
             return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_share = {}
-        share = get_share_url_text(card_instance, member_id)
-        chatroom_share['share_url'] = share['share_url']
-        chatroom_share['creator_share_url'] = share['creator_share_url']
-        chatroom_share['link_created_at'] = share['link_created_at']
+
+        if not card_instance.is_secret:
+
+            share = get_share_url_text(card_instance, member_id)
+            chatroom_share['share_url'] = share['share_url']
+            chatroom_share['creator_share_url'] = share['creator_share_url']
+            chatroom_share['link_created_at'] = share['link_created_at']
 
         return JsonResponse({'chatroom_share': chatroom_share, 'success': True})
 
@@ -6316,6 +6319,14 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     context['chatroom_actions'] = chatroom_actions
     context['total_response_count'] = total_response_count
 
+    can_access_secret_chatroom = False
+
+    if card_instance.is_secret and user_id is not None:
+        user_id = NumberUtilities.get_integer_from_string(user_id)
+        can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+
+    context['can_access_secret_chatroom'] = can_access_secret_chatroom
+
     context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance)
 
     if card_instance.type != card_types.CARD_MASTER_INTRO:
@@ -6480,6 +6491,15 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
             context['placeholder'] = placeholder
 
     save_the_latest_conversation(card_instance, user_id)
+
+    can_access_secret_chatroom = False
+
+    if card_instance.is_secret and user_id is not None:
+        user_id = NumberUtilities.get_integer_from_string(user_id)
+        can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+
+    context['can_access_secret_chatroom'] = can_access_secret_chatroom
+
     return context
 
 
@@ -6597,8 +6617,16 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
             'user': user_instance,
             'card__type': card_types.CARD_INTRO,
             'state': 0}, {'state': 1,
-                         'external_seen': True,
-                         'expiry_time': get_expiry_time_of_chatroom()})
+                          'external_seen': True,
+                          'expiry_time': get_expiry_time_of_chatroom()})
+
+    can_access_secret_chatroom = False
+
+    if card_instance.is_secret and user_id is not None:
+        user_id = NumberUtilities.get_integer_from_string(user_id)
+        can_access_secret_chatroom = user_id in json.loads(card_instance.secret_chatroom_participants)
+
+    context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
     return context
 

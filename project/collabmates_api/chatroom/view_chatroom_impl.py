@@ -85,14 +85,14 @@ class PinUnpinChatroomView(APIView):
         req_body = PinUnpinChatroomViewHelper.validate_request_for_pin_unpin_chatroom(request)
 
         if req_body.get('error_message'):
-            return JsonResponse(req_body, status=400)
+            return JsonResponse(req_body, status=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_manager = ChatroomImpl(member_id, req_body['chatroom_id'])
 
         context = chatroom_manager.pin_or_unpin_chatroom(req_body)
 
         if context.get('error_message'):
-            return JsonResponse(context, status=400)
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(context)
 
@@ -105,16 +105,16 @@ class PinUnpinChatroomViewHelper:
         request_body = RequestUtilities.load_request_body(request)
 
         if not request_body:
-            return {'error_message': "Invalid request body", 'status': 400}
+            return {'error_message': "Invalid request body", 'status': status_codes.HTTP_400_BAD_REQUEST}
 
         if 'chatroom_id' not in request_body or not request_body['chatroom_id']:
-            return {'error_message': "send chatroom id", 'status': 400}
+            return {'error_message': "send chatroom id", 'status': status_codes.HTTP_400_BAD_REQUEST}
 
         if 'value' not in request_body:
-            return {'error_message': "send value in request body", 'status': 400}
+            return {'error_message': "send value in request body", 'status': status_codes.HTTP_400_BAD_REQUEST}
 
         if 'notify' not in request_body:
-            return {'error_message': "send notify status", 'status': 400}
+            return {'error_message': "send notify status", 'status': status_codes.HTTP_400_BAD_REQUEST}
 
         return request_body
 
