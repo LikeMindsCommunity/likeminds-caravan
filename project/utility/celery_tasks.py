@@ -13,6 +13,7 @@ from django.db.models import Q
 import json
 
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
+from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, chatroom_states
 
@@ -195,6 +196,22 @@ def fetch_new_chatroom_creater_images(member_id, community_id):
     return member_list
 
 
+def compute_last_seen_conversations_of_user(chatroom_id, user_list):
+
+    chatroom_user_filter = collabcardState.objects.filter(card=chatroom_id, user__in=user_list)
+
+    user_data_dict = dict()
+
+    for data in chatroom_user_filter:
+        key = str(chatroom_id) + "$" + str(data.user_id)
+        seen_id = data.last_seen_conversation_id
+
+        if key not in user_data_dict:
+            user_data_dict[key] = seen_id
+
+    return user_data_dict
+
+
 @shared_task
 def update_my_chatrooms_for_users(chatroom_id, user_id=None):
     conversation_engage_filter = conversationEngage.objects.filter(card_id=chatroom_id)
@@ -250,12 +267,14 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
 
     length = len(conversations)
 
+    user_data_dict = compute_last_seen_conversations_of_user(chatroom_id, user_list)
+
     for user in user_list:
 
-        has_seen = conversationMemberState.objects.filter(card_id=chatroom_id, user_id=user)
+        key = str(chatroom_id) + "$" + str(user)
+        seen_id = user_data_dict.get(key)
 
-        if has_seen.exists():
-            seen_id = has_seen[0].conversation.id
+        if seen_id:
             unseen_count = card_answers.objects.filter(card_id=chatroom_id, state=0, id__gt=seen_id).count()
             conversation_engage_filter.filter(user=user).update(
                 last_conversation=last_conversation,
@@ -281,6 +300,7 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
                 second_last_conversation_user=second_last_conversation_user
 
             )
+        update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user)
 
 
 def get_latest_conversation_members(chatroom_id):
