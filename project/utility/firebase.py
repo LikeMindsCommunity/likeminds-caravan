@@ -274,11 +274,12 @@ def upload_question_files(request=None, community_id=None, question_id=None, mem
         return JsonResponse({"success": True, "image_url": image_url})
 
 
-def update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id):
+def update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id, conversation_id=""):
 
     try:
         data = {
-            'chatroom_id': str(chatroom_id)
+            'chatroom_id': str(chatroom_id),
+            'conversation_id': conversation_id
         }
 
         database.child("users").child(user_id).update(data)

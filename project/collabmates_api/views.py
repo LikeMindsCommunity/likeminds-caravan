@@ -1481,6 +1481,7 @@ def post_introduction_card_for_community(community_id, member_id):
 
     return False
 
+
 def update_chatroom_conversation_homescreen(card_instance, user_instance):
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id)

@@ -300,7 +300,9 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
                 second_last_conversation_user=second_last_conversation_user
 
             )
-        update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user)
+
+        conversation_id = str(last_conversation.id) if last_conversation else ""
+        update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user, conversation_id)
 
 
 def get_latest_conversation_members(chatroom_id):
