@@ -119,3 +119,25 @@ class FetchHomeCommunities(APIView):
             return JsonResponse(response_context, status=status)
 
         return JsonResponse(community_context)
+
+
+class FetchChatroomHome(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        chatroom_id = request.GET.get('chatroom_id')
+
+        if not member_id:
+            return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
+
+        member_community_manager = MemberCommunityImpl(member_id, "")
+        chatroom_context = member_community_manager.fetch_chatroom_home(chatroom_id)
+
+        if 'error_message' in chatroom_context:
+            response_context = {'error_message': chatroom_context['error_message']}
+            status = chatroom_context['status']
+
+            return JsonResponse(response_context, status=status)
+
+        return JsonResponse(chatroom_context)
