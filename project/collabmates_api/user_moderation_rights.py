@@ -61,7 +61,7 @@ def give_default_member_rights(user, community):
     rights_added = json.dumps(rights_added)
 
     Member_Engage.objects.filter(member_id=user,
-                                 community_id=community).update(rights_list=rights_list,
+                                 community_id=community).update(rights_list=rights_added,
                                                                 updated_at=TimeUtilities.current_time_in_sec())
 
     conversationEngage.objects.filter(user=user,
