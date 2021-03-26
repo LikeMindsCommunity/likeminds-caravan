@@ -2071,14 +2071,17 @@ def edit_member_profile(request):
 
     # getting the collabcard Id for introduction card
     collabcard_id = 0
+    intro_card = None
+
     for answer in answer_filter:
         if answer.question.question_state == question_states.INTRODUCTION:
 
             collabcard_filter = Collabcard.objects.filter(community=community_instance,
                                                           user=user_instance, title=answer.question_answer)
 
-            if collabcard_filter.exists():
+            if collabcard_filter:
                 collabcard_id = collabcard_filter[0].id
+                intro_card = collabcard_filter[0]
 
     delete_filters = questionFilters.objects.filter(member=user_instance, community=community_instance).delete()
     delete_answers = answer_filter.delete()
@@ -2138,9 +2141,28 @@ def edit_member_profile(request):
 
     if 'image_url' in res and res['image_url']:
         member_filter.update(image_url=res['image_url'], updated_at=TimeUtilities.current_time_in_sec())
-        ModelUtilities.model_update(Card_Attachment,
-                                    {'collabcard_id': collabcard_id},
-                                    {'file_url': res['image_url']})
+
+        if intro_card:
+
+            file_filter = ModelUtilities.get_model_filter(Card_Attachment,
+                                                          {'collabcard_id': intro_card})
+
+            if file_filter:
+                card_file_instance = file_filter[0]
+                card_file_instance.image_url = res['image_url']
+                card_file_instance.save()
+
+            else:
+                save_chatroom_attachments(intro_card, body={
+                    'url': res['image_url'],
+                    'type': "image",
+                    'index': 1
+                })
+                ModelUtilities.model_update(Collabcard, {'id': intro_card.id},
+                                            {'has_files': True, 'attachment_count': 1,
+                                             'attachments_uploaded': True})
+
+            update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': intro_card}, {})
         update_preview = True
 
     # posting a introduction collabcard
