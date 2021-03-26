@@ -2567,11 +2567,9 @@ def remove_members(community_id, member_id, removed_state):
     # removing the created chatrooms
     intro_chatroom = Collabcard.objects.filter(community=community_id, user=member_id,
                                                type=card_types.CARD_INTRO)
-    if intro_chatroom:
-        intro_room_instance = intro_chatroom[0]
-        ModelUtilities.model_update(Card_Attachment, {'collabcard': intro_room_instance},
-                                    {'file_url': REMOVED_USER_URL, 'index': 1})
-        update_multiple_previews_in_chatroom.delay({'chatroom_id': intro_room_instance.id})
+    if intro_chatroom.exists():
+        create_chatroom_delete_backup(intro_chatroom[0], user_instance, removing_member=True)
+        intro_chatroom.delete()
 
     # removing the draft chatrooms
     draft_removed = draftChatroom.objects.filter(community=community_id, user=member_id).delete()
