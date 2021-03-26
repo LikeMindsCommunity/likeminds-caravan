@@ -3477,6 +3477,10 @@ def create_card_internal(user_id, community_id, res):
     card_type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
     is_intro_card = card_type == card_types.CARD_INTRO
 
+    if res.get('is_secret', False) and res["member_state"] != member_states.ADMIN:
+        context = get_error_context(False, "Only a CM can create a secret chatroom")
+        return context
+
     has_auto_approve_right = check_member_auto_approve_right(user=user_instance,
                                                              community=community_instance)
     card_instance = create_chatroom_instance(res, community_instance, user_instance,
@@ -7899,7 +7903,7 @@ def collabcard_follow(request, function_dict=None):
 
 
 def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN,
-                               set_expiry_time_none=False):
+                               set_expiry_time_none=False, external_seen=True):
 
     """ folowing collabcard internally """
 
@@ -7938,7 +7942,8 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                {'is_tagged': False, 'mute_status': False})
             return
 
-        expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0])
+        expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0]) if not set_expiry_time_none else None
+
         if is_guest:
 
             update_models_for_syncing_apis(SyncTypes.CHATROOM,
@@ -7950,7 +7955,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                'source': ref_instance,
                                                'expiry_time': expiry_time,
                                                'is_tagged': is_tagged,
-                                               'external_seen': True,
+                                               'external_seen': external_seen,
                                                'mute_status': mute_status,
                                            })
 
@@ -7962,7 +7967,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                'follow_status': status,
                                                'expiry_time': expiry_time,
                                                'is_tagged': is_tagged,
-                                               'external_seen': True,
+                                               'external_seen': external_seen,
                                                'mute_status': mute_status,
                                                'state': state
                                            })
@@ -7975,7 +7980,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
             mute_status = False
         expiry_time = get_expiry_time_of_chatroom() if not set_expiry_time_none else None
         create_chatroom_state_instance(card_instance, user_instance, state=0,
-                                       expire_at=expiry_time, external_seen=True, is_guest=is_guest,
+                                       expire_at=expiry_time, external_seen=external_seen, is_guest=is_guest,
                                        source=ref_instance, follow_status=status,
                                        mute_status=mute_status, is_tagged=is_tagged,
                                        function_called="collabcard_follow_internal")

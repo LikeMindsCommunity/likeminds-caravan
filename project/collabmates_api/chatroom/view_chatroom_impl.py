@@ -25,7 +25,7 @@ class FetchChatroomView(APIView):
         return JsonResponse(chatroom_data)
 
 
-class CreateChatroomView(APIView):
+class CreateChatroomView(TransactionMixin, APIView):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -42,15 +42,10 @@ class CreateChatroomView(APIView):
         chatroom_manager = ChatroomImpl(member_id)
         context = chatroom_manager.create_chatroom(req_body)
 
-        member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
-        chatroom_obj = GetChatroomInstanceSerializer(context['room_instance'], context=member_data, many=False)
-
-        return JsonResponse({'success': True,
-                             'chatroom': context['chatroom'],
-                             'chatroom_local': chatroom_obj.data})
+        return JsonResponse(context)
 
 
-class SetChatroomActiveView(APIView):
+class SetChatroomActiveView(TransactionMixin, APIView):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -70,7 +65,7 @@ class SetChatroomActiveView(APIView):
         return JsonResponse(context)
 
 
-class PinUnpinChatroomView(APIView):
+class PinUnpinChatroomView(TransactionMixin, APIView):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):

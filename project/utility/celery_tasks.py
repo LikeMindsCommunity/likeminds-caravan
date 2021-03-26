@@ -87,10 +87,12 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
     '''function to update the unseen  collabcard in engage'''
 
     total_chatrooms = collabcardState.objects.filter(community=community, user=user,
-                                                     card__is_deleted=False).exclude(card__type=1).distinct(
+                                                     card__is_deleted=False,
+                                                     secret_chatroom_left=False).exclude(card__type=1).distinct(
         'card_id').count()
     seen_chatrooms = collabcardState.objects.filter(community=community, user=user, external_seen=True,
-                                                    card__is_deleted=False).exclude(card__type=1).distinct(
+                                                    card__is_deleted=False,
+                                                    secret_chatroom_left=False).exclude(card__type=1).distinct(
         'card').count()
 
     diff = total_chatrooms - seen_chatrooms
@@ -129,7 +131,8 @@ def get_new_chatroom_members(member_id, community_id):
     """ to get the member objects for new chatrooms created """
 
     last_instance = collabcardState.objects.filter(user=member_id, community=community_id,
-                                                   card__is_deleted=False).filter(~Q(state=0)).last()
+                                                   card__is_deleted=False,
+                                                   secret_chatroom_left=False).filter(~Q(state=0)).last()
 
     if last_instance:
         last_card = last_instance.card
@@ -164,7 +167,8 @@ def get_new_chatroom_members(member_id, community_id):
 def fetch_new_chatroom_creater_images(member_id, community_id):
     unseen_chatrooms = collabcardState.objects.filter(user=member_id, community_id=community_id,
                                                       external_seen=False,
-                                                      card__is_deleted=False).exclude(card__type=1).distinct('card')
+                                                      card__is_deleted=False,
+                                                      secret_chatroom_left=False).exclude(card__type=1).distinct('card')
 
     member_set = set()
     member_list = []

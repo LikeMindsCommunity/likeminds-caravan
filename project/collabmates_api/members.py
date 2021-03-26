@@ -514,6 +514,11 @@ def get_all_members_version_1(request, req_dict=None):
     context['total_members'] = community['members_count']
     context['total_filtered_members'] = total_filtered_members
 
+    if NumberUtilities.get_integer_from_string(page) == 1:
+        context['total_only_members'] = Members.objects\
+            .filter(community_id=community_instance, state=member_states.MEMBER)\
+            .count()
+
     if promoter_instance:
         pending_members = pending_members_count_in_community(community_instance, current_user_instance)
 
@@ -521,6 +526,7 @@ def get_all_members_version_1(request, req_dict=None):
             context['total_pending_members'] = pending_members
 
     return context
+
 
 def pending_members_count_in_community(community_instance, user_instance):
 
@@ -838,7 +844,6 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1):
         is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
 
     member_list = get_paginated_member_queryset(page=page,community_id=community_id,promoter=is_promoter)
-
 
     return member_list
 
