@@ -343,6 +343,17 @@ def get_secret_chatroom_participants(chatroom_instance, community_id, current_us
     is_parent_to_creator = False
 
     if current_user_member_instance is None:
+        user_member_instance = Members.objects \
+            .filter(community_id=community_instance,
+                    member_id__id=current_user_id) \
+            .prefetch_related('member_id')
+
+        if user_member_instance.exists():
+            current_user_member_instance = user_member_instance[0]
+
+    if current_user_member_instance is not None:
+
+        is_owner = current_user_member_instance.is_owner
 
         current_user_member_instance = Members.objects \
             .filter(community_id=community_instance,

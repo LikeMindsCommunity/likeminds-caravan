@@ -31,6 +31,7 @@ def save_community_purpose_card(community_id, card_id):
 
 @shared_task
 def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, **kwargs):
+
     card_instance = Collabcard.objects.get(id=card_id)
     all_members = Members.objects \
         .filter(community_id=community_id) \

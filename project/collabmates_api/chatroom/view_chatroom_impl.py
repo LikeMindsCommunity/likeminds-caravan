@@ -25,7 +25,7 @@ class FetchChatroomView(APIView):
         return JsonResponse(chatroom_data)
 
 
-class CreateChatroomView(TransactionMixin, APIView):
+class CreateChatroomView(APIView):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -65,7 +65,7 @@ class SetChatroomActiveView(TransactionMixin, APIView):
         return JsonResponse(context)
 
 
-class PinUnpinChatroomView(TransactionMixin, APIView):
+class PinUnpinChatroomView(APIView):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
