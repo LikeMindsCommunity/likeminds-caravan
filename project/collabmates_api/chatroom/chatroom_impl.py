@@ -596,10 +596,11 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_instance.is_secret:
             participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
             room_creator_id = NumberUtilities.get_integer_from_string(self.get_member_id())
-            ChatroomHelper.auto_follow_secret_room_participants.delay(participants_list,
-                                                                      self.get_chatroom_id(),
-                                                                      community_id,
-                                                                      room_creator_id=room_creator_id)
+
+            ChatroomHelper.auto_follow_secret_room_participants(participants_list,
+                                                                self.get_chatroom_id(),
+                                                                community_id,
+                                                                room_creator_id=room_creator_id)
 
         self._send_follow_notifications_to_event_co_hosts(req_body, chatroom_name,
                                                           user_instance.userinfo.name)
@@ -802,10 +803,25 @@ class ChatroomImpl(ChatroomManager):
         self._save_chatroom_instance(chatroom_instance)
 
         new_participants_list = set(secret_chatroom_participants) - set(existing_participants)
+        
+        # updating all secret chatroom participants
+        filter_dict = {
+            'card': chatroom_instance,
+            'user__id__in': new_participants_list
+        }
 
-        ChatroomHelper.add_new_secret_chatroom_participants.delay(new_participants_list,
-                                                                  self.get_chatroom_id(),
-                                                                  self.get_member_id())
+        update_dict = {
+            'secret_chatroom_left': False,
+            'updated_at': TimeUtilities.current_time_in_sec()
+        }
+
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       filter_dict=filter_dict,
+                                       update_dict=update_dict)
+
+        ChatroomHelper.add_new_secret_chatroom_participants(new_participants_list,
+                                                            chatroom_instance,
+                                                            self.get_member_id())
 
         # updating all secret chatroom participants
         filter_dict = {
@@ -932,29 +948,25 @@ class ChatroomHelper:
 
     @staticmethod
     @shared_task
-    def add_new_secret_chatroom_participants(participants_list, chatroom_id, current_user_id):
+    def add_new_secret_chatroom_participants(participants_list, chatroom_instance, current_user_id):
 
         new_participants = User.objects.filter(pk__in=participants_list)
 
-        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
-
-        if chatroom_instance is None:
-            return
-
         for user in new_participants:
 
-            req_dict = ChatroomHelper.get_follow_user_dict(user.id,chatroom_id,
+            req_dict = ChatroomHelper.get_follow_user_dict(user.id, chatroom_instance.id,
                                                            is_tagged=False, status=True,
                                                            source="create_chatroom")
+
             collabcard_follow_internal(req_dict, state=collabcard_states.COLLABCARD_STATE_UNSEEN,
                                        external_seen=False,
                                        set_expiry_time_none=True)
-
-            update_last_unseen_in_engage(user=user.id, community=chatroom_instance.community_id)
 
             if user.id != NumberUtilities.get_integer_from_string(current_user_id):
                 ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=user,
                                              state=chatroom_states.CHATROOM_ADD_PARTICIPANT,
                                              current_user_id=current_user_id)
 
-            send_notification_for_new_secret_room_participant(user.id, chatroom_id)
+            update_last_unseen_in_engage(user=user.id, community=chatroom_instance.community_id)
+
+            send_notification_for_new_secret_room_participant(user.id, chatroom_instance.id)
