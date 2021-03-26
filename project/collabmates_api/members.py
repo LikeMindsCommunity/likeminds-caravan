@@ -342,12 +342,20 @@ def get_secret_chatroom_participants(chatroom_instance, community_id, current_us
     is_room_creator = current_user_id == chatroom_instance.user.id
     is_parent_to_creator = False
 
-    if current_user_member_instance is not None:
-        is_owner = current_user_member_instance.is_owner
+    if current_user_member_instance is None:
 
-        if current_user_member_instance.parent_cm_list is not None:
-            parent_list = json.loads(current_user_member_instance.parent_cm_list)
-            is_parent_to_creator = current_user_id in parent_list
+        current_user_member_instance = Members.objects \
+            .filter(community_id=community_instance,
+                    member_id__id=current_user_id) \
+            .prefetch_related('member_id')
+
+        if current_user_member_instance.exists():
+            current_user_member_instance = current_user_member_instance[0]
+            is_owner = current_user_member_instance.is_owner
+
+            if current_user_member_instance.parent_cm_list is not None:
+                parent_list = json.loads(current_user_member_instance.parent_cm_list)
+                is_parent_to_creator = current_user_id in parent_list
 
     if is_owner or is_room_creator or is_parent_to_creator:
         can_edit_participant = True
