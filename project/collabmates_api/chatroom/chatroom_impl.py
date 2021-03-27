@@ -597,10 +597,10 @@ class ChatroomImpl(ChatroomManager):
             participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
             room_creator_id = NumberUtilities.get_integer_from_string(self.get_member_id())
 
-            ChatroomHelper.auto_follow_secret_room_participants(participants_list,
-                                                                self.get_chatroom_id(),
-                                                                community_id,
-                                                                room_creator_id=room_creator_id)
+            ChatroomHelper.auto_follow_secret_room_participants.delay(participants_list,
+                                                                      self.get_chatroom_id(),
+                                                                      community_id,
+                                                                      room_creator_id=room_creator_id)
 
         self._send_follow_notifications_to_event_co_hosts(req_body, chatroom_name,
                                                           user_instance.userinfo.name)
@@ -802,7 +802,7 @@ class ChatroomImpl(ChatroomManager):
 
         self._save_chatroom_instance(chatroom_instance)
 
-        new_participants_list = set(secret_chatroom_participants) - set(existing_participants)
+        new_participants_list = list(set(secret_chatroom_participants) - set(existing_participants))
         
         # updating all secret chatroom participants
         filter_dict = {
@@ -819,9 +819,9 @@ class ChatroomImpl(ChatroomManager):
                                        filter_dict=filter_dict,
                                        update_dict=update_dict)
 
-        ChatroomHelper.add_new_secret_chatroom_participants(new_participants_list,
-                                                            chatroom_instance,
-                                                            self.get_member_id())
+        ChatroomHelper.add_new_secret_chatroom_participants.delay(new_participants_list,
+                                                                  self.get_chatroom_id(),
+                                                                  self.get_member_id())
 
         # updating all secret chatroom participants
         filter_dict = {
@@ -948,7 +948,12 @@ class ChatroomHelper:
 
     @staticmethod
     @shared_task
-    def add_new_secret_chatroom_participants(participants_list, chatroom_instance, current_user_id):
+    def add_new_secret_chatroom_participants(participants_list, chatroom_id, current_user_id):
+
+        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+        if chatroom_instance is None:
+            return
 
         new_participants = User.objects.filter(pk__in=participants_list)
 
