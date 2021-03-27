@@ -5,9 +5,10 @@ from typing import Union
 from rest_framework import status as status_codes
 from django.contrib.auth.models import User
 from django.db.models import Q
-
+from celery import shared_task
 from utility.string_utilities import StringUtilities
 from ..chatroom.chatroom_manager import ChatroomManager
+from ..rest_api import GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, get_chatroom_instance, CommunitySerializer,
                            CollabcardSerializer, UserinfoSerializer, HOURS_24)
 from ..sync.model_update import update_models_for_syncing_apis
@@ -34,7 +35,7 @@ from utility.request_utilities import RequestUtilities
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation, get_chatroom_user_images_for_web, \
-    schedule_chatroom_unpinning_after_event_completion
+    schedule_chatroom_unpinning_after_event_completion, update_last_unseen_in_engage
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (InvalidUserException, InvalidCommunityException,
                                          InvalidHeaderException, CustomException)
@@ -230,7 +231,9 @@ class ChatroomImpl(ChatroomManager):
 
     def _fill_secret_room_details(self, card_content, req_body, community):
 
-        if req_body.get("is_secret", False) and \
+        card_content['is_secret'] = req_body.get("is_secret", False)
+
+        if card_content['is_secret'] and \
                 req_body.get("secret_chatroom_participants", None):
             card_content['is_secret'] = True
 
@@ -504,6 +507,21 @@ class ChatroomImpl(ChatroomManager):
         self._save_external_seen_in_chatroom_state(card_instance, user_instance)
         self._save_latest_conversation_on_screen(card_instance)
 
+        can_access_secret_chatroom = False
+
+        if card_instance.is_secret and self.get_member_id() is not None:
+            member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
+            try:
+                can_access_secret_chatroom = member_id in json.loads(card_instance.secret_chatroom_participants)
+            except Exception as e:
+                response = {
+                    'success': False,
+                    'error_message': f"{e.args}"
+                }
+                raise CustomException(response, status_code=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        chatroom_obj['can_access_secret_chatroom'] = can_access_secret_chatroom
+
         return chatroom_obj
 
     def create_chatroom(self, req_body: dict) -> dict:
@@ -554,6 +572,13 @@ class ChatroomImpl(ChatroomManager):
 
         card_content['member_state'] = member_state
 
+        if card_content['is_secret'] and member_state != member_states.ADMIN:
+            response = {
+                "success": False,
+                "error_message": "Only CM can create a secret chatroom"
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
         chatroom_instance = self._create_chatroom_with_contents(card_content=card_content)
         self.set_chatroom_id(chatroom_instance.id)
 
@@ -570,7 +595,12 @@ class ChatroomImpl(ChatroomManager):
 
         if chatroom_instance.is_secret:
             participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
-            self._send_follow_notifications_to_secret_room_participants(participants_list)
+            room_creator_id = NumberUtilities.get_integer_from_string(self.get_member_id())
+
+            ChatroomHelper.auto_follow_secret_room_participants.delay(participants_list,
+                                                                      self.get_chatroom_id(),
+                                                                      community_id,
+                                                                      room_creator_id=room_creator_id)
 
         self._send_follow_notifications_to_event_co_hosts(req_body, chatroom_name,
                                                           user_instance.userinfo.name)
@@ -590,9 +620,11 @@ class ChatroomImpl(ChatroomManager):
             schedule_chatroom_unpinning_after_event_completion(chatroom_instance)
 
         context = {
+            'success': True,
             'chatroom': ChatroomHelper.fetch_serialized_chatroom(self.get_member_id(), chatroom_instance,
                                                                  community_instance, user_instance.userinfo),
-            'room_instance': chatroom_instance
+            'chatroom_local': ChatroomHelper.fetch_serialized_chtroom_for_local_db_sycing(self.get_member_id(),
+                                                                                          chatroom_instance)
         }
 
         return context
@@ -641,6 +673,9 @@ class ChatroomImpl(ChatroomManager):
 
         if not chatroom_instance:
             return {'error_message': "invalid chatroom id", 'success': False}
+
+        if chatroom_instance.is_secret:
+            return {'error_message': "secret chatroom cannot be pinned", 'success': False}
 
         community_instance = chatroom_instance.community
 
@@ -708,7 +743,16 @@ class ChatroomImpl(ChatroomManager):
 
         # removing member id from secret_chatroom_participants list
         existing_participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
-        existing_participants_list.remove(NumberUtilities.get_integer_from_string(member_id))
+        member_id = NumberUtilities.get_integer_from_string(member_id)
+
+        if member_id in existing_participants_list:
+            existing_participants_list.remove(member_id)
+        else:
+            response = {
+                'success': False,
+                'error_message': f'member with id {member_id} is not a participant of this secret chatroom'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
         chatroom_instance.secret_chatroom_participants = existing_participants_list
 
@@ -741,19 +785,31 @@ class ChatroomImpl(ChatroomManager):
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        filter_dict=filter_dict,
                                        update_dict=update_dict)
-        
+
         # deleting conversation engage for this chatroom for this user
         conversationEngage.objects.filter(card=chatroom_instance, user=user_instance).delete()
 
         ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=user_instance,
                                      state=chatroom_state, current_user_id=self.get_member_id())
 
+        update_last_unseen_in_engage(user=member_id, community=chatroom_instance.community_id)
+
         if chatroom_state == chatroom_states.REMOVED_FROM_CHATROOM:
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
     def add_secret_chatroom_participant(self, req_body: dict) -> dict:
 
-        secret_chatroom_participants = req_body.get('secret_chatroom_participants')
+        secret_chatroom_participants = req_body.get('secret_chatroom_participants', None)
+
+        if secret_chatroom_participants is None:
+            response = {
+                'success': False,
+                'error_message': 'send secret_chatroom_participants in body'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
+        if len(secret_chatroom_participants) <= 0:
+            return {'success': True}
 
         chatroom_instance = Collabcard.get_chatroom_or_raise_exception(self.get_chatroom_id())
 
@@ -765,23 +821,29 @@ class ChatroomImpl(ChatroomManager):
 
         self._save_chatroom_instance(chatroom_instance)
 
-        new_participants_list = set(secret_chatroom_participants) - set(existing_participants)
+        new_participants_list = list(set(secret_chatroom_participants) - set(existing_participants))
 
-        new_participants = User.objects.filter(pk__in=new_participants_list)
+        if len(new_participants_list) <= 0:
+            return {'success': True}
+        
+        # updating all secret chatroom participants
+        filter_dict = {
+            'card': chatroom_instance,
+            'user__id__in': new_participants_list
+        }
 
-        for user in new_participants:
+        update_dict = {
+            'secret_chatroom_left': False,
+            'updated_at': TimeUtilities.current_time_in_sec()
+        }
 
-            req_dict = ChatroomHelper.get_follow_user_dict(user.id, self.get_chatroom_id(),
-                                                           is_tagged=False, status=True,
-                                                           source="create_chatroom")
-            collabcard_follow_internal(req_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       filter_dict=filter_dict,
+                                       update_dict=update_dict)
 
-            if user.id != NumberUtilities.get_integer_from_string(self.get_member_id()):
-                ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=user,
-                                             state=chatroom_states.CHATROOM_ADD_PARTICIPANT,
-                                             current_user_id=self.get_member_id())
-
-            send_notification_for_new_secret_room_participant.delay(user.id, self.get_chatroom_id())
+        ChatroomHelper.add_new_secret_chatroom_participants.delay(new_participants_list,
+                                                                  self.get_chatroom_id(),
+                                                                  self.get_member_id())
 
         # updating all secret chatroom participants
         filter_dict = {
@@ -852,6 +914,14 @@ class ChatroomHelper:
         return chatroom
 
     @staticmethod
+    def fetch_serialized_chtroom_for_local_db_sycing(member_id, chatroom_instance):
+        member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
+        chatroom_obj = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
+
+        return chatroom_obj.data
+
+
+    @staticmethod
     def fetch_serialized_user_info(user_info_instance: object):
         return UserinfoSerializer(user_info_instance)
 
@@ -884,3 +954,46 @@ class ChatroomHelper:
     def create_answer(chatroom_instance, user_instance, state, answer=None, current_user_id=None):
         create_chatroom(chatroom_instance, user_instance, state,
                         current_user_id=current_user_id, answer=answer)
+
+    @staticmethod
+    @shared_task
+    def auto_follow_secret_room_participants(participants_list, chatroom_id, community_id, room_creator_id):
+        for user_id in participants_list:
+            req_dict = ChatroomHelper.get_follow_user_dict(user_id, chatroom_id,
+                                                           is_tagged=False, status=True,
+                                                           source="create_chatroom")
+            collabcard_follow_internal(req_dict,
+                                       state=collabcard_states.COLLABCARD_STATE_SEEN,
+                                       external_seen=user_id == room_creator_id,
+                                       set_expiry_time_none=True)
+            update_last_unseen_in_engage(user=user_id, community=community_id)
+
+    @staticmethod
+    @shared_task
+    def add_new_secret_chatroom_participants(participants_list, chatroom_id, current_user_id):
+
+        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+        if chatroom_instance is None:
+            return
+
+        new_participants = User.objects.filter(pk__in=participants_list)
+
+        for user in new_participants:
+
+            req_dict = ChatroomHelper.get_follow_user_dict(user.id, chatroom_instance.id,
+                                                           is_tagged=False, status=True,
+                                                           source="create_chatroom")
+
+            collabcard_follow_internal(req_dict, state=collabcard_states.COLLABCARD_STATE_UNSEEN,
+                                       external_seen=False,
+                                       set_expiry_time_none=True)
+
+            if user.id != NumberUtilities.get_integer_from_string(current_user_id):
+                ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=user,
+                                             state=chatroom_states.CHATROOM_ADD_PARTICIPANT,
+                                             current_user_id=current_user_id)
+
+            update_last_unseen_in_engage(user=user.id, community=chatroom_instance.community_id)
+
+            send_notification_for_new_secret_room_participant(user.id, chatroom_instance.id)

@@ -237,6 +237,7 @@ class Userinfo(models.Model):
     image_link = models.CharField(max_length=500, null=True)
     apple_id = models.CharField(max_length=100, null=True)
     has_tags = models.BooleanField(default=False)
+    updated_at = models.BigIntegerField(default=0)
 
     def __str__(self):
         return self.name
@@ -266,6 +267,17 @@ class Userinfo(models.Model):
             return instance.name
         except:
             return None
+
+    def save(self, *args, **kwargs):
+
+        current_time = TimeUtilities.current_time_in_sec()
+
+        if self.created_at < 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(Userinfo, self).save(*args, **kwargs)
 
 
 # Collabcard Report Module

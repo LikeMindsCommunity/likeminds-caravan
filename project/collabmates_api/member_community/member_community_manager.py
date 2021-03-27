@@ -10,7 +10,8 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_feed') and callable(subclass.fetch_feed)) and
                 (hasattr(subclass, 'fetch_home_communities') and callable(subclass.fetch_home_communities)) and
                 (hasattr(subclass, 'fetch_feed_meta') and callable(subclass.fetch_feed_meta)) and
-                (hasattr(subclass, 'fetch_feed_web') and callable(subclass.fetch_feed_web)) or
+                (hasattr(subclass, 'fetch_feed_web') and callable(subclass.fetch_feed_web)) and
+                (hasattr(subclass, 'fetch_chatroom_home') and callable(subclass.fetch_chatroom_home)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -52,3 +53,8 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    def fetch_chatroom_home(self, chatroom_id) -> {}:
+        """
+        fetches the chatroom home data for particular id
+        """
+        raise NotImplementedError

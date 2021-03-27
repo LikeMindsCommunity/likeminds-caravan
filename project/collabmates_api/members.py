@@ -342,12 +342,31 @@ def get_secret_chatroom_participants(chatroom_instance, community_id, current_us
     is_room_creator = current_user_id == chatroom_instance.user.id
     is_parent_to_creator = False
 
+    if current_user_member_instance is None:
+        user_member_instance = Members.objects \
+            .filter(community_id=community_instance,
+                    member_id__id=current_user_id) \
+            .prefetch_related('member_id')
+
+        if user_member_instance.exists():
+            current_user_member_instance = user_member_instance[0]
+
     if current_user_member_instance is not None:
+
         is_owner = current_user_member_instance.is_owner
 
-        if current_user_member_instance.parent_cm_list is not None:
-            parent_list = json.loads(current_user_member_instance.parent_cm_list)
-            is_parent_to_creator = current_user_id in parent_list
+        current_user_member_instance = Members.objects \
+            .filter(community_id=community_instance,
+                    member_id__id=current_user_id) \
+            .prefetch_related('member_id')
+
+        if current_user_member_instance.exists():
+            current_user_member_instance = current_user_member_instance[0]
+            is_owner = current_user_member_instance.is_owner
+
+            if current_user_member_instance.parent_cm_list is not None:
+                parent_list = json.loads(current_user_member_instance.parent_cm_list)
+                is_parent_to_creator = current_user_id in parent_list
 
     if is_owner or is_room_creator or is_parent_to_creator:
         can_edit_participant = True
@@ -514,6 +533,11 @@ def get_all_members_version_1(request, req_dict=None):
     context['total_members'] = community['members_count']
     context['total_filtered_members'] = total_filtered_members
 
+    if NumberUtilities.get_integer_from_string(page) == 1:
+        context['total_only_members'] = Members.objects\
+            .filter(community_id=community_instance, state=member_states.MEMBER)\
+            .count()
+
     if promoter_instance:
         pending_members = pending_members_count_in_community(community_instance, current_user_instance)
 
@@ -521,6 +545,7 @@ def get_all_members_version_1(request, req_dict=None):
             context['total_pending_members'] = pending_members
 
     return context
+
 
 def pending_members_count_in_community(community_instance, user_instance):
 
@@ -838,7 +863,6 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1):
         is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
 
     member_list = get_paginated_member_queryset(page=page,community_id=community_id,promoter=is_promoter)
-
 
     return member_list
 

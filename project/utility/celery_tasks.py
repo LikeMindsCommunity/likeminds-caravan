@@ -13,6 +13,7 @@ from django.db.models import Q
 import json
 
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
+from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, chatroom_states
 
@@ -30,6 +31,7 @@ def save_community_purpose_card(community_id, card_id):
 
 @shared_task
 def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, **kwargs):
+
     card_instance = Collabcard.objects.get(id=card_id)
     all_members = Members.objects \
         .filter(community_id=community_id) \
@@ -86,10 +88,12 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
     '''function to update the unseen  collabcard in engage'''
 
     total_chatrooms = collabcardState.objects.filter(community=community, user=user,
-                                                     card__is_deleted=False).exclude(card__type=1).distinct(
+                                                     card__is_deleted=False,
+                                                     secret_chatroom_left=False).exclude(card__type=1).distinct(
         'card_id').count()
     seen_chatrooms = collabcardState.objects.filter(community=community, user=user, external_seen=True,
-                                                    card__is_deleted=False).exclude(card__type=1).distinct(
+                                                    card__is_deleted=False,
+                                                    secret_chatroom_left=False).exclude(card__type=1).distinct(
         'card').count()
 
     diff = total_chatrooms - seen_chatrooms
@@ -128,7 +132,8 @@ def get_new_chatroom_members(member_id, community_id):
     """ to get the member objects for new chatrooms created """
 
     last_instance = collabcardState.objects.filter(user=member_id, community=community_id,
-                                                   card__is_deleted=False).filter(~Q(state=0)).last()
+                                                   card__is_deleted=False,
+                                                   secret_chatroom_left=False).filter(~Q(state=0)).last()
 
     if last_instance:
         last_card = last_instance.card
@@ -163,7 +168,8 @@ def get_new_chatroom_members(member_id, community_id):
 def fetch_new_chatroom_creater_images(member_id, community_id):
     unseen_chatrooms = collabcardState.objects.filter(user=member_id, community_id=community_id,
                                                       external_seen=False,
-                                                      card__is_deleted=False).exclude(card__type=1).distinct('card')
+                                                      card__is_deleted=False,
+                                                      secret_chatroom_left=False).exclude(card__type=1).distinct('card')
 
     member_set = set()
     member_list = []
@@ -193,6 +199,22 @@ def fetch_new_chatroom_creater_images(member_id, community_id):
             break
 
     return member_list
+
+
+def compute_last_seen_conversations_of_user(chatroom_id, user_list):
+
+    chatroom_user_filter = collabcardState.objects.filter(card=chatroom_id, user__in=user_list)
+
+    user_data_dict = dict()
+
+    for data in chatroom_user_filter:
+        key = str(chatroom_id) + "$" + str(data.user_id)
+        seen_id = data.last_seen_conversation_id
+
+        if key not in user_data_dict:
+            user_data_dict[key] = seen_id
+
+    return user_data_dict
 
 
 @shared_task
@@ -250,12 +272,14 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
 
     length = len(conversations)
 
+    user_data_dict = compute_last_seen_conversations_of_user(chatroom_id, user_list)
+
     for user in user_list:
 
-        has_seen = conversationMemberState.objects.filter(card_id=chatroom_id, user_id=user)
+        key = str(chatroom_id) + "$" + str(user)
+        seen_id = user_data_dict.get(key)
 
-        if has_seen.exists():
-            seen_id = has_seen[0].conversation.id
+        if seen_id:
             unseen_count = card_answers.objects.filter(card_id=chatroom_id, state=0, id__gt=seen_id).count()
             conversation_engage_filter.filter(user=user).update(
                 last_conversation=last_conversation,
@@ -281,6 +305,9 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
                 second_last_conversation_user=second_last_conversation_user
 
             )
+
+        conversation_id = str(last_conversation.id) if last_conversation else ""
+        update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user, conversation_id)
 
 
 def get_latest_conversation_members(chatroom_id):
