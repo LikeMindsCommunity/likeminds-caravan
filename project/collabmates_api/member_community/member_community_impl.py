@@ -240,6 +240,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
                                                                user=self.get_member_id(),
+                                                               secret_chatroom_left=False,
                                                                card_id__lt=chatroom_id).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
@@ -248,6 +249,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                user=self.get_member_id(),
+                                                               secret_chatroom_left=False,
                                                                card_id__lt=chatroom_id).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
@@ -262,6 +264,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
                                                                user=self.get_member_id(),
+                                                               secret_chatroom_left=False,
                                                                card__id__gte=last_seen_id).select_related('card',
                                                                                                           'card__user'). \
                                     exclude(card__type=card_types.CARD_INTRO).order_by('card_id')[:limit_size]
@@ -270,6 +273,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                user=self.get_member_id(),
+                                                               secret_chatroom_left=False,
                                                                card__id__gte=last_seen_id).select_related('card',
                                                                                                           'card__user'). \
                                     exclude(card__type=card_types.CARD_INTRO).order_by('card_id')[:limit_size]
@@ -283,6 +287,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
+                                                               secret_chatroom_left=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
@@ -290,6 +295,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
+                                                               secret_chatroom_left=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
@@ -303,6 +309,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
+                                                               secret_chatroom_left=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')
@@ -310,6 +317,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
+                                                               secret_chatroom_left=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
@@ -338,12 +346,14 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
+                                                               secret_chatroom_left=False,
                                                                user=self.get_member_id()).exclude(
                 card__type=card_types.CARD_INTRO).only('card', 'state').order_by('card_id')
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
+                                                               secret_chatroom_left=False,
                                                                user=self.get_member_id()).exclude(
                 card__type=card_types.CARD_INTRO).only('card', 'state').order_by('card_id')
 
@@ -968,7 +978,7 @@ class MemberCommunityHelper:
 
         current_time = TimeUtilities.current_time_in_sec()
         state_filter = collabcardState.objects.filter(
-            community=community_instance, user=member_id, card__is_deleted=False
+            community=community_instance, user=member_id, card__is_deleted=False, secret_chatroom_left=False,
         ).exclude(card__type=card_types.CARD_INTRO).select_related('card').filter(Q(expiry_time=None) |
                                                                                   Q(expiry_time__gt=current_time)
                                                                                   ).order_by('-expiry_time', '-card')
@@ -998,7 +1008,8 @@ class MemberCommunityHelper:
     def get_chatroom_count_member_images(community_instance, member_id) -> {}:
 
         state_filter = collabcardState.objects.filter(
-            community=community_instance, user=member_id, card__is_deleted=False
+            community=community_instance, user=member_id, card__is_deleted=False,
+            secret_chatroom_left=False
         ).exclude(card__type=card_types.CARD_INTRO).select_related('card').order_by('-expiry_time', '-card')
 
         temp = {}

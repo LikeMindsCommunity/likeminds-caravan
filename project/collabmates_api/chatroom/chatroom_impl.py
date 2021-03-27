@@ -743,7 +743,16 @@ class ChatroomImpl(ChatroomManager):
 
         # removing member id from secret_chatroom_participants list
         existing_participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
-        existing_participants_list.remove(NumberUtilities.get_integer_from_string(member_id))
+        member_id = NumberUtilities.get_integer_from_string(member_id)
+
+        if member_id in existing_participants_list:
+            existing_participants_list.remove(member_id)
+        else:
+            response = {
+                'success': False,
+                'error_message': f'member with id {member_id} is not a participant of this secret chatroom'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
         chatroom_instance.secret_chatroom_participants = existing_participants_list
 
@@ -790,7 +799,17 @@ class ChatroomImpl(ChatroomManager):
 
     def add_secret_chatroom_participant(self, req_body: dict) -> dict:
 
-        secret_chatroom_participants = req_body.get('secret_chatroom_participants')
+        secret_chatroom_participants = req_body.get('secret_chatroom_participants', None)
+
+        if secret_chatroom_participants is None:
+            response = {
+                'success': False,
+                'error_message': 'send secret_chatroom_participants in body'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
+        if len(secret_chatroom_participants) <= 0:
+            return {'success': True}
 
         chatroom_instance = Collabcard.get_chatroom_or_raise_exception(self.get_chatroom_id())
 
@@ -803,6 +822,9 @@ class ChatroomImpl(ChatroomManager):
         self._save_chatroom_instance(chatroom_instance)
 
         new_participants_list = list(set(secret_chatroom_participants) - set(existing_participants))
+
+        if len(new_participants_list) <= 0:
+            return {'success': True}
         
         # updating all secret chatroom participants
         filter_dict = {
