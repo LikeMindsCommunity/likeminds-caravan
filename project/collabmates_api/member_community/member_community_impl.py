@@ -232,7 +232,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'your_communities': community_list}
 
-    def fetch_community_chatrooms_queryset_with_web_scroll(self, pin_status, chatroom_id, limit_size=5) -> []:
+    def fetch_community_chatrooms_queryset_with_web_scroll(self, pin_status, card_instance, limit_size=5) -> []:
 
         if pin_status:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
@@ -241,7 +241,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pinned=pin_status,
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
-                                                               card_id__lt=chatroom_id).select_related('card',
+                                                               card_id__pinning_time__lt=card_instance.pinning_time).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')[:limit_size]
         else:
@@ -250,7 +250,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_deleted=False,
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
-                                                               card_id__lt=chatroom_id).select_related('card',
+                                                               card_id__lt=card_instance.id).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
 
@@ -807,7 +807,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if not chatroom_instance:
                 return {'error_message': "Invalid chatroom id", 'status': 400}
 
-            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_id)
+            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance)
 
         chatroom_context_list = self.process_chatroom_list(chatroom_list, community_instance)
 
