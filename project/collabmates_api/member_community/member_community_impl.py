@@ -243,7 +243,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                secret_chatroom_left=False,
                                                                card_id__lt=chatroom_id).select_related('card',
                                                                                                          'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
+                exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')[:limit_size]
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
