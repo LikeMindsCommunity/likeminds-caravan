@@ -4,7 +4,9 @@ from django.contrib.auth.models import User
 from typing import Union
 from rest_framework import status as status_codes
 
+from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT
 from .conversation_manager import ConversationManager
+from ..member_community.member_community_impl import MemberCommunityImpl
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
     get_removed_member_custom_text, get_conversation_instance_for_db_synching
@@ -20,17 +22,20 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
 from .constants import (LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
 
-from togther.models import card_answers, collabcardState, Collabcard, Members, Community, ModelUtilities
+from togther.models import card_answers, collabcardState, Collabcard, Members, Community, ModelUtilities, \
+    conversationPolls, conversationPollMembers, Userinfo
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
-from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes
+from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
+    conversation_states, conversation_poll_types
 from utility.utils import decode_meta_from_url
 from utility.firebase import update_last_answer_id
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
-                                  update_preview_of_chatroom_in_cache)
+                                  update_preview_of_chatroom_in_cache, get_conversation_poll,
+                                  save_conversation_poll_options_in_cache, save_conversation_poll_voters_in_cache)
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 
@@ -140,6 +145,18 @@ class ConversationImpl(ConversationManager):
 
         return preview
 
+    def _fetch_conversation_polls(self, conversation_instance):
+
+        member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
+        polls = get_conversation_poll({'conversation_instance': conversation_instance, 'member_id': member_id,
+                                       'conversation_id': conversation_instance.id,
+                                       'poll_type': conversation_instance.poll_type,
+                                       'multiple_select_no': conversation_instance.multiple_select_no,
+                                       'expiry_time': conversation_instance.expiry_time,
+                                       })
+
+        return polls
+
     def _serialize_conversation(self, conversation_instance):
 
         conversation_serializer = conversationSerializer(conversation_instance,
@@ -153,7 +170,34 @@ class ConversationImpl(ConversationManager):
         if preview:
             conversation_serializer['preview'] = preview
 
+        poll_conversation = self._serialize_poll_conversation(conversation_instance)
+
+        if poll_conversation:
+            conversation_serializer.update(poll_conversation)
+
         return conversation_serializer
+
+    def _serialize_poll_conversation(self, conversation_instance):
+
+        poll_conversation = {}
+
+        if conversation_instance.state == conversation_states.CONVERSATION_POLL:
+            poll_conversation['state'] = conversation_instance.state
+            poll_conversation['poll_type'] = conversation_instance.poll_type
+
+            if conversation_instance.multiple_select_state:
+                poll_conversation['multiple_select_state'] = conversation_instance.multiple_select_state
+
+            if conversation_instance.multiple_select_no:
+                poll_conversation['multiple_select_no'] = conversation_instance.multiple_select_no
+
+            poll_conversation['is_anonymous'] = conversation_instance.is_anonymous
+            poll_conversation['allow_add_option'] = conversation_instance.allow_add_option
+            poll_conversation['expiry_time'] = conversation_instance.expiry_time
+
+            poll_conversation['polls'] = self._fetch_conversation_polls(conversation_instance)
+
+        return poll_conversation
 
     def _create_conversation_list(self, conversations, last_conversation_id=None):
 
@@ -207,6 +251,55 @@ class ConversationImpl(ConversationManager):
 
         conversation_content['is_guest'] = self._is_user_already_guest(user=user_instance,
                                                                        chatroom=chatroom_instance)
+
+        poll_context = self._fill_poll_conversation_context(req_body)
+
+        if poll_context:
+            conversation_content.update(poll_context)
+
+    def _fill_poll_conversation_context(self, req_body):
+
+        poll_context = {}
+
+        if req_body.get('state') and req_body['state'] == conversation_states.CONVERSATION_POLL:
+            poll_context['state'] = req_body['state']
+            poll_context['poll_type'] = req_body['poll_type'] if 'poll_type' in req_body else 0
+            poll_context['multiple_select_state'] = \
+                (req_body['multiple_select_state'] if 'multiple_select_state'
+                                                      in req_body else None)
+            poll_context['multiple_select_no'] = req_body[
+                'multiple_select_no'] if 'multiple_select_no' in req_body else None
+            poll_context['is_anonymous'] = req_body['is_anonymous'] if 'is_anonymous' in req_body else False
+            poll_context['allow_add_option'] = req_body['allow_add_option'] if 'allow_add_option' in req_body else False
+            poll_context['expiry_time'] = req_body['expiry_time']
+
+        return poll_context
+
+    @staticmethod
+    def _fill_poll_options(user_instance, conversation_instance, req_body):
+
+        polls = req_body.get('polls')
+
+        if not polls:
+            return
+
+        poll_instances = []
+
+        for poll in polls:
+            poll_instance = conversationPolls.create_instance({'user_instance': user_instance,
+                                                               'conversation_instance': conversation_instance,
+                                                               'text': poll.get('text', '')})
+            temp = {
+                'id': poll_instance.id,
+                'text': poll_instance.text,
+                'user_id': poll_instance.user_id
+            }
+
+            poll_instances.append(temp)
+
+        save_conversation_poll_options_in_cache({'polls': poll_instances,
+                                                 'user_id': user_instance.id,
+                                                 'conversation_id': conversation_instance.id})
 
     def _set_preview_for_conversation(self, conversation_instance, req_body):
         preview_utilities = PreviewUtilities()
@@ -263,6 +356,71 @@ class ConversationImpl(ConversationManager):
                                                                      self.get_member_id(),
                                                                      req_body['text'],
                                                                      has_files=has_files)
+
+    @staticmethod
+    def _fetch_member_list_for_poll_conversation(conversation_instance, poll_instance, page, paginated_by):
+
+        poll_member_filter = ModelUtilities.get_model_filter(conversationPollMembers,
+                                                             {'conversation': conversation_instance,
+                                                              'poll': poll_instance}).order_by('user_id')
+        poll_member_filter = pagination(poll_member_filter, page, paginate_by=paginated_by)
+
+        user_list = []
+
+        for data in poll_member_filter:
+            user_list.append(data.user_id)
+
+        return user_list
+
+    @staticmethod
+    def _create_member_instances_from_user_list(user_list, community_instance):
+
+        member_dict = MemberCommunityImpl.fetch_members_based_on_user_list(user_list, community_instance)
+        member_introduction_dict = MemberCommunityImpl.fetch_community_introductions_based_on_user_list(user_list,
+                                                                                                        community_instance)
+        member_list = []
+
+        for user_id in user_list:
+
+            if member_dict.get(user_id):
+                member_data = member_dict[user_id]
+
+                if member_introduction_dict.get(user_id):
+                    member_data['question_answer'] = member_introduction_dict[user_id]
+
+                else:
+
+                    created_at = TimeUtilities.convert_epoch_time_to_date_month_year(member_data['created_at'])
+
+                    if member_data['state'] == member_states.ADMIN:
+                        member_data['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % created_at
+
+                    elif member_data['state'] == member_states.MEMBER or \
+                            member_data['state'] == member_states.PROFILE_UNAVAILABLE:
+
+                        member_data['custom_intro_text'] = CREATE_INTRO_TEXT_MEMBER % created_at
+                        member_data['custom_click_text'] = CUSTOM_CLICK_TEXT % (
+                            member_data['name'],
+                            created_at)
+            else:
+                userinfo_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id})
+
+                if userinfo_filter:
+
+                    userinfo_instance = userinfo_filter[0]
+
+                    member_data = {
+                        'id': user_id,
+                        'name': userinfo_instance.name,
+                        'image_url': userinfo_instance.image_link if userinfo_instance.image_link else ""
+                    }
+
+                else:
+                    continue
+
+            member_list.append(member_data)
+
+        return member_list
 
     def fetch_conversation(self):
 
@@ -367,9 +525,9 @@ class ConversationImpl(ConversationManager):
         conversation_content['created_at'] = created_at
         conversation_instance = self._create_conversation_instance(conversation_content)
         self._set_preview_for_conversation(conversation_instance, req_body)
+        self._fill_poll_options(user_instance, conversation_instance, req_body)
 
         attachment_count = req_body.get('attachment_count', 0)
-
         has_files = has_files or attachment_count > 0
 
         if not has_files:
@@ -404,6 +562,106 @@ class ConversationImpl(ConversationManager):
         }
 
         return conversation_response
+
+    def add_poll(self, request_body):
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                          request_body.get('conversation_id'))
+
+        if not conversation_instance:
+            return {'status': False, 'error_message': "send correct conversation id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'status': False, 'error_message': "incorrect user id"}
+
+        if not conversation_instance.allow_add_option:
+            return {'status': False, 'error_message': "new option cannot be added"}
+
+        poll = request_body.get('poll', {})
+
+        poll_instance = conversationPolls.create_instance({'user_instance': user_instance,
+                                                           'conversation_instance': conversation_instance,
+                                                           'text': poll.get('text', '')})
+
+        save_conversation_poll_options_in_cache(
+            {'conversation_id': conversation_instance.id, 'user_id': user_instance.id})
+
+        poll_response = {
+            'id': poll_instance.id,
+            'text': poll_instance.text,
+            'user_id': poll_instance.user_id
+        }
+
+        return {'success': True, 'poll': poll_response}
+
+    def submit_poll(self, request_body):
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                          request_body.get('conversation_id'))
+
+        if not conversation_instance:
+            return {'status': False, 'error_message': "send correct conversation id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'status': False, 'error_message': "incorrect user id"}
+
+        polls = request_body.get('polls', [])
+
+        if conversation_instance.expiry_time < TimeUtilities.current_time_in_milliseconds():
+            return {'success': False, 'error_message': "poll has been ended"}
+
+        poll_filter = ModelUtilities.get_model_filter(conversationPollMembers, {'user': user_instance,
+                                                                                'conversation': conversation_instance})
+        poll_filter.delete()
+
+        for poll in polls:
+
+            poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll.get('id'),
+                                                                               'conversation': conversation_instance})
+
+            if not poll_filter:
+                return {'success': False, 'error_message': "invalid poll id"}
+
+            poll_instance = poll_filter[0]
+            poll_member_instance = conversationPollMembers.create_instance({'user_instance': user_instance,
+                                                                            'poll_instance': poll_instance,
+                                                                            'conversation_instance':
+                                                                                conversation_instance})
+
+        conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
+        conversation_instance.save()
+
+        save_conversation_poll_voters_in_cache({'conversation_instance': conversation_instance})
+
+        return {'success': True}
+
+    def poll_users(self, poll_id, page, page_size):
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
+
+        if not conversation_instance:
+            return {'status': False, 'error_message': "send correct conversation id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'status': False, 'error_message': "incorrect user id"}
+
+        poll_instance = ModelUtilities.get_model_instance_or_none(conversationPolls, poll_id)
+
+        if not poll_instance:
+            return {'status': False, 'error_message': "incorrect poll_id"}
+
+        community_instance = conversation_instance.community
+        user_list = self._fetch_member_list_for_poll_conversation(conversation_instance, poll_instance,
+                                                                  page, page_size)
+        member_list = self._create_member_instances_from_user_list(user_list, community_instance)
+
+        return {'status': True, 'member': member_list}
 
 
 class ConversationHelper:

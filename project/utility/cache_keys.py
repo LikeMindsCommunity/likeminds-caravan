@@ -1,0 +1,2 @@
+CONVERSATION_POLL_OPTIONS_CONVERSATION_ID = "conversation_poll_options_%s"
+CONVERSATION_POLL_VOTERS_CONVERSATION_ID = "conversation_poll_voters_%s"

@@ -1532,7 +1532,13 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
                          preview_chatroom_id,
                          preview_type,
                          api_version,
-                         temporary_id
+                         temporary_id,
+                         poll_type,
+                         multiple_select_state,
+                         multiple_select_no,
+                         is_anonymous,
+                         allow_add_option,
+                         expiry_time
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
@@ -1589,7 +1595,13 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
                          preview_chatroom_id,
                          preview_type,
                          api_version,
-                         temporary_id
+                         temporary_id,
+                         poll_type,
+                         multiple_select_state,
+                         multiple_select_no,
+                         is_anonymous,
+                         allow_add_option,
+                         expiry_time
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
@@ -1736,4 +1748,37 @@ def get_members_based_on_user_list_query(user_list, community_id):
         print(error)
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
+        return []
+
+
+def get_community_introductions_based_on_user_list_query(user_list, community_id, question_id) -> list:
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        user_tupple = get_tuple_from_array(user_list)
+
+        if not user_tupple:
+            return []
+
+        sql = """
+       SELECT togther_communityAnswers.member_id,
+                 togther_communityAnswers.community_id,
+                 togther_communityAnswers.question_answer,
+                 togther_communityAnswers.question_title
+       FROM togther_communityAnswers
+       WHERE togther_communityAnswers.community_id=%s
+                AND member_id IN  %s
+                AND question_id = %s
+                """ % \
+              (str(community_id), str(user_tupple), str(question_id))
+
+        curr.execute(sql)
+        member_data = curr.fetchall()
+        curr.close()
+
+        return member_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
         return []

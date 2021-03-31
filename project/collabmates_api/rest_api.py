@@ -6,11 +6,13 @@ from django.contrib.auth.models import User
 from collections import OrderedDict
 import json
 import time
+
+from utility.celery_tasks import get_conversation_poll
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
                           get_removed_member_custom_text, get_collabcard_files, get_user_profile,get_answer_text_for_poll)
 from utility.states import (card_types, question_states, member_states, poll_types,
-                            deleted_members, manager_rights, member_rights, chatroom_states)
+                            deleted_members, manager_rights, member_rights, chatroom_states, conversation_states)
 from utility.utils import (get_time_text, generate_private_link, eligibility_count,
                            get_members_count_in_community)
 from django.conf import settings
@@ -791,6 +793,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     preview = serializers.DictField(write_only=True)
     member_id = serializers.CharField(write_only=True)
     created_epoch = serializers.SerializerMethodField()
+    polls = serializers.SerializerMethodField()
 
     class Meta:
         model = card_answers
@@ -798,7 +801,9 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'og_tags', 'deleted_by', 'is_edited', 'reply', 'internal_link',
                   'has_files', 'date', 'images', 'pdf', 'audios', 'videos',
                   'attachment_count', 'attachments_uploaded',
-                  'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch', 'temporary_id')
+                  'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch', 'temporary_id',
+                  'is_anonymous', 'allow_add_option', 'poll_type', 'expiry_time', 'multiple_select_state',
+                  'multiple_select_no','polls')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)
@@ -815,6 +820,21 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
     def get_created_epoch(self, obj):
         return int(obj.created_at)
+
+    def get_polls(self, obj):
+
+        if obj.state == conversation_states.CONVERSATION_POLL:
+            polls = []
+            polls = get_conversation_poll({'conversation_instance': obj,
+                                           'conversation_id': obj.id,
+                                           'poll_type': obj.poll_type,
+                                           'multiple_select_no': obj.multiple_select_no,
+                                           'expiry_time': obj.expiry_time,
+                                           'member_id': self.current_user_id})
+
+            return polls
+
+        return None
 
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)

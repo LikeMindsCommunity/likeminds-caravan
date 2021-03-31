@@ -12,10 +12,12 @@ from utility.string_utilities import StringUtilities
 from .constants import ACTIVE_USER_LIMIT, CHATROOM_COUNT_LIMIT, INVITE_MEMBERS, NEW_CHATROOM, DIRECTORY, PINNED, \
     COMMUNITY_DETAILS, INVITE_MEMBERS_ROUTE, NEW_CHATROOM_ROUTE, DIRECTORY_ROUTE, PINNED_ROUTE, COMMUNITY_DETAILS_ROUTE, \
     PINNED_TOP_BAR_TITLE, PINNED_TOP_BAR_IMAGE, CUSTOM_INTRO_TEXT_LEFT, CUSTOM_CLICK_TEXT_LEFT, \
-    CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_DELETED, MEMBER_COMMUNITY_PROFILE_ROUTE, MEMBER_SINCE_TEXT
+    CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_DELETED, MEMBER_COMMUNITY_PROFILE_ROUTE, MEMBER_SINCE_TEXT, \
+    PENDING_MEMBER_TEXT
 from .member_community_manager import MemberCommunityManager
 from .constants import FEED_UPWARD_SCROLL, FEED_DOWNWARD_SCROLL
-from ..raw_queries import fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query
+from ..raw_queries import fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query, \
+    get_community_introductions_based_on_user_list_query
 from ..user_moderation_rights import check_admin_approve_right
 from ..utility import pagination
 from ..views import get_home_screen_community_actions, get_active_chatroom_member_images, \
@@ -27,11 +29,11 @@ from ..serializers import get_user_profile, get_members_profile, get_collabcard_
 from ..static_files import REMOVED_USER_URL
 
 from togther.models import Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers, \
-    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage
+    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage, communityQuestions
 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
-from utility.states import member_states, card_types, poll_types, deleted_members, chatroom_states
+from utility.states import member_states, card_types, poll_types, deleted_members, chatroom_states, question_states
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -420,10 +422,17 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'is_owner': data['is_owner'],
                     'community_id': data['community_id'],
                     'route': MEMBER_COMMUNITY_PROFILE_ROUTE % (str(data['community_id']), str(data['member_id'])),
-                    'member_since': MEMBER_SINCE_TEXT % (community_name,
-                                                         TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(
-                                                             data['created_at']))
+                    'created_at': data['created_at']
                 }
+
+                if member['state'] == member_states.ADMIN or member['state'] == member_states.MEMBER or \
+                        member['state'] == member_states.PROFILE_UNAVAILABLE:
+                    member['member_since'] = MEMBER_SINCE_TEXT % (community_name,
+                                                                  TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(
+                                                                      data['created_at']))
+
+                elif member['state'] == member_states.PENDING_MEMBER:
+                    member['member_since'] = PENDING_MEMBER_TEXT % community_name
 
                 if data['image_url']:
                     image_url = data['image_url']
@@ -441,6 +450,35 @@ class MemberCommunityImpl(MemberCommunityManager):
                 member_dict[data['member_id']] = member
 
         return member_dict
+
+    @staticmethod
+    def fetch_community_introductions_based_on_user_list(user_list, community_instance) -> {}:
+
+        introduction_filter = ModelUtilities.get_model_filter(communityQuestions,
+                                                              {'question_state': question_states.INTRODUCTION,
+                                                               'community': community_instance})
+        if introduction_filter:
+            question_instance = introduction_filter[0]
+
+            member_data = get_community_introductions_based_on_user_list_query(user_list,
+                                                                               community_instance.id,
+                                                                               question_instance.id)
+            member_introduction_dict = dict()
+
+            for data in member_data:
+                member_dict = dict()
+                member_dict['member_id'] = data[0]
+                member_dict['community_id'] = data[1]
+                member_dict['state'] = question_instance.question_state
+                member_dict['value'] = data[3]
+                member_dict['question_id'] = question_instance.id
+                member_dict['is_hidden'] = question_instance.is_hidden
+                member_dict['directory_fields'] = question_instance.field
+                member_introduction_dict[member_dict['member_id']] = member_dict
+
+            return member_introduction_dict
+
+        return {}
 
     @staticmethod
     def compute_user_id_list_of_chatroom_creators(chatroom_list) -> []:
@@ -832,7 +870,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         if pinned_top_bar:
             actions.append(PINNED)
-    
+
         actions.append(COMMUNITY_DETAILS)
 
         return actions

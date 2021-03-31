@@ -2149,21 +2149,4 @@ def get_chatroom_preview(card_instance, member_id, active=None):
     return chatroom_instance
 
 
-def get_member_images_of_chatroom_v1(conversation_filter):
-    """ function to give member images of chatrooms """
-    conversation_filter = conversation_filter.distinct("user").order_by('user', '-id')[:5]
-    last_conversations_member = []
-    for conversation in conversation_filter:
-        remove = False
-        if conversation.remove:
-            remove = True
-        member_data = get_user_profile(conversation.user, None, send_profile=False, remove=remove)
-        last_conversations_member.append(member_data)
-
-    temp = {
-        'last_response_members': last_conversations_member
-    }
-
-    return temp
-
 # =========================================================================#

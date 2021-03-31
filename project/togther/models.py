@@ -566,6 +566,13 @@ class card_answers(models.Model):
     platform = models.TextField(null=True)
     temporary_id = models.TextField(null=True)
 
+    expiry_time = models.BigIntegerField(null=True)
+    poll_type = models.IntegerField(null=True)
+    multiple_select_state = models.IntegerField(null=True)
+    multiple_select_no = models.IntegerField(null=True)
+    is_anonymous = models.BooleanField(default=False)
+    allow_add_option = models.BooleanField(default=False)
+
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
 
@@ -578,6 +585,52 @@ class card_answers(models.Model):
             self.created_at = current_time_milli
 
         super(card_answers, self).save(*args, **kwargs)
+
+
+class conversationPolls(models.Model):
+
+    """class to store poll options of conversations"""
+
+    conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE)
+    text = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    created_at = models.BigIntegerField()
+    updated_at = models.BigIntegerField()
+
+    @staticmethod
+    def create_instance(create_info):
+
+        instance = conversationPolls()
+        instance.user = create_info['user_instance']
+        instance.conversation = create_info['conversation_instance']
+        instance.text = create_info['text']
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+        instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+        instance.save()
+
+        return instance
+
+
+class conversationPollMembers(models.Model):
+
+    """class to store the votes of member who voted on a poll"""
+    conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE)
+    poll = models.ForeignKey(conversationPolls, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    created_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = conversationPollMembers()
+        instance.user = create_info['user_instance']
+        instance.conversation = create_info['conversation_instance']
+        instance.poll = create_info['poll_instance']
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+        instance.save()
+
+        return instance
 
 
 class collabcardState(models.Model):
@@ -1627,7 +1680,7 @@ class ModelUtilities:
             instance = model.objects.get(id=pk)
 
         except Exception as e:
+
             pass
 
         return instance
-

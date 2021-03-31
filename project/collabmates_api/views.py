@@ -33,7 +33,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   update_multiple_previews_in_chatroom, update_preview_for_account_image_change,
                                   schedule_chatroom_unpinning_after_event_completion,
                                   update_chatroom_conversation_count_in_cache,
-                                  update_chatroom_conversation_creators_in_cache
+                                  update_chatroom_conversation_creators_in_cache, get_conversation_poll
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -376,83 +376,6 @@ def is_draft_conversation(conversation, current_user_id):
         return True
 
     return False
-
-
-def my_chatrooms(request):
-    '''functions to get chatrooms for users'''
-
-    member_id = get_member_id_from_headers(request)
-    page = request.GET.get('page', 1)
-
-    active = request.GET.get('active', None)
-    if active == "true":
-        active = True
-    elif active == "false":
-        active = False
-    else:
-        active = None
-
-    current_time = time.time()
-    my_chatrooms = []
-    instance_list = []
-
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
-    else:
-        try:
-            current_user_instance = User.objects.get(pk=member_id)
-        except User.DoesNotExist:
-            context = get_error_context(False, "User does not exist")
-            return JsonResponse(context)
-
-    instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at', '-id')
-    instance_list = pagination(instance_list, page, paginate_by=10)
-
-    for instance in instance_list:
-
-        chatroom = {}
-        card_instance = instance.card
-        draft_instance = instance.draft
-        if card_instance:
-            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id)
-            chatroom['community'] = CommunitySerializer(card_instance.community, current_user_id=member_id,
-                                                        current_user_instance=current_user_instance)
-            chatroom['is_draft'] = False
-        elif draft_instance:
-            chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance, member_id)
-            chatroom['community'] = CommunitySerializer(draft_instance.community, current_user_id=member_id,
-                                                        current_user_instance=current_user_instance)
-            chatroom['is_draft'] = True
-
-        last_conversation = instance.last_conversation
-
-        if last_conversation and not is_draft_conversation(last_conversation, member_id):
-            last_conversation = conversationSerializer(last_conversation, current_user_id=member_id)
-            preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
-
-            if preview:
-                last_conversation['preview'] = preview
-            chatroom['last_conversation'] = last_conversation
-            second_last_conversation = instance.second_last_conversation
-
-            if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id):
-                second_last_conversation = conversationSerializer(second_last_conversation, current_user_id=member_id)
-                preview = generate_internal_link_preview_for_conversation(second_last_conversation, member_id)
-
-                if preview:
-                    last_conversation['preview'] = preview
-
-                chatroom['second_last_conversation'] = second_last_conversation
-
-        chatroom['unseen_conversation_count'] = instance.unseen_count
-        chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
-
-        chatroom['member_right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
-
-        my_chatrooms.append(chatroom)
-
-    return JsonResponse({"my_chatrooms": my_chatrooms})
 
 
 def my_chatrooms_version_1(request):
@@ -6034,6 +5957,27 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
                 error_logger.error(e.args)
 
         context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
+
+        if ans.state == conversation_states.CONVERSATION_POLL:
+            context['state'] = ans.state
+            context['poll_type'] = ans.poll_type
+
+            if ans.multiple_select_state:
+                context['multiple_select_state'] = ans.multiple_select_state
+
+            if ans.multiple_select_no:
+                context['multiple_select_no'] = ans.multiple_select_no
+
+            context['is_anonymous'] = ans.is_anonymous
+            context['allow_add_option'] = ans.allow_add_option
+            context['expiry_time'] = ans.expiry_time
+
+            context['polls'] = get_conversation_poll({'conversation_instance': ans, 'member_id': current_user_id,
+                                       'conversation_id': ans.id,
+                                       'poll_type': ans.poll_type,
+                                       'multiple_select_no': ans.multiple_select_no,
+                                       'expiry_time': ans.expiry_time,
+                                       })
 
         answers.append(context)
     return answers
@@ -15137,9 +15081,28 @@ class SyncConversation(APIView):
             if conversation[19]:
                 conversation_context['temporary_id'] = conversation[19]
 
+            if conversation_context['state'] == ConversationStates.CONVERSATION_POLL:
+                conversation_context['poll_type'] = conversation[20]
+
+                if conversation[21] is not None:
+                    conversation_context['multiple_select_state'] = conversation[21]
+
+                if conversation[22]:
+                    conversation_context['multiple_select_no'] = conversation[22]
+
+                conversation_context['is_anonymous'] = conversation[23]
+                conversation_context['allow_add_option'] = conversation[24]
+                conversation_context['expiry_time'] = conversation[25]
+                conversation_context['polls'] = get_conversation_poll({'conversation_id': conversation[0],
+                                                                       'poll_type': conversation[20],
+                                                                       'multiple_select_no': conversation[22],
+                                                                       'expiry_time': conversation[25],
+                                                                       'member_id': member_id})
+
             conversation_list.append(conversation_context)
 
         return conversation_list, max_last_updated
+
 
     def process_conversation_files(self, conversation_files):
 
