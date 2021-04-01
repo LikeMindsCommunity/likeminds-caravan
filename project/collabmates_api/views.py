@@ -2063,7 +2063,17 @@ def edit_member_profile(request):
     if not member_id:
         member_id = request.GET.get('member_id', None)
 
-    is_promoter = is_member_promoter(community_instance.id, member_id)
+    state = 0
+    member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                              'member_id': member_id})
+    if member_filter:
+        state = member_filter[0].state
+
+    is_promoter = member_filter[0].member_id if (state == member_states.ADMIN) else False
+
+    is_verified_member = ((state == member_states.ADMIN) or
+                          (state == member_states.MEMBER) or
+                          (state == member_states.PROFILE_UNAVAILABLE))
 
     user_instance = User.objects.get(id=member_id)
 
@@ -2166,7 +2176,7 @@ def edit_member_profile(request):
         update_preview = True
 
     # posting a introduction collabcard
-    if collabcard_id == 0:
+    if collabcard_id == 0 and is_verified_member:
         post_introduction_card_for_community(community_instance.id, user_instance.id)
         update_preview = False
 
