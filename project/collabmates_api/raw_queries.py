@@ -1538,7 +1538,8 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
                          multiple_select_no,
                          is_anonymous,
                          allow_add_option,
-                         expiry_time
+                         expiry_time,
+                         preview_community_id
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
@@ -1601,7 +1602,8 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
                          multiple_select_no,
                          is_anonymous,
                          allow_add_option,
-                         expiry_time
+                         expiry_time,
+                         preview_community_id
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s

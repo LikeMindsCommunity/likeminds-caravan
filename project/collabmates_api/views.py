@@ -25,6 +25,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from random import randint
 # utility functions
+from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -33,7 +34,8 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   update_multiple_previews_in_chatroom, update_preview_for_account_image_change,
                                   schedule_chatroom_unpinning_after_event_completion,
                                   update_chatroom_conversation_count_in_cache,
-                                  update_chatroom_conversation_creators_in_cache, get_conversation_poll
+                                  update_chatroom_conversation_creators_in_cache, get_conversation_poll,
+                                  update_multiple_previews_in_community, update_preview_of_community_in_cache
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -289,12 +291,30 @@ def generate_internal_link_preview_for_conversation(conversation, current_user_i
                                                        community_instance=conversation.preview_community,
                                                        chatroom_instance=conversation.preview_chatroom)
                     update_preview_of_chatroom_in_cache.delay({'chatroom_id': conversation.preview_chatroom.id,
-                                                         'preview_object': preview_dict,
-                                                         'conversation_id': conversation.id})
+                                                                'preview_object': preview_dict,
+                                                                'conversation_id': conversation.id})
+
+            elif conversation.preview_community and \
+                    (conversation.preview_type == "community" or conversation.preview_type == "directory"):
+
+                preview_community_id = conversation.preview_community_id
+                key = CONVERSATION_COMMUNITY_PREVIEW % (str(conversation.id), str(preview_community_id))
+                preview = CacheImpl.get_cache(key)
+
+                if preview:
+                    preview_dict = preview
+
+                else:
+
+                    preview_dict = get_preview_for_url(member_id=current_user_id,preview_url=conversation.internal_link)
+                    update_preview_of_community_in_cache.delay({'community_id': preview_community_id,
+                                                                'preview_object': preview_dict,
+                                                                'conversation_id': conversation.id})
             else:
                 preview_dict = get_preview_for_url(current_user_id, conversation.internal_link,
                                                    community_instance=conversation.preview_community,
                                                    chatroom_instance=conversation.preview_chatroom)
+
         except Exception as e:
             error_logger.error(e.args)
 
@@ -1333,6 +1353,8 @@ def auto_join_community(community_instance, user_instance, shared_user_instance=
                                        {'community': community_instance, 'user': user_instance},
                                        {'is_guest': False, 'remove': None})
 
+        update_multiple_previews_in_community.delay({'community_id': community_instance.id})
+
 
 
     # updating the member engage instance
@@ -2335,6 +2357,7 @@ def remove_from_member(request):
 
     is_promoter = Members.objects.filter(state=member_states.ADMIN, community_id=community_id, member_id=member_id)
     is_promoter = is_promoter.exists()
+
     if member_ids:
         if is_promoter:
 
@@ -2386,6 +2409,7 @@ def remove_from_member(request):
 
                         send_sync_notification.delay({'community_id':community_id,
                                                 'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+                        update_multiple_previews_in_community.delay({'community_id': community_id})
 
                     else:
                         return JsonResponse(
@@ -2409,6 +2433,7 @@ def remove_from_member(request):
             update_pending_member_count_in_engage(community_instance)
             send_sync_notification.delay({'community_id': community_id,
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+            update_multiple_previews_in_community.delay({'community_id': community_id})
 
             return JsonResponse({'success': True})
 
@@ -4910,6 +4935,7 @@ def request_response(request, req_dict=None):
 
     send_sync_notification.delay({'community_id': community_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+    update_multiple_previews_in_community.delay({'community_id': community_id})
 
     return JsonResponse({'success': True})
 
@@ -11076,6 +11102,7 @@ def edit_community_version_1(request):
         # edit_community_data(community_instance, user_instance, edit_field=purpose)
         send_sync_notification.delay({'community_id': community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+        update_multiple_previews_in_community.delay({'community_id': community_id})
 
     return JsonResponse({'success': True})
 
@@ -13464,6 +13491,7 @@ def transfer_community_ownership(request):
 
         send_sync_notification.delay({'community_id': community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+        update_multiple_previews_in_community.delay({'community_id': community_id})
 
         return JsonResponse({'success': True})
 
@@ -15079,14 +15107,29 @@ class SyncConversation(APIView):
                                                                     'preview_url': conversation[13],
                                                                     'preview_object': conversation_context['preview'],
                                                                     'conversation_id': conversation_context['id']})
-                else:
+                elif conversation[26] and \
+                        (conversation[17] == "community" or conversation[17] == "directory"):
 
-                    try:
-                        conversation_context['preview'] = get_preview_for_url(member_id=member_id,
-                                                                          preview_url=conversation[13])
-                    except Exception as e:
-                        error_logger.error("error occured"+ str(e.args))
-                        continue
+                    preview_community_id = conversation[26]
+                    key = CONVERSATION_COMMUNITY_PREVIEW % (str(conversation_context['id']), str(preview_community_id))
+                    preview = CacheImpl.get_cache(key)
+
+                    if preview:
+                        conversation_context['preview'] = preview
+
+                    else:
+
+                        try:
+                            conversation_context['preview'] = get_preview_for_url(member_id=member_id,
+                                                                              preview_url=conversation[13])
+                        except Exception as e:
+                            error_logger.error("error occured"+ str(e.args))
+                            continue
+
+                        update_preview_of_community_in_cache.delay({'community_id': preview_community_id,
+                                                                    'preview_url': conversation[13],
+                                                                    'preview_object': conversation_context['preview'],
+                                                                    'conversation_id': conversation_context['id']})
 
             if conversation[19]:
                 conversation_context['temporary_id'] = conversation[19]

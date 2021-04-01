@@ -20,7 +20,8 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
                      generate_internal_link_preview_for_conversation)
 
 from .constants import (LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION,
-                        DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
+                        DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
+                        PREVIEW_COMMUNITY, PREVIEW_DIRECTORY)
 
 from togther.models import card_answers, collabcardState, Collabcard, Members, Community, ModelUtilities, \
     conversationPolls, conversationPollMembers, Userinfo
@@ -35,7 +36,8 @@ from utility.utils import decode_meta_from_url
 from utility.firebase import update_last_answer_id
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
                                   update_preview_of_chatroom_in_cache, get_conversation_poll,
-                                  save_conversation_poll_options_in_cache, save_conversation_poll_voters_in_cache)
+                                  save_conversation_poll_options_in_cache, save_conversation_poll_voters_in_cache,
+                                  update_multiple_previews_in_community)
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 
@@ -142,7 +144,6 @@ class ConversationImpl(ConversationManager):
     def _generate_internal_link_preview(self, conversation_instance):
 
         preview = generate_internal_link_preview_for_conversation(conversation_instance, self.get_member_id())
-
         return preview
 
     def _fetch_conversation_polls(self, conversation_instance):
@@ -357,6 +358,7 @@ class ConversationImpl(ConversationManager):
                                                                      req_body['text'],
                                                                      has_files=has_files)
 
+
     @staticmethod
     def _fetch_member_list_for_poll_conversation(conversation_instance, poll_instance, page, paginated_by):
 
@@ -544,10 +546,13 @@ class ConversationImpl(ConversationManager):
                                has_files=has_files,
                                is_ios=is_ios)
 
-        if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': chatroom_instance,
-                                                                'preview_type': "chatroom"}):
+        if conversation_instance.preview_type == PREVIEW_CHATROOM:
             preview_chatroom_id = chatroom_instance.id
             update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
+
+        elif conversation_instance.preview_type == PREVIEW_COMMUNITY or \
+                conversation_instance.preview_type == PREVIEW_DIRECTORY:
+            update_multiple_previews_in_community.delay({'community_id': conversation_instance.preview_community_id})
 
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
