@@ -883,10 +883,7 @@ def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, 
     community_instance = Community.objects.get(id=community_id)
     promoter_instance = is_member_promoter(community_instance, current_user_id)
 
-    community = CommunitySerializer(community_instance,
-                                    promoter_id=promoter_instance,
-                                    current_user_id=current_user_id,
-                                    current_user_instance=promoter_instance)
+    community = CommunitySerializerV1(community_instance, context={"current_user_id": current_user_id}, many=False).data
 
     context = {'members': members, 'community': community}
 
