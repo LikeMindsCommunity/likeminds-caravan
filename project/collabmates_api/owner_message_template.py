@@ -41,12 +41,12 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
         return
 
     chatroom = intro_filter[0]
-
-    if check_template:
-        # check if template is already posted or not, if posted, return
-        template_answer = card_answers.objects.filter(answer=template[0].message, card=chatroom)
-        if template_answer.exists():
-            return
+    #
+    # if check_template:
+    #     # check if template is already posted or not, if posted, return
+    #     template_answer = card_answers.objects.filter(answer=template[0].message, card=chatroom)
+    #     if template_answer.exists():
+    #         return
 
     if chatroom.user.id == owner_user_instance.id:
         # if intro card is owner's, return
