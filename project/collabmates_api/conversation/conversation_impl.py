@@ -17,7 +17,7 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
                      save_the_latest_conversation, update_activity_in_chatroom_for_conversation_creation,
                      update_chatroom_for_users_and_send_follow_notification,
                      reverse_conversations_for_upward_pagination, send_sync_notification,
-                     generate_internal_link_preview_for_conversation)
+                     generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification)
 
 from .constants import (UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
@@ -569,6 +569,10 @@ class ConversationImpl(ConversationManager):
 
         send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                       'community_id': community_id})
+
+        if conversation_instance == conversation_states.CONVERSATION_POLL:
+            send_poll_conversation_creation_notification.delay(conversation_instance.card_id,
+                                                           conversation_instance.user_id, conversation_instance.id)
 
         conversation_response = {
             'success': True,

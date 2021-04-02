@@ -2723,3 +2723,46 @@ def send_notification_for_new_secret_room_participant(user_id, chatroom_id):
     }
 
     notification_meta(notification_list, message)
+
+
+@shared_task
+def send_poll_conversation_creation_notification(card_id, poll_conversation_creator_id, conversation_id):
+
+    card_instance = Collabcard.get_chatroom_or_None(card_id)
+
+    if not card_instance:
+        return
+
+    community_instance = card_instance.community
+
+    userinfo_instance = Userinfo.objects.filter(user_id=poll_conversation_creator_id)
+
+    if not userinfo_instance:
+        return
+
+    member_filter = Members.objects.filter(community_id=community_instance).filter(
+        Q(state=member_states.MEMBER) | Q(state=member_states.ADMIN) | Q(state=member_states.PROFILE_UNAVAILABLE))
+
+    notification_list = []
+
+    message = {'payload': {
+        "title": "Time to vote",
+        "sub_title": POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
+                                                   community_instance.name),
+        'route': POLL_CONVERSATION_ROUTE % (card_instance.id, conversation_id)
+    }
+    }
+
+    for member in member_filter:
+
+        if member.member_id_id == poll_conversation_creator_id:
+            continue
+
+        temp = {
+            'id': member.member_id_id
+        }
+
+        notification_list.append(temp)
+
+    notification_meta(notification_list, message)
+
