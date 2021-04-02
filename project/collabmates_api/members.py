@@ -541,7 +541,7 @@ def get_all_members_version_1(request, req_dict=None):
     if promoter_instance:
         pending_members = pending_members_count_in_community(community_instance, current_user_instance)
 
-        if pending_members is None:
+        if pending_members is not None:
             context['total_pending_members'] = pending_members
 
     return context
