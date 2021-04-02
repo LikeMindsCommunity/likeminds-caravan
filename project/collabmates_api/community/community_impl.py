@@ -77,7 +77,7 @@ class CommunityImpl(CommunityManager):
         leave_community_popup['leave_community_positive_title'] = leave_community[2]
         leave_community_popup['leave_community_negative_title'] = leave_community[3]
 
-        return leave_community
+        return leave_community_popup
 
     def _fetch_serialize_community(self, community_instance) -> []:
         return CommunitySerializerV1(community_instance).data

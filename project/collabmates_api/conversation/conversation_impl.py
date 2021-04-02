@@ -19,7 +19,7 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
                      reverse_conversations_for_upward_pagination, send_sync_notification,
                      generate_internal_link_preview_for_conversation)
 
-from .constants import (LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION,
+from .constants import (UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
                         PREVIEW_COMMUNITY, PREVIEW_DIRECTORY)
 
@@ -99,7 +99,7 @@ class ConversationImpl(ConversationManager):
         self.page = page
 
     def get_paginate_by(self) -> Union[str, int]:
-        return self.paginate_by
+        return NumberUtilities.get_integer_from_string(self.paginate_by)
 
     def set_paginate_by(self, paginate_by: Union[str, int]):
         self.paginate_by = paginate_by
@@ -424,7 +424,13 @@ class ConversationImpl(ConversationManager):
 
         return member_list
 
-    def fetch_conversation(self):
+    def fetch_conversation(self, top_navigate=False):
+
+        if top_navigate:
+            conversations = self._fetch_conversation_queryset()
+            conversations = conversations[:self.get_paginate_by()]
+            conversations = self._create_conversation_list(conversations)
+            return conversations
 
         if not self.get_scroll_direction() and self.get_conversation_id():
             last_seen_conversation = self._fetch_last_seen_conversation()
@@ -441,14 +447,15 @@ class ConversationImpl(ConversationManager):
 
             if not last_seen:
                 conversations = self._fetch_conversation_queryset()
-                conversations = self._paged_queryset(conversations)
+                conversations =  conversations[:self.get_paginate_by()]
                 conversations = self._create_conversation_list(conversations)
 
             else:
 
-                upward_conversation = self._fetch_upward_conversation_with_conversation_queryset(LIST_SIZE,
+                list_size = self.get_paginate_by() / 2
+                upward_conversation = self._fetch_upward_conversation_with_conversation_queryset(list_size,
                                                                                                  last_seen.id)
-                downward_conversation = self._fetch_downward_conversation_queryset(LIST_SIZE, last_seen.id)
+                downward_conversation = self._fetch_downward_conversation_queryset(list_size, last_seen.id)
 
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
@@ -459,13 +466,16 @@ class ConversationImpl(ConversationManager):
 
             if self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
                     self.get_scroll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
-                upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE,
+
+                upward_scroll_list_size = self.get_paginate_by()
+                upward_list = self._fetch_upward_conversation_queryset(upward_scroll_list_size,
                                                                        self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
             elif self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
                     self.get_scroll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
-                conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE,
+                downward_scroll_list_size = self.get_paginate_by()
+                conversations = self._fetch_downward_conversation_queryset(downward_scroll_list_size,
                                                                            self.get_conversation_id())
 
             else:

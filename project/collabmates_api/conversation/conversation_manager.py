@@ -18,7 +18,7 @@ class ConversationManager(metaclass=abc.ABCMeta):
                NotImplemented
 
     @abc.abstractmethod
-    def fetch_conversation(self) -> None:
+    def fetch_conversation(self, top_navigate=False) -> None:
         """
         fetches the conversation from the database
         """

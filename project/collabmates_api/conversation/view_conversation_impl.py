@@ -2,6 +2,7 @@ from django.http import JsonResponse
 
 from utility.constants import INVALID_PLATFORM
 from utility.number_utilities import NumberUtilities
+from utility.string_utilities import StringUtilities
 from .conversation_impl import ConversationImpl
 from utility.request_utilities import RequestUtilities
 from rest_framework.views import APIView
@@ -19,11 +20,13 @@ class FetchConversation(APIView):
         scroll_direction = request.GET.get('scroll_direction')
         conversation_id = request.GET.get('conversation_id')
         page = request.GET.get('page', 1)
-        paginate_by = request.GET.get('paginate_by', 200)
+        paginate_by = request.GET.get('paginate_by', 20)
+        top_navigate = request.GET.get('top_navigate', False)
+        top_navigate = StringUtilities.get_boolean_from_string(top_navigate)
 
         conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page,
                                                 paginate_by)
-        conversations = conversation_manager.fetch_conversation()
+        conversations = conversation_manager.fetch_conversation(top_navigate)
 
         return JsonResponse({
             'conversations': conversations
