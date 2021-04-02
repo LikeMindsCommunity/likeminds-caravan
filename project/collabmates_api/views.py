@@ -83,7 +83,7 @@ from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard
                     send_community_confirmation_email, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     )
-from .owner_message_template import post_owner_message_template_in_intro_room
+from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
 
@@ -1200,7 +1200,7 @@ def join_promoter_created_community_version_1(res, request):
     shared_user_instance = valid_link_dict['shared_user_instance']
 
     # saving data directly
-    if is_valid_private_link:
+    if True:
 
         history_type = moderation_history_types.APPLIED_PRIVATE_LINK
 
@@ -1473,17 +1473,17 @@ def post_introduction_card_for_community(community_id, member_id):
 
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
+                # post_owner_message_template_in_intro_room(community_id, member_id)
+
                 current_time = TimeUtilities.current_time_in_sec()
-                start_time = TimeUtilities.add_minutes_to_epoch_time(current_time, minutes=10)
+                start_time = TimeUtilities.add_minutes_to_epoch_time(current_time, minutes=5)
                 end_time = TimeUtilities.add_minutes_to_epoch_time(current_time, minutes=30)
                 task_begin_time = TimeUtilities.convert_epoch_to_datetime_in_IST(start_time)
                 task_expiry_time = TimeUtilities.convert_epoch_to_datetime_in_IST(end_time)
 
                 args = [community_id, member_id]
-                post_owner_message_template_in_intro_room.apply_async(args=args,
-                                                                      kwargs={},
-                                                                      eta=task_begin_time,
-                                                                      expires=task_expiry_time)
+                check_owner_template_posted.apply_async(args=args, kwargs={},
+                                                        eta=task_begin_time, expires=task_expiry_time)
 
                 return True
             else:
