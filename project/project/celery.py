@@ -11,12 +11,14 @@ from django.conf import settings
 
 
 
-if settings.IS_BETA:
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.beta')
-else:
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.production')
+# if settings.IS_BETA:
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.development')
+# else:
+#     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.production')
 
-app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
+app = Celery('project',
+             backend='amqp', broker=os.getenv('BROKER_URL')
+             )
 # app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
