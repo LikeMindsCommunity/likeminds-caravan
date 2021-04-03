@@ -845,11 +845,13 @@ def send_follow_notification(card_id, user_id, answer):
         connection = get_connection()
         curr = connection.cursor()
         sql = "select user_id from togther_collabcardstate where card_id=%s and follow_status = True and remove_id is null and mute_status = False"
+        print(sql)
         parameter_list = [card_id]
         curr.execute(sql, parameter_list)
         member_list = curr.fetchall()
         curr.execute("select name from togther_userinfo where user_id_id=%s", [user_id])
         answerer_name = curr.fetchone()
+        print(answerer_name)
         curr.close()
         message={}
 
@@ -882,6 +884,7 @@ def send_follow_notification(card_id, user_id, answer):
         notification_list = []
 
         for member in member_list:
+            print("entered member id",member[0])
             if str(member[0]) != str(user_id) and str(member[0]) not in tagged_users_list:
                 temp = {}
                 notification_details = get_token_for_fcm(member[0], True)
@@ -892,12 +895,16 @@ def send_follow_notification(card_id, user_id, answer):
                 # if the user has a iOS device reqistered
                 device_filter = userDevices.objects.filter(user=temp['id'], mobile_os='iOS')
                 if device_filter.exists():
+                    print("member_id--temp--", temp['id'])
+                    print("\n\n")
                     unread_followed_chatroom = get_custom_data_for_new_conversation_created_ios(temp['id'])
+                    print(unread_followed_chatroom)
+                    print("\n\n")
                     message['payload']['unread_followed_chatroom'] = unread_followed_chatroom
                     temp['message'] = message
 
                 notification_list.append(temp)
-
+        print(notification_list)
         notification_meta(notification_list, message, calling_notification="send_follow_notification")
 
         # functionality to send notification to tagged users
@@ -990,12 +997,14 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
     # time.sleep(2)
     followed_chatrooms = conversationEngage.objects.filter(user_id=user_id, draft_id=None).order_by('-updated_at',
                                                                                                     '-id')
-
+    print(followed_chatrooms)
+    print("\n")
     temp = {}
 
     if followed_chatrooms.exists():
 
         conversation = followed_chatrooms[0]
+        print(conversation)
         if not conversation.unseen_count:
             return {}
 
