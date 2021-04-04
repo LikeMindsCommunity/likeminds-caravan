@@ -1200,7 +1200,7 @@ def join_promoter_created_community_version_1(res, request):
     shared_user_instance = valid_link_dict['shared_user_instance']
 
     # saving data directly
-    if True:
+    if is_valid_private_link:
 
         history_type = moderation_history_types.APPLIED_PRIVATE_LINK
 
