@@ -1473,7 +1473,7 @@ def post_introduction_card_for_community(community_id, member_id):
 
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
-                # post_owner_message_template_in_intro_room(community_id, member_id)
+                post_owner_message_template_in_intro_room(community_id, member_id)
 
                 current_time = TimeUtilities.current_time_in_sec()
                 start_time = TimeUtilities.add_minutes_to_epoch_time(current_time, minutes=5)
