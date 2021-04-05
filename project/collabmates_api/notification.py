@@ -931,19 +931,25 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     card_instance = Collabcard.get_chatroom_or_None(card_id)
 
+    print("card_instance", card_instance)
+
     if not card_instance:
         return
     userinfo_instance = Userinfo.get_userinfo_or_None(user_id)
+
+    print("userinfo instance",userinfo_instance)
 
     if not userinfo_instance:
         return
 
     conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
 
+    print("conversation_instance", conversation_instance)
     if not conversation_instance:
         return
 
     answer = conversation_instance.answer
+    print(answer)
 
     community_instance = card_instance.community
 
@@ -985,6 +991,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
         notification_list.append(user_context)
 
+    print(notification_list)
     notification_meta(notification_list, message)
 
     send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
