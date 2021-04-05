@@ -619,7 +619,7 @@ class ConversationImpl(ConversationManager):
                                                  self.get_conversation_id(),
                                                  update_cache=True)
 
-        send_notification_to_message_creator_on_reaction.delay(self.get_member_id(),
+        send_notification_to_message_creator_on_reaction(self.get_member_id(),
                                                                self.get_chatroom_id(),
                                                                self.get_conversation_id(),
                                                                reaction)
