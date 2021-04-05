@@ -2679,7 +2679,7 @@ def send_sync_notification(notification_dict):
         error_logger.error("Invalid sync notification type")
 
         return
-    print(notification_dict)
+
     chatroom_id = notification_dict.get('chatroom_id')
 
     if chatroom_id:
@@ -2688,7 +2688,10 @@ def send_sync_notification(notification_dict):
         if community_instance:
             notification_dict['community_id'] = community_instance.id
 
-    print(notification_dict)
+    community_id = notification_dict.get('community_id')
+
+    if not community_id:
+        return
 
     message = {
         'payload': {
@@ -2699,10 +2702,10 @@ def send_sync_notification(notification_dict):
     token_list = []
 
     if notification_dict['sync_notification_type'] == SyncNotificationTypes.ALL_MEMBERS.value:
-        token_list = get_android_users_tokens_for_silent_sync_notification(notification_dict['community_id'])
+        token_list = get_android_users_tokens_for_silent_sync_notification(community_id)
 
     elif notification_dict['sync_notification_type'] == SyncNotificationTypes.SINGLE_MEMBER.value:
-        token_list = get_android_users_tokens_for_silent_sync_notification(notification_dict['community_id'],
+        token_list = get_android_users_tokens_for_silent_sync_notification(community_id,
                                                                     notification_dict['member_id'])
 
     if len(token_list) > 0:
