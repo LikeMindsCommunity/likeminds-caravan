@@ -6,6 +6,8 @@ from rest_framework import status as status_codes
 
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT
 from .conversation_manager import ConversationManager
+from .reactions import fetch_chatroom_or_conversation_reactions
+from ..notification import send_notification_to_message_creator_on_reaction
 from ..member_community.member_community_impl import MemberCommunityImpl
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
@@ -23,8 +25,9 @@ from .constants import (UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
                         PREVIEW_COMMUNITY, PREVIEW_DIRECTORY)
 
-from togther.models import card_answers, collabcardState, Collabcard, Members, Community, ModelUtilities, \
-    conversationPolls, conversationPollMembers, Userinfo
+from togther.models import (card_answers, collabcardState, Collabcard, Members,
+                            Community, ModelUtilities, MessageReactions,conversationPolls,
+                            conversationPollMembers, Userinfo)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
@@ -35,9 +38,10 @@ from utility.states import member_states, collabcard_states, card_types, SyncNot
 from utility.utils import decode_meta_from_url
 from utility.firebase import update_last_answer_id
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
-                                  update_preview_of_chatroom_in_cache, get_conversation_poll,
-                                  save_conversation_poll_options_in_cache, save_conversation_poll_voters_in_cache,
-                                  update_multiple_previews_in_community)
+                                  update_preview_of_chatroom_in_cache,
+                                  get_conversation_poll, save_conversation_poll_options_in_cache,
+                                  save_conversation_poll_voters_in_cache, update_multiple_previews_in_community)
+
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 
@@ -581,6 +585,88 @@ class ConversationImpl(ConversationManager):
 
         return conversation_response
 
+    def add_reaction(self, reaction: str) -> dict:
+
+        if self.get_conversation_id() is None and self.get_chatroom_id() is None:
+            response = {
+                'success': False,
+                'error_message': 'send conversation_id or chatroom_id in post params'
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = ConversationHelper.fetch_user_instance(self.get_member_id())
+
+        chatroom_instance = None
+        conversation_instance = None
+
+        if self.get_conversation_id() is not None:
+            conversation_instance = ConversationHelper.fetch_conversation_instance(self.get_conversation_id())
+            chatroom_instance = conversation_instance.card
+
+        if self.get_chatroom_id() is not None and\
+                chatroom_instance is None:
+            chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
+
+        update_context = {'reaction': reaction}
+
+        MessageReactions.objects.update_or_create(user=user_instance,
+                                                  chatroom=chatroom_instance,
+                                                  conversation=conversation_instance,
+                                                  defaults=update_context)
+
+        fetch_chatroom_or_conversation_reactions(self.get_chatroom_id(),
+                                                 self.get_conversation_id(),
+                                                 update_cache=True)
+
+        send_notification_to_message_creator_on_reaction(self.get_member_id(),
+                                                         self.get_chatroom_id(),
+                                                         self.get_conversation_id(),
+                                                         reaction)
+
+        context = {
+            "success": True
+        }
+
+        return context
+
+    def remove_reaction(self) -> dict:
+
+        if self.get_conversation_id() is None and self.get_chatroom_id() is None:
+            response = {
+                'success': False,
+                'error_message': 'send conversation_id or chatroom_id in post params'
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = ConversationHelper.fetch_user_instance(self.get_member_id())
+
+        chatroom_instance = None
+        conversation_instance = None
+
+        if self.get_conversation_id() is not None:
+            conversation_instance = ConversationHelper.fetch_conversation_instance(self.get_conversation_id())
+            chatroom_instance = conversation_instance.card
+
+        if self.get_chatroom_id() is not None and\
+                chatroom_instance is None:
+            chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
+
+        MessageReactions.objects.filter(user=user_instance,
+                                        chatroom=chatroom_instance,
+                                        conversation=conversation_instance).delete()
+
+        fetch_chatroom_or_conversation_reactions(self.get_chatroom_id(),
+                                                 self.get_conversation_id(),
+                                                 update_cache=True)
+
+        context = {
+            "success": True
+        }
+
+        return context
+
     def add_poll(self, request_body):
 
         conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
@@ -695,6 +781,10 @@ class ConversationHelper:
     @staticmethod
     def fetch_chatroom_instance(chatroom_id) -> Collabcard:
         return Collabcard.get_chatroom_or_raise_exception(chatroom_id)
+
+    @staticmethod
+    def fetch_conversation_instance(conversation_id) -> card_answers:
+        return card_answers.get_conversation_with_joins_or_raise_exception(conversation_id)
 
     @staticmethod
     def fetch_replied_conversation(req_body):

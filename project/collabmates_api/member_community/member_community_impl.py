@@ -16,8 +16,11 @@ from .constants import ACTIVE_USER_LIMIT, CHATROOM_COUNT_LIMIT, INVITE_MEMBERS, 
     PENDING_MEMBER_TEXT
 from .member_community_manager import MemberCommunityManager
 from .constants import FEED_UPWARD_SCROLL, FEED_DOWNWARD_SCROLL
-from ..raw_queries import fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query, \
-    get_community_introductions_based_on_user_list_query
+
+from utility.cache_keys import CHATROOM_REACTIONS_CACHE_KEY
+from ..conversation.reactions import fetch_chatroom_or_conversation_reactions
+from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query,
+                           get_community_introductions_based_on_user_list_query)
 from ..user_moderation_rights import check_admin_approve_right
 from ..utility import pagination
 from ..views import get_home_screen_community_actions, get_active_chatroom_member_images, \
@@ -1240,6 +1243,10 @@ class MemberCommunityHelper:
 
         if card_instance.online_link:
             chatroom_context['online_link'] = card_instance.online_link
+
+        reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
+
+        chatroom_context['reactions'] = reactions if reactions else []
 
         return chatroom_context
 

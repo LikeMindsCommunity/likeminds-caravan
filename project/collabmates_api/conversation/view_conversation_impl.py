@@ -1,12 +1,15 @@
 from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
-from utility.constants import INVALID_PLATFORM
+from rest_framework.views import APIView
+
 from utility.number_utilities import NumberUtilities
 from utility.string_utilities import StringUtilities
 from .conversation_impl import ConversationImpl
+from ..mixins import TransactionMixin
+
 from utility.request_utilities import RequestUtilities
-from rest_framework.views import APIView
-from ..serializers import get_conversation_instance_for_db_synching
 from utility.exception_utilities import InvalidHeaderException
 
 
@@ -137,6 +140,61 @@ class FetchConversationPollUsers(APIView):
             return JsonResponse(poll_conversation_response, status=400)
 
         return JsonResponse(poll_conversation_response)
+
+
+class AddReaction(TransactionMixin, APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(AddReaction, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        post_data = RequestUtilities.fetch_request_post_data(request)
+
+        chatroom_id = post_data.get('chatroom_id', None)
+        conversation_id = post_data.get('conversation_id', None)
+        reaction = post_data.get('reaction', None)
+
+        chatroom_manager = ConversationImpl(member_id=member_id,
+                                            chatroom_id=chatroom_id,
+                                            conversation_id=conversation_id)
+
+        response = chatroom_manager.add_reaction(reaction)
+
+        return JsonResponse(response)
+
+
+class RemoveReaction(TransactionMixin, APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(RemoveReaction, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        post_data = RequestUtilities.fetch_request_post_data(request)
+
+        chatroom_id = post_data.get('chatroom_id', None)
+        conversation_id = post_data.get('conversation_id', None)
+
+        chatroom_manager = ConversationImpl(member_id=member_id,
+                                            chatroom_id=chatroom_id,
+                                            conversation_id=conversation_id)
+
+        response = chatroom_manager.remove_reaction()
+
+        return JsonResponse(response)
 
 
 class ConversationViewsHelper:

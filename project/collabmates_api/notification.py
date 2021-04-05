@@ -2817,6 +2817,64 @@ def send_notification_for_new_secret_room_participant(user_id, chatroom_id):
 
 
 @shared_task
+def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conversation_id, reaction):
+    if chatroom_id is not None:
+        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+        if chatroom_instance is None:
+            error_logger.error(
+                f"send_notification_to_message_creator_on_reaction - chatroom id {chatroom_id} does not exist")
+            return
+
+        creator_dict = {
+            'id': chatroom_instance.user_id
+        }
+
+    elif conversation_id is not None:
+        conversation_instance = card_answers.get_conversation_or_None(conversation_id)
+
+        if conversation_instance is None:
+            error_logger.error(
+                f"send_notification_to_message_creator_on_reaction - conversation id {conversation_id} does not exist")
+            return
+
+        chatroom_instance = conversation_instance.card
+        chatroom_id = chatroom_instance.id
+
+        creator_dict = {
+            'id': conversation_instance.user_id
+        }
+
+    else:
+        return
+
+    reacted_userinfo_instance = Userinfo.get_userinfo_or_None(user_id)
+
+    if reacted_userinfo_instance is None:
+        return
+
+    # if user reacts on his own message, don't send notification
+    if creator_dict['id'] == reacted_userinfo_instance.user_id_id:
+        return
+
+    reacted_user_name = reacted_userinfo_instance.name
+
+    title = chatroom_instance.header
+    sub_title = MESSAGE_REACTIONS_NOTIFICATION_SUB_TITLE % (reacted_user_name, reaction)
+    route = MESSAGE_REACTIONS_NOTIFICATION_ROUTE % chatroom_id
+
+    message = {'payload': {
+        "title": title,
+        "sub_title": sub_title,
+        'route': route
+    }
+    }
+
+    notification_list = [creator_dict]
+    
+    notification_meta(notification_list, message)
+
+
 def send_poll_conversation_creation_notification(card_id, poll_conversation_creator_id, conversation_id):
 
     card_instance = Collabcard.get_chatroom_or_None(card_id)
@@ -2856,4 +2914,3 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
         notification_list.append(temp)
 
     notification_meta(notification_list, message)
-

@@ -7,6 +7,7 @@ from django.db.models import Q
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
+from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, CHATROOM_REACTIONS_CACHE_KEY
 from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_community_id, \
     generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
     is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp, \
@@ -14,6 +15,7 @@ from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_commu
 
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, chatroom_states)
+from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .user_moderation_rights import *
 import time
 
@@ -331,6 +333,10 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         collabcard['creator_share_url'] = share['creator_share_url']
         collabcard['link_created_at'] = share['link_created_at']
         collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
+
+    reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'])
+
+    collabcard['reactions'] = reactions if reactions else []
 
     return collabcard
 
@@ -1683,6 +1689,10 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
 
     if conversation.temporary_id:
         temp['temporary_id'] = conversation.temporary_id
+
+    reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation.id)
+
+    temp['reactions'] = reactions if reactions else []
 
     return temp
 

@@ -64,7 +64,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            user_onbaord, get_time_text_for_my_chatrooms, get_members_count_in_community,
                            check_notification_flag, create_notification_flag, is_request_ios,
                            )
-
+from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 
 from .notification import *
 from .raw_queries import *
@@ -5941,6 +5941,10 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'chatroom_id': ans.card.id,
             'created_epoch': int(ans.created_at)
         }
+
+        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=ans.id)
+
+        context['reactions'] = reactions if reactions else []
 
         if ans.attachments_uploaded is None:
             context['attachments_uploaded'] = False
@@ -14391,6 +14395,10 @@ class SyncChatrooms(APIView):
 
             chatroom['secret_chatroom_left'] = data[49]
 
+            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
+
+            chatroom['reactions'] = reactions if reactions else []
+
             chatrooms.append(chatroom)
 
         if max_last_updated:
@@ -14689,6 +14697,10 @@ class SyncChatroomsDiff(APIView):
                 chatroom['secret_chatroom_participants'] = json.loads(data[48])
 
             chatroom['secret_chatroom_left'] = data[49]
+
+            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
+
+            chatroom['reactions'] = reactions if reactions else []
 
             chatrooms.append(chatroom)
 
@@ -15075,6 +15087,10 @@ class SyncConversation(APIView):
             if conversation[19]:
                 conversation_context['temporary_id'] = conversation[19]
 
+            reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation_context['id'])
+
+            conversation_context['reactions'] = reactions if reactions else []
+
             if conversation_context['state'] == ConversationStates.CONVERSATION_POLL:
                 conversation_context['poll_type'] = conversation[20]
 
@@ -15096,7 +15112,6 @@ class SyncConversation(APIView):
             conversation_list.append(conversation_context)
 
         return conversation_list, max_last_updated
-
 
     def process_conversation_files(self, conversation_files):
 

@@ -1,6 +1,8 @@
 from rest_framework.views import APIView
 from django.http import JsonResponse
 from rest_framework import serializers, fields
+
+from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from django.contrib.auth.models import User
 from collections import OrderedDict
@@ -8,6 +10,7 @@ import json
 import time
 
 from utility.celery_tasks import get_conversation_poll
+from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
                           get_removed_member_custom_text, get_collabcard_files, get_user_profile,get_answer_text_for_poll)
@@ -17,6 +20,7 @@ from utility.utils import (get_time_text, generate_private_link, eligibility_cou
                            get_members_count_in_community)
 from django.conf import settings
 from .user_moderation_rights import check_member_invite_private_right, check_admin_approve_right
+from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY
 from .static_files import *
 from django.db.models import F, When, Q
 
@@ -793,6 +797,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     preview = serializers.DictField(write_only=True)
     member_id = serializers.CharField(write_only=True)
     created_epoch = serializers.SerializerMethodField()
+    reactions = serializers.SerializerMethodField()
     polls = serializers.SerializerMethodField()
 
     class Meta:
@@ -800,15 +805,20 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         fields = ("id", 'answer', 'card', 'user', 'created_at', 'community', 'state',
                   'og_tags', 'deleted_by', 'is_edited', 'reply', 'internal_link',
                   'has_files', 'date', 'images', 'pdf', 'audios', 'videos',
-                  'attachment_count', 'attachments_uploaded',
-                  'location', 'reply_conversation', 'preview', 'member_id', 'created_epoch', 'temporary_id',
-                  'is_anonymous', 'allow_add_option', 'poll_type', 'expiry_time', 'multiple_select_state',
-                  'multiple_select_no','polls')
+                  'attachment_count', 'attachments_uploaded', 'location', 'reply_conversation',
+                  'preview', 'member_id', 'created_epoch', 'temporary_id', 'is_anonymous',
+                  'allow_add_option', 'poll_type', 'expiry_time', 'multiple_select_state',
+                  'multiple_select_no', 'polls', 'reactions')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)
         self.fetch_reply = self.context.get('fetch_reply', True)
         self.current_user_id = self.context.get('current_user_id', None)
+
+    def get_reactions(self, obj):
+        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=obj.id)
+
+        return reactions if reactions else []
 
     def get_date(self, obj):
         return TimeUtilities.convert_epoch_time_in_date(obj.created_at)
@@ -915,4 +925,11 @@ class UserinfoSerializer(serializers.ModelSerializer):
                 data['id'] = userinfo.user_id.id
 
         return data
+
+
+class MessageReactionsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = MessageReactions
+        fields = "__all__"
 

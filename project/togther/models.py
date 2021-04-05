@@ -6,7 +6,7 @@ from utility.states import member_states, member_rights
 from django.db.models.query import QuerySet
 from rest_framework import status as status_codes
 from utility.exception_utilities import (InvalidCommunityException, InvalidChatroomException,
-                                         InvalidUserException, CustomException)
+                                         InvalidUserException, CustomException, InvalidConversationException)
 from utility.time_utilities import TimeUtilities
 from typing import Union
 
@@ -585,6 +585,37 @@ class card_answers(models.Model):
             self.created_at = current_time_milli
 
         super(card_answers, self).save(*args, **kwargs)
+
+    @staticmethod
+    def get_conversation_or_raise_exception(conversation_id):
+        try:
+            return card_answers.objects.get(pk=conversation_id)
+        except:
+            response = {
+                'success': False,
+                'error_message': f'conversation with id {conversation_id} does not exist'
+            }
+            raise InvalidConversationException(response)
+
+    @staticmethod
+    def get_conversation_with_joins_or_raise_exception(conversation_id):
+
+        chatroom = card_answers.objects.filter(pk=conversation_id).select_related('community', 'user', 'card')
+        if chatroom.exists():
+            return chatroom[0]
+        else:
+            response = {
+                'success': False,
+                'error_message': f'conversation with id {conversation_id} does not exist'
+            }
+            raise InvalidConversationException(response)
+
+    @staticmethod
+    def get_conversation_or_None(conversation_id):
+        try:
+            return card_answers.objects.get(pk=conversation_id)
+        except:
+            return None
 
 
 class conversationPolls(models.Model):
@@ -1684,3 +1715,13 @@ class ModelUtilities:
             pass
 
         return instance
+
+
+class MessageReactions(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE, null=True)
+    reaction = models.CharField(max_length=100, null=False)
+
+    class Meta:
+        unique_together = ['user', 'chatroom', 'conversation']
