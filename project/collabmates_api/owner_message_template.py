@@ -11,7 +11,7 @@ info_logger = LoggingWrapper.get_instance()
 
 
 @shared_task
-def post_owner_message_template_in_intro_room(community_id, user_id):
+def post_owner_message_template_in_intro_room(community_id, user_id, check_template=False):
 
     user_instance = User.get_user_or_raise_exception(user_id)
     community_instance = Community.get_community_or_raise_exception(community_id)
@@ -41,6 +41,12 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
         return
 
     chatroom = intro_filter[0]
+
+    if check_template:
+        # check if template is already posted or not, if posted, return
+        template_answer = card_answers.objects.filter(answer=template[0].message, card=chatroom)
+        if template_answer.exists():
+            return
 
     if chatroom.user.id == owner_user_instance.id:
         info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner id and chatroom creator id matching check")
@@ -74,3 +80,8 @@ def post_owner_message_template_in_intro_room(community_id, user_id):
 
     info_logger.info(
         f"post_owner_message_template_in_intro_room inactivate chatroom for owner - user_id = {user_id}, community_id = {community_id}, chatroom_id = {chatroom.id}, response = {chatroom_response}")
+
+
+@shared_task
+def check_owner_template_posted(community_id, user_id):
+    post_owner_message_template_in_intro_room(community_id, user_id, check_template=True)
