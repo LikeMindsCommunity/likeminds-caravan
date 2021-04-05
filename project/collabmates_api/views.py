@@ -1422,11 +1422,7 @@ def post_introduction_card_for_community(community_id, member_id):
 
                 args = [community_id, member_id]
                 check_owner_template_posted.apply_async(args=args, kwargs={},
-                                                        countdown=5*60, expires=10*60,
-                                                        retry=True, retry_policy={
-                                                                          'max_retries': 3,
-                                                                          'interval_start': 0.2,
-                                                                      })
+                                                        countdown=5*60, expires=10*60)
 
                 return True
             else:
