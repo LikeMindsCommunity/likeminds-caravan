@@ -2688,6 +2688,8 @@ def send_sync_notification(notification_dict):
         if community_instance:
             notification_dict['community_id'] = community_instance.id
 
+    print(notification_dict)
+
     message = {
         'payload': {
             'route': SYNC_NOTIFICATION_ROUTE
