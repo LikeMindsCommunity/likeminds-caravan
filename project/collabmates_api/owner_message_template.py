@@ -38,7 +38,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
     # check if intro card exist or not for the joined user
     if not intro_filter.exists():
         info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at intro room existence check")
-        return
+        raise Exception("retrying")
 
     chatroom = intro_filter[0]
 
@@ -46,6 +46,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
         # check if template is already posted or not, if posted, return
         template_answer = card_answers.objects.filter(answer=template[0].message, card=chatroom)
         if template_answer.exists():
+            info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, template already posted")
             return
 
     if chatroom.user.id == owner_user_instance.id:
@@ -83,6 +84,9 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
         f"post_owner_message_template_in_intro_room inactivate chatroom for owner - user_id = {user_id}, community_id = {community_id}, chatroom_id = {chatroom.id}, response = {chatroom_response}")
 
 
-@shared_task
-def check_owner_template_posted(community_id, user_id):
-    post_owner_message_template_in_intro_room(community_id, user_id, check_template=True)
+@shared_task(bind=True, autoretry_for=(Exception,), default_retry_delay=60, max_retries=3)
+def check_owner_template_posted(self, community_id, user_id):
+    try:
+        post_owner_message_template_in_intro_room(community_id, user_id, check_template=True)
+    except Exception as exc:
+        raise self.retry(exc=exc)

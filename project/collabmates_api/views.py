@@ -1475,15 +1475,10 @@ def post_introduction_card_for_community(community_id, member_id):
 
                 post_owner_message_template_in_intro_room(community_id, member_id)
 
-                current_time = TimeUtilities.current_time_in_sec()
-                start_time = TimeUtilities.add_minutes_to_epoch_time(current_time, minutes=5)
-                end_time = TimeUtilities.add_minutes_to_epoch_time(current_time, minutes=30)
-                task_begin_time = TimeUtilities.convert_epoch_to_datetime_in_IST(start_time)
-                task_expiry_time = TimeUtilities.convert_epoch_to_datetime_in_IST(end_time)
-
                 args = [community_id, member_id]
+                # runs after 5 minutes, expires after 30 minutes
                 check_owner_template_posted.apply_async(args=args, kwargs={},
-                                                        eta=task_begin_time, expires=task_expiry_time)
+                                                        countdown=5 * 60, expires=30 * 60)
 
                 return True
             else:
