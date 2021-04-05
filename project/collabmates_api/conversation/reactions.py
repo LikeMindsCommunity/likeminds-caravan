@@ -118,16 +118,20 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
 
             community_instance = chatroom.community
 
-        reaction_users = list(reactions.values_list('user__id', flat=True))
+        if reactions.exists():
 
-        reactions = reactions.select_related('user').only("reaction", 'user')
+            reaction_users = list(reactions.values_list('user__id', flat=True))
 
-        reactions_map = process_message_reactions(reactions)
+            reactions = reactions.select_related('user').only("reaction", 'user')
 
-        reactions = get_members_profiles_for_reactions(community_instance, reaction_users, reactions_map)
+            reactions_map = process_message_reactions(reactions)
 
-        update_chatroom_or_conversation_reactions_in_cache.delay(chatroom_id=chatroom_id,
-                                                                 conversation_id=conversation_id,
-                                                                 member_profiles=reactions)
+            reactions = get_members_profiles_for_reactions(community_instance, reaction_users, reactions_map)
+
+            update_chatroom_or_conversation_reactions_in_cache(chatroom_id=chatroom_id,
+                                                                     conversation_id=conversation_id,
+                                                                     member_profiles=reactions)
+        else:
+            reactions = []
 
     return reactions
