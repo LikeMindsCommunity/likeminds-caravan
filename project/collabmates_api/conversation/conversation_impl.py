@@ -259,7 +259,7 @@ class ConversationImpl(ConversationManager):
         update_activity_in_chatroom_for_conversation_creation(chatroom_id,
                                                               user_id=self.get_member_id())
 
-        update_chatroom_for_users_and_send_follow_notification.delay(chatroom_id,
+        update_chatroom_for_users_and_send_follow_notification(chatroom_id,
                                                                      self.get_member_id(),
                                                                      conversation_id,
                                                                      has_files=has_files)

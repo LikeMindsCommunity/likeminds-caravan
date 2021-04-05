@@ -7504,7 +7504,8 @@ def update_chatroom_for_users_and_send_follow_notification(card_instance_id, use
 
     update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance_id})
     update_chatroom_conversation_creators_in_cache({'chatroom_id': card_instance_id, 'user_id': user_id})
-
+    print(card_instance_id)
+    print(conversation_id)
     if not has_files:
         send_follow_notification(card_id=card_instance_id, user_id=user_id, conversation_id=conversation_id)
         send_sync_notification({'chatroom_id': card_instance_id,
