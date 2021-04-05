@@ -844,9 +844,8 @@ def get_ios_users_from_user_list(user_list):
     return ios_users_set
 
 
-def get_notification_payload_for_ios(community_instance, card_instance, userinfo_instance, conversation_instance,
-                                     message_payload):
-
+def get_notification_payload_for_conversation_creation_ios(community_instance, card_instance, userinfo_instance,
+                                                           conversation_instance, message_payload):
     payload = dict()
 
     payload['community_name'] = community_instance.name
@@ -884,10 +883,11 @@ def get_notification_payload_for_ios(community_instance, card_instance, userinfo
         payload['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s""" % (
             str(card_instance.id), str(conversation_instance.id))
 
-    ios_message_payload = message_payload.copy()
-    ios_message_payload['unread_follow_notification'] = ios_message_payload
+    ios_notification_content = dict()
+    ios_notification_content['payload'] = message_payload.copy()
+    ios_notification_content['payload']['unread_follow_notification'] = payload
 
-    return ios_message_payload
+    return ios_notification_content
 
 
 def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
@@ -898,18 +898,21 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
 
     message = dict()
 
-    message['payload'] = {
-        "title": userinfo_instance.name + " tagged you!",
-        "sub_title": card_instance.header + ": " + answer_text,
-        "route": "route://collabcard?collabcard_id=" + str(card_instance.id),
+    follow_notification_content = {
+        "title": card_instance.header,
+        "sub_title": userinfo_instance.name + ": " + answer_text,
+        "route": "route://collabcard?collabcard_id=" + str(card_instance.id)
     }
+
+    message['payload'] = follow_notification_content
 
     ios_user_set = get_ios_users_from_user_list(tagged_users_list)
 
-    ios_notification_payload = get_notification_payload_for_ios(community_instance,
-                                                                card_instance,
-                                                                userinfo_instance,
-                                                                conversation_instance)
+    ios_notification_payload = get_notification_payload_for_conversation_creation_ios(community_instance,
+                                                                                      card_instance,
+                                                                                      userinfo_instance,
+                                                                                      conversation_instance,
+                                                                                      follow_notification_content)
     notification_list = []
 
     for tagged_user in tagged_users_list:
@@ -982,10 +985,11 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     ios_user_set = get_ios_users_from_user_list(chatroom_follower_list)
 
-    ios_notification_payload = get_notification_payload_for_ios(community_instance,
+    ios_notification_payload = get_notification_payload_for_conversation_creation_ios(community_instance,
                                                                 card_instance,
                                                                 userinfo_instance,
                                                                 conversation_instance, follow_notification_content)
+
     for user_id in chatroom_follower_list:
 
         if user_id in tagged_users_list:
@@ -999,12 +1003,10 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
         notification_list.append(user_context)
 
-    print(notification_list)
     notification_meta(notification_list, message)
 
     send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
                                                                conversation_instance, card_instance, community_instance)
-
 
 def get_custom_data_for_new_conversation_created(user_id):
     """function to send notification for new conversation posted to followed users"""
