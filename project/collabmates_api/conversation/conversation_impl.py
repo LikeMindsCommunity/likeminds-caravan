@@ -346,7 +346,7 @@ class ConversationImpl(ConversationManager):
         conversation_tagging(None, req_body, chatroom_instance,
                              user_instance, self.get_member_id())
 
-    def _update_home_page(self, chatroom_id, req_body, has_files, is_ios):
+    def _update_home_page(self, chatroom_id, has_files, conversation_id):
         user_id = self.get_member_id() if has_files else None
         update_my_chatrooms_for_users(chatroom_id=chatroom_id, user_id=user_id)
 
@@ -355,7 +355,7 @@ class ConversationImpl(ConversationManager):
 
         update_chatroom_for_users_and_send_follow_notification.delay(chatroom_id,
                                                                      self.get_member_id(),
-                                                                     req_body['text'],
+                                                                     conversation_id,
                                                                      has_files=has_files)
 
 
@@ -552,9 +552,8 @@ class ConversationImpl(ConversationManager):
 
         self._auto_follow_for_tagged_members(req_body, chatroom_instance, user_instance)
 
-        self._update_home_page(chatroom_id, req_body,
-                               has_files=has_files,
-                               is_ios=is_ios)
+        self._update_home_page(chatroom_id,has_files=has_files,
+                               conversation_id=conversation_instance.id)
 
         if conversation_instance.preview_type == PREVIEW_CHATROOM:
             preview_chatroom_id = chatroom_instance.id
