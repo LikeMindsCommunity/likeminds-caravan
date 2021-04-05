@@ -2679,7 +2679,7 @@ def send_sync_notification(notification_dict):
         error_logger.error("Invalid sync notification type")
 
         return
-
+    print(notification_dict)
     chatroom_id = notification_dict.get('chatroom_id')
 
     if chatroom_id:
