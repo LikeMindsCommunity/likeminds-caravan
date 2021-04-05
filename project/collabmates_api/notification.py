@@ -954,6 +954,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     print("conversation_instance", conversation_instance)
 
+
     if not conversation_instance:
         return
 
