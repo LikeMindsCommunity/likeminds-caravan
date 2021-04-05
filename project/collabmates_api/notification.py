@@ -844,7 +844,8 @@ def get_ios_users_from_user_list(user_list):
     return ios_users_set
 
 
-def get_notification_payload_for_ios(community_instance, card_instance, userinfo_instance, conversation_instance):
+def get_notification_payload_for_ios(community_instance, card_instance, userinfo_instance, conversation_instance,
+                                     message_payload):
 
     payload = dict()
 
@@ -883,7 +884,10 @@ def get_notification_payload_for_ios(community_instance, card_instance, userinfo
         payload['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s""" % (
             str(card_instance.id), str(conversation_instance.id))
 
-    return payload
+    ios_message_payload = message_payload.copy()
+    ios_message_payload['unread_follow_notification'] = ios_message_payload
+
+    return ios_message_payload
 
 
 def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
@@ -929,6 +933,7 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
 @shared_task
 def send_follow_notification(card_id, user_id, conversation_id):
 
+
     card_instance = Collabcard.get_chatroom_or_None(card_id)
 
     print("card_instance", card_instance)
@@ -945,6 +950,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
     conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
 
     print("conversation_instance", conversation_instance)
+
     if not conversation_instance:
         return
 
@@ -966,18 +972,20 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     message = dict()
 
-    message['payload'] = {
+    follow_notification_content = {
         "title": card_instance.header,
         "sub_title": userinfo_instance.name + ": " + answer_text,
         "route": "route://collabcard?collabcard_id=" + str(card_id)
     }
+
+    message['payload'] = follow_notification_content
 
     ios_user_set = get_ios_users_from_user_list(chatroom_follower_list)
 
     ios_notification_payload = get_notification_payload_for_ios(community_instance,
                                                                 card_instance,
                                                                 userinfo_instance,
-                                                                conversation_instance)
+                                                                conversation_instance, follow_notification_content)
     for user_id in chatroom_follower_list:
 
         if user_id in tagged_users_list:
