@@ -128,10 +128,12 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
 
             reactions = get_members_profiles_for_reactions(community_instance, reaction_users, reactions_map)
 
+        else:
+            reactions = []
+        
+        if update_cache:
             update_chatroom_or_conversation_reactions_in_cache.delay(chatroom_id=chatroom_id,
                                                                      conversation_id=conversation_id,
                                                                      member_profiles=reactions)
-        else:
-            reactions = []
 
     return reactions
