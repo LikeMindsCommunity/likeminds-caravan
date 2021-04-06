@@ -83,7 +83,7 @@ from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard
                     send_community_confirmation_email, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     )
-from .owner_message_template import post_owner_message_template_in_intro_room
+from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
 
@@ -1474,6 +1474,11 @@ def post_introduction_card_for_community(community_id, member_id):
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
                 post_owner_message_template_in_intro_room(community_id, member_id)
+
+                args = [community_id, member_id]
+                # runs after 5 minutes, expires after 30 minutes
+                check_owner_template_posted.apply_async(args=args, kwargs={},
+                                                        countdown=5 * 60, expires=30 * 60)
 
                 return True
             else:
