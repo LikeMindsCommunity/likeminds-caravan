@@ -9,8 +9,6 @@ from django.conf import settings
 # set the default Django settings module for the 'celery' program.
 # set the default Django settings module for the 'celery' program.
 
-
-
 if settings.IS_BETA:
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings.beta')
 else:

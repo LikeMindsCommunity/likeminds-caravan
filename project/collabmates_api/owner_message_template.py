@@ -27,7 +27,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
     # has to get owner from records
     # because, owner can transfer his owner ship to other members of community
     owner_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
-
+    # check if owner is present in community or not
     if owner_user_instance is None:
         print(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner existence check")
         return
@@ -35,9 +35,9 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
     intro_filter = Collabcard.objects.filter(community=community_instance,
                                              user=user_instance,
                                              type=card_types.CARD_INTRO)
-
+    # check if intro card exist or not for the joined user
     if not intro_filter.exists():
-        print(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at intro room existence check")
+        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at intro room existence check")
         raise Exception("retrying")
 
     chatroom = intro_filter[0]
@@ -46,12 +46,12 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
         # check if template is already posted or not, if posted, return
         template_answer = card_answers.objects.filter(answer=template[0].message, card=chatroom)
         if template_answer.exists():
-            print(
-                f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, template already posted")
-            raise Exception("template already posted")
+            info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, template already posted")
+            return
 
     if chatroom.user.id == owner_user_instance.id:
-        print(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner id and chatroom creator id matching check")
+        # if intro card is owner's, return
+        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner id and chatroom creator id matching check")
         return
 
     from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
@@ -83,8 +83,8 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
     print(
         f"post_owner_message_template_in_intro_room inactivate chatroom for owner - user_id = {user_id}, community_id = {community_id}, chatroom_id = {chatroom.id}, response = {chatroom_response}")
 
-
-@shared_task(bind=True, autoretry_for=(Exception,), default_retry_delay=30, max_retries=3)
+    
+@shared_task(bind=True, autoretry_for=(Exception,), default_retry_delay=60, max_retries=3)
 def check_owner_template_posted(self, community_id, user_id):
     try:
         post_owner_message_template_in_intro_room(community_id, user_id, check_template=True)

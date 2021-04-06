@@ -1421,8 +1421,10 @@ def post_introduction_card_for_community(community_id, member_id):
                 post_owner_message_template_in_intro_room(community_id, member_id)
 
                 args = [community_id, member_id]
+
+                # runs after 5 minutes, expires after 30 minutes
                 check_owner_template_posted.apply_async(args=args, kwargs={},
-                                                        countdown=5*60, expires=10*60)
+                                                        countdown=5 * 60, expires=30 * 60)
 
                 return True
             else:
