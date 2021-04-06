@@ -2894,12 +2894,16 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
     if not card_instance:
         return
 
+    print("poll conversation notification", card_instance)
+
     community_instance = card_instance.community
 
     userinfo_instance = Userinfo.objects.filter(user_id=poll_conversation_creator_id)
 
     if not userinfo_instance:
         return
+
+    print("userinfo poll conversation", userinfo_instance)
 
     member_filter = Members.objects.filter(community_id=community_instance).filter(
         Q(state=member_states.MEMBER) | Q(state=member_states.ADMIN) | Q(state=member_states.PROFILE_UNAVAILABLE))
@@ -2925,4 +2929,5 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
 
         notification_list.append(temp)
 
+    print("notification_list", notification_list)
     notification_meta(notification_list, message)

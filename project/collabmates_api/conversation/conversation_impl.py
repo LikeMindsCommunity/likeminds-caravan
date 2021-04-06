@@ -755,10 +755,15 @@ class ConversationImpl(ConversationManager):
         if not user_instance:
             return {'status': False, 'error_message': "incorrect user id"}
 
-        poll_instance = ModelUtilities.get_model_instance_or_none(conversationPolls, poll_id)
+        poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll_id,
+                                                                          'conversation': conversation_instance})
+        poll_instance = None
+
+        if poll_filter:
+            poll_instance = poll_filter[0]
 
         if not poll_instance:
-            return {'status': False, 'error_message': "incorrect poll_id"}
+            return {'status': False, 'error_message': "incorrect poll_id conversation pair"}
 
         community_instance = conversation_instance.community
         user_list = self._fetch_member_list_for_poll_conversation(conversation_instance, poll_instance,
