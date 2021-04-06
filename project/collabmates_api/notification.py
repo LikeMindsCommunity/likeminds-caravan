@@ -36,6 +36,7 @@ from django.shortcuts import get_object_or_404
 import traceback
 
 from datetime import datetime, timedelta
+
 from .serializers import get_answer_files, get_collabcard_files
 from .static_text import *
 from utility.time_utilities import TimeUtilities
@@ -954,8 +955,10 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     print("conversation_instance", conversation_instance)
 
-
     if not conversation_instance:
+        return
+
+    if conversation_instance.state == conversation_states.CONVERSATION_POLL:
         return
 
     answer = conversation_instance.answer
@@ -2931,3 +2934,4 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
 
     print("notification_list", notification_list)
     notification_meta(notification_list, message)
+
