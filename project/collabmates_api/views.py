@@ -7479,54 +7479,142 @@ def community_cards_version_1(request, community_id, req_dict=None):
     return JsonResponse(context)
 
 
-# /api/create_answer?collabcard_id=&member_id=
-@csrf_exempt
-def create_answer(request):
-    '''function to post answer on collabcard'''
-    body = request.GET
-
-    try:
-        user_id = body['member_id']
-        card_id = body['collabcard_id']
-        user_instance = User.objects.get(id=user_id)
-        card_instance = Collabcard.objects.get(id=card_id)
-    except:
-        context = get_error_context(False, "Send params correctly")
-        return JsonResponse(context)
-
-    res = json.loads(request.body)
-    ans = card_answers()
-    ans.answer = res['title']
-    ans.card = card_instance
-    ans.user = user_instance
-    ans.community = card_instance.community
-    ans.save()
-
-    update_last_answer_id(card_id, ans.id)
-    # auto following the collabcard if answer is created
-    function_dict = {
-        'member_id': user_id,
-        'collabcard_id': card_id,
-        'status': True
-    }
-    collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
-
+def conversation_tagging(request, res, card_instance, user_instance, member_id):
+    '''tagging in conversations and auto-following'''
     # sending the tagged member list
-    auto_follow_chatrooms_in_case_of_tagging(request, res['title'], card_id)
+    auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id, card_instance)
 
-    send_follow_notification(card_id=card_id, user_id=user_id, answer=res['title'])
+    # send tagged users mail if they didnt check chat in last 24 hours
+    tagged_members = get_tagged_members_list(res['text'])
 
-    #     # calling update_answer_text
-    # if card.type == card_types.CARD_NORMAL or card.type == card_types.CARD_INTRO:
-    #     print("type === ", card.type)
-    #     update_answer_text(card_id)
+    tagged_member_list = tagged_members[0]
+    if len(tagged_member_list) > 0:
+        send_tagged_user_mail.delay(user_instance.id, card_instance.id, tagged_member_list, time_in_hrs=24)
 
-    # updating the conversationEngage table
-    conversation_seen(request, {'member_id': user_id, 'conversation_id': ans.id})
-    update_my_chatrooms_for_users(chatroom_id=card_id)
+    notification_list = [
+        'mail_card_owner_inactivity'
+    ]
 
-    return JsonResponse({'success': True, 'id': ans.id})
+    # check if sender is not the owner and  notification flag is true
+    if check_notification_flag(card_instance.user.id, notification_list, card_id=card_instance.id,
+                               community_id=None) and str(member_id) != str(card_instance.user.id):
+        send_chatroom_owner_mail.delay(card_instance.user.id, card_instance.id, time_in_hrs=12)
 
+
+@shared_task
+def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, conversation_id,
+                                                           has_files=False):
+
+    """ function to send follow notifications to users who are following the chatroom """
+
+    update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance_id})
+    update_chatroom_conversation_creators_in_cache({'chatroom_id': card_instance_id, 'user_id': user_id})
+    print(card_instance_id)
+    print(conversation_id)
+
+    if not has_files:
+        send_follow_notification(card_id=card_instance_id, user_id=user_id, conversation_id=conversation_id)
+
+
+def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user_id):
+    '''function to update the activity in chatroom for conversation creations'''
+    # for users who are following the chatrooms
+    # updating the expire time to null for all the users who are following the chatroom in collabcardState
+
+    card_instance = Collabcard.objects.get(id=card_instance_id)
+
+    update_status = collabcardState.objects.filter(card=card_instance, follow_status=True, remove=None).filter(
+        ~Q(user=user_id)).update(
+        expiry_time=None, updated_at=time.time())
+
+
+    # the person who is making the conversation marking his chatroom active for expiry time
+    state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
+
+    if state_filter.exists():
+        expiry_time = get_expiry_time_of_chatroom(state_filter[0])
+        update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                       {'card': card_instance, 'user': user_id},
+                                       {'expiry_time': expiry_time})
+
+    # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
+    # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
+
+    # for users who have seen the chatroom
+    seen_filter = collabcardState.objects.filter(card=card_instance, follow_status=False,
+                                                 remove=None).filter(
+        Q(state=collabcard_states.COLLABCARD_STATE_SEEN) | Q(external_seen=True))
+
+    if seen_filter.exists():
+        for data in seen_filter:
+            expiry_time = get_expiry_time_of_chatroom(data)
+            data.expiry_time = expiry_time
+            data.updated_at = time.time()
+            data.save()
+
+    # print(update_status)
+
+
+def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id, card_instance=None):
+    '''function to follow tagged chatrooms'''
+
+    tagged_members = get_tagged_members_list(conversation)
+
+    tagged_member_list = tagged_members[0]
+
+    is_tagged = True
+
+    if card_instance:
+        if card_instance.type == card_types.CARD_PURPOSE:
+            is_tagged = False
+
+    for user_id in tagged_member_list:
+        function_dict = {
+            'member_id': user_id,
+            'collabcard_id': card_id,
+            'status': True,
+            'source': "auto-following-chatroom",
+            'is_tagged': is_tagged
+        }
+        collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+
+
+def update_answer_text(card_id):
+    '''function for updating the answer_text feild in collab card model'''
+
+    ans_text = ''
+    card = Collabcard.objects.get(id=card_id)
+    card_ans = card_answers.objects.filter(card=card).distinct('user_id')
+    # if only one answer is present fro a collab card
+    card_ans_count = card_ans.count()
+    if card_ans_count == 0:
+        return
+
+    if card_ans_count == 1:
+        # get the name of the user who answered
+        username = card_ans[0].user.userinfo.name
+        ans_text = username + " responded"
+        # update the answer_text field in collabcard
+        # Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+
+    elif card_ans_count == 2:
+        # if there is more than one answer
+        ans_text += card_ans[0].user.userinfo.name + " and " + card_ans[1].user.userinfo.name
+        ans_text += " responded"
+        # Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+
+    elif card_ans_count > 2:
+        # if more than two different users have answered
+        ans_text += card_ans[0].user.userinfo.name
+        ans_text += " & " + str(card_ans_count - 1) + " others responded"
+        # Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+    card.answer_text = ans_text
+    card.answers_count = card_ans_count
+    card.save()
+    print("card answers count ====   ", card_ans_count)
+    print("card answers text ====   ", ans_text)
+
+    return
 
 @csrf_exempt
 def create_conversation(request):
@@ -7607,6 +7695,7 @@ def create_conversation(request):
     preview_utilities = PreviewUtilities()
     preview_utilities.set_preview_object(ans, res, member_id)
     ans.save()
+    print(ans)
 
     # saving the og tags if present
     if 'og_tags' in res:
@@ -7641,7 +7730,7 @@ def create_conversation(request):
         update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
 
     update_activity_in_chatroom_for_conversation_creation(card_instance.id, user_id=user_id)
-    update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, res['text'],
+    update_chatroom_for_users_and_send_follow_notification.delay(card_instance.id, user_id, conversation_id=ans.id,
                                                                  has_files=has_files)
 
     if not has_files:
@@ -7651,154 +7740,6 @@ def create_conversation(request):
     conversation = CardAnswersDBSyncSerializer(ans, context=context, many=False).data
 
     return JsonResponse({'success': True, 'id': ans.id, 'conversation': conversation})
-
-
-def conversation_tagging(request, res, card_instance, user_instance, member_id):
-    '''tagging in conversations and auto-following'''
-    # sending the tagged member list
-    auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id, card_instance)
-
-    # send tagged users mail if they didnt check chat in last 24 hours
-    tagged_members = get_tagged_members_list(res['text'])
-
-    tagged_member_list = tagged_members[0]
-    if len(tagged_member_list) > 0:
-        send_tagged_user_mail.delay(user_instance.id, card_instance.id, tagged_member_list, time_in_hrs=24)
-
-    notification_list = [
-        'mail_card_owner_inactivity'
-    ]
-
-    # check if sender is not the owner and  notification flag is true
-    if check_notification_flag(card_instance.user.id, notification_list, card_id=card_instance.id,
-                               community_id=None) and str(member_id) != str(card_instance.user.id):
-        send_chatroom_owner_mail.delay(card_instance.user.id, card_instance.id, time_in_hrs=12)
-
-
-@shared_task
-def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, res_text, has_files=False):
-
-    """ function to send follow notifications to users who are following the chatroom """
-
-    update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance_id})
-    update_chatroom_conversation_creators_in_cache({'chatroom_id': card_instance_id, 'user_id': user_id})
-
-    if not has_files:
-        send_follow_notification(card_id=card_instance_id, user_id=user_id, answer=res_text)
-        send_sync_notification({'chatroom_id': card_instance_id,
-                                'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
-
-
-def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user_id):
-    '''function to update the activity in chatroom for conversation creations'''
-    # for users who are following the chatrooms
-    # updating the expire time to null for all the users who are following the chatroom in collabcardState
-
-    card_instance = Collabcard.objects.get(id=card_instance_id)
-
-    update_status = collabcardState.objects.filter(card=card_instance, follow_status=True, remove=None).filter(
-        ~Q(user=user_id)).update(
-        expiry_time=None, updated_at=time.time())
-
-
-    # the person who is making the conversation marking his chatroom active for expiry time
-    state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
-
-    if state_filter.exists():
-        expiry_time = get_expiry_time_of_chatroom(state_filter[0])
-        update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                       {'card': card_instance, 'user': user_id},
-                                       {'expiry_time': expiry_time})
-
-    # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
-    # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
-
-    # for users who have seen the chatroom
-    seen_filter = collabcardState.objects.filter(card=card_instance, follow_status=False,
-                                                 remove=None).filter(
-        Q(state=collabcard_states.COLLABCARD_STATE_SEEN) | Q(external_seen=True))
-
-    if seen_filter.exists():
-        for data in seen_filter:
-            expiry_time = get_expiry_time_of_chatroom(data)
-            data.expiry_time = expiry_time
-            data.updated_at = time.time()
-            data.save()
-
-    # print(update_status)
-
-
-def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id, card_instance=None):
-    '''function to follow tagged chatrooms'''
-
-    tagged_members = get_tagged_members_list(conversation)
-
-    tagged_member_list = tagged_members[0]
-
-    is_tagged = True
-
-    if card_instance:
-        if card_instance.type == card_types.CARD_PURPOSE:
-            is_tagged = False
-
-    for user_id in tagged_member_list:
-        function_dict = {
-            'member_id': user_id,
-            'collabcard_id': card_id,
-            'status': True,
-            'source': "auto-following-chatroom",
-            'is_tagged': is_tagged
-        }
-        collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
-
-
-def _send_notification_to_tagged_users(card_id, answerer_name, answer, user_id):
-    tagged_users = re.findall("route://member/"'([0-9]+)', answer)
-    answer_text = re.split('>>', answer)[-1]
-    send_follow_notification(card_id=card_id, user_id=user_id, answer=answer, tagged_users_list=tagged_users)
-    for user_id in tagged_users:
-        # user=User.objects.get(id=user_id)
-        # if not is_collabcard_already_followed(card,user):
-        send_notification_to_tagged_users(card_id=card_id, answerer_name=answerer_name, answer=answer_text,
-                                          user_id=user_id)
-
-
-def update_answer_text(card_id):
-    '''function for updating the answer_text feild in collab card model'''
-
-    ans_text = ''
-    card = Collabcard.objects.get(id=card_id)
-    card_ans = card_answers.objects.filter(card=card).distinct('user_id')
-    # if only one answer is present fro a collab card
-    card_ans_count = card_ans.count()
-    if card_ans_count == 0:
-        return
-
-    if card_ans_count == 1:
-        # get the name of the user who answered
-        username = card_ans[0].user.userinfo.name
-        ans_text = username + " responded"
-        # update the answer_text field in collabcard
-        # Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-
-    elif card_ans_count == 2:
-        # if there is more than one answer
-        ans_text += card_ans[0].user.userinfo.name + " and " + card_ans[1].user.userinfo.name
-        ans_text += " responded"
-        # Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-
-    elif card_ans_count > 2:
-        # if more than two different users have answered
-        ans_text += card_ans[0].user.userinfo.name
-        ans_text += " & " + str(card_ans_count - 1) + " others responded"
-        # Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-    card.answer_text = ans_text
-    card.answers_count = card_ans_count
-    card.save()
-    print("card answers count ====   ", card_ans_count)
-    print("card answers text ====   ", ans_text)
-
-    return
 
 
 @csrf_exempt
@@ -8960,7 +8901,7 @@ def upload_files(request):
             update_last_answer_id(chatroom_id, answer_instance.id)
             update_my_chatrooms_for_users(chatroom_id=chatroom_id)
             send_follow_notification.delay(card_id=chatroom_id, user_id=answer_instance.user.id,
-                                           answer=answer_instance.answer)
+                                           conversation_id=answer_instance.id)
 
         conversation_context = {"current_user_id": member_id, "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(answer_instance, context=conversation_context, many=False).data
@@ -9227,8 +9168,8 @@ def upload_conversation_attachments(body, member_id):
 
         chatroom_id = conversation_instance.card.id
         update_last_answer_id(chatroom_id, conversation_instance.id)
-        send_follow_notification.delay(card_id=chatroom_id, user_id=conversation_instance.user.id,
-                                       answer=conversation_instance.answer)
+        send_follow_notification.delay(card_id=chatroom_id, user_id=conversation_instance.user_id,
+                                       conversation_id=conversation_instance.id)
         update_my_chatrooms_for_users(chatroom_id)
 
     conversation_context = {"current_user_id": member_id, "fetch_reply": True}
