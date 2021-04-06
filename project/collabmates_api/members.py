@@ -829,6 +829,7 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
             user_context = get_user_profile(user_instance.id,current_user_id)
             user_context['collabcard_state'] = instance.state
             user_context['is_guest'] = instance.is_guest
+            user_context['attending_status'] = instance.attending_status
 
             temp = get_removed_member_custom_text(instance.remove)
             user_context['custom_intro_text'] = temp['custom_intro_text']
