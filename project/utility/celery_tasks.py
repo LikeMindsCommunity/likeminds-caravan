@@ -17,7 +17,8 @@ from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVER
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
-from utility.states import card_types, chatroom_states, conversation_poll_types
+from utility.states import card_types, chatroom_states, conversation_poll_types, conversation_states
+
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -280,7 +281,9 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
         seen_id = user_data_dict.get(key)
 
         if seen_id:
-            unseen_count = card_answers.objects.filter(card_id=chatroom_id, state=0, id__gt=seen_id).count()
+            unseen_count = card_answers.objects.filter(card_id=chatroom_id,
+                                                       id__gt=seen_id).filter(Q(state=conversation_states.ANSWER)
+                                                                              | Q(state=conversation_states.CONVERSATION_POLL)).count()
             conversation_engage_filter.filter(user=user).update(
                 last_conversation=last_conversation,
                 second_last_conversation=second_last,

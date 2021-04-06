@@ -6672,7 +6672,8 @@ def save_the_latest_conversation(card_instance, user_id):
     if not user_id:
         return {'last_conversation': None}
 
-    last_conversation = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
+    last_conversation = card_answers.objects.filter(card=card_instance).\
+        filter(Q(state=conversation_states.CONVERSATION_POLL) | Q(state=conversation_states.ANSWER)).last()
 
     if last_conversation:
         user_instance = User.get_user_or_raise_exception(user_id)
