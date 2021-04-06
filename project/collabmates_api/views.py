@@ -7557,7 +7557,6 @@ def auto_follow_chatrooms_in_case_of_tagging(request, conversation, card_id, car
         }
         collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
-
 def update_answer_text(card_id):
     '''function for updating the answer_text feild in collab card model'''
 

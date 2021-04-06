@@ -975,6 +975,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
     if answer_text == "":
         answer_text = '📄 Document'
 
+
     notification_list = []
 
     message = dict()

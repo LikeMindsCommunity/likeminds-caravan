@@ -6,7 +6,7 @@ if SERVER_URL is None:
 
 # variables
 HOURS_24 = 86400
-#HOURS_24 = 60
+
 
 chatroom_actions_creator_mute = [
 
