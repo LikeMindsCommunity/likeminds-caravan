@@ -2886,6 +2886,7 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
     notification_meta(notification_list, message)
 
 
+@shared_task
 def send_poll_conversation_creation_notification(card_id, poll_conversation_creator_id, conversation_id):
 
     card_instance = Collabcard.get_chatroom_or_None(card_id)
