@@ -573,7 +573,9 @@ class ConversationImpl(ConversationManager):
         send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                       'community_id': community_id})
 
-        if conversation_instance == conversation_states.CONVERSATION_POLL:
+        is_poll_conversation = (conversation_instance.state == conversation_states.CONVERSATION_POLL)
+
+        if is_poll_conversation:
             send_poll_conversation_creation_notification.delay(conversation_instance.card_id,
                                                            conversation_instance.user_id, conversation_instance.id)
 
