@@ -604,9 +604,15 @@ class ConversationImpl(ConversationManager):
             conversation_instance = ConversationHelper.fetch_conversation_instance(self.get_conversation_id())
             chatroom_instance = conversation_instance.card
 
+            conversation_instance.has_reactions = True
+            conversation_instance.save()
+
         if self.get_chatroom_id() is not None and\
                 chatroom_instance is None:
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
+
+            chatroom_instance.has_reactions = True
+            chatroom_instance.save()
 
         update_context = {'reaction': reaction}
 

@@ -5948,9 +5948,12 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'created_epoch': int(ans.created_at)
         }
 
-        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=ans.id)
+        if ans.has_reactions:
+            reactions = fetch_chatroom_or_conversation_reactions(conversation_id=ans.id)
+        else:
+            reactions = []
 
-        context['reactions'] = reactions if reactions else []
+        context['reactions'] = reactions
 
         if ans.attachments_uploaded is None:
             context['attachments_uploaded'] = False
@@ -14272,6 +14275,7 @@ class SyncChatrooms(APIView):
 
         elif community_id:
             chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by, last_updated)
+            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by, last_updated)
 
         else:
             chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status)
@@ -14402,7 +14406,10 @@ class SyncChatrooms(APIView):
 
             chatroom['secret_chatroom_left'] = data[49]
 
-            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
+            if data[50]:
+                reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
+            else:
+                reactions = []
 
             chatroom['reactions'] = reactions if reactions else []
 
@@ -14705,7 +14712,10 @@ class SyncChatroomsDiff(APIView):
 
             chatroom['secret_chatroom_left'] = data[49]
 
-            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
+            if data[50]:
+                reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
+            else:
+                reactions = []
 
             chatroom['reactions'] = reactions if reactions else []
 
@@ -15094,10 +15104,6 @@ class SyncConversation(APIView):
             if conversation[19]:
                 conversation_context['temporary_id'] = conversation[19]
 
-            reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation_context['id'])
-
-            conversation_context['reactions'] = reactions if reactions else []
-
             if conversation_context['state'] == ConversationStates.CONVERSATION_POLL:
                 conversation_context['poll_type'] = conversation[20]
 
@@ -15115,6 +15121,14 @@ class SyncConversation(APIView):
                                                                        'multiple_select_no': conversation[22],
                                                                        'expiry_time': conversation[25],
                                                                        'member_id': member_id})
+
+            if conversation[27]:
+                reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation_context['id'])
+
+            else:
+                reactions = []
+
+            conversation_context['reactions'] = reactions if reactions else []
 
             conversation_list.append(conversation_context)
 

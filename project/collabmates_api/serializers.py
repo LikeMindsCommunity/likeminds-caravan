@@ -334,9 +334,12 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         collabcard['link_created_at'] = share['link_created_at']
         collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
 
-    reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'])
+    if card.has_reactions:
+        reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'])
+    else:
+        reactions = []
 
-    collabcard['reactions'] = reactions if reactions else []
+    collabcard['reactions'] = reactions
 
     return collabcard
 
@@ -1690,9 +1693,12 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
     if conversation.temporary_id:
         temp['temporary_id'] = conversation.temporary_id
 
-    reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation.id)
+    if conversation.has_reactions:
+        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation.id)
+    else:
+        reactions = []
 
-    temp['reactions'] = reactions if reactions else []
+    temp['reactions'] = reactions
 
     return temp
 

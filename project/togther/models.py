@@ -365,6 +365,8 @@ class Collabcard(models.Model):
     is_secret = models.BooleanField(default=False)
     secret_chatroom_participants = models.TextField(null=True)
 
+    has_reactions = models.BooleanField(default=False)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = int(time.time() * 1000)
@@ -572,6 +574,8 @@ class card_answers(models.Model):
     multiple_select_no = models.IntegerField(null=True)
     is_anonymous = models.BooleanField(default=False)
     allow_add_option = models.BooleanField(default=False)
+
+    has_reactions = models.BooleanField(default=False)
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):

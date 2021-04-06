@@ -816,9 +816,13 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         self.current_user_id = self.context.get('current_user_id', None)
 
     def get_reactions(self, obj):
-        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=obj.id)
 
-        return reactions if reactions else []
+        if obj.has_reactions:
+            reactions = fetch_chatroom_or_conversation_reactions(conversation_id=obj.id)
+        else:
+            reactions = []
+
+        return reactions
 
     def get_date(self, obj):
         return TimeUtilities.convert_epoch_time_in_date(obj.created_at)

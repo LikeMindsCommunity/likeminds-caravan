@@ -1244,9 +1244,12 @@ class MemberCommunityHelper:
         if card_instance.online_link:
             chatroom_context['online_link'] = card_instance.online_link
 
-        reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
+        if card_instance.has_reactions:
+            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
+        else:
+            reactions = []
 
-        chatroom_context['reactions'] = reactions if reactions else []
+        chatroom_context['reactions'] = reactions
 
         return chatroom_context
 
