@@ -2010,9 +2010,9 @@ def get_preview_for_url(member_id=None, preview_url=None,
             context["action"] = "VIEW COMMUNITY"
         elif not chatroom_id:
             route = f"route://community?community_id={community_id}"
-            context["action"] = "JOIN COMMUNITY"
+            context["action"] = "VIEW COMMUNITY"
         else:
-            context["action"] = "JOIN COMMUNITY"
+            context["action"] = "VIEW COMMUNITY"
 
     if preview_type == "chatroom":
         title = get_title_for_chatroom_preview(chatroom_instance, member_id)
