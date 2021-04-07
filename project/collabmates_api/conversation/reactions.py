@@ -2,7 +2,7 @@ from celery import shared_task
 
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from external_services.caching.cache_impl import CacheImpl
-from togther.models import Members, MessageReactions, card_answers, Collabcard
+from togther.models import Members, MessageReactions, card_answers, Collabcard, Userinfo
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, CHATROOM_REACTIONS_CACHE_KEY
 from utility.states import SyncTypes
 
@@ -37,25 +37,44 @@ def update_chatroom_or_conversation_reactions_in_cache(chatroom_id=None, convers
                                        update_dict={})
 
 
-def get_members_profiles_for_reactions(community, members_id_list, reactions_map):
-    reacted_members = Members.objects\
+def get_process_members_data_for_reactions(community, members_id_list):
+    reacted_members_data = Members.objects\
         .filter(community_id=community,
                 member_id__id__in=members_id_list)\
         .select_related('member_id__userinfo')
 
-    members_list = []
+    members_data_list = {}
 
-    for member in reacted_members:
-        userinfo = member.member_id.userinfo
-        user_image = userinfo.image_link
+    for data in reacted_members_data:
 
         temp = {
-            'id': member.member_id_id,
-            'name': userinfo.name,
+            data.member_id_id: data.image_url
+        }
+
+        members_data_list.update(temp)
+
+    return members_data_list
+
+
+def get_members_profiles_for_reactions(community, members_id_list, reactions_map):
+
+    members_profile_list = []
+
+    members_data_list = get_process_members_data_for_reactions(community, members_id_list)
+
+    member_profiles = Userinfo.objects.filter(user_id__id__in=members_id_list)
+
+    for profile in member_profiles:
+        user_id = profile.user_id_id
+        user_image = profile.image_link
+
+        temp = {
+            'id': profile.user_id_id,
+            'name': profile.name,
             'image_url': user_image if user_image else ''
         }
 
-        member_image = member.image_url
+        member_image = members_data_list.get(user_id, None)
 
         if member_image is not None:
             temp['image_url'] = member_image
@@ -65,9 +84,9 @@ def get_members_profiles_for_reactions(community, members_id_list, reactions_map
             'reaction': reactions_map[temp['id']]['reaction']
         }
 
-        members_list.append(reaction_dict)
+        members_profile_list.append(reaction_dict)
 
-    return members_list
+    return members_profile_list
 
 
 def process_message_reactions(reactions):
