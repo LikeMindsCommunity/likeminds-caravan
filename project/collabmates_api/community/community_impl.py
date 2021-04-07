@@ -4,11 +4,14 @@ from collabmates_api.community.constants import MENU
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right
 from collabmates_api.views import get_leave_community_text
-from togther.models import Community
+from django.db.models import Q
+from togther.models import Community, Userinfo, Collabcard
 from collabmates_api.community.community_manager import CommunityManager
-from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.states import member_states
+from utility.states import member_states, card_types
+
+from utility.time_utilities import TimeUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -82,6 +85,68 @@ class CommunityImpl(CommunityManager):
     def _fetch_serialize_community(self, community_instance) -> []:
         return CommunitySerializerV1(community_instance).data
 
+    def _fetch_queryset_of_community_chatrooms(self):
+
+        return Collabcard.objects.filter(community=self.get_community_id(),
+                                         is_pending=False,
+                                         is_deleted=False,
+                                         is_secret=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
+
+    def _compute_chatroom_creator_list(self, queryset):
+
+        user_list = []
+
+        for data in queryset:
+            user_list.append(data.user_id)
+
+        return user_list
+
+    @staticmethod
+    def create_chatroom_object_for_community_detail(chatroom_instance) -> {}:
+
+        chatroom_context = dict()
+        chatroom_context['id'] = chatroom_instance.id
+        chatroom_context['title'] = chatroom_instance.title
+        chatroom_context['header'] = chatroom_instance.header
+        chatroom_context['community_id'] = chatroom_instance.community_id
+        chatroom_context['type'] = chatroom_instance.type
+        chatroom_context['date'] = TimeUtilities.convert_epoch_time_in_date(chatroom_instance.date_epoch)
+
+        return chatroom_context
+
+    @staticmethod
+    def create_chatroom_creator_context(member_dict, chatroom_instance):
+
+        if chatroom_instance.user_id in member_dict:
+            member_context = member_dict.get(chatroom_instance.user_id)
+
+        else:
+            userinfo_instance = chatroom_instance.user.userinfo
+            member_context = {
+                'id': userinfo_instance.user_id_id,
+                'name': userinfo_instance.name,
+                'image_url': userinfo_instance.image_link
+            }
+
+        return member_context
+
+    def _compute_chatroom_list_based_on_query_set(self, community_instance, queryset) -> []:
+
+        chatroom_list = []
+
+        chatroom_creator_list = self._compute_chatroom_creator_list(queryset)
+        member_dict = MemberCommunityImpl.fetch_members_based_on_user_list(chatroom_creator_list, community_instance)
+
+        for chatroom_instance in queryset:
+            chatroom_context = self.create_chatroom_object_for_community_detail(chatroom_instance)
+
+            member_context = self.create_chatroom_creator_context(member_dict, chatroom_instance)
+
+            chatroom_context['member'] = member_context
+
+            chatroom_list.append(chatroom_context)
+
+        return chatroom_list
 
     def fetch_community(self, client_type) -> {}:
 
@@ -127,6 +192,30 @@ class CommunityImpl(CommunityManager):
 
         return response_context
 
+    def fetch_chatroom_feed(self, size) -> {}:
+
+        community_instance = Community.get_community_or_None(self.get_community_id())
+
+        if not community_instance:
+
+           return {'error_message': "In-correct community_id"}
+
+        userinfo_instance = Userinfo.get_userinfo_or_None(self.get_member_id())
+
+        if not userinfo_instance:
+            return {'error_message': "In-correct user id"}
+
+        community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms()
+
+        response_context = dict()
+        response_context['total_chatrooms'] = community_chatroom_queryset.count()
+
+        sliced_queryset = community_chatroom_queryset[:size]
+        chatroom_list = self._compute_chatroom_list_based_on_query_set(community_instance, sliced_queryset)
+
+        response_context['chatroom_list'] = chatroom_list
+
+        return response_context
 
 
 class CommunityHelper:
