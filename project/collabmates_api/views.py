@@ -1418,13 +1418,10 @@ def post_introduction_card_for_community(community_id, member_id):
 
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
-                post_owner_message_template_in_intro_room(community_id, member_id)
-
-                args = [community_id, member_id]
-
-                # runs after 5 minutes, expires after 30 minutes
-                check_owner_template_posted.apply_async(args=args, kwargs={},
-                                                        countdown=5 * 60, expires=30 * 60)
+                # args = [community_id, member_id]
+                # # runs after 5 minutes, expires after 30 minutes
+                # check_owner_template_posted.apply_async(args=args, kwargs={},
+                #                                         countdown=5 * 60, expires=30 * 60)
 
                 return True
             else:
@@ -3748,6 +3745,9 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
     instance.community = community_instance
     instance.state = state
     instance.save()
+
+    if state == chatroom_states.CHATROOM_HEADER and card_instance.type == card_types.CARD_INTRO :
+        post_owner_message_template_in_intro_room(card_instance.community_id, user_instance.id)
 
 
 def create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
@@ -14611,6 +14611,7 @@ class SyncChatroomsDiff(APIView):
 
         video_chatroom_list = set()
         secret_chatroom_list = set()
+        chatrooms_with_reactions_list = set()
 
         common_list = []
 
@@ -14622,14 +14623,26 @@ class SyncChatroomsDiff(APIView):
                 video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
                 common_list = tuple(video_chatroom_list)
 
-            if version_code >= SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN:
-
+            if previous_app_version < SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN and\
+                    (REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN >= version_code >= SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN):
                 secret_chatroom_list = self._get_secret_chatrooms_of_user(user_instance)
                 common_list = tuple(secret_chatroom_list)
 
+            if version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
+                chatrooms_with_reactions_list = self._get_chatrooms_with_reactions_of_user(user_instance)
+                common_list = tuple(chatrooms_with_reactions_list)
+
             if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and\
-                    version_code >= SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN:
-                common_list = tuple(secret_chatroom_list | video_chatroom_list)
+                    version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
+                common_list = tuple(secret_chatroom_list | video_chatroom_list | chatrooms_with_reactions_list)
+
+            elif previous_app_version < SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN and\
+                    version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
+                common_list = tuple(secret_chatroom_list | chatrooms_with_reactions_list)
+
+            elif previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and \
+                    SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN <= version_code < REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
+                common_list = tuple(video_chatroom_list | secret_chatroom_list)
 
         if len(common_list) > 0:
 
@@ -14912,6 +14925,14 @@ class SyncChatroomsDiff(APIView):
                                    .values_list('card', flat=True))
 
         return secret_chatroom_list
+
+    def _get_chatrooms_with_reactions_of_user(self, user_instance):
+
+        chatrooms_with_reactions_list = set(collabcardState.objects
+                                            .filter(user=user_instance, card__has_reactions=True)
+                                            .values_list('card', flat=True))
+
+        return chatrooms_with_reactions_list
 
 
 class SyncConversation(APIView):
@@ -15336,45 +15357,76 @@ class SyncConversationDiff(APIView):
             raise InvalidHeaderException
 
         query_params = request.query_params
+
+        previous_app_version = query_params.get('previous_app_version', 0)
+        previous_app_version = NumberUtilities.get_integer_from_string(previous_app_version)
+
         page = query_params.get('page', 1)
         page = int(page)
 
         paginate_by = query_params.get('page_size', 200)
         is_synced = query_params.get('is_synced', "false").lower() == 'true'
+
+        ans_list = []
         conversations = []
 
+        common_list = []
+
+        video_conversations_list = set()
+        conversations_with_reactions_list = set()
+
         if not is_synced:
-            if (version_code > VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and
-                is_platform_android) or \
-                    (version_code > VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS and
-                     is_platform_ios):
 
-                user_instance = User.get_user_or_raise_exception(member_id)
+            user_instance = User.get_user_or_raise_exception(member_id)
 
-                answer_card_map = answerAttachment.objects.filter(type='video').values('answer', 'answer__card__id')
-                card_list = {item['answer__card__id'] for item in answer_card_map }
-                card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
+            card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
 
-                common_list = card_state_list & card_list
+            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN:
+                video_conversations_list = self._get_video_conversations_list(card_state_list)
+                common_list = tuple(video_conversations_list)
 
-                ans_list = {item['answer'] for item in answer_card_map if item['answer__card__id'] in common_list}
+            if version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
+                conversations_with_reactions_list = self._get_conversation_with_reactions(card_state_list)
+                common_list = tuple(conversations_with_reactions_list)
 
-                conversation_filter = card_answers.objects.filter(pk__in=ans_list).select_related('preview_community',
-                                                                                                  'preview_chatroom')
+            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and\
+                    version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
+                common_list = tuple(video_conversations_list | conversations_with_reactions_list)
 
-                conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
+        if len(common_list) > 0:
 
-                context = {"current_user_id": member_id, "fetch_reply": True, "version_code": version_code}
-                conversations_data = CardAnswersDBSyncSerializer(conversation_list, context=context, many=True)
-                conversations = conversations_data.data
+            conversation_filter = card_answers.objects.filter(pk__in=common_list).select_related('preview_community',
+                                                                                                 'preview_chatroom')
 
-                get_attachments_filtered_conversations(conversation_list, conversations, member_id)
+            conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
+
+            context = {"current_user_id": member_id, "fetch_reply": True, "version_code": version_code}
+            conversations_data = CardAnswersDBSyncSerializer(conversation_list, context=context, many=True)
+            conversations = conversations_data.data
+
+            get_attachments_filtered_conversations(conversation_list, conversations, member_id)
 
         context = {
             'conversations': conversations,
         }
 
         return JsonResponse(context)
+
+    def _get_video_conversations_list(self, card_state_list):
+
+        answer_card_map = answerAttachment.objects.filter(type='video').values('answer', 'answer__card__id')
+        card_list = {item['answer__card__id'] for item in answer_card_map}
+        common_list = card_state_list & card_list
+
+        ans_list = {item['answer'] for item in answer_card_map if item['answer__card__id'] in common_list}
+
+        return ans_list
+
+    def _get_conversation_with_reactions(self, card_state_list):
+        ans_list = set(card_answers.objects
+                       .filter(card__id__in=card_state_list, has_reactions=True)
+                       .values_list('id', flat=True))
+        return ans_list
 
 
 def get_attachments_filtered_conversations(conversation_list, conversation_data, member_id):

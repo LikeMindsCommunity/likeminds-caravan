@@ -123,7 +123,7 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
             conversation = card_answers.get_conversation_or_None(conversation_id)
 
             if conversation is None:
-                return
+                return []
 
             community_instance = conversation.community
 
@@ -133,7 +133,7 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
             chatroom = Collabcard.get_chatroom_or_None(chatroom_id)
 
             if chatroom is None:
-                return
+                return []
 
             community_instance = chatroom.community
 

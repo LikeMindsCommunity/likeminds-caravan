@@ -719,6 +719,14 @@ class MemberCommunityImpl(MemberCommunityManager):
                          poll_votes) -> {}:
 
         chatroom_context = MemberCommunityHelper.serialize_chatroom(card_instance)
+
+        if card_instance.has_reactions:
+            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
+        else:
+            reactions = []
+
+        chatroom_context['reactions'] = reactions
+
         chatroom_context['community_name'] = community_instance.name
 
         if NumberUtilities.get_integer_from_string(self.get_member_id()) == card_instance.user.id:
@@ -778,7 +786,12 @@ class MemberCommunityImpl(MemberCommunityManager):
         for data in chatroom_list:
             card_instance = data.card
             state_instance = data
-            card_creator_id = card_instance.user.id
+            card_creator_id = card_instance.user_id
+
+            current_user_id = NumberUtilities.get_integer_from_string(self.get_member_id())
+            if MemberCommunityHelper.is_draft_chatroom(card_instance, current_user_id):
+                continue
+
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
                                                      , poll_data, poll_votes)
             if card_creator_id in member_dict:
@@ -1244,13 +1257,6 @@ class MemberCommunityHelper:
         if card_instance.online_link:
             chatroom_context['online_link'] = card_instance.online_link
 
-        if card_instance.has_reactions:
-            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
-        else:
-            reactions = []
-
-        chatroom_context['reactions'] = reactions
-
         return chatroom_context
 
     @staticmethod
@@ -1271,3 +1277,12 @@ class MemberCommunityHelper:
             chatroom_user_actions['active'] = True
 
         return chatroom_user_actions
+
+    @staticmethod
+    def is_draft_chatroom(chatroom_instance, current_user_id):
+        if chatroom_instance.attachment_count > 0 and\
+                chatroom_instance.attachments_uploaded is False and\
+                chatroom_instance.user_id != current_user_id:
+            return True
+
+        return False
