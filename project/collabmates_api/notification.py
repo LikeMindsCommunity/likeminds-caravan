@@ -1020,22 +1020,20 @@ def get_custom_data_for_new_conversation_created(user_id):
     # time.sleep(2)
     followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,
                                                            draft_id=None,
-                                                           unseen_count__gt=0).order_by('-updated_at', '-id')
+                                                           unseen_count__gt=0).select_related('card',
+                                                                                              'community').order_by('-updated_at', '-id')[:10]
 
     unread_conversation = []
 
     for conversation in followed_chatrooms:
         temp = {}
         card_instance = conversation.card
-        community_instance = card_instance.community
+        community_instance = conversation.community
 
-        state_filter = collabcardState.objects.filter(user=user_id, card=card_instance)
+        state_filter = collabcardState.objects.filter(user=user_id, card=card_instance, mute_status=True)
 
-        if state_filter:
-            mute_status = state_filter[0].mute_status
-
-            if mute_status:
-                continue
+        if state_filter.exists():
+            continue
 
         chatroom_name = card_instance.header
 
@@ -1051,7 +1049,7 @@ def get_custom_data_for_new_conversation_created(user_id):
 
         temp['notification_id'] = str(conversation.card_id) + "_followed"
         temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s""" % (
-        str(conversation.card.community.id), str(community_instance.name))
+        str(community_instance.id), str(community_instance.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(community_instance.id)
         temp['community_image'] = community_instance.image_link
@@ -1060,7 +1058,13 @@ def get_custom_data_for_new_conversation_created(user_id):
         last_instance = card_answers.objects.filter(card=conversation.card, state=0).last()
 
         if last_instance:
-            userinfo_instance = last_instance.user.userinfo
+            user_id = last_instance.user_id
+
+            userinfo_instance = Userinfo.get_userinfo_or_None(user_id)
+
+            if not userinfo_instance:
+                continue
+
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
             temp['chatroom_last_conversation_user_name'] = userinfo_instance.name
