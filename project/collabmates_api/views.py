@@ -5849,7 +5849,7 @@ def conversation_seen(request, req_dict=None):
         # if member_id == card_instance.user.id:
         #     notification_flag = memberNotificationFlag.objects.get(code='mail_card_owner_inactivity',card=card_instance,member=user_instance)
 
-        if not conversation_member_filter.exists():
+        if not conversation_member_filter:
             conversation_member_instance = conversationMemberState()
             conversation_member_instance.card = card_instance
             conversation_member_instance.conversation = conversation_instance
@@ -6668,61 +6668,6 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     return context
 
 
-def save_the_latest_conversation(card_instance, user_id):
-
-    """function to save the lastest conversation of user"""
-
-    if not user_id:
-        return {'last_conversation': None}
-
-    last_conversation = card_answers.objects.filter(card=card_instance).\
-        filter(Q(state=conversation_states.CONVERSATION_POLL) | Q(state=conversation_states.ANSWER)).last()
-
-    if last_conversation:
-        user_instance = User.get_user_or_raise_exception(user_id)
-        state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
-
-        if state_filter.exists():
-
-            collabcard_state_instance = state_filter[0]
-            expiry_time = get_expiry_time_of_chatroom(collabcard_state_instance)
-
-            if collabcard_state_instance.manual_set_active and \
-                    collabcard_state_instance.manual_set_active > expiry_time:
-                expiry_time = collabcard_state_instance.manual_set_active
-
-            last_seen_conversation = collabcard_state_instance.last_seen_conversation
-
-            if collabcard_state_instance.last_seen_conversation:
-
-                if last_seen_conversation.id != last_conversation.id:
-
-                    collabcard_state_instance.last_seen_conversation = last_conversation
-                    collabcard_state_instance.expiry_time = expiry_time
-                    collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
-                    collabcard_state_instance.save()
-                    update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
-                                                             last_conversation_id=last_conversation.id,
-                                                             unseen_count=0)
-
-            else:
-
-                collabcard_state_instance.last_seen_conversation = last_conversation
-                collabcard_state_instance.expiry_time = expiry_time
-                collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
-                collabcard_state_instance.save()
-
-                update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
-                                                         last_conversation_id=last_conversation.id,
-                                                         unseen_count=0)
-
-        save_the_member_conversation_state(card_instance, user_instance, last_conversation)
-
-    latest_conversations = {'last_conversation': last_conversation}
-
-    return latest_conversations
-
-
 def save_the_member_conversation_state(card_instance, user_instance, conversation_instance):
 
     conversation_member_filter = conversationMemberState.objects.filter(card=card_instance, user=user_instance)
@@ -6747,6 +6692,57 @@ def save_the_member_conversation_state(card_instance, user_instance, conversatio
             conversation_member_instance.user = user_instance
             conversation_member_instance.updated_at = TimeUtilities.current_time_in_sec()
             conversation_member_instance.save()
+
+
+def save_the_latest_conversation(card_instance, user_id):
+
+    """function to save the lastest conversation of user"""
+
+    if not user_id:
+        return {'last_conversation': None}
+
+    last_conversation = card_answers.objects.filter(card=card_instance).\
+        filter(Q(state=conversation_states.CONVERSATION_POLL) | Q(state=conversation_states.ANSWER)).last()
+
+    if last_conversation:
+        user_instance = User.get_user_or_raise_exception(user_id)
+        state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
+
+        if state_filter:
+
+            collabcard_state_instance = state_filter[0]
+            expiry_time = get_expiry_time_of_chatroom(collabcard_state_instance)
+
+            if collabcard_state_instance.manual_set_active and \
+                    collabcard_state_instance.manual_set_active > expiry_time:
+                expiry_time = collabcard_state_instance.manual_set_active
+
+            last_seen_conversation = collabcard_state_instance.last_seen_conversation
+
+            if collabcard_state_instance.last_seen_conversation:
+
+                if last_seen_conversation.id != last_conversation.id:
+
+                    collabcard_state_instance.last_seen_conversation = last_conversation
+                    collabcard_state_instance.expiry_time = expiry_time
+                    collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+                    collabcard_state_instance.save()
+
+            else:
+                collabcard_state_instance.last_seen_conversation = last_conversation
+                collabcard_state_instance.expiry_time = expiry_time
+                collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+                collabcard_state_instance.save()
+
+        update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
+                                                 last_conversation_id=last_conversation.id,
+                                                 unseen_count=0)
+
+        save_the_member_conversation_state(card_instance, user_instance, last_conversation)
+
+    latest_conversations = {'last_conversation': last_conversation}
+
+    return latest_conversations
 
 
 def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
@@ -14270,15 +14266,14 @@ class SyncChatrooms(APIView):
             else:
                 chatroom = get_chatroom_data_in_case_of_guest(chatroom_id, member_id)
 
-                return JsonResponse({'chatrooms':chatroom})
+                return JsonResponse({'chatrooms': chatroom})
 
         elif community_id:
-            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by, last_updated)
-            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by, last_updated)
-
+            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by,
+                                                                             last_updated)
         else:
-            chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status)
-
+            chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated,
+                                                                         chatroom_status, chatroom_expire_status)
         poll_data = {}
         poll_votes = {}
 
@@ -14298,6 +14293,7 @@ class SyncChatrooms(APIView):
                     attachments_uploaded is False:
                 if int(member_id) != int(data[14]):
                     continue
+
 
             chatroom = {}
             chatroom['id'] = data[0]

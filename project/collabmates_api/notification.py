@@ -1013,46 +1013,49 @@ def send_follow_notification(card_id, user_id, conversation_id):
     send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
                                                                conversation_instance, card_instance, community_instance)
 
+
 def get_custom_data_for_new_conversation_created(user_id):
     """function to send notification for new conversation posted to followed users"""
 
     # time.sleep(2)
-    followed_chatrooms = conversationEngage.objects.filter(user_id=user_id, draft_id=None).order_by('-updated_at',
-                                                                                                    '-id')
+    followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,
+                                                           draft_id=None,
+                                                           unseen_count__gt=0).order_by('-updated_at', '-id')
 
     unread_conversation = []
 
     for conversation in followed_chatrooms:
         temp = {}
+        card_instance = conversation.card
+        community_instance = card_instance.community
 
-        if not conversation.unseen_count:
-            continue
+        state_filter = collabcardState.objects.filter(user=user_id, card=card_instance)
 
-        state_filter = collabcardState.objects.filter(user=user_id, card=conversation.card)
-        if state_filter.exists():
+        if state_filter:
             mute_status = state_filter[0].mute_status
+
             if mute_status:
                 continue
 
-        chatroom_name = get_title_from_collabcard(conversation.card)
+        chatroom_name = card_instance.header
 
         if conversation.unseen_count > 1:
             chatroom_name = chatroom_name + """ (%s messages)""" % (str(conversation.unseen_count))
 
-        temp['community_name'] = conversation.card.community.name
+        temp['community_name'] = community_instance.name
         temp['chatroom_name'] = chatroom_name
-        temp['chatroom_title'] = conversation.card.title
-        temp['chatroom_user_name'] = conversation.user.userinfo.name
+        temp['chatroom_title'] = card_instance.title
+        temp['chatroom_user_name'] = ""
         temp['chatroom_user_image'] = ""
-        temp['chatroom_id'] = conversation.card.id
+        temp['chatroom_id'] = conversation.card_id
 
-        temp['notification_id'] = str(conversation.card.id) + "_followed"
+        temp['notification_id'] = str(conversation.card_id) + "_followed"
         temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s""" % (
-        str(conversation.card.community.id), str(conversation.card.community.name))
+        str(conversation.card.community.id), str(community_instance.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
-        temp['community_id'] = str(conversation.card.community.id)
-        temp['community_image'] = conversation.card.community.image_link
-        temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
+        temp['community_id'] = str(community_instance.id)
+        temp['community_image'] = community_instance.image_link
+        temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card_id))
 
         last_instance = card_answers.objects.filter(card=conversation.card, state=0).last()
 
