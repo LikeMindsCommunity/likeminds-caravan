@@ -1418,11 +1418,6 @@ def post_introduction_card_for_community(community_id, member_id):
 
                 update_member_rights_in_conversation_engage(community_id, member_id)
 
-                # args = [community_id, member_id]
-                # # runs after 5 minutes, expires after 30 minutes
-                # check_owner_template_posted.apply_async(args=args, kwargs={},
-                #                                         countdown=5 * 60, expires=30 * 60)
-
                 return True
             else:
                 intro_filter.update(title=introduction_answer)
@@ -3749,8 +3744,18 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
     instance.state = state
     instance.save()
 
-    if state == chatroom_states.CHATROOM_HEADER and card_instance.type == card_types.CARD_INTRO :
-        post_owner_message_template_in_intro_room(card_instance.community_id, user_instance.id)
+    if state == chatroom_states.CHATROOM_HEADER and\
+            card_instance.type == card_types.CARD_INTRO:
+
+        community_id = card_instance.community_id
+        member_id = user_instance.id
+
+        post_owner_message_template_in_intro_room(card_instance.community_id, member_id)
+
+        args = [community_id, member_id]
+        # runs after 5 minutes, expires after 30 minutes
+        check_owner_template_posted.apply_async(args=args, kwargs={},
+                                                countdown=5 * 60, expires=30 * 60)
 
 
 def create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
@@ -9098,10 +9103,16 @@ def upload_chatroom_attachments(body, member_id, version_code=0, is_android=Fals
                                        {'card': chatroom_instance, 'user': user_instance},
                                        {'expiry_time': expiry_time})
 
+        community_id = chatroom_instance.community_id
+
         if not chatroom_instance.is_secret:
-            set_chatroom_state_for_all_members_on_card_creation.delay(chatroom_instance.community.id,
+            set_chatroom_state_for_all_members_on_card_creation.delay(community_id,
                                                                       card_id=chatroom_id,
                                                                       function_called="upload_files_version_1")
+
+        if chatroom_instance.is_pending:
+            update_pending_chatroom_count_for_promoters.delay(community_id)
+
         send_chatroom_creation_notification(chatroom_instance, user_instance)
 
     member_data = {'member_id': member_id,
