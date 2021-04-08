@@ -512,6 +512,15 @@ class ConversationImpl(ConversationManager):
         if chatroom_instance is None:
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
 
+            if chatroom_instance.is_secret and\
+                    not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
+                response = {
+                    'success': False,
+                    "error_message": "You are not a part of this secret chatroom"
+                }
+
+                raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
         community_id = chatroom_instance.community.id
 
         community_instance = ConversationHelper.fetch_community_instance(community_id=community_id)
@@ -838,3 +847,13 @@ class ConversationHelper:
             'status': status,
             'source': source
         }
+
+    @staticmethod
+    def is_user_secret_chatroom_participant(chatroom, user_id):
+        secret_chatroom_participants = json.loads(chatroom.secret_chatroom_participants)
+
+        if user_id is not None:
+            logged_in_user_id = NumberUtilities.get_integer_from_string(user_id)
+            return logged_in_user_id in secret_chatroom_participants
+
+        return False

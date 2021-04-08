@@ -2640,11 +2640,13 @@ def fetch_user_chatrooms(request):
     if int(state) == 0:
 
         chatroom_filter = Collabcard.objects.filter(user_id=user_id, community_id=community_id,
-                                                    is_pending=False, is_deleted=False).order_by('-id')
+                                                    is_pending=False, is_deleted=False,
+                                                    is_secret=False).order_by('-id')
         created_chatroom_count = chatroom_filter.count()
         chatroom_filter = pagination(chatroom_filter, page, paginate_by=10)
 
         for chatroom in chatroom_filter:
+
             temp = get_chatroom_instance(chatroom, user_id, current_user_id=current_user_id)
             temp['conversation_users'] = []
             engage_filter = conversationEngage.objects.filter(card=chatroom, user=user_id)
@@ -2655,7 +2657,6 @@ def fetch_user_chatrooms(request):
 
         return JsonResponse({'chatrooms': chatrooms, 'total_chatrooms_created': created_chatroom_count})
 
-
     # chatrooms not created by user but  followed by users
     elif int(state) == 1:
         # state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
@@ -2663,15 +2664,17 @@ def fetch_user_chatrooms(request):
         chatroom_filter = Collabcard.objects.filter(user_id=user_id, community_id=community_id,
                                                     is_pending=False, is_deleted=False)
         state_filter = collabcardState.objects.filter(user_id=user_id, community_id=community_id,
-                                                      follow_status=True).exclude(
+                                                      follow_status=True, card__is_secret=False).exclude(
             card__in=chatroom_filter.values('id')).order_by('-updated_at')
         followed_chatroom_count = state_filter.count()
         state_filter = pagination(state_filter, page, paginate_by=10)
 
         for chatroom in state_filter:
-            temp = get_chatroom_instance(chatroom.card, user_id, current_user_id=current_user_id)
+            chatroom_instance = chatroom.card
+
+            temp = get_chatroom_instance(chatroom_instance, user_id, current_user_id=current_user_id)
             temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
-            engage_filter = conversationEngage.objects.filter(card=chatroom.card, user=user_id)
+            engage_filter = conversationEngage.objects.filter(card=chatroom_instance, user=user_id)
             temp['conversation_users'] = []
             if engage_filter.exists():
                 temp['conversation_users'] = get_conversation_users(engage_filter[0])
@@ -6566,11 +6569,13 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     # if the user is seeing this chatroom from external link or notification
     if not chatroom_state.exists() and \
             user_instance and \
-            is_member_verified(card_instance.community, user_instance):
+            is_member_verified(card_instance.community, user_instance) and\
+            not card_instance.is_secret:
         expire_at = get_expiry_time_of_chatroom()
         create_chatroom_state_instance(card_instance, user_instance, state=0,
                                        external_seen=True, expire_at=expire_at,
                                        function_called="get_chatroom_internal_version_1")
+
     elif user_instance and chatroom_state.exists():
         instance = chatroom_state[0]
 
@@ -9082,11 +9087,6 @@ def upload_chatroom_attachments(body, member_id, version_code=0, is_android=Fals
     all_files_uploaded = uploaded_files_count == chatroom_instance.attachment_count
 
     if all_files_uploaded:
-        video_count = Card_Attachment.objects.filter(collabcard=chatroom_instance,
-                                                     type='video').count()
-        if video_count > 0:
-            chatroom_instance.title = chatroom_instance.title + VIDEO_ATTACHMENT_FILL_TEXT
-
         chatroom_instance.attachments_uploaded = True
         chatroom_instance.save()
 
@@ -9132,11 +9132,6 @@ def upload_conversation_attachments(body, member_id):
     uploaded_files_count = answerAttachment.objects.filter(answer=conversation_instance).count()
 
     if uploaded_files_count == conversation_instance.attachment_count:
-        video_count = answerAttachment.objects.filter(answer=conversation_instance,
-                                                      type='video').count()
-
-        if video_count > 0:
-            conversation_instance.answer = conversation_instance.answer + VIDEO_ATTACHMENT_FILL_TEXT
         conversation_instance.attachments_uploaded = True
         conversation_instance.save()
 
@@ -14615,7 +14610,7 @@ class SyncChatroomsDiff(APIView):
 
             user_instance = User.get_user_or_raise_exception(member_id)
 
-            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN:
+            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
                 common_list = tuple(video_chatroom_list)
 
@@ -15377,7 +15372,7 @@ class SyncConversationDiff(APIView):
 
             card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
 
-            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN:
+            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 video_conversations_list = self._get_video_conversations_list(card_state_list)
                 common_list = tuple(video_conversations_list)
 
