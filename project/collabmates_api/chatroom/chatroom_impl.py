@@ -459,9 +459,7 @@ class ChatroomImpl(ChatroomManager):
                                                                           card_id=self.get_chatroom_id(),
                                                                           function_called="create_card_internal")
 
-        elif not chatroom_instance.has_files or\
-                not chatroom_instance.attachment_count > 0 and\
-                chatroom_instance.is_pending:
+        else:
             update_pending_chatroom_count_for_promoters.delay(community_id)
 
     def _latest_conversations_user_data(self):

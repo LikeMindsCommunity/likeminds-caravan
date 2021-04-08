@@ -512,14 +512,22 @@ class ConversationImpl(ConversationManager):
         if chatroom_instance is None:
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
 
-            if chatroom_instance.is_secret and\
-                    not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
-                response = {
-                    'success': False,
-                    "error_message": "You are not a part of this secret chatroom"
-                }
+        if chatroom_instance.is_secret and\
+                not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
+            response = {
+                'success': False,
+                "error_message": "You are not a part of this secret chatroom"
+            }
 
-                raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
+        if chatroom_instance.is_pending:
+            response = {
+                'success': False,
+                "error_message": "This is a pending chatroom, conversations cannot be created here"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
         community_id = chatroom_instance.community.id
 

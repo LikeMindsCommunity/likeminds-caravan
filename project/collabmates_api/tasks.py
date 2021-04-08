@@ -759,7 +759,10 @@ def update_pending_chatroom_count_for_promoters(community_id):
         community = community_id
     user_list = get_users_with_right(community, manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
 
-    pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True, is_deleted=False).count()
+    pending_chatrooms = Collabcard.objects\
+        .filter(community=community_id, is_pending=True, is_deleted=False)\
+        .filter(Q(attachment_count=0) | Q(attachments_uploaded=True))\
+        .count()
 
     Member_Engage.objects.filter(member_id__in=user_list,
                                  community_id=community).update(pending_chatrooms=pending_chatrooms,

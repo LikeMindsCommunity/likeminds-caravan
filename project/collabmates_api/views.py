@@ -7625,6 +7625,27 @@ def create_conversation(request):
             is_guest = True
 
     card_instance = Collabcard.objects.get(id=res['chatroom_id'])
+
+    if card_instance.is_secret:
+        secret_chatroom_participants = json.loads(card_instance.secret_chatroom_participants)
+        logged_in_user_id = NumberUtilities.get_integer_from_string(member_id)
+
+        if logged_in_user_id in secret_chatroom_participants:
+            response = {
+                'success': False,
+                "error_message": "You are not a part of this secret chatroom"
+            }
+
+            return JsonResponse(response, status=status_codes.HTTP_403_FORBIDDEN)
+
+    if card_instance.is_pending:
+        response = {
+            'success': False,
+            "error_message": "This is a pending chatroom, conversations cannot be created here"
+        }
+
+        return JsonResponse(response, status=status_codes.HTTP_403_FORBIDDEN)
+
     user_instance = User.objects.get(id=member_id)
 
     current_state = members_state(request, {'community_id': card_instance.community.id, 'member_id': user_instance.id})
