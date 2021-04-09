@@ -10,7 +10,6 @@ from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types
-
 from utility.time_utilities import TimeUtilities
 
 error_logger = LoggingWrapper.get_instance()

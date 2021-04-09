@@ -59,7 +59,7 @@ class CreateConversation(APIView):
             conversation_response = conversation_manager.create_conversation(req_body, is_ios,
                                                                          is_user_guest, has_files)
         except Exception as e:
-            return JsonResponse({'error_message': e.args}, status=400)
+            return JsonResponse({'error_message': e.args}, status=500)
 
         if conversation_response.get('error_message'):
             return JsonResponse(conversation_response, status=400)

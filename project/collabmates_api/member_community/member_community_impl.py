@@ -428,7 +428,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'created_at': data['created_at']
                 }
 
-                if member['state'] == member_states.ADMIN or member['state'] == member_states.MEMBER or \
+                if member['state'] == member_states.ADMIN or \
+                        member['state'] == member_states.MEMBER or \
                         member['state'] == member_states.PROFILE_UNAVAILABLE:
                     member['member_since'] = MEMBER_SINCE_TEXT % (community_name,
                                                                   TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(

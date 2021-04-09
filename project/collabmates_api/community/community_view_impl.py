@@ -5,7 +5,6 @@ from rest_framework.views import APIView
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import InvalidHeaderException
-
 from utility.number_utilities import NumberUtilities
 
 error_logger = LoggingWrapper.get_instance()
