@@ -12,10 +12,15 @@ from utility.string_utilities import StringUtilities
 from .constants import ACTIVE_USER_LIMIT, CHATROOM_COUNT_LIMIT, INVITE_MEMBERS, NEW_CHATROOM, DIRECTORY, PINNED, \
     COMMUNITY_DETAILS, INVITE_MEMBERS_ROUTE, NEW_CHATROOM_ROUTE, DIRECTORY_ROUTE, PINNED_ROUTE, COMMUNITY_DETAILS_ROUTE, \
     PINNED_TOP_BAR_TITLE, PINNED_TOP_BAR_IMAGE, CUSTOM_INTRO_TEXT_LEFT, CUSTOM_CLICK_TEXT_LEFT, \
-    CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_DELETED, MEMBER_COMMUNITY_PROFILE_ROUTE, MEMBER_SINCE_TEXT
+    CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_DELETED, MEMBER_COMMUNITY_PROFILE_ROUTE, MEMBER_SINCE_TEXT, \
+    PENDING_MEMBER_TEXT
 from .member_community_manager import MemberCommunityManager
 from .constants import FEED_UPWARD_SCROLL, FEED_DOWNWARD_SCROLL
-from ..raw_queries import fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query
+
+from utility.cache_keys import CHATROOM_REACTIONS_CACHE_KEY
+from ..conversation.reactions import fetch_chatroom_or_conversation_reactions
+from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query,
+                           get_community_introductions_based_on_user_list_query)
 from ..user_moderation_rights import check_admin_approve_right
 from ..utility import pagination
 from ..views import get_home_screen_community_actions, get_active_chatroom_member_images, \
@@ -27,11 +32,11 @@ from ..serializers import get_user_profile, get_members_profile, get_collabcard_
 from ..static_files import REMOVED_USER_URL
 
 from togther.models import Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers, \
-    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage
+    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage, communityQuestions
 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
-from utility.states import member_states, card_types, poll_types, deleted_members, chatroom_states
+from utility.states import member_states, card_types, poll_types, deleted_members, chatroom_states, question_states
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -232,7 +237,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'your_communities': community_list}
 
-    def fetch_community_chatrooms_queryset_with_web_scroll(self, pin_status, chatroom_id, limit_size=5) -> []:
+    def fetch_community_chatrooms_queryset_with_web_scroll(self, pin_status, card_instance, limit_size=5) -> []:
 
         if pin_status:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
@@ -241,16 +246,16 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pinned=pin_status,
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
-                                                               card_id__lt=chatroom_id).select_related('card',
+                                                               card_id__pinning_time__lt=card_instance.pinning_time).select_related('card',
                                                                                                          'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
+                exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')[:limit_size]
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
-                                                               card_id__lt=chatroom_id).select_related('card',
+                                                               card_id__lt=card_instance.id).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
 
@@ -420,10 +425,18 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'is_owner': data['is_owner'],
                     'community_id': data['community_id'],
                     'route': MEMBER_COMMUNITY_PROFILE_ROUTE % (str(data['community_id']), str(data['member_id'])),
-                    'member_since': MEMBER_SINCE_TEXT % (community_name,
-                                                         TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(
-                                                             data['created_at']))
+                    'created_at': data['created_at']
                 }
+
+                if member['state'] == member_states.ADMIN or \
+                        member['state'] == member_states.MEMBER or \
+                        member['state'] == member_states.PROFILE_UNAVAILABLE:
+                    member['member_since'] = MEMBER_SINCE_TEXT % (community_name,
+                                                                  TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(
+                                                                      data['created_at']))
+
+                elif member['state'] == member_states.PENDING_MEMBER:
+                    member['member_since'] = PENDING_MEMBER_TEXT % community_name
 
                 if data['image_url']:
                     image_url = data['image_url']
@@ -441,6 +454,35 @@ class MemberCommunityImpl(MemberCommunityManager):
                 member_dict[data['member_id']] = member
 
         return member_dict
+
+    @staticmethod
+    def fetch_community_introductions_based_on_user_list(user_list, community_instance) -> {}:
+
+        introduction_filter = ModelUtilities.get_model_filter(communityQuestions,
+                                                              {'question_state': question_states.INTRODUCTION,
+                                                               'community': community_instance})
+        if introduction_filter:
+            question_instance = introduction_filter[0]
+
+            member_data = get_community_introductions_based_on_user_list_query(user_list,
+                                                                               community_instance.id,
+                                                                               question_instance.id)
+            member_introduction_dict = dict()
+
+            for data in member_data:
+                member_dict = dict()
+                member_dict['member_id'] = data[0]
+                member_dict['community_id'] = data[1]
+                member_dict['state'] = question_instance.question_state
+                member_dict['value'] = data[3]
+                member_dict['question_id'] = question_instance.id
+                member_dict['is_hidden'] = question_instance.is_hidden
+                member_dict['directory_fields'] = question_instance.field
+                member_introduction_dict[member_dict['member_id']] = member_dict
+
+            return member_introduction_dict
+
+        return {}
 
     @staticmethod
     def compute_user_id_list_of_chatroom_creators(chatroom_list) -> []:
@@ -678,6 +720,14 @@ class MemberCommunityImpl(MemberCommunityManager):
                          poll_votes) -> {}:
 
         chatroom_context = MemberCommunityHelper.serialize_chatroom(card_instance)
+
+        if card_instance.has_reactions:
+            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
+        else:
+            reactions = []
+
+        chatroom_context['reactions'] = reactions
+
         chatroom_context['community_name'] = community_instance.name
 
         if NumberUtilities.get_integer_from_string(self.get_member_id()) == card_instance.user.id:
@@ -737,7 +787,12 @@ class MemberCommunityImpl(MemberCommunityManager):
         for data in chatroom_list:
             card_instance = data.card
             state_instance = data
-            card_creator_id = card_instance.user.id
+            card_creator_id = card_instance.user_id
+
+            current_user_id = NumberUtilities.get_integer_from_string(self.get_member_id())
+            if MemberCommunityHelper.is_draft_chatroom(card_instance, current_user_id):
+                continue
+
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
                                                      , poll_data, poll_votes)
             if card_creator_id in member_dict:
@@ -807,7 +862,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if not chatroom_instance:
                 return {'error_message': "Invalid chatroom id", 'status': 400}
 
-            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_id)
+            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance)
 
         chatroom_context_list = self.process_chatroom_list(chatroom_list, community_instance)
 
@@ -832,7 +887,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         if pinned_top_bar:
             actions.append(PINNED)
-    
+
         actions.append(COMMUNITY_DETAILS)
 
         return actions
@@ -1223,3 +1278,12 @@ class MemberCommunityHelper:
             chatroom_user_actions['active'] = True
 
         return chatroom_user_actions
+
+    @staticmethod
+    def is_draft_chatroom(chatroom_instance, current_user_id):
+        if chatroom_instance.attachment_count > 0 and\
+                chatroom_instance.attachments_uploaded is False and\
+                chatroom_instance.user_id != current_user_id:
+            return True
+
+        return False

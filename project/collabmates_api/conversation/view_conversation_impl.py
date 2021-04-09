@@ -1,10 +1,15 @@
 from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
-from utility.constants import INVALID_PLATFORM
-from .conversation_impl import ConversationImpl
-from utility.request_utilities import RequestUtilities
 from rest_framework.views import APIView
-from ..serializers import get_conversation_instance_for_db_synching
+
+from utility.number_utilities import NumberUtilities
+from utility.string_utilities import StringUtilities
+from .conversation_impl import ConversationImpl
+from ..mixins import TransactionMixin
+
+from utility.request_utilities import RequestUtilities
 from utility.exception_utilities import InvalidHeaderException
 
 
@@ -18,12 +23,13 @@ class FetchConversation(APIView):
         scroll_direction = request.GET.get('scroll_direction')
         conversation_id = request.GET.get('conversation_id')
         page = request.GET.get('page', 1)
-        paginate_by = request.GET.get('paginate_by', 200)
+        paginate_by = request.GET.get('paginate_by', 20)
+        top_navigate = request.GET.get('top_navigate', False)
+        top_navigate = StringUtilities.get_boolean_from_string(top_navigate)
 
         conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page,
                                                 paginate_by)
-
-        conversations = conversation_manager.fetch_conversation()
+        conversations = conversation_manager.fetch_conversation(top_navigate)
 
         return JsonResponse({
             'conversations': conversations
@@ -48,13 +54,147 @@ class CreateConversation(APIView):
         has_files = ConversationViewsHelper.has_files(req_body, is_ios)
 
         conversation_manager = ConversationImpl(member_id, platform_code=platform_code, device_id=device_id)
-        conversation_response = conversation_manager.create_conversation(req_body, is_ios,
+
+        try:
+            conversation_response = conversation_manager.create_conversation(req_body, is_ios,
                                                                          is_user_guest, has_files)
+        except Exception as e:
+            return JsonResponse({'error_message': e.args}, status=500)
 
         if conversation_response.get('error_message'):
             return JsonResponse(conversation_response, status=400)
 
         return JsonResponse(conversation_response)
+
+
+class AddConversationPollOptions(APIView):
+
+    def post(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not request:
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"}, status=400)
+
+        conversation_manager = ConversationImpl(member_id=member_id)
+        conversation_response = conversation_manager.add_poll(req_body)
+
+        if conversation_response.get('error_message'):
+            return JsonResponse(conversation_response, status=400)
+
+        return JsonResponse(conversation_response)
+
+
+class SubmitConversationPoll(APIView):
+
+    def post(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"}, status=400)
+
+        conversation_manager = ConversationImpl(member_id=member_id)
+        conversation_response = conversation_manager.submit_poll(req_body)
+
+        if conversation_response.get('error_message'):
+            return JsonResponse(conversation_response, status=400)
+
+        return JsonResponse(conversation_response)
+
+
+class FetchConversationPollUsers(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        poll_id = request.GET.get('poll_id')
+        conversation_id = request.GET.get('conversation_id')
+        page = request.GET.get('page', 1)
+        page_size = request.GET.get('page_size', 20)
+
+        page = NumberUtilities.get_integer_from_string(page)
+        page_size = NumberUtilities.get_integer_from_string(page_size)
+
+        if not request:
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"}, status=400)
+
+        conversation_manager = ConversationImpl(member_id=member_id, conversation_id=conversation_id)
+        poll_conversation_response = conversation_manager.poll_users(poll_id, page, page_size)
+
+        if poll_conversation_response.get('error_message'):
+            return JsonResponse(poll_conversation_response, status=400)
+
+        return JsonResponse(poll_conversation_response)
+
+
+class AddReaction(TransactionMixin, APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(AddReaction, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        post_data = RequestUtilities.fetch_request_post_data(request)
+
+        chatroom_id = post_data.get('chatroom_id', None)
+        conversation_id = post_data.get('conversation_id', None)
+        reaction = post_data.get('reaction', None)
+
+        chatroom_manager = ConversationImpl(member_id=member_id,
+                                            chatroom_id=chatroom_id,
+                                            conversation_id=conversation_id)
+
+        response = chatroom_manager.add_reaction(reaction)
+
+        return JsonResponse(response)
+
+
+class RemoveReaction(TransactionMixin, APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(RemoveReaction, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        post_data = RequestUtilities.fetch_request_post_data(request)
+
+        chatroom_id = post_data.get('chatroom_id', None)
+        conversation_id = post_data.get('conversation_id', None)
+
+        chatroom_manager = ConversationImpl(member_id=member_id,
+                                            chatroom_id=chatroom_id,
+                                            conversation_id=conversation_id)
+
+        response = chatroom_manager.remove_reaction()
+
+        return JsonResponse(response)
 
 
 class ConversationViewsHelper:

@@ -642,7 +642,8 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                      togther_collabcard.attachments_uploaded,
                      togther_collabcard.is_secret,
                      togther_collabcard.secret_chatroom_participants,
-                     togther_collabcardState.secret_chatroom_left
+                     togther_collabcardState.secret_chatroom_left,
+                     togther_collabcard.has_reactions
             FROM togther_collabcard
             INNER JOIN togther_collabcardState
                 ON togther_collabcardState.card_id = togther_collabcard.id
@@ -844,7 +845,8 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
              togther_collabcard.attachments_uploaded,
              togther_collabcard.is_secret,
              togther_collabcard.secret_chatroom_participants,
-             togther_collabcardState.secret_chatroom_left
+             togther_collabcardState.secret_chatroom_left,
+             togther_collabcard.has_reactions
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -926,7 +928,8 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
              togther_collabcard.attachments_uploaded,
              togther_collabcard.is_secret,
              togther_collabcard.secret_chatroom_participants,
-             togther_collabcardState.secret_chatroom_left
+             togther_collabcardState.secret_chatroom_left,
+             togther_collabcard.has_reactions
     FROM togther_collabcard
     INNER JOIN togther_collabcardState
         ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1202,7 +1205,8 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
                  togther_collabcard.attachments_uploaded,
                  togther_collabcard.is_secret,
                  togther_collabcard.secret_chatroom_participants,
-                 togther_collabcardState.secret_chatroom_left
+                 togther_collabcardState.secret_chatroom_left,
+                 togther_collabcard.has_reactions
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1289,7 +1293,8 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
                          togther_collabcard.attachments_uploaded,
                          togther_collabcard.is_secret,
                          togther_collabcard.secret_chatroom_participants,
-                         togther_collabcardState.secret_chatroom_left
+                         togther_collabcardState.secret_chatroom_left,
+                         togther_collabcard.has_reactions
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1376,7 +1381,8 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                          togther_collabcard.attachments_uploaded,
                          togther_collabcard.is_secret,
                          togther_collabcard.secret_chatroom_participants,
-                         togther_collabcardState.secret_chatroom_left
+                         togther_collabcardState.secret_chatroom_left,
+                         togther_collabcard.has_reactions
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1466,7 +1472,8 @@ def fetch_chatroom_with_videos(limit, page, card_list):
                     togther_collabcard.attachments_uploaded,
                     togther_collabcard.is_secret,
                     togther_collabcard.secret_chatroom_participants,
-                    togther_collabcardState.secret_chatroom_left
+                    togther_collabcardState.secret_chatroom_left,
+                    togther_collabcard.has_reactions
                 FROM togther_collabcard
                 INNER JOIN togther_collabcardState
                     ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1532,7 +1539,15 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
                          preview_chatroom_id,
                          preview_type,
                          api_version,
-                         temporary_id
+                         temporary_id,
+                         poll_type,
+                         multiple_select_state,
+                         multiple_select_no,
+                         is_anonymous,
+                         allow_add_option,
+                         expiry_time,
+                         preview_community_id,
+                         has_reactions
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
@@ -1589,7 +1604,15 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
                          preview_chatroom_id,
                          preview_type,
                          api_version,
-                         temporary_id
+                         temporary_id,
+                         poll_type,
+                         multiple_select_state,
+                         multiple_select_no,
+                         is_anonymous,
+                         allow_add_option,
+                         expiry_time,
+                         preview_community_id,
+                         has_reactions
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
@@ -1736,4 +1759,37 @@ def get_members_based_on_user_list_query(user_list, community_id):
         print(error)
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
+        return []
+
+
+def get_community_introductions_based_on_user_list_query(user_list, community_id, question_id) -> list:
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        user_tupple = get_tuple_from_array(user_list)
+
+        if not user_tupple:
+            return []
+
+        sql = """
+       SELECT togther_communityAnswers.member_id,
+                 togther_communityAnswers.community_id,
+                 togther_communityAnswers.question_answer,
+                 togther_communityAnswers.question_title
+       FROM togther_communityAnswers
+       WHERE togther_communityAnswers.community_id=%s
+                AND member_id IN  %s
+                AND question_id = %s
+                """ % \
+              (str(community_id), str(user_tupple), str(question_id))
+
+        curr.execute(sql)
+        member_data = curr.fetchall()
+        curr.close()
+
+        return member_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
         return []

@@ -36,6 +36,7 @@ from django.shortcuts import get_object_or_404
 import traceback
 
 from datetime import datetime, timedelta
+
 from .serializers import get_answer_files, get_collabcard_files
 from .static_text import *
 from utility.time_utilities import TimeUtilities
@@ -957,6 +958,9 @@ def send_follow_notification(card_id, user_id, conversation_id):
     if not conversation_instance:
         return
 
+    if conversation_instance.state == conversation_states.CONVERSATION_POLL:
+        return
+
     answer = conversation_instance.answer
     print(answer)
 
@@ -970,6 +974,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     if answer_text == "":
         answer_text = '📄 Document'
+
 
     notification_list = []
 
@@ -1008,51 +1013,58 @@ def send_follow_notification(card_id, user_id, conversation_id):
     send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
                                                                conversation_instance, card_instance, community_instance)
 
+
 def get_custom_data_for_new_conversation_created(user_id):
     """function to send notification for new conversation posted to followed users"""
 
     # time.sleep(2)
-    followed_chatrooms = conversationEngage.objects.filter(user_id=user_id, draft_id=None).order_by('-updated_at',
-                                                                                                    '-id')
+    followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,
+                                                           draft_id=None,
+                                                           unseen_count__gt=0).select_related('card',
+                                                                                              'community').order_by('-updated_at', '-id')[:10]
 
     unread_conversation = []
 
     for conversation in followed_chatrooms:
         temp = {}
+        card_instance = conversation.card
+        community_instance = conversation.community
 
-        if not conversation.unseen_count:
+        state_filter = collabcardState.objects.filter(user=user_id, card=card_instance, mute_status=True)
+
+        if state_filter.exists():
             continue
 
-        state_filter = collabcardState.objects.filter(user=user_id, card=conversation.card)
-        if state_filter.exists():
-            mute_status = state_filter[0].mute_status
-            if mute_status:
-                continue
-
-        chatroom_name = get_title_from_collabcard(conversation.card)
+        chatroom_name = card_instance.header
 
         if conversation.unseen_count > 1:
             chatroom_name = chatroom_name + """ (%s messages)""" % (str(conversation.unseen_count))
 
-        temp['community_name'] = conversation.card.community.name
+        temp['community_name'] = community_instance.name
         temp['chatroom_name'] = chatroom_name
-        temp['chatroom_title'] = conversation.card.title
-        temp['chatroom_user_name'] = conversation.user.userinfo.name
+        temp['chatroom_title'] = card_instance.title
+        temp['chatroom_user_name'] = ""
         temp['chatroom_user_image'] = ""
-        temp['chatroom_id'] = conversation.card.id
+        temp['chatroom_id'] = conversation.card_id
 
-        temp['notification_id'] = str(conversation.card.id) + "_followed"
+        temp['notification_id'] = str(conversation.card_id) + "_followed"
         temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s""" % (
-        str(conversation.card.community.id), str(conversation.card.community.name))
+        str(community_instance.id), str(community_instance.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
-        temp['community_id'] = str(conversation.card.community.id)
-        temp['community_image'] = conversation.card.community.image_link
-        temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
+        temp['community_id'] = str(community_instance.id)
+        temp['community_image'] = community_instance.image_link
+        temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card_id))
 
         last_instance = card_answers.objects.filter(card=conversation.card, state=0).last()
 
         if last_instance:
-            userinfo_instance = last_instance.user.userinfo
+            user_id = last_instance.user_id
+
+            userinfo_instance = Userinfo.get_userinfo_or_None(user_id)
+
+            if not userinfo_instance:
+                continue
+
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
             temp['chatroom_last_conversation_user_name'] = userinfo_instance.name
@@ -2824,3 +2836,110 @@ def send_notification_for_new_secret_room_participant(user_id, chatroom_id):
     }
 
     notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conversation_id, reaction):
+    if chatroom_id is not None:
+        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+        if chatroom_instance is None:
+            error_logger.error(
+                f"send_notification_to_message_creator_on_reaction - chatroom id {chatroom_id} does not exist")
+            return
+
+        creator_dict = {
+            'id': chatroom_instance.user_id
+        }
+
+    elif conversation_id is not None:
+        conversation_instance = card_answers.get_conversation_or_None(conversation_id)
+
+        if conversation_instance is None:
+            error_logger.error(
+                f"send_notification_to_message_creator_on_reaction - conversation id {conversation_id} does not exist")
+            return
+
+        chatroom_instance = conversation_instance.card
+        chatroom_id = chatroom_instance.id
+
+        creator_dict = {
+            'id': conversation_instance.user_id
+        }
+
+    else:
+        return
+
+    reacted_userinfo_instance = Userinfo.get_userinfo_or_None(user_id)
+
+    if reacted_userinfo_instance is None:
+        return
+
+    # if user reacts on his own message, don't send notification
+    if creator_dict['id'] == reacted_userinfo_instance.user_id_id:
+        return
+
+    reacted_user_name = reacted_userinfo_instance.name
+
+    title = chatroom_instance.header
+    sub_title = MESSAGE_REACTIONS_NOTIFICATION_SUB_TITLE % (reacted_user_name, reaction)
+    route = MESSAGE_REACTIONS_NOTIFICATION_ROUTE % chatroom_id
+
+    message = {'payload': {
+        "title": title,
+        "sub_title": sub_title,
+        'route': route
+    }
+    }
+
+    notification_list = [creator_dict]
+    
+    notification_meta(notification_list, message)
+
+
+@shared_task
+def send_poll_conversation_creation_notification(card_id, poll_conversation_creator_id, conversation_id):
+
+    card_instance = Collabcard.get_chatroom_or_None(card_id)
+
+    if not card_instance:
+        return
+
+    print("poll conversation notification", card_instance)
+
+    community_instance = card_instance.community
+
+    userinfo_instance = Userinfo.objects.filter(user_id=poll_conversation_creator_id)
+
+    if not userinfo_instance:
+        return
+
+    print("userinfo poll conversation", userinfo_instance)
+
+    member_filter = Members.objects.filter(community_id=community_instance).filter(
+        Q(state=member_states.MEMBER) | Q(state=member_states.ADMIN) | Q(state=member_states.PROFILE_UNAVAILABLE))
+
+    notification_list = []
+
+    message = {'payload': {
+        "title": "Time to vote",
+        "sub_title": POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
+                                                   community_instance.name),
+        'route': POLL_CONVERSATION_ROUTE % (card_instance.id, conversation_id)
+    }
+    }
+
+    for member in member_filter:
+
+        if member.member_id_id == poll_conversation_creator_id:
+            continue
+
+        temp = {
+            'id': member.member_id_id
+        }
+
+        notification_list.append(temp)
+
+    print("notification_list", notification_list)
+    notification_meta(notification_list, message)
+

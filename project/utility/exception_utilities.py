@@ -50,6 +50,13 @@ class InvalidChatroomException(BaseException):
               }
 
 
+class InvalidConversationException(BaseException):
+
+    detail = {"success": False,
+              "error_message": "Conversation does not exist"
+              }
+
+
 class JsonDecodeException(BaseException):
 
     detail = {"success": False,
