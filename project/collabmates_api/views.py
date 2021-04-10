@@ -4289,7 +4289,7 @@ def fetch_share_url(request):
 
                     community_share['private_link_members_directory'] = branch_links[2]['url']
 
-                    community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
+                    community_share['public_link_text'] = SHARE_TEXT_ADMIN % (
                         community_name, community_instance.purpose, community_share['public_link'])
 
                     if share_context['is_owner']:
