@@ -65,7 +65,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'utility.custom_middleware.AppendOrRemoveSlashMiddleware',
-    'middleware.api_logger.ApiLogger',
+    # 'middleware.api_logger.ApiLogger',
+    'request_logging.middleware.LoggingMiddleware',
     # 'middleware.InternalServerErrorMiddleware.InternalServerErrorHandlerMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
@@ -269,6 +270,10 @@ INTERNATIONAL_GHUPSHAP = {
     'msg': """%25code%25%20is%20your%20OTP%20for%20LikeMinds.%20For%20security%20reasons%2C%20do%20not%20share%20this%20OTP%20with%20anyone.%20cW6ZEtFKpHc"""
 }
 
+PRIVATE_KEY = '546fce97-bd5c-bc35-9952-704ab4db8720'
+APP_NAME = 'LikeMinds_Beta'
+SUB_SYSTEM = 'Backend_App'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -302,6 +307,14 @@ LOGGING = {
             'class': 'django.utils.log.AdminEmailHandler',
             'include_html': True,
         },
+        'coralogix': {
+            'class': 'coralogix.handlers.CoralogixLogger',
+            'level': 'DEBUG',
+            'formatter': 'tiny',
+            'private_key': PRIVATE_KEY,
+            'app_name': APP_NAME,
+            'subsystem': SUB_SYSTEM,
+        }
     },
     'loggers': {
         'file_logger': {
@@ -312,6 +325,11 @@ LOGGING = {
         'django': {
             'handlers': ['console', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+        },
+        'django.request': {
+            'handlers': ['coralogix'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }
