@@ -3710,7 +3710,7 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
             answer = user_name + " followed this chatroom"
 
         elif state == chatroom_states.CHATROOM_UNFOLLOW:
-            answer = user_name + " unfollwed this chatroom"
+            answer = user_name + " unfollowed this chatroom"
 
         elif state == chatroom_states.CHATROOM_COMMUNITY_EDIT:
             answer = user_name + " edited community purpose"
