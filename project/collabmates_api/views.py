@@ -7630,7 +7630,7 @@ def create_conversation(request):
         secret_chatroom_participants = json.loads(card_instance.secret_chatroom_participants)
         logged_in_user_id = NumberUtilities.get_integer_from_string(member_id)
 
-        if logged_in_user_id in secret_chatroom_participants:
+        if logged_in_user_id not in secret_chatroom_participants:
             response = {
                 'success': False,
                 "error_message": "You are not a part of this secret chatroom"
