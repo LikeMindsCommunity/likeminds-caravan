@@ -1,6 +1,5 @@
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import card_answers, Member_Engage, Members, collabcardState, ModelUtilities
-from utility.celery_tasks import update_preview_of_chatroom_in_cache
 from utility.time_utilities import TimeUtilities
 from utility.states import SyncTypes
 

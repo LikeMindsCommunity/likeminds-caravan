@@ -18,9 +18,10 @@ DATABASES = {
         'PASSWORD': os.getenv('PRODUCTION_DB_PASSWORD'),
         'HOST': os.getenv('PRODUCTION_DB_HOST'),
         'PORT': '5432',
+        'CONN_MAX_AGE': 600
     }
 }
-print(DATABASES)
+
 FIREBASE_CONFIG = {
     'apiKey': os.getenv('FIREBASE_API_KEY'),
     'authDomain': os.getenv('FIREBASE_AUTH_DOMAIN'),

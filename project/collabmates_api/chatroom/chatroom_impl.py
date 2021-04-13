@@ -458,6 +458,7 @@ class ChatroomImpl(ChatroomManager):
                 set_chatroom_state_for_all_members_on_card_creation.delay(community_id,
                                                                           card_id=self.get_chatroom_id(),
                                                                           function_called="create_card_internal")
+
         else:
             update_pending_chatroom_count_for_promoters.delay(community_id)
 

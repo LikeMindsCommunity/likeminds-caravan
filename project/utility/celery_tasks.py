@@ -12,10 +12,13 @@ import time
 from django.db.models import Q
 import json
 
+from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVERSATION_POLL_VOTERS_CONVERSATION_ID, \
+    CONVERSATION_COMMUNITY_PREVIEW
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
-from utility.states import card_types, chatroom_states
+from utility.states import card_types, chatroom_states, conversation_poll_types, conversation_states
+
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -31,7 +34,6 @@ def save_community_purpose_card(community_id, card_id):
 
 @shared_task
 def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, **kwargs):
-
     card_instance = Collabcard.objects.get(id=card_id)
     all_members = Members.objects \
         .filter(community_id=community_id) \
@@ -202,7 +204,6 @@ def fetch_new_chatroom_creater_images(member_id, community_id):
 
 
 def compute_last_seen_conversations_of_user(chatroom_id, user_list):
-
     chatroom_user_filter = collabcardState.objects.filter(card=chatroom_id, user__in=user_list)
 
     user_data_dict = dict()
@@ -280,7 +281,9 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
         seen_id = user_data_dict.get(key)
 
         if seen_id:
-            unseen_count = card_answers.objects.filter(card_id=chatroom_id, state=0, id__gt=seen_id).count()
+            unseen_count = card_answers.objects.filter(card_id=chatroom_id,
+                                                       id__gt=seen_id).filter(Q(state=conversation_states.ANSWER)
+                                                                              | Q(state=conversation_states.CONVERSATION_POLL)).count()
             conversation_engage_filter.filter(user=user).update(
                 last_conversation=last_conversation,
                 second_last_conversation=second_last,
@@ -441,6 +444,61 @@ def update_multiple_previews_in_chatroom(preview_info):
             conversation.save()
 
 
+@shared_task
+def update_preview_of_community_in_cache(preview_info):
+    preview_url = preview_info.get('preview_url')
+    community_id = preview_info.get('community_id')
+    conversation_id = preview_info.get('conversation_id')
+
+    if not conversation_id:
+        return
+
+    if not preview_url and not community_id:
+        return
+
+    elif not preview_url:
+        preview_url = settings.URL + "/community/" + str(community_id)
+
+    preview_object = preview_info.get('preview_object')
+
+    if not preview_object:
+
+        try:
+            preview_object = get_preview_for_url(preview_url=preview_url)
+
+        except Exception as e:
+            error_logger.error((str(e.args)))
+            return
+
+    key = CONVERSATION_COMMUNITY_PREVIEW % (str(conversation_id), str(community_id))
+    CacheImpl.set_cache(key, preview_object)
+
+
+@shared_task
+def update_multiple_previews_in_community(preview_info):
+    preview_community_id = preview_info.get('community_id')
+
+    if preview_community_id:
+        preview_filter = card_answers.objects.filter(preview_community=preview_community_id).\
+            filter(Q(preview_type='community') | Q(preview_type='directory'))
+
+        for conversation in preview_filter:
+
+            try:
+                preview_dict = get_preview_for_url(preview_url=conversation.internal_link,
+                                                   community_instance=conversation.preview_community,
+                                                  )
+            except Exception as e:
+                error_logger.error(str(e.args))
+                continue
+
+            update_preview_of_community_in_cache({'community_id': preview_community_id,
+                                                  'preview_object': preview_dict,
+                                                  'conversation_id': conversation.id})
+            conversation.last_updated = TimeUtilities.current_time_in_milliseconds()
+            conversation.save()
+
+
 def update_member_images_for_account(member_filter, image_url):
     for data in member_filter:
         community_instance = data.community_id
@@ -578,3 +636,241 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
             conversation_creator_dict['conversation_creator_list'] = conversation_creator_list
 
             CacheImpl.set_cache(key, conversation_creator_dict)
+
+
+def compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, conversation_context):
+    total_votes = poll_voters.get('total_votes', 0)
+    total_user_set = poll_voters.get('total_user_set')
+    chatroom_poll_members = poll_voters.get('conversation_poll_members', {})
+
+    polls = []
+
+    multi_select = conversation_context.get('multiple_select_no', None)
+    poll_type = conversation_context.get('poll_type', 0)
+    expiry_time = conversation_context.get('expiry_time', 0)
+
+    for data in poll_options:
+
+        poll_id = data['id']
+        temp = dict()
+        temp['id'] = data['id']
+        temp['text'] = data['text']
+        temp['is_selected'] = False
+
+        if total_votes == 0:
+            temp['no_votes'] = 0
+            temp['percentage'] = 0
+            polls.append(temp)
+            continue
+
+        chatroom_votes = chatroom_poll_members.get(poll_id)
+
+        if not chatroom_votes:
+            chatroom_votes = []
+
+        temp['is_selected'] = member_id in chatroom_votes
+        count = len(chatroom_votes)
+
+        if multi_select:
+            total_votes = len(total_user_set)
+
+        temp['no_votes'] = count
+
+        temp['percentage'] = int((count / total_votes) * 100)
+
+        if poll_type == conversation_poll_types.DEFERRED and \
+                expiry_time >= TimeUtilities.current_time_in_milliseconds():
+            del temp['no_votes']
+            del temp['percentage']
+
+        polls.append(temp)
+
+    return polls
+
+
+def compute_conversation_poll_options_from_cache(poll_options, conversation_info):
+    polls = []
+
+    for data in poll_options:
+
+        temp = dict()
+        temp['id'] = data['id']
+        temp['text'] = data['text']
+        temp['is_selected'] = False
+        temp['no_votes'] = 0
+        temp['percentage'] = 0
+
+        if conversation_info.get('poll_type') == conversation_poll_types.DEFERRED and \
+                conversation_info.get('expiry_time') >= TimeUtilities.current_time_in_milliseconds():
+            del temp['no_votes']
+            del temp['percentage']
+
+        polls.append(temp)
+
+    return polls
+
+
+def compute_conversation_polls(conversation_info):
+    conversation_id = conversation_info.get('conversation_id')
+    member_id = conversation_info.get('member_id')
+    conversation_instance = conversation_info.get('conversation_instance')
+
+    if not conversation_instance:
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+    conversation_poll_options = ModelUtilities.get_model_filter(conversationPolls,
+                                                                {'conversation': conversation_instance})
+    conversation_poll_members = ModelUtilities.get_model_filter(conversationPollMembers,
+                                                                {'conversation': conversation_instance})
+
+    poll_members_dict = {}
+
+    total_user_set = set()
+
+    for data in conversation_poll_members:
+
+        poll_id = data.poll_id
+        user_id = data.user_id
+        total_user_set.add(user_id)
+
+        if poll_id not in poll_members_dict:
+            poll_members_dict[poll_id] = [user_id]
+        else:
+            poll_members_dict[poll_id].append(user_id)
+
+    if conversation_instance.multiple_select_no:
+        is_multi = True
+    else:
+        is_multi = False
+
+    total_votes = conversation_poll_members.count()
+
+    polls = []
+
+    for data in conversation_poll_options:
+
+        poll_id = data.id
+        temp = dict()
+        temp['id'] = poll_id
+        temp['text'] = data.text
+        temp['is_selected'] = False
+
+        if total_votes == 0:
+            temp['no_votes'] = 0
+            temp['percentage'] = 0
+            polls.append(temp)
+            continue
+
+        chatroom_votes = poll_members_dict.get(poll_id)
+
+        if not chatroom_votes:
+            chatroom_votes = []
+
+        temp['is_selected'] = member_id in chatroom_votes
+        count = len(chatroom_votes)
+
+        if is_multi:
+            total_votes = len(total_user_set)
+
+        temp['no_votes'] = count
+
+        temp['percentage'] = int((count / total_votes) * 100)
+
+        if conversation_instance.poll_type == conversation_poll_types.DEFERRED and \
+                conversation_instance.expiry_time >= TimeUtilities.current_time_in_milliseconds():
+            del temp['no_votes']
+            del temp['percentage']
+
+        polls.append(temp)
+
+    return polls
+
+
+def get_conversation_poll(conversation_info):
+    conversation_id = conversation_info.get('conversation_id')
+    member_id = conversation_info.get('member_id')
+
+    member_id = NumberUtilities.get_integer_from_string(member_id)
+    option_key = CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % (str(conversation_id))
+    voters_key = CONVERSATION_POLL_VOTERS_CONVERSATION_ID % (str(conversation_id))
+
+    poll_options = CacheImpl.get_cache(option_key)
+    poll_voters = CacheImpl.get_cache(voters_key)
+
+    if poll_options and poll_voters:
+        polls = compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, conversation_info)
+
+    elif poll_options:
+        polls = compute_conversation_poll_options_from_cache(poll_options, conversation_info)
+
+    else:
+        polls = compute_conversation_polls(conversation_info)
+
+    return polls
+
+
+def save_conversation_poll_options_in_cache(options_info):
+    polls = options_info.get('polls')
+    user_id = options_info.get('user_id')
+    conversation_id = options_info.get('conversation_id')
+
+    if not user_id or \
+            not conversation_id:
+        return
+
+    if not polls:
+
+        polls = []
+        poll_filter = ModelUtilities.get_model_filter(conversationPolls,
+                                                      {'conversation': conversation_id}).order_by('id')
+
+        for poll in poll_filter:
+            temp = {
+                'id': poll.id,
+                'text': poll.text,
+                'user_id': poll.user_id
+            }
+
+            polls.append(temp)
+
+    key = CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % str(conversation_id)
+
+    CacheImpl.set_cache(key, polls)
+
+
+def save_conversation_poll_voters_in_cache(vote_info):
+    conversation_instance = vote_info.get('conversation_instance')
+
+    if not conversation_instance:
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                          vote_info.get('conversation_id'))
+
+        if not conversation_instance:
+            return
+
+    conversation_poll_members = ModelUtilities.get_model_filter(conversationPollMembers,
+                                                                {'conversation': conversation_instance})
+
+    poll_members_dict = {}
+
+    total_user_set = set()
+
+    for data in conversation_poll_members:
+
+        poll_id = data.poll_id
+        user_id = data.user_id
+        total_user_set.add(user_id)
+
+        if poll_id not in poll_members_dict:
+            poll_members_dict[poll_id] = [user_id]
+
+        else:
+            poll_members_dict[poll_id].append(user_id)
+
+    cache_context = dict()
+    cache_context['conversation_poll_members'] = poll_members_dict
+    cache_context['total_user_set'] = total_user_set
+    cache_context['total_votes'] = conversation_poll_members.count()
+
+    key = CONVERSATION_POLL_VOTERS_CONVERSATION_ID % (str(conversation_instance.id))
+    CacheImpl.set_cache(key, cache_context)

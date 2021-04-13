@@ -7,6 +7,7 @@ from django.db.models import Q
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
+from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, CHATROOM_REACTIONS_CACHE_KEY
 from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_community_id, \
     generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
     is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp, \
@@ -14,6 +15,7 @@ from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_commu
 
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, chatroom_states)
+from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .user_moderation_rights import *
 import time
 
@@ -331,6 +333,13 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         collabcard['creator_share_url'] = share['creator_share_url']
         collabcard['link_created_at'] = share['link_created_at']
         collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
+
+    if card.has_reactions:
+        reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'])
+    else:
+        reactions = []
+
+    collabcard['reactions'] = reactions
 
     return collabcard
 
@@ -1684,6 +1693,13 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
     if conversation.temporary_id:
         temp['temporary_id'] = conversation.temporary_id
 
+    if conversation.has_reactions:
+        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation.id)
+    else:
+        reactions = []
+
+    temp['reactions'] = reactions
+
     return temp
 
 
@@ -1994,9 +2010,9 @@ def get_preview_for_url(member_id=None, preview_url=None,
             context["action"] = "VIEW COMMUNITY"
         elif not chatroom_id:
             route = f"route://community?community_id={community_id}"
-            context["action"] = "JOIN COMMUNITY"
+            context["action"] = "VIEW COMMUNITY"
         else:
-            context["action"] = "JOIN COMMUNITY"
+            context["action"] = "VIEW COMMUNITY"
 
     if preview_type == "chatroom":
         title = get_title_for_chatroom_preview(chatroom_instance, member_id)
@@ -2148,22 +2164,5 @@ def get_chatroom_preview(card_instance, member_id, active=None):
 
     return chatroom_instance
 
-
-def get_member_images_of_chatroom_v1(conversation_filter):
-    """ function to give member images of chatrooms """
-    conversation_filter = conversation_filter.distinct("user").order_by('user', '-id')[:5]
-    last_conversations_member = []
-    for conversation in conversation_filter:
-        remove = False
-        if conversation.remove:
-            remove = True
-        member_data = get_user_profile(conversation.user, None, send_profile=False, remove=remove)
-        last_conversations_member.append(member_data)
-
-    temp = {
-        'last_response_members': last_conversations_member
-    }
-
-    return temp
 
 # =========================================================================#

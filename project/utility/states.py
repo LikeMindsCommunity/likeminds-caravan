@@ -398,3 +398,25 @@ class SyncNotificationTypes(enum.Enum):
         return value in cls._value2member_map_
 
 
+class ConversationStates:
+
+    ANSWER = 0
+    CONVERSATION_HEADER = 1
+    CONVERSATION_FOLLOW = 2
+    CONVERSATION_UNFOLLOW = 3
+    CONVERSATION_CREATOR = 4
+    CONVERSATION_COMMUNITY_EDIT = 5
+    CONVERSATION_GUEST = 6
+    CONVERSATION_POLL = 10
+
+
+conversation_states = ConversationStates()
+
+
+class ConversationPollTypes:
+
+    INSTANT = 0
+    DEFERRED = 1
+
+conversation_poll_types = ConversationPollTypes()
+

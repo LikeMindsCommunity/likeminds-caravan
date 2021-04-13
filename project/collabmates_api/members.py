@@ -541,7 +541,7 @@ def get_all_members_version_1(request, req_dict=None):
     if promoter_instance:
         pending_members = pending_members_count_in_community(community_instance, current_user_instance)
 
-        if pending_members is None:
+        if pending_members is not None:
             context['total_pending_members'] = pending_members
 
     return context
@@ -829,6 +829,7 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
             user_context = get_user_profile(user_instance.id,current_user_id)
             user_context['collabcard_state'] = instance.state
             user_context['is_guest'] = instance.is_guest
+            user_context['attending_status'] = instance.attending_status
 
             temp = get_removed_member_custom_text(instance.remove)
             user_context['custom_intro_text'] = temp['custom_intro_text']
@@ -883,10 +884,7 @@ def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, 
     community_instance = Community.objects.get(id=community_id)
     promoter_instance = is_member_promoter(community_instance, current_user_id)
 
-    community = CommunitySerializer(community_instance,
-                                    promoter_id=promoter_instance,
-                                    current_user_id=current_user_id,
-                                    current_user_instance=promoter_instance)
+    community = CommunitySerializerV1(community_instance, context={"current_user_id": current_user_id}, many=False).data
 
     context = {'members': members, 'community': community}
 

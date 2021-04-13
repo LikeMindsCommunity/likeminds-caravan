@@ -68,11 +68,7 @@ urlpatterns = [
     path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
     path('v1/community_collabcard/<int:community_id>', api_views.community_cards_version_1,
          name="community_cards_version_1"),
-
-
-    path('create_answer', api_views.create_answer, name="create_answer"),
     path('create_conversation', api_views.create_conversation, name="create_conversation"),
-
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
     path('generate_otp',api_views.generate_otp,name = 'generate_otp'),
     path('verify_otp',api_views.verify_otp,name = 'verify_otp'),
@@ -105,7 +101,6 @@ urlpatterns = [
     path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
     path('mark_read', api_views.mark_read, name='mark_read'),
 
-    path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
     path('v1/my_chatrooms', api_views.my_chatrooms_version_1, name='my_chatrooms_version_1'),
 
     path('fetch_chatroom_inactive', api_views.fetch_chatroom_inactive, name='fetch_chatroom_inactive'),

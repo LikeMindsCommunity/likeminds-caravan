@@ -322,3 +322,25 @@ class MarketingBanner(models.Model):
         self.updated_at = current_time
 
         super(MarketingBanner, self).save(*args, **kwargs)
+
+
+class Subscription(models.Model):
+
+    member = models.ForeignKey(Members, on_delete=models.CASCADE)
+    start_date = models.BigIntegerField(default=0)
+    end_date = models.BigIntegerField(default=0)
+    plan = models.TextField(null=True)
+    active = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(Subscription, self).save(*args, **kwargs)
+

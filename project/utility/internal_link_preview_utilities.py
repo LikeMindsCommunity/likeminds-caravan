@@ -4,7 +4,7 @@ from collabmates_api.static_text import BRANCH_LINK_PREFIX_ANDROID, BRANCH_LINK_
 import requests
 from collabmates_api.serializers import get_preview_for_url
 from django.conf import settings
-from .celery_tasks import update_preview_of_chatroom_in_cache
+from .celery_tasks import update_preview_of_chatroom_in_cache, update_preview_of_community_in_cache
 
 
 class PreviewUtilities:
@@ -95,3 +95,10 @@ class PreviewUtilities:
             update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_obj['chatroom']["id"],
                                                        'preview_object': preview_obj,
                                                        'conversation_id': instance.id})
+
+        if preview_obj and \
+                isinstance(instance, card_answers) and \
+                (preview_obj.get('preview_type') == "community" or preview_obj.get('preview_type') == "directory"):
+            update_preview_of_community_in_cache.delay({'community_id': preview_obj['community']["id"],
+                                                       'preview_object': preview_obj,
+                                                        'conversation_id': instance.id})

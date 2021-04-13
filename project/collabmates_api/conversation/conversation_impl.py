@@ -4,7 +4,11 @@ from django.contrib.auth.models import User
 from typing import Union
 from rest_framework import status as status_codes
 
+from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT
 from .conversation_manager import ConversationManager
+from .reactions import fetch_chatroom_or_conversation_reactions
+from ..notification import send_notification_to_message_creator_on_reaction
+from ..member_community.member_community_impl import MemberCommunityImpl
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
     get_removed_member_custom_text, get_conversation_instance_for_db_synching
@@ -15,22 +19,29 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
                      save_the_latest_conversation, update_activity_in_chatroom_for_conversation_creation,
                      update_chatroom_for_users_and_send_follow_notification,
                      reverse_conversations_for_upward_pagination, send_sync_notification,
-                     generate_internal_link_preview_for_conversation)
+                     generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification)
 
-from .constants import (LIST_SIZE, UPWARD_SCROLL_LIST_SIZE, DOWNWARD_SCROLL_LIST_SIZE, UPWARD_SCROLL_DIRECTION,
-                        DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
+from .constants import (UPWARD_SCROLL_DIRECTION,
+                        DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
+                        PREVIEW_COMMUNITY, PREVIEW_DIRECTORY)
 
-from togther.models import card_answers, collabcardState, Collabcard, Members, Community, ModelUtilities
+from togther.models import (card_answers, collabcardState, Collabcard, Members,
+                            Community, ModelUtilities, MessageReactions,conversationPolls,
+                            conversationPollMembers, Userinfo)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
-from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes
+from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
+    conversation_states, conversation_poll_types
 from utility.utils import decode_meta_from_url
 from utility.firebase import update_last_answer_id
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
-                                  update_preview_of_chatroom_in_cache)
+                                  update_preview_of_chatroom_in_cache,
+                                  get_conversation_poll, save_conversation_poll_options_in_cache,
+                                  save_conversation_poll_voters_in_cache, update_multiple_previews_in_community)
+
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 
@@ -92,7 +103,7 @@ class ConversationImpl(ConversationManager):
         self.page = page
 
     def get_paginate_by(self) -> Union[str, int]:
-        return self.paginate_by
+        return NumberUtilities.get_integer_from_string(self.paginate_by)
 
     def set_paginate_by(self, paginate_by: Union[str, int]):
         self.paginate_by = paginate_by
@@ -137,8 +148,19 @@ class ConversationImpl(ConversationManager):
     def _generate_internal_link_preview(self, conversation_instance):
 
         preview = generate_internal_link_preview_for_conversation(conversation_instance, self.get_member_id())
-
         return preview
+
+    def _fetch_conversation_polls(self, conversation_instance):
+
+        member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
+        polls = get_conversation_poll({'conversation_instance': conversation_instance, 'member_id': member_id,
+                                       'conversation_id': conversation_instance.id,
+                                       'poll_type': conversation_instance.poll_type,
+                                       'multiple_select_no': conversation_instance.multiple_select_no,
+                                       'expiry_time': conversation_instance.expiry_time,
+                                       })
+
+        return polls
 
     def _serialize_conversation(self, conversation_instance):
 
@@ -153,7 +175,34 @@ class ConversationImpl(ConversationManager):
         if preview:
             conversation_serializer['preview'] = preview
 
+        poll_conversation = self._serialize_poll_conversation(conversation_instance)
+
+        if poll_conversation:
+            conversation_serializer.update(poll_conversation)
+
         return conversation_serializer
+
+    def _serialize_poll_conversation(self, conversation_instance):
+
+        poll_conversation = {}
+
+        if conversation_instance.state == conversation_states.CONVERSATION_POLL:
+            poll_conversation['state'] = conversation_instance.state
+            poll_conversation['poll_type'] = conversation_instance.poll_type
+
+            if conversation_instance.multiple_select_state:
+                poll_conversation['multiple_select_state'] = conversation_instance.multiple_select_state
+
+            if conversation_instance.multiple_select_no:
+                poll_conversation['multiple_select_no'] = conversation_instance.multiple_select_no
+
+            poll_conversation['is_anonymous'] = conversation_instance.is_anonymous
+            poll_conversation['allow_add_option'] = conversation_instance.allow_add_option
+            poll_conversation['expiry_time'] = conversation_instance.expiry_time
+
+            poll_conversation['polls'] = self._fetch_conversation_polls(conversation_instance)
+
+        return poll_conversation
 
     def _create_conversation_list(self, conversations, last_conversation_id=None):
 
@@ -208,6 +257,55 @@ class ConversationImpl(ConversationManager):
         conversation_content['is_guest'] = self._is_user_already_guest(user=user_instance,
                                                                        chatroom=chatroom_instance)
 
+        poll_context = self._fill_poll_conversation_context(req_body)
+
+        if poll_context:
+            conversation_content.update(poll_context)
+
+    def _fill_poll_conversation_context(self, req_body):
+
+        poll_context = {}
+
+        if req_body.get('state') and req_body['state'] == conversation_states.CONVERSATION_POLL:
+            poll_context['state'] = req_body['state']
+            poll_context['poll_type'] = req_body['poll_type'] if 'poll_type' in req_body else 0
+            poll_context['multiple_select_state'] = \
+                (req_body['multiple_select_state'] if 'multiple_select_state'
+                                                      in req_body else None)
+            poll_context['multiple_select_no'] = req_body[
+                'multiple_select_no'] if 'multiple_select_no' in req_body else None
+            poll_context['is_anonymous'] = req_body['is_anonymous'] if 'is_anonymous' in req_body else False
+            poll_context['allow_add_option'] = req_body['allow_add_option'] if 'allow_add_option' in req_body else False
+            poll_context['expiry_time'] = req_body['expiry_time']
+
+        return poll_context
+
+    @staticmethod
+    def _fill_poll_options(user_instance, conversation_instance, req_body):
+
+        polls = req_body.get('polls')
+
+        if not polls:
+            return
+
+        poll_instances = []
+
+        for poll in polls:
+            poll_instance = conversationPolls.create_instance({'user_instance': user_instance,
+                                                               'conversation_instance': conversation_instance,
+                                                               'text': poll.get('text', '')})
+            temp = {
+                'id': poll_instance.id,
+                'text': poll_instance.text,
+                'user_id': poll_instance.user_id
+            }
+
+            poll_instances.append(temp)
+
+        save_conversation_poll_options_in_cache({'polls': poll_instances,
+                                                 'user_id': user_instance.id,
+                                                 'conversation_id': conversation_instance.id})
+
     def _set_preview_for_conversation(self, conversation_instance, req_body):
         preview_utilities = PreviewUtilities()
         preview_utilities.set_preview_object(conversation_instance, req_body, self.get_member_id())
@@ -252,7 +350,7 @@ class ConversationImpl(ConversationManager):
         conversation_tagging(None, req_body, chatroom_instance,
                              user_instance, self.get_member_id())
 
-    def _update_home_page(self, chatroom_id, req_body, has_files, is_ios):
+    def _update_home_page(self, chatroom_id, has_files, conversation_id):
         user_id = self.get_member_id() if has_files else None
         update_my_chatrooms_for_users(chatroom_id=chatroom_id, user_id=user_id)
 
@@ -261,10 +359,82 @@ class ConversationImpl(ConversationManager):
 
         update_chatroom_for_users_and_send_follow_notification.delay(chatroom_id,
                                                                      self.get_member_id(),
-                                                                     req_body['text'],
+                                                                     conversation_id,
                                                                      has_files=has_files)
 
-    def fetch_conversation(self):
+
+    @staticmethod
+    def _fetch_member_list_for_poll_conversation(conversation_instance, poll_instance, page, paginated_by):
+
+        poll_member_filter = ModelUtilities.get_model_filter(conversationPollMembers,
+                                                             {'conversation': conversation_instance,
+                                                              'poll': poll_instance}).order_by('user_id')
+        poll_member_filter = pagination(poll_member_filter, page, paginate_by=paginated_by)
+
+        user_list = []
+
+        for data in poll_member_filter:
+            user_list.append(data.user_id)
+
+        return user_list
+
+    @staticmethod
+    def _create_member_instances_from_user_list(user_list, community_instance):
+
+        member_dict = MemberCommunityImpl.fetch_members_based_on_user_list(user_list, community_instance)
+        member_introduction_dict = MemberCommunityImpl.fetch_community_introductions_based_on_user_list(user_list,
+                                                                                                        community_instance)
+        member_list = []
+
+        for user_id in user_list:
+
+            if member_dict.get(user_id):
+                member_data = member_dict[user_id]
+
+                if member_introduction_dict.get(user_id):
+                    member_data['question_answer'] = member_introduction_dict[user_id]
+
+                else:
+
+                    created_at = TimeUtilities.convert_epoch_time_to_date_month_year(member_data['created_at'])
+
+                    if member_data['state'] == member_states.ADMIN:
+                        member_data['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % created_at
+
+                    elif member_data['state'] == member_states.MEMBER or \
+                            member_data['state'] == member_states.PROFILE_UNAVAILABLE:
+
+                        member_data['custom_intro_text'] = CREATE_INTRO_TEXT_MEMBER % created_at
+                        member_data['custom_click_text'] = CUSTOM_CLICK_TEXT % (
+                            member_data['name'],
+                            created_at)
+            else:
+                userinfo_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id})
+
+                if userinfo_filter:
+
+                    userinfo_instance = userinfo_filter[0]
+
+                    member_data = {
+                        'id': user_id,
+                        'name': userinfo_instance.name,
+                        'image_url': userinfo_instance.image_link if userinfo_instance.image_link else ""
+                    }
+
+                else:
+                    continue
+
+            member_list.append(member_data)
+
+        return member_list
+
+    def fetch_conversation(self, top_navigate=False):
+
+        if top_navigate:
+            conversations = self._fetch_conversation_queryset()
+            conversations = conversations[:self.get_paginate_by()]
+            conversations = self._create_conversation_list(conversations)
+            return conversations
 
         if not self.get_scroll_direction() and self.get_conversation_id():
             last_seen_conversation = self._fetch_last_seen_conversation()
@@ -281,14 +451,15 @@ class ConversationImpl(ConversationManager):
 
             if not last_seen:
                 conversations = self._fetch_conversation_queryset()
-                conversations = self._paged_queryset(conversations)
+                conversations =  conversations[:self.get_paginate_by()]
                 conversations = self._create_conversation_list(conversations)
 
             else:
 
-                upward_conversation = self._fetch_upward_conversation_with_conversation_queryset(LIST_SIZE,
+                list_size = self.get_paginate_by() / 2
+                upward_conversation = self._fetch_upward_conversation_with_conversation_queryset(list_size,
                                                                                                  last_seen.id)
-                downward_conversation = self._fetch_downward_conversation_queryset(LIST_SIZE, last_seen.id)
+                downward_conversation = self._fetch_downward_conversation_queryset(list_size, last_seen.id)
 
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
@@ -299,13 +470,16 @@ class ConversationImpl(ConversationManager):
 
             if self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
                     self.get_scroll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
-                upward_list = self._fetch_upward_conversation_queryset(UPWARD_SCROLL_LIST_SIZE,
+
+                upward_scroll_list_size = self.get_paginate_by()
+                upward_list = self._fetch_upward_conversation_queryset(upward_scroll_list_size,
                                                                        self.get_conversation_id())
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
             elif self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
                     self.get_scroll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
-                conversations = self._fetch_downward_conversation_queryset(DOWNWARD_SCROLL_LIST_SIZE,
+                downward_scroll_list_size = self.get_paginate_by()
+                conversations = self._fetch_downward_conversation_queryset(downward_scroll_list_size,
                                                                            self.get_conversation_id())
 
             else:
@@ -338,6 +512,23 @@ class ConversationImpl(ConversationManager):
         if chatroom_instance is None:
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
 
+        if chatroom_instance.is_secret and\
+                not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
+            response = {
+                'success': False,
+                "error_message": "You are not a part of this secret chatroom"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
+        if chatroom_instance.is_pending:
+            response = {
+                'success': False,
+                "error_message": "This is a pending chatroom, conversations cannot be created here"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
         community_id = chatroom_instance.community.id
 
         community_instance = ConversationHelper.fetch_community_instance(community_id=community_id)
@@ -367,9 +558,9 @@ class ConversationImpl(ConversationManager):
         conversation_content['created_at'] = created_at
         conversation_instance = self._create_conversation_instance(conversation_content)
         self._set_preview_for_conversation(conversation_instance, req_body)
+        self._fill_poll_options(user_instance, conversation_instance, req_body)
 
         attachment_count = req_body.get('attachment_count', 0)
-
         has_files = has_files or attachment_count > 0
 
         if not has_files:
@@ -382,20 +573,28 @@ class ConversationImpl(ConversationManager):
 
         self._auto_follow_for_tagged_members(req_body, chatroom_instance, user_instance)
 
-        self._update_home_page(chatroom_id, req_body,
-                               has_files=has_files,
-                               is_ios=is_ios)
+        self._update_home_page(chatroom_id,has_files=has_files,
+                               conversation_id=conversation_instance.id)
 
-        if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': chatroom_instance,
-                                                                'preview_type': "chatroom"}):
+        if conversation_instance.preview_type == PREVIEW_CHATROOM:
             preview_chatroom_id = chatroom_instance.id
             update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
+
+        elif conversation_instance.preview_type == PREVIEW_COMMUNITY or \
+                conversation_instance.preview_type == PREVIEW_DIRECTORY:
+            update_multiple_previews_in_community.delay({'community_id': conversation_instance.preview_community_id})
 
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
 
         send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                       'community_id': community_id})
+
+        is_poll_conversation = (conversation_instance.state == conversation_states.CONVERSATION_POLL)
+
+        if is_poll_conversation:
+            send_poll_conversation_creation_notification.delay(conversation_instance.card_id,
+                                                           conversation_instance.user_id, conversation_instance.id)
 
         conversation_response = {
             'success': True,
@@ -404,6 +603,199 @@ class ConversationImpl(ConversationManager):
         }
 
         return conversation_response
+
+    def add_reaction(self, reaction: str) -> dict:
+
+        if self.get_conversation_id() is None and self.get_chatroom_id() is None:
+            response = {
+                'success': False,
+                'error_message': 'send conversation_id or chatroom_id in post params'
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = ConversationHelper.fetch_user_instance(self.get_member_id())
+
+        chatroom_instance = None
+        conversation_instance = None
+
+        if self.get_conversation_id() is not None:
+            conversation_instance = ConversationHelper.fetch_conversation_instance(self.get_conversation_id())
+            chatroom_instance = conversation_instance.card
+
+            conversation_instance.has_reactions = True
+            conversation_instance.save()
+
+        if self.get_chatroom_id() is not None and\
+                chatroom_instance is None:
+            chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
+
+            chatroom_instance.has_reactions = True
+            chatroom_instance.save()
+
+        update_context = {'reaction': reaction}
+
+        MessageReactions.objects.update_or_create(user=user_instance,
+                                                  chatroom=chatroom_instance,
+                                                  conversation=conversation_instance,
+                                                  defaults=update_context)
+
+        fetch_chatroom_or_conversation_reactions(self.get_chatroom_id(),
+                                                 self.get_conversation_id(),
+                                                 update_cache=True)
+
+        send_notification_to_message_creator_on_reaction.delay(self.get_member_id(),
+                                                               self.get_chatroom_id(),
+                                                               self.get_conversation_id(),
+                                                               reaction)
+
+        context = {
+            "success": True
+        }
+
+        return context
+
+    def remove_reaction(self) -> dict:
+
+        if self.get_conversation_id() is None and self.get_chatroom_id() is None:
+            response = {
+                'success': False,
+                'error_message': 'send conversation_id or chatroom_id in post params'
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = ConversationHelper.fetch_user_instance(self.get_member_id())
+
+        chatroom_instance = None
+        conversation_instance = None
+
+        if self.get_conversation_id() is not None:
+            conversation_instance = ConversationHelper.fetch_conversation_instance(self.get_conversation_id())
+            chatroom_instance = conversation_instance.card
+
+        if self.get_chatroom_id() is not None and\
+                chatroom_instance is None:
+            chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
+
+        MessageReactions.objects.filter(user=user_instance,
+                                        chatroom=chatroom_instance,
+                                        conversation=conversation_instance).delete()
+
+        fetch_chatroom_or_conversation_reactions(self.get_chatroom_id(),
+                                                 self.get_conversation_id(),
+                                                 update_cache=True)
+
+        context = {
+            "success": True
+        }
+
+        return context
+
+    def add_poll(self, request_body):
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                          request_body.get('conversation_id'))
+
+        if not conversation_instance:
+            return {'status': False, 'error_message': "send correct conversation id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'status': False, 'error_message': "incorrect user id"}
+
+        if not conversation_instance.allow_add_option:
+            return {'status': False, 'error_message': "new option cannot be added"}
+
+        poll = request_body.get('poll', {})
+
+        poll_instance = conversationPolls.create_instance({'user_instance': user_instance,
+                                                           'conversation_instance': conversation_instance,
+                                                           'text': poll.get('text', '')})
+
+        save_conversation_poll_options_in_cache(
+            {'conversation_id': conversation_instance.id, 'user_id': user_instance.id})
+
+        poll_response = {
+            'id': poll_instance.id,
+            'text': poll_instance.text,
+            'user_id': poll_instance.user_id
+        }
+
+        return {'success': True, 'poll': poll_response}
+
+    def submit_poll(self, request_body):
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                          request_body.get('conversation_id'))
+
+        if not conversation_instance:
+            return {'status': False, 'error_message': "send correct conversation id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'status': False, 'error_message': "incorrect user id"}
+
+        polls = request_body.get('polls', [])
+
+        if conversation_instance.expiry_time < TimeUtilities.current_time_in_milliseconds():
+            return {'success': False, 'error_message': "poll has been ended"}
+
+        poll_filter = ModelUtilities.get_model_filter(conversationPollMembers, {'user': user_instance,
+                                                                                'conversation': conversation_instance})
+        poll_filter.delete()
+
+        for poll in polls:
+
+            poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll.get('id'),
+                                                                               'conversation': conversation_instance})
+
+            if not poll_filter:
+                return {'success': False, 'error_message': "invalid poll id"}
+
+            poll_instance = poll_filter[0]
+            poll_member_instance = conversationPollMembers.create_instance({'user_instance': user_instance,
+                                                                            'poll_instance': poll_instance,
+                                                                            'conversation_instance':
+                                                                                conversation_instance})
+
+        conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
+        conversation_instance.save()
+
+        save_conversation_poll_voters_in_cache({'conversation_instance': conversation_instance})
+
+        return {'success': True}
+
+    def poll_users(self, poll_id, page, page_size):
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
+
+        if not conversation_instance:
+            return {'status': False, 'error_message': "send correct conversation id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'status': False, 'error_message': "incorrect user id"}
+
+        poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll_id,
+                                                                          'conversation': conversation_instance})
+        poll_instance = None
+
+        if poll_filter:
+            poll_instance = poll_filter[0]
+
+        if not poll_instance:
+            return {'status': False, 'error_message': "incorrect poll_id conversation pair"}
+
+        community_instance = conversation_instance.community
+        user_list = self._fetch_member_list_for_poll_conversation(conversation_instance, poll_instance,
+                                                                  page, page_size)
+        member_list = self._create_member_instances_from_user_list(user_list, community_instance)
+
+        return {'status': True, 'member': member_list}
 
 
 class ConversationHelper:
@@ -419,6 +811,10 @@ class ConversationHelper:
     @staticmethod
     def fetch_chatroom_instance(chatroom_id) -> Collabcard:
         return Collabcard.get_chatroom_or_raise_exception(chatroom_id)
+
+    @staticmethod
+    def fetch_conversation_instance(conversation_id) -> card_answers:
+        return card_answers.get_conversation_with_joins_or_raise_exception(conversation_id)
 
     @staticmethod
     def fetch_replied_conversation(req_body):
@@ -459,3 +855,13 @@ class ConversationHelper:
             'status': status,
             'source': source
         }
+
+    @staticmethod
+    def is_user_secret_chatroom_participant(chatroom, user_id):
+        secret_chatroom_participants = json.loads(chatroom.secret_chatroom_participants)
+
+        if user_id is not None:
+            logged_in_user_id = NumberUtilities.get_integer_from_string(user_id)
+            return logged_in_user_id in secret_chatroom_participants
+
+        return False

@@ -21,7 +21,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
     template = MessageTemplate.objects.filter(community=community_instance)
 
     if not template.exists():
-        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at template existence check")
+        print(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at template existence check")
         return
 
     # has to get owner from records
@@ -29,7 +29,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
     owner_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
     # check if owner is present in community or not
     if owner_user_instance is None:
-        info_logger.info(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner existence check")
+        print(f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, returning at owner existence check")
         return
 
     intro_filter = Collabcard.objects.filter(community=community_instance,
@@ -68,7 +68,7 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
                                                                      user_instance=owner_user_instance,
                                                                      chatroom_instance=chatroom)
 
-    info_logger.info(
+    print(
         f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, response = {conversation_response}")
 
     # making the intro room of new member inactive for the owner
@@ -80,10 +80,10 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
     chatroom_manager = ChatroomImpl(member_id=owner_user_instance.id)
     chatroom_response = chatroom_manager.set_chatroom_active_or_inactive(chatroom_req_body)
 
-    info_logger.info(
+    print(
         f"post_owner_message_template_in_intro_room inactivate chatroom for owner - user_id = {user_id}, community_id = {community_id}, chatroom_id = {chatroom.id}, response = {chatroom_response}")
 
-
+    
 @shared_task(bind=True, autoretry_for=(Exception,), default_retry_delay=60, max_retries=3)
 def check_owner_template_posted(self, community_id, user_id):
     try:
