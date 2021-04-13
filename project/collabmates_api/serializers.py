@@ -1982,7 +1982,10 @@ def get_preview_for_url(member_id=None, preview_url=None,
 
     if chatroom_id:
         if not chatroom_instance:
-            chatroom_instance = Collabcard.objects.get(pk=chatroom_id)
+            chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+            if chatroom_instance is None:
+                return
 
         community_instance = chatroom_instance.community
         community_id = community_instance.id
@@ -1996,7 +1999,10 @@ def get_preview_for_url(member_id=None, preview_url=None,
     if community_id:
         # checking if community_instance already exists
         if not community_instance:
-            community_instance = Community.objects.get(pk=community_id)
+            community_instance = Community.get_community_or_None(community_id)
+
+            if community_instance is None:
+                return
 
         community = get_community_preview(community_instance, user_instance)
         context["community"] = community
