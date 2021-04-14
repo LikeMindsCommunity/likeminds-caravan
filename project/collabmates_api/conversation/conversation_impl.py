@@ -633,8 +633,7 @@ class ConversationImpl(ConversationManager):
         self._update_home_page(community_instance, chatroom_instance, conversation_instance)
 
         if not has_files:
-            ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance, user_instance.id,
-                                                                               conversation_instance.id)
+            ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id, user_instance.id)
 
         self._auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance)
 
