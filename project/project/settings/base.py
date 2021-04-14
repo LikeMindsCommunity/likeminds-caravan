@@ -65,8 +65,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'utility.custom_middleware.AppendOrRemoveSlashMiddleware',
-    # 'middleware.api_logger.ApiLogger',
-    'request_logging.middleware.LoggingMiddleware',
+    'middleware.api_logger.ApiLogger',
+    # 'request_logging.middleware.LoggingMiddleware',
     # 'middleware.InternalServerErrorMiddleware.InternalServerErrorHandlerMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
