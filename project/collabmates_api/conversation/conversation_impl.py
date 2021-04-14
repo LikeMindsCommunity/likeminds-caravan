@@ -2,32 +2,40 @@ import time
 import json
 from django.contrib.auth.models import User
 from typing import Union
+
+from django.db.models import F
 from rest_framework import status as status_codes
 
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT
+
 from .conversation_manager import ConversationManager
 from .reactions import fetch_chatroom_or_conversation_reactions
-from ..notification import send_notification_to_message_creator_on_reaction
+from ..chatroom.chatroom_impl import ChatroomHelper
+from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list
 from ..member_community.member_community_impl import MemberCommunityImpl
+from ..raw_queries import activate_chatroom_on_conversation_creation, \
+    get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
     get_removed_member_custom_text, get_conversation_instance_for_db_synching
 from ..sync.model_update import update_models_for_syncing_apis
+from ..tasks import send_tagged_user_mail, send_chatroom_owner_mail
 from ..utility import pagination
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_follow_internal,
                      save_the_latest_conversation, update_activity_in_chatroom_for_conversation_creation,
                      update_chatroom_for_users_and_send_follow_notification,
                      reverse_conversations_for_upward_pagination, send_sync_notification,
-                     generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification)
+                     generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification,
+                     create_chatroom_engagement)
 
 from .constants import (UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
                         PREVIEW_COMMUNITY, PREVIEW_DIRECTORY)
 
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
-                            Community, ModelUtilities, MessageReactions,conversationPolls,
-                            conversationPollMembers, Userinfo)
+                            Community, ModelUtilities, MessageReactions, conversationPolls,
+                            conversationPollMembers, Userinfo, conversationEngage)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
@@ -35,8 +43,8 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types
-from utility.utils import decode_meta_from_url
-from utility.firebase import update_last_answer_id
+from utility.utils import decode_meta_from_url, check_notification_flag
+from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
                                   update_preview_of_chatroom_in_cache,
                                   get_conversation_poll, save_conversation_poll_options_in_cache,
@@ -44,6 +52,7 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
+from celery import shared_task
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -233,7 +242,7 @@ class ConversationImpl(ConversationManager):
 
     def _fill_basic_conversation_content(self, req_body, conversation_content,
                                          chatroom_instance, user_instance, community_instance,
-                                         has_files):
+                                         has_files, chatroom_state_instance):
 
         conversation_content['answer'] = req_body['text']
         conversation_content['card'] = chatroom_instance
@@ -254,8 +263,7 @@ class ConversationImpl(ConversationManager):
         conversation_content['device_id'] = self.device_id
         conversation_content['platform'] = self.platform_code
 
-        conversation_content['is_guest'] = self._is_user_already_guest(user=user_instance,
-                                                                       chatroom=chatroom_instance)
+        conversation_content['is_guest'] = chatroom_state_instance.is_guest
 
         poll_context = self._fill_poll_conversation_context(req_body)
 
@@ -329,9 +337,6 @@ class ConversationImpl(ConversationManager):
                                                community_id, self.get_member_id(), guest_header=True,
                                                created_at=created_at)
 
-    def _update_latest_conversation_id_to_firebase(self, chatroom_id, conversation_id):
-        update_last_answer_id(chatroom_id, conversation_id)
-
     def _auto_follow_chatroom(self, chatroom_id, member_state):
 
         if member_state == member_states.ADMIN or \
@@ -346,22 +351,76 @@ class ConversationImpl(ConversationManager):
     def _save_latest_conversation_for_members(self, chatroom_instance):
         save_the_latest_conversation(chatroom_instance, self.get_member_id())
 
-    def _auto_follow_for_tagged_members(self, req_body, chatroom_instance, user_instance):
-        conversation_tagging(None, req_body, chatroom_instance,
-                             user_instance, self.get_member_id())
+    @staticmethod
+    def _auto_follow_and_save_last_conversation(chatroom_instance, chatroom_state_instance,
+                                                conversation_instance, user_instance, member_state):
 
-    def _update_home_page(self, chatroom_id, has_files, conversation_id):
-        user_id = self.get_member_id() if has_files else None
-        update_my_chatrooms_for_users(chatroom_id=chatroom_id, user_id=user_id)
+        if chatroom_state_instance:
+            chatroom_state_instance.last_seen_conversation = conversation_instance
+            chatroom_state_instance.follow_status = True
+            chatroom_state_instance.expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
+            chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+            chatroom_state_instance.save()
 
-        update_activity_in_chatroom_for_conversation_creation(chatroom_id,
-                                                              user_id=self.get_member_id())
+        else:
 
-        update_chatroom_for_users_and_send_follow_notification.delay(chatroom_id,
+            if member_state == member_states.ADMIN or \
+                    member_state == member_states.MEMBER or \
+                    member_state == member_states.PROFILE_UNAVAILABLE:
+                expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
+                state_instance = collabcardState.create_chatroom_state_instance(chatroom_instance,
+                                                                                user_instance, state=0,
+                                                                                expire_at=expiry_time)
+                create_chatroom_engagement(chatroom_instance, user_instance, member_state=member_state)
+
+    @staticmethod
+    def _auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance):
+
+        conversation_text = conversation_instance.answer
+        tagged_member_list, answer_text, tagged_user_names = get_tagged_members_list(conversation_text)
+
+        if not tagged_member_list:
+            return
+
+        is_tagged = True
+
+        if chatroom_instance.type == card_types.CARD_PURPOSE:
+            is_tagged = False
+
+        for user_id in tagged_member_list:
+            function_dict = {
+                'member_id': user_id,
+                'collabcard_id': chatroom_instance.id,
+                'status': True,
+                'source': "auto-following-chatroom",
+                'is_tagged': is_tagged
+            }
+            collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+
+        ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
+                                                                    user_instance,
+                                                                    chatroom_instance)
+
+    def _update_home_page(self, community_instance, chatroom_instance, conversation_instance):
+        ConversationHelper.update_the_activity_time_for_new_conversation_creation(chatroom_instance.id,
+                                                                                        self.get_member_id())
+
+        ConversationHelper.update_homescreen_meta_on_conversation_creation(community_instance,
+                                                                           chatroom_instance,
+                                                                           conversation_instance)
+
+    def _send_conversation_creation_notifications(self, chatroom_instance, conversation_instance, has_files):
+
+        is_poll_conversation = (conversation_instance.state == conversation_states.CONVERSATION_POLL)
+
+        if is_poll_conversation:
+            send_poll_conversation_creation_notification.delay(conversation_instance.card_id,
+                                                               conversation_instance.user_id, conversation_instance.id)
+
+        update_chatroom_for_users_and_send_follow_notification.delay(chatroom_instance.id,
                                                                      self.get_member_id(),
-                                                                     conversation_id,
+                                                                     conversation_instance.id,
                                                                      has_files=has_files)
-
 
     @staticmethod
     def _fetch_member_list_for_poll_conversation(conversation_instance, poll_instance, page, paginated_by):
@@ -451,7 +510,7 @@ class ConversationImpl(ConversationManager):
 
             if not last_seen:
                 conversations = self._fetch_conversation_queryset()
-                conversations =  conversations[:self.get_paginate_by()]
+                conversations = conversations[:self.get_paginate_by()]
                 conversations = self._create_conversation_list(conversations)
 
             else:
@@ -512,7 +571,7 @@ class ConversationImpl(ConversationManager):
         if chatroom_instance is None:
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
 
-        if chatroom_instance.is_secret and\
+        if chatroom_instance.is_secret and \
                 not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
             response = {
                 'success': False,
@@ -529,11 +588,14 @@ class ConversationImpl(ConversationManager):
 
             raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
-        community_id = chatroom_instance.community.id
+        community_id = chatroom_instance.community_id
 
         community_instance = ConversationHelper.fetch_community_instance(community_id=community_id)
 
         member_state = ConversationHelper.fetch_member_state(community=community_instance, user=user_instance)
+
+        chatroom_state_instance = collabcardState.get_chatroom_state_instance(chatroom_instance.id,
+                                                                              user_instance.id)
 
         if chatroom_instance.type == card_types.CARD_PURPOSE and \
                 member_state != member_states.ADMIN:
@@ -542,17 +604,17 @@ class ConversationImpl(ConversationManager):
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return {'success': False, 'error_message': "Responding is disabled"}
 
-        self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
-                                    is_guest=is_user_guest,
-                                    aj=req_body.get('aj', None),
-                                    source_id=req_body.get('source_id', None),
-                                    created_at=created_at)
+        if not chatroom_state_instance.is_guest:
+            self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
+                                        is_guest=is_user_guest,
+                                        aj=req_body.get('aj', None),
+                                        source_id=req_body.get('source_id', None),
+                                        created_at=created_at)
 
         conversation_content = {}
-
         self._fill_basic_conversation_content(req_body, conversation_content,
                                               chatroom_instance, user_instance, community_instance,
-                                              has_files)
+                                              has_files, chatroom_state_instance)
         conversation_content['reply'] = ConversationHelper.fetch_replied_conversation(req_body)
         conversation_content['og_tags'] = ConversationHelper.fetch_og_tags(req_body)
         conversation_content['created_at'] = created_at
@@ -563,38 +625,28 @@ class ConversationImpl(ConversationManager):
         attachment_count = req_body.get('attachment_count', 0)
         has_files = has_files or attachment_count > 0
 
+        self._auto_follow_and_save_last_conversation(chatroom_instance,
+                                                     chatroom_state_instance,
+                                                     conversation_instance,
+                                                     user_instance, member_state)
+
+        self._update_home_page(community_instance, chatroom_instance, conversation_instance)
+
         if not has_files:
-            self._update_latest_conversation_id_to_firebase(chatroom_id,
-                                                            conversation_instance.id)
+            ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance, user_instance.id,
+                                                                               conversation_instance.id)
 
-        self._save_latest_conversation_for_members(chatroom_instance)
+        self._auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance)
 
-        self._auto_follow_chatroom(chatroom_id, member_state)
+        update_conversation_engage_for_chatrooms(card_id=chatroom_instance.id, user_id=user_instance.id,
+                                                 last_conversation_id=conversation_instance.id,
+                                                 unseen_count=0)
 
-        self._auto_follow_for_tagged_members(req_body, chatroom_instance, user_instance)
-
-        self._update_home_page(chatroom_id,has_files=has_files,
-                               conversation_id=conversation_instance.id)
-
-        if conversation_instance.preview_type == PREVIEW_CHATROOM:
-            preview_chatroom_id = chatroom_instance.id
-            update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
-
-        elif conversation_instance.preview_type == PREVIEW_COMMUNITY or \
-                conversation_instance.preview_type == PREVIEW_DIRECTORY:
-            update_multiple_previews_in_community.delay({'community_id': conversation_instance.preview_community_id})
+        ConversationHelper.update_previews_on_conversation_creation(conversation_instance, chatroom_instance)
+        self._send_conversation_creation_notifications(chatroom_instance, conversation_instance, has_files)
 
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
-
-        send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
-                                      'community_id': community_id})
-
-        is_poll_conversation = (conversation_instance.state == conversation_states.CONVERSATION_POLL)
-
-        if is_poll_conversation:
-            send_poll_conversation_creation_notification.delay(conversation_instance.card_id,
-                                                           conversation_instance.user_id, conversation_instance.id)
 
         conversation_response = {
             'success': True,
@@ -626,7 +678,7 @@ class ConversationImpl(ConversationManager):
             conversation_instance.has_reactions = True
             conversation_instance.save()
 
-        if self.get_chatroom_id() is not None and\
+        if self.get_chatroom_id() is not None and \
                 chatroom_instance is None:
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
 
@@ -674,7 +726,7 @@ class ConversationImpl(ConversationManager):
             conversation_instance = ConversationHelper.fetch_conversation_instance(self.get_conversation_id())
             chatroom_instance = conversation_instance.card
 
-        if self.get_chatroom_id() is not None and\
+        if self.get_chatroom_id() is not None and \
                 chatroom_instance is None:
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
 
@@ -750,7 +802,7 @@ class ConversationImpl(ConversationManager):
         for poll in polls:
 
             poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll.get('id'),
-                                                                               'conversation': conversation_instance})
+                                                                              'conversation': conversation_instance})
 
             if not poll_filter:
                 return {'success': False, 'error_message': "invalid poll id"}
@@ -865,3 +917,123 @@ class ConversationHelper:
             return logged_in_user_id in secret_chatroom_participants
 
         return False
+
+    @staticmethod
+    def update_previews_on_conversation_creation(conversation_instance, chatroom_instance):
+
+        if conversation_instance.preview_type == PREVIEW_CHATROOM:
+            preview_chatroom_id = chatroom_instance.id
+            update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
+
+        elif conversation_instance.preview_type == PREVIEW_COMMUNITY or \
+                conversation_instance.preview_type == PREVIEW_DIRECTORY:
+            update_multiple_previews_in_community.delay({'community_id': conversation_instance.preview_community_id})
+
+    @staticmethod
+    def run_async_tasks_for_conversation_tagging(tagged_member_list, user_instance, chatroom_instance):
+
+        if len(tagged_member_list) > 0:
+            send_tagged_user_mail.delay(user_instance.id, chatroom_instance.id, tagged_member_list, time_in_hrs=24)
+
+        notification_list = [
+            'mail_card_owner_inactivity'
+        ]
+
+        # check if sender is not the owner and  notification flag is true
+        if check_notification_flag(chatroom_instance.user_id, notification_list, card_id=chatroom_instance.id,
+                                   community_id=None) and str(user_instance.id) != str(chatroom_instance.user_id):
+            send_chatroom_owner_mail.delay(chatroom_instance.user_id, chatroom_instance.id, time_in_hrs=12)
+
+    @staticmethod
+    @shared_task
+    def update_latest_conversation_id_to_firebase(chatroom_id, user_id, conversation_id):
+        update_last_answer_id(chatroom_id, conversation_id)
+        update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id, conversation_id)
+
+    @staticmethod
+    @shared_task
+    def update_the_activity_time_for_new_conversation_creation(chatroom_id, user_id):
+        activate_chatroom_on_conversation_creation(chatroom_id, user_id)
+
+    @staticmethod
+    def compute_member_images_for_homescreen(chatroom_instance, community_instance):
+
+        user_list = get_latest_conversation_creator_users_for_homescreen(chatroom_instance.id, chatroom_instance.id)
+
+        member_conversations = []
+        user_conversations = []
+
+        for user_id in user_list:
+
+            member_filter = Members.objects.filter(community_id=community_instance, member_id=user_id)
+
+            if member_filter:
+                member_instance = member_filter[0]
+                member_conversations.append(member_instance)
+
+            else:
+                state_filter = collabcardState.objects.filter(card=chatroom_instance, user=user_id)
+
+                if state_filter:
+                    state_instance = state_filter[0]
+                    user_conversations.append(state_instance)
+
+        # if last conversation creators are members
+
+        last_conversation_member = None
+        second_last_conversation_member = None
+
+        if len(member_conversations) > 1:
+            last_conversation_member = member_conversations[0]
+            second_last_conversation_member = member_conversations[1]
+
+        elif len(member_conversations) == 1:
+            last_conversation_member = member_conversations[0]
+
+        # if last conversation creators are users(can be guest or removed members)
+        last_conversation_user = None
+        second_last_conversation_user = None
+
+        if len(user_conversations) > 1:
+            last_conversation_user = user_conversations[0]
+            second_last_conversation_user = user_conversations[1]
+
+        elif len(user_conversations) == 1:
+            last_conversation_user = user_conversations[0]
+
+        return last_conversation_member, second_last_conversation_member, last_conversation_user, \
+               second_last_conversation_user
+
+    @staticmethod
+    def update_homescreen_meta_on_conversation_creation(community_instance, chatroom_instance, conversation_instance):
+
+        user_id = conversation_instance.user_id if chatroom_instance.has_files else None
+
+        last_conversation_member, \
+        second_last_conversation_member, \
+        last_conversation_user, second_last_conversation_user = \
+            ConversationHelper.compute_member_images_for_homescreen(chatroom_instance, community_instance)
+
+        if user_id:
+
+            conversationEngage.objects.filter(card=chatroom_instance,
+                                              user=user_id).update(
+                unseen_count=F('unseen_count') + 1,
+                last_conversation=conversation_instance,
+                updated_at=TimeUtilities.current_time_in_sec(),
+                last_conversation_member=last_conversation_member,
+                second_last_conversation_member=second_last_conversation_member,
+                last_conversation_user=last_conversation_user,
+                second_last_conversation_user=second_last_conversation_user,
+            )
+
+        else:
+            conversationEngage.objects.filter(card=chatroom_instance).update(
+                unseen_count=F('unseen_count') + 1,
+                last_conversation=conversation_instance,
+                updated_at=TimeUtilities.current_time_in_sec(),
+                last_conversation_member=last_conversation_member,
+                second_last_conversation_member=second_last_conversation_member,
+                last_conversation_user=last_conversation_user,
+                second_last_conversation_user=second_last_conversation_user,
+            )

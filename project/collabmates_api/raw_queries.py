@@ -120,7 +120,8 @@ def get_inactive_followed_chatrooms_count(user_id, current_time):
         conn = get_connection()
         curr = conn.cursor()
         sql = """select count(*) from togther_collabcardState where  user_id=%s and follow_status=True and remove_id is null 
-        and (expiry_time is not null and expiry_time < %s) and secret_chatroom_left=false""" % (str(user_id), str(current_time))
+        and (expiry_time is not null and expiry_time < %s) and secret_chatroom_left=false""" % (
+        str(user_id), str(current_time))
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -1707,7 +1708,6 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
 
 
 def get_members_based_on_user_list_query(user_list, community_id):
-
     """returns the members of the community based on user list"""
 
     try:
@@ -1740,7 +1740,6 @@ def get_members_based_on_user_list_query(user_list, community_id):
         member_list = []
 
         for data in member_data:
-
             member_dict = dict()
             member_dict['member_id'] = data[0]
             member_dict['community_id'] = data[1]
@@ -1763,7 +1762,6 @@ def get_members_based_on_user_list_query(user_list, community_id):
 
 
 def get_community_introductions_based_on_user_list_query(user_list, community_id, question_id) -> list:
-
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -1789,6 +1787,53 @@ def get_community_introductions_based_on_user_list_query(user_list, community_id
         curr.close()
 
         return member_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+        return []
+
+
+def activate_chatroom_on_conversation_creation(card_id, user_id):
+    """function to set active time after new conversation created"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """UPDATE togther_collabcardState SET expiry_time = null
+                 WHERE where card_id=%s
+                        AND follow_status=True
+                        AND remove_id is null
+                        AND user_id!=%s """ % (str(card_id), str(user_id))
+
+        curr.execute(sql)
+        conn.commit()
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_latest_conversation_creator_users_for_homescreen(chatroom_id, chatroom_creator_id):
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """SELECT DISTINCT user_id,
+                MAX(created_at)
+                FROM togther_card_answers
+                WHERE card_id=%s
+                        AND user_id!=%s
+                GROUP BY  user_id
+                ORDER BY  MAX(created_at) DESC limit 2 """ % (str(chatroom_id), str(chatroom_creator_id))
+
+        curr.execute(sql)
+        members_data = curr.fetchall()
+        curr.close()
+        user_list = []
+
+        for user in members_data:
+            user_list.append(user[0])
+
+        return user_list
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)

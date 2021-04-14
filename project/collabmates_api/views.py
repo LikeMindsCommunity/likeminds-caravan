@@ -3831,6 +3831,7 @@ def create_chatroom_engagement(card_instance, user_instance, func_dict=None, mem
 
 
 def update_seen_status_for_new_user_in_chatroom(community_instance, user_instance):
+
     collabcard_filter = Collabcard.objects.filter(community=community_instance,
                                                   is_pending=False, is_deleted=False,
                                                   is_secret=False).order_by('id')
@@ -3838,10 +3839,18 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
     for card_instance in collabcard_filter:
 
         state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
+
         if not state_filter.exists():
             last_conversation = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
+
             if last_conversation:
-                expire_at = last_conversation.created_at + HOURS_24
+
+                created_at = last_conversation.created_at
+
+                if TimeUtilities.is_epoch_in_milliseconds(created_at):
+                    created_at = TimeUtilities.convert_milliseconds_to_sec(created_at)
+
+                expire_at = created_at + HOURS_24
             else:
                 expire_at = card_instance.date_epoch + HOURS_24
 

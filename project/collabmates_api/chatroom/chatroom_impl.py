@@ -998,3 +998,19 @@ class ChatroomHelper:
             update_last_unseen_in_engage(user=user.id, community=chatroom_instance.community_id)
 
             send_notification_for_new_secret_room_participant(user.id, chatroom_instance.id)
+
+    @staticmethod
+    def get_chatroom_expiry_time(chatroom_state_instance):
+
+        expiry_time = TimeUtilities.current_time_in_sec() + HOURS_24
+
+        if chatroom_state_instance:
+
+            if chatroom_state_instance.expiry_time and chatroom_state_instance.expiry_time > expiry_time:
+                expiry_time = chatroom_state_instance.expiry_time
+
+            if chatroom_state_instance.manual_set_active and \
+                    chatroom_state_instance.manual_set_active > expiry_time:
+                expiry_time = chatroom_state_instance.manual_set_active
+
+        return expiry_time
