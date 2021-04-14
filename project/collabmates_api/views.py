@@ -2631,17 +2631,25 @@ def fetch_user_chatrooms(request):
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
 
-    if not user_id or\
-            user_id is None:
+    if not user_id:
         response = {
             'success': False,
             'error_message': 'Invalid user id'
         }
 
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+    else:
+        user_instance = User.get_user_or_none(user_id)
 
-    if not community_id or\
-            community_id is None:
+        if user_instance is None:
+            response = {
+                'success': False,
+                'error_message': f'User with id {user_id} does not exist'
+            }
+
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    if not community_id:
         response = {
             'success': False,
             'error_message': 'Invalid community_id id'
@@ -2649,14 +2657,35 @@ def fetch_user_chatrooms(request):
 
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not current_user_id or\
-            current_user_id is None:
+    else:
+        community_instance = Community.get_community_or_None(community_id)
+
+        if community_instance is None:
+            response = {
+                'success': False,
+                'error_message': f'Community with id {community_id} does not exist'
+            }
+
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    if not current_user_id:
         response = {
             'success': False,
             'error_message': 'Send user id in headers'
         }
 
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    else:
+        user_instance = User.get_user_or_none(current_user_id)
+
+        if user_instance is None:
+            response = {
+                'success': False,
+                'error_message': f'User with id {current_user_id} does not exist'
+            }
+
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     # chatrooms created by user
     if int(state) == 0:
@@ -2713,8 +2742,7 @@ def fetch_common_communities(request):
     member_id = get_member_id_from_headers(request)
     page = request.GET.get('page', 1)
 
-    if not user_id or \
-            user_id is None:
+    if not user_id:
         response = {
             'success': False,
             'error_message': 'Invalid user id'
@@ -2722,14 +2750,35 @@ def fetch_common_communities(request):
 
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not member_id or \
-            member_id is None:
+    else:
+        user_instance = User.get_user_or_none(user_id)
+
+        if user_instance is None:
+            response = {
+                'success': False,
+                'error_message': f'User with id {user_id} does not exist'
+            }
+
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    if not member_id:
         response = {
             'success': False,
             'error_message': 'Send user id in headers'
         }
 
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    else:
+        user_instance = User.get_user_or_none(member_id)
+
+        if user_instance is None:
+            response = {
+                'success': False,
+                'error_message': f'User with id {member_id} does not exist'
+            }
+
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     user_communities = Members.objects.filter(member_id=user_id).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
