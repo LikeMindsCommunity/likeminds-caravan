@@ -402,7 +402,7 @@ class ConversationImpl(ConversationManager):
                                                                     chatroom_instance)
 
     def _update_home_page(self, community_instance, chatroom_instance, conversation_instance):
-        ConversationHelper.update_the_activity_time_for_new_conversation_creation(chatroom_instance.id,
+        ConversationHelper.update_the_activity_time_for_new_conversation_creation.delay(chatroom_instance.id,
                                                                                         self.get_member_id())
 
         ConversationHelper.update_homescreen_meta_on_conversation_creation(community_instance,

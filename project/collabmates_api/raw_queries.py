@@ -7,6 +7,8 @@ from utility.states import card_types
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
+from utility.time_utilities import TimeUtilities
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -1799,11 +1801,11 @@ def activate_chatroom_on_conversation_creation(card_id, user_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = """UPDATE togther_collabcardState SET expiry_time = null
+        sql = """UPDATE togther_collabcardState SET expiry_time = null, updated_at=%s
                  WHERE where card_id=%s
                         AND follow_status=True
                         AND remove_id is null
-                        AND user_id!=%s """ % (str(card_id), str(user_id))
+                        AND user_id!=%s """ % (str(TimeUtilities.current_time_in_sec()), str(card_id), str(user_id))
 
         curr.execute(sql)
         conn.commit()
