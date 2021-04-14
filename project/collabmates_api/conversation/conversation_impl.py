@@ -604,12 +604,11 @@ class ConversationImpl(ConversationManager):
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return {'success': False, 'error_message': "Responding is disabled"}
 
-        if not chatroom_state_instance.is_guest:
-            self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
-                                        is_guest=is_user_guest,
-                                        aj=req_body.get('aj', None),
-                                        source_id=req_body.get('source_id', None),
-                                        created_at=created_at)
+        self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
+                                    is_guest=is_user_guest,
+                                    aj=req_body.get('aj', None),
+                                    source_id=req_body.get('source_id', None),
+                                    created_at=created_at)
 
         conversation_content = {}
         self._fill_basic_conversation_content(req_body, conversation_content,
