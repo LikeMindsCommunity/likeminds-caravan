@@ -900,8 +900,8 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
     message = dict()
 
     follow_notification_content = {
-        "title": card_instance.header,
-        "sub_title": userinfo_instance.name + ": " + answer_text,
+        "title": userinfo_instance.name + " tagged you!",
+        "sub_title": card_instance.header + ": " + answer_text,
         "route": "route://collabcard?collabcard_id=" + str(card_instance.id)
     }
 
