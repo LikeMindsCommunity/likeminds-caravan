@@ -1008,7 +1008,7 @@ class ConversationHelper:
     @staticmethod
     def update_homescreen_meta_on_conversation_creation(community_instance, chatroom_instance, conversation_instance):
 
-        user_id = conversation_instance.user_id if chatroom_instance.has_files else None
+        user_id = conversation_instance.user_id if conversation_instance.has_files else None
 
         last_conversation_member, \
         second_last_conversation_member, \
