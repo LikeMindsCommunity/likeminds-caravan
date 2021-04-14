@@ -594,8 +594,6 @@ class ConversationImpl(ConversationManager):
 
         member_state = ConversationHelper.fetch_member_state(community=community_instance, user=user_instance)
 
-        chatroom_state_instance = collabcardState.get_chatroom_state_instance(chatroom_instance.id,
-                                                                              user_instance.id)
 
         if chatroom_instance.type == card_types.CARD_PURPOSE and \
                 member_state != member_states.ADMIN:
@@ -609,6 +607,9 @@ class ConversationImpl(ConversationManager):
                                     aj=req_body.get('aj', None),
                                     source_id=req_body.get('source_id', None),
                                     created_at=created_at)
+
+        chatroom_state_instance = collabcardState.get_chatroom_state_instance(chatroom_instance.id,
+                                                                              user_instance.id)
 
         conversation_content = {}
         self._fill_basic_conversation_content(req_body, conversation_content,
