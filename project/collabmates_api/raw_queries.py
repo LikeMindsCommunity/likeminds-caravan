@@ -1802,7 +1802,7 @@ def activate_chatroom_on_conversation_creation(card_id, user_id):
         conn = get_connection()
         curr = conn.cursor()
         sql = """UPDATE togther_collabcardState SET expiry_time = null, updated_at=%s
-                 WHERE where card_id=%s
+                 WHERE  card_id=%s
                         AND follow_status=True
                         AND remove_id is null
                         AND user_id!=%s """ % (str(TimeUtilities.current_time_in_sec()), str(card_id), str(user_id))
