@@ -1,5 +1,4 @@
 import json
-import threading
 import traceback
 from multiprocessing.context import Process
 
@@ -114,8 +113,8 @@ class ApiLogger(MiddlewareMixin):
                 log_object_dict['response']['content'] = dict()
 
             api_client = CoralogixApiClient()
-            p = Process(target=api_client.call_logging_api, name="logger", args=(log_object_dict, ))
-            p.start()
+            logger_process = Process(target=api_client.call_logging_api, name="logger_process", args=(log_object_dict, ))
+            logger_process.start()
 
     def _send_to_internal_logger(self, log_object_dict: dict):
         if log_object_dict['response']['http_response_code'] == 200:
