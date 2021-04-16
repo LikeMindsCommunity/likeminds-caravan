@@ -7,6 +7,8 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from celery import shared_task
 from utility.string_utilities import StringUtilities
+
+from .constants import CHATROOM_EXPIRE_DURATION
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..rest_api import GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, get_chatroom_instance, CommunitySerializer,
@@ -634,12 +636,12 @@ class ChatroomImpl(ChatroomManager):
         """api to make chatroom active or in-active"""
 
         chatroom_id = req_body['chatroom_id']
-        duration = req_body.get('duration', HOURS_24)
+        duration = req_body.get('duration', CHATROOM_EXPIRE_DURATION)
         status = req_body['value']
 
         current_time = TimeUtilities.current_time_in_sec()
 
-        updated_time = (current_time + int(duration)) if status else (current_time - HOURS_24)
+        updated_time = (current_time + int(duration)) if status else (current_time - CHATROOM_EXPIRE_DURATION)
 
         state_filter = collabcardState.objects.filter(card=chatroom_id, user=self.get_member_id())
 
@@ -1002,7 +1004,7 @@ class ChatroomHelper:
     @staticmethod
     def get_chatroom_expiry_time(chatroom_state_instance):
 
-        expiry_time = TimeUtilities.current_time_in_sec() + HOURS_24
+        expiry_time = TimeUtilities.current_time_in_sec() + CHATROOM_EXPIRE_DURATION
 
         if chatroom_state_instance:
 
