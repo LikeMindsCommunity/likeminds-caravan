@@ -5,7 +5,7 @@ if SERVER_URL is None:
     SERVER_URL = 'https://beta.likeminds.community'
 
 # variables
-HOURS_24 = 86400
+HOURS_24 = 300
 
 
 chatroom_actions_creator_mute = [
