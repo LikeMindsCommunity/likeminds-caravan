@@ -15806,8 +15806,6 @@ def sync_members(request):
                 error_logger.error(e.args)
                 return JsonResponse({'members':[]})
 
-
-
             chatroom_particpants = collabcardState.objects.filter(card=card_instance, is_guest=False,
                                                                   remove=None).filter(Q(follow_status=True) |
                                                                                       Q(
@@ -15888,7 +15886,7 @@ def sync_members(request):
             if not community_instance:
                 context = {'members': []}
 
-                return JsonResponse(context,status=status_codes.HTTP_400_BAD_REQUEST)
+                return JsonResponse(context)
 
             max_last_updated = 0
             member_list = []
