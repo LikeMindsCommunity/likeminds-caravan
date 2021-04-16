@@ -36,8 +36,3 @@ class CoralogixLoggerImpl(LoggerManager):
             CoralogixLoggerImpl()
 
         return CoralogixLoggerImpl.__instance__
-
-    def add_coralogix_handler(self, logger: logging.Logger, log_level=logging.NOTSET) -> None:
-        handler = self._coralogix_handler()
-        handler.setLevel(log_level)
-        logger.addHandler(handler)

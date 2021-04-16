@@ -2685,6 +2685,7 @@ def fetch_common_communities(request):
     user_id = request.GET.get('user_id')
     member_id = get_member_id_from_headers(request)
     page = request.GET.get('page', 1)
+
     user_communities = Members.objects.filter(member_id=user_id).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
             state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id', flat=True)
@@ -7639,7 +7640,7 @@ def create_conversation(request):
         secret_chatroom_participants = json.loads(card_instance.secret_chatroom_participants)
         logged_in_user_id = NumberUtilities.get_integer_from_string(member_id)
 
-        if logged_in_user_id in secret_chatroom_participants:
+        if logged_in_user_id not in secret_chatroom_participants:
             response = {
                 'success': False,
                 "error_message": "You are not a part of this secret chatroom"
@@ -14419,9 +14420,16 @@ class SyncChatrooms(APIView):
                 chatroom['og_tags'] = json.loads(data[36])
 
             if data[37]:
-                chatroom['preview'] = get_preview_for_url(member_id=member_id,
-                                                          preview_url=data[37],
-                                                          send_preview_text=False)
+                try:
+                    preview = get_preview_for_url(member_id=member_id,
+                                                  preview_url=data[37],
+                                                  send_preview_text=False)
+                    if preview:
+                        chatroom['preview'] = preview
+
+                except Exception as e:
+                    error_logger.error(f'{e.args}')
+
             if data[38]:
                 chatroom['deleted_by'] = data[38]
 
@@ -14741,9 +14749,16 @@ class SyncChatroomsDiff(APIView):
                 chatroom['og_tags'] = json.loads(data[36])
 
             if data[37]:
-                chatroom['preview'] = get_preview_for_url(member_id=member_id,
-                                                          preview_url=data[37],
-                                                          send_preview_text=False)
+                try:
+                    preview = get_preview_for_url(member_id=member_id,
+                                                  preview_url=data[37],
+                                                  send_preview_text=False)
+                    if preview:
+                        chatroom['preview'] = preview
+
+                except Exception as e:
+                    error_logger.error(f'{e.args}')
+
             if data[38]:
                 chatroom['deleted_by'] = data[38]
 
@@ -15120,15 +15135,19 @@ class SyncConversation(APIView):
                     else:
 
                         try:
-                            conversation_context['preview'] = get_preview_for_url(preview_url=conversation[13])
+                            preview = get_preview_for_url(preview_url=conversation[13])
+
+                            if preview:
+                                conversation_context['preview'] = preview
+
                         except Exception as e:
-                            error_logger.error("error occured"+ str(e.args))
+                            error_logger.error("error occured" + str(e.args))
                             continue
 
                         update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_chatroom_id,
-                                                                    'preview_url': conversation[13],
-                                                                    'preview_object': conversation_context['preview'],
-                                                                    'conversation_id': conversation_context['id']})
+                                                                   'preview_url': conversation[13],
+                                                                   'preview_object': conversation_context['preview'],
+                                                                   'conversation_id': conversation_context['id']})
                 elif conversation[26] and \
                         (conversation[17] == "community" or conversation[17] == "directory"):
 
