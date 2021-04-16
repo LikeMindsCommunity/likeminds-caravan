@@ -12,6 +12,10 @@ from ..mixins import TransactionMixin
 from utility.request_utilities import RequestUtilities
 from utility.exception_utilities import InvalidHeaderException
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
+
 
 class FetchConversation(APIView):
     """inheriting API view class for using class based views in django"""
@@ -56,9 +60,12 @@ class CreateConversation(APIView):
         conversation_manager = ConversationImpl(member_id, platform_code=platform_code, device_id=device_id)
 
         try:
+
             conversation_response = conversation_manager.create_conversation(req_body, is_ios,
                                                                          is_user_guest, has_files)
         except Exception as e:
+            error_logger.error(e.args)
+
             return JsonResponse({'error_message': e.args}, status=500)
 
         if conversation_response.get('error_message'):

@@ -9,7 +9,9 @@ from utility.exception_utilities import (InvalidCommunityException, InvalidChatr
                                          InvalidUserException, CustomException, InvalidConversationException)
 from utility.time_utilities import TimeUtilities
 from typing import Union
+from external_services.logging.logging_wrapper import LoggingWrapper
 
+error_logger = LoggingWrapper.get_instance()
 
 response_choices = (
     ('text', 'Text'),
@@ -80,7 +82,7 @@ class Community(models.Model):
 
         if self.created_at < 0:
             self.created_at = current_time
-        
+
         self.updated_at = current_time
 
         super(Community, self).save(*args, **kwargs)
@@ -156,19 +158,21 @@ class Members(models.Model):
 
     @staticmethod
     def is_user_community_member_in_community_list(community_id_list: list, member: Union[User, str, int]) -> bool:
-        return Members.objects\
+        return Members.objects \
             .filter(community_id__in=community_id_list,
-                    member_id=member)\
+                    member_id=member) \
             .filter(Q(state=member_states.ADMIN) |
                     Q(state=member_states.MEMBER) |
-                    Q(state=member_states.PROFILE_UNAVAILABLE))\
+                    Q(state=member_states.PROFILE_UNAVAILABLE)) \
             .exists()
 
     @staticmethod
     def get_community_member_state(community: Community, member: User) -> int:
         member = Members.objects.filter(community_id=community, member_id=member)
-        if member.exists():
+
+        if member:
             return member[0].state
+
         return member_states.GUEST
 
     @staticmethod
@@ -195,7 +199,7 @@ class Members(models.Model):
 
         return None
 
-    @ staticmethod
+    @staticmethod
     def get_managers_list(community: Community) -> list:
         return list(Members.objects.filter(community_id=community, state=member_states.ADMIN)
                     .values_list("member_id__id", flat=True))
@@ -464,7 +468,7 @@ class draftChatroom(models.Model):
                                           related_name='draft_chatroom_preview_community')
     preview_chatroom = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True,
                                          related_name='draft_chatroom_preview_chatroom')
-    
+
     is_secret = models.BooleanField(default=False)
     secret_chatroom_participants = models.TextField(null=True)
 
@@ -623,7 +627,6 @@ class card_answers(models.Model):
 
 
 class conversationPolls(models.Model):
-
     """class to store poll options of conversations"""
 
     conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE)
@@ -635,7 +638,6 @@ class conversationPolls(models.Model):
 
     @staticmethod
     def create_instance(create_info):
-
         instance = conversationPolls()
         instance.user = create_info['user_instance']
         instance.conversation = create_info['conversation_instance']
@@ -648,7 +650,6 @@ class conversationPolls(models.Model):
 
 
 class conversationPollMembers(models.Model):
-
     """class to store the votes of member who voted on a poll"""
     conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE)
     poll = models.ForeignKey(conversationPolls, on_delete=models.CASCADE)
@@ -698,6 +699,52 @@ class collabcardState(models.Model):
 
     class Meta:
         unique_together = (('card', 'user'),)
+
+    @staticmethod
+    def get_chatroom_state_instance(card_id, user_id):
+
+        state_filter = collabcardState.objects.filter(card=card_id, user=user_id)
+
+        chatroom_state_instance = None
+
+        if state_filter:
+            chatroom_state_instance = state_filter[0]
+
+        return chatroom_state_instance
+
+    @staticmethod
+    def create_chatroom_state_instance(card_instance, user_instance, state=1,
+                                       expire_at=None, external_seen=True, is_guest=False, source=None,
+                                       follow_status=False,
+                                       mute_status=False, is_tagged=False, external_follow=False,
+                                       attending_status=False, **kwargs):
+        """function to create chatroom state instance"""
+
+        try:
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = card_instance
+            collabcard_state_instance.community = card_instance.community
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = state
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.external_seen = external_seen
+            collabcard_state_instance.expiry_time = expire_at
+            collabcard_state_instance.attending_status = attending_status
+            collabcard_state_instance.follow_status = follow_status
+            collabcard_state_instance.mute_status = mute_status
+            collabcard_state_instance.is_tagged = is_tagged
+            collabcard_state_instance.is_guest = is_guest
+            collabcard_state_instance.source = source
+            collabcard_state_instance.external_follow = external_follow
+
+            collabcard_state_instance.save()
+
+            return collabcard_state_instance
+
+        except Exception as e:
+
+            error_logger.error(e)
 
 
 class conversationMemberState(models.Model):
@@ -1323,7 +1370,6 @@ class communityLevels(models.Model):
 
     @staticmethod
     def create_instance(create_info):
-
         instance = communityLevels()
         instance.community = create_info['community']
         instance.level = create_info['level']

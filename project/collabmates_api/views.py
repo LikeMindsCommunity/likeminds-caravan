@@ -3832,6 +3832,7 @@ def create_chatroom_engagement(card_instance, user_instance, func_dict=None, mem
 
 
 def update_seen_status_for_new_user_in_chatroom(community_instance, user_instance):
+
     collabcard_filter = Collabcard.objects.filter(community=community_instance,
                                                   is_pending=False, is_deleted=False,
                                                   is_secret=False).order_by('id')
@@ -3839,10 +3840,18 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
     for card_instance in collabcard_filter:
 
         state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
+
         if not state_filter.exists():
             last_conversation = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
+
             if last_conversation:
-                expire_at = last_conversation.created_at + HOURS_24
+
+                created_at = last_conversation.created_at
+
+                if TimeUtilities.is_epoch_in_milliseconds(created_at):
+                    created_at = TimeUtilities.convert_milliseconds_to_sec(created_at)
+
+                expire_at = created_at + HOURS_24
             else:
                 expire_at = card_instance.date_epoch + HOURS_24
 
@@ -4290,7 +4299,7 @@ def fetch_share_url(request):
 
                     community_share['private_link_members_directory'] = branch_links[2]['url']
 
-                    community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
+                    community_share['public_link_text'] = SHARE_TEXT_ADMIN % (
                         community_name, community_instance.purpose, community_share['public_link'])
 
                     if share_context['is_owner']:
@@ -12503,7 +12512,7 @@ def generating_verification_link_for_email(token_list, user_id):
     # encrpt_number = encrypt(token)
     # user_id = encrypt(user_id)
     # print(user_id)
-    verify_url = url + "/email_verify?token=" + str(token) + "&user=" + str(user_id)
+    verify_url = url + "/api/email_verify?token=" + str(token) + "&user=" + str(user_id)
 
     temp = {'verify_url': verify_url, 'token': token}
 
@@ -15797,8 +15806,6 @@ def sync_members(request):
                 error_logger.error(e.args)
                 return JsonResponse({'members':[]})
 
-
-
             chatroom_particpants = collabcardState.objects.filter(card=card_instance, is_guest=False,
                                                                   remove=None).filter(Q(follow_status=True) |
                                                                                       Q(
@@ -15879,7 +15886,7 @@ def sync_members(request):
             if not community_instance:
                 context = {'members': []}
 
-                return JsonResponse(context,status=status_codes.HTTP_400_BAD_REQUEST)
+                return JsonResponse(context)
 
             max_last_updated = 0
             member_list = []

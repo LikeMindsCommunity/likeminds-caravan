@@ -900,8 +900,8 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
     message = dict()
 
     follow_notification_content = {
-        "title": card_instance.header,
-        "sub_title": userinfo_instance.name + ": " + answer_text,
+        "title": userinfo_instance.name + " tagged you!",
+        "sub_title": card_instance.header + ": " + answer_text,
         "route": "route://collabcard?collabcard_id=" + str(card_instance.id)
     }
 
@@ -919,7 +919,7 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
     for tagged_user in tagged_users_list:
         user_id = NumberUtilities.get_integer_from_string(tagged_user)
 
-        if user_id == userinfo_instance.id:
+        if user_id == userinfo_instance.user_id_id:
             continue
 
         user_context = dict()
@@ -997,8 +997,9 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     for user_id in chatroom_follower_list:
 
-        if user_id in tagged_users_list:
+        if str(user_id) in tagged_users_list:
             continue
+
         user_context = dict()
 
         user_context['id'] = user_id

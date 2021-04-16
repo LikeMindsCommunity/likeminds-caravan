@@ -1,3 +1,4 @@
+from django.conf.urls import url
 from django.urls import path, include
 from . import views
 from collabmates_api import views as api_views
@@ -11,6 +12,8 @@ from .notification import send_test_notification
 
 
 urlpatterns = [
+
+    url('', include('django_prometheus.urls')),
     #for testing email templates only. remove in prod/beta
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
     path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),

@@ -343,4 +343,3 @@ class Subscription(models.Model):
         self.updated_at = current_time
 
         super(Subscription, self).save(*args, **kwargs)
-
