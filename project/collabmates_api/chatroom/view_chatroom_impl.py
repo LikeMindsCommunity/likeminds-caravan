@@ -8,6 +8,9 @@ from django.utils.decorators import method_decorator
 from ..rest_api import GetChatroomInstanceSerializer
 from ..chatroom.chatroom_impl import ChatroomImpl
 from ..mixins import TransactionMixin
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
 
 
 class FetchChatroomView(APIView):
@@ -172,3 +175,30 @@ class AddSecretChatroomParticipantView(TransactionMixin, APIView):
         }
 
         return JsonResponse(context)
+
+
+class GetTaggingList(APIView):
+    """ inheriting API view class for using class based views in django """
+
+    def get(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        chatroom_id = request.GET.get('chatroom_id')
+
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id)
+
+        try:
+            chatroom_data = chatroom_manager.get_tagging_list()
+
+        except Exception as e:
+
+            error_logger.error(e.args)
+
+            return JsonResponse({'error_message': "Internal server error"},
+                                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if chatroom_data.get('error_message'):
+            return JsonResponse(chatroom_data, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(chatroom_data)

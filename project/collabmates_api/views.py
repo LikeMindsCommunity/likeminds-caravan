@@ -7792,6 +7792,11 @@ def collabcard_follow(request, function_dict=None):
     source_id = request.GET.get('source_id')
     member_state = members_state(request, {'community_id': community_instance.id, 'member_id': user_instance.id})
 
+    if (not aj and not source_id) \
+            and (member_state['state'] == 0 or member_state['state'] == member_states.PENDING_MEMBER):
+
+        return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+
     # user is a guest in chatroom
     if aj and source_id and (member_state['state'] == 0 or member_state['state'] == member_states.PENDING_MEMBER):
         context = {}

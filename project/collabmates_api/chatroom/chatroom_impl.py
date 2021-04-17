@@ -10,6 +10,7 @@ from utility.string_utilities import StringUtilities
 
 from .constants import CHATROOM_EXPIRE_DURATION
 from ..chatroom.chatroom_manager import ChatroomManager
+from ..member_community.member_community_impl import MemberCommunityImpl
 from ..rest_api import GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, get_chatroom_instance, CommunitySerializer,
                            CollabcardSerializer, UserinfoSerializer, HOURS_24)
@@ -28,7 +29,7 @@ from ..user.user_impl import UserHelper
 
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
-                            CollabcardPolls, draftChatroom, draftPolls, ModelUtilities)
+                            CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import chatroom_states, member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes
@@ -43,6 +44,7 @@ from utility.exception_utilities import (InvalidUserException, InvalidCommunityE
                                          InvalidHeaderException, CustomException)
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -223,11 +225,10 @@ class ChatroomImpl(ChatroomManager):
     @staticmethod
     def fill_pinned_information(card_content):
 
-        if card_content['type'] == card_types.CARD_PURPOSE or\
-                card_content['type'] == card_types.CARD_MASTER_INTRO or\
-                card_content['type'] == card_types.CARD_EVENT or\
+        if card_content['type'] == card_types.CARD_PURPOSE or \
+                card_content['type'] == card_types.CARD_MASTER_INTRO or \
+                card_content['type'] == card_types.CARD_EVENT or \
                 card_content['type'] == card_types.CARD_PUBLIC_EVENT:
-
             card_content['is_pinned'] = True
             card_content['pinning_time'] = TimeUtilities.current_time_in_milliseconds()
 
@@ -474,6 +475,44 @@ class ChatroomImpl(ChatroomManager):
 
         return conversation_users
 
+    @staticmethod
+    def compute_tagging_list_of_community_members(community_instance):
+
+        member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance)
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
+
+        tag_list = []
+
+        for key, value in member_data.items():
+            temp = dict()
+            temp['id'] = value['id']
+            temp['name'] = value['name']
+            temp['image_url'] = value['image_url']
+
+            tag_list.append(temp)
+
+        return tag_list
+
+    @staticmethod
+    def computer_tagging_list_of_guest_members(chatroom_instance):
+
+        guest_user_list = list(collabcardState.objects.filter(is_guest=True,
+                                                              card=chatroom_instance).values_list('user', flat=True))
+        tag_list = []
+
+        userinfo_filter = Userinfo.objects.filter(user_id__in=guest_user_list)
+
+        for data in userinfo_filter:
+            temp = dict()
+            temp['id'] = data.user_id_id
+            temp['name'] = data.name
+            temp['image_url'] = data.image_link if data.image_link else ""
+
+            tag_list.append(temp)
+
+        return tag_list
+
+
     def fetch_chatroom(self) -> dict:
 
         card_instance = ChatroomHelper.fetch_card_instance(self.get_chatroom_id())
@@ -618,7 +657,7 @@ class ChatroomImpl(ChatroomManager):
         send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
                                       'community_id': community_id})
 
-        if chatroom_instance.type == card_types.CARD_EVENT or\
+        if chatroom_instance.type == card_types.CARD_EVENT or \
                 chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
             schedule_chatroom_unpinning_after_event_completion(chatroom_instance)
 
@@ -828,7 +867,7 @@ class ChatroomImpl(ChatroomManager):
 
         if len(new_participants_list) <= 0:
             return {'success': True}
-        
+
         # updating all secret chatroom participants
         filter_dict = {
             'card': chatroom_instance,
@@ -862,6 +901,25 @@ class ChatroomImpl(ChatroomManager):
                                        update_dict=update_dict)
 
         return {'success': True}
+
+    def get_tagging_list(self) -> dict:
+
+        chatroom_instance = Collabcard.get_chatroom_or_None(self.get_chatroom_id())
+
+        if not chatroom_instance:
+            return {'error_message': "invalid chatroom id"}
+
+        userinfo_instance = Userinfo.get_userinfo_or_None(self.get_member_id())
+
+        if not userinfo_instance:
+            return {'error_message': "invalid user id"}
+
+        community_instance = chatroom_instance.community
+
+        members = self.compute_tagging_list_of_community_members(community_instance)
+        participant_list = self.computer_tagging_list_of_guest_members(chatroom_instance)
+
+        return {'members': members, 'participants': participant_list}
 
 
 class ChatroomHelper:
@@ -922,7 +980,6 @@ class ChatroomHelper:
         chatroom_obj = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
 
         return chatroom_obj.data
-
 
     @staticmethod
     def fetch_serialized_user_info(user_info_instance: object):

@@ -246,9 +246,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pinned=pin_status,
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
-                                                               card_id__pinning_time__lt=card_instance.pinning_time).select_related('card',
-                                                                                                         'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')[:limit_size]
+                                                               card_id__pinning_time__lt=card_instance.pinning_time).select_related(
+                'card',
+                'card__user'). \
+                                    exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')[
+                                :limit_size]
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
@@ -256,8 +258,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
                                                                card_id__lt=card_instance.id).select_related('card',
-                                                                                                         'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
+                                                                                                            'card__user'). \
+                                    exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
 
         return chatroom_queryset
 
@@ -407,6 +409,18 @@ class MemberCommunityImpl(MemberCommunityManager):
         chatroom_files['attachments'] = collabcard_files[4]
 
         return chatroom_files
+
+    @staticmethod
+    def fetch_list_of_community_members(community_instance):
+
+        member_list = \
+            list(Members.objects.filter(community_id=community_instance).filter(Q(state=member_states.ADMIN)
+                                                                                | Q(state=member_states.MEMBER)
+                                                                                | Q(
+                state=member_states.PROFILE_UNAVAILABLE)).values_list('member_id'
+                                                                      , flat=True))
+
+        return member_list
 
     @staticmethod
     def fetch_members_based_on_user_list(user_list, community_instance) -> {}:
@@ -978,7 +992,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
                 context = {"current_user_id": member_id}
                 chatroom_home['community'] = CommunitySerializerV1(card_instance.community, context=context,
-                                                              many=False).data
+                                                                   many=False).data
                 chatroom_home['is_draft'] = False
 
             elif draft_instance:
@@ -986,7 +1000,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
                 context = {"current_user_id": user_instance.id}
                 chatroom_home['community'] = CommunitySerializerV1(draft_instance.community, context=context,
-                                                              many=False).data
+                                                                   many=False).data
                 chatroom_home['is_draft'] = True
 
             last_conversation = engage_instance.last_conversation
@@ -1015,7 +1029,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                  last_conversation_user,
                                                                  second_last_conversation_user)
             chatroom_home['conversation_users'] = conversation_users
-            chatroom_home['member_right_states'] = json.loads(engage_instance.rights_list) if engage_instance.rights_list else []
+            chatroom_home['member_right_states'] = json.loads(
+                engage_instance.rights_list) if engage_instance.rights_list else []
 
             member_filter = Members.objects.filter(member_id=member_id,
                                                    community_id=engage_instance.community)
@@ -1281,9 +1296,10 @@ class MemberCommunityHelper:
 
     @staticmethod
     def is_draft_chatroom(chatroom_instance, current_user_id):
-        if chatroom_instance.attachment_count > 0 and\
-                chatroom_instance.attachments_uploaded is False and\
+        if chatroom_instance.attachment_count > 0 and \
+                chatroom_instance.attachments_uploaded is False and \
                 chatroom_instance.user_id != current_user_id:
             return True
 
         return False
+
