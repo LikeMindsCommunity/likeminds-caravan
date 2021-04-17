@@ -81,12 +81,13 @@ def get_members_profiles_for_reactions(community, members_id_list, reactions_map
 
         reaction_dict = {
             'member': temp,
-            'reaction': reactions_map[temp['id']]['reaction']
+            'reaction': reactions_map[temp['id']]['reaction'],
+            'updated_at': reactions_map[temp['id']]['updated_at']
         }
 
         members_profile_list.append(reaction_dict)
 
-    return members_profile_list
+    return sorted(members_profile_list, key=lambda i: i['updated_at'])
 
 
 def process_message_reactions(reactions):
@@ -94,7 +95,9 @@ def process_message_reactions(reactions):
 
     for reaction in reactions:
         temp = {
+            'id': reaction.id,
             'reaction': reaction.reaction,
+            'updated_at': reaction.updated_at,
         }
         reactions_map[reaction.user_id] = temp
 
@@ -128,7 +131,7 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
             community_instance = conversation.community
 
         else:
-            reactions = MessageReactions.objects.filter(chatroom__id=chatroom_id, conversation=None)
+            reactions = MessageReactions.objects.filter(chatroom__id=chatroom_id, conversation=None).order_by('-updated_at')
 
             chatroom = Collabcard.get_chatroom_or_None(chatroom_id)
 
@@ -154,5 +157,4 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
             update_chatroom_or_conversation_reactions_in_cache.delay(chatroom_id=chatroom_id,
                                                                      conversation_id=conversation_id,
                                                                      member_profiles=reactions)
-
     return reactions

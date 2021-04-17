@@ -4953,6 +4953,7 @@ def request_response(request, req_dict=None):
                 return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     except Exception as e:
+        error_logger.error(f'{e.args}')
         context = get_error_context(False, e.args)
 
         return JsonResponse(context, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -10696,7 +10697,7 @@ def members_state(request, req_dict=None):
         member_rights = get_saved_member_rights_list(user_rights)
 
     else:
-        user_rights = check_all_member_rights(community=community_instance)
+        user_rights = check_all_member_rights()
         # fetching all the rights of the community
         member_rights = get_saved_member_rights_list(user_rights)
 
@@ -14150,8 +14151,15 @@ def fetch_community_setting_rights(request):
         context = get_error_context(False, "send community_id in params")
         return JsonResponse(context)
 
-    community_instance = Community.objects.get(pk=community_id)
-    current_user_instance = User.objects.get(pk=current_user_id)
+    community_instance = Community.get_community_or_None(community_id)
+    if community_instance is None:
+        context = get_error_context(False, f"Invalid community_id {community_id}")
+        return JsonResponse(context)
+
+    current_user_instance = User.get_user_or_none(current_user_id)
+    if current_user_instance is None:
+        context = get_error_context(False, f"Invalid user_id {user_id} in headers")
+        return JsonResponse(context)
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
