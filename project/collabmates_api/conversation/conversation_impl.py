@@ -262,8 +262,11 @@ class ConversationImpl(ConversationManager):
         conversation_content['api_version'] = 1
         conversation_content['device_id'] = self.device_id
         conversation_content['platform'] = self.platform_code
-
-        conversation_content['is_guest'] = chatroom_state_instance.is_guest
+        
+        if chatroom_state_instance:
+            conversation_content['is_guest'] = chatroom_state_instance.is_guest
+        else:
+            conversation_content['is_guest'] = False
 
         poll_context = self._fill_poll_conversation_context(req_body)
 
