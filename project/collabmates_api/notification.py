@@ -17,7 +17,7 @@ from togther.models import (Community_Rank, collabcardState,
                             Userinfo, communityLevels, communityExpiryCodes, conversationEngage, card_answers,
                             conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,
-                            userDevices,ModelUtilities)
+                            userDevices,ModelUtilities,answerAttachment)
 
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,
                             )
@@ -934,6 +934,28 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
     notification_meta(notification_list, message)
 
 
+def get_icon_for_notification(conversation_instance):
+
+    icon_string = ""
+
+    file_types = list(answerAttachment.objects.filter(answer=conversation_instance).
+                      distinct('type').values_list('type', flat=True))
+
+    if 'image' in file_types and 'video' in file_types:
+        icon_string = '📷 🎥'
+
+    elif 'image' in file_types:
+        icon_string = '📷'
+
+    elif 'pdf' in file_types:
+        icon_string = '📄'
+
+    elif 'video' in file_types:
+        icon_string = '🎥'
+
+    return icon_string
+
+
 @shared_task
 def send_follow_notification(card_id, user_id, conversation_id):
 
@@ -972,9 +994,11 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     tagged_users_list, answer_text, user_names = get_tagged_members_list(answer)
 
-    if answer_text == "":
-        answer_text = '📄 Document'
+    icon_string = ""
 
+    if conversation_instance.has_files:
+
+        icon_string = get_icon_for_notification(conversation_instance)
 
     notification_list = []
 
@@ -982,7 +1006,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     follow_notification_content = {
         "title": card_instance.header,
-        "sub_title": userinfo_instance.name + ": " + answer_text,
+        "sub_title": userinfo_instance.name + ":" + icon_string + " " + answer_text,
         "route": "route://collabcard?collabcard_id=" + str(card_id)
     }
 
