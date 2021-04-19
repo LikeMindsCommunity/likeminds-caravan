@@ -20,7 +20,9 @@ from .constants import FEED_UPWARD_SCROLL, FEED_DOWNWARD_SCROLL
 from utility.cache_keys import CHATROOM_REACTIONS_CACHE_KEY
 from ..conversation.reactions import fetch_chatroom_or_conversation_reactions
 from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query,
-                           get_community_introductions_based_on_user_list_query)
+                           get_community_introductions_based_on_user_list_query,
+                           get_chatroom_count_based_on_community_list, get_distinct_chatroom_creator_list,
+                           get_count_of_community_members_based_on_community_list)
 from ..user_moderation_rights import check_admin_approve_right
 from ..utility import pagination
 from ..views import get_home_screen_community_actions, get_active_chatroom_member_images, \
@@ -74,7 +76,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         """
         TODO: move to model definition file
         """
-        return Member_Engage.objects.filter(member_id=member_id).order_by('-order_time')
+        return Member_Engage.objects.filter(member_id=member_id).select_related('community_id', 'member_id').order_by('-order_time')
 
     @staticmethod
     def _paged_queryset(communities: list, page: int) -> list:
@@ -105,13 +107,13 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not isinstance(community_id, Community):
             community_id = Community.objects.get(pk=community_id)
 
-        context = {"current_user_id": member_id}
+        context = {"current_user_id": member_id, 'restrict_members_count': True}
         return CommunitySerializerV1(community_id, context=context, many=False).data
 
     def _add_admin_info(self, member_community: dict, community: {}) -> None:
 
         if community.member_state == member_states.ADMIN:
-            user = self._extract_user(self.get_member_id())
+            user = community.member_id
 
             member_community['pending_chatroom_count'] = community.pending_chatrooms
             member_community['open_reports_count'] = community.open_reports
@@ -193,47 +195,86 @@ class MemberCommunityImpl(MemberCommunityManager):
         return state
 
     @staticmethod
-    def add_chatroom_count_and_member_images(member_community: dict, community: {}, member_id: str) -> None:
+    def add_chatroom_count_and_member_images(member_community: dict, community: {},
+                                             member_id: str, community_chatroom_count_dict) -> None:
 
         if member_community['collabcard_unseen'] > 0 and \
                 community.new_chatroom_users:
             member_community['new_chatroom_users'] = json.loads(community.new_chatroom_users)
         else:
-            chatroom_dict = MemberCommunityHelper.get_chatroom_count_member_images(
-                community_instance=community.community_id, member_id=member_id)
 
-            member_community['chatroom_count'] = chatroom_dict['count']
-            chatroom_users = chatroom_dict['member_list']
+            if community_chatroom_count_dict.get(community.community_id_id):
+                chatroom_count = community_chatroom_count_dict.get(community.community_id_id)
+            else:
+                chatroom_count = 0
+
+            member_community['chatroom_count'] = chatroom_count
+
+            user_list = get_distinct_chatroom_creator_list(community.community_id_id, member_id)
+            member_dict = MemberCommunityImpl.fetch_members_based_on_user_list(user_list, community.community_id)
+            chatroom_users = MemberCommunityHelper.extract_member_tagging_data(member_dict)
 
             if chatroom_users:
                 member_community['chatroom_users'] = chatroom_users
 
-    def _process_communities(self, community_list) -> []:
+    @staticmethod
+    def _add_members_count_in_home_communities(member_community, community_id, community_members_count_dict):
+
+        members_count = community_members_count_dict.get(community_id)
+
+        if members_count:
+            member_community['members_count'] = members_count
+
+        else:
+            member_community['members_count'] = 0
+
+    def _process_communities(self, community_queryset, community_id_list, user_instance) -> []:
 
         member_communities_additional_info = list()
 
-        for community in community_list:
+        community_chatroom_count_dict = MemberCommunityHelper.fetch_chatroom_count_for_home(community_id_list,
+                                                                                            user_instance.id)
+
+        community_members_count_dict = MemberCommunityHelper.fetch_community_members_count(community_id_list)
+
+        for community in community_queryset:
             member_community = self._community_serializer(community.community_id, self.get_member_id())
+            self._add_members_count_in_home_communities(member_community,
+                                                        community.community_id_id,
+                                                        community_members_count_dict)
             self._add_admin_info(member_community, community)
             self._add_community_actions(member_community, community)
             self._add_unseen_count_info(member_community, community)
             self._add_member_rights_info(member_community, community)
             self._add_additional_keys(member_community, community)
-            self.add_chatroom_count_and_member_images(member_community, community, self.get_member_id())
+            self.add_chatroom_count_and_member_images(member_community, community, self.get_member_id(),
+                                                      community_chatroom_count_dict)
             member_communities_additional_info.append(member_community)
 
         return member_communities_additional_info
 
+    @staticmethod
+    def compute_community_id_list_from_queryset(community_queryset):
+
+        community_id_list = []
+
+        for data in community_queryset:
+            community_id_list.append(data.community_id_id)
+
+        return community_id_list
+
     def fetch_home_communities(self, page) -> {}:
 
         user_instance = User.get_user_or_none(self.get_member_id())
+        community_list = []
 
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
 
         communities = self._find_member_communities(self.get_member_id())
-        community_list = self._paged_queryset(communities, page)
-        community_list = self._process_communities(community_list)
+        community_queryset = self._paged_queryset(communities, page)
+        community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
+        community_list = self._process_communities(community_queryset, community_id_list, user_instance)
 
         return {'your_communities': community_list}
 
@@ -1075,50 +1116,39 @@ class MemberCommunityHelper:
         return temp
 
     @staticmethod
-    def get_chatroom_count_member_images(community_instance, member_id) -> {}:
+    def fetch_chatroom_count_for_home(community_id_list, member_id) -> {}:
 
-        state_filter = collabcardState.objects.filter(
-            community=community_instance, user=member_id, card__is_deleted=False,
-            secret_chatroom_left=False
-        ).exclude(card__type=card_types.CARD_INTRO).select_related('card').order_by('-expiry_time', '-card')
+        community_count_dict = get_chatroom_count_based_on_community_list(community_id_list, member_id)
 
-        temp = {}
-        member_list = []
-        user_set = set()
-        temp['count'] = state_filter.count()
+        return community_count_dict
 
-        for data in state_filter:
-            card_instance = data.card
-            user_instance = card_instance.user
-            user_id = user_instance.id
+    @staticmethod
+    def fetch_community_members_count(community_id_list):
+        community_members_count = get_count_of_community_members_based_on_community_list(community_id_list)
 
-            if user_id not in user_set:
-                member = MemberCommunityHelper.add_member_profile(user_instance, data.community)
-                member_list.append(member)
-                user_set.add(user_id)
-
-            if len(member_list) > CHATROOM_COUNT_LIMIT:
-                break
-
-        temp['member_list'] = member_list
-
-        return temp
+        return community_members_count
 
     @staticmethod
     def add_member_profile(user_instance, community_instance):
 
         member_filter = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
-        if member_filter.exists():
-            image_url = user_instance.userinfo.image_link if user_instance.userinfo.image_link else ''
+        userinfo_instance = user_instance.userinfo
+        image_url = ""
+
+        if member_filter:
+
             member_instance = member_filter[0]
 
             if member_instance.image_url:
                 image_url = member_instance.image_url
-        else:
-            image_url = REMOVED_USER_URL
 
-        member = get_user_profile(user_instance, community_instance, send_profile=False)
+            else:
+                image_url = userinfo_instance.image_link if userinfo_instance.image_link else ''
+
+        member = dict()
+        member['id'] = userinfo_instance.user_id_id
+        member['name'] = userinfo_instance.name
         member['image_url'] = image_url
 
         return member
@@ -1317,3 +1347,4 @@ class MemberCommunityHelper:
             member_list.append(temp)
 
         return member_list
+

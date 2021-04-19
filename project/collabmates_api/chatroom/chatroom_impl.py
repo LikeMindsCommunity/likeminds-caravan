@@ -1083,3 +1083,4 @@ class ChatroomHelper:
                 expiry_time = chatroom_state_instance.manual_set_active
 
         return expiry_time
+
