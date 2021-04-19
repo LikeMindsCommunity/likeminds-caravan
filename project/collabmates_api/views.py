@@ -290,9 +290,11 @@ def generate_internal_link_preview_for_conversation(conversation, current_user_i
                     preview_dict = get_preview_for_url(current_user_id, conversation.internal_link,
                                                        community_instance=conversation.preview_community,
                                                        chatroom_instance=conversation.preview_chatroom)
-                    update_preview_of_chatroom_in_cache.delay({'chatroom_id': conversation.preview_chatroom.id,
-                                                                'preview_object': preview_dict,
-                                                                'conversation_id': conversation.id})
+
+                    if preview_dict:
+                        update_preview_of_chatroom_in_cache.delay({'chatroom_id': conversation.preview_chatroom.id,
+                                                                   'preview_object': preview_dict,
+                                                                   'conversation_id': conversation.id})
 
             elif conversation.preview_community and \
                     (conversation.preview_type == "community" or conversation.preview_type == "directory"):
@@ -307,20 +309,25 @@ def generate_internal_link_preview_for_conversation(conversation, current_user_i
                 else:
 
                     preview_dict = get_preview_for_url(member_id=current_user_id,preview_url=conversation.internal_link)
-                    update_preview_of_community_in_cache.delay({'community_id': preview_community_id,
-                                                                'preview_object': preview_dict,
-                                                                'conversation_id': conversation.id})
+
+                    if preview_dict:
+                        update_preview_of_community_in_cache.delay({'community_id': preview_community_id,
+                                                                    'preview_object': preview_dict,
+                                                                    'conversation_id': conversation.id})
             else:
                 preview_dict = get_preview_for_url(current_user_id, conversation.internal_link,
                                                    community_instance=conversation.preview_community,
                                                    chatroom_instance=conversation.preview_chatroom)
+                if not preview_dict:
+                    preview_dict = {}
 
         except Exception as e:
             error_logger.error(e.args)
 
     return preview_dict
-# home screen apis
 
+
+# home screen apis
 def get_active_chatroom_member_images(community_instance, member_id):
     current_time = time.time()
     state_filter = collabcardState.objects.filter(community=community_instance,
@@ -4953,6 +4960,7 @@ def request_response(request, req_dict=None):
                 return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     except Exception as e:
+        error_logger.error(f'{e.args}')
         context = get_error_context(False, e.args)
 
         return JsonResponse(context, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -5986,7 +5994,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             context['location'] = attachements['location']
 
         if ans.reply:
-            context['reply_conversation'] = ans.reply.id
+            context['reply_conversation'] = ans.reply_id
             if fetch_reply:
                 reply_obj = get_answer_data([ans.reply], community_id, current_user_id,
                                             fetch_reply=False, is_ios=is_ios)
@@ -5994,32 +6002,36 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
                     context['reply_conversation_object'] = reply_obj[0]
 
         if ans.is_deleted:
-            context['deleted_by'] = ans.deleted_by_user.id
+            context['deleted_by'] = ans.deleted_by_user_id
 
         if ans.internal_link:
 
             try:
                 if ans.preview_chatroom and ans.preview_type == "chatroom":
-                    key = "chatroom_preview_"+str(ans.preview_chatroom.id)
+                    key = "chatroom_preview_"+str(ans.preview_chatroom_id)
                     preview = CacheImpl.get_cache(key)
 
                     if preview:
                         context['preview'] = preview
 
                     else:
-                        context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
-                                                                 community_instance=ans.preview_community,
-                                                                 chatroom_instance=ans.preview_chatroom,
-                                                                 send_preview_text=False)
-                        update_preview_of_chatroom_in_cache.delay({'preview_object': context['preview'],
-                                                                   'chatroom_id': ans.preview_chatroom.id,
-                                                                   'conversation_id':ans.id})
+                        preview = get_preview_for_url(current_user_id, ans.internal_link,
+                                                      community_instance=ans.preview_community,
+                                                      chatroom_instance=ans.preview_chatroom,
+                                                      send_preview_text=False)
+                        if preview:
+                            update_preview_of_chatroom_in_cache.delay({'preview_object': context['preview'],
+                                                                       'chatroom_id': ans.preview_chatroom_id,
+                                                                       'conversation_id': ans.id})
 
                 else:
-                    context['preview'] = get_preview_for_url(current_user_id, ans.internal_link,
+                    preview = get_preview_for_url(current_user_id, ans.internal_link,
                                                              community_instance=ans.preview_community,
                                                              chatroom_instance=ans.preview_chatroom,
                                                              send_preview_text=False)
+                    if preview:
+                        context['preview'] = preview
+
             except Exception as e:
                 error_logger.error(e.args)
 
@@ -6282,10 +6294,13 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     card = get_chatroom_instance(card_instance, user_id)
     if card_instance.internal_link:
         try:
-            card['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
+            preview = get_preview_for_url(user_id, card_instance.internal_link,
                                                   community_instance=card_instance.preview_community,
                                                   chatroom_instance=card_instance.preview_chatroom,
                                                   send_preview_text=False)
+            if preview:
+                card['preview'] = preview
+
         except Exception as e:
             error_logger.error(e.args)
 
@@ -6451,10 +6466,13 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 
     if card_instance.internal_link:
         try:
-            card['preview'] = get_preview_for_url(user_id, card_instance.internal_link,
+            preview = get_preview_for_url(user_id, card_instance.internal_link,
                                                   community_instance=card_instance.preview_community,
                                                   chatroom_instance=card_instance.preview_chatroom,
                                                   send_preview_text=False)
+            if preview:
+                card['preview'] = preview
+
         except Exception as e:
             error_logger.error(e.args)
 
@@ -7792,6 +7810,11 @@ def collabcard_follow(request, function_dict=None):
     source_id = request.GET.get('source_id')
     member_state = members_state(request, {'community_id': community_instance.id, 'member_id': user_instance.id})
 
+    if (not aj and not source_id) \
+            and (member_state['state'] == 0 or member_state['state'] == member_states.PENDING_MEMBER):
+
+        return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+
     # user is a guest in chatroom
     if aj and source_id and (member_state['state'] == 0 or member_state['state'] == member_states.PENDING_MEMBER):
         context = {}
@@ -8402,10 +8425,14 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
 
         if card_instance.internal_link:
             try:
-                chatroom_instance['preview'] = get_preview_for_url(member_id, card_instance.internal_link,
+                preview = get_preview_for_url(member_id, card_instance.internal_link,
                                                                    community_instance=card_instance.preview_community,
                                                                    chatroom_instance=card_instance.preview_chatroom,
                                                                    send_preview_text=False)
+
+                if preview:
+                    chatroom_instance['preview'] = preview
+
             except Exception as e:
                 error_logger.error(e.args)
 
@@ -8458,11 +8485,13 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False)
 
         if card_instance.internal_link:
             try:
-                chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
+                preview = get_preview_for_url(member_id=member_id,
                                                                    preview_url=card_instance.internal_link,
                                                                    community_instance=card_instance.preview_community,
                                                                    chatroom_instance=card_instance.preview_chatroom,
                                                                    send_preview_text=False)
+                if preview:
+                    chatroom_instance['preview'] = preview
             except Exception as e:
                 error_logger.error(e.args)
         last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
@@ -8508,11 +8537,14 @@ def get_chatrooms_version_2(chatroom_list, member_id, active=None, is_ios=False)
 
         if card_instance.internal_link:
             try:
-                chatroom_instance['preview'] = get_preview_for_url(member_id=member_id,
+                preview = get_preview_for_url(member_id=member_id,
                                                                    preview_url=card_instance.internal_link,
                                                                    community_instance=card_instance.preview_community,
                                                                    chatroom_instance=card_instance.preview_chatroom,
                                                                    send_preview_text=False)
+                if preview:
+                    chatroom_instance['preview'] = preview
+
             except Exception as e:
                 error_logger.error(e.args)
         last_response_members = get_member_images_of_chatroom(conversation_filter)
@@ -10691,7 +10723,7 @@ def members_state(request, req_dict=None):
         member_rights = get_saved_member_rights_list(user_rights)
 
     else:
-        user_rights = check_all_member_rights(community=community_instance)
+        user_rights = check_all_member_rights()
         # fetching all the rights of the community
         member_rights = get_saved_member_rights_list(user_rights)
 
@@ -14145,8 +14177,15 @@ def fetch_community_setting_rights(request):
         context = get_error_context(False, "send community_id in params")
         return JsonResponse(context)
 
-    community_instance = Community.objects.get(pk=community_id)
-    current_user_instance = User.objects.get(pk=current_user_id)
+    community_instance = Community.get_community_or_None(community_id)
+    if community_instance is None:
+        context = get_error_context(False, f"Invalid community_id {community_id}")
+        return JsonResponse(context)
+
+    current_user_instance = User.get_user_or_none(current_user_id)
+    if current_user_instance is None:
+        context = get_error_context(False, f"Invalid user_id {user_id} in headers")
+        return JsonResponse(context)
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
@@ -15161,8 +15200,11 @@ class SyncConversation(APIView):
                     else:
 
                         try:
-                            conversation_context['preview'] = get_preview_for_url(member_id=member_id,
-                                                                              preview_url=conversation[13])
+                            preview = get_preview_for_url(member_id=member_id,
+                                                          preview_url=conversation[13])
+                            if preview:
+                                conversation_context['preview'] = preview
+
                         except Exception as e:
                             error_logger.error("error occured"+ str(e.args))
                             continue

@@ -123,7 +123,7 @@ def get_inactive_followed_chatrooms_count(user_id, current_time):
         curr = conn.cursor()
         sql = """select count(*) from togther_collabcardState where  user_id=%s and follow_status=True and remove_id is null 
         and (expiry_time is not null and expiry_time < %s) and secret_chatroom_left=false""" % (
-        str(user_id), str(current_time))
+            str(user_id), str(current_time))
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -1815,7 +1815,6 @@ def activate_chatroom_on_conversation_creation(card_id, user_id):
 
 
 def get_latest_conversation_creator_users_for_homescreen(chatroom_id, chatroom_creator_id):
-
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -1839,4 +1838,125 @@ def get_latest_conversation_creator_users_for_homescreen(chatroom_id, chatroom_c
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+        return []
+
+
+def get_chatroom_count_based_on_community_list(community_id_list, member_id) -> {}:
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        community_id_tupple = get_tuple_from_array(community_id_list)
+
+        if not community_id_tupple:
+            return {}
+
+        sql = """SELECT "togther_collabcardstate".community_id,
+                         COUNT(*) AS "__count"
+                FROM "togther_collabcardstate"
+                INNER JOIN "togther_collabcard"
+                    ON ("togther_collabcardstate"."card_id" = "togther_collabcard"."id")
+                WHERE ("togther_collabcard"."is_deleted" = FALSE
+                        AND "togther_collabcardstate"."secret_chatroom_left" = FALSE
+                        AND "togther_collabcardstate"."user_id" = %s
+                        AND NOT ("togther_collabcard"."type" = 1))
+                GROUP BY  togther_collabcardstate.community_id
+                HAVING "togther_collabcardstate".community_id IN %s""" \
+              % (str(member_id), str(community_id_tupple))
+
+        curr.execute(sql)
+        count_data = curr.fetchall()
+        curr.close()
+
+        community_count_group = {}
+
+        for data in count_data:
+            community_count_group[data[0]] = data[1]
+
+        return community_count_group
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return {}
+
+
+def get_count_of_community_members_based_on_community_list(community_id_list) -> {}:
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        community_id_tupple = get_tuple_from_array(community_id_list)
+
+        if not community_id_tupple:
+            return {}
+
+        sql = """SELECT community_id_id,
+                count(*)
+                FROM togther_members
+                WHERE community_id_id IN %s
+                        AND (state=1
+                        OR state=4
+                        OR state=9)
+                GROUP BY  community_id_id""" \
+              % (str(community_id_tupple))
+
+        curr.execute(sql)
+        count_data = curr.fetchall()
+        curr.close()
+
+        community_count_group = {}
+
+        for data in count_data:
+            community_count_group[data[0]] = data[1]
+
+        return community_count_group
+
+    except Exception as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return {}
+
+def get_distinct_chatroom_creator_list(community_id, member_id) -> []:
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+           SELECT DISTINCT user_id,
+                  MAX(date_epoch)
+           FROM togther_collabcard
+           WHERE community_id =%s
+                    AND type!=1
+                    AND is_deleted=False
+                    AND
+                (CASE
+                WHEN is_secret=True
+                    AND secret_chatroom_participants LIKE '%s' THEN
+                True
+                WHEN is_secret=True THEN
+                False
+                WHEN is_secret=False THEN
+                True
+                END)
+           GROUP BY  user_id
+           ORDER BY  MAX(date_epoch) DESC limit 4 
+        """ % (str(community_id), "%"+str(member_id)+"%")
+
+        curr.execute(sql)
+        user_data = curr.fetchall()
+        curr.close()
+
+        user_list = []
+
+        for data in user_data:
+            user_list.append(data[0])
+
+        return user_list
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
         return []

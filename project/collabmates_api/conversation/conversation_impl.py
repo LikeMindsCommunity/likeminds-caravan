@@ -555,11 +555,12 @@ class ConversationImpl(ConversationManager):
         return conversations
 
     def create_conversation(self, req_body: dict, is_ios: bool = False,
-                            is_user_guest: bool = False, has_files: bool = False,
+                            is_user_guest: bool = False,
                             user_instance: User = None, chatroom_instance: Collabcard = None) -> {}:
 
         chatroom_id = req_body.get('chatroom_id', None)
         created_at = req_body.get('created_at', TimeUtilities.current_time_in_milliseconds())
+        has_files = req_body.get('has_files', False)
 
         if not chatroom_id:
             response = {
@@ -626,6 +627,7 @@ class ConversationImpl(ConversationManager):
         self._fill_poll_options(user_instance, conversation_instance, req_body)
 
         attachment_count = req_body.get('attachment_count', 0)
+
         has_files = has_files or attachment_count > 0
 
         self._auto_follow_and_save_last_conversation(chatroom_instance,
@@ -689,7 +691,9 @@ class ConversationImpl(ConversationManager):
             chatroom_instance.has_reactions = True
             chatroom_instance.save()
 
-        update_context = {'reaction': reaction}
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        update_context = {'reaction': reaction, 'updated_at': current_time}
 
         MessageReactions.objects.update_or_create(user=user_instance,
                                                   chatroom=chatroom_instance,

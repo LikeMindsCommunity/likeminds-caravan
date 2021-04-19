@@ -730,11 +730,14 @@ def get_draft_chatroom_instance(draft_instance, member_id):
 
     if draft_instance.internal_link:
         try:
-            draft_serializer['preview'] = get_preview_for_url(member_id=member_id,
-                                                              preview_url=draft_instance.internal_link,
-                                                              community_instance=draft_instance.preview_community,
-                                                              chatroom_instance=draft_instance.preview_chatroom,
-                                                              send_preview_text=True)
+            preview = get_preview_for_url(member_id=member_id,
+                                          preview_url=draft_instance.internal_link,
+                                          community_instance=draft_instance.preview_community,
+                                          chatroom_instance=draft_instance.preview_chatroom,
+                                          send_preview_text=True)
+            if preview:
+                draft_serializer['preview'] = preview
+
         except Exception as e:
             error_logger.error(e.args)
 
@@ -1832,9 +1835,12 @@ def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, cu
 
     if conversation.internal_link:
         try:
-            conversation_dict['preview'] = get_preview_for_url(current_user_id, conversation.internal_link,
-                                                               community_instance=conversation.preview_community,
-                                                               chatroom_instance=conversation.preview_chatroom)
+            preview = get_preview_for_url(current_user_id, conversation.internal_link,
+                                          community_instance=conversation.preview_community,
+                                          chatroom_instance=conversation.preview_chatroom)
+            if preview:
+                conversation_dict['preview'] = preview
+
         except Exception as e:
             error_logger.error(e.args)
 
