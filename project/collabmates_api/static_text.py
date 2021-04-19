@@ -390,10 +390,10 @@ SECRET_CHATROOM_ADD_ROUTE = "route://chatroom_detail?chatroom_id=%s"
 SECRET_CHATROOM_REMOVED_SUBTITLE = "You have been removed from %s"
 SECRET_CHATROOM_REMOVED_ROUTE = "route://main"
 
-
 POLL_CONVERSATION_TITLE = "Time to vote!"
 POLL_CONVERSATION_SUBTITLE = "%s started a poll in %s in %s"
 POLL_CONVERSATION_ROUTE = "'route://poll_chatroom?chatroom_id=%s&conversation_id=%s"
 
 MESSAGE_REACTIONS_NOTIFICATION_SUB_TITLE = "%s reacted to your message with %s"
-MESSAGE_REACTIONS_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id=%s"
+MESSAGE_REACTIONS_CHATROOM_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id=%s"
+MESSAGE_REACTIONS_CONVERSATION_NOTIFICATION_ROUTE = f"{MESSAGE_REACTIONS_CHATROOM_NOTIFICATION_ROUTE}&conversation_id=%s"

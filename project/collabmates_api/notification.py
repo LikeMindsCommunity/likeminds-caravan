@@ -2908,7 +2908,11 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
 
     title = chatroom_instance.header
     sub_title = MESSAGE_REACTIONS_NOTIFICATION_SUB_TITLE % (reacted_user_name, reaction)
-    route = MESSAGE_REACTIONS_NOTIFICATION_ROUTE % chatroom_id
+
+    if conversation_id:
+        route = MESSAGE_REACTIONS_CONVERSATION_NOTIFICATION_ROUTE % (chatroom_id, conversation_id)
+    else:
+        route = MESSAGE_REACTIONS_CHATROOM_NOTIFICATION_ROUTE % chatroom_id
 
     message = {'payload': {
         "title": title,
