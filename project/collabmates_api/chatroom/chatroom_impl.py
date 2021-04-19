@@ -10,7 +10,7 @@ from utility.string_utilities import StringUtilities
 
 from .constants import CHATROOM_EXPIRE_DURATION
 from ..chatroom.chatroom_manager import ChatroomManager
-from ..member_community.member_community_impl import MemberCommunityImpl
+from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..rest_api import GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, get_chatroom_instance, CommunitySerializer,
                            CollabcardSerializer, UserinfoSerializer, HOURS_24)
@@ -480,21 +480,12 @@ class ChatroomImpl(ChatroomManager):
 
         member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance)
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
-        tag_list = []
-
-        for key, value in member_data.items():
-            temp = dict()
-            temp['id'] = value['id']
-            temp['name'] = value['name']
-            temp['image_url'] = value['image_url']
-
-            tag_list.append(temp)
-
-        return tag_list
+        return tagging_list
 
     @staticmethod
-    def computer_tagging_list_of_guest_members(chatroom_instance):
+    def compute_tagging_list_of_guest_members(chatroom_instance):
 
         guest_user_list = list(collabcardState.objects.filter(is_guest=True,
                                                               card=chatroom_instance).values_list('user', flat=True))
@@ -512,6 +503,20 @@ class ChatroomImpl(ChatroomManager):
 
         return tag_list
 
+    @staticmethod
+    def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance):
+
+        try:
+            member_list = json.loads(chatroom_instance.secret_chatroom_participants)
+
+        except Exception as e:
+            error_logger.error(e)
+            member_list = []
+
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+
+        return tagging_list
 
     def fetch_chatroom(self) -> dict:
 
@@ -916,8 +921,13 @@ class ChatroomImpl(ChatroomManager):
 
         community_instance = chatroom_instance.community
 
+        if chatroom_instance.is_secret:
+            participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
+
+            return {'participants': participant_list, 'members': []}
+
         members = self.compute_tagging_list_of_community_members(community_instance)
-        participant_list = self.computer_tagging_list_of_guest_members(chatroom_instance)
+        participant_list = self.compute_tagging_list_of_guest_members(chatroom_instance)
 
         return {'members': members, 'participants': participant_list}
 

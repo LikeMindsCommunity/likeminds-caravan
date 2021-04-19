@@ -1303,3 +1303,17 @@ class MemberCommunityHelper:
 
         return False
 
+    @staticmethod
+    def extract_member_tagging_data(member_data) -> []:
+
+        member_list = []
+
+        for key, value in member_data.items():
+            temp = dict()
+            temp['id'] = value['id']
+            temp['name'] = value['name']
+            temp['image_url'] = value['image_url']
+
+            member_list.append(temp)
+
+        return member_list
