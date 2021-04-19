@@ -481,8 +481,12 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
 
                 try:
-                    data['preview'] = get_preview_for_url(member_id=self.current_user_id,
-                                                      preview_url=data['internal_link'])
+                    preview = get_preview_for_url(member_id=self.current_user_id,
+                                                  preview_url=data['internal_link'])
+
+                    if preview:
+                        data['preview'] = preview
+
                 except:
                     del data['preview']
 
@@ -897,9 +901,11 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
             elif field.field_name == "internal_link" and data['internal_link'] is not None:
                 try:
-                    data['preview'] = get_preview_for_url(member_id=self.current_user_id,
-                                                          preview_url=data['internal_link'],
-                                                          )
+                    preview = get_preview_for_url(member_id=self.current_user_id,
+                                                  preview_url=data['internal_link'],
+                                                  )
+                    if preview:
+                        data['preview'] = preview
                 except:
                     data['preview'] = None
                 del data['internal_link']

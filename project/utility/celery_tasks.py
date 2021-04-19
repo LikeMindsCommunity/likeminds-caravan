@@ -416,7 +416,8 @@ def update_preview_of_chatroom_in_cache(preview_info):
             error_logger.error((str(e.args)))
             return
 
-    CacheImpl.set_cache(key, preview_object)
+    if preview_object:
+        CacheImpl.set_cache(key, preview_object)
 
 
 @shared_task
@@ -437,9 +438,10 @@ def update_multiple_previews_in_chatroom(preview_info):
                 error_logger.error(str(e.args))
                 continue
 
-            update_preview_of_chatroom_in_cache({'chatroom_id': conversation.preview_chatroom.id,
-                                                 'preview_object': preview_dict,
-                                                 'conversation_id': conversation.id})
+            if preview_dict:
+                update_preview_of_chatroom_in_cache({'chatroom_id': conversation.preview_chatroom.id,
+                                                     'preview_object': preview_dict,
+                                                     'conversation_id': conversation.id})
             conversation.last_updated = TimeUtilities.current_time_in_milliseconds()
             conversation.save()
 
@@ -470,8 +472,9 @@ def update_preview_of_community_in_cache(preview_info):
             error_logger.error((str(e.args)))
             return
 
-    key = CONVERSATION_COMMUNITY_PREVIEW % (str(conversation_id), str(community_id))
-    CacheImpl.set_cache(key, preview_object)
+    if preview_object:
+        key = CONVERSATION_COMMUNITY_PREVIEW % (str(conversation_id), str(community_id))
+        CacheImpl.set_cache(key, preview_object)
 
 
 @shared_task
@@ -492,9 +495,10 @@ def update_multiple_previews_in_community(preview_info):
                 error_logger.error(str(e.args))
                 continue
 
-            update_preview_of_community_in_cache({'community_id': preview_community_id,
-                                                  'preview_object': preview_dict,
-                                                  'conversation_id': conversation.id})
+            if preview_dict:
+                update_preview_of_community_in_cache({'community_id': preview_community_id,
+                                                      'preview_object': preview_dict,
+                                                      'conversation_id': conversation.id})
             conversation.last_updated = TimeUtilities.current_time_in_milliseconds()
             conversation.save()
 

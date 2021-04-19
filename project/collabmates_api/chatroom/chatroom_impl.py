@@ -6,14 +6,13 @@ from rest_framework import status as status_codes
 from django.contrib.auth.models import User
 from django.db.models import Q
 from celery import shared_task
-from utility.string_utilities import StringUtilities
 
 from .constants import CHATROOM_EXPIRE_DURATION
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..rest_api import GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, get_chatroom_instance, CommunitySerializer,
-                           CollabcardSerializer, UserinfoSerializer, HOURS_24)
+                           CollabcardSerializer, UserinfoSerializer)
 from ..sync.model_update import update_models_for_syncing_apis
 from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_time_of_chatroom,
                      create_chatroom_state_instance, get_icons_states_of_chatroom_version_1,
@@ -22,10 +21,9 @@ from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_
                      create_chatroom, get_latest_conversation_members, )
 from ..tasks import update_pending_chatroom_count_for_promoters
 from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts,
-                            schedule_poll_end_notification, send_ice_breaker_notification, send_sync_notification,
+                            send_ice_breaker_notification, send_sync_notification,
                             send_pin_chatroom_notification, send_notification_for_new_secret_room_participant,
                             send_notification_for_removed_secret_room_participant)
-from ..user.user_impl import UserHelper
 
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
@@ -34,14 +32,12 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import chatroom_states, member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes
 
-from utility.request_utilities import RequestUtilities
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation, get_chatroom_user_images_for_web, \
     schedule_chatroom_unpinning_after_event_completion, update_last_unseen_in_engage
 from utility.firebase import update_last_answer_id
-from utility.exception_utilities import (InvalidUserException, InvalidCommunityException,
-                                         InvalidHeaderException, CustomException)
+from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 
@@ -112,7 +108,6 @@ class ChatroomImpl(ChatroomManager):
                                               community_instance=card_instance.preview_community,
                                               chatroom_instance=card_instance.preview_chatroom,
                                               send_preview_text=False)
-
                 return preview
 
             except Exception as e:
@@ -539,6 +534,7 @@ class ChatroomImpl(ChatroomManager):
 
         if preview:
             chatroom_data['preview'] = preview
+
         chatroom_icons = self._fetch_icon_states_for_chatroom(card_instance, chatroom_data)
         chatroom_data.update(chatroom_icons)
 

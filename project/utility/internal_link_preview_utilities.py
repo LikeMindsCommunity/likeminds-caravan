@@ -52,7 +52,6 @@ class PreviewUtilities:
             self.set_preview_with_preview_dict(instance, res, user_id)
             self.set_previw_object_in_cache(res, instance)
 
-
     def set_preview_with_internal_link(self, instance, res, user_id):
         try:
             internal_link = self.get_preview_url(res['internal_link'])
@@ -60,7 +59,9 @@ class PreviewUtilities:
 
             if 'preview' not in res and internal_link is not None:
                 preview = get_preview_for_url(user_id, internal_link)
-                res['preview'] = preview
+
+                if preview:
+                    res['preview'] = preview
 
         except Exception as e:
             self.remove_preview_instance(instance)

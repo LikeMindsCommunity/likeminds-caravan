@@ -382,6 +382,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                               community_instance=card_instance.preview_community,
                                               chatroom_instance=card_instance.preview_chatroom,
                                               send_preview_text=False)
+                if preview is None:
+                    return {}
+
             except Exception as e:
                 error_logger.error(e.args)
 
