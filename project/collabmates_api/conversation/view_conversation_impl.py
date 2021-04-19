@@ -55,14 +55,13 @@ class CreateConversation(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
         is_user_guest = ConversationViewsHelper.is_user_guest(req_body)
-        has_files = ConversationViewsHelper.has_files(req_body, is_ios)
 
         conversation_manager = ConversationImpl(member_id, platform_code=platform_code, device_id=device_id)
 
         try:
 
             conversation_response = conversation_manager.create_conversation(req_body, is_ios,
-                                                                         is_user_guest, has_files)
+                                                                             is_user_guest)
         except Exception as e:
             error_logger.error(e.args)
 
@@ -209,8 +208,3 @@ class ConversationViewsHelper:
     @staticmethod
     def is_user_guest(req_body):
         return req_body.get('aj') and req_body.get('source_id')
-
-    @staticmethod
-    def has_files(req_body, is_ios):
-        return req_body.get('has_files', False) or is_ios
-
