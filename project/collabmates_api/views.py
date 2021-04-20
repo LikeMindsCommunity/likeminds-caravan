@@ -2671,19 +2671,21 @@ def fetch_user_chatrooms(request):
     # chatrooms not created by user but  followed by users
     elif int(state) == 1:
 
-        chatroom_filter = Collabcard.objects.filter(user_id=user_id, community_id=community_id,
-                                                    is_pending=False, is_deleted=False)
+        chatroom_list = list(Collabcard.objects.filter(user_id=user_id, community_id=community_id,
+                                                       is_pending=False, is_deleted=False).values_list('id', flat=True))
+
         state_filter = collabcardState.objects.filter(user_id=user_id, community_id=community_id,
                                                       follow_status=True, card__is_secret=False).exclude(
-            card__in=chatroom_filter.values('id')).order_by('-updated_at')
-        followed_chatroom_count = state_filter.count()
+            card__in=chatroom_list).order_by('-updated_at', '-id')
+
+        followed_chatroom_count = len(state_filter)
         state_filter = pagination(state_filter, page, paginate_by=10)
 
         for chatroom in state_filter:
             chatroom_instance = chatroom.card
 
             temp = get_chatroom_instance(chatroom_instance, user_id, current_user_id=current_user_id)
-            temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
+            temp['date'] = TimeUtilities.convert_epoch_time_in_date(chatroom.updated_at)
             engage_filter = conversationEngage.objects.filter(card=chatroom_instance, user=user_id)
             temp['conversation_users'] = []
 
