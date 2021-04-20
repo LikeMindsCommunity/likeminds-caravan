@@ -1491,7 +1491,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
             if isinstance(community_id, Community):
                 community_profile['community_id'] = community_id.id
             else:
-                community_profile['community_id'] = community_id
+                community_profile['community_id'] = NumberUtilities.get_integer_from_string(community_id)
 
             member_profile_list.append(community_profile)
 

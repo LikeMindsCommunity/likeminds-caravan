@@ -2596,13 +2596,14 @@ def fetch_community_profile(request):
     current_member_id = get_member_id_from_headers(request)
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
+
     try:
         community_instance = Community.objects.get(id=community_id)
-    except Exception as e:
-        return JsonResponse({'error': e.args})
+        user_instance = User.objects.get(id=user_id)
+        current_user_instance = User.objects.get(id= current_member_id)
 
-    if not user_id or not community_id:
-        return JsonResponse({"error_message": "send user id and community_id in get params"})
+    except Exception as e:
+        return JsonResponse({'error_message': e.args}, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_user_member_instance = Members.objects.filter(member_id=current_member_id, community_id=community_id)
     is_promoter = False
@@ -2616,7 +2617,7 @@ def fetch_community_profile(request):
         user_admin_rights = check_all_manager_rights(current_member_id, community_id)
 
     member_ids = [user_id]
-    member = get_members_profile(member_ids, community_id, current_user_id=current_member_id, is_promoter=is_promoter,
+    member = get_members_profile(member_ids, community_instance.id, current_user_id=current_member_id, is_promoter=is_promoter,
                                  is_owner=is_owner, profile_detail_api=True, user_admin_rights=user_admin_rights)
 
     if member:
@@ -2637,6 +2638,14 @@ def fetch_user_chatrooms(request):
     community_id = request.GET.get('community_id')
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
+
+    try:
+        community_instance = Community.objects.get(id=community_id)
+        user_instance = User.objects.get(id=user_id)
+        current_user_instance = User.objects.get(id=current_user_id)
+
+    except Exception as e:
+        return JsonResponse({'error_message': e.args}, status=status_codes.HTTP_400_BAD_REQUEST)
 
     # chatrooms created by user
     if int(state) == 0:
@@ -2661,7 +2670,6 @@ def fetch_user_chatrooms(request):
 
     # chatrooms not created by user but  followed by users
     elif int(state) == 1:
-        # state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
 
         chatroom_filter = Collabcard.objects.filter(user_id=user_id, community_id=community_id,
                                                     is_pending=False, is_deleted=False)
@@ -2678,7 +2686,8 @@ def fetch_user_chatrooms(request):
             temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
             engage_filter = conversationEngage.objects.filter(card=chatroom_instance, user=user_id)
             temp['conversation_users'] = []
-            if engage_filter.exists():
+
+            if engage_filter:
                 temp['conversation_users'] = get_conversation_users(engage_filter[0])
             chatrooms.append(temp)
 
