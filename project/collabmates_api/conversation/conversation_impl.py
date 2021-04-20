@@ -223,7 +223,7 @@ class ConversationImpl(ConversationManager):
                 conversation.attachments_uploaded is False) and (
                     (self.get_member_id() and
                      conversation.user.id != NumberUtilities.get_integer_from_string(self.get_member_id())) or
-                    conversation.api_version <= 0):
+                    conversation.api_version <= 0 or conversation.device_id != self.device_id):
                 continue
 
             conversation_dict = self._serialize_conversation(conversation)
@@ -262,7 +262,7 @@ class ConversationImpl(ConversationManager):
         conversation_content['api_version'] = 1
         conversation_content['device_id'] = self.device_id
         conversation_content['platform'] = self.platform_code
-        
+
         if chatroom_state_instance:
             conversation_content['is_guest'] = chatroom_state_instance.is_guest
         else:
@@ -573,7 +573,9 @@ class ConversationImpl(ConversationManager):
             user_instance = ConversationHelper.fetch_user_instance(user_id=self.get_member_id())
 
         if chatroom_instance is None:
+            print("here 1")
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
+        print("here 2")
 
         if chatroom_instance.is_secret and \
                 not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
@@ -597,7 +599,6 @@ class ConversationImpl(ConversationManager):
         community_instance = ConversationHelper.fetch_community_instance(community_id=community_id)
 
         member_state = ConversationHelper.fetch_member_state(community=community_instance, user=user_instance)
-
 
         if chatroom_instance.type == card_types.CARD_PURPOSE and \
                 member_state != member_states.ADMIN:

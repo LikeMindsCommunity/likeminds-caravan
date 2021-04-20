@@ -393,13 +393,24 @@ def get_active_chatroom_member_images(community_instance, member_id):
     return temp
 
 
-def is_draft_conversation(conversation, current_user_id):
+def is_draft_conversation(conversation, current_user_id, device_id=''):
 
     if (conversation.attachment_count > 0 and
         conversation.attachments_uploaded is False) and\
             ((current_user_id and
               NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or
-             conversation.api_version <= 0):
+             conversation.api_version <= 0 or
+             conversation.device_id != device_id):
+        return True
+
+    return False
+
+
+def is_draft_chatroom(chatroom_instance, member_id, device_id):
+    if (chatroom_instance.attachment_count > 0 and \
+            chatroom_instance.attachments_uploaded is False) and \
+            (member_id != chatroom_instance.user_id or
+             device_id != chatroom_instance.device_id):
         return True
 
     return False
@@ -409,6 +420,7 @@ def my_chatrooms_version_1(request):
     '''functions to get chatrooms for users'''
 
     member_id = get_member_id_from_headers(request)
+    device_id = RequestUtilities.get_device_id_from_headers(request)
     page = request.GET.get('page', 1)
 
     try:
@@ -484,8 +496,9 @@ def my_chatrooms_version_1(request):
 
         last_conversation = instance.last_conversation
 
-        if last_conversation and not is_draft_conversation(last_conversation, member_id):
-            last_conversation_dict = conversationSerializer(last_conversation, current_user_id=member_id)
+        if last_conversation and not is_draft_conversation(last_conversation, member_id, device_id):
+            last_conversation_dict = conversationSerializer(last_conversation,
+                                                            current_user_id=member_id, device_id=device_id)
             preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
 
             if preview:
@@ -495,8 +508,9 @@ def my_chatrooms_version_1(request):
 
             second_last_conversation = instance.second_last_conversation
 
-            if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id):
-                second_last_conversation_dict = conversationSerializer(second_last_conversation, current_user_id=member_id)
+            if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id, device_id):
+                second_last_conversation_dict = conversationSerializer(second_last_conversation,
+                                                                       current_user_id=member_id, device_id=device_id)
                 preview = generate_internal_link_preview_for_conversation(second_last_conversation, member_id)
 
                 if preview:
@@ -5838,7 +5852,7 @@ def conversation_meta(request):
                 conversation.platform == platform_code:
             continue
 
-        if not is_draft_conversation(conversation, user_id):
+        if not is_draft_conversation(conversation, user_id, device_id=device_id):
             conversation_serializer = conversationSerializer(conversation,
                                                              fetch_reply=True,
                                                              current_user_id=user_id)
@@ -5927,13 +5941,13 @@ def mark_read(request):
 
 
 def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None,
-                    fetch_reply=False, is_ios=False):
+                    fetch_reply=False, device_id=""):
     """ function to get answer for a particular collabcard """
 
     answers = []
     for ans in answer_filter:
 
-        if is_draft_conversation(ans, current_user_id):
+        if is_draft_conversation(ans, current_user_id, device_id=device_id):
             continue
 
         usr = get_members_profile([ans.user.id], community_id, current_user_id, send_profile=False)
@@ -6008,7 +6022,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             context['reply_conversation'] = ans.reply_id
             if fetch_reply:
                 reply_obj = get_answer_data([ans.reply], community_id, current_user_id,
-                                            fetch_reply=False, is_ios=is_ios)
+                                            fetch_reply=False, device_id=device_id)
                 if len(reply_obj) > 0:
                     context['reply_conversation_object'] = reply_obj[0]
 
@@ -6223,6 +6237,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     source_id = request.GET.get('source_id')
     aj = request.GET.get('aj')
 
+    device_id = RequestUtilities.get_device_id_from_headers(request)
+
     is_guest = False
     context = {}
 
@@ -6262,7 +6278,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             conversations = pagination(conversations_filter, page, paginate_by=20)
 
             conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
-                                            is_ios=is_ios, fetch_reply=fetch_conversation_reply)
+                                            fetch_reply=fetch_conversation_reply, device_id=device_id)
 
             placeholder = create_introduction_card_placeholder(card_instance, user_id)
             if placeholder:
@@ -6280,7 +6296,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
             conversations = get_answer_data(conversations, card_instance.community.id,
                                             current_user_id=user_id, last_seen=conversation_instance,
-                                            is_ios=is_ios, fetch_reply=fetch_conversation_reply)
+                                            fetch_reply=fetch_conversation_reply, device_id=device_id)
     else:
 
         try:
@@ -6300,7 +6316,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             conversations = conversations_filter
 
         conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
-                                        is_ios=is_ios, fetch_reply=fetch_conversation_reply)
+                                        fetch_reply=fetch_conversation_reply, device_id=device_id)
 
     card = get_chatroom_instance(card_instance, user_id)
     if card_instance.internal_link:
@@ -6391,7 +6407,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
         if last_conversation:
             serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id,
-                                              is_ios=is_ios, fetch_reply=fetch_conversation_reply)
+                                              fetch_reply=fetch_conversation_reply, device_id=device_id)
             if serialized_last:
                 card['last_conversation'] = serialized_last[0]
 
@@ -6402,9 +6418,16 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     can_access_secret_chatroom = False
 
-    if card_instance.is_secret and user_id is not None:
+    if user_id is not None:
         user_id = NumberUtilities.get_integer_from_string(user_id)
-        can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
+        if card_instance.is_secret:
+            can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+
+        elif card_instance.attachment_count > 0 and\
+                card_instance.attachments_uploaded is False:
+            can_access_secret_chatroom = not is_draft_chatroom(card_instance, user_id, device_id)
 
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
@@ -6578,9 +6601,16 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 
     can_access_secret_chatroom = False
 
-    if card_instance.is_secret and user_id is not None:
+    if user_id is not None:
         user_id = NumberUtilities.get_integer_from_string(user_id)
-        can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
+        if card_instance.is_secret:
+            can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+
+        elif card_instance.attachment_count > 0 and\
+                card_instance.attachments_uploaded is False:
+            can_access_secret_chatroom = not is_draft_chatroom(card_instance, user_id, device_id)
 
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
@@ -6708,9 +6738,16 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
     can_access_secret_chatroom = False
 
-    if card_instance.is_secret and user_id is not None:
+    if user_id is not None:
         user_id = NumberUtilities.get_integer_from_string(user_id)
-        can_access_secret_chatroom = user_id in json.loads(card_instance.secret_chatroom_participants)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
+        if card_instance.is_secret:
+            can_access_secret_chatroom = user_id in json.loads(card_instance.secret_chatroom_participants)
+
+        elif card_instance.attachment_count > 0 and\
+                card_instance.attachments_uploaded is False:
+            can_access_secret_chatroom = not is_draft_chatroom(card_instance, user_id, device_id)
 
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
@@ -8403,7 +8440,7 @@ def community_collabcard_meta(request):
     return JsonResponse({'collabcards': card_list})
 
 
-def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
+def get_chatrooms(chatroom_list, member_id, active=None, device_id=''):
     """function to get chatrooms"""
 
     member_id = NumberUtilities.get_integer_from_string(member_id)
@@ -8411,9 +8448,7 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
     chatrooms = []
     for card_instance in chatroom_list:
 
-        if card_instance.attachment_count > 0 and\
-                card_instance.attachments_uploaded is False and\
-                member_id != card_instance.user_id:
+        if is_draft_chatroom(card_instance, member_id, device_id):
             continue
 
         if card_instance.is_secret:
@@ -8463,7 +8498,7 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
     return chatrooms
 
 
-def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False):
+def get_chatrooms_version_1(chatroom_list, member_id, active=None, device_id=''):
     '''function to get chatrooms'''
     member_id = NumberUtilities.get_integer_from_string(member_id)
     chatrooms = []
@@ -8473,7 +8508,8 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False)
 
         if card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False and\
-                member_id != card_instance.user_id:
+                member_id != card_instance.user_id and\
+                device_id == card_instance.device_id:
             continue
 
         if card_instance.is_secret:
@@ -8526,7 +8562,7 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False)
     return chatrooms
 
 
-def get_chatrooms_version_2(chatroom_list, member_id, active=None, is_ios=False):
+def get_chatrooms_version_2(chatroom_list, member_id, active=None, device_id=''):
     '''function to get chatrooms'''
 
     chatrooms = []
@@ -8535,7 +8571,8 @@ def get_chatrooms_version_2(chatroom_list, member_id, active=None, is_ios=False)
 
         if card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False and\
-                int(member_id) != card_instance.user.id:
+                int(member_id) != card_instance.user.id and\
+                device_id == card_instance.device_id:
             continue
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id, state_instance=data)
@@ -8576,6 +8613,8 @@ def fetch_chatroom_feed(request):
     chatroom_id = request.GET.get('chatroom_id')
     scroll_direction = request.GET.get('scroll_direction')
 
+    device_id = RequestUtilities.get_device_id_from_headers(request)
+
     if scroll_direction and not chatroom_id:
         context = get_error_context(False, "send chatroom id with scroll direction")
         return JsonResponse(context)
@@ -8612,7 +8651,7 @@ def fetch_chatroom_feed(request):
             .order_by('-card_id')
         if not last_seen.exists():
             chatroom_list = pagination(chatroom_filter, page, paginate_by=5)
-            chatrooms = get_chatrooms(chatroom_list, member_id, is_ios=is_ios)
+            chatrooms = get_chatrooms(chatroom_list, member_id, device_id=device_id)
         else:
             last_seen = last_seen[0]
             upward = chatroom_filter.filter(id__lte=last_seen.card.id).order_by('-id')[:3]
@@ -8621,7 +8660,7 @@ def fetch_chatroom_feed(request):
             # downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:3]
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('id')
-            chatrooms = get_chatrooms(chatroom_list, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms(chatroom_list, member_id, active, device_id=device_id)
 
         context['header'] = chatroom_feed_header(community_id, member_id)
 
@@ -8632,12 +8671,12 @@ def fetch_chatroom_feed(request):
             upward = chatroom_filter.filter(id__lt=chatroom_id).order_by('-id')[:5]
             upward = reverse_conversations_for_upward_pagination(upward)
             # print(upward)
-            chatrooms = get_chatrooms(upward, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms(upward, member_id, active, device_id=device_id)
 
         elif scroll_direction == 1:  # downward scroll
 
             downward = chatroom_filter.filter(id__gt=chatroom_id).order_by('id')[:5]
-            chatrooms = get_chatrooms(downward, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms(downward, member_id, active, device_id=device_id)
 
     context['chatrooms'] = chatrooms
 
@@ -14324,6 +14363,9 @@ class SyncChatrooms(APIView):
         if not member_id:
             context = get_error_context(False, "send member id in headers")
             return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
         query_params = request.query_params
 
         page = query_params.get('page', 1)
@@ -14377,10 +14419,9 @@ class SyncChatrooms(APIView):
             attachments_uploaded = data[46]
 
             if attachment_count > 0 and\
-                    attachments_uploaded is False:
-                if int(member_id) != int(data[14]):
-                    continue
-
+                    attachments_uploaded is False and\
+                    (int(member_id) != int(data[14]) or data[51] != device_id):
+                continue
 
             chatroom = {}
             chatroom['id'] = data[0]
@@ -14495,6 +14536,7 @@ class SyncChatrooms(APIView):
 
             chatroom['secret_chatroom_left'] = data[49]
 
+            # data[50] = has_reactions
             if data[50]:
                 reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
             else:
@@ -14677,6 +14719,8 @@ class SyncChatroomsDiff(APIView):
         if not member_id:
             raise InvalidHeaderException
 
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
         version_code = RequestUtilities.get_version_code_from_headers(request)
         is_platform_android = RequestUtilities.is_request_android(request)
         is_platform_ios = RequestUtilities.is_request_ios(request)
@@ -14747,9 +14791,9 @@ class SyncChatroomsDiff(APIView):
             attachments_uploaded = data[46]
 
             if attachment_count > 0 and \
-                    attachments_uploaded is False:
-                if int(member_id) != int(data[14]):
-                    continue
+                    attachments_uploaded is False and\
+                    (int(member_id) != int(data[14]) or data[51] != device_id):
+                continue
 
             chatroom = {}
             chatroom['id'] = data[0]
@@ -15043,6 +15087,8 @@ class SyncConversation(APIView):
 
             return JsonResponse(context)
 
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
         query_params = request.query_params
         page = query_params.get('page', 1)
         paginate_by = query_params.get('page_size', 200)
@@ -15065,7 +15111,8 @@ class SyncConversation(APIView):
                 conversations_data = CardAnswersDBSyncSerializer(conversation_filter, context=context, many=True)
                 conversations = conversations_data.data
 
-                max_last_updated = get_attachments_filtered_conversations(conversation_filter, conversations, member_id)
+                max_last_updated = get_attachments_filtered_conversations(conversation_filter, conversations,
+                                                                          member_id, device_id)
 
                 context = {
                     'conversations': conversations,
@@ -15084,7 +15131,7 @@ class SyncConversation(APIView):
                 conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
                 conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                        conversation_files_dict,
-                                                                                       member_id)
+                                                                                       member_id, device_id)
 
         elif community_id:
 
@@ -15098,7 +15145,7 @@ class SyncConversation(APIView):
             conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
             conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                    conversation_files_dict,
-                                                                                   member_id)
+                                                                                   member_id, device_id)
 
         else:
 
@@ -15108,7 +15155,7 @@ class SyncConversation(APIView):
             conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
             conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                    conversation_files_dict,
-                                                                                   member_id)
+                                                                                   member_id, device_id)
 
         context = {
             'conversations': conversations
@@ -15119,7 +15166,7 @@ class SyncConversation(APIView):
 
         return JsonResponse(context)
 
-    def get_processed_conversation_data(self, conversation_data, conversation_files_dict, member_id):
+    def get_processed_conversation_data(self, conversation_data, conversation_files_dict, member_id, device_id):
 
         conversation_list = []
         max_last_updated = 0
@@ -15144,7 +15191,9 @@ class SyncConversation(APIView):
                                             conversation_context['attachments_uploaded'],
                                             member_id,
                                             conversation[18],
-                                            conversation_context['member_id']):
+                                            conversation_context['member_id'],
+                                            conversation[28],
+                                            device_id):
                 continue
 
             if conversation[11]:
@@ -15245,7 +15294,7 @@ class SyncConversation(APIView):
                                                                        'multiple_select_no': conversation[22],
                                                                        'expiry_time': conversation[25],
                                                                        'member_id': member_id})
-
+            # conversation[27] = has_reactions
             if conversation[27]:
                 reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation_context['id'])
 
@@ -15438,11 +15487,13 @@ class SyncConversation(APIView):
 
         return chatroom_list
 
-    def is_attachments_uploaded(self, attachment_count, attachment_uploaded, member_id, api_version, conversation_creator_id):
+    def is_attachments_uploaded(self, attachment_count, attachment_uploaded, member_id,
+                                api_version, conversation_creator_id, conversation_device_id='', current_device_id=None):
 
         if (attachment_count > 0 and attachment_uploaded is False) \
-                                and ((NumberUtilities.get_integer_from_string(member_id)!= conversation_creator_id)
-                                or api_version <= 0):
+                and ((NumberUtilities.get_integer_from_string(member_id) != conversation_creator_id)
+                     or api_version <= 0 or
+                     conversation_device_id != current_device_id):
             return True
 
         return False
@@ -15453,6 +15504,9 @@ class SyncConversationDiff(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = get_member_id_from_headers(request)
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
         version_code = RequestUtilities.get_version_code_from_headers(request)
         is_platform_android = RequestUtilities.is_request_android(request)
         is_platform_ios = RequestUtilities.is_request_ios(request)
@@ -15508,7 +15562,7 @@ class SyncConversationDiff(APIView):
             conversations_data = CardAnswersDBSyncSerializer(conversation_list, context=context, many=True)
             conversations = conversations_data.data
 
-            get_attachments_filtered_conversations(conversation_list, conversations, member_id)
+            get_attachments_filtered_conversations(conversation_list, conversations, member_id, device_id)
 
         context = {
             'conversations': conversations,
@@ -15533,14 +15587,14 @@ class SyncConversationDiff(APIView):
         return ans_list
 
 
-def get_attachments_filtered_conversations(conversation_list, conversation_data, member_id):
+def get_attachments_filtered_conversations(conversation_list, conversation_data, member_id, device_id=''):
 
     conversation_last_index = len(conversation_data) - 1
     max_last_updated = 0
 
     for conversation in conversation_list[::-1]:
 
-        if is_draft_conversation(conversation, member_id):
+        if is_draft_conversation(conversation, member_id, device_id=device_id):
             del conversation_data[conversation_last_index]
             conversation_last_index -= 1
             continue

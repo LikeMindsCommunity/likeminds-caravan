@@ -371,6 +371,9 @@ class Collabcard(models.Model):
 
     has_reactions = models.BooleanField(default=False)
 
+    device_id = models.TextField(null=True)
+    platform = models.TextField(null=True)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = int(time.time() * 1000)

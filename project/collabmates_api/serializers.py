@@ -1606,20 +1606,20 @@ def report_tag_serializer(tag_instance):
 
 # ------------------------------- chatroom conversation data ------------------------------------
 
-def is_draft_conversation(conversation, current_user_id):
+def is_draft_conversation(conversation, current_user_id, device_id=''):
 
     if (conversation.attachment_count > 0 and
         conversation.attachments_uploaded is False) and\
             ((current_user_id and
               NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or
-             conversation.api_version <= 0):
+             conversation.api_version <= 0) and\
+            conversation.device_id != device_id:
         return True
 
     return False
 
 
-
-def conversationSerializer(conversation, current_user_id=None, fetch_reply=True):
+def conversationSerializer(conversation, current_user_id=None, fetch_reply=True, device_id=''):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
@@ -1688,7 +1688,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
         reply_conversation = conversation.reply
         temp['reply_conversation'] = reply_conversation.id
 
-        if fetch_reply and not is_draft_conversation(reply_conversation, current_user_id):
+        if fetch_reply and not is_draft_conversation(reply_conversation, current_user_id, device_id=device_id):
             temp['reply_conversation_object'] = conversationSerializer(reply_conversation,
                                                                        fetch_reply=False,
                                                                        current_user_id=current_user_id)
