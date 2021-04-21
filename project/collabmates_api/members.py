@@ -155,7 +155,7 @@ def get_secret_chatroom_tagging_list(chatroom_instance, community_instance, bloc
 def get_chatroom_participants_for_tagging(chatroom_id, blocked_users_list, current_member_id):
 
     participants_list = []
-    state_filter = Members.objects.filter(card_id=chatroom_id, remove=None).select_related('user')
+    state_filter = collabcardState.objects.filter(card_id=chatroom_id, remove=None).select_related('user')
 
     for data in state_filter:
 

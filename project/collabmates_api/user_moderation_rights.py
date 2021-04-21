@@ -260,31 +260,32 @@ def check_all_member_rights(user=None, community=None):
     respond_in_rooms = False
     invite_private = False
     auto_approve = False
-    
-    if user is not None:
-        user_member_rights = userMemberRights.objects\
-            .select_related('right')\
-            .filter(user=user, community=community)\
-            .order_by("right__state")
 
-        for right in user_member_rights:
-            right = right.right
-
-            if right.state == create_room_member_right['state']:
-                create_room = True
-            elif right.state == create_poll_member_right['state']:
-                create_poll = True
-            elif right.state == create_event_member_right['state']:
-                create_event = True
-            elif right.state == respond_in_rooms_member_right['state']:
-                respond_in_rooms = True
-            elif right.state == invite_private_member_right['state']:
-                invite_private = True
-            elif right.state == auto_approve_member_right['state']:
-                auto_approve = True
-
-    elif user is None:
+    if user is None and community is not None:
+        member_rights = communityRightsSettings.objects.select_related('right').filter(
+                        community=community).order_by("right__state")
+    elif user is not None and community is not None:
+        member_rights = userMemberRights.objects.select_related('right').filter(user=user,
+                                                                                community=community).order_by("right__state")
+    else:
+        member_rights = []
         respond_in_rooms = True
+
+    for right in member_rights:
+        right = right.right
+
+        if right.state == create_room_member_right['state']:
+            create_room = True
+        elif right.state == create_poll_member_right['state']:
+            create_poll = True
+        elif right.state == create_event_member_right['state']:
+            create_event = True
+        elif right.state == respond_in_rooms_member_right['state']:
+            respond_in_rooms = True
+        elif right.state == invite_private_member_right['state']:
+            invite_private = True
+        elif right.state == auto_approve_member_right['state']:
+            auto_approve = True
 
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
               "respond_in_rooms": respond_in_rooms, "invite_private": invite_private, "auto_approve": auto_approve}

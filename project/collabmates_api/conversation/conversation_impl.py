@@ -691,7 +691,9 @@ class ConversationImpl(ConversationManager):
             chatroom_instance.has_reactions = True
             chatroom_instance.save()
 
-        update_context = {'reaction': reaction}
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        update_context = {'reaction': reaction, 'updated_at': current_time}
 
         MessageReactions.objects.update_or_create(user=user_instance,
                                                   chatroom=chatroom_instance,

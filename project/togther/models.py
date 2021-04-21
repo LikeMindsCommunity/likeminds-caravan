@@ -1773,5 +1773,13 @@ class MessageReactions(models.Model):
     conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE, null=True)
     reaction = models.CharField(max_length=100, null=False)
 
+    updated_at = models.BigIntegerField(default=0)
+
     class Meta:
         unique_together = ['user', 'chatroom', 'conversation']
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+        self.updated_at = current_time
+
+        super(MessageReactions, self).save(*args, **kwargs)
