@@ -1031,12 +1031,13 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
         questions = get_question_data(response.question, member_state, send_back=send_back,
                                       user_id=current_user_id, community_id=community_id)
         if questions:
-            temp['community_id'] = community_id.id if isinstance(community_id, Community) else community_id
+            temp['community_id'] = community_id.id if isinstance(community_id, Community) else\
+                NumberUtilities.get_integer_from_string(community_id)
+
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
             temp['value'] = response.question_answer
-            # if '$#' in temp['value']:
-            #     temp['value'] = temp['value'].replace('$#', ', ')
+
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']

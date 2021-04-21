@@ -573,9 +573,7 @@ class ConversationImpl(ConversationManager):
             user_instance = ConversationHelper.fetch_user_instance(user_id=self.get_member_id())
 
         if chatroom_instance is None:
-            print("here 1")
             chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
-        print("here 2")
 
         if chatroom_instance.is_secret and \
                 not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
