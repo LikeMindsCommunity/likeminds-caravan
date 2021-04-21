@@ -1446,15 +1446,15 @@ def post_introduction_card_for_community(community_id, member_id):
     return False
 
 
-def update_chatroom_conversation_homescreen(card_instance, user_instance):
+def update_chatroom_conversation_homescreen(card_instance, user_instance, conversation_instance, community_instance):
 
-    update_my_chatrooms_for_users(chatroom_id=card_instance.id)
+    from .conversation.conversation_impl import ConversationHelper
 
-    ModelUtilities.get_model_filter(collabcardState,
-                                    {'card': card_instance,
-                                     'follow_status': True,
-                                     'remove': None}). \
-        filter(~Q(user=user_instance)).update(expiry_time=None, updated_at=TimeUtilities.current_time_in_sec())
+    ConversationHelper.update_the_activity_time_for_new_conversation_creation(card_instance.id, user_instance.id)
+
+    ConversationHelper.update_homescreen_meta_on_conversation_creation(community_instance,
+                                                                       card_instance,
+                                                                       conversation_instance)
 
 
 def create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro):
@@ -1490,7 +1490,7 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
                                                 'preview_url': preview_url,
                                                 'conversation_id': answer_instance.id})
 
-    update_chatroom_conversation_homescreen(master_intro, user_instance)
+    update_chatroom_conversation_homescreen(master_intro, user_instance, answer_instance, community_instance)
 
     return answer_instance
 
