@@ -6045,6 +6045,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
                                                       chatroom_instance=ans.preview_chatroom,
                                                       send_preview_text=False)
                         if preview:
+                            context['preview'] = preview
                             update_preview_of_chatroom_in_cache.delay({'preview_object': context['preview'],
                                                                        'chatroom_id': ans.preview_chatroom_id,
                                                                        'conversation_id': ans.id})
