@@ -10949,56 +10949,131 @@ def push(request):
     return JsonResponse({'success': success})
 
 
+def create_mixpanel_statistics(user_instance, userinfo_instance):
+
+    if not user_instance:
+        return
+
+    context = {}
+    context['user'] = get_logged_in_user(userinfo_instance)
+
+    user_metrics = {}
+    # user_profile = userinfo_instance
+    # member_id=user_instance.id
+    user_metrics['first_login'] = TimeUtilities.convert_epoch_time_to_data_mon_no_year(userinfo_instance.created_at)
+
+    member_states_list = [
+        member_states.ADMIN,
+        member_states.PENDING_MEMBER,
+        member_states.MEMBER,
+        member_states.PROFILE_UNAVAILABLE
+    ]
+
+    member_filter = Members.objects.filter(member_id=user_instance, state__in=member_states_list)
+
+    user_metrics['count_communities_joined'] = len(member_filter)
+
+    community_id_list = []
+
+    is_any_community_promoter = False
+
+    for data in member_filter:
+        community_id_list.append(data.community_id_id)
+
+        if not is_any_community_promoter \
+                and data.state == member_states.ADMIN:
+            is_any_community_promoter = True
+
+    if community_id_list:
+        community_filter = Community.objects.filter(id__in=community_id_list).only('name')
+
+        community_names = ""
+
+        for data in community_filter:
+            community_names = community_names + str(data.name) + ","
+
+        user_metrics['name_communities_joined'] = community_names
+
+    user_metrics['is_any_community_promoter'] = is_any_community_promoter
+
+    user_metrics['unique_chatroom_responded'] = len(card_answers.objects.filter(user=user_instance
+                                                                            ).values('card').distinct())
+
+    user_metrics['count_chatroom_created'] = Collabcard.objects.filter(user=user_instance,
+                                                                       is_pending=False, is_deleted=False).count()
+
+    total_chatrooms_count = collabcardState.objects.filter(user=user_instance, follow_status=True).count()
+
+    followed_count = total_chatrooms_count - user_metrics['count_chatroom_created']
+    user_metrics['count_chatroom_followed'] = followed_count
+
+    context['user_metrics'] = user_metrics
+
+    if settings.IS_BETA:
+        context['token'] = "eb1e03c8be370040278bff61a4857608"
+    else:
+        context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
+
+    return context
+
+
 def config(request):
-    '''function to update the version number of android for a user profile'''
+    """function to update the version number of android for a user profile"""
 
     member_id = get_member_id_from_headers(request)
 
     context = {}
-    if not member_id:
+
+    user_instance = User.get_user_or_none(member_id)
+
+    if not user_instance:
         context = get_error_context(False, "send member id in headers")
-        return context
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     # update version code
 
     version_code = get_version_code_from_headers(request)
+    userinfo_instance = user_instance.userinfo
 
-    userinfo_filter = Userinfo.objects.filter(user_id=member_id)
+    version_code = NumberUtilities.get_integer_from_string(version_code)
 
-    if userinfo_filter:
-        userinfo_instance = userinfo_filter[0]
-
-        if userinfo_instance.version_code != NumberUtilities.get_integer_from_string(version_code):
-            userinfo_instance.version_code = version_code
-            userinfo_instance.save()
-
-
-    # sending mobile number exists key
-    mobile_no_exists = userMobiles.objects.filter(user=member_id).exists()
+    if userinfo_instance.version_code != version_code:
+        userinfo_instance.version_code = version_code
+        userinfo_instance.save()
 
     context['success'] = True
-    context['mobile_no_exists'] = mobile_no_exists
+    context['mobile_no_exists'] = ModelUtilities.is_model_filter_exists(userMobiles, {'user': user_instance})
 
-    access = is_user_community_part(member_id)
+    access = is_user_community_part(user_instance.id)
     context['access'] = access
 
-    # mixpanel changes
+    context['survey_seen'] = False
+    survey_filter = ModelUtilities.get_model_filter(userSurvey, {'user': user_instance})
+
+    if survey_filter:
+        survey_instance = survey_filter[0]
+        context['survey_seen'] = survey_instance.survey_seen
+
+    # set installed flags in case of mobile devices
+    if RequestUtilities.is_request_android(request) \
+            or RequestUtilities.is_request_ios(request):
+        set_installed_flag(user_instance)
+
+
+    #mixpanel changes
     try:
-        user_detail = get_mixpanel_statistics(member_id)
+        user_detail = create_mixpanel_statistics(user_instance, userinfo_instance)
         context['user_detail'] = user_detail
     except Exception as e:
         error_logger.error(e)
 
     context['updatePriority'] = 0
 
-    # set installed flags in case of mobile devices
-    if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
-        set_installed_flag(member_id)
-
     return JsonResponse(context)
 
 
-def set_installed_flag(member_id):
+def set_installed_flag(user_instance):
     """
     event when user installed the app
     """
@@ -11007,10 +11082,10 @@ def set_installed_flag(member_id):
         notification_list = [
             'mail_has_installed_app'
         ]
-        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
+        create_notification_flag(user_instance, notification_list, card_id=None, community_id=None, flag=False)
 
-        user_instance = User.objects.get(id=member_id)
         app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
+
         if created:
             app_uninstall.uninstall_days = 0
             app_uninstall.save()

@@ -1,14 +1,15 @@
-from togther.models import userMobiles
+from togther.models import userMobiles,ModelUtilities, userSurvey
 from django.contrib.auth.models import User
 from collabmates_api.user.user_manager import UserManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.exception_utilities import InvalidUserException
 from rest_framework import status as status_codes
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
-class UserImpl(UserManager):
 
+class UserImpl(UserManager):
     user_id = None
     mobile_no = None
 
@@ -72,6 +73,23 @@ class UserImpl(UserManager):
 
             else:
                 return False
+
+    def survey_seen(self) -> dict:
+
+        user_instance = User.get_user_or_none(self.get_user_id())
+
+        if not user_instance:
+            return {'error_message': "In-valid user id", 'success': False}
+
+        survey_filter = ModelUtilities.get_model_filter(userSurvey, {'user': user_instance})
+
+        if not survey_filter:
+            userSurvey.create_instance({
+                'user_instance': user_instance,
+                'survey_seen': True
+            })
+
+        return {'success': True}
 
 
 class UserHelper:

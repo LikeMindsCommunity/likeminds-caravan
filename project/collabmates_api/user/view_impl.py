@@ -3,46 +3,62 @@ from rest_framework.views import APIView
 from utility.request_utilities import RequestUtilities
 from django.conf import settings
 from collabmates_api.user.user_impl import UserImpl
+from rest_framework import status as status_codes
+
 
 class DeleteUserView(APIView):
+    '''inheriting API view class for using class based views in django'''
 
-        '''inheriting API view class for using class based views in django'''
+    def post(self, request):
 
-        def post(self, request):
+        if settings.IS_BETA:
 
-            if settings.IS_BETA:
+            request_body = RequestUtilities.fetch_request_body(request)
+            request_values = self.process_request_body(request_body)
+            user_manager = UserImpl(user_id=request_values[0], mobile_no=request_values[1])
+            user_deleted = user_manager.delete_user()
 
-                request_body = RequestUtilities.fetch_request_body(request)
-                request_values = self.process_request_body(request_body)
-                user_manager = UserImpl(user_id = request_values[0], mobile_no = request_values[1])
-                user_deleted = user_manager.delete_user()
+            if user_deleted:
+                return JsonResponse({'success': True})
 
-                if user_deleted:
-                    return JsonResponse({'success':True})
+            return JsonResponse({
+                'success': False,
+                'error_message': "credentials not found"
+            }, status=400)
 
-                return JsonResponse({
-                    'success': False,
-                    'error_message': "credentials not found"
-                }, status=400)
+        else:
+            api_response = {
+                'success': False,
+                'error_message': "resource not found"
+            }
+            return JsonResponse(api_response, status=404)
 
-            else:
-                api_response = {
-                    'success': False,
-                    'error_message': "resource not found"
-                }
-                return JsonResponse(api_response,status=404)
+    def process_request_body(self, request_body):
 
-        def process_request_body(self, request_body):
+        user_id = None
+        mobile_no = None
 
-            user_id = None
-            mobile_no = None
+        if 'user_id' in request_body and request_body['user_id']:
+            user_id = request_body['user_id']
 
-            if 'user_id' in request_body and request_body['user_id']:
-                user_id = request_body['user_id']
+        elif 'mobile_no' in request_body and request_body['mobile_no']:
+            mobile_no = request_body['mobile_no']
 
-            elif 'mobile_no' in request_body and request_body['mobile_no']:
-                mobile_no = request_body['mobile_no']
-
-            return (user_id,mobile_no)
+        return user_id, mobile_no
 
 
+class UserSeenSurvey(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        try:
+            user_manager = UserImpl(user_id=member_id, mobile_no="")
+            user_context = user_manager.survey_seen()
+        except Exception as e:
+            print(e.args)
+
+        if user_context.get('error_message'):
+            return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(user_context)

@@ -1739,6 +1739,34 @@ class homeSnackbar(models.Model):
         super(homeSnackbar, self).save(*args, **kwargs)
 
 
+class userSurvey(models.Model):
+
+    """table to save the survey details of user for NPS"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    survey_seen = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+
+        instance = userSurvey()
+        instance.user = create_info.get('user_instance')
+        instance.survey_seen = create_info.get('survey_seen')
+        instance.save()
+
+    def save(self, *args, **kwargs):
+
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_ms
+
+        self.updated_at = current_time_ms
+
+        super(userSurvey, self).save(*args, **kwargs)
+
+
 class ModelUtilities:
     """class contains utility functions for models"""
 
@@ -1786,3 +1814,4 @@ class MessageReactions(models.Model):
         self.updated_at = current_time
 
         super(MessageReactions, self).save(*args, **kwargs)
+
