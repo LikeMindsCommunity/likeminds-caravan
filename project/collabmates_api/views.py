@@ -11002,9 +11002,10 @@ def create_mixpanel_statistics(user_instance, userinfo_instance):
     user_metrics['count_chatroom_created'] = Collabcard.objects.filter(user=user_instance,
                                                                        is_pending=False, is_deleted=False).count()
 
-    total_chatrooms_count = collabcardState.objects.filter(user=user_instance, follow_status=True).count()
+    followed_count = collabcardState.objects.filter(user=user_instance,
+                                                    follow_status=True).filter(
+        ~Q(card__user=user_instance)).count()
 
-    followed_count = total_chatrooms_count - user_metrics['count_chatroom_created']
     user_metrics['count_chatroom_followed'] = followed_count
 
     context['user_metrics'] = user_metrics
