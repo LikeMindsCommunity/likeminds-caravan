@@ -1399,7 +1399,7 @@ def post_introduction_card_for_community(community_id, member_id):
         question_id = check_intro[0].id
         introduction_answer_list = communityAnswers.objects.filter(community=community_id, member=member_id,
                                                                    question_id=question_id)
-        if introduction_answer_list.exists():
+        if introduction_answer_list:
             introduction_answer = introduction_answer_list[0].question_answer
             req_dict = {
                 'member_id': member_id,
@@ -1417,9 +1417,12 @@ def post_introduction_card_for_community(community_id, member_id):
             if not master_intro:
                 return
 
-            intro_filter = Collabcard.objects.filter(community=community_id, user=member_id, type=card_types.CARD_INTRO)
+            intro_filter = Collabcard.objects.filter(community=community_id,
+                                                     user=member_id,
+                                                     type=card_types.CARD_INTRO,
+                                                     is_deleted=False)
 
-            if not intro_filter.exists():
+            if not intro_filter:
                 context = create_card_internal(member_id, community_id, req_dict)
                 card_instance = context.get('card_instance')
                 user_instance = User.get_user_or_none(member_id)
@@ -2051,7 +2054,9 @@ def edit_member_profile(request):
         if answer.question.question_state == question_states.INTRODUCTION:
 
             collabcard_filter = Collabcard.objects.filter(community=community_instance,
-                                                          user=user_instance, title=answer.question_answer)
+                                                          user=user_instance,
+                                                          is_deleted=False,
+                                                          type=card_types.CARD_INTRO)
 
             if collabcard_filter:
                 collabcard_id = collabcard_filter[0].id
@@ -2385,18 +2390,21 @@ def remove_from_member(request):
 
             for member in member_ids:
                 member_filter = Members.objects.filter(community_id=community_id, member_id=member)
-                if member_filter.exists():
+
+                if member_filter:
                     member_state = member_filter[0].state
                     is_owner = member_filter[0].is_owner
                     eligible_member_states = [member_states.ADMIN, member_states.MEMBER,
                                               member_states.PROFILE_UNAVAILABLE,
                                               member_states.KNOWN_NOMINATED_PROMOTER]
+
                     if not is_owner and member_state in eligible_member_states:
 
                         user_instance = member_filter[0].member_id
 
                         remove_members(community_id, user_instance.id,
-                                       removed_state=deleted_members.REMOVED)
+                                       removed_state=deleted_members.REMOVED,
+                                       current_user_instance=current_user_instance)
 
                         save_moderation_history(user=user_instance, community=community_instance,
                                                 moderation_by=current_user_instance,
@@ -2442,7 +2450,8 @@ def remove_from_member(request):
         is_pending = Members.objects.filter(state=member_states.PENDING_MEMBER, community_id=community_id,
                                             member_id=member_id)
         if is_pending.exists():
-            remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
+            remove_members(community_id, member_id, removed_state=deleted_members.LEFT,
+                           current_user_instance=current_user_instance)
             toast_filter = communityToast.objects.filter(community_id=community_id, user=member_id)
             toast_filter.update(toast_message="Your request for joining this community is cancelled")
 
@@ -2465,7 +2474,8 @@ def remove_from_member(request):
 
         if is_member.exists():
             user_instance = User.objects.get(pk=member_id)
-            remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
+            remove_members(community_id, member_id, removed_state=deleted_members.LEFT,
+                           current_user_instance=current_user_instance)
 
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=current_user_instance,
@@ -2495,7 +2505,7 @@ def remove_from_member(request):
 
 
 @csrf_exempt
-def remove_members(community_id, member_id, removed_state):
+def remove_members(community_id, member_id, removed_state, current_user_instance):
     '''function to remove member'''
 
     try:
@@ -2517,9 +2527,22 @@ def remove_members(community_id, member_id, removed_state):
         # toast_filter = communityToast.objects.filter(community=community_instance,user=user_instance)
         if removed_state == deleted_members.LEFT:
             update_community_toast(user_instance, community_instance, message="You left the community.")
+
         elif removed_state == deleted_members.REMOVED:
             update_community_toast(user_instance, community_instance,
                                    message="You are no longer a member of this community.")
+
+        # removing the intro chatroom
+        intro_filter = Collabcard.objects.filter(community=community_id,
+                                  user=member_id,
+                                  type=card_types.CARD_INTRO,
+                                  is_deleted=False)
+        if intro_filter:
+            intro_instance = intro_filter[0]
+            intro_instance.is_deleted=True
+            intro_instance.deleted_by_user = current_user_instance
+            intro_instance.save()
+            update_multiple_previews_in_chatroom.delay({'chatroom_id': intro_instance.id})
 
         # saving collabcard state in update status
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
@@ -2540,13 +2563,6 @@ def remove_members(community_id, member_id, removed_state):
 
     profile_removed = communityAnswers.objects.filter(community=community_id, member=member_id).delete()
     # print(profile_removed)
-
-    # removing the created chatrooms
-    intro_chatroom = Collabcard.objects.filter(community=community_id, user=member_id,
-                                               type=card_types.CARD_INTRO)
-    if intro_chatroom.exists():
-        create_chatroom_delete_backup(intro_chatroom[0], user_instance, removing_member=True)
-        intro_chatroom.delete()
 
     # removing the draft chatrooms
     draft_removed = draftChatroom.objects.filter(community=community_id, user=member_id).delete()
@@ -14543,6 +14559,7 @@ class SyncChatrooms(APIView):
             else:
                 reactions = []
 
+            chatroom['remove_id'] = data[52]
             chatroom['reactions'] = reactions if reactions else []
 
             chatrooms.append(chatroom)

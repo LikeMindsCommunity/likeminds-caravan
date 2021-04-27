@@ -584,93 +584,6 @@ def ranking_all_users_and_communities():
     info_logger.info("Ranking Script Execution Time:", diff)
 
 
-def fetch_chatrooms_query(user_id, limit, page, last_updated):
-    '''function to update chatroom data'''
-
-    try:
-        conn = get_connection()
-        curr = conn.cursor()
-
-        offset = (int(page) - 1) * int(limit)
-
-        last_updated = int(last_updated)
-
-        sql = """
-            SELECT   togther_collabcard.id,
-                     togther_collabcard.title,
-                     togther_collabcard.community_id,
-                     togther_collabcard.answer_text,
-                     togther_collabcard.image_count,
-                     togther_collabcard.pdf_count,
-                     togther_collabcard.video_count,
-                     togther_collabcard.audio_count,
-                     togther_collabcard.type,
-                     togther_collabcard.date_time,
-                     togther_collabcard.is_pending,
-                     togther_collabcard.attending_count,
-                     togther_collabcard.polls_count,
-                     togther_collabcard.date_epoch,
-                     togther_collabcard.user_id,
-                     togther_collabcard.has_been_named,
-                     togther_collabcard.header,
-                     togther_collabcardState.state,
-                     togther_collabcardState.mute_status,
-                     togther_collabcardState.follow_status,
-                     togther_collabcardState.is_guest,
-                     togther_collabcardState.is_tagged,
-                     togther_collabcardState.last_seen_conversation_id,
-                     togther_collabcardState.expiry_time,
-                     togther_collabcardState.attending_status,
-                     togther_collabcard.has_files,
-                     togther_collabcard.is_poll_anonymous,
-                     togther_collabcard.allow_add_option,
-                     togther_collabcard.multiple_select_state,
-                     togther_collabcard.multiple_select_no,
-                     togther_collabcard.is_poll_anonymous,
-                     togther_collabcard.poll_type,
-                     togther_collabcard.end_date,
-                     togther_collabcard.about,
-                     togther_collabcard.co_hosts,
-                     togther_collabcard.online_link,
-                     togther_collabcard.og_tags,
-                     togther_collabcard.internal_link,
-                     togther_collabcard.deleted_by_user_id,
-                     togther_collabcardState.updated_at,
-                     togther_community.name,
-                     togther_collabcard.duration,
-                     togther_collabcard.location,
-                     togther_collabcard.location_lat,
-                     togther_collabcard.location_long,
-                     togther_collabcard.attachment_count,
-                     togther_collabcard.attachments_uploaded,
-                     togther_collabcard.is_secret,
-                     togther_collabcard.secret_chatroom_participants,
-                     togther_collabcardState.secret_chatroom_left,
-                     togther_collabcard.has_reactions,
-                     togther_collabcard.device_id
-            FROM togther_collabcard
-            INNER JOIN togther_collabcardState
-                ON togther_collabcardState.card_id = togther_collabcard.id
-            INNER JOIN togther_community
-                ON togther_community.id = togther_collabcard.community_id
-            WHERE togther_collabcardState.user_id=%s
-                    AND togther_collabcardState.remove_id is null
-                    AND togther_collabcardState.updated_at > %s
-            ORDER BY  togther_collabcardState.updated_at limit %s offset %s
-            
-                """ % (str(user_id), str(last_updated), str(limit), str(offset))
-
-        curr.execute(sql)
-        data = curr.fetchall()
-        curr.close()
-        chatroom_id_list = get_chatroom_id_list(data)
-
-        return data, chatroom_id_list
-
-    except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL %s ", error)
-
-
 def fetch_chatroom_polls(chatroom_id_list):
     '''function to update chatroom data'''
 
@@ -851,7 +764,8 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
              togther_collabcard.secret_chatroom_participants,
              togther_collabcardState.secret_chatroom_left,
              togther_collabcard.has_reactions,
-             togther_collabcard.device_id
+             togther_collabcard.device_id,
+             togther_collabcardState.remove_id
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -859,7 +773,6 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
             ON togther_community.id = togther_collabcard.community_id
         WHERE togther_collabcardState.user_id=%s
                 AND togther_collabcardState.card_id=%s
-                AND togther_collabcardState.remove_id is NULL 
                 AND togther_collabcardState.updated_at > %s
         
         """ % (
@@ -871,7 +784,6 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
         chatroom_id_list = get_chatroom_id_list(data)
 
         return data, chatroom_id_list
-
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s", error)
@@ -935,7 +847,8 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
              togther_collabcard.secret_chatroom_participants,
              togther_collabcardState.secret_chatroom_left,
              togther_collabcard.has_reactions,
-             togther_collabcard.device_id
+             togther_collabcard.device_id,
+             togther_collabcardState.remove_id
     FROM togther_collabcard
     INNER JOIN togther_collabcardState
         ON togther_collabcardState.card_id = togther_collabcard.id
@@ -943,7 +856,6 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
         ON togther_community.id = togther_collabcard.community_id
     WHERE togther_collabcard.community_id=%s
             AND togther_collabcardState.user_id = %s
-            AND togther_collabcardState.remove_id is null
             AND togther_collabcardState.updated_at > %s
     ORDER BY  togther_collabcardState.updated_at limit %s offset %s
     
@@ -959,6 +871,93 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
         return data, chatroom_id_list
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
+
+
+def fetch_chatrooms_query(user_id, limit, page, last_updated):
+    '''function to update chatroom data'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        offset = (int(page) - 1) * int(limit)
+
+        last_updated = int(last_updated)
+
+        sql = """
+            SELECT   togther_collabcard.id,
+                     togther_collabcard.title,
+                     togther_collabcard.community_id,
+                     togther_collabcard.answer_text,
+                     togther_collabcard.image_count,
+                     togther_collabcard.pdf_count,
+                     togther_collabcard.video_count,
+                     togther_collabcard.audio_count,
+                     togther_collabcard.type,
+                     togther_collabcard.date_time,
+                     togther_collabcard.is_pending,
+                     togther_collabcard.attending_count,
+                     togther_collabcard.polls_count,
+                     togther_collabcard.date_epoch,
+                     togther_collabcard.user_id,
+                     togther_collabcard.has_been_named,
+                     togther_collabcard.header,
+                     togther_collabcardState.state,
+                     togther_collabcardState.mute_status,
+                     togther_collabcardState.follow_status,
+                     togther_collabcardState.is_guest,
+                     togther_collabcardState.is_tagged,
+                     togther_collabcardState.last_seen_conversation_id,
+                     togther_collabcardState.expiry_time,
+                     togther_collabcardState.attending_status,
+                     togther_collabcard.has_files,
+                     togther_collabcard.is_poll_anonymous,
+                     togther_collabcard.allow_add_option,
+                     togther_collabcard.multiple_select_state,
+                     togther_collabcard.multiple_select_no,
+                     togther_collabcard.is_poll_anonymous,
+                     togther_collabcard.poll_type,
+                     togther_collabcard.end_date,
+                     togther_collabcard.about,
+                     togther_collabcard.co_hosts,
+                     togther_collabcard.online_link,
+                     togther_collabcard.og_tags,
+                     togther_collabcard.internal_link,
+                     togther_collabcard.deleted_by_user_id,
+                     togther_collabcardState.updated_at,
+                     togther_community.name,
+                     togther_collabcard.duration,
+                     togther_collabcard.location,
+                     togther_collabcard.location_lat,
+                     togther_collabcard.location_long,
+                     togther_collabcard.attachment_count,
+                     togther_collabcard.attachments_uploaded,
+                     togther_collabcard.is_secret,
+                     togther_collabcard.secret_chatroom_participants,
+                     togther_collabcardState.secret_chatroom_left,
+                     togther_collabcard.has_reactions,
+                     togther_collabcard.device_id,
+                     togther_collabcardState.remove_id
+            FROM togther_collabcard
+            INNER JOIN togther_collabcardState
+                ON togther_collabcardState.card_id = togther_collabcard.id
+            INNER JOIN togther_community
+                ON togther_community.id = togther_collabcard.community_id
+            WHERE togther_collabcardState.user_id=%s
+                    AND togther_collabcardState.updated_at > %s
+            ORDER BY  togther_collabcardState.updated_at limit %s offset %s
+
+                """ % (str(user_id), str(last_updated), str(limit), str(offset))
+
+        curr.execute(sql)
+        data = curr.fetchall()
+        curr.close()
+        chatroom_id_list = get_chatroom_id_list(data)
+
+        return data, chatroom_id_list
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
 def get_chatroom_id_list(data):
@@ -1213,14 +1212,14 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
                  togther_collabcard.secret_chatroom_participants,
                  togther_collabcardState.secret_chatroom_left,
                  togther_collabcard.has_reactions,
-                 togther_collabcard.device_id
+                 togther_collabcard.device_id,
+                 togther_collabcardState.remove_id
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
         INNER JOIN togther_community
             ON togther_community.id = togther_collabcard.community_id
         WHERE togther_collabcardState.user_id=%s
-                AND togther_collabcardState.remove_id is null
                 AND togther_collabcardState.updated_at > %s
                 AND follow_status = %s
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
@@ -1302,14 +1301,14 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
                          togther_collabcard.secret_chatroom_participants,
                          togther_collabcardState.secret_chatroom_left,
                          togther_collabcard.has_reactions,
-                         togther_collabcard.device_id
+                         togther_collabcard.device_id,
+                         togther_collabcardState.remove_id
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
         INNER JOIN togther_community
             ON togther_community.id = togther_collabcard.community_id
         WHERE togther_collabcardState.user_id=%s
-                AND togther_collabcardState.remove_id is null
                 AND %s
                 AND togther_collabcardState.updated_at > %s
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
@@ -1391,14 +1390,14 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                          togther_collabcard.secret_chatroom_participants,
                          togther_collabcardState.secret_chatroom_left,
                          togther_collabcard.has_reactions,
-                         togther_collabcard.device_id
+                         togther_collabcard.device_id,
+                         togther_collabcardState.remove_id
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
         INNER JOIN togther_community
             ON togther_community.id = togther_collabcard.community_id
         WHERE togther_collabcardState.user_id=%s
-                AND togther_collabcardState.remove_id is null
                 AND %s
                 AND togther_collabcardState.follow_status = %s
                 AND togther_collabcardState.updated_at > %s

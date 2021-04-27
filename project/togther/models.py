@@ -547,7 +547,7 @@ class card_answers(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=-9223372036854775808)
     state = models.IntegerField(default=0)
-    remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
+    remove = models.ForeignKey(removedMembers, on_delete=models.SET_NULL, null=True)
     community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
     is_guest = models.BooleanField(default=False)
     og_tags = models.TextField(null=True)
@@ -681,7 +681,7 @@ class collabcardState(models.Model):
     updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
 
     # if got removed saving the previous state
-    remove = models.ForeignKey(removedMembers, on_delete=models.CASCADE, null=True)
+    remove = models.ForeignKey(removedMembers, on_delete=models.SET_NULL, null=True)
 
     mute_status = models.BooleanField(default=False)
     follow_status = models.BooleanField(default=False)
