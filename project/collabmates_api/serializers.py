@@ -193,7 +193,7 @@ def get_logged_in_user(user_instance):
         user_id = user_instance.user_id_id
 
     else:
-        context = UserinfoSerializer(user_instance)
+        context = UserinfoSerializer(user_instance.userinfo)
         user_id = user_instance.id
 
     email_list = get_user_email_list(user_id)
