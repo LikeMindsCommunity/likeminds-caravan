@@ -293,11 +293,23 @@ def get_pending_members_of_community(community_id, requested_member_id):
     return pending_requests
 
 
-def get_secret_chatroom_participants(chatroom_instance, community_id, current_user_id, page=1):
+def get_secret_chatroom_participants(chatroom_instance, current_user_id, page=1, filter_list=None):
     member_profile_list = []
     current_user_id = NumberUtilities.get_integer_from_string(current_user_id)
 
     participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
+
+    if filter_list:
+        try:
+            filter_list = json.loads(filter_list)
+        except:
+            response = {
+                'success': False,
+                'error_message': 'Json decode error - error at filter list'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        participants_list = list(get_filtered_users(filter_list, participants_list))
 
     # removing and adding current user id, so as to show his profile on top
     # following this procedure in order to ensure current user id is present at the first page and not duplicated
@@ -499,7 +511,7 @@ def get_all_members_version_1(request, req_dict=None):
             chatroom_instance = chatroom_instance[0]
 
         if chatroom_instance.is_secret:
-            return get_secret_chatroom_participants(chatroom_instance, community_id, current_user_id, page)
+            return get_secret_chatroom_participants(chatroom_instance, current_user_id, page, filter_list=filter_list)
 
         if is_request_web(request):
             return collabcard_members(chatroom_instance, community_id, current_user_id, page)
@@ -736,15 +748,16 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
     return members
 
 
-def get_filtered_users(filter_list,member_list):
+def get_filtered_users(filter_list, member_list):
 
     '''function to get filtered users'''
 
-    member_set = set()
-    for data in member_list:
-        member_set.add(data.member_id.id)
+    if not isinstance(member_list, list):
+        member_set = set(data.member_id_id for data in member_list)
+    else:
+        member_set = set(member_list)
 
-    filter_map={}
+    filter_map = dict()
     for data in filter_list:
         key_list = []
         question_id = data['question_id']
@@ -763,16 +776,17 @@ def get_filtered_users(filter_list,member_list):
 
         question_id = key
         question_set = set()
-        for option in value:
 
-            question_filters = questionFilters.objects.filter(filter=option,
-                                                              question=question_id)
-            for instance in question_filters:
-                question_set.add(instance.member.id)
+        for option in value:
+            question_set = set(questionFilters.objects
+                               .filter(filter=option, question=question_id)
+                               .only('member_id')
+                               .values_list('member_id', flat=True))
+
         distinct_members[question_id] = question_set
 
     for key, value in distinct_members.items():
-        member_set = intersect_sets(member_set,value)
+        member_set = intersect_sets(member_set, value)
 
     return member_set
 
@@ -932,11 +946,9 @@ def get_paginated_member_queryset(page, community_id, promoter=False):
 
     res = cursor.fetchall()
 
-    member_ids = []
+    member_id_list = [obj[0] for obj in res]
 
-    for id in res:
-        instance = Members.objects.get(id=id[0])
-        member_ids.append(instance)
+    member_ids = Members.objects.filter(pk__in=member_id_list)
 
     return member_ids
 

@@ -11659,6 +11659,16 @@ class AllMembersVersion1(APIView):
 
         if not member_id:
             raise InvalidHeaderException()
+        
+        platform_code = RequestUtilities.get_request_type(request)
+        
+        if platform_code == INVALID_PLATFORM:
+            response = {
+                'success': False,
+                'error_message': 'Invalid platform code'
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         context = get_all_members_version_1(request)
 
