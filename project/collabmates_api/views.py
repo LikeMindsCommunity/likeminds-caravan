@@ -11061,7 +11061,6 @@ def config(request):
             or RequestUtilities.is_request_ios(request):
         set_installed_flag(user_instance)
 
-
     #mixpanel changes
     try:
         user_detail = create_mixpanel_statistics(user_instance, userinfo_instance)
@@ -11070,6 +11069,7 @@ def config(request):
         error_logger.error(e)
 
     context['updatePriority'] = 0
+    context['use_segment'] = True
 
     return JsonResponse(context)
 
