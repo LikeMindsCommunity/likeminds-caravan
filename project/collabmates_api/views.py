@@ -407,8 +407,12 @@ def is_draft_conversation(conversation, current_user_id, device_id=''):
 
 
 def is_draft_chatroom(chatroom_instance, member_id, device_id):
-    if (chatroom_instance.attachment_count > 0 and \
-            chatroom_instance.attachments_uploaded is False) and \
+
+    if isinstance(member_id, str):
+        member_id = NumberUtilities.get_integer_from_string(member_id)
+
+    if (chatroom_instance.attachment_count > 0 and
+        chatroom_instance.attachments_uploaded is False) and \
             (member_id != chatroom_instance.user_id or
              device_id != chatroom_instance.device_id):
         return True
@@ -8523,10 +8527,7 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, device_id='')
     for data in chatroom_list:
         card_instance = data.card
 
-        if card_instance.attachment_count > 0 and\
-                card_instance.attachments_uploaded is False and\
-                member_id != card_instance.user_id and\
-                device_id == card_instance.device_id:
+        if is_draft_chatroom(card_instance, member_id, device_id):
             continue
 
         if card_instance.is_secret:
@@ -8586,10 +8587,7 @@ def get_chatrooms_version_2(chatroom_list, member_id, active=None, device_id='')
     for data in chatroom_list:
         card_instance = data.card
 
-        if card_instance.attachment_count > 0 and\
-                card_instance.attachments_uploaded is False and\
-                int(member_id) != card_instance.user.id and\
-                device_id == card_instance.device_id:
+        if is_draft_chatroom(card_instance, member_id, device_id):
             continue
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id, state_instance=data)

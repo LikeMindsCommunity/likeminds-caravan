@@ -1628,8 +1628,8 @@ def is_draft_conversation(conversation, current_user_id, device_id=''):
         conversation.attachments_uploaded is False) and\
             ((current_user_id and
               NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or
-             conversation.api_version <= 0) and\
-            conversation.device_id != device_id:
+             conversation.api_version <= 0 or
+             conversation.device_id != device_id):
         return True
 
     return False
