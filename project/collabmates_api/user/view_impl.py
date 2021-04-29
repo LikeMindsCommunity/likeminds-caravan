@@ -52,11 +52,24 @@ class UserSeenSurvey(APIView):
     def post(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
-        try:
-            user_manager = UserImpl(user_id=member_id, mobile_no="")
-            user_context = user_manager.survey_seen()
-        except Exception as e:
-            print(e.args)
+        user_manager = UserImpl(user_id=member_id, mobile_no="")
+        user_context = user_manager.survey_seen()
+
+        if user_context.get('error_message'):
+            return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(user_context)
+
+
+class UserLogout(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        user_manager = UserImpl(user_id=member_id, mobile_no="")
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
+        user_context = user_manager.logout(device_id)
 
         if user_context.get('error_message'):
             return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)

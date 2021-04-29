@@ -8,7 +8,9 @@ class UserManager(metaclass=abc.ABCMeta):
         return (hasattr(subclass, 'delete_user') and
                 callable(subclass.delete_user) and
                 (hasattr(subclass, 'survey_seen') and
-                 callable(subclass.survey_seen)) or
+                 callable(subclass.survey_seen)) and
+                (hasattr(subclass, 'logout') and
+                 callable(subclass.logout)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -20,6 +22,13 @@ class UserManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def survey_seen(self) -> {}:
+        """
+        save the flag for survey seen
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def logout(self, device_id) -> {}:
         """
         save the flag for survey seen
         """

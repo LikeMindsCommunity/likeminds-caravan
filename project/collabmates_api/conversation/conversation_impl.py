@@ -359,11 +359,16 @@ class ConversationImpl(ConversationManager):
                                                 conversation_instance, user_instance, member_state):
 
         if chatroom_state_instance:
+            current_follow_status = chatroom_state_instance.follow_status
+
             chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
             chatroom_state_instance.expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
             chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             chatroom_state_instance.save()
+
+            if not current_follow_status:
+                create_chatroom_engagement(chatroom_instance, user_instance, member_state=member_state)
 
         else:
 

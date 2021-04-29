@@ -1,7 +1,8 @@
-from togther.models import userMobiles,ModelUtilities, userSurvey
+from togther.models import userMobiles, ModelUtilities, userSurvey, userDevices
 from django.contrib.auth.models import User
 from collabmates_api.user.user_manager import UserManager
 from external_services.logging.logging_wrapper import LoggingWrapper
+from typing import Tuple
 from utility.exception_utilities import InvalidUserException
 from rest_framework import status as status_codes
 
@@ -90,6 +91,27 @@ class UserImpl(UserManager):
             })
 
         return {'success': True}
+
+    @staticmethod
+    def delete_notification_sending_details(user_instance, device_id) -> Tuple[int, dict]:
+
+        delete_count = userDevices.objects.filter(user=user_instance, device_id=device_id).delete()
+
+        return delete_count
+
+    def logout(self, device_id) -> dict:
+
+        user_instance = User.get_user_or_none(self.get_user_id())
+
+        if not user_instance:
+            return {'error_message': "In-valid user id", 'success': False}
+
+        device_count = self.delete_notification_sending_details(user_instance, device_id)
+
+        if device_count[0]:
+            return {'success': True}
+
+        return {'error_message': "In-valid device id", 'success': False}
 
 
 class UserHelper:
