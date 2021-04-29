@@ -153,3 +153,12 @@ class TimeUtilities:
             epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
 
         return time.strftime('%d %B %Y', time.localtime(epoch_time))
+
+    @staticmethod
+    def convert_epoch_time_to_ddmmyyyy(epoch_time):
+
+        """format -- 18-06-2021"""
+        if TimeUtilities.is_epoch_in_milliseconds(epoch_time):
+            epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
+
+        return time.strftime('%d-%m-%Y', time.localtime(epoch_time))

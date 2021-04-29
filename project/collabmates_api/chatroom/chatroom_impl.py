@@ -50,12 +50,18 @@ class ChatroomImpl(ChatroomManager):
     chatroom_id = None
     source_id = None
     aj = None
+    device_id = None
+    request_platform = None
 
-    def __init__(self, member_id: str, chatroom_id: str = None, source_id: str = None, aj: str = None):
+    def __init__(self, member_id: str, chatroom_id: str = None,
+                 source_id: str = None, aj: str = None,
+                 device_id: str = None, request_platform: str = None):
         self.member_id = member_id
         self.chatroom_id = chatroom_id
         self.source_id = source_id
         self.aj = aj
+        self.device_id = device_id
+        self.request_platform = request_platform
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -216,6 +222,9 @@ class ChatroomImpl(ChatroomManager):
         card_content['community'] = community
         card_content['user'] = user
         card_content['type'] = chatroom_type
+
+        card_content['device_id'] = self.device_id
+        card_content['platform'] = self.request_platform
 
     @staticmethod
     def fill_pinned_information(card_content):
@@ -552,16 +561,26 @@ class ChatroomImpl(ChatroomManager):
 
         can_access_secret_chatroom = False
 
-        if card_instance.is_secret and self.get_member_id() is not None:
+        if self.get_member_id() is not None:
             member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
-            try:
-                can_access_secret_chatroom = member_id in json.loads(card_instance.secret_chatroom_participants)
-            except Exception as e:
-                response = {
-                    'success': False,
-                    'error_message': f"{e.args}"
-                }
-                raise CustomException(response, status_code=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            if card_instance.is_secret:
+                try:
+                    can_access_secret_chatroom = member_id in json.loads(card_instance.secret_chatroom_participants)
+                except Exception as e:
+                    error_logger.error(f"fetch_chatroom - {e.args}")
+
+                    response = {
+                        'success': False,
+                        'error_message': f"{e.args}"
+                    }
+                    raise CustomException(response, status_code=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            elif card_instance.attachment_count > 0 and\
+                    card_instance.attachments_uploaded is False:
+                can_access_secret_chatroom = not ChatroomHelper.has_attachments_uploaded(card_instance,
+                                                                                         member_id,
+                                                                                         self.device_id)
 
         chatroom_obj['can_access_secret_chatroom'] = can_access_secret_chatroom
 
@@ -1080,3 +1099,12 @@ class ChatroomHelper:
 
         return expiry_time
 
+    @staticmethod
+    def has_attachments_uploaded(chatroom, user_id, device_id=''):
+        if chatroom.attachment_count > 0 and \
+                chatroom.attachments_uploaded is False and \
+                (user_id != chatroom.user_id or
+                 device_id != chatroom.device_id):
+            return True
+
+        return False

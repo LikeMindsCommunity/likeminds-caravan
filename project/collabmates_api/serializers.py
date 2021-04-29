@@ -147,7 +147,7 @@ def UserinfoSerializer(user):
     # function to serialize a userinfo object
     # if the community is not feedback community
     userinfo = {
-        'id': user.user_id.id,
+        'id': user.user_id_id,
         "name": user.name,
         # "email": user.email,
         # "city": user.city,
@@ -164,29 +164,44 @@ def UserinfoSerializer(user):
     return userinfo
 
 
-def get_logged_in_user(user_instance):
-    context = UserinfoSerializer(user_instance.userinfo)
+def get_user_mobile_no_list(user_id):
 
-    email_filter = userEmails.objects.filter(user=user_instance)
-
-    email_list = []
-    for email in email_filter:
-        email_list.append(userEmailsSerializer(email))
-
-    # if not email_list:
-    #     email = user_instance.userinfo.email
-    #     if email:
-    #         email_list.append(email)
-
-    mobile_filter = userMobiles.objects.filter(user=user_instance)
-
+    mobile_filter = userMobiles.objects.filter(user=user_id)
     mobile_list = []
 
     for mobile_no in mobile_filter:
         mobile_list.append(userMobilesSerializer(mobile_no))
 
+    return mobile_list
+
+
+def get_user_email_list(user_id):
+    email_filter = userEmails.objects.filter(user=user_id)
+
+    email_list = []
+
+    for email in email_filter:
+        email_list.append(userEmailsSerializer(email))
+
+    return email_list
+
+
+def get_logged_in_user(user_instance):
+
+    if isinstance(user_instance, Userinfo):
+        context = UserinfoSerializer(user_instance)
+        user_id = user_instance.user_id_id
+
+    else:
+        context = UserinfoSerializer(user_instance.userinfo)
+        user_id = user_instance.id
+
+    email_list = get_user_email_list(user_id)
+    mobile_list = get_user_mobile_no_list(user_id)
+
     if email_list:
         context['emails'] = email_list
+
     if mobile_list:
         context['mobiles'] = mobile_list
 
@@ -1031,12 +1046,13 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
         questions = get_question_data(response.question, member_state, send_back=send_back,
                                       user_id=current_user_id, community_id=community_id)
         if questions:
-            temp['community_id'] = community_id.id if isinstance(community_id, Community) else community_id
+            temp['community_id'] = community_id.id if isinstance(community_id, Community) else\
+                NumberUtilities.get_integer_from_string(community_id)
+
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
             temp['value'] = response.question_answer
-            # if '$#' in temp['value']:
-            #     temp['value'] = temp['value'].replace('$#', ', ')
+
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']
@@ -1253,7 +1269,7 @@ def communityFieldSerializer(instance):
 def userEmailsSerializer(email_instance):
     return {
         'id': email_instance.id,
-        'user_id': email_instance.user.id,
+        'user_id': email_instance.user_id,
         'email': email_instance.email,
         'state': email_instance.email_state,
         'verified': email_instance.verified
@@ -1265,7 +1281,7 @@ def userMobilesSerializer(mobile_instance):
     return {
 
         'id': mobile_instance.id,
-        'user_id': mobile_instance.user.id,
+        'user_id': mobile_instance.user_id,
         'mobile_no': mobile_instance.mobile_no,
         'country_code': mobile_instance.country_code,
         'state': mobile_instance.state
@@ -1491,7 +1507,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
             if isinstance(community_id, Community):
                 community_profile['community_id'] = community_id.id
             else:
-                community_profile['community_id'] = community_id
+                community_profile['community_id'] = NumberUtilities.get_integer_from_string(community_id)
 
             member_profile_list.append(community_profile)
 
@@ -1606,20 +1622,20 @@ def report_tag_serializer(tag_instance):
 
 # ------------------------------- chatroom conversation data ------------------------------------
 
-def is_draft_conversation(conversation, current_user_id):
+def is_draft_conversation(conversation, current_user_id, device_id=''):
 
     if (conversation.attachment_count > 0 and
         conversation.attachments_uploaded is False) and\
             ((current_user_id and
               NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or
-             conversation.api_version <= 0):
+             conversation.api_version <= 0 or
+             conversation.device_id != device_id):
         return True
 
     return False
 
 
-
-def conversationSerializer(conversation, current_user_id=None, fetch_reply=True):
+def conversationSerializer(conversation, current_user_id=None, fetch_reply=True, device_id=''):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
@@ -1688,7 +1704,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
         reply_conversation = conversation.reply
         temp['reply_conversation'] = reply_conversation.id
 
-        if fetch_reply and not is_draft_conversation(reply_conversation, current_user_id):
+        if fetch_reply and not is_draft_conversation(reply_conversation, current_user_id, device_id=device_id):
             temp['reply_conversation_object'] = conversationSerializer(reply_conversation,
                                                                        fetch_reply=False,
                                                                        current_user_id=current_user_id)

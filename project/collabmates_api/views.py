@@ -393,13 +393,28 @@ def get_active_chatroom_member_images(community_instance, member_id):
     return temp
 
 
-def is_draft_conversation(conversation, current_user_id):
+def is_draft_conversation(conversation, current_user_id, device_id=''):
 
     if (conversation.attachment_count > 0 and
         conversation.attachments_uploaded is False) and\
             ((current_user_id and
               NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or
-             conversation.api_version <= 0):
+             conversation.api_version <= 0 or
+             conversation.device_id != device_id):
+        return True
+
+    return False
+
+
+def is_draft_chatroom(chatroom_instance, member_id, device_id):
+
+    if isinstance(member_id, str):
+        member_id = NumberUtilities.get_integer_from_string(member_id)
+
+    if (chatroom_instance.attachment_count > 0 and
+        chatroom_instance.attachments_uploaded is False) and \
+            (member_id != chatroom_instance.user_id or
+             device_id != chatroom_instance.device_id):
         return True
 
     return False
@@ -409,6 +424,7 @@ def my_chatrooms_version_1(request):
     '''functions to get chatrooms for users'''
 
     member_id = get_member_id_from_headers(request)
+    device_id = RequestUtilities.get_device_id_from_headers(request)
     page = request.GET.get('page', 1)
 
     try:
@@ -484,8 +500,9 @@ def my_chatrooms_version_1(request):
 
         last_conversation = instance.last_conversation
 
-        if last_conversation and not is_draft_conversation(last_conversation, member_id):
-            last_conversation_dict = conversationSerializer(last_conversation, current_user_id=member_id)
+        if last_conversation and not is_draft_conversation(last_conversation, member_id, device_id):
+            last_conversation_dict = conversationSerializer(last_conversation,
+                                                            current_user_id=member_id, device_id=device_id)
             preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
 
             if preview:
@@ -495,8 +512,9 @@ def my_chatrooms_version_1(request):
 
             second_last_conversation = instance.second_last_conversation
 
-            if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id):
-                second_last_conversation_dict = conversationSerializer(second_last_conversation, current_user_id=member_id)
+            if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id, device_id):
+                second_last_conversation_dict = conversationSerializer(second_last_conversation,
+                                                                       current_user_id=member_id, device_id=device_id)
                 preview = generate_internal_link_preview_for_conversation(second_last_conversation, member_id)
 
                 if preview:
@@ -1385,7 +1403,7 @@ def post_introduction_card_for_community(community_id, member_id):
         question_id = check_intro[0].id
         introduction_answer_list = communityAnswers.objects.filter(community=community_id, member=member_id,
                                                                    question_id=question_id)
-        if introduction_answer_list.exists():
+        if introduction_answer_list:
             introduction_answer = introduction_answer_list[0].question_answer
             req_dict = {
                 'member_id': member_id,
@@ -1403,9 +1421,12 @@ def post_introduction_card_for_community(community_id, member_id):
             if not master_intro:
                 return
 
-            intro_filter = Collabcard.objects.filter(community=community_id, user=member_id, type=card_types.CARD_INTRO)
+            intro_filter = Collabcard.objects.filter(community=community_id,
+                                                     user=member_id,
+                                                     type=card_types.CARD_INTRO,
+                                                     is_deleted=False)
 
-            if not intro_filter.exists():
+            if not intro_filter:
                 context = create_card_internal(member_id, community_id, req_dict)
                 card_instance = context.get('card_instance')
                 user_instance = User.get_user_or_none(member_id)
@@ -2037,7 +2058,9 @@ def edit_member_profile(request):
         if answer.question.question_state == question_states.INTRODUCTION:
 
             collabcard_filter = Collabcard.objects.filter(community=community_instance,
-                                                          user=user_instance, title=answer.question_answer)
+                                                          user=user_instance,
+                                                          is_deleted=False,
+                                                          type=card_types.CARD_INTRO)
 
             if collabcard_filter:
                 collabcard_id = collabcard_filter[0].id
@@ -2371,18 +2394,21 @@ def remove_from_member(request):
 
             for member in member_ids:
                 member_filter = Members.objects.filter(community_id=community_id, member_id=member)
-                if member_filter.exists():
+
+                if member_filter:
                     member_state = member_filter[0].state
                     is_owner = member_filter[0].is_owner
                     eligible_member_states = [member_states.ADMIN, member_states.MEMBER,
                                               member_states.PROFILE_UNAVAILABLE,
                                               member_states.KNOWN_NOMINATED_PROMOTER]
+
                     if not is_owner and member_state in eligible_member_states:
 
                         user_instance = member_filter[0].member_id
 
                         remove_members(community_id, user_instance.id,
-                                       removed_state=deleted_members.REMOVED)
+                                       removed_state=deleted_members.REMOVED,
+                                       current_user_instance=current_user_instance)
 
                         save_moderation_history(user=user_instance, community=community_instance,
                                                 moderation_by=current_user_instance,
@@ -2428,7 +2454,8 @@ def remove_from_member(request):
         is_pending = Members.objects.filter(state=member_states.PENDING_MEMBER, community_id=community_id,
                                             member_id=member_id)
         if is_pending.exists():
-            remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
+            remove_members(community_id, member_id, removed_state=deleted_members.LEFT,
+                           current_user_instance=current_user_instance)
             toast_filter = communityToast.objects.filter(community_id=community_id, user=member_id)
             toast_filter.update(toast_message="Your request for joining this community is cancelled")
 
@@ -2451,7 +2478,8 @@ def remove_from_member(request):
 
         if is_member.exists():
             user_instance = User.objects.get(pk=member_id)
-            remove_members(community_id, member_id, removed_state=deleted_members.LEFT)
+            remove_members(community_id, member_id, removed_state=deleted_members.LEFT,
+                           current_user_instance=current_user_instance)
 
             save_moderation_history(user=user_instance, community=community_instance,
                                     moderation_by=current_user_instance,
@@ -2481,7 +2509,7 @@ def remove_from_member(request):
 
 
 @csrf_exempt
-def remove_members(community_id, member_id, removed_state):
+def remove_members(community_id, member_id, removed_state, current_user_instance):
     '''function to remove member'''
 
     try:
@@ -2503,9 +2531,22 @@ def remove_members(community_id, member_id, removed_state):
         # toast_filter = communityToast.objects.filter(community=community_instance,user=user_instance)
         if removed_state == deleted_members.LEFT:
             update_community_toast(user_instance, community_instance, message="You left the community.")
+
         elif removed_state == deleted_members.REMOVED:
             update_community_toast(user_instance, community_instance,
                                    message="You are no longer a member of this community.")
+
+        # removing the intro chatroom
+        intro_filter = Collabcard.objects.filter(community=community_id,
+                                  user=member_id,
+                                  type=card_types.CARD_INTRO,
+                                  is_deleted=False)
+        if intro_filter:
+            intro_instance = intro_filter[0]
+            intro_instance.is_deleted=True
+            intro_instance.deleted_by_user = current_user_instance
+            intro_instance.save()
+            update_multiple_previews_in_chatroom.delay({'chatroom_id': intro_instance.id})
 
         # saving collabcard state in update status
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
@@ -2526,13 +2567,6 @@ def remove_members(community_id, member_id, removed_state):
 
     profile_removed = communityAnswers.objects.filter(community=community_id, member=member_id).delete()
     # print(profile_removed)
-
-    # removing the created chatrooms
-    intro_chatroom = Collabcard.objects.filter(community=community_id, user=member_id,
-                                               type=card_types.CARD_INTRO)
-    if intro_chatroom.exists():
-        create_chatroom_delete_backup(intro_chatroom[0], user_instance, removing_member=True)
-        intro_chatroom.delete()
 
     # removing the draft chatrooms
     draft_removed = draftChatroom.objects.filter(community=community_id, user=member_id).delete()
@@ -2596,13 +2630,14 @@ def fetch_community_profile(request):
     current_member_id = get_member_id_from_headers(request)
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
+
     try:
         community_instance = Community.objects.get(id=community_id)
-    except Exception as e:
-        return JsonResponse({'error': e.args})
+        user_instance = User.objects.get(id=user_id)
+        current_user_instance = User.objects.get(id= current_member_id)
 
-    if not user_id or not community_id:
-        return JsonResponse({"error_message": "send user id and community_id in get params"})
+    except Exception as e:
+        return JsonResponse({'error_message': e.args}, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_user_member_instance = Members.objects.filter(member_id=current_member_id, community_id=community_id)
     is_promoter = False
@@ -2616,7 +2651,7 @@ def fetch_community_profile(request):
         user_admin_rights = check_all_manager_rights(current_member_id, community_id)
 
     member_ids = [user_id]
-    member = get_members_profile(member_ids, community_id, current_user_id=current_member_id, is_promoter=is_promoter,
+    member = get_members_profile(member_ids, community_instance.id, current_user_id=current_member_id, is_promoter=is_promoter,
                                  is_owner=is_owner, profile_detail_api=True, user_admin_rights=user_admin_rights)
 
     if member:
@@ -2637,6 +2672,14 @@ def fetch_user_chatrooms(request):
     community_id = request.GET.get('community_id')
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
+
+    try:
+        community_instance = Community.objects.get(id=community_id)
+        user_instance = User.objects.get(id=user_id)
+        current_user_instance = User.objects.get(id=current_user_id)
+
+    except Exception as e:
+        return JsonResponse({'error_message': e.args}, status=status_codes.HTTP_400_BAD_REQUEST)
 
     # chatrooms created by user
     if int(state) == 0:
@@ -2661,24 +2704,26 @@ def fetch_user_chatrooms(request):
 
     # chatrooms not created by user but  followed by users
     elif int(state) == 1:
-        # state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
 
-        chatroom_filter = Collabcard.objects.filter(user_id=user_id, community_id=community_id,
-                                                    is_pending=False, is_deleted=False)
+        chatroom_list = list(Collabcard.objects.filter(user_id=user_id, community_id=community_id,
+                                                       is_pending=False, is_deleted=False).values_list('id', flat=True))
+
         state_filter = collabcardState.objects.filter(user_id=user_id, community_id=community_id,
                                                       follow_status=True, card__is_secret=False).exclude(
-            card__in=chatroom_filter.values('id')).order_by('-updated_at')
-        followed_chatroom_count = state_filter.count()
+            card__in=chatroom_list).order_by('-updated_at', '-id')
+
+        followed_chatroom_count = len(state_filter)
         state_filter = pagination(state_filter, page, paginate_by=10)
 
         for chatroom in state_filter:
             chatroom_instance = chatroom.card
 
             temp = get_chatroom_instance(chatroom_instance, user_id, current_user_id=current_user_id)
-            temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
+            temp['date'] = TimeUtilities.convert_epoch_time_in_date(chatroom.updated_at)
             engage_filter = conversationEngage.objects.filter(card=chatroom_instance, user=user_id)
             temp['conversation_users'] = []
-            if engage_filter.exists():
+
+            if engage_filter:
                 temp['conversation_users'] = get_conversation_users(engage_filter[0])
             chatrooms.append(temp)
 
@@ -5827,7 +5872,7 @@ def conversation_meta(request):
                 conversation.platform == platform_code:
             continue
 
-        if not is_draft_conversation(conversation, user_id):
+        if not is_draft_conversation(conversation, user_id, device_id=device_id):
             conversation_serializer = conversationSerializer(conversation,
                                                              fetch_reply=True,
                                                              current_user_id=user_id)
@@ -5916,13 +5961,13 @@ def mark_read(request):
 
 
 def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None,
-                    fetch_reply=False, is_ios=False):
+                    fetch_reply=False, device_id=""):
     """ function to get answer for a particular collabcard """
 
     answers = []
     for ans in answer_filter:
 
-        if is_draft_conversation(ans, current_user_id):
+        if is_draft_conversation(ans, current_user_id, device_id=device_id):
             continue
 
         usr = get_members_profile([ans.user.id], community_id, current_user_id, send_profile=False)
@@ -5997,7 +6042,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             context['reply_conversation'] = ans.reply_id
             if fetch_reply:
                 reply_obj = get_answer_data([ans.reply], community_id, current_user_id,
-                                            fetch_reply=False, is_ios=is_ios)
+                                            fetch_reply=False, device_id=device_id)
                 if len(reply_obj) > 0:
                     context['reply_conversation_object'] = reply_obj[0]
 
@@ -6213,6 +6258,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     source_id = request.GET.get('source_id')
     aj = request.GET.get('aj')
 
+    device_id = RequestUtilities.get_device_id_from_headers(request)
+
     is_guest = False
     context = {}
 
@@ -6252,7 +6299,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             conversations = pagination(conversations_filter, page, paginate_by=20)
 
             conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
-                                            is_ios=is_ios, fetch_reply=fetch_conversation_reply)
+                                            fetch_reply=fetch_conversation_reply, device_id=device_id)
 
             placeholder = create_introduction_card_placeholder(card_instance, user_id)
             if placeholder:
@@ -6270,7 +6317,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
             conversations = get_answer_data(conversations, card_instance.community.id,
                                             current_user_id=user_id, last_seen=conversation_instance,
-                                            is_ios=is_ios, fetch_reply=fetch_conversation_reply)
+                                            fetch_reply=fetch_conversation_reply, device_id=device_id)
     else:
 
         try:
@@ -6290,7 +6337,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             conversations = conversations_filter
 
         conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id,
-                                        is_ios=is_ios, fetch_reply=fetch_conversation_reply)
+                                        fetch_reply=fetch_conversation_reply, device_id=device_id)
 
     card = get_chatroom_instance(card_instance, user_id)
     if card_instance.internal_link:
@@ -6381,7 +6428,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
         if last_conversation:
             serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id,
-                                              is_ios=is_ios, fetch_reply=fetch_conversation_reply)
+                                              fetch_reply=fetch_conversation_reply, device_id=device_id)
             if serialized_last:
                 card['last_conversation'] = serialized_last[0]
 
@@ -6392,9 +6439,16 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     can_access_secret_chatroom = False
 
-    if card_instance.is_secret and user_id is not None:
+    if user_id is not None:
         user_id = NumberUtilities.get_integer_from_string(user_id)
-        can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
+        if card_instance.is_secret:
+            can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+
+        elif card_instance.attachment_count > 0 and\
+                card_instance.attachments_uploaded is False:
+            can_access_secret_chatroom = not is_draft_chatroom(card_instance, user_id, device_id)
 
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
@@ -6568,9 +6622,16 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 
     can_access_secret_chatroom = False
 
-    if card_instance.is_secret and user_id is not None:
+    if user_id is not None:
         user_id = NumberUtilities.get_integer_from_string(user_id)
-        can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
+        if card_instance.is_secret:
+            can_access_secret_chatroom = user_id in card['secret_chatroom_participants']
+
+        elif card_instance.attachment_count > 0 and\
+                card_instance.attachments_uploaded is False:
+            can_access_secret_chatroom = not is_draft_chatroom(card_instance, user_id, device_id)
 
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
@@ -6698,9 +6759,16 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
     can_access_secret_chatroom = False
 
-    if card_instance.is_secret and user_id is not None:
+    if user_id is not None:
         user_id = NumberUtilities.get_integer_from_string(user_id)
-        can_access_secret_chatroom = user_id in json.loads(card_instance.secret_chatroom_participants)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
+        if card_instance.is_secret:
+            can_access_secret_chatroom = user_id in json.loads(card_instance.secret_chatroom_participants)
+
+        elif card_instance.attachment_count > 0 and\
+                card_instance.attachments_uploaded is False:
+            can_access_secret_chatroom = not is_draft_chatroom(card_instance, user_id, device_id)
 
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
@@ -8393,7 +8461,7 @@ def community_collabcard_meta(request):
     return JsonResponse({'collabcards': card_list})
 
 
-def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
+def get_chatrooms(chatroom_list, member_id, active=None, device_id=''):
     """function to get chatrooms"""
 
     member_id = NumberUtilities.get_integer_from_string(member_id)
@@ -8401,9 +8469,7 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
     chatrooms = []
     for card_instance in chatroom_list:
 
-        if card_instance.attachment_count > 0 and\
-                card_instance.attachments_uploaded is False and\
-                member_id != card_instance.user_id:
+        if is_draft_chatroom(card_instance, member_id, device_id):
             continue
 
         if card_instance.is_secret:
@@ -8453,7 +8519,7 @@ def get_chatrooms(chatroom_list, member_id, active=None, is_ios=False):
     return chatrooms
 
 
-def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False):
+def get_chatrooms_version_1(chatroom_list, member_id, active=None, device_id=''):
     '''function to get chatrooms'''
     member_id = NumberUtilities.get_integer_from_string(member_id)
     chatrooms = []
@@ -8461,9 +8527,7 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False)
     for data in chatroom_list:
         card_instance = data.card
 
-        if card_instance.attachment_count > 0 and\
-                card_instance.attachments_uploaded is False and\
-                member_id != card_instance.user_id:
+        if is_draft_chatroom(card_instance, member_id, device_id):
             continue
 
         if card_instance.is_secret:
@@ -8516,16 +8580,14 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, is_ios=False)
     return chatrooms
 
 
-def get_chatrooms_version_2(chatroom_list, member_id, active=None, is_ios=False):
+def get_chatrooms_version_2(chatroom_list, member_id, active=None, device_id=''):
     '''function to get chatrooms'''
 
     chatrooms = []
     for data in chatroom_list:
         card_instance = data.card
 
-        if card_instance.attachment_count > 0 and\
-                card_instance.attachments_uploaded is False and\
-                int(member_id) != card_instance.user.id:
+        if is_draft_chatroom(card_instance, member_id, device_id):
             continue
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id, state_instance=data)
@@ -8566,6 +8628,8 @@ def fetch_chatroom_feed(request):
     chatroom_id = request.GET.get('chatroom_id')
     scroll_direction = request.GET.get('scroll_direction')
 
+    device_id = RequestUtilities.get_device_id_from_headers(request)
+
     if scroll_direction and not chatroom_id:
         context = get_error_context(False, "send chatroom id with scroll direction")
         return JsonResponse(context)
@@ -8602,7 +8666,7 @@ def fetch_chatroom_feed(request):
             .order_by('-card_id')
         if not last_seen.exists():
             chatroom_list = pagination(chatroom_filter, page, paginate_by=5)
-            chatrooms = get_chatrooms(chatroom_list, member_id, is_ios=is_ios)
+            chatrooms = get_chatrooms(chatroom_list, member_id, device_id=device_id)
         else:
             last_seen = last_seen[0]
             upward = chatroom_filter.filter(id__lte=last_seen.card.id).order_by('-id')[:3]
@@ -8611,7 +8675,7 @@ def fetch_chatroom_feed(request):
             # downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:3]
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('id')
-            chatrooms = get_chatrooms(chatroom_list, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms(chatroom_list, member_id, active, device_id=device_id)
 
         context['header'] = chatroom_feed_header(community_id, member_id)
 
@@ -8622,12 +8686,12 @@ def fetch_chatroom_feed(request):
             upward = chatroom_filter.filter(id__lt=chatroom_id).order_by('-id')[:5]
             upward = reverse_conversations_for_upward_pagination(upward)
             # print(upward)
-            chatrooms = get_chatrooms(upward, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms(upward, member_id, active, device_id=device_id)
 
         elif scroll_direction == 1:  # downward scroll
 
             downward = chatroom_filter.filter(id__gt=chatroom_id).order_by('id')[:5]
-            chatrooms = get_chatrooms(downward, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms(downward, member_id, active, device_id=device_id)
 
     context['chatrooms'] = chatrooms
 
@@ -8643,6 +8707,8 @@ def fetch_chatroom_feed_version_1(request):
 
     community_id = request.GET.get('community_id')
     page = request.GET.get('page', 1)
+
+    device_id = RequestUtilities.get_device_id_from_headers(request)
 
     is_ios = is_platform_ios(request)
     chatroom_id = request.GET.get('chatroom_id')
@@ -8691,7 +8757,7 @@ def fetch_chatroom_feed_version_1(request):
                 chatroom_list = state_filter.filter(~Q(expiry_time=None)
                                                     & Q(expiry_time__lte=current_time)).order_by('card_id')[:5]
 
-            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, is_ios=is_ios)
+            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, device_id=device_id)
         else:
 
             last_seen = last_seen[0]
@@ -8713,7 +8779,7 @@ def fetch_chatroom_feed_version_1(request):
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('card_id')
 
-            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, active, device_id=device_id)
 
     else:
         scroll_direction = int(scroll_direction)
@@ -8728,7 +8794,7 @@ def fetch_chatroom_feed_version_1(request):
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:5]
 
             upward = reverse_conversations_for_upward_pagination(upward)
-            chatrooms = get_chatrooms_version_1(upward, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms_version_1(upward, member_id, active, device_id=device_id)
 
         elif scroll_direction == 1:  # downward scroll
 
@@ -8739,7 +8805,7 @@ def fetch_chatroom_feed_version_1(request):
                 downward = state_filter.filter(card__gt=chatroom_id, user=member_id).filter(
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('card')[:5]
 
-            chatrooms = get_chatrooms_version_1(downward, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms_version_1(downward, member_id, active, device_id=device_id)
 
     context['chatrooms'] = chatrooms
 
@@ -10883,56 +10949,127 @@ def push(request):
     return JsonResponse({'success': success})
 
 
+def create_community_names_and_promoter_status_for_user_metrics(member_filter):
+    is_any_community_promoter = False
+    community_id_list = []
+    community_names = ""
+
+    for data in member_filter:
+        community_id_list.append(data.community_id_id)
+
+        if not is_any_community_promoter \
+                and data.state == member_states.ADMIN:
+            is_any_community_promoter = True
+
+    if community_id_list:
+        community_filter = Community.objects.filter(id__in=community_id_list).only('name')
+
+        for data in community_filter:
+            community_names = community_names + str(data.name) + ","
+
+    return community_names, is_any_community_promoter
+
+
+def create_mixpanel_statistics(user_instance, userinfo_instance):
+
+    if not user_instance:
+        return
+
+    context = {}
+    context['user'] = get_logged_in_user(userinfo_instance)
+
+    user_metrics = {}
+    user_metrics['first_login'] = TimeUtilities.convert_epoch_time_to_ddmmyyyy(userinfo_instance.created_at)
+    member_filter = Members.objects.filter(member_id=user_instance, state__in=COMMUNITY_MEMBER_STATES)
+
+    user_metrics['count_communities_joined'] = len(member_filter)
+
+    community_names, is_any_community_promoter = create_community_names_and_promoter_status_for_user_metrics(member_filter)
+
+    if community_names:
+        user_metrics['name_communities_joined'] = community_names
+
+    user_metrics['is_any_community_promoter'] = is_any_community_promoter
+
+    user_metrics['unique_chatroom_responded'] = len(card_answers.objects.filter(user=user_instance
+                                                                            ).values('card').distinct())
+
+    user_metrics['count_chatroom_created'] = Collabcard.objects.filter(user=user_instance,
+                                                                       is_pending=False, is_deleted=False).count()
+
+    followed_count = collabcardState.objects.filter(user=user_instance,
+                                                    follow_status=True).filter(
+        ~Q(card__user=user_instance)).count()
+
+    user_metrics['count_chatroom_followed'] = followed_count
+
+    context['user_metrics'] = user_metrics
+
+    if settings.IS_BETA:
+        context['token'] = "eb1e03c8be370040278bff61a4857608"
+    else:
+        context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
+
+    return context
+
+
 def config(request):
-    '''function to update the version number of android for a user profile'''
+    """function to update the version number of android for a user profile"""
 
     member_id = get_member_id_from_headers(request)
 
     context = {}
-    if not member_id:
+
+    user_instance = User.get_user_or_none(member_id)
+
+    if not user_instance:
         context = get_error_context(False, "send member id in headers")
-        return context
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     # update version code
 
     version_code = get_version_code_from_headers(request)
+    userinfo_instance = user_instance.userinfo
 
-    userinfo_filter = Userinfo.objects.filter(user_id=member_id)
+    version_code = NumberUtilities.get_integer_from_string(version_code)
 
-    if userinfo_filter:
-        userinfo_instance = userinfo_filter[0]
-
-        if userinfo_instance.version_code != NumberUtilities.get_integer_from_string(version_code):
-            userinfo_instance.version_code = version_code
-            userinfo_instance.save()
-
-
-    # sending mobile number exists key
-    mobile_no_exists = userMobiles.objects.filter(user=member_id).exists()
+    if userinfo_instance.version_code != version_code:
+        userinfo_instance.version_code = version_code
+        userinfo_instance.save()
 
     context['success'] = True
-    context['mobile_no_exists'] = mobile_no_exists
+    context['mobile_no_exists'] = ModelUtilities.is_model_filter_exists(userMobiles, {'user': user_instance})
 
-    access = is_user_community_part(member_id)
+    access = is_user_community_part(user_instance.id)
     context['access'] = access
 
-    # mixpanel changes
+    context['survey_seen'] = False
+    survey_filter = ModelUtilities.get_model_filter(userSurvey, {'user': user_instance})
+
+    if survey_filter:
+        survey_instance = survey_filter[0]
+        context['survey_seen'] = survey_instance.survey_seen
+
+    # set installed flags in case of mobile devices
+    if RequestUtilities.is_request_android(request) \
+            or RequestUtilities.is_request_ios(request):
+        set_installed_flag(user_instance)
+
+    #mixpanel changes
     try:
-        user_detail = get_mixpanel_statistics(member_id)
+        user_detail = create_mixpanel_statistics(user_instance, userinfo_instance)
         context['user_detail'] = user_detail
     except Exception as e:
         error_logger.error(e)
 
     context['updatePriority'] = 0
-
-    # set installed flags in case of mobile devices
-    if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
-        set_installed_flag(member_id)
+    context['use_segment'] = True
 
     return JsonResponse(context)
 
 
-def set_installed_flag(member_id):
+def set_installed_flag(user_instance):
     """
     event when user installed the app
     """
@@ -10941,10 +11078,10 @@ def set_installed_flag(member_id):
         notification_list = [
             'mail_has_installed_app'
         ]
-        create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=False)
+        create_notification_flag(user_instance, notification_list, card_id=None, community_id=None, flag=False)
 
-        user_instance = User.objects.get(id=member_id)
         app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
+
         if created:
             app_uninstall.uninstall_days = 0
             app_uninstall.save()
@@ -11593,6 +11730,16 @@ class AllMembersVersion1(APIView):
 
         if not member_id:
             raise InvalidHeaderException()
+        
+        platform_code = RequestUtilities.get_request_type(request)
+        
+        if platform_code == INVALID_PLATFORM:
+            response = {
+                'success': False,
+                'error_message': 'Invalid platform code'
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         context = get_all_members_version_1(request)
 
@@ -14314,6 +14461,9 @@ class SyncChatrooms(APIView):
         if not member_id:
             context = get_error_context(False, "send member id in headers")
             return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
         query_params = request.query_params
 
         page = query_params.get('page', 1)
@@ -14367,10 +14517,9 @@ class SyncChatrooms(APIView):
             attachments_uploaded = data[46]
 
             if attachment_count > 0 and\
-                    attachments_uploaded is False:
-                if int(member_id) != int(data[14]):
-                    continue
-
+                    attachments_uploaded is False and\
+                    (int(member_id) != int(data[14]) or data[51] != device_id):
+                continue
 
             chatroom = {}
             chatroom['id'] = data[0]
@@ -14485,11 +14634,13 @@ class SyncChatrooms(APIView):
 
             chatroom['secret_chatroom_left'] = data[49]
 
+            # data[50] = has_reactions
             if data[50]:
                 reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
             else:
                 reactions = []
 
+            chatroom['remove_id'] = data[52]
             chatroom['reactions'] = reactions if reactions else []
 
             chatrooms.append(chatroom)
@@ -14667,6 +14818,8 @@ class SyncChatroomsDiff(APIView):
         if not member_id:
             raise InvalidHeaderException
 
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
         version_code = RequestUtilities.get_version_code_from_headers(request)
         is_platform_android = RequestUtilities.is_request_android(request)
         is_platform_ios = RequestUtilities.is_request_ios(request)
@@ -14737,9 +14890,9 @@ class SyncChatroomsDiff(APIView):
             attachments_uploaded = data[46]
 
             if attachment_count > 0 and \
-                    attachments_uploaded is False:
-                if int(member_id) != int(data[14]):
-                    continue
+                    attachments_uploaded is False and\
+                    (int(member_id) != int(data[14]) or data[51] != device_id):
+                continue
 
             chatroom = {}
             chatroom['id'] = data[0]
@@ -15033,6 +15186,8 @@ class SyncConversation(APIView):
 
             return JsonResponse(context)
 
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
         query_params = request.query_params
         page = query_params.get('page', 1)
         paginate_by = query_params.get('page_size', 200)
@@ -15055,7 +15210,8 @@ class SyncConversation(APIView):
                 conversations_data = CardAnswersDBSyncSerializer(conversation_filter, context=context, many=True)
                 conversations = conversations_data.data
 
-                max_last_updated = get_attachments_filtered_conversations(conversation_filter, conversations, member_id)
+                max_last_updated = get_attachments_filtered_conversations(conversation_filter, conversations,
+                                                                          member_id, device_id)
 
                 context = {
                     'conversations': conversations,
@@ -15074,7 +15230,7 @@ class SyncConversation(APIView):
                 conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
                 conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                        conversation_files_dict,
-                                                                                       member_id)
+                                                                                       member_id, device_id)
 
         elif community_id:
 
@@ -15088,7 +15244,7 @@ class SyncConversation(APIView):
             conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
             conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                    conversation_files_dict,
-                                                                                   member_id)
+                                                                                   member_id, device_id)
 
         else:
 
@@ -15098,7 +15254,7 @@ class SyncConversation(APIView):
             conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
             conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                    conversation_files_dict,
-                                                                                   member_id)
+                                                                                   member_id, device_id)
 
         context = {
             'conversations': conversations
@@ -15109,7 +15265,7 @@ class SyncConversation(APIView):
 
         return JsonResponse(context)
 
-    def get_processed_conversation_data(self, conversation_data, conversation_files_dict, member_id):
+    def get_processed_conversation_data(self, conversation_data, conversation_files_dict, member_id, device_id):
 
         conversation_list = []
         max_last_updated = 0
@@ -15134,7 +15290,9 @@ class SyncConversation(APIView):
                                             conversation_context['attachments_uploaded'],
                                             member_id,
                                             conversation[18],
-                                            conversation_context['member_id']):
+                                            conversation_context['member_id'],
+                                            conversation[28],
+                                            device_id):
                 continue
 
             if conversation[11]:
@@ -15235,7 +15393,7 @@ class SyncConversation(APIView):
                                                                        'multiple_select_no': conversation[22],
                                                                        'expiry_time': conversation[25],
                                                                        'member_id': member_id})
-
+            # conversation[27] = has_reactions
             if conversation[27]:
                 reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation_context['id'])
 
@@ -15428,11 +15586,13 @@ class SyncConversation(APIView):
 
         return chatroom_list
 
-    def is_attachments_uploaded(self, attachment_count, attachment_uploaded, member_id, api_version, conversation_creator_id):
+    def is_attachments_uploaded(self, attachment_count, attachment_uploaded, member_id,
+                                api_version, conversation_creator_id, conversation_device_id='', current_device_id=None):
 
         if (attachment_count > 0 and attachment_uploaded is False) \
-                                and ((NumberUtilities.get_integer_from_string(member_id)!= conversation_creator_id)
-                                or api_version <= 0):
+                and ((NumberUtilities.get_integer_from_string(member_id) != conversation_creator_id)
+                     or api_version <= 0 or
+                     conversation_device_id != current_device_id):
             return True
 
         return False
@@ -15443,6 +15603,9 @@ class SyncConversationDiff(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = get_member_id_from_headers(request)
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
         version_code = RequestUtilities.get_version_code_from_headers(request)
         is_platform_android = RequestUtilities.is_request_android(request)
         is_platform_ios = RequestUtilities.is_request_ios(request)
@@ -15498,7 +15661,7 @@ class SyncConversationDiff(APIView):
             conversations_data = CardAnswersDBSyncSerializer(conversation_list, context=context, many=True)
             conversations = conversations_data.data
 
-            get_attachments_filtered_conversations(conversation_list, conversations, member_id)
+            get_attachments_filtered_conversations(conversation_list, conversations, member_id, device_id)
 
         context = {
             'conversations': conversations,
@@ -15523,14 +15686,14 @@ class SyncConversationDiff(APIView):
         return ans_list
 
 
-def get_attachments_filtered_conversations(conversation_list, conversation_data, member_id):
+def get_attachments_filtered_conversations(conversation_list, conversation_data, member_id, device_id=''):
 
     conversation_last_index = len(conversation_data) - 1
     max_last_updated = 0
 
     for conversation in conversation_list[::-1]:
 
-        if is_draft_conversation(conversation, member_id):
+        if is_draft_conversation(conversation, member_id, device_id=device_id):
             del conversation_data[conversation_last_index]
             conversation_last_index -= 1
             continue

@@ -46,10 +46,12 @@ error_logger = LoggingWrapper.get_instance()
 class MemberCommunityImpl(MemberCommunityManager):
     member_id = None
     community_id = None
+    device_id = None
 
-    def __init__(self, member_id: str, community_id: str):
+    def __init__(self, member_id: str, community_id: str, device_id: str = None):
         self.member_id = member_id
         self.community_id = community_id
+        self.device_id = device_id
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -848,7 +850,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             card_creator_id = card_instance.user_id
 
             current_user_id = NumberUtilities.get_integer_from_string(self.get_member_id())
-            if MemberCommunityHelper.is_draft_chatroom(card_instance, current_user_id):
+            if MemberCommunityHelper.has_attachments_uploaded(card_instance, current_user_id, device_id=self.device_id):
                 continue
 
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
@@ -1328,10 +1330,11 @@ class MemberCommunityHelper:
         return chatroom_user_actions
 
     @staticmethod
-    def is_draft_chatroom(chatroom_instance, current_user_id):
-        if chatroom_instance.attachment_count > 0 and \
-                chatroom_instance.attachments_uploaded is False and \
-                chatroom_instance.user_id != current_user_id:
+    def has_attachments_uploaded(chatroom, user_id, device_id=''):
+        if chatroom.attachment_count > 0 and \
+                chatroom.attachments_uploaded is False and \
+                (user_id != chatroom.user_id or
+                 device_id != chatroom.device_id):
             return True
 
         return False

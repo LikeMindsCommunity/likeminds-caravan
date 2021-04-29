@@ -1151,14 +1151,14 @@ def check_notification_flag(member_id,notification_list,card_id=None,community_i
 
     return flag
 
-def create_notification_flag(member_id, notification_list, card_id=None, community_id=None, flag=None):
-    '''
-    function to add notification flag
-    '''
 
-    member = User.objects.get(pk=member_id)
+def create_notification_flag(member, notification_list, card_id=None, community_id=None, flag=None):
+    """
+    function to add notification flag
+    """
 
     for notification in notification_list:
+
         if card_id == None and community_id == None:
             p, created = memberNotificationFlag.objects.get_or_create(code=notification, member=member)
             if created:
