@@ -1,4 +1,7 @@
 from django.conf import settings
+
+from utility.states import member_states
+
 SERVER_URL = settings.URL
 
 if SERVER_URL is None:
@@ -397,3 +400,10 @@ POLL_CONVERSATION_ROUTE = "'route://poll_chatroom?chatroom_id=%s&conversation_id
 MESSAGE_REACTIONS_NOTIFICATION_SUB_TITLE = "%s reacted to your message with %s"
 MESSAGE_REACTIONS_CHATROOM_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id=%s"
 MESSAGE_REACTIONS_CONVERSATION_NOTIFICATION_ROUTE = f"{MESSAGE_REACTIONS_CHATROOM_NOTIFICATION_ROUTE}&conversation_id=%s"
+
+COMMUNITY_MEMBER_STATES = [
+        member_states.ADMIN,
+        member_states.PENDING_MEMBER,
+        member_states.MEMBER,
+        member_states.PROFILE_UNAVAILABLE
+    ]

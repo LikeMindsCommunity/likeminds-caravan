@@ -30,6 +30,6 @@ class UserManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def logout(self, device_id) -> {}:
         """
-        save the flag for survey seen
+        logout the user from the app
         """
         raise NotImplementedError

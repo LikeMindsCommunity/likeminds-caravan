@@ -10949,33 +10949,10 @@ def push(request):
     return JsonResponse({'success': success})
 
 
-def create_mixpanel_statistics(user_instance, userinfo_instance):
-
-    if not user_instance:
-        return
-
-    context = {}
-    context['user'] = get_logged_in_user(userinfo_instance)
-
-    user_metrics = {}
-    # user_profile = userinfo_instance
-    # member_id=user_instance.id
-    user_metrics['first_login'] = TimeUtilities.convert_epoch_time_to_data_mon_no_year(userinfo_instance.created_at)
-
-    member_states_list = [
-        member_states.ADMIN,
-        member_states.PENDING_MEMBER,
-        member_states.MEMBER,
-        member_states.PROFILE_UNAVAILABLE
-    ]
-
-    member_filter = Members.objects.filter(member_id=user_instance, state__in=member_states_list)
-
-    user_metrics['count_communities_joined'] = len(member_filter)
-
-    community_id_list = []
-
+def create_community_names_and_promoter_status_for_user_metrics(member_filter):
     is_any_community_promoter = False
+    community_id_list = []
+    community_names = ""
 
     for data in member_filter:
         community_id_list.append(data.community_id_id)
@@ -10987,11 +10964,29 @@ def create_mixpanel_statistics(user_instance, userinfo_instance):
     if community_id_list:
         community_filter = Community.objects.filter(id__in=community_id_list).only('name')
 
-        community_names = ""
-
         for data in community_filter:
             community_names = community_names + str(data.name) + ","
 
+    return community_names, is_any_community_promoter
+
+
+def create_mixpanel_statistics(user_instance, userinfo_instance):
+
+    if not user_instance:
+        return
+
+    context = {}
+    context['user'] = get_logged_in_user(userinfo_instance)
+
+    user_metrics = {}
+    user_metrics['first_login'] = TimeUtilities.convert_epoch_time_to_ddmmyyyy(userinfo_instance.created_at)
+    member_filter = Members.objects.filter(member_id=user_instance, state__in=COMMUNITY_MEMBER_STATES)
+
+    user_metrics['count_communities_joined'] = len(member_filter)
+
+    community_names, is_any_community_promoter = create_community_names_and_promoter_status_for_user_metrics(member_filter)
+
+    if community_names:
         user_metrics['name_communities_joined'] = community_names
 
     user_metrics['is_any_community_promoter'] = is_any_community_promoter

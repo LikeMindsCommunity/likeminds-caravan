@@ -155,7 +155,7 @@ class TimeUtilities:
         return time.strftime('%d %B %Y', time.localtime(epoch_time))
 
     @staticmethod
-    def convert_epoch_time_to_data_mon_no_year(epoch_time):
+    def convert_epoch_time_to_ddmmyyyy(epoch_time):
 
         """format -- 18-06-2021"""
         if TimeUtilities.is_epoch_in_milliseconds(epoch_time):
