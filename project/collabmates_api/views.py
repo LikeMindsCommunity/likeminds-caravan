@@ -8708,6 +8708,8 @@ def fetch_chatroom_feed_version_1(request):
     community_id = request.GET.get('community_id')
     page = request.GET.get('page', 1)
 
+    device_id = RequestUtilities.get_device_id_from_headers(request)
+
     is_ios = is_platform_ios(request)
     chatroom_id = request.GET.get('chatroom_id')
     scroll_direction = request.GET.get('scroll_direction')
@@ -8755,7 +8757,7 @@ def fetch_chatroom_feed_version_1(request):
                 chatroom_list = state_filter.filter(~Q(expiry_time=None)
                                                     & Q(expiry_time__lte=current_time)).order_by('card_id')[:5]
 
-            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, is_ios=is_ios)
+            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, device_id=device_id)
         else:
 
             last_seen = last_seen[0]
@@ -8777,7 +8779,7 @@ def fetch_chatroom_feed_version_1(request):
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('card_id')
 
-            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, active, device_id=device_id)
 
     else:
         scroll_direction = int(scroll_direction)
@@ -8792,7 +8794,7 @@ def fetch_chatroom_feed_version_1(request):
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:5]
 
             upward = reverse_conversations_for_upward_pagination(upward)
-            chatrooms = get_chatrooms_version_1(upward, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms_version_1(upward, member_id, active, device_id=device_id)
 
         elif scroll_direction == 1:  # downward scroll
 
@@ -8803,7 +8805,7 @@ def fetch_chatroom_feed_version_1(request):
                 downward = state_filter.filter(card__gt=chatroom_id, user=member_id).filter(
                     ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('card')[:5]
 
-            chatrooms = get_chatrooms_version_1(downward, member_id, active, is_ios=is_ios)
+            chatrooms = get_chatrooms_version_1(downward, member_id, active, device_id=device_id)
 
     context['chatrooms'] = chatrooms
 
