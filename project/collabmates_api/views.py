@@ -2651,7 +2651,7 @@ def fetch_community_profile(request):
         user_admin_rights = check_all_manager_rights(current_member_id, community_id)
 
     member_ids = [user_id]
-    member = get_members_profile(member_ids, community_instance.id, current_user_id=current_member_id, is_promoter=is_promoter,
+    member = get_members_profile(member_ids, community_id, current_user_id=current_member_id, is_promoter=is_promoter,
                                  is_owner=is_owner, profile_detail_api=True, user_admin_rights=user_admin_rights)
 
     if member:
