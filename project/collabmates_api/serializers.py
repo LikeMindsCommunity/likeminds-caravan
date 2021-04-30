@@ -1046,8 +1046,7 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
         questions = get_question_data(response.question, member_state, send_back=send_back,
                                       user_id=current_user_id, community_id=community_id)
         if questions:
-            temp['community_id'] = community_id.id if isinstance(community_id, Community) else\
-                NumberUtilities.get_integer_from_string(community_id)
+            temp['community_id'] = community_id.id if isinstance(community_id, Community) else community_id
 
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
@@ -1507,7 +1506,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
             if isinstance(community_id, Community):
                 community_profile['community_id'] = community_id.id
             else:
-                community_profile['community_id'] = NumberUtilities.get_integer_from_string(community_id)
+                community_profile['community_id'] = community_id
 
             member_profile_list.append(community_profile)
 
