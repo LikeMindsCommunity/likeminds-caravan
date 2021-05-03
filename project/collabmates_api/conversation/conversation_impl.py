@@ -17,7 +17,7 @@ from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
-    get_removed_member_custom_text, get_conversation_instance_for_db_synching
+    get_removed_member_custom_text
 from ..sync.model_update import update_models_for_syncing_apis
 from ..tasks import send_tagged_user_mail, send_chatroom_owner_mail
 from ..utility import pagination

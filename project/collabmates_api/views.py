@@ -11063,7 +11063,7 @@ def config(request):
     except Exception as e:
         error_logger.error(e)
 
-    context['updatePriority'] = 0
+    context['updatePriority'] = 1
     context['use_segment'] = True
 
     return JsonResponse(context)
