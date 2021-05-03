@@ -13,7 +13,7 @@ from django.db.models import Q
 import json
 
 from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVERSATION_POLL_VOTERS_CONVERSATION_ID, \
-    CONVERSATION_COMMUNITY_PREVIEW
+    CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
@@ -878,3 +878,43 @@ def save_conversation_poll_voters_in_cache(vote_info):
 
     key = CONVERSATION_POLL_VOTERS_CONVERSATION_ID % (str(conversation_instance.id))
     CacheImpl.set_cache(key, cache_context)
+
+
+@shared_task
+def save_users_with_muted_chatrooms(mute_info):
+
+    user_id = mute_info.get('user_id')
+    chatroom_id = mute_info.get('chatroom_id')
+    mute_status = mute_info.get('mute_status')
+
+    if not user_id:
+        return
+
+    key = USER_MUTED_CHATROOM % str(user_id)
+
+    muted_key = CacheImpl.get_cache(key)
+
+    if muted_key and chatroom_id:
+        mute_list = muted_key.get('mute_list', [])
+
+        if mute_status and \
+                chatroom_id not in mute_list:
+            mute_list.append(chatroom_id)
+
+        elif not mute_status and \
+                chatroom_id in mute_list:
+
+            mute_list.remove(chatroom_id)
+
+        CacheImpl.set_cache(key, {'mute_list': mute_list})
+
+        return
+
+    mute_list = mute_info.get('mute_list', [])
+
+    if not mute_list:
+        mute_list = list(collabcardState.objects.filter(user=user_id,
+                                                        mute_status=True).values_list('card_id',
+                                                                      flat=True))
+
+    CacheImpl.set_cache(key,  {'mute_list': mute_list})
