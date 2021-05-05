@@ -497,9 +497,10 @@ def get_all_members_version_1(request, req_dict=None):
     # flow for sending members of chatroom
 
     if chatroom_id:
-        chatroom_instance = Collabcard.objects.filter(pk=chatroom_id).select_related('user', 'community')
+        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+        total_participants = 0
 
-        if not chatroom_instance.exists():
+        if not chatroom_instance:
             response = {
                 'success': False,
                 'error_message': f'chatroom with id {chatroom_id} does not exists'
@@ -507,16 +508,28 @@ def get_all_members_version_1(request, req_dict=None):
 
             raise InvalidChatroomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        else:
-            chatroom_instance = chatroom_instance[0]
+        total_participants = collabcardState.objects.filter(card=chatroom_instance,
+                                                            follow_status=True,
+                                                            remove=None).count()
 
         if chatroom_instance.is_secret:
-            return get_secret_chatroom_participants(chatroom_instance, current_user_id, page, filter_list=filter_list)
+            context = get_secret_chatroom_participants(chatroom_instance,
+                                                       current_user_id, page, filter_list=filter_list)
+
+            context['total_members'] = total_participants
+
+            return context
 
         if is_request_web(request):
-            return collabcard_members(chatroom_instance, community_id, current_user_id, page)
+            context = collabcard_members(chatroom_instance, community_id, current_user_id, page)
+            context['total_members'] = total_participants
 
-        return chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page)
+            return context
+
+        context = chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page)
+        context['total_members'] = total_participants
+
+        return context
 
     promoter_instance = None
     community_instance = Community.get_community_or_raise_exception(community_id)
@@ -798,7 +811,7 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
     collabcard_state_list = collabcardState.objects.filter(card=chatroom_instance, remove=None,
-                                                           is_tagged=False).order_by('-user_id')
+                                                           is_tagged=False).select_related('user').order_by('-user_id')
 
     if is_event_card:
         collabcard_state_list = collabcard_state_list.filter(Q(state=state_list[0]) | Q(state=state_list[1]) |
@@ -895,8 +908,7 @@ def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, 
         members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=page,
                                                   member_set=None)
 
-    community_instance = Community.objects.get(id=community_id)
-    promoter_instance = is_member_promoter(community_instance, current_user_id)
+    community_instance = chatroom_instance.community
 
     community = CommunitySerializerV1(community_instance, context={"current_user_id": current_user_id}, many=False).data
 

@@ -1513,7 +1513,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
 
         member_filter = Members.objects.filter(member_id=id, community_id=community_id)
 
-        if member_filter.exists():
+        if member_filter:
 
             if user_admin_rights and not user_admin_rights["approve"] and not profile_detail_api:
                 if member_filter[0].state == member_states.PENDING_MEMBER:
