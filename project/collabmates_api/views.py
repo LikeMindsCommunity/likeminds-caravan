@@ -8151,7 +8151,13 @@ def collabcards_seen(request):
     if 'collabcard_type' in params:
         collabcard_type = params['collabcard_type']
 
-    collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
+    try:
+        collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
+    except Exception as e:
+
+        error_logger.error(e.args)
+
+        return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
 
     send_sync_notification.delay({'community_id': community_id,
                                   'member_id': user_id,
@@ -11075,7 +11081,12 @@ def config(request):
     except Exception as e:
         error_logger.error(e)
 
-    context['updatePriority'] = 1
+    context['updatePriority'] = 0
+
+    if RequestUtilities.is_request_ios(request) \
+            and version_code < CURRENT_IOS_VERSION:
+        context['updatePriority'] = 1
+
     context['use_segment'] = True
 
     return JsonResponse(context)
