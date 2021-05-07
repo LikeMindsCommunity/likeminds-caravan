@@ -6025,9 +6025,9 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'state': ans.state,
             # 'is_deleted': ans.is_deleted,
             'is_edited': ans.is_edited,
-            'member_id': ans.user.id,
+            'member_id': ans.user_id,
             'community_id': community_id,
-            'chatroom_id': ans.card.id,
+            'chatroom_id': ans.card_id,
             'created_epoch': int(ans.created_at)
         }
 
@@ -6065,7 +6065,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
             try:
                 if ans.preview_chatroom and ans.preview_type == "chatroom":
-                    key = "chatroom_preview_"+str(ans.preview_chatroom_id)
+                    key = CHATROOM_PREVIW_CACHE_KEY % (str(ans.preview_chatroom_id), str(ans.id))
                     preview = CacheImpl.get_cache(key)
 
                     if preview:

@@ -1989,15 +1989,14 @@ def get_preview_for_url(member_id=None, preview_url=None,
         context["community"] = community
         is_member = community["member_state"] in [1, 2, 3, 4, 7, 9]
 
-        if is_member_directory and is_member:
+        if is_member_directory:
             context["action"] = "VIEW DIRECTORY"
             route = f"route://members_directory?community_id={community_id}&community_name={community_instance.name}"
-        elif is_member and not chatroom_id:
-            route = f"route://community?community_id={community_id}"
-            context["action"] = "VIEW COMMUNITY"
+
         elif not chatroom_id:
             route = f"route://community?community_id={community_id}"
             context["action"] = "VIEW COMMUNITY"
+
         else:
             context["action"] = "VIEW COMMUNITY"
 
