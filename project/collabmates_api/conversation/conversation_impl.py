@@ -17,7 +17,7 @@ from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
-    get_removed_member_custom_text, get_conversation_instance_for_db_synching
+    get_removed_member_custom_text
 from ..sync.model_update import update_models_for_syncing_apis
 from ..tasks import send_tagged_user_mail, send_chatroom_owner_mail
 from ..utility import pagination
@@ -643,8 +643,7 @@ class ConversationImpl(ConversationManager):
 
         if not has_files:
             ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id,
-                                                                               user_instance.id,
-                                                                               conversation_instance.id)
+                                                                         conversation_instance.id)
 
         self._auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance)
 
@@ -957,10 +956,21 @@ class ConversationHelper:
             send_chatroom_owner_mail.delay(chatroom_instance.user_id, chatroom_instance.id, time_in_hrs=12)
 
     @staticmethod
+    def update_homefeed_for_all_chatroom_followers(chatroom_id, conversation_id):
+
+        user_list = list(ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_id,
+                                                                           'remove': None,
+                                                                           'follow_status': True}
+                                                         ).values_list('user_id', flat=True))
+
+        for user_id in user_list:
+            update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id, conversation_id)
+
+    @staticmethod
     @shared_task
-    def update_latest_conversation_id_to_firebase(chatroom_id, user_id, conversation_id):
+    def update_latest_conversation_id_to_firebase(chatroom_id, conversation_id):
         update_last_answer_id(chatroom_id, conversation_id)
-        update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id, conversation_id)
+        ConversationHelper.update_homefeed_for_all_chatroom_followers(chatroom_id, conversation_id)
 
     @staticmethod
     @shared_task

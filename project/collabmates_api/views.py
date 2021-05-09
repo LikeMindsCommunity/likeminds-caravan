@@ -35,7 +35,8 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   schedule_chatroom_unpinning_after_event_completion,
                                   update_chatroom_conversation_count_in_cache,
                                   update_chatroom_conversation_creators_in_cache, get_conversation_poll,
-                                  update_multiple_previews_in_community, update_preview_of_community_in_cache
+                                  update_multiple_previews_in_community, update_preview_of_community_in_cache,
+                                  save_users_with_muted_chatrooms
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
@@ -64,6 +65,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            user_onbaord, get_time_text_for_my_chatrooms, get_members_count_in_community,
                            check_notification_flag, create_notification_flag, is_request_ios,
                            )
+
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 
 from .notification import *
@@ -3919,15 +3921,18 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
 def chatroom_mute(request):
     '''function to mute and unmute chatroom'''
     chatroom_id = request.POST.get('chatroom_id')
+    card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
-    if not chatroom_id:
+    if not card_instance:
         context = get_error_context(False, "send chatroom id as post parameters")
 
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     member_id = get_member_id_from_headers(request)
 
-    if not member_id:
+    user_instance = User.get_user_or_none(member_id)
+
+    if not user_instance:
         context = get_error_context(False, "send member id in headers")
 
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -3935,10 +3940,13 @@ def chatroom_mute(request):
     value = request.POST.get('value', False)
     collabcard_state_filter = collabcardState.objects.filter(card_id=chatroom_id, user=member_id)
 
+    mute_status = False
+
     if value == "true":
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': chatroom_id, 'user': member_id},
                                        {'mute_status': True})
+        mute_status = True
     else:
         if collabcard_state_filter.exists():
             instance = collabcard_state_filter[0]
@@ -3948,6 +3956,10 @@ def chatroom_mute(request):
             instance.is_tagged = False
             instance.save()
             # collabcard_state_filter.update(mute_status=False,is_tagged=False,updated_at=time.time())
+
+    save_users_with_muted_chatrooms.delay({'user_id': user_instance.id,
+                                     'chatroom_id': card_instance.id,
+                                     'mute_status': mute_status})
 
     send_sync_notification.delay({'chatroom_id': chatroom_id,
                                   'member_id': member_id,
@@ -6013,9 +6025,9 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
             'state': ans.state,
             # 'is_deleted': ans.is_deleted,
             'is_edited': ans.is_edited,
-            'member_id': ans.user.id,
+            'member_id': ans.user_id,
             'community_id': community_id,
-            'chatroom_id': ans.card.id,
+            'chatroom_id': ans.card_id,
             'created_epoch': int(ans.created_at)
         }
 
@@ -6053,7 +6065,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 
             try:
                 if ans.preview_chatroom and ans.preview_type == "chatroom":
-                    key = "chatroom_preview_"+str(ans.preview_chatroom_id)
+                    key = CHATROOM_PREVIW_CACHE_KEY % (str(ans.preview_chatroom_id), str(ans.id))
                     preview = CacheImpl.get_cache(key)
 
                     if preview:
@@ -8139,7 +8151,13 @@ def collabcards_seen(request):
     if 'collabcard_type' in params:
         collabcard_type = params['collabcard_type']
 
-    collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
+    try:
+        collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
+    except Exception as e:
+
+        error_logger.error(e.args)
+
+        return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
 
     send_sync_notification.delay({'community_id': community_id,
                                   'member_id': user_id,
@@ -11064,6 +11082,11 @@ def config(request):
         error_logger.error(e)
 
     context['updatePriority'] = 0
+
+    if RequestUtilities.is_request_ios(request) \
+            and version_code < CURRENT_IOS_VERSION:
+        context['updatePriority'] = 1
+
     context['use_segment'] = True
 
     return JsonResponse(context)

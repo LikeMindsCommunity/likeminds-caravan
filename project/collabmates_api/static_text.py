@@ -407,3 +407,5 @@ COMMUNITY_MEMBER_STATES = [
         member_states.MEMBER,
         member_states.PROFILE_UNAVAILABLE
     ]
+
+CURRENT_IOS_VERSION = 91

@@ -55,6 +55,10 @@ from external_services.mixpanel.mixpanel_impl import MixpanelImpl
 from django.db import connection
 from utility.number_utilities import NumberUtilities
 
+from utility.celery_tasks import save_users_with_muted_chatrooms
+from utility.cache_keys import USER_MUTED_CHATROOM
+from external_services.caching.cache_impl import CacheImpl
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -1039,6 +1043,28 @@ def send_follow_notification(card_id, user_id, conversation_id):
                                                                conversation_instance, card_instance, community_instance)
 
 
+def compute_mute_status_for_users(followed_chatrooms, current_user_id):
+
+    card_id_list = [instance.card_id for instance in followed_chatrooms]
+    muted_key = CacheImpl.get_cache(USER_MUTED_CHATROOM % current_user_id)
+
+    if muted_key:
+        mute_list = muted_key.get('mute_list', [])
+        mute_status_dict = {card_id: True for card_id in card_id_list if card_id in mute_list}
+
+        return mute_status_dict
+
+    mute_list = list(collabcardState.objects.filter(card__in=card_id_list,
+                                                    user_id=current_user_id,
+                                                    mute_status=True).values_list('card_id', flat=True))
+
+    mute_status_dict = {card_id: True for card_id in card_id_list if card_id in mute_list}
+
+    save_users_with_muted_chatrooms.delay({'user_id': current_user_id})
+
+    return mute_status_dict
+
+
 def get_custom_data_for_new_conversation_created(user_id):
     """function to send notification for new conversation posted to followed users"""
 
@@ -1047,17 +1073,16 @@ def get_custom_data_for_new_conversation_created(user_id):
                                                            draft_id=None,
                                                            unseen_count__gt=0).select_related('card',
                                                                                               'community').order_by('-updated_at', '-id')[:10]
-
     unread_conversation = []
+    mute_status_dict = compute_mute_status_for_users(followed_chatrooms, user_id)
 
     for conversation in followed_chatrooms:
         temp = {}
         card_instance = conversation.card
         community_instance = conversation.community
 
-        state_filter = collabcardState.objects.filter(user=user_id, card=card_instance, mute_status=True)
-
-        if state_filter.exists():
+        if mute_status_dict.get(card_instance.id) \
+                and mute_status_dict[card_instance.id] is True:
             continue
 
         chatroom_name = card_instance.header
