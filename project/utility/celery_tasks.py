@@ -3,7 +3,7 @@ from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from django.conf import settings
 
-from collabmates_api.serializers import get_user_profile, get_preview_for_url
+from collabmates_api.serializers import get_user_profile, get_preview_for_url, UserinfoSerializer
 from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -667,6 +667,9 @@ def compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, 
             polls.append(temp)
             continue
 
+        if data.get('member'):
+            temp['member'] = data.get('member')
+
         chatroom_votes = chatroom_poll_members.get(poll_id)
 
         if not chatroom_votes:
@@ -703,6 +706,9 @@ def compute_conversation_poll_options_from_cache(poll_options, conversation_info
         temp['is_selected'] = False
         temp['no_votes'] = 0
         temp['percentage'] = 0
+
+        if data.get('member'):
+            temp['member'] = data.get('member')
 
         if conversation_info.get('poll_type') == conversation_poll_types.DEFERRED and \
                 conversation_info.get('expiry_time') >= TimeUtilities.current_time_in_milliseconds():
@@ -750,6 +756,7 @@ def compute_conversation_polls(conversation_info):
     total_votes = conversation_poll_members.count()
 
     polls = []
+    user_dict = {}
 
     for data in conversation_poll_options:
 
@@ -764,6 +771,13 @@ def compute_conversation_polls(conversation_info):
             temp['percentage'] = 0
             polls.append(temp)
             continue
+
+        if user_dict.get(data.user_id):
+            temp['member'] = user_dict.get(data.user_id)
+
+        else:
+            temp['member'] = UserinfoSerializer(data.user.userinfo)
+            user_dict[data.user_id] = temp['member']
 
         chatroom_votes = poll_members_dict.get(poll_id)
 
@@ -828,13 +842,24 @@ def save_conversation_poll_options_in_cache(options_info):
         poll_filter = ModelUtilities.get_model_filter(conversationPolls,
                                                       {'conversation': conversation_id}).order_by('id')
 
+        user_dict = {}
+
         for poll in poll_filter:
+
             temp = {
                 'id': poll.id,
                 'text': poll.text,
                 'user_id': poll.user_id
             }
 
+            if user_dict.get(poll.user_id):
+                member = user_dict.get(poll.user_id)
+
+            else:
+                member = UserinfoSerializer(poll.user.userinfo)
+                user_dict[poll.user_id] = member
+
+            temp['member'] = member
             polls.append(temp)
 
     key = CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % str(conversation_id)

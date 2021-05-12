@@ -13,9 +13,11 @@ from utility.celery_tasks import get_conversation_poll
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
-                          get_removed_member_custom_text, get_collabcard_files, get_user_profile,get_answer_text_for_poll)
+                          get_removed_member_custom_text, get_collabcard_files, get_user_profile,
+                          get_answer_text_for_poll)
 from utility.states import (card_types, question_states, member_states, poll_types,
-                            deleted_members, manager_rights, member_rights, chatroom_states, conversation_states)
+                            deleted_members, manager_rights, member_rights, chatroom_states, conversation_states,
+                            conversation_poll_types)
 from utility.utils import (get_time_text, generate_private_link, eligibility_count,
                            get_members_count_in_community)
 from django.conf import settings
@@ -46,7 +48,6 @@ class reportsView(APIView):
 
 
 class YourCommunitySerializer(serializers.ModelSerializer):
-
     name = serializers.CharField(write_only=True)
     purpose = serializers.CharField(write_only=True)
     about = serializers.CharField(write_only=True)
@@ -67,7 +68,7 @@ class YourCommunitySerializer(serializers.ModelSerializer):
         fields = ('id', 'open_reports_count', 'member_state',
                   'click_state', 'collabcard_unseen', 'actions', 'name', 'purpose', 'about',
                   'member_right_states', 'pending_chatroom_count', 'image_url', 'members_count',
-                  'type', 'sub_type', 'pending_members_count','order_time')
+                  'type', 'sub_type', 'pending_members_count', 'order_time')
 
     def __init__(self, *args, **kwargs):
         super(YourCommunitySerializer, self).__init__(*args, **kwargs)
@@ -79,7 +80,6 @@ class YourCommunitySerializer(serializers.ModelSerializer):
 
     def get_name(self, community_engage):
         return community_engage.community_id.name
-
 
     def get_home_screen_community_actions(self, community_instance):
 
@@ -95,7 +95,7 @@ class YourCommunitySerializer(serializers.ModelSerializer):
         member_directory = {
             'title': "View member directory",
             'route': """route://members_directory?community_id=%s&community_name=%s""" % (
-            str(community_instance.id), community_instance.name)
+                str(community_instance.id), community_instance.name)
         }
 
         actions.append(member_directory)
@@ -148,7 +148,8 @@ class YourCommunitySerializer(serializers.ModelSerializer):
             }
             actions.append(management_tools)
 
-        if community_engage.member_state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
+        if community_engage.member_state in [member_states.ADMIN, member_states.MEMBER,
+                                             member_states.PROFILE_UNAVAILABLE]:
             data['collabcard_unseen'] = community_engage.last_unseen_count
         else:
             data['collabcard_unseen'] = 0
@@ -165,7 +166,6 @@ class YourCommunitySerializer(serializers.ModelSerializer):
 
 
 class CommunitySerializerV1(serializers.ModelSerializer):
-
     members_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -184,7 +184,6 @@ class CommunitySerializerV1(serializers.ModelSerializer):
     def get_members_count(self, instance):
 
         if self.restrict_members_count:
-
             return None
 
         return get_members_count_in_community(instance)
@@ -205,7 +204,8 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                     data['image_url'] = '/media/media/community/default.jpeg'
 
                 if data['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
-                    data['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+                    data[
+                        'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
                 elif not community.image_link:
                     data['image_url'] = url + data['image_url']
 
@@ -276,7 +276,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         if not self.current_user_id:
             self.current_user_id = self.member_id
 
-
     def get_created_at(self, card):
 
         return TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch)
@@ -317,8 +316,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         return polls
 
-
-
     def get_member_id(self, card):
         return card.user.id
 
@@ -328,9 +325,9 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             deleted_by = card.deleted_by_user.id
         return deleted_by
 
-    def get_co_hosts(self,co_hosts):
+    def get_co_hosts(self, co_hosts):
 
-        co_host_list =[]
+        co_host_list = []
         for member in co_hosts:
             temp = {}
             temp['id'] = member
@@ -342,7 +339,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         images = []
 
-        if card.has_files or\
+        if card.has_files or \
                 card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="image")
 
@@ -369,8 +366,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         pdf = []
 
-        if card.has_files or\
-                card.attachment_count > 0 or\
+        if card.has_files or \
+                card.attachment_count > 0 or \
                 card.pdf_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="pdf")
 
@@ -380,11 +377,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         return pdf
 
-    def get_audios(self,card):
+    def get_audios(self, card):
 
         audios = []
 
-        if card.has_files or\
+        if card.has_files or \
                 card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="audio")
 
@@ -398,7 +395,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         videos = []
 
-        if card.has_files or\
+        if card.has_files or \
                 card.attachment_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card, type="video")
             for file in files:
@@ -420,8 +417,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_attachments(self, card):
         attachments = []
 
-        if card.has_files or\
-                card.attachment_count > 0 or\
+        if card.has_files or \
+                card.attachment_count > 0 or \
                 card.pdf_count > 0:
             files = Card_Attachment.objects.filter(collabcard=card)
 
@@ -568,7 +565,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 else:
                     del data['answer_text']
 
-            elif field.field_name == "secret_chatroom_participants" and data['secret_chatroom_participants'] is not None:
+            elif field.field_name == "secret_chatroom_participants" and data[
+                'secret_chatroom_participants'] is not None:
                 data['secret_chatroom_participants'] = json.loads(data['secret_chatroom_participants'])
 
             elif data[field.field_name] is None:
@@ -605,17 +603,17 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
 class CardStateSerializer(serializers.ModelSerializer):
     chatroom_expiry_time = serializers.SerializerMethodField()
+
     class Meta:
         model = collabcardState
         fields = ('state', 'mute_status', 'follow_status', 'is_guest', 'attending_status',
-                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time','last_seen_conversation')
+                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time', 'last_seen_conversation')
 
     def get_chatroom_expiry_time(self, obj):
         return obj.expiry_time
 
 
 class membersSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Members
         fields = '__all__'
@@ -631,7 +629,8 @@ class membersSerializer(serializers.ModelSerializer):
         self.all_members_api = kwargs.get('all_members_api', None)
         self.profile_detail_api = kwargs.get('profile_detail_api', None)
         self.user_admin_rights = kwargs.get('user_admin_rights', None)
-        self.parents_list = json.loads(self.member_instance.parent_cm_list) if self.member_instance.parent_cm_list else []
+        self.parents_list = json.loads(
+            self.member_instance.parent_cm_list) if self.member_instance.parent_cm_list else []
 
     def to_representation(self, obj):
         data = super(membersSerializer, self).to_representation(obj)
@@ -649,9 +648,8 @@ class membersSerializer(serializers.ModelSerializer):
         # data = OrderedDict([(key, data[key]) for key in data if data[key] is not None])
         return data
 
-
-
-    def get_menu_for_members(self, current_user_id, item_member_id, community_id, current_user_is_promoter, item_member_state,
+    def get_menu_for_members(self, current_user_id, item_member_id, community_id, current_user_is_promoter,
+                             item_member_state,
                              current_user_is_owner=False, item_member_is_owner=False, current_user_admin_rights=None,
                              parents_list=None, profile_detail_api=False):
         """ function to get the menu for all members for all members api and profile detail api """
@@ -736,7 +734,6 @@ class membersSerializer(serializers.ModelSerializer):
 
 
 class formSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Members
         fields = '__all__'
@@ -769,7 +766,6 @@ class reportSerializer(serializers.ModelSerializer):
 
 
 class memberCommunityProfileSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Members
         fields = '__all__'
@@ -803,6 +799,8 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     created_epoch = serializers.SerializerMethodField()
     reactions = serializers.SerializerMethodField()
     polls = serializers.SerializerMethodField()
+    poll_type_text = serializers.SerializerMethodField()
+    submit_type_text = serializers.SerializerMethodField()
 
     class Meta:
         model = card_answers
@@ -812,7 +810,8 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'attachment_count', 'attachments_uploaded', 'location', 'reply_conversation',
                   'preview', 'member_id', 'created_epoch', 'temporary_id', 'is_anonymous',
                   'allow_add_option', 'poll_type', 'expiry_time', 'multiple_select_state',
-                  'multiple_select_no', 'polls', 'reactions')
+                  'multiple_select_no', 'polls', 'reactions', 'poll_type_text', 'submit_type_text',
+                  'poll_answer_text')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)
@@ -838,6 +837,16 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
     def get_created_epoch(self, obj):
         return int(obj.created_at)
+
+    def get_poll_type_text(self, obj):
+
+        if obj.state == conversation_states.CONVERSATION_POLL:
+            return "Instant poll" if obj.poll_type == conversation_poll_types.INSTANT else "Deferred poll"
+
+    def get_submit_type_text(self, obj):
+
+        if obj.state == conversation_states.CONVERSATION_POLL:
+            return "Secret voting" if obj.is_anonymous else "Public voting"
 
     def get_polls(self, obj):
 
@@ -883,9 +892,9 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                     del data['og_tags']
 
             elif (field.field_name == "has_files" and
-                  data['has_files']) or\
-                 (field.field_name == "attachment_count" and
-                  data['attachment_count'] > 0):
+                  data['has_files']) or \
+                    (field.field_name == "attachment_count" and
+                     data['attachment_count'] > 0):
                 answer_files = get_answer_files(data['id'])
                 data['images'] = answer_files['image']
                 data['pdf'] = answer_files['pdf']
@@ -918,6 +927,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
 class UserinfoSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Userinfo
         fields = ('id', 'name', 'image_url')
@@ -938,8 +948,6 @@ class UserinfoSerializer(serializers.ModelSerializer):
 
 
 class MessageReactionsSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = MessageReactions
         fields = "__all__"
-

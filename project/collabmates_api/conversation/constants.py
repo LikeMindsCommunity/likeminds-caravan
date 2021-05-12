@@ -6,3 +6,5 @@ ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM = "Only admin can create Conversation in thi
 PREVIEW_CHATROOM = "chatroom"
 PREVIEW_COMMUNITY = "community"
 PREVIEW_DIRECTORY = "directory"
+
+POLL_ANSWER_TEXT = "Be the first to vote"

@@ -583,6 +583,7 @@ class card_answers(models.Model):
     allow_add_option = models.BooleanField(default=False)
 
     has_reactions = models.BooleanField(default=False)
+    poll_answer_text = models.TextField(default='')
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):

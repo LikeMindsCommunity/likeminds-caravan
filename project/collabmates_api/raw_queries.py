@@ -1557,7 +1557,8 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
                          expiry_time,
                          preview_community_id,
                          has_reactions,
-                         device_id
+                         device_id,
+                         poll_answer_text
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
@@ -1623,7 +1624,8 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
                          expiry_time,
                          preview_community_id,
                          has_reactions,
-                         device_id
+                         device_id,
+                         poll_answer_text
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s

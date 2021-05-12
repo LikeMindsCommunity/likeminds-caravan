@@ -11088,6 +11088,7 @@ def config(request):
         context['updatePriority'] = 1
 
     context['use_segment'] = True
+    context['micro_polls_enabled'] = False
 
     return JsonResponse(context)
 
@@ -15294,6 +15295,7 @@ class SyncConversation(APIView):
         max_last_updated = 0
 
         for conversation in conversation_data:
+
             conversation_context = dict()
             conversation_context['id'] = conversation[0]
             conversation_context['answer'] = conversation[1]
@@ -15402,6 +15404,9 @@ class SyncConversation(APIView):
             if conversation_context['state'] == ConversationStates.CONVERSATION_POLL:
                 conversation_context['poll_type'] = conversation[20]
 
+                conversation_context['poll_type_text'] = "Instant poll" \
+                    if conversation_context['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+
                 if conversation[21] is not None:
                     conversation_context['multiple_select_state'] = conversation[21]
 
@@ -15409,6 +15414,10 @@ class SyncConversation(APIView):
                     conversation_context['multiple_select_no'] = conversation[22]
 
                 conversation_context['is_anonymous'] = conversation[23]
+
+                conversation_context['submit_type_text'] = "Secret voting" \
+                    if conversation_context['is_anonymous'] else "Public voting"
+
                 conversation_context['allow_add_option'] = conversation[24]
                 conversation_context['expiry_time'] = conversation[25]
                 conversation_context['polls'] = get_conversation_poll({'conversation_id': conversation[0],
@@ -15416,6 +15425,8 @@ class SyncConversation(APIView):
                                                                        'multiple_select_no': conversation[22],
                                                                        'expiry_time': conversation[25],
                                                                        'member_id': member_id})
+                conversation_context['poll_answer_text'] = conversation[29]
+
             # conversation[27] = has_reactions
             if conversation[27]:
                 reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation_context['id'])
