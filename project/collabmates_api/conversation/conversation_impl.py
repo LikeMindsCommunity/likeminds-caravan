@@ -471,7 +471,7 @@ class ConversationImpl(ConversationManager):
                 member_data = member_dict[user_id]
 
                 if member_introduction_dict.get(user_id):
-                    member_data['question_answer'] = member_introduction_dict[user_id]
+                    member_data['question_answers'] = [member_introduction_dict[user_id]]
 
                 else:
 

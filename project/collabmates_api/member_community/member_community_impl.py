@@ -534,10 +534,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                 member_dict['member_id'] = data[0]
                 member_dict['community_id'] = data[1]
                 member_dict['state'] = question_instance.question_state
-                member_dict['value'] = data[3]
+                member_dict['value'] = data[2]
                 member_dict['question_id'] = question_instance.id
                 member_dict['is_hidden'] = question_instance.is_hidden
                 member_dict['directory_fields'] = question_instance.field
+                member_dict['question_title'] = data[3]
                 member_introduction_dict[member_dict['member_id']] = member_dict
 
             return member_introduction_dict
