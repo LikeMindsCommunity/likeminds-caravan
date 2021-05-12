@@ -54,7 +54,8 @@ INSTALLED_APPS = [
 
 
 MIDDLEWARE = [
-    'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    # 'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    'middleware.CustomPrometheusAfterMetrics.CustomPrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -66,7 +67,6 @@ MIDDLEWARE = [
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'utility.custom_middleware.AppendOrRemoveSlashMiddleware',
     'middleware.api_logger.ApiLogger',
-    # 'middleware.InternalServerErrorMiddleware.InternalServerErrorHandlerMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 

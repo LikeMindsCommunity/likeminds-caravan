@@ -4,3 +4,5 @@ CONVERSATION_COMMUNITY_PREVIEW = "COMMUNITY_PREVIEW_%s_%s"
 
 CHATROOM_REACTIONS_CACHE_KEY = "chatroom_reaction_%s"
 CONVERSATION_REACTIONS_CACHE_KEY = "conversation_reaction_%s"
+
+USER_MUTED_CHATROOM = "user_muted_chatrooms_%s"

@@ -34,6 +34,7 @@ class FetchCommunityFeed(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
 
         if not member_id:
             context = get_error_context(False, "member id missing in request")
@@ -45,7 +46,7 @@ class FetchCommunityFeed(APIView):
         pin_status = request.GET.get('pinned', False)
         pin_status = StringUtilities.get_boolean_from_string(pin_status)
 
-        community_manager = MemberCommunityImpl(member_id, community_id)
+        community_manager = MemberCommunityImpl(member_id, community_id, device_id=device_id)
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
 

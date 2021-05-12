@@ -31,6 +31,17 @@ info_logger = LoggingWrapper.get_instance()
 url = settings.URL
 
 
+def process_community_id(community_id):
+
+    if isinstance(community_id, Community):
+        community_id = community_id.id
+
+    else:
+        community_id = NumberUtilities.get_integer_from_string(community_id)
+
+    return community_id
+
+
 def CommunitySerializer(community, promoter_id=0, is_owner=False,
                         current_user_id=None, current_user_instance=None):
     # function to serialize a community object
@@ -147,7 +158,7 @@ def UserinfoSerializer(user):
     # function to serialize a userinfo object
     # if the community is not feedback community
     userinfo = {
-        'id': user.user_id.id,
+        'id': user.user_id_id,
         "name": user.name,
         # "email": user.email,
         # "city": user.city,
@@ -164,29 +175,44 @@ def UserinfoSerializer(user):
     return userinfo
 
 
-def get_logged_in_user(user_instance):
-    context = UserinfoSerializer(user_instance.userinfo)
+def get_user_mobile_no_list(user_id):
 
-    email_filter = userEmails.objects.filter(user=user_instance)
-
-    email_list = []
-    for email in email_filter:
-        email_list.append(userEmailsSerializer(email))
-
-    # if not email_list:
-    #     email = user_instance.userinfo.email
-    #     if email:
-    #         email_list.append(email)
-
-    mobile_filter = userMobiles.objects.filter(user=user_instance)
-
+    mobile_filter = userMobiles.objects.filter(user=user_id)
     mobile_list = []
 
     for mobile_no in mobile_filter:
         mobile_list.append(userMobilesSerializer(mobile_no))
 
+    return mobile_list
+
+
+def get_user_email_list(user_id):
+    email_filter = userEmails.objects.filter(user=user_id)
+
+    email_list = []
+
+    for email in email_filter:
+        email_list.append(userEmailsSerializer(email))
+
+    return email_list
+
+
+def get_logged_in_user(user_instance):
+
+    if isinstance(user_instance, Userinfo):
+        context = UserinfoSerializer(user_instance)
+        user_id = user_instance.user_id_id
+
+    else:
+        context = UserinfoSerializer(user_instance.userinfo)
+        user_id = user_instance.id
+
+    email_list = get_user_email_list(user_id)
+    mobile_list = get_user_mobile_no_list(user_id)
+
     if email_list:
         context['emails'] = email_list
+
     if mobile_list:
         context['mobiles'] = mobile_list
 
@@ -287,7 +313,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
             if not user:
                 user = None
 
-            collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community.id,
+            collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community_id,
                                                          current_user_id=user)
 
         if card.online_link:
@@ -319,10 +345,10 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
                                    current_user_id=user, send_profile=False)
         member_obj = temp[0]
-        member_obj['community_id'] = card.community.id
+        member_obj['community_id'] = card.community_id
         member_obj['chatroom_id'] = card.id
         collabcard['deleted_by_member'] = member_obj
-        collabcard['deleted_by'] = card.deleted_by_user.id
+        collabcard['deleted_by'] = card.deleted_by_user_id
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
@@ -424,7 +450,7 @@ def draftChatroomSerializer(card, user, community=None):
             if not user:
                 user = None
 
-            chatroom['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community.id,
+            chatroom['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community_id,
                                                        current_user_id=user)
 
         if card.online_link:
@@ -925,7 +951,7 @@ def CollabcardPollsSerializer(poll, user, card):
     if poll.user:
         # member_profile = get_members_profile([poll.user.id], card_instance.community.id, send_profile=False)
         # polls['member'] = member_profile[0]
-        polls['member'] = get_user_profile(user_id=poll.user.id, community_id=card_instance.community.id,
+        polls['member'] = get_user_profile(user_id=poll.user.id, community_id=card_instance.community_id,
                                            send_profile=False)
 
     return polls
@@ -1008,7 +1034,11 @@ def draftPollsSerializers(poll):
 
 
 def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False):
+
+    community_id = process_community_id(community_id)
+
     responses = communityAnswers.objects.filter(community=community_id, member=user_id).order_by('id')
+
     if not responses.exists():
         return None
 
@@ -1031,12 +1061,12 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
         questions = get_question_data(response.question, member_state, send_back=send_back,
                                       user_id=current_user_id, community_id=community_id)
         if questions:
-            temp['community_id'] = community_id.id if isinstance(community_id, Community) else community_id
+            temp['community_id'] = community_id
+
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
             temp['value'] = response.question_answer
-            # if '$#' in temp['value']:
-            #     temp['value'] = temp['value'].replace('$#', ', ')
+
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']
@@ -1054,11 +1084,15 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
 
     if not bl:
         return user_response
+
     return (user_response, new_response)
 
 
 def get_question_data(question_id, member_state, send_back, user_id=None, community_id=None):
     ''' function to get question id '''
+
+    if community_id:
+        community_id = process_community_id(community_id)
 
     question_instance = question_id
     if send_back:
@@ -1253,7 +1287,7 @@ def communityFieldSerializer(instance):
 def userEmailsSerializer(email_instance):
     return {
         'id': email_instance.id,
-        'user_id': email_instance.user.id,
+        'user_id': email_instance.user_id,
         'email': email_instance.email,
         'state': email_instance.email_state,
         'verified': email_instance.verified
@@ -1265,7 +1299,7 @@ def userMobilesSerializer(mobile_instance):
     return {
 
         'id': mobile_instance.id,
-        'user_id': mobile_instance.user.id,
+        'user_id': mobile_instance.user_id,
         'mobile_no': mobile_instance.mobile_no,
         'country_code': mobile_instance.country_code,
         'state': mobile_instance.state
@@ -1278,6 +1312,8 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
                       user_admin_rights=None):
     user_is_owner = member_instance.is_owner
     parents_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
+
+    community_id = process_community_id(community_id)
 
     member_id = member_instance.member_id.id
     community_profile = get_user_profile(member_instance.member_id, community_id, current_user_id=current_user_id,
@@ -1471,11 +1507,13 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
     '''function to get member profile from list of members ids'''
     member_profile_list = []
 
+    community_id = process_community_id(community_id)
+
     for id in member_ids:
 
         member_filter = Members.objects.filter(member_id=id, community_id=community_id)
 
-        if member_filter.exists():
+        if member_filter:
 
             if user_admin_rights and not user_admin_rights["approve"] and not profile_detail_api:
                 if member_filter[0].state == member_states.PENDING_MEMBER:
@@ -1487,11 +1525,6 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
                                                   user_admin_rights=user_admin_rights,
                                                   is_owner=is_owner, is_promoter=is_promoter
                                                   )
-
-            if isinstance(community_id, Community):
-                community_profile['community_id'] = community_id.id
-            else:
-                community_profile['community_id'] = community_id
 
             member_profile_list.append(community_profile)
 
@@ -1606,20 +1639,20 @@ def report_tag_serializer(tag_instance):
 
 # ------------------------------- chatroom conversation data ------------------------------------
 
-def is_draft_conversation(conversation, current_user_id):
+def is_draft_conversation(conversation, current_user_id, device_id=''):
 
     if (conversation.attachment_count > 0 and
         conversation.attachments_uploaded is False) and\
             ((current_user_id and
               NumberUtilities.get_integer_from_string(current_user_id) != conversation.user.id) or
-             conversation.api_version <= 0):
+             conversation.api_version <= 0 or
+             conversation.device_id != device_id):
         return True
 
     return False
 
 
-
-def conversationSerializer(conversation, current_user_id=None, fetch_reply=True):
+def conversationSerializer(conversation, current_user_id=None, fetch_reply=True, device_id=''):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
@@ -1629,8 +1662,8 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
         'has_files': conversation.has_files,
         'attachment_count': conversation.attachment_count,
         'attachments_uploaded': conversation.attachments_uploaded,
-        'chatroom_id': conversation.card.id,
-        'community_id': conversation.community.id,
+        'chatroom_id': conversation.card_id,
+        'community_id': conversation.community_id,
         'created_epoch': int(conversation.created_at)
     }
 
@@ -1688,7 +1721,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True)
         reply_conversation = conversation.reply
         temp['reply_conversation'] = reply_conversation.id
 
-        if fetch_reply and not is_draft_conversation(reply_conversation, current_user_id):
+        if fetch_reply and not is_draft_conversation(reply_conversation, current_user_id, device_id=device_id):
             temp['reply_conversation_object'] = conversationSerializer(reply_conversation,
                                                                        fetch_reply=False,
                                                                        current_user_id=current_user_id)
@@ -1791,64 +1824,6 @@ def get_answer_files(answer_id):
 
 
 # =================================== client db synching serializers ======================================
-
-
-def get_conversation_instance_for_db_synching(conversation, fetch_reply=True, current_user_id=None):
-    conversation_dict = {
-        "id": conversation.id,
-        "answer": conversation.answer,
-        "state": conversation.state,
-        'is_edited': conversation.is_edited,
-        'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(conversation.created_at),
-        'has_files': conversation.has_files,
-        'attachment_count': conversation.attachment_count,
-        'attachments_uploaded': conversation.attachments_uploaded,
-        'chatroom_id': conversation.card.id,
-        'community_id': conversation.community.id,
-        'member_id': conversation.user.id,
-        'created_epoch': int(conversation.created_at)
-    }
-
-    if conversation.attachments_uploaded is None:
-        conversation_dict['attachments_uploaded'] = False
-
-    if conversation.has_files or\
-            conversation.attachment_count > 0:
-
-        answer_files = get_answer_files(conversation_dict['id'])
-        conversation_dict['images'] = answer_files['image']
-        conversation_dict['pdf'] = answer_files['pdf']
-        conversation_dict['videos'] = answer_files['videos']
-        conversation_dict['audios'] = answer_files['audios']
-        conversation_dict['attachments'] = answer_files['attachments']
-
-        if 'location' in answer_files:
-            conversation_dict['location'] = answer_files['location']
-
-    if conversation.og_tags:
-        conversation_dict['og_tags'] = json.loads(conversation.og_tags)
-
-    if conversation.is_deleted:
-        conversation_dict['deleted_by'] = conversation.deleted_by_user.id
-
-    conversation_dict['date'] = TimeUtilities.convert_epoch_time_in_date(conversation.created_at)
-
-    if conversation.internal_link:
-        try:
-            preview = get_preview_for_url(current_user_id, conversation.internal_link,
-                                          community_instance=conversation.preview_community,
-                                          chatroom_instance=conversation.preview_chatroom)
-            if preview:
-                conversation_dict['preview'] = preview
-
-        except Exception as e:
-            error_logger.error(e.args)
-
-    if conversation.reply:
-        conversation_dict['reply_conversation'] = conversation.reply.id
-
-    return conversation_dict
-
 
 def get_member_instance_for_db_synching(member_instance, community_id, current_user_id=None, send_profile=True):
     # member_id = member_instance.member_id.id
@@ -2014,15 +1989,14 @@ def get_preview_for_url(member_id=None, preview_url=None,
         context["community"] = community
         is_member = community["member_state"] in [1, 2, 3, 4, 7, 9]
 
-        if is_member_directory and is_member:
+        if is_member_directory:
             context["action"] = "VIEW DIRECTORY"
             route = f"route://members_directory?community_id={community_id}&community_name={community_instance.name}"
-        elif is_member and not chatroom_id:
-            route = f"route://community?community_id={community_id}"
-            context["action"] = "VIEW COMMUNITY"
+
         elif not chatroom_id:
             route = f"route://community?community_id={community_id}"
             context["action"] = "VIEW COMMUNITY"
+
         else:
             context["action"] = "VIEW COMMUNITY"
 

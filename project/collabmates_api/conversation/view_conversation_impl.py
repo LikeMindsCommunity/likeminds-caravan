@@ -22,6 +22,7 @@ class FetchConversation(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
 
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
@@ -32,7 +33,8 @@ class FetchConversation(APIView):
         top_navigate = StringUtilities.get_boolean_from_string(top_navigate)
 
         conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page,
-                                                paginate_by)
+                                                paginate_by, device_id=device_id)
+
         conversations = conversation_manager.fetch_conversation(top_navigate)
 
         return JsonResponse({

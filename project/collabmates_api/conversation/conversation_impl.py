@@ -17,7 +17,7 @@ from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
-    get_removed_member_custom_text, get_conversation_instance_for_db_synching
+    get_removed_member_custom_text
 from ..sync.model_update import update_models_for_syncing_apis
 from ..tasks import send_tagged_user_mail, send_chatroom_owner_mail
 from ..utility import pagination
@@ -223,7 +223,7 @@ class ConversationImpl(ConversationManager):
                 conversation.attachments_uploaded is False) and (
                     (self.get_member_id() and
                      conversation.user.id != NumberUtilities.get_integer_from_string(self.get_member_id())) or
-                    conversation.api_version <= 0):
+                    conversation.api_version <= 0 or conversation.device_id != self.device_id):
                 continue
 
             conversation_dict = self._serialize_conversation(conversation)
@@ -262,7 +262,7 @@ class ConversationImpl(ConversationManager):
         conversation_content['api_version'] = 1
         conversation_content['device_id'] = self.device_id
         conversation_content['platform'] = self.platform_code
-        
+
         if chatroom_state_instance:
             conversation_content['is_guest'] = chatroom_state_instance.is_guest
         else:
@@ -359,11 +359,16 @@ class ConversationImpl(ConversationManager):
                                                 conversation_instance, user_instance, member_state):
 
         if chatroom_state_instance:
+            current_follow_status = chatroom_state_instance.follow_status
+
             chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
             chatroom_state_instance.expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
             chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             chatroom_state_instance.save()
+
+            if not current_follow_status:
+                create_chatroom_engagement(chatroom_instance, user_instance, member_state=member_state)
 
         else:
 
@@ -598,7 +603,6 @@ class ConversationImpl(ConversationManager):
 
         member_state = ConversationHelper.fetch_member_state(community=community_instance, user=user_instance)
 
-
         if chatroom_instance.type == card_types.CARD_PURPOSE and \
                 member_state != member_states.ADMIN:
             return {'success': False, 'error_message': ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM}
@@ -639,8 +643,7 @@ class ConversationImpl(ConversationManager):
 
         if not has_files:
             ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id,
-                                                                               user_instance.id,
-                                                                               conversation_instance.id)
+                                                                         conversation_instance.id)
 
         self._auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance)
 
@@ -953,10 +956,21 @@ class ConversationHelper:
             send_chatroom_owner_mail.delay(chatroom_instance.user_id, chatroom_instance.id, time_in_hrs=12)
 
     @staticmethod
+    def update_homefeed_for_all_chatroom_followers(chatroom_id, conversation_id):
+
+        user_list = list(ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_id,
+                                                                           'remove': None,
+                                                                           'follow_status': True}
+                                                         ).values_list('user_id', flat=True))
+
+        for user_id in user_list:
+            update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id, conversation_id)
+
+    @staticmethod
     @shared_task
-    def update_latest_conversation_id_to_firebase(chatroom_id, user_id, conversation_id):
+    def update_latest_conversation_id_to_firebase(chatroom_id, conversation_id):
         update_last_answer_id(chatroom_id, conversation_id)
-        update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id, conversation_id)
+        ConversationHelper.update_homefeed_for_all_chatroom_followers(chatroom_id, conversation_id)
 
     @staticmethod
     @shared_task
