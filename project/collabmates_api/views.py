@@ -15442,7 +15442,7 @@ class SyncConversation(APIView):
 
         for file in conversation_files:
 
-            if file['type'] == 'image' and  file['file_url']:
+            if file['type'] == 'image' and file['file_url']:
                 img_attachment = {'image_url': file['file_url'], 'index': file['index'], 'type': file['type']}
                 attachment_image_context = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
 
@@ -15457,7 +15457,7 @@ class SyncConversation(APIView):
                 conversation_files_response['images'].append(img_attachment)
                 attachment_list.append(attachment_image_context)
 
-            elif file['type'] == 'video' and  file['file_url']:
+            elif file['type'] == 'video' and file['file_url']:
                 attachment_video_context = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
 
                 if file['height']:
@@ -15484,14 +15484,18 @@ class SyncConversation(APIView):
 
             elif file['type'] == "pdf" and file['file_url']:
                 pdf_attachment = {'pdf_file': file['file_url'], 'index': file['index'], 'type': file['type']}
+                attachment_pdf_context = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
 
                 if file['height']:
                     pdf_attachment['height'] = file['height']
+                    attachment_pdf_context['height'] = file['height']
 
                 if file['width']:
                     pdf_attachment['width'] = file['width']
+                    attachment_pdf_context['width'] = file['width']
 
                 conversation_files_response['pdf'].append(pdf_attachment)
+                attachment_list.append(attachment_pdf_context)
 
             elif file['type'] == "location":
                 location = {
@@ -15504,7 +15508,6 @@ class SyncConversation(APIView):
 
         conversation_files_response['attachments'] = attachment_list
         return conversation_files_response
-
 
     def get_user_related_chatroom_list(self, chatroom_status, chatroom_expire_status, member_id):
         """
