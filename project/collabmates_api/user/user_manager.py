@@ -10,7 +10,9 @@ class UserManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'survey_seen') and
                  callable(subclass.survey_seen)) and
                 (hasattr(subclass, 'logout') and
-                 callable(subclass.logout)) or
+                 callable(subclass.logout)) and
+                (hasattr(subclass, 'remove_profile') and
+                 callable(subclass.remove_profile)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -31,5 +33,12 @@ class UserManager(metaclass=abc.ABCMeta):
     def logout(self, device_id) -> {}:
         """
         logout the user from the app
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def remove_profile(self, device_id) -> {}:
+        """
+        remove the profile of user permanently from LikeMinds
         """
         raise NotImplementedError
