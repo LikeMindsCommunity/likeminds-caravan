@@ -663,7 +663,7 @@ class ConversationImpl(ConversationManager):
                                                  last_conversation_id=conversation_instance.id,
                                                  unseen_count=0)
 
-        ConversationHelper.update_previews_on_conversation_creation(conversation_instance, chatroom_instance)
+        ConversationHelper.update_previews_on_conversation_creation(chatroom_instance)
         self._send_conversation_creation_notifications(chatroom_instance, conversation_instance, has_files)
 
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
@@ -944,15 +944,9 @@ class ConversationHelper:
         return False
 
     @staticmethod
-    def update_previews_on_conversation_creation(conversation_instance, chatroom_instance):
+    def update_previews_on_conversation_creation(chatroom_instance):
 
-        if conversation_instance.preview_type == PREVIEW_CHATROOM:
-            preview_chatroom_id = chatroom_instance.id
-            update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
-
-        elif conversation_instance.preview_type == PREVIEW_COMMUNITY or \
-                conversation_instance.preview_type == PREVIEW_DIRECTORY:
-            update_multiple_previews_in_community.delay({'community_id': conversation_instance.preview_community_id})
+        update_multiple_previews_in_chatroom.delay({'chatroom_id': chatroom_instance.id})
 
     @staticmethod
     def run_async_tasks_for_conversation_tagging(tagged_member_list, user_instance, chatroom_instance):
