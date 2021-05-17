@@ -2134,7 +2134,7 @@ def edit_member_profile(request):
 
             if file_filter:
                 card_file_instance = file_filter[0]
-                card_file_instance.image_url = res['image_url']
+                card_file_instance.file_url = res['image_url']
                 card_file_instance.save()
 
             else:
