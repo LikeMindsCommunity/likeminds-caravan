@@ -11779,12 +11779,23 @@ def get_tagging_list(request):
 
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id')
+
+    try:
+        community_instance = Community.objects.get(id=community_id)
+        chatroom_instance = Collabcard.objects.get(id=chatroom_id)
+
+    except Exception as e:
+
+        return JsonResponse({'members': [], 'error_message': e.args},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
+
     current_member_id = get_member_id_from_headers(request)
+
     if not is_request_web(request):
-        tagging_list = get_tagging_list_internal(community_id, chatroom_id, current_member_id)
+        tagging_list = get_tagging_list_internal(community_instance.id, chatroom_instance.id, current_member_id)
     else:
         # sending tagging options for web
-        tagging_list = get_tagging_list_internal_web(chatroom_id, current_user_id=current_member_id)
+        tagging_list = get_tagging_list_internal_web(chatroom_instance.id, current_user_id=current_member_id)
 
     return JsonResponse({'members': tagging_list})
 
