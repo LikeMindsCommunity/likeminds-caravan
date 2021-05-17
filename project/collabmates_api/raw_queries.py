@@ -1580,6 +1580,8 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
+        return [], []
+
 
 def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, last_updated, community_id):
     """
@@ -1646,6 +1648,8 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return [], []
 
 
 def get_conversation_files_based_on_conversation_list(conversation_list):
@@ -1715,6 +1719,8 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return {}
 
 
 def get_members_based_on_user_list_query(user_list, community_id):
