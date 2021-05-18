@@ -235,7 +235,8 @@ urlpatterns = [
     path('community/', include('collabmates_api.community.urls')),
     path('banner/fetch', FetchBannerView.as_view(), name='fetch_banner_for_user'),
     path('home_snackbar/', include('collabmates_api.snackbar.urls')),
-    path('community_member/', include('collabmates_api.member_community.urls'))
+    path('community_member/', include('collabmates_api.member_community.urls')),
+    path('community_onboarding/', include('collabmates_api.community_onboarding.urls'), name='community_onboarding'),
 
 ]
 

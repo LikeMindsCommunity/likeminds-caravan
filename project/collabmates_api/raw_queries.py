@@ -1898,7 +1898,6 @@ def get_chatroom_count_based_on_community_list(community_id_list, member_id) -> 
 
 
 def get_count_of_community_members_based_on_community_list(community_id_list) -> {}:
-
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -1934,8 +1933,8 @@ def get_count_of_community_members_based_on_community_list(community_id_list) ->
 
         return {}
 
-def get_distinct_chatroom_creator_list(community_id, member_id) -> []:
 
+def get_distinct_chatroom_creator_list(community_id, member_id) -> []:
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -1959,7 +1958,7 @@ def get_distinct_chatroom_creator_list(community_id, member_id) -> []:
                 END)
            GROUP BY  user_id
            ORDER BY  MAX(date_epoch) DESC limit 4 
-        """ % (str(community_id), "%"+str(member_id)+"%")
+        """ % (str(community_id), "%" + str(member_id) + "%")
 
         curr.execute(sql)
         user_data = curr.fetchall()
@@ -1976,3 +1975,83 @@ def get_distinct_chatroom_creator_list(community_id, member_id) -> []:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
         return []
+
+
+def get_recent_n_days_conversation_chatroom_list(community_id, duration, limit) -> []:
+
+    """returns the recent n days card id list"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+           SELECT DISTINCT card_id,
+                     MAX(created_at)
+           FROM togther_card_answers
+           WHERE community_id=%s
+                    AND card_id IN 
+                (SELECT id
+                FROM togther_collabcard
+                WHERE (type!=%s
+                        OR type!=%s
+                        OR type!=%s))
+            AND (state=0 or state=10)
+            GROUP BY  card_id
+            HAVING max(created_at) > %s
+            ORDER BY  MAX(created_at) DESC limit %s 
+        """ % (
+            str(community_id), str(card_types.CARD_PURPOSE), str(card_types.CARD_INTRO),
+            str(card_types.CARD_MASTER_INTRO),
+            str(duration), str(limit))
+
+        curr.execute(sql)
+        card_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in card_list]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return []
+
+
+def get_n_percentage_member_conversation_chatroom_list(community_id, members_count, limit) -> []:
+
+    """returns the recent n days card id list"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                SELECT card_id,
+                 max(created_at)
+        FROM togther_card_answers
+        WHERE community_id=%s
+                AND card_id IN 
+            (SELECT id
+            FROM togther_collabcard
+            WHERE type!=%s
+                    OR type!=%s
+                    OR type!=%s)
+        GROUP BY  card_id
+        HAVING count(distinct(user_id)) > %s
+        ORDER BY  max(created_at) DESC limit %s
+        """ % (
+            str(community_id), str(card_types.CARD_PURPOSE), str(card_types.CARD_INTRO),
+            str(card_types.CARD_MASTER_INTRO),
+            str(members_count), str(limit))
+
+        curr.execute(sql)
+        card_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in card_list]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return []
+
