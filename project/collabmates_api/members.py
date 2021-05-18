@@ -17,8 +17,15 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
 
     #handing empty community id check
     if chatroom_id and not community_id:
-        card_instance = Collabcard.objects.get(id=chatroom_id)
-        community_id = card_instance.community.id
+
+        try:
+            card_instance = Collabcard.objects.get(id=chatroom_id)
+
+        except Exception as e:
+            error_logger.error(e)
+            return []
+
+        community_id = card_instance.community_id
 
     member_filter = Members.objects.filter(community_id=community_id).filter(
                     Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
@@ -51,6 +58,7 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
     tagging_list = sorted(tagging_list, key=lambda i: i['name'])
 
     guest_list = []
+
     if chatroom_id:
         state_filter = collabcardState.objects.filter(card_id=chatroom_id, is_guest=True, remove=None)
 
