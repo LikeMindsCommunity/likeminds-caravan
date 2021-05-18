@@ -85,8 +85,7 @@ class OnboardingImpl(OnboardingManager):
 
         return chatroom_queryset
 
-
-    def compute_n_percentage_members_count(self,community_instance) -> int:
+    def compute_n_percentage_members_count(self, community_instance) -> int:
 
         members_count_dict = MemberCommunityHelper.fetch_community_members_count([community_instance.id])
         members_count = members_count_dict.get(community_instance.id, 0)

@@ -2036,6 +2036,7 @@ def get_n_percentage_member_conversation_chatroom_list(community_id, members_cou
             WHERE type!=%s
                     OR type!=%s
                     OR type!=%s)
+            AND (state=0 or state=10)
         GROUP BY  card_id
         HAVING count(distinct(user_id)) > %s
         ORDER BY  max(created_at) DESC limit %s
