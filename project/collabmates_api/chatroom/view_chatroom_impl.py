@@ -122,7 +122,7 @@ class PinUnpinChatroomViewHelper:
         return request_body
 
 
-class LeaveSecretChatroomView(TransactionMixin, APIView):
+class LeaveSecretChatroomView(APIView):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -148,7 +148,7 @@ class LeaveSecretChatroomView(TransactionMixin, APIView):
         return JsonResponse(context)
 
 
-class AddSecretChatroomParticipantView(TransactionMixin, APIView):
+class AddSecretChatroomParticipantView(APIView):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
