@@ -808,15 +808,16 @@ def get_filtered_users(filter_list, member_list):
 
 def get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=1, member_set=None):
 
-    is_event_card = chatroom_instance.type == card_types.CARD_EVENT
+    collabcard_state_list = collabcardState.objects\
+        .filter(card=chatroom_instance,
+                remove=None,
+                follow_status=True,
+                is_tagged=False)\
+        .select_related('user')\
+        .order_by('-user_id')
 
-    collabcard_state_list = collabcardState.objects.filter(card=chatroom_instance, remove=None,
-                                                           is_tagged=False).select_related('user').order_by('-user_id')
-
-    if is_event_card:
-        collabcard_state_list = collabcard_state_list.filter(Q(follow_status=True) | Q(attending_status=True))
-    else:
-        collabcard_state_list = collabcard_state_list.filter(follow_status=True)
+    if chatroom_instance.type == card_types.CARD_EVENT:
+        collabcard_state_list = collabcard_state_list.filter(attending_status=True)
 
     show_removed = False
     paginated_data = get_paginated_queryset_with_maxpages(collabcard_state_list, page_no, paginate_by=10)
@@ -824,6 +825,7 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
 
     if int(page_no) == paginated_data['last_page']:
         show_removed = True
+
     members = []
 
     for instance in collabcard_state_list:
@@ -849,7 +851,10 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
 
     # for handling the removed members of community
     if show_removed and not member_set:
-        removed_list = collabcardState.objects.filter(card=chatroom_instance).filter(follow_status=True).filter(~Q(remove=None)).order_by('-user_id')
+        removed_list = collabcardState.objects\
+            .filter(card=chatroom_instance, follow_status=True)\
+            .exclude(remove=None)\
+            .order_by('-user_id')
 
         for instance in removed_list:
             user_instance = instance.user
