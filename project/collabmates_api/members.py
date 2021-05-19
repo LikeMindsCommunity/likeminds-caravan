@@ -498,7 +498,6 @@ def get_all_members_version_1(request, req_dict=None):
 
     if chatroom_id:
         chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
-        total_participants = 0
 
         if not chatroom_instance:
             response = {
@@ -508,15 +507,18 @@ def get_all_members_version_1(request, req_dict=None):
 
             raise InvalidChatroomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        total_participants = collabcardState.objects.filter(card=chatroom_instance,
-                                                            follow_status=True,
-                                                            remove=None).count()
+        total_participants_list = collabcardState.objects.filter(card=chatroom_instance,
+                                                                 follow_status=True,
+                                                                 is_tagged=False,
+                                                                 remove=None)
+        if chatroom_instance.type == card_types.CARD_EVENT:
+            total_participants_list = total_participants_list.filter(attending_status=True)
+
+        total_participants = total_participants_list.count()
 
         if chatroom_instance.is_secret:
             context = get_secret_chatroom_participants(chatroom_instance,
                                                        current_user_id, page, filter_list=filter_list)
-
-            context['total_members'] = total_participants
 
             return context
 
@@ -807,15 +809,12 @@ def get_filtered_users(filter_list, member_list):
 def get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=1, member_set=None):
 
     is_event_card = chatroom_instance.type == card_types.CARD_EVENT
-    state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
-                  collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
     collabcard_state_list = collabcardState.objects.filter(card=chatroom_instance, remove=None,
                                                            is_tagged=False).select_related('user').order_by('-user_id')
 
     if is_event_card:
-        collabcard_state_list = collabcard_state_list.filter(Q(state=state_list[0]) | Q(state=state_list[1]) |
-                                                             Q(follow_status=True) | Q(attending_status=True))
+        collabcard_state_list = collabcard_state_list.filter(Q(follow_status=True) | Q(attending_status=True))
     else:
         collabcard_state_list = collabcard_state_list.filter(follow_status=True)
 
@@ -833,6 +832,7 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
 
         if member_set and user_instance.id not in member_set:
             continue
+
         user_context = get_members_profile([user_instance.id], community_id, current_user_id)
         user_context = user_context[0]
         user_context['collabcard_state'] = instance.state
@@ -869,7 +869,7 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
     return members
 
 
-def intersect_sets(set1,set2):
+def intersect_sets(set1, set2):
 
     return set1.intersection(set2)
 
@@ -890,7 +890,7 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1):
     if is_promoter:
         is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
 
-    member_list = get_paginated_member_queryset(page=page,community_id=community_id,promoter=is_promoter)
+    member_list = get_paginated_member_queryset(page=page, community_id=community_id, promoter=is_promoter)
 
     return member_list
 
@@ -912,7 +912,10 @@ def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, 
 
     community = CommunitySerializerV1(community_instance, context={"current_user_id": current_user_id}, many=False).data
 
-    context = {'members': members, 'community': community}
+    context = {
+        'members': members,
+        'community': community,
+    }
 
     return context
 
@@ -937,7 +940,7 @@ def get_paginated_member_queryset(page, community_id, promoter=False):
                         OR togther_members.state = 4
                         OR togther_members.state = 9
                         OR togther_members.state = 3)
-                ORDER BY  togther_userinfo.name,togther_members.member_id_id limit %s offset %s
+                ORDER BY  togther_userinfo.name, togther_members.member_id_id limit %s offset %s
         """ % (str(community_id), str(limit), str(offset))
     else:
         sql = """
@@ -951,7 +954,7 @@ def get_paginated_member_queryset(page, community_id, promoter=False):
                         AND (togther_members.state = 1
                         OR togther_members.state = 4
                         OR togther_members.state = 9)
-                ORDER BY  togther_userinfo.name,togther_members.member_id_id limit %s offset %s
+                ORDER BY  togther_userinfo.name, togther_members.member_id_id limit %s offset %s
         """ % (str(community_id), str(limit), str(offset))
 
     cursor.execute(sql)
