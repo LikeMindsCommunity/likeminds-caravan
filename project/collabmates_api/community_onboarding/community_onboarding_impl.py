@@ -63,7 +63,6 @@ class OnboardingImpl(OnboardingManager):
             card__is_pending=False,
             card__is_deleted=False,
             secret_chatroom_left=False,
-            card__is_pinned=False,
             user=user_instance,
             card__end_date__gte=TimeUtilities.current_time_in_milliseconds(),
         ).filter(Q(card__type=card_types.CARD_EVENT)
