@@ -1994,8 +1994,8 @@ def get_recent_n_days_conversation_chatroom_list(community_id, duration, limit) 
                 (SELECT id
                 FROM togther_collabcard
                 WHERE (type!=%s
-                        OR type!=%s
-                        OR type!=%s))
+                        AND type!=%s
+                        AND type!=%s))
             AND (state=0 or state=10)
             GROUP BY  card_id
             HAVING max(created_at) > %s
@@ -2034,8 +2034,8 @@ def get_n_percentage_member_conversation_chatroom_list(community_id, members_cou
             (SELECT id
             FROM togther_collabcard
             WHERE type!=%s
-                    OR type!=%s
-                    OR type!=%s)
+                    AND type!=%s
+                    AND type!=%s)
             AND (state=0 or state=10)
         GROUP BY  card_id
         HAVING count(distinct(user_id)) > %s
