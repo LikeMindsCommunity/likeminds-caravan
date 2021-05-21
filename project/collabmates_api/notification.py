@@ -1072,9 +1072,10 @@ def get_custom_data_for_new_conversation_created(user_id):
     followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,
                                                            draft_id=None,
                                                            unseen_count__gt=0).select_related('card',
-                                                                                              'community').order_by('-updated_at', '-id')[:10]
+                                                                                              'community').order_by('-updated_at', '-id')
     unread_conversation = []
     mute_status_dict = compute_mute_status_for_users(followed_chatrooms, user_id)
+    count = 0
 
     for conversation in followed_chatrooms:
         temp = {}
@@ -1136,7 +1137,11 @@ def get_custom_data_for_new_conversation_created(user_id):
                 temp['attachments'] = answer_files['attachments']
 
         unread_conversation.append(temp)
+        count = count + 1
 
+        if count == 10:
+            break
+        
     return unread_conversation
 
 
