@@ -197,9 +197,6 @@ class OnboardingImpl(OnboardingManager):
 
         percentage_count = self.compute_n_percentage_members_count(community_instance)
 
-        if not percentage_count:
-            return {'chatrooms': []}
-
         card_list = get_n_percentage_member_conversation_chatroom_list(community_instance.id, percentage_count,
                                                                        limit=CHATROOMS_LIMIT)
         chatroom_list = self._create_chatroom_list_for_conversation_chatrooms(user_instance, card_list)
