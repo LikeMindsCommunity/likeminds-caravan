@@ -11829,7 +11829,8 @@ def fetch_filters(request):
     send_empty_list = False
 
     member_list = Members.objects.filter(community_id=community_id, member_id=member_id)
-    if member_list.exists():
+
+    if member_list:
 
         member_state = member_list[0].state
         if member_state == member_states.PENDING_MEMBER:
@@ -11841,7 +11842,11 @@ def fetch_filters(request):
     if send_empty_list:
         return JsonResponse({'questions': []})
 
-    community_options = communityAnswers.objects.filter(community_id=community_id)
+    community_options = communityAnswers.objects.filter(community_id=community_id
+                                                        ).filter(
+        Q(question__question_state=question_states.CHOICE_SINGLE)
+        | Q(question__question_state=question_states.CHOICE_MULTIPLE)
+    ).prefetch_related('question')
 
     question_set = set()
     # print("options===",community_options)
