@@ -16,8 +16,7 @@ from ..member_community.member_community_impl import MemberCommunityImpl
 from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms
 from ..rest_api import CardAnswersDBSyncSerializer
-from ..serializers import conversationSerializer, get_preview_for_url, get_guest_custom_text, \
-    get_removed_member_custom_text
+from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
 from ..tasks import send_tagged_user_mail, send_chatroom_owner_mail
 from ..utility import pagination
@@ -31,7 +30,8 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
 
 from .constants import (UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
-                        PREVIEW_COMMUNITY, PREVIEW_DIRECTORY)
+                        PREVIEW_COMMUNITY, PREVIEW_DIRECTORY, POLL_ANSWER_TEXT, POLL_ANSWER_TEXT_FOR_ONE_MEMBER,
+                        POLL_ANSWER_TEXT_FOR_MULTIPLE_MEMBER)
 
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
@@ -211,6 +211,14 @@ class ConversationImpl(ConversationManager):
 
             poll_conversation['polls'] = self._fetch_conversation_polls(conversation_instance)
 
+            poll_conversation['poll_type_text'] = "Instant poll" \
+                if poll_conversation['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+
+            poll_conversation['submit_type_text'] = "Secret voting" \
+                if poll_conversation['is_anonymous'] else "Public voting"
+
+            poll_conversation['poll_answer_text'] = conversation_instance.poll_answer_text
+
         return poll_conversation
 
     def _create_conversation_list(self, conversations, last_conversation_id=None):
@@ -289,6 +297,8 @@ class ConversationImpl(ConversationManager):
             poll_context['allow_add_option'] = req_body['allow_add_option'] if 'allow_add_option' in req_body else False
             poll_context['expiry_time'] = req_body['expiry_time']
 
+            poll_context['poll_answer_text'] = POLL_ANSWER_TEXT
+
         return poll_context
 
     @staticmethod
@@ -301,6 +311,8 @@ class ConversationImpl(ConversationManager):
 
         poll_instances = []
 
+        member = UserinfoSerializer(user_instance.userinfo)
+
         for poll in polls:
             poll_instance = conversationPolls.create_instance({'user_instance': user_instance,
                                                                'conversation_instance': conversation_instance,
@@ -308,7 +320,8 @@ class ConversationImpl(ConversationManager):
             temp = {
                 'id': poll_instance.id,
                 'text': poll_instance.text,
-                'user_id': poll_instance.user_id
+                'user_id': poll_instance.user_id,
+                'member': member
             }
 
             poll_instances.append(temp)
@@ -459,7 +472,7 @@ class ConversationImpl(ConversationManager):
                 member_data = member_dict[user_id]
 
                 if member_introduction_dict.get(user_id):
-                    member_data['question_answer'] = member_introduction_dict[user_id]
+                    member_data['question_answers'] = [member_introduction_dict[user_id]]
 
                 else:
 
@@ -643,7 +656,7 @@ class ConversationImpl(ConversationManager):
 
         if not has_files:
             ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id,
-                                                                         conversation_instance.id)
+                                                                               conversation_instance.id)
 
         self._auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance)
 
@@ -824,6 +837,8 @@ class ConversationImpl(ConversationManager):
                                                                             'conversation_instance':
                                                                                 conversation_instance})
 
+        conversation_instance.poll_answer_text = ConversationHelper.compute_conversation_poll_answer_text(
+            conversation_instance)
         conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
         conversation_instance.save()
 
@@ -858,7 +873,7 @@ class ConversationImpl(ConversationManager):
                                                                   page, page_size)
         member_list = self._create_member_instances_from_user_list(user_list, community_instance)
 
-        return {'status': True, 'member': member_list}
+        return {'status': True, 'members': member_list}
 
 
 class ConversationHelper:
@@ -1053,3 +1068,21 @@ class ConversationHelper:
                 last_conversation_user=last_conversation_user,
                 second_last_conversation_user=second_last_conversation_user,
             )
+
+    @staticmethod
+    def compute_conversation_poll_answer_text(conversation_instance) -> str:
+
+        total_users = ModelUtilities.get_model_filter(conversationPollMembers,
+                                                      {'conversation': conversation_instance}).values(
+            'user').distinct().count()
+
+        if total_users == 1:
+            poll_text = POLL_ANSWER_TEXT_FOR_ONE_MEMBER
+
+        elif total_users > 1:
+            poll_text = POLL_ANSWER_TEXT_FOR_MULTIPLE_MEMBER % str(total_users)
+
+        else:
+            poll_text = POLL_ANSWER_TEXT
+
+        return poll_text

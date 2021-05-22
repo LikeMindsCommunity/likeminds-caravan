@@ -58,3 +58,18 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         fetches the chatroom home data for particular id
         """
         raise NotImplementedError
+
+    def pending_onboarding_communities(self, page_no, paginate_by) -> {}:
+
+        """
+        fetches all the communities in which onboarding is pending
+        """
+
+        raise NotImplementedError
+
+    def completed_onboarding_communites(self) -> {}:
+
+        """set the onboarding flag to true for user who have completed the onboarding"""
+
+        raise NotImplementedError
+

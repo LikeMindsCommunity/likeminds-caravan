@@ -11088,6 +11088,7 @@ def config(request):
         context['updatePriority'] = 1
 
     context['use_segment'] = True
+    context['micro_polls_enabled'] = False
 
     return JsonResponse(context)
 
@@ -11778,7 +11779,9 @@ def get_tagging_list(request):
 
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id')
+
     current_member_id = get_member_id_from_headers(request)
+
     if not is_request_web(request):
         tagging_list = get_tagging_list_internal(community_id, chatroom_id, current_member_id)
     else:
@@ -11826,7 +11829,8 @@ def fetch_filters(request):
     send_empty_list = False
 
     member_list = Members.objects.filter(community_id=community_id, member_id=member_id)
-    if member_list.exists():
+
+    if member_list:
 
         member_state = member_list[0].state
         if member_state == member_states.PENDING_MEMBER:
@@ -11838,7 +11842,11 @@ def fetch_filters(request):
     if send_empty_list:
         return JsonResponse({'questions': []})
 
-    community_options = communityAnswers.objects.filter(community_id=community_id)
+    community_options = communityAnswers.objects.filter(community_id=community_id
+                                                        ).filter(
+        Q(question__question_state=question_states.CHOICE_SINGLE)
+        | Q(question__question_state=question_states.CHOICE_MULTIPLE)
+    ).prefetch_related('question')
 
     question_set = set()
     # print("options===",community_options)
@@ -15294,6 +15302,7 @@ class SyncConversation(APIView):
         max_last_updated = 0
 
         for conversation in conversation_data:
+
             conversation_context = dict()
             conversation_context['id'] = conversation[0]
             conversation_context['answer'] = conversation[1]
@@ -15402,6 +15411,9 @@ class SyncConversation(APIView):
             if conversation_context['state'] == ConversationStates.CONVERSATION_POLL:
                 conversation_context['poll_type'] = conversation[20]
 
+                conversation_context['poll_type_text'] = "Instant poll" \
+                    if conversation_context['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+
                 if conversation[21] is not None:
                     conversation_context['multiple_select_state'] = conversation[21]
 
@@ -15409,6 +15421,10 @@ class SyncConversation(APIView):
                     conversation_context['multiple_select_no'] = conversation[22]
 
                 conversation_context['is_anonymous'] = conversation[23]
+
+                conversation_context['submit_type_text'] = "Secret voting" \
+                    if conversation_context['is_anonymous'] else "Public voting"
+
                 conversation_context['allow_add_option'] = conversation[24]
                 conversation_context['expiry_time'] = conversation[25]
                 conversation_context['polls'] = get_conversation_poll({'conversation_id': conversation[0],
@@ -15416,6 +15432,8 @@ class SyncConversation(APIView):
                                                                        'multiple_select_no': conversation[22],
                                                                        'expiry_time': conversation[25],
                                                                        'member_id': member_id})
+                conversation_context['poll_answer_text'] = conversation[29]
+
             # conversation[27] = has_reactions
             if conversation[27]:
                 reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation_context['id'])

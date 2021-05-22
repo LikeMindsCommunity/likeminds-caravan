@@ -60,14 +60,8 @@ class CreateConversation(APIView):
 
         conversation_manager = ConversationImpl(member_id, platform_code=platform_code, device_id=device_id)
 
-        try:
-
-            conversation_response = conversation_manager.create_conversation(req_body, is_ios,
+        conversation_response = conversation_manager.create_conversation(req_body, is_ios,
                                                                              is_user_guest)
-        except Exception as e:
-            error_logger.error(e.args)
-
-            return JsonResponse({'error_message': e.args}, status=500)
 
         if conversation_response.get('error_message'):
             return JsonResponse(conversation_response, status=400)

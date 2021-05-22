@@ -145,8 +145,8 @@ class Members(models.Model):
     parent_cm_list = models.TextField(null=True)  # it has the user id's of parent's hierarchy
     became_member_at = models.BigIntegerField(default=0)
 
-    def __str__(self):
-        return self.member_id.userinfo.name + "__" + self.community_id.name
+    has_onboarded = models.BooleanField(default=False)
+
 
     @staticmethod
     def is_community_member(community: Community, member: Union[User, str, int]) -> bool:
@@ -583,6 +583,7 @@ class card_answers(models.Model):
     allow_add_option = models.BooleanField(default=False)
 
     has_reactions = models.BooleanField(default=False)
+    poll_answer_text = models.TextField(default='')
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
@@ -1796,6 +1797,13 @@ class ModelUtilities:
             pass
 
         return instance
+
+    @staticmethod
+    def paginate_queryset(queryset, page, paginate_by):
+
+        offset = (page-1) * paginate_by
+
+        return queryset[offset: offset+paginate_by]
 
 
 class MessageReactions(models.Model):

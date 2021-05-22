@@ -34,7 +34,7 @@ from ..serializers import get_user_profile, get_members_profile, get_collabcard_
 from ..static_files import REMOVED_USER_URL
 
 from togther.models import Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers, \
-    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage, communityQuestions
+    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage, communityQuestions, Userinfo
 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
@@ -78,11 +78,12 @@ class MemberCommunityImpl(MemberCommunityManager):
         """
         TODO: move to model definition file
         """
-        return Member_Engage.objects.filter(member_id=member_id).select_related('community_id', 'member_id').order_by('-order_time')
+        return Member_Engage.objects.filter(member_id=member_id).select_related('community_id', 'member_id').order_by(
+            '-order_time')
 
     @staticmethod
-    def _paged_queryset(communities: list, page: int) -> list:
-        result_per_page = 10
+    def _paged_queryset(communities: list, page: int, result_per_page=10) -> list:
+
         return pagination(communities, page, paginate_by=result_per_page)
 
     def _add_additional_information(self, communities: list) -> list:
@@ -254,6 +255,20 @@ class MemberCommunityImpl(MemberCommunityManager):
             member_communities_additional_info.append(member_community)
 
         return member_communities_additional_info
+
+    def process_onboarding_communities(self, communities, community_id_list, user_instance) -> []:
+
+        communities_list = []
+        community_members_count_dict = MemberCommunityHelper.fetch_community_members_count(community_id_list)
+
+        for community in communities:
+            member_community = self._community_serializer(community.community_id, self.get_member_id())
+            self._add_members_count_in_home_communities(member_community,
+                                                        community.community_id_id,
+                                                        community_members_count_dict)
+            communities_list.append(member_community)
+
+        return communities_list
 
     @staticmethod
     def compute_community_id_list_from_queryset(community_queryset):
@@ -534,10 +549,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                 member_dict['member_id'] = data[0]
                 member_dict['community_id'] = data[1]
                 member_dict['state'] = question_instance.question_state
-                member_dict['value'] = data[3]
+                member_dict['value'] = data[2]
                 member_dict['question_id'] = question_instance.id
                 member_dict['is_hidden'] = question_instance.is_hidden
                 member_dict['directory_fields'] = question_instance.field
+                member_dict['question_title'] = data[3]
                 member_introduction_dict[member_dict['member_id']] = member_dict
 
             return member_introduction_dict
@@ -641,6 +657,16 @@ class MemberCommunityImpl(MemberCommunityManager):
                 co_hosts.append(member_dict[user_id])
 
         return co_hosts
+
+    def fetch_user_onboarding_communities_queryset(self) -> []:
+
+        member_queryset = \
+            Members.objects.filter(member_id=self.get_member_id(),
+                                   has_onboarded=False).filter(Q(state=member_states.MEMBER)
+                                                               | Q(
+                state=member_states.PROFILE_UNAVAILABLE)).select_related('community_id'
+                                                                         ).order_by('created_at')
+        return member_queryset
 
     @staticmethod
     def fetch_poll_id_list(chatroom_list):
@@ -771,6 +797,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                         'name': userinfo_instance.name,
                         'image_url': userinfo_instance.image_link
                     }
+
+            if not member_data:
+                continue
 
             conversation_members.append(member_data)
 
@@ -1087,6 +1116,40 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return chatroom_home
 
+    def pending_onboarding_communities(self, page_no, paginate_by) -> {}:
+
+        user_instance = User.get_user_or_none(self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "In-correct user id"}
+
+        member_queryset = self.fetch_user_onboarding_communities_queryset()
+        communities = ModelUtilities.paginate_queryset(member_queryset, page_no, paginate_by)
+        community_id_list = self.compute_community_id_list_from_queryset(communities)
+        communities = self.process_onboarding_communities(communities, community_id_list, user_instance)
+
+        return {'communities': communities}
+
+    def completed_onboarding_communites(self) -> {}:
+
+        user_instance = User.get_user_or_none(self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "In-correct user id"}
+
+        community_instance = Community.get_community_or_None(self.get_community_id())
+
+        if not community_instance:
+            return {'error_message': "In-correct community id"}
+
+        ModelUtilities.model_update(Members,
+                                    {'community_id': community_instance,
+                                     'member_id': user_instance},
+                                    {'has_onboarded': True,
+                                     'updated_at': TimeUtilities.current_time_in_sec()})
+
+        return {'success': True}
+
 
 class MemberCommunityHelper:
     @staticmethod
@@ -1353,4 +1416,3 @@ class MemberCommunityHelper:
             member_list.append(temp)
 
         return member_list
-

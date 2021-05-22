@@ -7,12 +7,12 @@ from utility.request_utilities import RequestUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.views import get_error_context
 from utility.string_utilities import StringUtilities
+from rest_framework import status as status_codes
 
 
 class ViewsImpl(ViewsManager):
 
     def get_member_communities(self, user_id: int) -> JsonResponse:
-
         request = self
 
         page = request.GET.get('page', 1)
@@ -142,3 +142,52 @@ class FetchChatroomHome(APIView):
             return JsonResponse(response_context, status=status)
 
         return JsonResponse(chatroom_context)
+
+
+class FetchOnboardingCommunities(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
+
+        page = request.GET.get('page', 1)
+        paginate_by = request.GET.get('paginate_by', 10)
+
+        page = NumberUtilities.get_integer_from_string(page)
+        paginate_by = NumberUtilities.get_integer_from_string(paginate_by)
+        member_community_manager = MemberCommunityImpl(member_id, "")
+        community_context = member_community_manager.pending_onboarding_communities(page, paginate_by)
+
+        if 'error_message' in community_context:
+            response_context = {'error_message': community_context['error_message']}
+
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
+
+
+class CompleteCommunityOnboarding(APIView):
+
+    def post(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'error_message': "Invalid request body"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_id = req_body.get('community_id')
+
+        member_community_manager = MemberCommunityImpl(member_id, community_id)
+        community_context = member_community_manager.completed_onboarding_communites()
+
+        if 'error_message' in community_context:
+            response_context = {'error_message': community_context['error_message']}
+
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
