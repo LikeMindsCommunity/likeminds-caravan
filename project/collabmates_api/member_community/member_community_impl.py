@@ -1116,7 +1116,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return chatroom_home
 
-    def fetch_onboarding_communities(self, page_no, paginate_by) -> {}:
+    def pending_onboarding_communities(self, page_no, paginate_by) -> {}:
 
         user_instance = User.get_user_or_none(self.get_member_id())
 
@@ -1130,7 +1130,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'communities': communities}
 
-    def complete_community_onboarding(self) -> {}:
+    def completed_onboarding_communites(self) -> {}:
 
         user_instance = User.get_user_or_none(self.get_member_id())
 

@@ -159,7 +159,7 @@ class FetchOnboardingCommunities(APIView):
         page = NumberUtilities.get_integer_from_string(page)
         paginate_by = NumberUtilities.get_integer_from_string(paginate_by)
         member_community_manager = MemberCommunityImpl(member_id, "")
-        community_context = member_community_manager.fetch_onboarding_communities(page, paginate_by)
+        community_context = member_community_manager.pending_onboarding_communities(page, paginate_by)
 
         if 'error_message' in community_context:
             response_context = {'error_message': community_context['error_message']}
@@ -183,7 +183,7 @@ class CompleteCommunityOnboarding(APIView):
         community_id = req_body.get('community_id')
 
         member_community_manager = MemberCommunityImpl(member_id, community_id)
-        community_context = member_community_manager.complete_community_onboarding()
+        community_context = member_community_manager.completed_onboarding_communites()
 
         if 'error_message' in community_context:
             response_context = {'error_message': community_context['error_message']}

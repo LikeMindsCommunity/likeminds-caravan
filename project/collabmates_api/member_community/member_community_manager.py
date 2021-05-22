@@ -59,7 +59,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def fetch_onboarding_communities(self, page_no, paginate_by) -> {}:
+    def pending_onboarding_communities(self, page_no, paginate_by) -> {}:
 
         """
         fetches all the communities in which onboarding is pending
@@ -67,7 +67,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def complete_community_onboarding(self) -> {}:
+    def completed_onboarding_communites(self) -> {}:
 
         """set the onboarding flag to true for user who have completed the onboarding"""
 
