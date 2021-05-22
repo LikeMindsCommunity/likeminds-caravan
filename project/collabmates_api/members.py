@@ -18,11 +18,9 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
     #handing empty community id check
     if chatroom_id and not community_id:
 
-        try:
-            card_instance = Collabcard.objects.get(id=chatroom_id)
+        card_instance = Collabcard.get_chatroom_or_none(chatroom_id)
 
-        except Exception as e:
-            error_logger.error(e)
+        if not card_instance:
             return []
 
         community_id = card_instance.community_id
