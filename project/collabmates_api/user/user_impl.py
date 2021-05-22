@@ -149,6 +149,7 @@ class UserImpl(UserManager):
 
             if not current_user_instance:
                 continue
+
             remove_members(community_instance.id, user_instance.id,
                            removed_state=1,
                            current_user_instance=current_user_instance)
