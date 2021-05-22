@@ -2019,7 +2019,7 @@ def get_recent_n_days_conversation_chatroom_list(community_id, duration, limit) 
 
 def get_n_percentage_member_conversation_chatroom_list(community_id, members_count, limit) -> []:
 
-    """returns the recent n days card id list"""
+    """returns the recent chatrooms where n percentage of  members have created conversation"""
 
     try:
         conn = get_connection()

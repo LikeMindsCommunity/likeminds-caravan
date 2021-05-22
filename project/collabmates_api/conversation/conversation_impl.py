@@ -30,7 +30,8 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
 
 from .constants import (UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
-                        PREVIEW_COMMUNITY, PREVIEW_DIRECTORY, POLL_ANSWER_TEXT)
+                        PREVIEW_COMMUNITY, PREVIEW_DIRECTORY, POLL_ANSWER_TEXT, POLL_ANSWER_TEXT_FOR_ONE_MEMBER,
+                        POLL_ANSWER_TEXT_FOR_MULTIPLE_MEMBER)
 
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
@@ -1076,12 +1077,12 @@ class ConversationHelper:
             'user').distinct().count()
 
         if total_users == 1:
-            poll_text = f"1 member voted on this poll"
+            poll_text = POLL_ANSWER_TEXT_FOR_ONE_MEMBER
 
         elif total_users > 1:
-            poll_text = f"{total_users} members voted on this poll"
+            poll_text = POLL_ANSWER_TEXT_FOR_MULTIPLE_MEMBER % str(total_users)
 
         else:
-            poll_text = "Be the first one to vote"
+            poll_text = POLL_ANSWER_TEXT
 
         return poll_text

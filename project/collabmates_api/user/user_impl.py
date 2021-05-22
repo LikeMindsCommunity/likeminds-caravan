@@ -155,7 +155,6 @@ class UserImpl(UserManager):
             remove_all_member_rights(community_instance, user_instance)
             remove_all_manager_rights(community_instance, user_instance)
 
-
     @staticmethod
     def _update_user_information_for_remove_profile(user_instance):
 

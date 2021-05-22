@@ -149,15 +149,15 @@ class FetchOnboardingCommunities(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
+
         page = request.GET.get('page', 1)
         paginate_by = request.GET.get('paginate_by', 10)
 
         page = NumberUtilities.get_integer_from_string(page)
         paginate_by = NumberUtilities.get_integer_from_string(paginate_by)
-
-        if not member_id:
-            return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
-
         member_community_manager = MemberCommunityImpl(member_id, "")
         community_context = member_community_manager.fetch_onboarding_communities(page, paginate_by)
 
