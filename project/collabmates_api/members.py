@@ -15,13 +15,12 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
 
     '''function to give tagging list of members in community'''
 
-    #handing empty community id check
+    card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+    if not card_instance:
+        return []
+
     if chatroom_id and not community_id:
-
-        card_instance = Collabcard.get_chatroom_or_none(chatroom_id)
-
-        if not card_instance:
-            return []
 
         community_id = card_instance.community_id
 
