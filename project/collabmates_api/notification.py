@@ -1043,48 +1043,39 @@ def send_follow_notification(card_id, user_id, conversation_id):
                                                                conversation_instance, card_instance, community_instance)
 
 
-def compute_mute_status_for_users(followed_chatrooms, current_user_id):
-
-    card_id_list = [instance.card_id for instance in followed_chatrooms]
+def compute_mute_status_for_users(current_user_id):
     muted_key = CacheImpl.get_cache(USER_MUTED_CHATROOM % current_user_id)
 
     if muted_key:
         mute_list = muted_key.get('mute_list', [])
-        mute_status_dict = {card_id: True for card_id in card_id_list if card_id in mute_list}
 
-        return mute_status_dict
+        return mute_list
 
-    mute_list = list(collabcardState.objects.filter(card__in=card_id_list,
-                                                    user_id=current_user_id,
+    mute_list = list(collabcardState.objects.filter(user_id=current_user_id,
                                                     mute_status=True).values_list('card_id', flat=True))
 
-    mute_status_dict = {card_id: True for card_id in card_id_list if card_id in mute_list}
+    save_users_with_muted_chatrooms({'user_id': current_user_id})
 
-    save_users_with_muted_chatrooms.delay({'user_id': current_user_id})
-
-    return mute_status_dict
+    return mute_list
 
 
 def get_custom_data_for_new_conversation_created(user_id):
     """function to send notification for new conversation posted to followed users"""
 
     # time.sleep(2)
+    mute_status_list = compute_mute_status_for_users(user_id)
+
     followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,
                                                            draft_id=None,
-                                                           unseen_count__gt=0).select_related('card',
-                                                                                              'community').order_by('-updated_at', '-id')
+                                                           unseen_count__gt=0).filter(
+        ~Q(card_id__in=mute_status_list)).select_related('card',
+                                                         'community').order_by('-updated_at', '-id')[:10]
     unread_conversation = []
-    mute_status_dict = compute_mute_status_for_users(followed_chatrooms, user_id)
-    count = 0
 
     for conversation in followed_chatrooms:
         temp = {}
         card_instance = conversation.card
         community_instance = conversation.community
-
-        if mute_status_dict.get(card_instance.id) \
-                and mute_status_dict[card_instance.id] is True:
-            continue
 
         chatroom_name = card_instance.header
 
@@ -1100,7 +1091,7 @@ def get_custom_data_for_new_conversation_created(user_id):
 
         temp['notification_id'] = str(conversation.card_id) + "_followed"
         temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s""" % (
-        str(community_instance.id), str(community_instance.name))
+            str(community_instance.id), str(community_instance.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(community_instance.id)
         temp['community_image'] = community_instance.image_link
@@ -1137,11 +1128,7 @@ def get_custom_data_for_new_conversation_created(user_id):
                 temp['attachments'] = answer_files['attachments']
 
         unread_conversation.append(temp)
-        count = count + 1
 
-        if count == 10:
-            break
-        
     return unread_conversation
 
 
