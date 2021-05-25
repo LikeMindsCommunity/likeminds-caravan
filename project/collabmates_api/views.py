@@ -11089,6 +11089,7 @@ def config(request):
 
     context['use_segment'] = True
     context['micro_polls_enabled'] = False
+    context['enable_gif'] = False
 
     return JsonResponse(context)
 
