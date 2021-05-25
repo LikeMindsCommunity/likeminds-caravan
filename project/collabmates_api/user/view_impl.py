@@ -78,6 +78,7 @@ class UserLogout(APIView):
 
 
 class UserRemoveProfile(APIView):
+
     def post(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
@@ -86,5 +87,24 @@ class UserRemoveProfile(APIView):
 
         if user_context.get('error_message'):
             return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(user_context)
+
+
+class UserLoginView(APIView):
+
+    def post(self, request):
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False,
+                                 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_manager = UserImpl(user_id="",
+                                mobile_no="")
+        user_context = user_manager.login(req_body,
+                                          RequestUtilities.get_platform_code(request),
+                                          RequestUtilities.get_device_id_from_headers(request))
 
         return JsonResponse(user_context)
