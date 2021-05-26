@@ -14676,7 +14676,6 @@ class SyncChatrooms(APIView):
             else:
                 reactions = []
 
-            chatroom['remove_id'] = data[52]
             chatroom['reactions'] = reactions if reactions else []
 
             chatrooms.append(chatroom)
