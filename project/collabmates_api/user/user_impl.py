@@ -207,7 +207,7 @@ class UserImpl(UserManager):
         return {'success': True}
 
     @staticmethod
-    def create_user_and_userinfo(user_context, phone_no):
+    def _create_user_and_userinfo(user_context, phone_no):
 
         user_exists = ModelUtilities.is_model_filter_exists(User, {'username': phone_no})
         user_instance = None
@@ -298,7 +298,7 @@ class UserImpl(UserManager):
         email_list = []
 
         for email_instance in email_filter:
-            email_list.append(self.emailSerializer(email_instance))
+            email_list.append(UserHelper.emailSerializer(email_instance))
 
         return email_list
 
@@ -307,32 +307,9 @@ class UserImpl(UserManager):
         mobile_list = []
 
         for mobile_instance in mobile_filter:
-            mobile_list.append(self.mobilesSerializer(mobile_instance))
+            mobile_list.append(UserHelper.mobilesSerializer(mobile_instance))
 
         return mobile_list
-
-    @staticmethod
-    def emailSerializer(email_instance):
-
-        return {
-                'id': email_instance.id,
-                'user_id': email_instance.user_id,
-                'email': email_instance.email,
-                'state': email_instance.email_state,
-                'verified': email_instance.verified
-            }
-
-    @staticmethod
-    def mobilesSerializer(mobile_instance):
-
-        return {
-
-            'id': mobile_instance.id,
-            'user_id': mobile_instance.user_id,
-            'mobile_no': mobile_instance.mobile_no,
-            'country_code': mobile_instance.country_code,
-            'state': mobile_instance.state
-        }
 
     @staticmethod
     def send_email_verification_mails_for_custom_user(user_context, user_instance, userinfo_instance):
@@ -382,7 +359,13 @@ class UserImpl(UserManager):
 
     def login(self, req_body, platform_code, device_id) -> {}:
 
-        user_context = UserHelper.validate_login_types(req_body)
+        try:
+            user_context = UserHelper.validate_login_types(req_body)
+
+        except Exception as e:
+            error_logger.error(e)
+
+            user_context = {}
 
         if not user_context:
             return {'success': False, 'error_message': "Invalid Login"}
@@ -407,7 +390,7 @@ class UserImpl(UserManager):
                                                          'country_code': mobile_context['country_code']})
 
         if not mobile_filter:
-            user_instance = self.create_user_and_userinfo(user_context, {'phone_no': mobile_context['phone_no']})
+            user_instance = self._create_user_and_userinfo(user_context, {'phone_no': mobile_context['phone_no']})
             self.create_user_mobile_number(user_instance,
                                            mobile_context['country_code'],
                                            mobile_context['mobile_no'])
@@ -489,6 +472,9 @@ class UserHelper:
         elif login_type == login_types.CUSTOM:
 
             return UserHelper.validate_custom_login_object(req_body)
+
+        else:
+            return {}
 
     @staticmethod
     def validate_facebook_login_object(req_body):
@@ -878,3 +864,26 @@ class UserHelper:
                 instance.chatroom = card_instance
 
             instance.save()
+
+    @staticmethod
+    def emailSerializer(email_instance):
+
+        return {
+                'id': email_instance.id,
+                'user_id': email_instance.user_id,
+                'email': email_instance.email,
+                'state': email_instance.email_state,
+                'verified': email_instance.verified
+            }
+
+    @staticmethod
+    def mobilesSerializer(mobile_instance):
+
+        return {
+
+            'id': mobile_instance.id,
+            'user_id': mobile_instance.user_id,
+            'mobile_no': mobile_instance.mobile_no,
+            'country_code': mobile_instance.country_code,
+            'state': mobile_instance.state
+        }
