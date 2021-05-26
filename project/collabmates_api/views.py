@@ -9284,7 +9284,11 @@ def upload_conversation_attachments(body, member_id):
     save_conversation_attachments(body, conversation_instance)
 
     # updating the last updated when posting answer
-    conversation_instance.last_updated = int(round(time.time() * 1000))
+    conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
+
+    if body.get('type') == "gif":
+        conversation_instance.answer = conversation_instance.answer + GIF_ATTACHMENT_FILL_TEXT
+
     conversation_instance.save()
 
     # saving last answer id
@@ -15448,6 +15452,7 @@ class SyncConversation(APIView):
 
         return conversation_list, max_last_updated
 
+
     def process_conversation_files(self, conversation_files):
 
         conversation_files_response = {
@@ -15525,7 +15530,19 @@ class SyncConversation(APIView):
 
                 conversation_files_response['location'] = location
 
+            elif file['type'] == "gif" and file['file_url']:
+                attachment_gif_context = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
+
+                if file['height']:
+                    attachment_gif_context['height'] = file['height']
+
+                if file['width']:
+                    attachment_gif_context['width'] = file['width']
+
+                attachment_list.append(attachment_gif_context)
+
         conversation_files_response['attachments'] = attachment_list
+
         return conversation_files_response
 
     def get_user_related_chatroom_list(self, chatroom_status, chatroom_expire_status, member_id):
