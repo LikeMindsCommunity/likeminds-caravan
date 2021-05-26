@@ -389,7 +389,6 @@ class SyncTypes(enum.Enum):
 
 
 class SyncNotificationTypes(enum.Enum):
-
     SINGLE_MEMBER = 1
     ALL_MEMBERS = 2
 
@@ -399,7 +398,6 @@ class SyncNotificationTypes(enum.Enum):
 
 
 class ConversationStates:
-
     ANSWER = 0
     CONVERSATION_HEADER = 1
     CONVERSATION_FOLLOW = 2
@@ -414,9 +412,20 @@ conversation_states = ConversationStates()
 
 
 class ConversationPollTypes:
-
     INSTANT = 0
     DEFERRED = 1
 
+
 conversation_poll_types = ConversationPollTypes()
 
+
+class LoginTypes:
+    GOOGLE = "google"
+    FACEBOOK = "facebook"
+    LINKEDIN = "linkedIn"
+    LINKEDIN_WEB = "linkedin_web"
+    APPLE = "apple"
+    CUSTOM = "custom"
+
+
+login_types = LoginTypes()

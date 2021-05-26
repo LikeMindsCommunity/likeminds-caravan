@@ -764,8 +764,7 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
              togther_collabcard.secret_chatroom_participants,
              togther_collabcardState.secret_chatroom_left,
              togther_collabcard.has_reactions,
-             togther_collabcard.device_id,
-             togther_collabcardState.remove_id
+             togther_collabcard.device_id
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -773,6 +772,7 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
             ON togther_community.id = togther_collabcard.community_id
         WHERE togther_collabcardState.user_id=%s
                 AND togther_collabcardState.card_id=%s
+                AND togther_collabcardState.remove_id is NULL
                 AND togther_collabcardState.updated_at > %s
         
         """ % (
@@ -847,8 +847,7 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
              togther_collabcard.secret_chatroom_participants,
              togther_collabcardState.secret_chatroom_left,
              togther_collabcard.has_reactions,
-             togther_collabcard.device_id,
-             togther_collabcardState.remove_id
+             togther_collabcard.device_id
     FROM togther_collabcard
     INNER JOIN togther_collabcardState
         ON togther_collabcardState.card_id = togther_collabcard.id
@@ -857,6 +856,7 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
     WHERE togther_collabcard.community_id=%s
             AND togther_collabcardState.user_id = %s
             AND togther_collabcardState.updated_at > %s
+            AND togther_collabcardState.remove_id is NULL
     ORDER BY  togther_collabcardState.updated_at limit %s offset %s
     
     """ % (
@@ -936,8 +936,7 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                      togther_collabcard.secret_chatroom_participants,
                      togther_collabcardState.secret_chatroom_left,
                      togther_collabcard.has_reactions,
-                     togther_collabcard.device_id,
-                     togther_collabcardState.remove_id
+                     togther_collabcard.device_id
             FROM togther_collabcard
             INNER JOIN togther_collabcardState
                 ON togther_collabcardState.card_id = togther_collabcard.id
@@ -945,6 +944,7 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                 ON togther_community.id = togther_collabcard.community_id
             WHERE togther_collabcardState.user_id=%s
                     AND togther_collabcardState.updated_at > %s
+                    AND togther_collabcardState.remove_id is NULL
             ORDER BY  togther_collabcardState.updated_at limit %s offset %s
 
                 """ % (str(user_id), str(last_updated), str(limit), str(offset))
@@ -1212,8 +1212,7 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
                  togther_collabcard.secret_chatroom_participants,
                  togther_collabcardState.secret_chatroom_left,
                  togther_collabcard.has_reactions,
-                 togther_collabcard.device_id,
-                 togther_collabcardState.remove_id
+                 togther_collabcard.device_id
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1222,6 +1221,7 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
         WHERE togther_collabcardState.user_id=%s
                 AND togther_collabcardState.updated_at > %s
                 AND follow_status = %s
+                AND togther_collabcardState.remove_id is NULL
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
         
             """ % (
@@ -1301,8 +1301,7 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
                          togther_collabcard.secret_chatroom_participants,
                          togther_collabcardState.secret_chatroom_left,
                          togther_collabcard.has_reactions,
-                         togther_collabcard.device_id,
-                         togther_collabcardState.remove_id
+                         togther_collabcard.device_id
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1310,6 +1309,7 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
             ON togther_community.id = togther_collabcard.community_id
         WHERE togther_collabcardState.user_id=%s
                 AND %s
+                AND togther_collabcardState.remove_id is NULL
                 AND togther_collabcardState.updated_at > %s
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
               """ % (
@@ -1390,8 +1390,7 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                          togther_collabcard.secret_chatroom_participants,
                          togther_collabcardState.secret_chatroom_left,
                          togther_collabcard.has_reactions,
-                         togther_collabcard.device_id,
-                         togther_collabcardState.remove_id
+                         togther_collabcard.device_id
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1401,6 +1400,7 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                 AND %s
                 AND togther_collabcardState.follow_status = %s
                 AND togther_collabcardState.updated_at > %s
+                AND togther_collabcardState.remove_id is NULL
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
               """ % (
             str(user_id), str(status_query), follow_status, str(last_updated), str(limit), str(offset))

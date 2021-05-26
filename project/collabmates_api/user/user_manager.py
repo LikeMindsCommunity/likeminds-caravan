@@ -12,7 +12,9 @@ class UserManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'logout') and
                  callable(subclass.logout)) and
                 (hasattr(subclass, 'remove_profile') and
-                 callable(subclass.remove_profile)) or
+                 callable(subclass.remove_profile)) and
+                (hasattr(subclass, 'login') and
+                 callable(subclass.login)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -42,3 +44,11 @@ class UserManager(metaclass=abc.ABCMeta):
         remove the profile of user permanently from LikeMinds
         """
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def login(self, platform_code, device_id) -> {}:
+        """
+        login the user into our system
+        """
+        raise NotImplementedError
+

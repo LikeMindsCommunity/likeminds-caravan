@@ -1815,6 +1815,18 @@ def get_answer_files(answer_id):
             }
             files['location'] = location
 
+        elif file.type == "gif":
+
+            gif_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+            if file.height:
+                gif_attachment['height'] = file.height
+
+            if file.width:
+                gif_attachment['width'] = file.width
+
+            attachments_list.append(gif_attachment)
+
     files['image'] = img_list
     files['pdf'] = pdf
     files['videos'] = videos
