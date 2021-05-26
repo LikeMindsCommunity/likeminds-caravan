@@ -7,5 +7,3 @@ LINKED_IN_WEB_USER_URL = 'https://api.linkedin.com/v2/me?projection=(id,firstNam
 LINKED_IN_WEB_EMAIL_URL = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token='
 
 GOOGLE_REGEX = "/AAAAAAAAAAI/AAAAAAAAAAA/"
-
-
