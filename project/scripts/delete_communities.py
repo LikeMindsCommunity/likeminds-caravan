@@ -30,6 +30,7 @@ def delete_communities_from_db():
     for id_list in deleted_chunk_list:
         deleted_communities = Community.objects.filter(id__in=id_list).delete()
         print(deleted_communities)
+        print()
         time.sleep(2)
 
 
