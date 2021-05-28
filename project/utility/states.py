@@ -419,6 +419,12 @@ class ConversationPollTypes:
 conversation_poll_types = ConversationPollTypes()
 
 
+class SearchIndexes(enum.Enum):
+
+    CHATROOM = "chatroom"
+    CONVERSATION = "conversation"
+
+    
 class LoginTypes:
     GOOGLE = "google"
     FACEBOOK = "facebook"

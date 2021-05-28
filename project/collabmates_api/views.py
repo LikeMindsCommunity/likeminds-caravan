@@ -111,6 +111,8 @@ from utility.exception_utilities import (CustomException, InvalidHeaderException
                                             InvalidCommunityException, InvalidUserException)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
+from .search.sync import ElasticSearchSync
+
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 from rest_framework.exceptions import APIException
@@ -1850,6 +1852,8 @@ def edit_user(request):
                                        {'member_id': user_id},
                                        {})
 
+        ElasticSearchSync.update_user_name.delay(user_id, userinfo_instance.name)
+
     return JsonResponse({'success': True})
 
 
@@ -2444,6 +2448,8 @@ def remove_from_member(request):
                                                 'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
                         update_multiple_previews_in_community.delay({'community_id': community_id})
 
+                        ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member)
+
                     else:
                         return JsonResponse(
                             {'success': False, 'error_message': "Cannot the Owner of this community"})
@@ -2501,6 +2507,8 @@ def remove_from_member(request):
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
             send_notification_to_managers_when_member_leaves_community.delay(member_id, community_id)
+
+            ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member_id)
 
             return JsonResponse({'success': True})
         else:
@@ -2609,21 +2617,19 @@ def update_followed_for_rejoined_member(user, community):
 
             engage_instance.save()
 
-            if isinstance(community, Community):
-                community_id = community.id
-            else:
-                community_id = community
+    if isinstance(community, Community):
+        community_id = community.id
+    else:
+        community_id = community
 
-            if isinstance(user, User):
-                user_id = user.pk
-            else:
-                user_id = user
+    if isinstance(user, User):
+        user_id = user.pk
+    else:
+        user_id = user
 
-            update_member_rights_in_conversation_engage.delay(community_id, user_id)
-
-            print("card id", str(instance.card.id))
-
-    print("existing chatroom followed for users")
+    update_member_rights_in_conversation_engage.delay(community_id, user_id)
+    # update elastic search
+    ElasticSearchSync.update_chatrooms_for_rejoined_member.delay(community_id, user_id)
 
 
 def fetch_community_profile(request):
@@ -3965,6 +3971,8 @@ def chatroom_mute(request):
                                   'member_id': member_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
+    ElasticSearchSync.update_chatroom_for_user.delay(chatroom_id, member_id)
+
     return JsonResponse({'success': True})
 
 
@@ -4008,6 +4016,8 @@ def chatroom_rename(request):
 
     send_sync_notification.delay({'chatroom_id': chatroom_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+    ElasticSearchSync.update_chatroom_name.delay(chatroom_id, chatroom_name.strip())
 
     return JsonResponse({"success": True})
 
@@ -4103,10 +4113,13 @@ def chatroom_delete(request):
         send_sync_notification.delay({'chatroom_id': chatroom_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
-    except Exception as e:
+        # update elastic search
+        ElasticSearchSync.delete_chatroom.delay(chatroom_id)
 
+    except Exception as e:
         context = get_error_context(False, str(e))
         return JsonResponse(context)
+
     info_logger.info(
         f"DELETE_CHATROOM_API - current user id = {member_id}, card creator id = {card_creator.id}, disallow_create_chatroom = {disallow_create_chatroom}")
     return JsonResponse({'success': True})
@@ -7974,6 +7987,8 @@ def collabcard_follow(request, function_dict=None):
                                   'member_id': current_member_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
+    ElasticSearchSync.update_chatroom_for_user.delay(collabcard_id, current_member_id)
+
     return JsonResponse({'success': True})
 
 
@@ -8046,6 +8061,8 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                'mute_status': mute_status,
                                                'state': state
                                            })
+
+        ElasticSearchSync.update_chatroom_for_user.delay(card_id, member_id)
 
     else:
 
@@ -8263,6 +8280,8 @@ def collabcard_attend(request):
 
     send_sync_notification.delay({'chatroom_id': collabcard_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+    ElasticSearchSync.update_chatroom_for_user.delay(collabcard_id, member_id)
 
     return JsonResponse({'success': True})
 
@@ -11545,11 +11564,15 @@ def edit_community_data(community_instance, user_instance, edit_field):
         if edit_field == "name":
             bubble_text = "<<" + user_name + " changed the name of this community" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
+
+            ElasticSearchSync.update_community_name.delay(community_instance.id, community_instance.name)
+
         if edit_field == "purpose":
             card_instance.title = community_instance.purpose
             card_instance.save()
             bubble_text = "<<" + user_name + """ edited "About Community". Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
+
         if edit_field == "image_url":
             bubble_text = "<<" + user_name + """ changed the community icon. Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
@@ -13108,6 +13131,8 @@ def delete_conversation(request):
         conversation_list.append(conversation_dict)
         community_id = conversation_dict['community_id']
 
+    ElasticSearchSync.delete_conversations.delay(conversation_ids)
+
     if community_id:
         send_sync_notification.delay({'community_id': community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -13168,6 +13193,9 @@ def edit_conversation(request):
                                        {'id': conversation_id},
                                        {'answer': edited_answer, 'is_edited': True})
         conversation.refresh_from_db()
+
+        ElasticSearchSync.update_conversations.delay([conversation_id])
+
     else:
         context = get_error_context(False,
                                     "you are not the conversation creator.Only conversation creator can edit his/her message")

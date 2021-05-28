@@ -33,7 +33,10 @@ django-select2==7.2.0
 django-timezone-field==4.0
 djangorestframework==3.11.0
 djangorestframework-simplejwt==4.4.0
+django-elasticsearch-dsl==7.2.0
+django-elasticsearch-dsl-drf==0.22.1
 dnspython==1.16.0
+elasticsearch-dsl==7.3.0
 et-xmlfile==1.0.1
 gcloud==0.18.3
 googleapis-common-protos==1.51.0
