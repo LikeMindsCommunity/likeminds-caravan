@@ -46,7 +46,7 @@ class UserManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def login(self, platform_code, device_id) -> {}:
+    def login(self, req_body, platform_code, device_id) -> {}:
         """
         login the user into our system
         """

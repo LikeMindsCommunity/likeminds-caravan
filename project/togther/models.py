@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 from django.contrib.auth.models import User
 import time
@@ -146,7 +148,6 @@ class Members(models.Model):
     became_member_at = models.BigIntegerField(default=0)
 
     has_onboarded = models.BooleanField(default=False)
-
 
     @staticmethod
     def is_community_member(community: Community, member: Union[User, str, int]) -> bool:
@@ -1741,7 +1742,6 @@ class homeSnackbar(models.Model):
 
 
 class userSurvey(models.Model):
-
     """table to save the survey details of user for NPS"""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     survey_seen = models.BooleanField(default=False)
@@ -1750,14 +1750,12 @@ class userSurvey(models.Model):
 
     @staticmethod
     def create_instance(create_info):
-
         instance = userSurvey()
         instance.user = create_info.get('user_instance')
         instance.survey_seen = create_info.get('survey_seen')
         instance.save()
 
     def save(self, *args, **kwargs):
-
         current_time_ms = TimeUtilities.current_time_in_milliseconds()
 
         if self.created_at == 0:
@@ -1801,9 +1799,14 @@ class ModelUtilities:
     @staticmethod
     def paginate_queryset(queryset, page, paginate_by):
 
-        offset = (page-1) * paginate_by
+        offset = (page - 1) * paginate_by
 
-        return queryset[offset: offset+paginate_by]
+        return queryset[offset: offset + paginate_by]
+
+    @staticmethod
+    def delete_record_in_model(model, filter_dict):
+        return model.objects.filter(**filter_dict).delete()
+
 
 
 class MessageReactions(models.Model):
@@ -1823,3 +1826,29 @@ class MessageReactions(models.Model):
 
         super(MessageReactions, self).save(*args, **kwargs)
 
+
+class CommunityUserDelete(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        unique_together = ['user', 'community']
+
+    @staticmethod
+    def create_instance(create_info):
+
+        try:
+            instance = CommunityUserDelete()
+            instance.user = create_info.get('user_instance')
+            instance.community = create_info.get('community_instance')
+            instance.save()
+
+        except Exception as e:
+            error_logger.error(e)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+        self.created_at = current_time
+
+        super(CommunityUserDelete, self).save(*args, **kwargs)

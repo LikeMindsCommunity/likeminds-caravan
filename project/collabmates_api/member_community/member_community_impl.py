@@ -34,7 +34,8 @@ from ..serializers import get_user_profile, get_members_profile, get_collabcard_
 from ..static_files import REMOVED_USER_URL
 
 from togther.models import Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers, \
-    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage, communityQuestions, Userinfo
+    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage, communityQuestions, Userinfo, \
+    CommunityUserDelete
 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
@@ -1149,6 +1150,18 @@ class MemberCommunityImpl(MemberCommunityManager):
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
         return {'success': True}
+
+    def fetch_deleted_communities(self) -> {}:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "In-correct user id"}
+
+        community_id_list = list(ModelUtilities.get_model_filter(CommunityUserDelete,
+                                                                     {'user': user_instance}).values_list('community',
+                                                                                                          flat=True))
+        return {'community_ids': community_id_list}
 
 
 class MemberCommunityHelper:
