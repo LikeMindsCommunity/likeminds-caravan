@@ -107,9 +107,15 @@ def send_notification_for_android(token_list, message):
     # print(token_list,message)
     result = ""
     # print("===== sending for android")
+
+    extra_kwargs = {
+        "android": {
+            "priority": "high"
+        }
+    }
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'])
+                                                  data_message=message['payload'], extra_kwargs=extra_kwargs)
 
     print(result)
     return result
