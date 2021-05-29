@@ -255,14 +255,6 @@ class CommunityImpl(CommunityManager):
 
     @staticmethod
     def delete_community_relationships(community_instance):
-
-        ModelUtilities.delete_record_in_model(card_answers, {'community': community_instance})
-        ModelUtilities.delete_record_in_model(collabcardState, {'community': community_instance})
-        ModelUtilities.delete_record_in_model(Collabcard, {'community': community_instance})
-        ModelUtilities.delete_record_in_model(Members, {'community_id': community_instance})
-        ModelUtilities.delete_record_in_model(Member_Engage, {'community_id': community_instance})
-        ModelUtilities.delete_record_in_model(communityAnswers, {'community_id': community_instance})
-        ModelUtilities.delete_record_in_model(communityQuestions, {'community_id': community_instance})
         ModelUtilities.delete_record_in_model(Community, {'id': community_instance.id})
 
     def delete_community(self) -> {}:
