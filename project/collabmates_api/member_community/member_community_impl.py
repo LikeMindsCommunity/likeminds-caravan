@@ -1159,7 +1159,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'error_message': "In-correct user id"}
 
         community_id_list = list(ModelUtilities.get_model_filter(CommunityUserDelete,
-                                                                     {'user': user_instance}).values_list('community',
+                                                                     {'user': user_instance}).values_list('deleted_community_id',
                                                                                                           flat=True))
         return {'community_ids': community_id_list}
 
