@@ -17,8 +17,6 @@ error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
 
-
-
 class CommunityImpl(CommunityManager):
     member_id = None
     community_id = None
@@ -229,7 +227,7 @@ class CommunityImpl(CommunityManager):
             user_instance = data.member_id
 
             CommunityUserDelete.create_instance({'user_instance': user_instance,
-                                                 'community_instance': community_instance})
+                                                 'community_id': community_instance.id})
 
     @staticmethod
     def set_deleted_by_for_community_chatrooms_and_conversations(community_instance):

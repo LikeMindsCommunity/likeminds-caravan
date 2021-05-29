@@ -1829,11 +1829,11 @@ class MessageReactions(models.Model):
 
 class CommunityUserDelete(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    deleted_community_id = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
 
     class Meta:
-        unique_together = ['user', 'community']
+        unique_together = ['user', 'deleted_community_id']
 
     @staticmethod
     def create_instance(create_info):
@@ -1841,7 +1841,7 @@ class CommunityUserDelete(models.Model):
         try:
             instance = CommunityUserDelete()
             instance.user = create_info.get('user_instance')
-            instance.community = create_info.get('community_instance')
+            instance.deleted_community_id = create_info.get('community_id')
             instance.save()
 
         except Exception as e:
