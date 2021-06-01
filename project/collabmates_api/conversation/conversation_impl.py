@@ -1038,7 +1038,11 @@ class ConversationHelper:
     @staticmethod
     def update_homescreen_meta_on_conversation_creation(community_instance, chatroom_instance, conversation_instance):
 
-        user_id = conversation_instance.user_id if conversation_instance.has_files else None
+        if conversation_instance.attachment_count > 0 and conversation_instance.attachments_uploaded is False:
+            user_id = conversation_instance.user_id
+        else:
+            user_id = None
+
 
         last_conversation_member, \
         second_last_conversation_member, \

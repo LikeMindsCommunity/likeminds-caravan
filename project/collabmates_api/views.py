@@ -9057,7 +9057,6 @@ def upload_files(request):
         conversation_context = {"current_user_id": member_id, "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(answer_instance, context=conversation_context, many=False).data
 
-
     elif 'poll_id' in body and body['poll_id']:
 
         try:
@@ -9191,6 +9190,7 @@ def save_attachments(request):
             return chatroom_local
 
     elif 'conversation_id' in body and body['conversation_id']:
+
         conversation = upload_conversation_attachments(body, member_id)
 
         if 'success' in conversation and not conversation['success']:
@@ -9226,12 +9226,6 @@ def save_attachments(request):
     # sending the chatroom local object
     if chatroom_local:
         context['chatroom_local'] = chatroom_local.data
-
-    community_id = get_community_id_from_v1_upload_files(body)
-
-    if community_id:
-        send_sync_notification.delay({'community_id': community_id,
-                                'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
     return context
 
@@ -9293,14 +9287,19 @@ def upload_chatroom_attachments(body, member_id, version_code=0, is_android=Fals
 def upload_conversation_attachments(body, member_id):
     """ function to upload conversation attachments """
     conversation_id = body['conversation_id']
-    try:
-        conversation_instance = card_answers.objects.get(id=conversation_id)
 
-    except card_answers.DoesNotExist:
+    conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+    if not conversation_instance:
+
         return {'success': False,
                 'error_message': "Send valid conversation id"}
 
     save_conversation_attachments(body, conversation_instance)
+
+    uploaded_files_count = answerAttachment.objects.filter(answer=conversation_instance).count()
+
+    all_files_uploaded = uploaded_files_count == conversation_instance.attachment_count
 
     # updating the last updated when posting answer
     conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
@@ -9308,20 +9307,26 @@ def upload_conversation_attachments(body, member_id):
     if body.get('type') == "gif":
         conversation_instance.answer = conversation_instance.answer + GIF_ATTACHMENT_FILL_TEXT
 
-    conversation_instance.save()
+    if not all_files_uploaded:
+        conversation_instance.save()
 
-    # saving last answer id
-    uploaded_files_count = answerAttachment.objects.filter(answer=conversation_instance).count()
-
-    if uploaded_files_count == conversation_instance.attachment_count:
+    elif all_files_uploaded:
         conversation_instance.attachments_uploaded = True
         conversation_instance.save()
 
-        chatroom_id = conversation_instance.card.id
-        update_last_answer_id(chatroom_id, conversation_instance.id)
-        send_follow_notification.delay(card_id=chatroom_id, user_id=conversation_instance.user_id,
+        # local imports from conversation module for saving data in firebase
+        from .conversation.conversation_impl import ConversationHelper
+
+        chatroom_instance = conversation_instance.card
+        community_instance = conversation_instance.community
+
+        ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id,
+                                                                           conversation_instance.id)
+        ConversationHelper.update_homescreen_meta_on_conversation_creation(
+            community_instance, chatroom_instance, conversation_instance)
+
+        send_follow_notification.delay(card_id=chatroom_instance.id, user_id=conversation_instance.user_id,
                                        conversation_id=conversation_instance.id)
-        update_my_chatrooms_for_users(chatroom_id)
 
     conversation_context = {"current_user_id": member_id, "fetch_reply": True}
     conversation = CardAnswersDBSyncSerializer(conversation_instance, context=conversation_context, many=False).data

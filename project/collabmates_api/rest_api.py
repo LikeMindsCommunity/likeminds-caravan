@@ -891,9 +891,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 else:
                     del data['og_tags']
 
-            elif (field.field_name == "has_files" and
-                  data['has_files']) or \
-                    (field.field_name == "attachment_count" and
+            elif (field.field_name == "attachment_count" and
                      data['attachment_count'] > 0):
                 answer_files = get_answer_files(data['id'])
                 data['images'] = answer_files['image']
