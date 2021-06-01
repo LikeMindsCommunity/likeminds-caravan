@@ -14560,8 +14560,12 @@ class SyncChatrooms(APIView):
                 return JsonResponse({'chatrooms': chatroom})
 
         elif community_id:
-            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by,
-                                                                             last_updated)
+
+            follow_status = chatroom_status == "followed"
+            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page,
+                                                                                     paginate_by,
+                                                                                     last_updated,
+                                                                             follow_status=follow_status)
         else:
             chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated,
                                                                          chatroom_status, chatroom_expire_status)
