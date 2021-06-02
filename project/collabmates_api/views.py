@@ -11091,11 +11091,6 @@ def config(request):
     context['access'] = access
 
     context['survey_seen'] = False
-    survey_filter = ModelUtilities.get_model_filter(userSurvey, {'user': user_instance})
-
-    if survey_filter:
-        survey_instance = survey_filter[0]
-        context['survey_seen'] = survey_instance.survey_seen
 
     # set installed flags in case of mobile devices
     if RequestUtilities.is_request_android(request) \
