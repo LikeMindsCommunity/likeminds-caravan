@@ -11026,6 +11026,7 @@ def create_mixpanel_statistics(user_instance, userinfo_instance):
 
     user_metrics = {}
     user_metrics['first_login'] = TimeUtilities.convert_epoch_time_to_ddmmyyyy(userinfo_instance.created_at)
+    user_metrics['first_login_epoch'] = userinfo_instance.created_at * 1000
     member_filter = Members.objects.filter(member_id=user_instance, state__in=COMMUNITY_MEMBER_STATES)
 
     user_metrics['count_communities_joined'] = len(member_filter)
