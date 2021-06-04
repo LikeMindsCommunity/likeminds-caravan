@@ -635,7 +635,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         userinfo_instance = user_instance.userinfo
         remove_member['id'] = userinfo_instance.id
         remove_member['name'] = userinfo_instance.name
-        remove_member['image_link'] = userinfo_instance.image_link if userinfo_instance.image_link else ""
+        remove_member['image_url'] = userinfo_instance.image_link if userinfo_instance.image_link else ""
 
         if remove_filter:
             temp = self.create_removed_members_custom_text(remove_filter[0], userinfo_instance)
@@ -656,6 +656,10 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if user_id in member_dict:
                 co_hosts.append(member_dict[user_id])
+            else:
+                user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+                removed_context = self.compute_removed_user_context(user_instance, community_instance)
+                co_hosts.append(removed_context)
 
         return co_hosts
 
@@ -843,7 +847,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT:
             co_host_list = chatroom_context.get('co_hosts') if chatroom_context.get('co_hosts') else []
-
             co_hosts = self.compute_co_host_of_chatroom_events(co_host_list, community_instance)
 
             if co_hosts:
