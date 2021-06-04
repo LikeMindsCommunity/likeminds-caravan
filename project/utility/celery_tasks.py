@@ -19,7 +19,6 @@ from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, chatroom_states, conversation_poll_types, conversation_states
 
-
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -89,14 +88,17 @@ def update_last_unseen_in_engage_on_card_creation(community_id, is_seen=True):
 def update_last_unseen_in_engage(user='', community='', is_seen=False):
     '''function to update the unseen  collabcard in engage'''
 
-    total_chatrooms = collabcardState.objects.filter(community=community, user=user,
-                                                     card__is_deleted=False,
-                                                     secret_chatroom_left=False).exclude(card__type=1).distinct(
-        'card_id').count()
-    seen_chatrooms = collabcardState.objects.filter(community=community, user=user, external_seen=True,
-                                                    card__is_deleted=False,
-                                                    secret_chatroom_left=False).exclude(card__type=1).distinct(
-        'card').count()
+    total_chatrooms = collabcardState.objects.filter(community=community,
+                                                     user=user, card__is_deleted=False,
+                                                     secret_chatroom_left=False).filter(Q(card__attachment_count=0)
+                                                                                        | Q(
+        card__attachments_uploaded=True)).exclude(card__type=1).distinct('card_id').count()
+
+    seen_chatrooms = collabcardState.objects.filter(community=community,
+                                                    user=user, external_seen=True, card__is_deleted=False,
+                                                    secret_chatroom_left=False).filter(Q(card__attachment_count=0)
+                                                                                       | Q(
+        card__attachments_uploaded=True)).exclude(card__type=1).distinct('card').count()
 
     diff = total_chatrooms - seen_chatrooms
 
@@ -283,7 +285,8 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
         if seen_id:
             unseen_count = card_answers.objects.filter(card_id=chatroom_id,
                                                        id__gt=seen_id).filter(Q(state=conversation_states.ANSWER)
-                                                                              | Q(state=conversation_states.CONVERSATION_POLL)).count()
+                                                                              | Q(
+                state=conversation_states.CONVERSATION_POLL)).count()
             conversation_engage_filter.filter(user=user).update(
                 last_conversation=last_conversation,
                 second_last_conversation=second_last,
@@ -482,7 +485,7 @@ def update_multiple_previews_in_community(preview_info):
     preview_community_id = preview_info.get('community_id')
 
     if preview_community_id:
-        preview_filter = card_answers.objects.filter(preview_community=preview_community_id).\
+        preview_filter = card_answers.objects.filter(preview_community=preview_community_id). \
             filter(Q(preview_type='community') | Q(preview_type='directory'))
 
         for conversation in preview_filter:
@@ -490,7 +493,7 @@ def update_multiple_previews_in_community(preview_info):
             try:
                 preview_dict = get_preview_for_url(preview_url=conversation.internal_link,
                                                    community_instance=conversation.preview_community,
-                                                  )
+                                                   )
             except Exception as e:
                 error_logger.error(str(e.args))
                 continue
@@ -907,7 +910,6 @@ def save_conversation_poll_voters_in_cache(vote_info):
 
 @shared_task
 def save_users_with_muted_chatrooms(mute_info):
-
     user_id = mute_info.get('user_id')
     chatroom_id = mute_info.get('chatroom_id')
     mute_status = mute_info.get('mute_status')
@@ -940,6 +942,6 @@ def save_users_with_muted_chatrooms(mute_info):
     if not mute_list:
         mute_list = list(collabcardState.objects.filter(user=user_id,
                                                         mute_status=True).values_list('card_id',
-                                                                      flat=True))
+                                                                                      flat=True))
 
-    CacheImpl.set_cache(key,  {'mute_list': mute_list})
+    CacheImpl.set_cache(key, {'mute_list': mute_list})
