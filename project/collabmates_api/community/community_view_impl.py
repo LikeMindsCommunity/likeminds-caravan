@@ -63,12 +63,12 @@ class FetchChatroomFeed(APIView):
         except Exception as e:
 
             error_logger.error(e.args)
-            return JsonResponse({'error_message': "Internal server error"}, status=500)
+            return JsonResponse({'error_message': "Internal server error"}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=400)
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(response_context, status=200)
+        return JsonResponse(response_context)
 
 
 class DeleteCommunityView(APIView):

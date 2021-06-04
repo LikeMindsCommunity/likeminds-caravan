@@ -2610,6 +2610,7 @@ def update_followed_for_rejoined_member(user, community):
         if not engage_filter.exists():
             engage_instance = conversationEngage()
 
+            engage_instance.community = community
             engage_instance.card = instance.card
             engage_instance.user = instance.user
             engage_instance.created_at = instance.created_at

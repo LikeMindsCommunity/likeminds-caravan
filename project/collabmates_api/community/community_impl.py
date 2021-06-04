@@ -216,8 +216,7 @@ class CommunityImpl(CommunityManager):
 
         return response_context
 
-    @staticmethod
-    def set_community_delete_relation_for_users(community_instance):
+    def _set_community_delete_relation_for_users(self, community_instance):
 
         community_members = ModelUtilities.get_model_filter(Members, {'community_id':
                                                                           community_instance}).select_related(
@@ -229,8 +228,7 @@ class CommunityImpl(CommunityManager):
             CommunityUserDelete.create_instance({'user_instance': user_instance,
                                                  'community_id': community_instance.id})
 
-    @staticmethod
-    def set_deleted_by_for_community_chatrooms_and_conversations(community_instance):
+    def _set_deleted_by_for_community_chatrooms_and_conversations(self, community_instance):
 
         card_list = list(ModelUtilities.get_model_filter(Collabcard, {'preview_community':
                                                                           community_instance}).values_list('id',
@@ -251,8 +249,7 @@ class CommunityImpl(CommunityManager):
                                                          deleted_by_user=F('user'),
                                                          last_updated=TimeUtilities.current_time_in_milliseconds())
 
-    @staticmethod
-    def delete_community_relationships(community_instance):
+    def _delete_community_relationships(self, community_instance):
         ModelUtilities.delete_record_in_model(Community, {'id': community_instance.id})
 
     def delete_community(self) -> {}:
@@ -272,15 +269,16 @@ class CommunityImpl(CommunityManager):
         if not owner_instance:
             return {'success': False, 'error_message': "You are not the owner of community."}
 
-        self.set_community_delete_relation_for_users(community_instance)
-        self.set_deleted_by_for_community_chatrooms_and_conversations(community_instance)
-        self.delete_community_relationships(community_instance)
+        self._set_community_delete_relation_for_users(community_instance)
+        self._set_deleted_by_for_community_chatrooms_and_conversations(community_instance)
+        self._delete_community_relationships(community_instance)
 
         return {'success': True}
 
 
 class CommunityHelper:
-
+    
+    @staticmethod
     def fetch_community_instance(community_id: str) -> object:
         community_instance = None
         try:
@@ -292,6 +290,7 @@ class CommunityHelper:
 
         return community_instance
 
+    @staticmethod
     def fetch_user_instance(user_id: str) -> object:
         user_instance = None
         try:

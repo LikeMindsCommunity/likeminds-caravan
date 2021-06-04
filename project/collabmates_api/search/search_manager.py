@@ -12,13 +12,13 @@ class SearchManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def search_chatroom(self):
         """
-        Search chatrooms by title and header with elastoc search
+        Search chatrooms by title and header with elastic search
         """
         raise NotImplementedError
 
     def search_conversation(self):
         """
-        Search conversation by answer text with elastoc search
+        Search conversation by answer text with elastic search
         """
 
         raise NotImplementedError

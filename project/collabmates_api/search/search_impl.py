@@ -32,7 +32,7 @@ class SearchImpl(SearchManager):
     def get_page_size(self) -> int:
         return self.page_size
 
-    def get_chatroom_search_query_dict(self):
+    def _get_chatroom_search_query_dict(self):
         return {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
@@ -61,7 +61,7 @@ class SearchImpl(SearchManager):
             }
         }
 
-    def get_conversation_search_query_dict(self, chatroom_id_list):
+    def _get_conversation_search_query_dict(self, chatroom_id_list):
         return {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
@@ -87,7 +87,7 @@ class SearchImpl(SearchManager):
             }
         }
 
-    def fetch_user_chatrooms_id_list(self):
+    def _fetch_user_chatrooms_id_list(self):
         return list(collabcardState.objects
                     .filter(user__id=self.get_member_id(),
                             card__is_deleted=False,
@@ -97,7 +97,7 @@ class SearchImpl(SearchManager):
 
     def search_chatroom(self):
 
-        res = Search.from_dict(self.get_chatroom_search_query_dict()).execute()
+        res = Search.from_dict(self._get_chatroom_search_query_dict()).execute()
 
         context = {
             'chatrooms': [hit.to_dict() for hit in res]
@@ -107,7 +107,7 @@ class SearchImpl(SearchManager):
 
     def search_conversation(self):
 
-        res = Search.from_dict(self.get_conversation_search_query_dict(self.fetch_user_chatrooms_id_list())).execute()
+        res = Search.from_dict(self._get_conversation_search_query_dict(self._fetch_user_chatrooms_id_list())).execute()
 
         context = {
             'conversations': [hit.to_dict() for hit in res]

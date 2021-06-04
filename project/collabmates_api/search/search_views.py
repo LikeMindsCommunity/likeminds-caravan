@@ -8,7 +8,7 @@ from .chatroom_index import ChatroomDocument
 from .conversation_index import ConversationDocument
 # --------------------------------------------------------
 
-from .seach_impl import SearchImpl
+from .search_impl import SearchImpl
 
 
 class ChatroomSearchView(APIView):
