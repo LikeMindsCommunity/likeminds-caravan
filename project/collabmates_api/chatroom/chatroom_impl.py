@@ -25,6 +25,8 @@ from ..notification import (get_tagged_members_list, send_notification_to_event_
                             send_pin_chatroom_notification, send_notification_for_new_secret_room_participant,
                             send_notification_for_removed_secret_room_participant)
 
+from ..search.sync import ElasticSearchSync
+
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo)
@@ -856,6 +858,8 @@ class ChatroomImpl(ChatroomManager):
 
         update_last_unseen_in_engage(user=member_id, community=chatroom_instance.community_id)
 
+        ElasticSearchSync.delete_chatroom.delay(chatroom_instance.id)
+
         if chatroom_state == chatroom_states.REMOVED_FROM_CHATROOM:
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
@@ -1080,6 +1084,8 @@ class ChatroomHelper:
                                              current_user_id=current_user_id)
 
             update_last_unseen_in_engage(user=user.id, community=chatroom_instance.community_id)
+            # update elastic search
+            ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user.id)
 
             send_notification_for_new_secret_room_participant(user.id, chatroom_instance.id)
 

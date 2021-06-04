@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'cms',
     'django_prometheus',
+    'django_elasticsearch_dsl',
+    'django_elasticsearch_dsl_drf',
 ]
 
 
@@ -320,3 +322,16 @@ LOGGING = {
 BRANCH_KEY = 'key_live_lkM4vHEWt2Mhx2hJxxtU8deburgYWup4'
 
 MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN')
+
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': os.getenv('ELASTIC_SEARCH_HOST'),
+        'timeout': 60,
+    },
+}
+
+# Name of the Elasticsearch index
+ELASTICSEARCH_INDEX_NAMES = {
+    'collabmates_api.search.chatroom_index': 'chatroom',
+    'collabmates_api.search.conversation_index': 'conversation',
+}

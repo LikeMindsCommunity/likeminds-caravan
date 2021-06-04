@@ -6,6 +6,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import InvalidHeaderException
 from utility.number_utilities import NumberUtilities
+from rest_framework import status as status_codes
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -62,12 +63,31 @@ class FetchChatroomFeed(APIView):
         except Exception as e:
 
             error_logger.error(e.args)
-            return JsonResponse({'error_message': "Internal server error"},  status=500)
+            return JsonResponse({'error_message': "Internal server error"}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=400)
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(response_context, status=200)
+        return JsonResponse(response_context)
+
+
+class DeleteCommunityView(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid community"})
+
+        community_manager = CommunityImpl(member_id, req_body.get('community_id'))
+        community_context = community_manager.delete_community()
+
+        if 'error_message' in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
 
 
 class CommunityViewsHelper:
@@ -82,7 +102,8 @@ class CommunityViewsHelper:
             request_status['error_message'] = "invalid community_id"
             request_status['status'] = False
 
-        elif not member_id and (RequestUtilities.is_request_ios(request) or RequestUtilities.is_request_android(request)):
+        elif not member_id and (
+                RequestUtilities.is_request_ios(request) or RequestUtilities.is_request_android(request)):
             request_status['error_message'] = "invalid user_id"
             request_status['status'] = False
 

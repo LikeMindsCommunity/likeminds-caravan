@@ -191,3 +191,20 @@ class CompleteCommunityOnboarding(APIView):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(community_context)
+
+
+class FetchUserDeletedCommunities(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        member_community_manager = MemberCommunityImpl(member_id, "")
+        community_context = member_community_manager.fetch_deleted_communities()
+
+        if 'error_message' in community_context:
+            response_context = {'error_message': community_context['error_message']}
+
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)

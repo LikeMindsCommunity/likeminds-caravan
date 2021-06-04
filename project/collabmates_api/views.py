@@ -111,6 +111,8 @@ from utility.exception_utilities import (CustomException, InvalidHeaderException
                                             InvalidCommunityException, InvalidUserException)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
+from .search.sync import ElasticSearchSync
+
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 from rest_framework.exceptions import APIException
@@ -1850,6 +1852,8 @@ def edit_user(request):
                                        {'member_id': user_id},
                                        {})
 
+        ElasticSearchSync.update_user_name.delay(user_id, userinfo_instance.name)
+
     return JsonResponse({'success': True})
 
 
@@ -2444,6 +2448,8 @@ def remove_from_member(request):
                                                 'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
                         update_multiple_previews_in_community.delay({'community_id': community_id})
 
+                        ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member)
+
                     else:
                         return JsonResponse(
                             {'success': False, 'error_message': "Cannot the Owner of this community"})
@@ -2501,6 +2507,8 @@ def remove_from_member(request):
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
             send_notification_to_managers_when_member_leaves_community.delay(member_id, community_id)
+
+            ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member_id)
 
             return JsonResponse({'success': True})
         else:
@@ -2602,6 +2610,7 @@ def update_followed_for_rejoined_member(user, community):
         if not engage_filter.exists():
             engage_instance = conversationEngage()
 
+            engage_instance.community = community
             engage_instance.card = instance.card
             engage_instance.user = instance.user
             engage_instance.created_at = instance.created_at
@@ -2609,21 +2618,19 @@ def update_followed_for_rejoined_member(user, community):
 
             engage_instance.save()
 
-            if isinstance(community, Community):
-                community_id = community.id
-            else:
-                community_id = community
+    if isinstance(community, Community):
+        community_id = community.id
+    else:
+        community_id = community
 
-            if isinstance(user, User):
-                user_id = user.pk
-            else:
-                user_id = user
+    if isinstance(user, User):
+        user_id = user.pk
+    else:
+        user_id = user
 
-            update_member_rights_in_conversation_engage.delay(community_id, user_id)
-
-            print("card id", str(instance.card.id))
-
-    print("existing chatroom followed for users")
+    update_member_rights_in_conversation_engage.delay(community_id, user_id)
+    # update elastic search
+    ElasticSearchSync.update_chatrooms_for_rejoined_member.delay(community_id, user_id)
 
 
 def fetch_community_profile(request):
@@ -3965,6 +3972,8 @@ def chatroom_mute(request):
                                   'member_id': member_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
+    ElasticSearchSync.update_chatroom_for_user.delay(chatroom_id, member_id)
+
     return JsonResponse({'success': True})
 
 
@@ -4008,6 +4017,8 @@ def chatroom_rename(request):
 
     send_sync_notification.delay({'chatroom_id': chatroom_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+    ElasticSearchSync.update_chatroom_name.delay(chatroom_id, chatroom_name.strip())
 
     return JsonResponse({"success": True})
 
@@ -4103,10 +4114,13 @@ def chatroom_delete(request):
         send_sync_notification.delay({'chatroom_id': chatroom_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
-    except Exception as e:
+        # update elastic search
+        ElasticSearchSync.delete_chatroom.delay(chatroom_id)
 
+    except Exception as e:
         context = get_error_context(False, str(e))
         return JsonResponse(context)
+
     info_logger.info(
         f"DELETE_CHATROOM_API - current user id = {member_id}, card creator id = {card_creator.id}, disallow_create_chatroom = {disallow_create_chatroom}")
     return JsonResponse({'success': True})
@@ -7974,6 +7988,8 @@ def collabcard_follow(request, function_dict=None):
                                   'member_id': current_member_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
+    ElasticSearchSync.update_chatroom_for_user.delay(collabcard_id, current_member_id)
+
     return JsonResponse({'success': True})
 
 
@@ -8046,6 +8062,8 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                'mute_status': mute_status,
                                                'state': state
                                            })
+
+        ElasticSearchSync.update_chatroom_for_user.delay(card_id, member_id)
 
     else:
 
@@ -8263,6 +8281,8 @@ def collabcard_attend(request):
 
     send_sync_notification.delay({'chatroom_id': collabcard_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+    ElasticSearchSync.update_chatroom_for_user.delay(collabcard_id, member_id)
 
     return JsonResponse({'success': True})
 
@@ -9038,7 +9058,6 @@ def upload_files(request):
         conversation_context = {"current_user_id": member_id, "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(answer_instance, context=conversation_context, many=False).data
 
-
     elif 'poll_id' in body and body['poll_id']:
 
         try:
@@ -9172,6 +9191,7 @@ def save_attachments(request):
             return chatroom_local
 
     elif 'conversation_id' in body and body['conversation_id']:
+
         conversation = upload_conversation_attachments(body, member_id)
 
         if 'success' in conversation and not conversation['success']:
@@ -9207,12 +9227,6 @@ def save_attachments(request):
     # sending the chatroom local object
     if chatroom_local:
         context['chatroom_local'] = chatroom_local.data
-
-    community_id = get_community_id_from_v1_upload_files(body)
-
-    if community_id:
-        send_sync_notification.delay({'community_id': community_id,
-                                'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
     return context
 
@@ -9274,14 +9288,19 @@ def upload_chatroom_attachments(body, member_id, version_code=0, is_android=Fals
 def upload_conversation_attachments(body, member_id):
     """ function to upload conversation attachments """
     conversation_id = body['conversation_id']
-    try:
-        conversation_instance = card_answers.objects.get(id=conversation_id)
 
-    except card_answers.DoesNotExist:
+    conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+    if not conversation_instance:
+
         return {'success': False,
                 'error_message': "Send valid conversation id"}
 
     save_conversation_attachments(body, conversation_instance)
+
+    uploaded_files_count = answerAttachment.objects.filter(answer=conversation_instance).count()
+
+    all_files_uploaded = uploaded_files_count == conversation_instance.attachment_count
 
     # updating the last updated when posting answer
     conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
@@ -9289,20 +9308,26 @@ def upload_conversation_attachments(body, member_id):
     if body.get('type') == "gif":
         conversation_instance.answer = conversation_instance.answer + GIF_ATTACHMENT_FILL_TEXT
 
-    conversation_instance.save()
+    if not all_files_uploaded:
+        conversation_instance.save()
 
-    # saving last answer id
-    uploaded_files_count = answerAttachment.objects.filter(answer=conversation_instance).count()
-
-    if uploaded_files_count == conversation_instance.attachment_count:
+    elif all_files_uploaded:
         conversation_instance.attachments_uploaded = True
         conversation_instance.save()
 
-        chatroom_id = conversation_instance.card.id
-        update_last_answer_id(chatroom_id, conversation_instance.id)
-        send_follow_notification.delay(card_id=chatroom_id, user_id=conversation_instance.user_id,
+        # local imports from conversation module for saving data in firebase
+        from .conversation.conversation_impl import ConversationHelper
+
+        chatroom_instance = conversation_instance.card
+        community_instance = conversation_instance.community
+
+        ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id,
+                                                                           conversation_instance.id)
+        ConversationHelper.update_homescreen_meta_on_conversation_creation(
+            community_instance, chatroom_instance, conversation_instance)
+
+        send_follow_notification.delay(card_id=chatroom_instance.id, user_id=conversation_instance.user_id,
                                        conversation_id=conversation_instance.id)
-        update_my_chatrooms_for_users(chatroom_id)
 
     conversation_context = {"current_user_id": member_id, "fetch_reply": True}
     conversation = CardAnswersDBSyncSerializer(conversation_instance, context=conversation_context, many=False).data
@@ -11541,11 +11566,15 @@ def edit_community_data(community_instance, user_instance, edit_field):
         if edit_field == "name":
             bubble_text = "<<" + user_name + " changed the name of this community" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
+
+            ElasticSearchSync.update_community_name.delay(community_instance.id, community_instance.name)
+
         if edit_field == "purpose":
             card_instance.title = community_instance.purpose
             card_instance.save()
             bubble_text = "<<" + user_name + """ edited "About Community". Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
+
         if edit_field == "image_url":
             bubble_text = "<<" + user_name + """ changed the community icon. Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
@@ -13104,6 +13133,8 @@ def delete_conversation(request):
         conversation_list.append(conversation_dict)
         community_id = conversation_dict['community_id']
 
+    ElasticSearchSync.delete_conversations.delay(conversation_ids)
+
     if community_id:
         send_sync_notification.delay({'community_id': community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -13164,6 +13195,9 @@ def edit_conversation(request):
                                        {'id': conversation_id},
                                        {'answer': edited_answer, 'is_edited': True})
         conversation.refresh_from_db()
+
+        ElasticSearchSync.update_conversations.delay([conversation_id])
+
     else:
         context = get_error_context(False,
                                     "you are not the conversation creator.Only conversation creator can edit his/her message")
@@ -14528,8 +14562,12 @@ class SyncChatrooms(APIView):
                 return JsonResponse({'chatrooms': chatroom})
 
         elif community_id:
-            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page, paginate_by,
-                                                                             last_updated)
+
+            follow_status = chatroom_status == "followed"
+            chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page,
+                                                                                     paginate_by,
+                                                                                     last_updated,
+                                                                             follow_status=follow_status)
         else:
             chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated,
                                                                          chatroom_status, chatroom_expire_status)

@@ -4,8 +4,9 @@ from collabmates_api.community.constants import MENU
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right
 from collabmates_api.views import get_leave_community_text
-from django.db.models import Q
-from togther.models import Community, Userinfo, Collabcard
+from django.db.models import Q, F
+from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
+    card_answers, collabcardState, Member_Engage, communityAnswers, communityQuestions
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -196,8 +197,7 @@ class CommunityImpl(CommunityManager):
         community_instance = Community.get_community_or_None(self.get_community_id())
 
         if not community_instance:
-
-           return {'error_message': "In-correct community_id"}
+            return {'error_message': "In-correct community_id"}
 
         userinfo_instance = Userinfo.get_userinfo_or_None(self.get_member_id())
 
@@ -216,9 +216,69 @@ class CommunityImpl(CommunityManager):
 
         return response_context
 
+    def _set_community_delete_relation_for_users(self, community_instance):
+
+        community_members = ModelUtilities.get_model_filter(Members, {'community_id':
+                                                                          community_instance}).select_related(
+            'member_id')
+
+        for data in community_members:
+            user_instance = data.member_id
+
+            CommunityUserDelete.create_instance({'user_instance': user_instance,
+                                                 'community_id': community_instance.id})
+
+    def _set_deleted_by_for_community_chatrooms_and_conversations(self, community_instance):
+
+        card_list = list(ModelUtilities.get_model_filter(Collabcard, {'preview_community':
+                                                                          community_instance}).values_list('id',
+                                                                                                           flat=True))
+
+        if card_list:
+            Collabcard.objects.filter(preview_community=community_instance).update(is_deleted=True, preview_type=None,
+                                                                                   internal_link=None,
+                                                                                   deleted_by_user=F('user'))
+
+            ModelUtilities.get_model_filter(
+                collabcardState, {'card__in': card_list}
+            ).update(updated_at=TimeUtilities.current_time_in_sec())
+
+        card_answers.objects.filter(
+            preview_community=community_instance).update(preview_type=None,
+                                                         internal_link=None,
+                                                         deleted_by_user=F('user'),
+                                                         last_updated=TimeUtilities.current_time_in_milliseconds())
+
+    def _delete_community_relationships(self, community_instance):
+        ModelUtilities.delete_record_in_model(Community, {'id': community_instance.id})
+
+    def delete_community(self) -> {}:
+
+        community_instance = Community.get_community_or_None(self.get_community_id())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        owner_instance = Members.is_member_community_owner(community_instance, user_instance)
+
+        if not owner_instance:
+            return {'success': False, 'error_message': "You are not the owner of community."}
+
+        self._set_community_delete_relation_for_users(community_instance)
+        self._set_deleted_by_for_community_chatrooms_and_conversations(community_instance)
+        self._delete_community_relationships(community_instance)
+
+        return {'success': True}
+
 
 class CommunityHelper:
-
+    
+    @staticmethod
     def fetch_community_instance(community_id: str) -> object:
         community_instance = None
         try:
@@ -230,6 +290,7 @@ class CommunityHelper:
 
         return community_instance
 
+    @staticmethod
     def fetch_user_instance(user_id: str) -> object:
         user_instance = None
         try:

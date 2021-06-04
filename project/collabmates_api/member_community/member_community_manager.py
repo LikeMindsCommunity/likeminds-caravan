@@ -11,7 +11,14 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_home_communities') and callable(subclass.fetch_home_communities)) and
                 (hasattr(subclass, 'fetch_feed_meta') and callable(subclass.fetch_feed_meta)) and
                 (hasattr(subclass, 'fetch_feed_web') and callable(subclass.fetch_feed_web)) and
-                (hasattr(subclass, 'fetch_chatroom_home') and callable(subclass.fetch_chatroom_home)) or
+                (hasattr(subclass, 'fetch_chatroom_home') and callable(subclass.fetch_chatroom_home)) and
+                (hasattr(subclass, 'pending_onboarding_communities') and callable(
+                    subclass.pending_onboarding_communities)) and
+                (hasattr(subclass, 'completed_onboarding_communites') and callable(
+                    subclass.completed_onboarding_communites)) and
+                (hasattr(subclass, 'fetch_deleted_communities') and callable(
+                    subclass.fetch_deleted_communities))
+                or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -70,6 +77,11 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
     def completed_onboarding_communites(self) -> {}:
 
         """set the onboarding flag to true for user who have completed the onboarding"""
+
+        raise NotImplementedError
+
+    def fetch_deleted_communities(self) -> {}:
+        """returns the list of deleted communities for which earlier user is part of"""
 
         raise NotImplementedError
 

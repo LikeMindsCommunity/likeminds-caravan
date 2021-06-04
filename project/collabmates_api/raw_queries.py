@@ -789,7 +789,7 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
         error_logger.error("Error while connecting to PostgreSQL %s", error)
 
 
-def fetch_community_chatroom_query(community_id, user_id, page, limit, last_updated):
+def fetch_community_chatroom_query(community_id, user_id, page, limit, last_updated, follow_status):
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -857,10 +857,11 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
             AND togther_collabcardState.user_id = %s
             AND togther_collabcardState.updated_at > %s
             AND togther_collabcardState.remove_id is NULL
+            AND togther_collabcardState.follow_status = %s
     ORDER BY  togther_collabcardState.updated_at limit %s offset %s
     
     """ % (
-            str(community_id), str(user_id), str(last_updated), str(limit), str(offset))
+            str(community_id), str(user_id), str(last_updated), str(follow_status), str(limit), str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -871,6 +872,8 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
         return data, chatroom_id_list
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
+
+        return [], []
 
 
 def fetch_chatrooms_query(user_id, limit, page, last_updated):

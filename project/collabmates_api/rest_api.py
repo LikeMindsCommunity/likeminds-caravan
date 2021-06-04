@@ -891,9 +891,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 else:
                     del data['og_tags']
 
-            elif (field.field_name == "has_files" and
-                  data['has_files']) or \
-                    (field.field_name == "attachment_count" and
+            elif (field.field_name == "attachment_count" and
                      data['attachment_count'] > 0):
                 answer_files = get_answer_files(data['id'])
                 data['images'] = answer_files['image']
@@ -951,3 +949,41 @@ class MessageReactionsSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessageReactions
         fields = "__all__"
+
+
+class ChatroomAttachmentsSerializer(serializers.ModelSerializer):
+    url = serializers.ReadOnlyField(source='file_url')
+
+    class Meta:
+        model = Card_Attachment
+        fields = ('url', 'thumbnail_url', 'type', 'index', 'height', 'width')
+
+    def to_representation(self, obj):
+        data = super(ChatroomAttachmentsSerializer, self).to_representation(obj)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if data[field.field_name] is None:
+                del data[field.field_name]
+
+        return data
+
+
+class ConversationAttachmentsSerializer(serializers.ModelSerializer):
+    url = serializers.ReadOnlyField(source='file_url')
+
+    class Meta:
+        model = Card_Attachment
+        fields = ('url', 'thumbnail_url', 'type', 'index', 'height', 'width')
+
+    def to_representation(self, obj):
+        data = super(ConversationAttachmentsSerializer, self).to_representation(obj)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if data[field.field_name] is None:
+                del data[field.field_name]
+
+        return data

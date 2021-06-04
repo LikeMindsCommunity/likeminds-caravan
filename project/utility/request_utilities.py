@@ -85,3 +85,11 @@ class RequestUtilities:
             request_body = {}
 
         return request_body
+
+    @staticmethod
+    def get_page_number(request: object, default: int = 1) -> int:
+        return NumberUtilities.get_integer_from_string(request.query_params.get('page', default))
+
+    @staticmethod
+    def get_page_size(request: object, default: int = 100) -> int:
+        return NumberUtilities.get_integer_from_string(request.query_params.get('page_size', default))
