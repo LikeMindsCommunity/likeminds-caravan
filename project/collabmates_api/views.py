@@ -9275,6 +9275,8 @@ def upload_chatroom_attachments(body, member_id, version_code=0, is_android=Fals
         if chatroom_instance.is_pending:
             update_pending_chatroom_count_for_promoters.delay(community_id)
 
+        update_last_unseen_in_engage_on_card_creation.delay(community_id)
+
         send_chatroom_creation_notification(chatroom_instance, user_instance)
 
     member_data = {'member_id': member_id,

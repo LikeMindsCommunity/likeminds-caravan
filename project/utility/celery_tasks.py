@@ -112,14 +112,9 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
     else:
         unseen_count = diff
 
-    if not is_seen:
-        Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=unseen_count,
-                                                                                    updated_at=time.time())
-
-    else:
-        Member_Engage.objects.filter(community_id=community, member_id=user).update(
+    Member_Engage.objects.filter(community_id=community, member_id=user).update(
             last_unseen_count=unseen_count,
-            updated_at=time.time()
+            updated_at=TimeUtilities.current_time_in_sec()
         )
 
     if unseen_count > 0:
