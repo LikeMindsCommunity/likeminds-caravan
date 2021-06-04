@@ -67,7 +67,7 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, *
 
                 info_logger.info("Duplicate key creation in collabcardState table")
 
-        if card_instance.attachments_count != 0 and card_instance.attachments_uploaded is False:
+        if card_instance.attachment_count != 0 and card_instance.attachments_uploaded is False:
             continue
 
         update_last_unseen_in_engage(user=data.member_id.id, community=community_id, is_seen=True)
