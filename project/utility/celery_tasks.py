@@ -67,6 +67,9 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, *
 
                 info_logger.info("Duplicate key creation in collabcardState table")
 
+        if card_instance.attachments_count != 0 and card_instance.attachments_uploaded is False:
+            continue
+
         update_last_unseen_in_engage(user=data.member_id.id, community=community_id, is_seen=True)
 
 
@@ -82,7 +85,7 @@ def update_last_unseen_in_engage_on_card_creation(community_id, is_seen=True):
                 Q(state=member_states.PROFILE_UNAVAILABLE))
 
     for member in community_members:
-        update_last_unseen_in_engage(user=member.member_id.id, community=community_id, is_seen=is_seen)
+        update_last_unseen_in_engage(user=member.member_id_id, community=community_id, is_seen=is_seen)
 
 
 def update_last_unseen_in_engage(user='', community='', is_seen=False):
