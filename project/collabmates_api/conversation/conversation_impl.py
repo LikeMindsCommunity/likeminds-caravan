@@ -3,7 +3,7 @@ import json
 from django.contrib.auth.models import User
 from typing import Union
 
-from django.db.models import F
+from django.db.models import F, Q
 from rest_framework import status as status_codes
 
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT
@@ -1043,7 +1043,6 @@ class ConversationHelper:
         else:
             user_id = None
 
-
         last_conversation_member, \
         second_last_conversation_member, \
         last_conversation_user, second_last_conversation_user = \
@@ -1090,3 +1089,48 @@ class ConversationHelper:
             poll_text = POLL_ANSWER_TEXT
 
         return poll_text
+
+    @staticmethod
+    def update_homescreen_meta_on_chatroom_follow(community_instance, card_instance, card_state_instance,
+                                                  user_instance):
+
+        last_conversation_member, \
+        second_last_conversation_member, \
+        last_conversation_user, second_last_conversation_user = \
+            ConversationHelper.compute_member_images_for_homescreen(card_instance, community_instance)
+
+        conversation_filter = card_answers.objects.filter(card=card_instance).filter(
+            Q(state=conversation_states.ANSWER) |
+            Q(state=conversation_states.CONVERSATION_POLL)).filter(
+            Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by("created_at")
+
+        last_conversation = conversation_filter.last()
+
+        last_seen_conversation = card_state_instance.last_seen_conversation_id
+
+        if not last_seen_conversation:
+            unseen_count = conversation_filter.count()
+
+        else:
+            unseen_count = card_answers.objects.filter(
+                card_id=card_instance, id__gt=last_seen_conversation
+            ).filter(Q(state=conversation_states.ANSWER) |
+                     Q(state=conversation_states.CONVERSATION_POLL)
+                     ).count()
+
+        if user_instance:
+            conversationEngage.objects.filter(card=card_instance,
+                                              user=user_instance.id).update(
+                unseen_count=unseen_count,
+                last_conversation=last_conversation,
+                updated_at=TimeUtilities.current_time_in_sec(),
+                last_conversation_member=last_conversation_member,
+                second_last_conversation_member=second_last_conversation_member,
+                last_conversation_user=last_conversation_user,
+                second_last_conversation_user=second_last_conversation_user,
+            )
+
+        if unseen_count > 0:
+            card_state_instance.expiry_time=None
+            card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+            card_state_instance.save()
