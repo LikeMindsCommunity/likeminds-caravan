@@ -88,3 +88,16 @@ CACHE_CREDENTIALS = {
     'host': os.getenv('CACHE_HOST'),
     'port': os.getenv('CACHE_PORT')
 }
+
+FCM_CREDENTIALS = {
+  "type": os.getenv('FCM_TYPE'),
+  "project_id": os.getenv('FCM_PROJECT_ID'),
+  "private_key_id": os.getenv('FCM_PRIVATE_KEY_ID'),
+  "private_key": os.getenv('FCM_PRIVATE_KEY'),
+  "client_email": os.getenv('FCM_CLIENT_EMAIL'),
+  "client_id": os.getenv('FCM_CLIENT_ID'),
+  "auth_uri": os.getenv('FCM_AUTH_URI'),
+  "token_uri": os.getenv('FCM_TOKEN_URI'),
+  "auth_provider_x509_cert_url": os.getenv('FCM_AUTH_PROVIDER_X509_CERT_URL'),
+  "client_x509_cert_url": os.getenv('FCM_CLIENT_X509_CERT_URL')
+}

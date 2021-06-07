@@ -1,4 +1,6 @@
 from __future__ import absolute_import, unicode_literals
+
+from external_services.fcm_notifications.fcm_notification_impl import FCMNotificationImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from celery import shared_task
 import re
@@ -107,15 +109,9 @@ def send_notification_for_android(token_list, message):
     # print(token_list,message)
     result = ""
     # print("===== sending for android")
-
-    extra_kwargs = {
-        "android": {
-            "priority": "high"
-        }
-    }
-    push_service = FCMNotification(api_key=server_key)
+    push_service = FCMNotificationImpl(api_key=server_key, is_android_device=True)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'], extra_kwargs=extra_kwargs)
+                                                  data_message=message['payload'])
 
     print(result)
     return result
@@ -125,7 +121,7 @@ def send_notification_for_ios(token_list, message):
     '''function to send notification to android'''
 
     result = ""
-    push_service = FCMNotification(api_key=server_key)
+    push_service = FCMNotificationImpl(api_key=server_key,is_android_device=False)
 
     extra_kwargs = {
         "mutable_content": True
@@ -1047,7 +1043,6 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
                                                                conversation_instance, card_instance, community_instance)
-
 
 def compute_mute_status_for_users(current_user_id):
     muted_key = CacheImpl.get_cache(USER_MUTED_CHATROOM % current_user_id)
