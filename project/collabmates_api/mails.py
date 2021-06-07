@@ -33,13 +33,40 @@ def send_feedback_mail_to_webmaster(feedback_id):
 
     subject = '[Feedback] from likeMinds user'
     feedback_instance = userFeedback.objects.get(id=feedback_id)
-    context = {
-        'feedback': feedback_instance
+    user_id = feedback_instance.user_id
+    mobile_filter = ModelUtilities.get_model_filter(userMobiles, {'user_id': user_id, 'state': 1})
+    email_filter = ModelUtilities.get_model_filter(userEmails, {'user_id': user_id, 'email_state': 1})
+    user_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id_id': user_id})
+    user_mobiles_context = []
+    user_emails_context = []
+
+    for instance in email_filter:
+        user_emails_context.append(instance.email)
+
+    for mobile_instance in mobile_filter:
+        mobile = dict()
+        mobile['country_code'] = mobile_instance.country_code
+        mobile['mobile_no'] = mobile_instance.mobile_no
+        user_mobiles_context.append(mobile)
+
+    user_info_context = {
+        'user_id': user_id,
+        'name': user_filter.first().name
     }
+
+    context = {
+        'feedback': feedback_instance,
+        'user_info_context': user_info_context,
+        'user_mobiles_context': user_mobiles_context,
+        'user_emails_context': user_emails_context
+    }
+    reply_to = None
+
+    if len(user_emails_context) > 0:
+        reply_to = user_emails_context
 
     if feedback_instance.images:
         context['images'] = json.loads(feedback_instance.images)
-
     template = get_template("mails/send_feedback_mail_to_webmaster.html").render(context)
 
     if is_beta:
@@ -47,7 +74,7 @@ def send_feedback_mail_to_webmaster(feedback_id):
     else:
         to = settings.TEAM
 
-    send_email(subject, template, to)
+    send_email(subject=subject, template=template, to_mails_list=to, reply_to=reply_to)
 
 
 
