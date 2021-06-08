@@ -658,6 +658,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                 co_hosts.append(member_dict[user_id])
             else:
                 user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+                if not user_instance:
+                    continue
+
                 removed_context = self.compute_removed_user_context(user_instance, community_instance)
                 co_hosts.append(removed_context)
 
