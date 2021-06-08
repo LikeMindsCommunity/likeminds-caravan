@@ -10,7 +10,7 @@ from external_services.fcm_notifications.fcm_notification_manager import FCMNoti
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.number_utilities import NumberUtilities
 
-from external_services.mixpanel.mixpanel_impl import MixpanelImpl
+# from external_services.mixpanel.mixpanel_impl import MixpanelImpl
 
 FCM_CREDENTIALS = settings.FCM_CREDENTIALS
 
@@ -30,10 +30,10 @@ class FCMNotificationImpl(FCMNotificationManager, FCMNotification):
     def get_user_id(self):
         return self.user_id
 
-    def _track_notification(self, notification_payload):
-        if self.get_user_id() is not None:
-            MixpanelImpl().track_notification(str(self.get_user_id()),
-                                              properties=notification_payload)
+    # def _track_notification(self, notification_payload):
+    #     if self.get_user_id() is not None:
+    #         MixpanelImpl().track_notification(str(self.get_user_id()),
+    #                                           properties=notification_payload)
 
     def get_access_token_for_auth(self):
         credentials = ServiceAccountCredentials.from_json_keyfile_dict(FCM_CREDENTIALS, SCOPES)
@@ -112,7 +112,7 @@ class FCMNotificationImpl(FCMNotificationManager, FCMNotification):
 
             response = self.do_request(payload, timeout)
             self.send_request_responses.append(response)
-            self._track_notification(payload)
+            # self._track_notification(payload)
 
     def parse_responses(self):
         response_dict = {
