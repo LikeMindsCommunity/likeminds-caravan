@@ -10,6 +10,8 @@ from external_services.fcm_notifications.fcm_notification_manager import FCMNoti
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.number_utilities import NumberUtilities
 
+from external_services.mixpanel.mixpanel_impl import MixpanelImpl
+
 FCM_CREDENTIALS = settings.FCM_CREDENTIALS
 
 logger = LoggingWrapper.get_instance()
@@ -18,11 +20,20 @@ logger = LoggingWrapper.get_instance()
 class FCMNotificationImpl(FCMNotificationManager, FCMNotification):
     FCM_UPDATED_END_POINT = "https://fcm.googleapis.com/v1/projects/collabmates-beta/messages:send"
 
-    def __init__(self, api_key, is_android_device, proxy_dict=None, env=None, json_encoder=None):
+    def __init__(self, api_key, is_android_device, user_id=None, proxy_dict=None, env=None, json_encoder=None):
         super().__init__(api_key, proxy_dict, env, json_encoder)
         self.api_key = api_key
         self.is_android_device = is_android_device
         self._FCM_API_KEY = api_key
+        self.user_id = user_id
+
+    def get_user_id(self):
+        return self.user_id
+
+    def _track_notification(self, notification_payload):
+        if self.get_user_id() is not None:
+            MixpanelImpl().track_notification(str(self.get_user_id()),
+                                              properties=notification_payload)
 
     def get_access_token_for_auth(self):
         credentials = ServiceAccountCredentials.from_json_keyfile_dict(FCM_CREDENTIALS, SCOPES)
@@ -98,8 +109,10 @@ class FCMNotificationImpl(FCMNotificationManager, FCMNotification):
                 payload = self.update_payload(payload)
             except KeyError as e:
                 logger.error(e.args)
+
             response = self.do_request(payload, timeout)
             self.send_request_responses.append(response)
+            self._track_notification(payload)
 
     def parse_responses(self):
         response_dict = {

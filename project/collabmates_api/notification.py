@@ -104,12 +104,10 @@ def send_test_notification(request):
     return JsonResponse(context)
 
 
-def send_notification_for_android(token_list, message):
+def send_notification_for_android(token_list, message, user_id=None):
     '''function to send notification to android'''
-    # print(token_list,message)
-    result = ""
-    # print("===== sending for android")
-    push_service = FCMNotificationImpl(api_key=server_key, is_android_device=True)
+
+    push_service = FCMNotificationImpl(api_key=server_key, is_android_device=True, user_id=user_id)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
 
@@ -117,11 +115,10 @@ def send_notification_for_android(token_list, message):
     return result
 
 
-def send_notification_for_ios(token_list, message):
+def send_notification_for_ios(token_list, message, user_id=None):
     '''function to send notification to android'''
 
-    result = ""
-    push_service = FCMNotificationImpl(api_key=server_key,is_android_device=False)
+    push_service = FCMNotificationImpl(api_key=server_key, is_android_device=False, user_id=user_id)
 
     extra_kwargs = {
         "mutable_content": True
@@ -190,15 +187,15 @@ def notification_meta(notification_list, message, calling_notification=""):
 
             if device['mobile_os'] == "Android":
                 token_list = [device['fcm_token']]
-                send_notification_for_android(token_list, message)
+                send_notification_for_android(token_list, message, user_id)
+
             elif device['mobile_os'] == 'iOS':
                 token_list = [device['fcm_token']]
-                if 'message' in data:
-                    send_notification_for_ios(token_list, data['message'])
-                else:
-                    send_notification_for_ios(token_list, message)
 
-        track_notification(user_id, notification_payload=message['payload'])
+                if 'message' in data:
+                    send_notification_for_ios(token_list, data['message'], user_id)
+                else:
+                    send_notification_for_ios(token_list, message, user_id)
 
 
 def get_connection():
