@@ -31,13 +31,14 @@ def mail_triger(member_id, request):
 
 
 @shared_task
-def send_email(subject, template, to_mails_list, categories=None):
+def send_email(subject, template, to_mails_list, categories=None, reply_to=None):
 
     fail_silently = False
-    msg = EmailMultiAlternatives(subject,
-                                 template,
-                                 "LikeMinds<hello@likeminds.community>",
-                                 to_mails_list, )
+    msg = EmailMultiAlternatives(subject=subject,
+                                 body=template,
+                                 from_email="LikeMinds<hello@likeminds.community>",
+                                 to=to_mails_list,
+                                 reply_to=reply_to)
     msg.attach_alternative(template, "text/html")
 
     if categories is not None:

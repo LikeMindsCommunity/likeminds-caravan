@@ -190,19 +190,27 @@ def notification_meta(notification_list, message, calling_notification=""):
 
         user_devices = get_devices_of_users(user_id)
 
+        payload = {}
+
         for device in user_devices:
 
-            if device['mobile_os'] == "Android":
-                token_list = [device['fcm_token']]
-                send_notification_for_android(token_list, message)
-            elif device['mobile_os'] == 'iOS':
-                token_list = [device['fcm_token']]
-                if 'message' in data:
-                    send_notification_for_ios(token_list, data['message'])
-                else:
-                    send_notification_for_ios(token_list, message)
+            token_list = [device['fcm_token']]
 
-        track_notification(user_id, notification_payload=message['payload'])
+            if device['mobile_os'] == "Android":
+                payload = message
+                send_notification_for_android(token_list, message)
+
+            elif device['mobile_os'] == 'iOS':
+                if 'message' in data:
+                    payload = data['message']
+                else:
+                    payload = message
+
+                send_notification_for_ios(token_list, payload)
+        
+            payload['fcm_token'] = device['fcm_token']
+
+        track_notification(user_id, notification_payload=payload)
 
 
 def get_connection():

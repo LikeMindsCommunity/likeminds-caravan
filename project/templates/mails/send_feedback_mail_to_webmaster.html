@@ -14,9 +14,23 @@
                     Hello admin!
                 </div>
                 <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
-                    <b>User details</b><br>
-                    {{feedback.user.userinfo.email}}<br>
-                    {{feedback.user.userinfo.name}}
+                    <b>User Details</b><br>
+                    Name: {{user_info_context.name}}<br>
+                    User ID: {{user_info_context.user_id}}
+                </div>
+                {% if user_emails_context %}
+                <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+                    <b>User Email</b><br>
+                    {% for user_email in user_emails_context %}
+                    {{user_email}}<br>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+                    <b>User Mobile</b><br>
+                    {% for mobile in user_mobiles_context %}
+                    {{mobile.country_code}} {{mobile.mobile_no}}<br>
+                    {% endfor %}
                 </div>
                 <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
                     <b>Feedback</b><br>

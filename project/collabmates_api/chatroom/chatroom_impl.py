@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from celery import shared_task
 
-from .constants import CHATROOM_EXPIRE_DURATION
+from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_PLACEHOLDER_USER_ROUTE
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..rest_api import GetChatroomInstanceSerializer
@@ -524,6 +524,25 @@ class ChatroomImpl(ChatroomManager):
 
         return tagging_list
 
+    @staticmethod
+    def compute_placeholder_for_intro_room(card_instance, user_instance):
+
+        placeholder = ""
+
+        if card_instance.type == card_types.CARD_INTRO and card_instance.user_id != user_instance.id:
+            last_seen_conversation_filter = ModelUtilities.get_model_filter(collabcardState,
+                                                                            {'card': card_instance,
+                                                                             'user': user_instance}
+                                                                            ).only('last_seen_conversation')
+            if last_seen_conversation_filter and \
+                    not last_seen_conversation_filter[0].last_seen_conversation:
+                card_creator_userinfo_instance = card_instance.user.userinfo
+                community_instance = card_instance.community
+                placeholder = ChatroomHelper.create_placeholder_for_introduction_card(community_instance,
+                                                                                      card_creator_userinfo_instance)
+
+        return placeholder
+
     def fetch_chatroom(self) -> dict:
 
         card_instance = ChatroomHelper.fetch_card_instance(self.get_chatroom_id())
@@ -578,13 +597,17 @@ class ChatroomImpl(ChatroomManager):
                     }
                     raise CustomException(response, status_code=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            elif card_instance.attachment_count > 0 and\
+            elif card_instance.attachment_count > 0 and \
                     card_instance.attachments_uploaded is False:
                 can_access_secret_chatroom = not ChatroomHelper.has_attachments_uploaded(card_instance,
                                                                                          member_id,
                                                                                          self.device_id)
 
         chatroom_obj['can_access_secret_chatroom'] = can_access_secret_chatroom
+        placeholder = self.compute_placeholder_for_intro_room(card_instance, user_instance)
+
+        if placeholder:
+            chatroom_obj['placeholder'] = placeholder
 
         return chatroom_obj
 
@@ -1114,3 +1137,15 @@ class ChatroomHelper:
             return True
 
         return False
+
+    @staticmethod
+    def create_placeholder_for_introduction_card(community_instance, card_creator_userinfo_instance):
+        """function to create introduction card placeholder"""
+
+        placeholder = INTRO_PLACEHOLDER_TEXT % community_instance.name
+        user_name = card_creator_userinfo_instance.name
+        user_route = INTRO_PLACEHOLDER_USER_ROUTE % str(card_creator_userinfo_instance.user_id_id)
+        user_name = "<<" + user_name + "|" + user_route + ">>"
+        placeholder = placeholder + user_name
+
+        return placeholder
