@@ -1,6 +1,4 @@
 from __future__ import absolute_import, unicode_literals
-
-from external_services.fcm_notifications.fcm_notification_impl import FCMNotificationImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from celery import shared_task
 import re
@@ -104,21 +102,30 @@ def send_test_notification(request):
     return JsonResponse(context)
 
 
-def send_notification_for_android(token_list, message, user_id=None):
+def send_notification_for_android(token_list, message):
     '''function to send notification to android'''
+    # print(token_list,message)
+    result = ""
+    # print("===== sending for android")
 
-    push_service = FCMNotificationImpl(api_key=server_key, is_android_device=True, user_id=user_id)
+    extra_kwargs = {
+        "android": {
+            "priority": "high"
+        }
+    }
+    push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'])
+                                                  data_message=message['payload'], extra_kwargs=extra_kwargs)
 
     print(result)
     return result
 
 
-def send_notification_for_ios(token_list, message, user_id=None):
+def send_notification_for_ios(token_list, message):
     '''function to send notification to android'''
 
-    push_service = FCMNotificationImpl(api_key=server_key, is_android_device=False, user_id=user_id)
+    result = ""
+    push_service = FCMNotification(api_key=server_key)
 
     extra_kwargs = {
         "mutable_content": True
@@ -187,15 +194,15 @@ def notification_meta(notification_list, message, calling_notification=""):
 
             if device['mobile_os'] == "Android":
                 token_list = [device['fcm_token']]
-                send_notification_for_android(token_list, message, user_id)
-
+                send_notification_for_android(token_list, message)
             elif device['mobile_os'] == 'iOS':
                 token_list = [device['fcm_token']]
-
                 if 'message' in data:
-                    send_notification_for_ios(token_list, data['message'], user_id)
+                    send_notification_for_ios(token_list, data['message'])
                 else:
-                    send_notification_for_ios(token_list, message, user_id)
+                    send_notification_for_ios(token_list, message)
+
+        track_notification(user_id, notification_payload=message['payload'])
 
 
 def get_connection():
@@ -1040,6 +1047,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
                                                                conversation_instance, card_instance, community_instance)
+
 
 def compute_mute_status_for_users(current_user_id):
     muted_key = CacheImpl.get_cache(USER_MUTED_CHATROOM % current_user_id)
