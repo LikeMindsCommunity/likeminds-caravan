@@ -5,16 +5,12 @@ class UserManager(metaclass=abc.ABCMeta):
 
     @classmethod
     def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'delete_user') and
-                callable(subclass.delete_user) and
-                (hasattr(subclass, 'survey_seen') and
-                 callable(subclass.survey_seen)) and
-                (hasattr(subclass, 'logout') and
-                 callable(subclass.logout)) and
-                (hasattr(subclass, 'remove_profile') and
-                 callable(subclass.remove_profile)) and
-                (hasattr(subclass, 'login') and
-                 callable(subclass.login)) or
+        return ((hasattr(subclass, 'delete_user') and callable(subclass.delete_user)) and
+                (hasattr(subclass, 'survey_seen') and callable(subclass.survey_seen)) and
+                (hasattr(subclass, 'logout') and callable(subclass.logout)) and
+                (hasattr(subclass, 'remove_profile') and callable(subclass.remove_profile)) and
+                (hasattr(subclass, 'login') and callable(subclass.login)) and
+                (hasattr(subclass, 'fetch_app_access') and callable(subclass.fetch_app_access)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -49,6 +45,13 @@ class UserManager(metaclass=abc.ABCMeta):
     def login(self, req_body, platform_code, device_id) -> {}:
         """
         login the user into our system
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_app_access(self) -> dict:
+        """
+        fetch user pending and expired user subscribed communities
         """
         raise NotImplementedError
 

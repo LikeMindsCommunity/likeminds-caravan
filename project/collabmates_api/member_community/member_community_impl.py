@@ -9,13 +9,8 @@ from utility.celery_tasks import update_chatroom_conversation_count_in_cache, \
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from utility.number_utilities import NumberUtilities
 from utility.string_utilities import StringUtilities
-from .constants import ACTIVE_USER_LIMIT, CHATROOM_COUNT_LIMIT, INVITE_MEMBERS, NEW_CHATROOM, DIRECTORY, PINNED, \
-    COMMUNITY_DETAILS, INVITE_MEMBERS_ROUTE, NEW_CHATROOM_ROUTE, DIRECTORY_ROUTE, PINNED_ROUTE, COMMUNITY_DETAILS_ROUTE, \
-    PINNED_TOP_BAR_TITLE, PINNED_TOP_BAR_IMAGE, CUSTOM_INTRO_TEXT_LEFT, CUSTOM_CLICK_TEXT_LEFT, \
-    CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_DELETED, MEMBER_COMMUNITY_PROFILE_ROUTE, MEMBER_SINCE_TEXT, \
-    PENDING_MEMBER_TEXT
+from .constants import *
 from .member_community_manager import MemberCommunityManager
-from .constants import FEED_UPWARD_SCROLL, FEED_DOWNWARD_SCROLL
 
 from utility.cache_keys import CHATROOM_REACTIONS_CACHE_KEY
 from ..conversation.reactions import fetch_chatroom_or_conversation_reactions
@@ -620,6 +615,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         elif remove_state == deleted_members.REMOVED:
             temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_DELETED % created_time
             temp['custom_click_text'] = CUSTOM_CLICK_TEXT_DELETED % (userinfo_instance.name, created_time)
+
+        elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
+            temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED
+            temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED% (userinfo_instance.name, created_time)
 
         temp['remove_state'] = remove_state
         temp['removed_user_image_url'] = REMOVED_USER_URL

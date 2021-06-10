@@ -50,7 +50,10 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         'name': community.name,
         'purpose': community.purpose,
         'location': community.location if community.location else "",
-
+        'is_paid': community.is_paid,
+        'auto_approval': community.auto_approval,
+        'grace_period': community.grace_period,
+        'is_discoverable': community.is_discoverable,
     }
 
     if not current_user_instance and current_user_id:
@@ -122,8 +125,6 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     elif current_user_instance:
 
         if user_has_share_permission:
-            # private_link = generate_private_link(community_instance=community,
-            #                                      promoter_instance=current_user_instance)
 
             new_dict[
                 'private_link_text_member'] = PRIVATE_LINK_FOR_PERMITTED_USER % (community.name, branch_links[1]['url'])
@@ -723,6 +724,10 @@ def get_removed_member_custom_text(instance):
         temp[
             'custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
             instance.member.userinfo.name,  current_date)
+
+    elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
+        temp['custom_intro_text'] = "Profile does not exist"
+        temp['custom_click_text'] = f"The profile you are trying to access does not exist. <member_name>'s membership expired on  {current_date}"
 
     temp['remove_state'] = remove_state
     temp['removed_user_image_url'] = REMOVED_USER_URL

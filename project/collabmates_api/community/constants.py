@@ -15,5 +15,8 @@ MENU = {
     ],
     'pending_member': [
         'Cancel joining request'
+    ],
+    'pending_member_in_paid_community': [
+        'Cancel membership request'
     ]
 }

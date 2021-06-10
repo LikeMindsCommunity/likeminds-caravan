@@ -74,6 +74,12 @@ class Community(models.Model):
     type = models.IntegerField(null=True)
     sub_type = models.IntegerField(null=True)
 
+    is_paid = models.BooleanField(default=False)
+    website_url = models.TextField(null=True)
+    auto_approval = models.BooleanField(default=False)
+    grace_period = models.BigIntegerField(default=86400*4*1000)  # 4 days in ms
+    is_discoverable = models.BooleanField(default=False)
+
     def __str__(self):
         return self.name
 
@@ -204,6 +210,33 @@ class Members(models.Model):
     def get_managers_list(community: Community) -> list:
         return list(Members.objects.filter(community_id=community, state=member_states.ADMIN)
                     .values_list("member_id__id", flat=True))
+
+    @staticmethod
+    def get_community_managers(community_id_list: list) -> list:
+        return Members.objects\
+            .filter(community_id__in=community_id_list, state=member_states.ADMIN)\
+            .order_by('community_id__id', 'id')
+
+    @staticmethod
+    def user_has_app_access(user_id):
+        '''function to tell whether the user is a part of any community or nor'''
+        states_list = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
+        members_filter = Members.objects.filter(member_id=user_id, state__in=states_list)
+
+        return members_filter.exists()
+
+    @staticmethod
+    def fetch_all_user_communties(user: Union[str, int, User]):
+        return Members.objects.filter(member_id=user).select_related('community_id')
+
+    @staticmethod
+    def fetch_community_members(community_id_list):
+        member_state_list = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
+        members = Members.objects\
+            .filter(community_id__in=community_id_list, state__in=member_state_list)\
+            .order_by('community_id', 'id')
+
+        return members
 
 
 class removedMembers(models.Model):
@@ -1609,6 +1642,14 @@ class userAdminRights(models.Model):
     class Meta:
         unique_together = (('user', 'community', 'right'),)
 
+    @staticmethod
+    def fetch_user_admin_rights(user, community):
+        user_rights = userAdminRights.objects\
+            .filter(user=user, community=community)\
+            .values_list('right__state', flat=True)
+
+        return list(user_rights)
+
 
 class userMemberRights(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -1657,6 +1698,14 @@ class userMemberRights(models.Model):
         if user_rights.exists():
             return True
         return False
+
+    @staticmethod
+    def fetch_user_member_rights(user, community):
+        user_rights = userMemberRights.objects\
+            .filter(user=user, community=community)\
+            .values_list('right__state', flat=True)
+
+        return list(user_rights)
 
 
 class moderationHistory(models.Model):
@@ -1806,7 +1855,6 @@ class ModelUtilities:
     @staticmethod
     def delete_record_in_model(model, filter_dict):
         return model.objects.filter(**filter_dict).delete()
-
 
 
 class MessageReactions(models.Model):

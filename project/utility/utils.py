@@ -133,8 +133,6 @@ def generate_private_link(community_instance, promoter_instance, just_send_aj=Fa
     community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
     unique_code_list = list(community_expire_filter.values_list('unique_code', flat=True))
 
-
-
     if not unique_code_list:
 
         unique_code = generate_random(unique_code_list)

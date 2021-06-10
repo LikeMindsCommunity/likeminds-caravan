@@ -229,6 +229,7 @@ member_states = MemberStates()
 class DeletedMembers:
     LEFT = 0
     REMOVED = 1
+    MEMBERSHIP_EXPIRED = 2
 
 
 deleted_members = DeletedMembers()

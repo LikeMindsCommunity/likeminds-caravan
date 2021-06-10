@@ -90,6 +90,41 @@ class DeleteCommunityView(APIView):
         return JsonResponse(community_context)
 
 
+class FetchCommunityFeedUrl(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        community_id = request.GET.get('community_id')
+
+        community_manager = CommunityImpl(member_id, community_id)
+        response_context = community_manager.fetch_feed_url()
+
+        return JsonResponse(response_context)
+
+
+class FetchDiscoverableCommunities(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=20)
+
+        community_manager = CommunityImpl(member_id, community_id="")
+        response_context = community_manager.fetch_discoverable_communities(page=page, page_size=page_size)
+
+        return JsonResponse(response_context)
+
+
 class CommunityViewsHelper:
 
     def request_validator(request, community_id, member_id) -> {}:

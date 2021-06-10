@@ -18,9 +18,11 @@ def strip_scheme(url):
 
 
 host_url = strip_scheme(settings.URL)
+api_endpoint = BRANCH_QUICKLINK_URI % settings.BRANCH_KEY
 
 
-def create_community_branch_links(community_id, shared_by_id, aj=None):
+def create_community_branch_links(community_id, member_id, aj=None,
+                                  payment_id=None, shared_by_id=None):
     """
     This will return 2 links in case of member and 3 in case of a owner or promoter
     For public
@@ -33,62 +35,71 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
         2 => private member directory share link
     """
 
-    community = get_object_or_404(Community, pk=community_id)
+    if isinstance(community_id, Community):
+        community_instance = community_id
+    else:
+        community_instance = get_object_or_404(Community, pk=community_id)
 
-    api_endpoint = BRANCH_QUICKLINK_URI % settings.BRANCH_KEY
     data = []
 
-    if shared_by_id:
-        base_url = '%s/community/%s?shared_by=%s' % (host_url, str(community.id), str(shared_by_id))
-    else:
-        base_url = '%s/community/%s' % (host_url, str(community.id))
+    base_url = f'{host_url}/community/{community_instance.id}'
 
-    long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPublic")
+    # create public url
+    if member_id:
+        public_url = base_url + f'?shared_by={member_id}'
+
+        if community_instance.is_paid:
+            public_url = public_url + f"&website_url={community_instance.website_url}"
+
+    else:
+        public_url = base_url
+
+    long_url_item = create_link_item(public_url, community_instance, "AppBackend", "CommunityPublic")
     data.append(long_url_item)
 
     if aj:
         # if the user is owner or promoter
-        if shared_by_id:
-            base_url = '%s/community/%s?shared_by=%s&aj=%s' % (
-                host_url, str(community.id), str(shared_by_id), str(aj))
-        else:
-            base_url = '%s/community/%s?aj=%s' % (
-                host_url, str(community.id), str(aj))
+        # create private link
+        if community_instance.is_paid and payment_id and shared_by_id:
+            private_url = base_url + f'?shared_by={shared_by_id}&payment_id={payment_id}'
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", "CommunityPrivate", private=True)
+        elif community_instance.is_paid and payment_id:
+            private_url = base_url + f'?payment_id={payment_id}'
+
+        elif member_id:
+            private_url = base_url + f'?shared_by={member_id}&aj={aj}'
+
+        else:
+            private_url = base_url + f'?aj={aj}'
+
+        long_url_item = create_link_item(private_url, community_instance, "AppBackend", "CommunityPrivate", private=True)
         data.append(long_url_item)
 
-        if shared_by_id:
-            base_url = '%s/community/%s?shared_by=%s&aj=%s&source=members_directory' % (
-                host_url, str(community.id), str(shared_by_id), str(aj))
-        else:
-            base_url = '%s/community/%s?aj=%s&source=members_directory' % (
-                host_url, str(community.id), str(aj))
+        directory_url = base_url + f'?aj={aj}&source=members_directory'
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", DIRECTORY_FEATURE, private=True)
+        if member_id:
+            directory_url += f'&shared_by={member_id}'
+
+        long_url_item = create_link_item(directory_url, community_instance, "AppBackend", DIRECTORY_FEATURE, private=True)
         data.append(long_url_item)
 
     else:
         # adding member directory urls when user is part of the community
-        if shared_by_id:
-            base_url = '%s/community/%s?shared_by=%s&source=members_directory' % (
-                host_url, str(community.id), str(shared_by_id))
-        else:
-            base_url = '%s/community/%s?source=members_directory' % (
-                host_url, str(community.id))
+        directory_url = base_url + '?source=members_directory'
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", DIRECTORY_FEATURE)
+        if member_id:
+            directory_url += f'&shared_by={member_id}'
+
+        long_url_item = create_link_item(directory_url, community_instance, "AppBackend", DIRECTORY_FEATURE)
         data.append(long_url_item)
 
         # creating private expired link for non logged in user
-        if shared_by_id:
-            base_url = '%s/community/%s?shared_by=%s&aj=1234' % (
-                host_url, str(community.id), str(shared_by_id))
-        else:
-            base_url = '%s/community/%s?aj=1234' % (
-                host_url, str(community.id))
+        private_expired_link = base_url + '?aj=1234'
 
-        long_url_item = create_link_item(base_url, community, "AppBackend", "Web download button", private=True)
+        if member_id:
+            private_expired_link += f'&shared_by={member_id}'
+
+        long_url_item = create_link_item(private_expired_link, community_instance, "AppBackend", "Web download button", private=True)
         data.append(long_url_item)
 
     # API request
@@ -98,33 +109,28 @@ def create_community_branch_links(community_id, shared_by_id, aj=None):
     if r.status_code != 200:
         data = [{}, {}, {}]
         info_logger.info("Branch failed, sending normal links")
+
     else:
         data = r.json()
 
-    if aj:
-        if 'url' not in data[0]:
-            data[0]['url'] = '%s/community/%s&shared_by=%s' % (
-                host_url, str(community.id), str(shared_by_id))
+    if 'url' not in data[0]:
+        data[0]['url'] = base_url + f'?shared_by={member_id}'
 
-        if 'url' not in data[1]:
-            data[1]['url'] = '%s/community/%s?shared_by=%s&aj=%s' % (
-                host_url, str(community.id), str(shared_by_id), str(aj))
+        if community_instance.is_paid:
+            data[0]['url'] = data[0]['url'] + f"&website_url={community_instance.website_url}"
 
-        if 'url' not in data[2]:
-            data[2]['url'] = '%s/community/%s?shared_by=%s&aj=%s&source=members_directory' % (
-                host_url, str(community.id), str(shared_by_id), str(aj))
-    else:
-        if 'url' not in data[0]:
-            data[0]['url'] = '%s/community/%s?shared_by=%s' % (
-                host_url, str(community.id), str(shared_by_id))
+    if 'url' not in data[1]:
+        data[1]['url'] = base_url + f'?shared_by={member_id}'
 
-        if 'url' not in data[1]:
-            data[1]['url'] = '%s/community/%s?shared_by=%s&source=members_directory' % (
-                host_url, str(community.id), str(shared_by_id))
+        if aj:
+            data[1]['url'] += f'&aj={aj}'
 
-        if 'url' not in data[2]:
-            data[2]['url'] = '%s/community/%s?shared_by=%s&' % (
-                host_url, str(community.id), str(shared_by_id))
+    if 'url' not in data[2]:
+        data[2]['url'] = base_url + f'?shared_by={member_id}&source=members_directory'
+
+        if aj:
+            data[2]['url'] += f'&aj={aj}'
+
     return data
 
 
@@ -145,7 +151,7 @@ def create_link_item(base_url, community, channel, feature, private=False):
             # '$deeplink_path':'likeminds://%s'%(base_url),
             '$android_deeplink_path': 'likeminds://%s' % base_url,
             # '$ios_deeplink_path':'likeminds://%s'%(base_url),
-            '$deep_link': 'collabmates://%s' % base_url,
+            '$deep_link': 'likeminds://%s' % base_url,
             '$og_title': '%s on LikeMinds' % community.name,
             '$og_description': community.purpose,
             '$og_image_url': get_community_image(community),
@@ -166,3 +172,27 @@ def create_link_item(base_url, community, channel, feature, private=False):
         link_item['data']['$desktop_url'] = 'https://%s' % base_url
 
     return link_item
+
+
+def create_community_feed_url(community_instance):
+
+    data = []
+
+    feed_url = f'{host_url}/community_feed?community_id={community_instance.id}'
+
+    long_url_item = create_link_item(feed_url, community_instance, "AppBackend", "CommunityFeed", private=True)
+    data.append(long_url_item)
+
+    r = requests.post(url=api_endpoint, json=data)
+
+    if r.status_code != 200:
+        data = [{}]
+        info_logger.info("Branch failed, sending normal links")
+    else:
+        data = r.json()
+
+    # in case branch fails
+    if 'url' not in data[0]:
+        data[0]['url'] = f'https://{feed_url}'
+
+    return data[0]['url']
