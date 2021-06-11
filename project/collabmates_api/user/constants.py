@@ -112,3 +112,5 @@ CONTEXT_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES = {
     'footer': ACCESS_FOOTER,
     'access': False
 }
+
+SUBSCRIPTION_FETCH_API_PATH = "api/subscription/fetch"

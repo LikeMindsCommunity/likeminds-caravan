@@ -51,7 +51,7 @@ class UserManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fetch_app_access(self) -> dict:
         """
-        fetch user pending and expired user subscribed communities
+        fetch user's approval pending and subscription expired communities
         """
         raise NotImplementedError
 

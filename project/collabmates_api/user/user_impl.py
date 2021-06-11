@@ -2,7 +2,7 @@ import json
 import requests as rqst
 
 from urllib import parse
-from typing import Tuple, Union
+from typing import Union
 from rest_framework import status as status_codes
 
 from django.db.models import Q
@@ -10,8 +10,8 @@ from django.contrib.auth.models import User
 from django.conf import settings
 
 from cms.models import userAcquition
-from togther.models import userMobiles, ModelUtilities, userSurvey, userDevices, Community, \
-    Members, userEmails, Userinfo, emailTokens, Collabcard, Member_Engage
+from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
+                            Members, userEmails, Userinfo, emailTokens, Collabcard)
 from collabmates_api.user.user_manager import UserManager
 
 from utility.exception_utilities import InvalidUserException
@@ -19,6 +19,7 @@ from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
+from utility.api_client import ApiClient
 
 from .constants import *
 from ..raw_queries import get_community_id_list
@@ -118,7 +119,7 @@ class UserImpl(UserManager):
         return {'success': True}
 
     @staticmethod
-    def delete_notification_sending_details(user_instance, device_id) -> Tuple[int, dict]:
+    def delete_notification_sending_details(user_instance, device_id) -> Union[int, dict]:
 
         delete_count = userDevices.objects.filter(user=user_instance, device_id=device_id).delete()
 
@@ -195,7 +196,7 @@ class UserImpl(UserManager):
         userEmails.objects.filter(user=user_instance).delete()
         userDevices.objects.filter(user=user_instance).delete()
 
-    def remove_profile(self):
+    def remove_profile(self, device_id):
 
         user_instance = User.get_user_or_none(self.get_user_id())
 
@@ -999,21 +1000,16 @@ class UserHelper:
 
     @staticmethod
     def fetch_user_subscriptions(user_id):
-        url = f"{subscription_url}/api/subscription/fetch"
+        client = ApiClient(host=subscription_url,
+                           method='get',
+                           path=SUBSCRIPTION_FETCH_API_PATH)
 
-        payload = {}
-        headers = {
-            'x-member-id': f'{user_id}'
-        }
+        client.add_header('x-member-id', user_id).request()
 
-        try:
-            response = rqst.request("GET", url, headers=headers, data=payload).json()
+        response = client.fetch_response()
 
-            if response.get('success'):
-                return response['subscriptions']
-
-        except Exception as e:
-            error_logger.error(f"fetch_user_subscriptions - {e.args}")
+        if response.get('success'):
+            return response['subscriptions']
 
         return []
 

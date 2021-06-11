@@ -7,9 +7,9 @@ from collabmates_api.user_moderation_rights import check_admin_edit_community_ri
 from collabmates_api.views import get_leave_community_text
 from django.db.models import Q, F
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
-    card_answers, collabcardState, Member_Engage, communityAnswers, communityQuestions
+    card_answers, collabcardState
 from collabmates_api.community.community_manager import CommunityManager
-from collabmates_api.member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
+from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types
 from utility.time_utilities import TimeUtilities

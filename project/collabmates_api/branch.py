@@ -49,7 +49,7 @@ def create_community_branch_links(community_id, member_id, aj=None,
         public_url = base_url + f'?shared_by={member_id}'
 
         if community_instance.is_paid:
-            public_url = public_url + f"&website_url={community_instance.website_url}"
+            public_url = community_instance.website_url + f'?shared_by={member_id}'
 
     else:
         public_url = base_url
@@ -117,7 +117,7 @@ def create_community_branch_links(community_id, member_id, aj=None,
         data[0]['url'] = base_url + f'?shared_by={member_id}'
 
         if community_instance.is_paid:
-            data[0]['url'] = data[0]['url'] + f"&website_url={community_instance.website_url}"
+            data[0]['url'] = community_instance.website_url + f'?shared_by={member_id}'
 
     if 'url' not in data[1]:
         data[1]['url'] = base_url + f'?shared_by={member_id}'

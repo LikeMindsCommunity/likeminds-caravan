@@ -1,7 +1,6 @@
 from typing import Union
 
 from django.db.models import Count
-from django.contrib.auth.models import User
 
 from collabmates_api.rest_api import CommunitySerializerV1
 
@@ -12,8 +11,6 @@ from utility.states import member_states, conversation_states, email_states
 
 from .membership_manager import MembershipManager
 from external_services.logging.logging_wrapper import LoggingWrapper
-
-from utility.time_utilities import TimeUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -32,10 +29,10 @@ class MembershipImpl(MembershipManager):
     def set_member_id(self, member_id: Union[str, int]) -> None:
         self.member_id = member_id
 
-    def fetch_serialized_communities_hash(self, serialized_communities):
+    def _fetch_serialized_communities_hash(self, serialized_communities):
         return {community['id']: community for community in serialized_communities}
 
-    def fetch_attended_events_count_of_user(self, community_ids):
+    def _fetch_attended_events_count_of_user(self, community_ids):
         attended_events = collabcardState.objects\
             .filter(
                 community_id__in=community_ids,
@@ -47,7 +44,7 @@ class MembershipImpl(MembershipManager):
 
         return {community['community_id']: community['event_count'] for community in attended_events}
 
-    def fetch_participated_chatrooms_count_of_user(self, community_ids):
+    def _fetch_participated_chatrooms_count_of_user(self, community_ids):
         participated_chatrooms = card_answers.objects\
             .filter(
                 community_id__in=community_ids,
@@ -63,7 +60,7 @@ class MembershipImpl(MembershipManager):
 
         return card_count_hash
 
-    def fetch_member_count_for_communities(self, community_ids):
+    def _fetch_member_count_for_communities(self, community_ids):
 
         state_list = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
 
@@ -74,7 +71,7 @@ class MembershipImpl(MembershipManager):
 
         return {members['community_id_id']: members['members_count'] for members in community_members}
 
-    def fetch_owner_mails_for_communities(self, community_ids):
+    def _fetch_owner_mails_for_communities(self, community_ids):
 
         community_owners = Members.objects.filter(
             community_id_id__in=community_ids, is_owner=True)\
@@ -90,7 +87,7 @@ class MembershipImpl(MembershipManager):
 
         return {owner['community_id_id']: email_hash[owner['member_id_id']] for owner in community_owners}
 
-    def process_benefits(self, community_ids, community_hash, attended_events, participated_rooms, member_count, owner_mails):
+    def _process_benefits(self, community_ids, community_hash, attended_events, participated_rooms, member_count, owner_mails):
 
         benefit_data = []
 
@@ -118,18 +115,18 @@ class MembershipImpl(MembershipManager):
 
         serialized_communities = CommunitySerializerV1(communities, many=True).data
 
-        community_hash = self.fetch_serialized_communities_hash(serialized_communities)
+        community_hash = self._fetch_serialized_communities_hash(serialized_communities)
 
-        attended_events = self.fetch_attended_events_count_of_user(community_ids)
+        attended_events = self._fetch_attended_events_count_of_user(community_ids)
 
-        participated_rooms = self.fetch_participated_chatrooms_count_of_user(community_ids)
+        participated_rooms = self._fetch_participated_chatrooms_count_of_user(community_ids)
 
-        member_count = self.fetch_member_count_for_communities(community_ids)
+        member_count = self._fetch_member_count_for_communities(community_ids)
 
-        owner_mails = self.fetch_owner_mails_for_communities(community_ids)
+        owner_mails = self._fetch_owner_mails_for_communities(community_ids)
 
-        community_benefits = self.process_benefits(community_ids, community_hash, attended_events, participated_rooms,
-                                                   member_count, owner_mails)
+        community_benefits = self._process_benefits(community_ids, community_hash, attended_events, participated_rooms,
+                                                    member_count, owner_mails)
 
         return {
             "success": True,
