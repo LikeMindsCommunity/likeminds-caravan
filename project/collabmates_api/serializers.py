@@ -216,7 +216,7 @@ def get_logged_in_user(user_instance):
     return context
 
 
-def CollabcardSerializer(card, user, community=None, current_user_id=None, preview=False):
+def CollabcardSerializer(card, user, community=None, current_user_id=None, preview=False, return_topic=False):
     # function to serialize a community object
     collabcard = {
         'id': card.id,
@@ -363,6 +363,9 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         reactions = []
 
     collabcard['reactions'] = reactions
+
+    if return_topic and card.topic is not None:
+        collabcard['topic'] = conversationSerializer(card.topic, fetch_reply=False)
 
     return collabcard
 
@@ -654,11 +657,13 @@ def get_chatroom_name(user_name, card):
 
 
 def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None, send_profile=True,
-                          preview=False):
+                          preview=False, return_topic=False):
     if not current_user_id:
         current_user_id = member_id
 
-    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=member_id, preview=preview)
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id,
+                                                 current_user_id=member_id, preview=preview,
+                                                 return_topic=return_topic)
 
     # get chatroom status
     if not preview:

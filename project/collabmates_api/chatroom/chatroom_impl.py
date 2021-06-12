@@ -104,7 +104,7 @@ class ChatroomImpl(ChatroomManager):
         return guest_context
 
     def _fetch_chatroom_dict(self, card_instance):
-        chatroom_obj = get_chatroom_instance(card_instance, self.get_member_id())
+        chatroom_obj = get_chatroom_instance(card_instance, self.get_member_id(), return_topic=True)
 
         return chatroom_obj
 

@@ -816,7 +816,7 @@ class MemberCommunityImpl(MemberCommunityManager):
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes) -> {}:
 
-        chatroom_context = MemberCommunityHelper.serialize_chatroom(card_instance)
+        chatroom_context = MemberCommunityHelper.serialize_chatroom(card_instance, return_topic=True)
 
         if card_instance.has_reactions:
             reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
@@ -1326,7 +1326,7 @@ class MemberCommunityHelper:
         return poll_context
 
     @staticmethod
-    def serialize_chatroom(card_instance) -> {}:
+    def serialize_chatroom(card_instance, return_topic=False) -> dict:
 
         chatroom_context = {'id': card_instance.id,
                             'title': card_instance.title,
@@ -1389,6 +1389,9 @@ class MemberCommunityHelper:
 
         if card_instance.online_link:
             chatroom_context['online_link'] = card_instance.online_link
+
+        if return_topic and card_instance.topic is not None:
+            chatroom_context['topic'] = conversationSerializer(card_instance.topic, fetch_reply=False)
 
         return chatroom_context
 

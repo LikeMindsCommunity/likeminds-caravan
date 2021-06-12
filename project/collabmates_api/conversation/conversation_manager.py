@@ -11,12 +11,12 @@ class ConversationManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'submit_poll') and callable(subclass.submit_poll)) and
                 (hasattr(subclass, 'poll_users') and callable(subclass.poll_users)) and
                 (hasattr(subclass, 'add_reaction') and callable(subclass.add_reaction)) and
-                (hasattr(subclass, 'remove_reaction') and callable(subclass.remove_reaction)) or
+                (hasattr(subclass, 'remove_reaction') and callable(subclass.remove_reaction)) and
+                (hasattr(subclass, 'set_chatroom_topic') and callable(subclass.set_chatroom_topic)) or
                 NotImplemented)
 
-
     @abc.abstractmethod
-    def fetch_conversation(self, top_navigate=False) -> None:
+    def fetch_conversation(self, top_navigate=False) -> list:
         """
         fetches the conversation from the database
         """
@@ -59,5 +59,11 @@ class ConversationManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def poll_users(self, poll_id, page_no, page_size):
         """returns the  users who voted on a poll"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def set_chatroom_topic(self) -> dict:
+        """sets a conversation as chatroom topic"""
 
         raise NotImplementedError

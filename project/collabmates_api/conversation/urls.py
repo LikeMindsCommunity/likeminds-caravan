@@ -1,6 +1,7 @@
 from django.urls import path
 from .view_conversation_impl import (FetchConversation, CreateConversation, AddConversationPollOptions,
-                                     SubmitConversationPoll, FetchConversationPollUsers, AddReaction, RemoveReaction)
+                                     SubmitConversationPoll, FetchConversationPollUsers, AddReaction,
+                                     RemoveReaction, SetChatroomTopic)
 
 urlpatterns = [
     path('fetch', FetchConversation.as_view(), name="fetch_conversation"),
@@ -9,5 +10,6 @@ urlpatterns = [
     path('remove_reaction', RemoveReaction.as_view(), name="remove_reaction"),
     path('add_poll', AddConversationPollOptions.as_view(), name="add_poll"),
     path('submit_poll', SubmitConversationPoll.as_view(), name="submit_poll"),
-    path('poll_users', FetchConversationPollUsers.as_view(), name="poll_users")
+    path('poll_users', FetchConversationPollUsers.as_view(), name="poll_users"),
+    path('set_topic', SetChatroomTopic.as_view(), name="set_topic")
 ]

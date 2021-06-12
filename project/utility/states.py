@@ -193,6 +193,8 @@ class ChatroomStates:
     LEAVE_CHATROOM = 8
     REMOVED_FROM_CHATROOM = 9
 
+    ADDED_CHATROOM_TOPIC = 10
+
 
 chatroom_states = ChatroomStates()
 

@@ -3,6 +3,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from rest_framework.views import APIView
+from rest_framework import status as status_codes
 
 from utility.number_utilities import NumberUtilities
 from utility.string_utilities import StringUtilities
@@ -10,7 +11,7 @@ from .conversation_impl import ConversationImpl
 from ..mixins import TransactionMixin
 
 from utility.request_utilities import RequestUtilities
-from utility.exception_utilities import InvalidHeaderException
+from utility.exception_utilities import InvalidHeaderException, CustomException
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -24,16 +25,20 @@ class FetchConversation(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
-        chatroom_id = request.GET.get('chatroom_id')
-        scroll_direction = request.GET.get('scroll_direction')
-        conversation_id = request.GET.get('conversation_id')
-        page = request.GET.get('page', 1)
-        paginate_by = request.GET.get('paginate_by', 20)
-        top_navigate = request.GET.get('top_navigate', False)
+        query_params = request.query_params
+
+        chatroom_id = query_params.get('chatroom_id')
+        scroll_direction = query_params.get('scroll_direction')
+        conversation_id = query_params.get('conversation_id')
+        page = query_params.get('page', 1)
+        paginate_by = query_params.get('paginate_by', 20)
+        top_navigate = query_params.get('top_navigate', False)
         top_navigate = StringUtilities.get_boolean_from_string(top_navigate)
+        include_conversation_id = StringUtilities.get_boolean_from_string(query_params.get('include', False))
 
         conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page,
-                                                paginate_by, device_id=device_id)
+                                                paginate_by, device_id=device_id,
+                                                include_conversation_id=include_conversation_id)
 
         conversations = conversation_manager.fetch_conversation(top_navigate)
 
@@ -195,6 +200,35 @@ class RemoveReaction(TransactionMixin, APIView):
                                             conversation_id=conversation_id)
 
         response = chatroom_manager.remove_reaction()
+
+        return JsonResponse(response)
+
+
+class SetChatroomTopic(APIView):
+
+    def post(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        chatroom_id = req_body.get('chatroom_id')
+        conversation_id = req_body.get('conversation_id')
+
+        if not conversation_id or not chatroom_id:
+            response = {
+                "success": False,
+                "error_message": "chatroom id or conversation id missing in request body"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        conversation_manager = ConversationImpl(member_id=member_id, chatroom_id=chatroom_id,
+                                                conversation_id=conversation_id)
+        response = conversation_manager.set_chatroom_topic()
 
         return JsonResponse(response)
 

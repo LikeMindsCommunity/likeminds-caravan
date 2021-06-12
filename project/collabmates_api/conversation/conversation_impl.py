@@ -26,7 +26,7 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
                      update_chatroom_for_users_and_send_follow_notification,
                      reverse_conversations_for_upward_pagination, send_sync_notification,
                      generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification,
-                     create_chatroom_engagement)
+                     create_chatroom_engagement, create_chatroom)
 
 from .constants import (UPWARD_SCROLL_DIRECTION,
                         DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
@@ -42,7 +42,7 @@ from utility.exception_utilities import CustomException, InvalidChatroomExceptio
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
-    conversation_states, conversation_poll_types
+    conversation_states, conversation_poll_types, chatroom_states
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
@@ -70,7 +70,7 @@ class ConversationImpl(ConversationManager):
 
     def __init__(self, member_id: str, chatroom_id: str = None, scroll_direction: str = None,
                  conversation_id: str = None, page: str = None, paginate_by: str = None,
-                 device_id: str = None, platform_code: str = None):
+                 device_id: str = None, platform_code: str = None, include_conversation_id: bool = False):
 
         self.member_id = member_id
         self.chatroom_id = chatroom_id
@@ -80,6 +80,7 @@ class ConversationImpl(ConversationManager):
         self.paginate_by = paginate_by
         self.device_id = device_id
         self.platform_code = platform_code
+        self.include_conversation_id = include_conversation_id
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -122,20 +123,36 @@ class ConversationImpl(ConversationManager):
                                                    'preview_chatroom').filter(card=self.get_chatroom_id()
                                                                               ).order_by('created_at')
 
-    def _fetch_upward_conversation_queryset(self, list_size, conversation_id):
-        return card_answers.objects.select_related('reply', 'preview_community',
-                                                   'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-            id__lt=conversation_id).order_by('-created_at')[:list_size]
+    def _fetch_scroll_conversations(self):
+        conversations = card_answers.objects\
+            .select_related('reply', 'preview_community', 'preview_chatroom')\
+            .filter(card=self.get_chatroom_id())
 
-    def _fetch_upward_conversation_with_conversation_queryset(self, list_size, conversation_id):
-        return card_answers.objects.select_related('reply', 'preview_community',
-                                                   'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-            id__lte=conversation_id).order_by('-created_at')[:list_size]
+        return conversations
+
+    def _fetch_upward_conversation_queryset(self, list_size, conversation_id):
+        conversations = self._fetch_scroll_conversations()
+        conversations = conversations.filter(id__lt=conversation_id).order_by('-created_at')
+
+        return conversations[:list_size]
+
+    def _fetch_upward_conversation_including_given_conversation(self, list_size, conversation_id):
+        conversations = self._fetch_scroll_conversations()
+        conversations = conversations.filter(id__lte=conversation_id).order_by('-created_at')
+
+        return conversations[:list_size]
 
     def _fetch_downward_conversation_queryset(self, list_size, conversation_id):
-        return card_answers.objects.select_related('reply', 'preview_community',
-                                                   'preview_chatroom').filter(card=self.get_chatroom_id()).filter(
-            id__gt=conversation_id).order_by('created_at')[:list_size]
+        conversations = self._fetch_scroll_conversations()
+        conversations = conversations.filter(id__gt=conversation_id).order_by('created_at')
+
+        return conversations[:list_size]
+
+    def _fetch_downward_conversation_including_given_conversation(self, list_size, conversation_id):
+        conversations = self._fetch_scroll_conversations()
+        conversations = conversations.filter(id__gte=conversation_id).order_by('created_at')
+
+        return conversations[:list_size]
 
     def _paged_queryset(self, conversation_filter):
         page = self.get_page()
@@ -537,8 +554,8 @@ class ConversationImpl(ConversationManager):
             else:
 
                 list_size = self.get_paginate_by() / 2
-                upward_conversation = self._fetch_upward_conversation_with_conversation_queryset(list_size,
-                                                                                                 last_seen.id)
+                upward_conversation = self._fetch_upward_conversation_including_given_conversation(list_size,
+                                                                                                   last_seen.id)
                 downward_conversation = self._fetch_downward_conversation_queryset(list_size, last_seen.id)
 
                 # merging both conversations
@@ -552,15 +569,27 @@ class ConversationImpl(ConversationManager):
                     self.get_scroll_direction()) == UPWARD_SCROLL_DIRECTION:  # upward scroll
 
                 upward_scroll_list_size = self.get_paginate_by()
-                upward_list = self._fetch_upward_conversation_queryset(upward_scroll_list_size,
-                                                                       self.get_conversation_id())
+
+                if self.include_conversation_id:
+                    upward_list = self._fetch_upward_conversation_including_given_conversation(upward_scroll_list_size,
+                                                                                               self.get_conversation_id())
+                else:
+                    upward_list = self._fetch_upward_conversation_queryset(upward_scroll_list_size,
+                                                                           self.get_conversation_id())
+
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
             elif self.get_scroll_direction() and NumberUtilities.get_integer_from_string(
                     self.get_scroll_direction()) == DOWNWARD_SCROLL_DIRECTION:  # downward scroll
                 downward_scroll_list_size = self.get_paginate_by()
-                conversations = self._fetch_downward_conversation_queryset(downward_scroll_list_size,
-                                                                           self.get_conversation_id())
+
+                if self.include_conversation_id:
+                    conversations = self._fetch_downward_conversation_including_given_conversation(downward_scroll_list_size,
+                                                                                                   self.get_conversation_id())
+
+                else:
+                    conversations = self._fetch_downward_conversation_queryset(downward_scroll_list_size,
+                                                                               self.get_conversation_id())
 
             else:
                 conversations = self._fetch_conversation_queryset()
@@ -875,6 +904,26 @@ class ConversationImpl(ConversationManager):
 
         return {'status': True, 'members': member_list}
 
+    def set_chatroom_topic(self) -> dict:
+
+        user_instance = User.get_user_or_none(self.get_member_id())
+        conversation_instance = card_answers.get_conversation_or_None(self.get_conversation_id())
+        chatroom_instance = Collabcard.get_chatroom_or_None(self.get_chatroom_id())
+
+        validation_dict = ConversationHelper.validate_set_topic_request(user_instance, conversation_instance, chatroom_instance)
+
+        if not validation_dict['success']:
+            raise CustomException(validation_dict, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_instance.topic = conversation_instance
+        chatroom_instance.save()
+
+        ConversationHelper.create_answer(chatroom_instance, user_instance,
+                                         state=chatroom_states.ADDED_CHATROOM_TOPIC,
+                                         topic_text=conversation_instance.answer)
+
+        return {'success': True}
+
 
 class ConversationHelper:
 
@@ -1134,3 +1183,36 @@ class ConversationHelper:
             card_state_instance.expiry_time=None
             card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             card_state_instance.save()
+
+    @staticmethod
+    def create_answer(chatroom_instance, user_instance, state, topic_text=None, answer=None, current_user_id=None):
+        create_chatroom(chatroom_instance, user_instance, state,
+                        current_user_id=current_user_id, answer=answer,
+                        topic_text=topic_text)
+
+    @staticmethod
+    def validate_set_topic_request(user_instance, conversation_instance, chatroom_instance):
+
+        response = {
+            "success": True,
+        }
+
+        if user_instance is None:
+            response['success'] = False
+            response['error_message'] = f"Headers: user does not exist"
+
+        elif conversation_instance is None:
+            response['success'] = False
+            response['error_message'] = f"conversation id does not exist"
+
+        elif chatroom_instance is None:
+            response['success'] = False
+            response['error_message'] = f"chatroom id does not exist"
+
+        elif chatroom_instance.user_id != user_instance.id:
+            response['success'] = False
+            response['error_message'] = "only chatroom creator can change the topic of chatroom"
+
+        return response
+
+

@@ -3620,7 +3620,7 @@ def create_draft_collabcard(request, res=None):
     return JsonResponse({'success': True, "chatroom": chatroom})
 
 
-def create_chatroom(card_instance, user_instance, state, current_user_id=None, answer="", **kwargs):
+def create_chatroom(card_instance, user_instance, state, current_user_id=None, answer="", topic_text=None, **kwargs):
     '''function to create chat-room and perform follow unfollow operations'''
     # handling answer states
 
@@ -3637,8 +3637,8 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
         community_id = community_instance.id
         community_name = community_instance.name
 
-        user_route = "route://member_profile/" + str(user_instance.id) + "?member_id=" + str(user_instance.id)
-        user_name = "<<" + user_name + "|" + user_route + "&community_id=" + str(community_id) + ">>"
+        user_route = f"route://member_profile/{user_instance.id}?member_id={user_instance.id}"
+        user_name = f"<<{user_name}|{user_route}&community_id={community_id}>>"
 
         if state == chatroom_states.CHATROOM_HEADER:
 
@@ -3690,13 +3690,18 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 
                 answer = f"{encoded_current_user_name} removed {user_name}"
 
-    instance = card_answers()
-    instance.answer = answer
-    instance.card = card_instance
-    instance.user = user_instance
-    instance.community = community_instance
-    instance.state = state
-    instance.save()
+        elif state == chatroom_states.ADDED_CHATROOM_TOPIC:
+            if topic_text is not None:
+                answer = f"{user_name} changed current topic to {topic_text}"
+
+    if answer:
+        instance = card_answers()
+        instance.answer = answer
+        instance.card = card_instance
+        instance.user = user_instance
+        instance.community = community_instance
+        instance.state = state
+        instance.save()
 
     if state == chatroom_states.CHATROOM_HEADER and\
             card_instance.type == card_types.CARD_INTRO:
