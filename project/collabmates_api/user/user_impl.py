@@ -196,7 +196,7 @@ class UserImpl(UserManager):
         userEmails.objects.filter(user=user_instance).delete()
         userDevices.objects.filter(user=user_instance).delete()
 
-    def remove_profile(self, device_id):
+    def remove_profile(self):
 
         user_instance = User.get_user_or_none(self.get_user_id())
 

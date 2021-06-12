@@ -4220,11 +4220,6 @@ def fetch_share_url(request):
     payment_id = request.GET.get('payment_id')
     shared_by = request.GET.get('shared_by')
 
-    if RequestUtilities.is_request_web(request):
-        branch_links = generate_links_for_guest_web(community_id,member_id)
-        url = branch_links[2]['url']
-        return JsonResponse({'community_share': url, 'success': True})
-
     if not member_id:
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)

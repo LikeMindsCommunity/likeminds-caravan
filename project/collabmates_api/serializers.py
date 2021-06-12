@@ -49,6 +49,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         'auto_approval': community.auto_approval,
         'grace_period': community.grace_period,
         'is_discoverable': community.is_discoverable,
+        'website_url': community.website_url,
     }
 
     if not current_user_instance and current_user_id:

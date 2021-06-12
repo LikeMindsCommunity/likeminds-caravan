@@ -35,7 +35,7 @@ class UserManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def remove_profile(self, device_id) -> {}:
+    def remove_profile(self) -> {}:
         """
         remove the profile of user permanently from LikeMinds
         """

@@ -6,7 +6,8 @@ from urllib.parse import urlparse
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
 from .static_files import *
-from utility.constants import BRANCH_QUICKLINK_URI,DIRECTORY_FEATURE
+from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
+                               BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK)
 
 info_logger = LoggingWrapper.get_instance()
 
@@ -48,8 +49,9 @@ def create_community_branch_links(community_id, member_id, aj=None,
     if member_id:
         public_url = base_url + f'?shared_by={member_id}'
 
-        if community_instance.is_paid:
-            public_url = community_instance.website_url + f'?shared_by={member_id}'
+        if community_instance.is_paid and community_instance.website_url:
+            website_url = strip_scheme(community_instance.website_url)
+            public_url = website_url + f'?shared_by={member_id}'
 
     else:
         public_url = base_url
@@ -116,7 +118,7 @@ def create_community_branch_links(community_id, member_id, aj=None,
     if 'url' not in data[0]:
         data[0]['url'] = base_url + f'?shared_by={member_id}'
 
-        if community_instance.is_paid:
+        if community_instance.is_paid and community_instance.website_url:
             data[0]['url'] = community_instance.website_url + f'?shared_by={member_id}'
 
     if 'url' not in data[1]:
@@ -162,14 +164,30 @@ def create_link_item(base_url, community, channel, feature, private=False):
         }
     }
 
+    fallback_url = desktop_url = 'https://%s' % base_url
+
+    if community.is_paid and feature == BRANCH_FEATURE_PUBLIC_LINK:
+        link_item["data"]['$web_only'] = True
+        link_item["data"]['$ios_url'] = fallback_url
+        link_item["data"]['$android_url'] = fallback_url
+        link_item["data"]['$android_deeplink_path'] = 'random'
+
     """
     redirect to web in case of member directory 
     download app in all other cases(public + private)
     """
-    if feature == DIRECTORY_FEATURE:
-        link_item['data']['$fallback_url'] = 'https://%s' % base_url
+
+    if community.is_paid:
+        if feature != BRANCH_FEATURE_PRIVATE_LINK:
+            link_item['data']['$fallback_url'] = fallback_url
+        else:
+            link_item['data']['$desktop_url'] = desktop_url
+
     else:
-        link_item['data']['$desktop_url'] = 'https://%s' % base_url
+        if feature == DIRECTORY_FEATURE:
+            link_item['data']['$fallback_url'] = fallback_url
+        else:
+            link_item['data']['$desktop_url'] = desktop_url
 
     return link_item
 
