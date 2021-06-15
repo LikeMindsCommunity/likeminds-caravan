@@ -14,6 +14,7 @@ HEADER_ACCESS_ONE_EXPIRED_COMMUNITY = 'Membership expired'
 
 ACCESS_LOCK_ICON = 'https://prod-likeminds-media.s3.amazonaws.com/files/utilities/access_blocker_lock_icon.jpg'
 ACCESS_MAIL_ICON = 'https://prod-likeminds-media.s3.amazonaws.com/files/utilities/access_blocker_mail_icon.jpg'
+ACCESS_HEADER_IMAGE = 'https://prod-likeminds-media.s3.amazonaws.com/files/utilities/lottie_pending_request.json'
 
 TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'Have you received an invitation link?'
 TITLE_ACCESS_ONE_PENDING_COMMUNITY = 'You are on the waiting list!'
@@ -35,7 +36,8 @@ SUB_TITLE_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES = 'Your membership plans 
 
 SUB_TITLE_2_ACCESS_NOT_PART_OF_COMMUNITIES = 'To get onboarded on this platform to build and grow your community, fill out <<this form|route://browser?link=https://collabmates.app.link/e/3WjswrRfhdb>>'
 SUB_TITLE_2_ACCESS_COMMON = '**Usually It takes upto 48 hours to get approved. If you have paid for the membership and in case you are not approved, your payment would be refunded.'
-ACCESS_FOOTER = '<<Need help? Get in touch|route://mail?to=hello@likeminds.community>>'
+
+ACCESS_FOOTER = 'Need help? <<Get in touch|route://mail?to=hello@likeminds.community>>'
 
 CTA_ACCESS_ONE_EXPIRED_COMMUNITY = '<<CHOOSE MEMBERSHIP PLAN|route://browser?link=%s/community/%s?renew=true>>'
 
@@ -55,7 +57,7 @@ CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES = {
 CONTEXT_ACCESS_ONE_PENDING_COMMUNITY = {
     'success': True,
     'header': HEADER_ACCESS_ONE_PENDING_COMMUNITY,
-    'header_image': ACCESS_MAIL_ICON,
+    'header_image': ACCESS_HEADER_IMAGE,
     'title_1': TITLE_ACCESS_ONE_PENDING_COMMUNITY,
     'sub_title_1': SUB_TITLE_ACCESS_ONE_PENDING_COMMUNITY,
     'sub_title_2': SUB_TITLE_2_ACCESS_COMMON,
@@ -66,7 +68,7 @@ CONTEXT_ACCESS_ONE_PENDING_COMMUNITY = {
 CONTEXT_ACCESS_ONE_EXPIRED_COMMUNITY = {
     'success': True,
     'header': HEADER_ACCESS_NOT_PART_OF_COMMUNITIES,
-    'header_image': ACCESS_MAIL_ICON,
+    'header_image': ACCESS_HEADER_IMAGE,
     'title_1': TITLE_ACCESS_ONE_EXPIRED_COMMUNITY,
     'sub_title_1': '',
     'cta': '',
@@ -76,7 +78,7 @@ CONTEXT_ACCESS_ONE_EXPIRED_COMMUNITY = {
 
 CONTEXT_ACCESS_MORE_PENDING_COMMUNITIES = {
     'success': True,
-    'header_image': ACCESS_MAIL_ICON,
+    'header_image': ACCESS_HEADER_IMAGE,
     'title_1': TITLE_ACCESS_MORE_PENDING_COMMUNITIES,
     'sub_title_1': SUB_TITLE_ACCESS_MORE_PENDING_COMMUNITIES,
     'sub_title_2': SUB_TITLE_2_ACCESS_COMMON,
@@ -86,7 +88,7 @@ CONTEXT_ACCESS_MORE_PENDING_COMMUNITIES = {
 
 CONTEXT_ACCESS_MORE_EXPIRED_COMMUNITIES = {
     'success': True,
-    'header_image': ACCESS_MAIL_ICON,
+    'header_image': ACCESS_HEADER_IMAGE,
     'title_1': TITLE_ACCESS_MORE_EXPIRED_COMMUNITIES,
     'sub_title_1': SUB_TITLE_ACCESS_MORE_PENDING_COMMUNITIES,
     'footer': ACCESS_FOOTER,
@@ -95,7 +97,7 @@ CONTEXT_ACCESS_MORE_EXPIRED_COMMUNITIES = {
 
 CONTEXT_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITIES = {
     'success': True,
-    'header_image': ACCESS_MAIL_ICON,
+    'header_image': ACCESS_HEADER_IMAGE,
     'title_1': TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITIES,
     'sub_title_1': '',
     'sub_title_2': SUB_TITLE_2_ACCESS_COMMON,
@@ -105,7 +107,7 @@ CONTEXT_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITIES = {
 
 CONTEXT_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES = {
     'success': True,
-    'header_image': ACCESS_MAIL_ICON,
+    'header_image': ACCESS_HEADER_IMAGE,
     'title_1': TITLE_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES,
     'sub_title_1': SUB_TITLE_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES,
     'sub_title_2': SUB_TITLE_2_ACCESS_COMMON,
