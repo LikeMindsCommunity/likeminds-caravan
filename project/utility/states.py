@@ -193,6 +193,8 @@ class ChatroomStates:
     LEAVE_CHATROOM = 8
     REMOVED_FROM_CHATROOM = 9
 
+    ADDED_CHATROOM_TOPIC = 10
+
 
 chatroom_states = ChatroomStates()
 
@@ -229,6 +231,7 @@ member_states = MemberStates()
 class DeletedMembers:
     LEFT = 0
     REMOVED = 1
+    MEMBERSHIP_EXPIRED = 2
 
 
 deleted_members = DeletedMembers()
@@ -424,7 +427,7 @@ class SearchIndexes(enum.Enum):
     CHATROOM = "chatroom"
     CONVERSATION = "conversation"
 
-    
+
 class LoginTypes:
     GOOGLE = "google"
     FACEBOOK = "facebook"
@@ -435,3 +438,14 @@ class LoginTypes:
 
 
 login_types = LoginTypes()
+
+
+class SubscriptionStatus(enum.Enum):
+    ACTIVE = 0
+    EXPIRED = 1
+    GRACE_PERIOD = 2
+    RENEWAL_DUE = 3
+    SUBSCRIPTION_NOT_FOUND = 4
+
+    def fetch_name(self):
+        return '%s' % (" ".join([word.lower() for word in self.name.split("_")]))

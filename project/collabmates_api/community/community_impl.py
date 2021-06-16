@@ -1,17 +1,19 @@
 from django.contrib.auth.models import User
 
+from collabmates_api.branch import create_community_feed_url
 from collabmates_api.community.constants import MENU
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right
 from collabmates_api.views import get_leave_community_text
 from django.db.models import Q, F
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
-    card_answers, collabcardState, Member_Engage, communityAnswers, communityQuestions
+    card_answers, collabcardState
 from collabmates_api.community.community_manager import CommunityManager
-from collabmates_api.member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
+from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types
 from utility.time_utilities import TimeUtilities
+from ..utility import pagination
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -21,7 +23,7 @@ class CommunityImpl(CommunityManager):
     member_id = None
     community_id = None
 
-    def __init__(self, member_id: str, community_id: str):
+    def __init__(self, member_id: str, community_id: str = None):
 
         self.member_id = member_id
         self.community_id = community_id
@@ -51,10 +53,10 @@ class CommunityImpl(CommunityManager):
                 del menu[3]
 
         elif state == member_states.PENDING_MEMBER:
-            menu = MENU['pending_member'].copy()
+            menu = MENU['pending_member_in_paid_community'] if community_instance.is_paid else MENU['pending_member']
 
         elif state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
-            menu = MENU['member'].copy()
+            menu = MENU['member']
 
         return menu
 
@@ -275,9 +277,25 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True}
 
+    def fetch_feed_url(self):
+        community_instance = Community.get_community_or_raise_exception(self.get_community_id())
+
+        feed_url = create_community_feed_url(community_instance)
+
+        return {'success': True, 'feed_url': feed_url}
+
+    def fetch_discoverable_communities(self, page, page_size):
+        communities = Community.objects.filter(is_discoverable=True).order_by("id")
+
+        communities = ModelUtilities.paginate_queryset(communities, page, page_size)
+
+        community_data = CommunitySerializerV1(communities, many=True).data
+
+        return {'success': True, 'community': community_data}
+
 
 class CommunityHelper:
-    
+
     @staticmethod
     def fetch_community_instance(community_id: str) -> object:
         community_instance = None

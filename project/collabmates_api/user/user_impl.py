@@ -1,32 +1,36 @@
-from urllib import parse
+import json
+import requests as rqst
 
-from django.db.models import Q
-from togther.models import userMobiles, ModelUtilities, userSurvey, userDevices, Community, \
-    Members, userEmails, Userinfo, emailTokens, Collabcard
-from django.contrib.auth.models import User
-from collabmates_api.user.user_manager import UserManager
-from external_services.logging.logging_wrapper import LoggingWrapper
-from typing import Tuple
-from utility.exception_utilities import InvalidUserException
+from urllib import parse
+from typing import Union
 from rest_framework import status as status_codes
 
-from utility.time_utilities import TimeUtilities
+from django.db.models import Q
+from django.contrib.auth.models import User
 from django.conf import settings
+
+from cms.models import userAcquition
+from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
+                            Members, userEmails, Userinfo, emailTokens, Collabcard)
+from collabmates_api.user.user_manager import UserManager
+
+from utility.exception_utilities import InvalidUserException
+from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types
-
 from utility.utils import generate_random
-
 from utility.firebase import upload_image_to_firebase
+from utility.api_client import ApiClient
 
-from .constants import REMOVED_PROFILE_NAME, REMOVED_PROFILE_URL, VERIFICATION_EMAIL_EXPIRE_TIME, GOOGLE_REGEX, \
-    LINKED_IN_WEB_ACCESS_TOKEN_URL, LINKED_IN_WEB_USER_URL, LINKED_IN_WEB_EMAIL_URL
+from .constants import *
 from ..raw_queries import get_community_id_list
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
 from ..tasks import send_verification_mail_for_email_sync
-import requests as rqst
-import json
+from ..rest_api import CommunitySerializerV1
 
-from cms.models import userAcquition
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+host_url = settings.URL
+subscription_url = settings.SUBSCRIPTION_SERVER_URL
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -36,7 +40,7 @@ class UserImpl(UserManager):
     user_id = None
     mobile_no = None
 
-    def __init__(self, user_id: str, mobile_no: str):
+    def __init__(self, user_id: str, mobile_no: str = None):
         self.user_id = user_id
         self.mobile_no = mobile_no
 
@@ -115,7 +119,7 @@ class UserImpl(UserManager):
         return {'success': True}
 
     @staticmethod
-    def delete_notification_sending_details(user_instance, device_id) -> Tuple[int, dict]:
+    def delete_notification_sending_details(user_instance, device_id) -> Union[int, dict]:
 
         delete_count = userDevices.objects.filter(user=user_instance, device_id=device_id).delete()
 
@@ -408,6 +412,116 @@ class UserImpl(UserManager):
         access = UserHelper.is_user_belong_to_any_community(user_instance)
 
         return {'success': True, 'user': user_context, 'access': access, 'email_exists': email_exists}
+
+    def _process_user_communties_for_access(self, user_communities):
+        """
+        user_communties is a list of Members instances
+        """
+        context = {
+            'pending_communities': [],
+            'has_access': False,
+            'community_id_list': []
+        }
+
+        for community in user_communities:
+            if community.state == member_states.PENDING_MEMBER:
+                context['pending_communities'].append(community.community_id)
+                context['community_id_list'].append(community.community_id_id)
+
+            else:
+                context['has_access'] = True
+                break
+
+        return context
+
+    def _fetch_expired_subscriptions_of_user(self, subscriptions):
+
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        community_ids = [subscription['community_id'] for subscription in subscriptions
+                         if current_time > subscription['valid_till_grace_period']]
+
+        return community_ids
+
+    def _fetch_access_context_for_user(self, pending_communities, expired_communities):
+
+        pending_count, subscription_count = len(pending_communities), len(expired_communities)
+
+        if pending_count == 0 and subscription_count == 0:
+            return CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES
+
+        if pending_count == 1 and subscription_count == 0:
+
+            context = CONTEXT_ACCESS_ONE_PENDING_COMMUNITY.copy()
+            context['pending_communities'] = pending_communities
+
+        elif pending_count == 0 and subscription_count == 1:
+
+            community_id = expired_communities[0]['id']
+            community_name = expired_communities[0]['name']
+
+            context = CONTEXT_ACCESS_ONE_EXPIRED_COMMUNITY.copy()
+            context['sub_title_1'] = SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY % (community_name, community_id, community_id)
+            context['cta'] = CTA_ACCESS_ONE_EXPIRED_COMMUNITY % (host_url, community_id)
+            context['membership_expired_communities'] = expired_communities
+
+        elif pending_count > 1 and subscription_count == 0:
+            context = CONTEXT_ACCESS_MORE_PENDING_COMMUNITIES.copy()
+            context['pending_communities'] = pending_communities
+
+        elif pending_count == 0 and subscription_count > 1:
+            context = CONTEXT_ACCESS_MORE_EXPIRED_COMMUNITIES.copy()
+            context['membership_expired_communities'] = expired_communities
+
+        elif pending_count >= 1 and subscription_count == 1:
+
+            community_id = expired_communities[0]['id']
+            community_name = expired_communities[0]['name']
+
+            context = CONTEXT_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITIES.copy()
+            context['sub_title_1'] = SUB_TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITY % (community_name, community_id)
+            context['pending_communities'] = pending_communities
+            context['membership_expired_communities'] = expired_communities
+
+        elif pending_count >= 1 and subscription_count > 1:
+            context = CONTEXT_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES.copy()
+            context['pending_communities'] = pending_communities
+            context['membership_expired_communities'] = expired_communities
+
+        else:
+            context = CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES
+
+        return context
+
+    def fetch_app_access(self) -> dict:
+
+        if not self.get_user_id():
+            return CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES
+        
+        user_communities = Members.fetch_all_user_communties(self.get_user_id())
+
+        user_community_data = self._process_user_communties_for_access(user_communities)
+
+        if user_community_data['has_access']:
+            return {'success': True, 'access': True}
+
+        expired_subscriptions = UserHelper.fetch_user_subscriptions(self.get_user_id())
+
+        expired_community_ids = self._fetch_expired_subscriptions_of_user(expired_subscriptions)
+
+        total_community_ids = list(set(user_community_data['community_id_list']) | set(expired_community_ids))
+
+        member_data = UserHelper.fetch_community_members_data(total_community_ids)
+
+        pending_communities = UserHelper.serialize_community_for_access(user_community_data['pending_communities'], member_data)
+
+        expired_community_instances = Community.objects.filter(pk__in=expired_community_ids)
+        expired_communities = UserHelper.serialize_community_for_access(expired_community_instances, member_data)
+
+        data = self._fetch_access_context_for_user(pending_communities=pending_communities,
+                                                   expired_communities=expired_communities)
+
+        return data
 
 
 class UserHelper:
@@ -887,3 +1001,70 @@ class UserHelper:
             'country_code': mobile_instance.country_code,
             'state': mobile_instance.state
         }
+
+    @staticmethod
+    def fetch_user_subscriptions(user_id):
+        client = ApiClient(host=subscription_url,
+                           method='get',
+                           path=SUBSCRIPTION_FETCH_API_PATH)
+
+        client.add_header('x-member-id', user_id).request()
+
+        response = client.fetch_response()
+
+        if response.get('success'):
+            return response['subscriptions']
+
+        return []
+
+    @staticmethod
+    def fetch_community_members_data(community_id_list):
+        communities = Members.fetch_community_members(community_id_list)
+
+        community_dict = {}
+
+        creator = None
+        manager_count = 0
+        members_count = 0
+        current_community_id = None
+
+        for community in communities:
+
+            if current_community_id != community.community_id_id:
+
+                creator = None
+                manager_count = 0
+                members_count = 0
+                current_community_id = community.community_id_id
+
+            if creator is None:
+                creator = community.member_id
+
+            if community.state == member_states.ADMIN:
+                manager_count += 1
+
+            members_count += 1
+
+            creator_name = creator.userinfo.name if creator else None
+
+            context = {
+                'promoters_count': manager_count,
+                'members_count': members_count
+            }
+
+            if creator_name:
+                context['created_by'] = creator_name
+
+            community_dict[community.community_id_id] = context
+
+        return community_dict
+
+    @staticmethod
+    def serialize_community_for_access(communities, community_member_data):
+        data = CommunitySerializerV1(communities, many=True).data
+
+        for community in data:
+            if community_member_data.get(community['id']):
+                community.update(community_member_data.get(community['id']))
+
+        return data

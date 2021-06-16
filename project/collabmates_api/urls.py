@@ -238,6 +238,7 @@ urlpatterns = [
     path('community_member/', include('collabmates_api.member_community.urls')),
     path('search/', include('collabmates_api.search.urls')),
     path('community_onboarding/', include('collabmates_api.community_onboarding.urls'), name='community_onboarding'),
+    path('community_membership/', include('collabmates_api.community_membership.urls'), name='community_membership'),
 
 ]
 

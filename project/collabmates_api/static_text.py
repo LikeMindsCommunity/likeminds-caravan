@@ -332,9 +332,10 @@ months_full = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6:
 
 
 MENU = {
-    'member': ['Invite members','View all chat rooms','Member directory','Leave community','Report'],
-    'promoter': ['Invite members','View all chat rooms','Member directory','Edit community','Report'],
-    'pending_member':['Cancel joining request']
+    'member': ['Invite members', 'View all chat rooms', 'Member directory', 'Leave community', 'Report'],
+    'promoter': ['Invite members', 'View all chat rooms', 'Member directory', 'Edit community', 'Report'],
+    'pending_member': ['Cancel joining request'],
+    'pending_member_in_paid_community': ['Cancel membership request']
 }
 
 BRANCH_LINK_PREFIX_ANDROID = 'likeminds://' + SERVER_URL[8:]

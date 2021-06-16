@@ -1,21 +1,15 @@
-import json
 from urllib.parse import parse_qsl, urlsplit
 
-from django.conf import settings
-from django.db.models import Q
-
-from external_services.caching.cache_impl import CacheImpl
-from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
-from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, CHATROOM_REACTIONS_CACHE_KEY
-from utility.utils import is_IG_community, is_LG_or_LP_community, feedback_community_id, \
-    generate_private_link, generate_random, get_time_text, eligibility_count, get_members_count_in_community, \
-    is_member_promoter, generate_private_link_for_chatroom, get_date_time_from_timestamp, \
-    get_community_members_count_for_preview
+from utility.utils import (generate_private_link, get_time_text, eligibility_count,
+                           get_members_count_in_community, generate_private_link_for_chatroom,
+                           get_date_time_from_timestamp, get_community_members_count_for_preview)
 
-from utility.states import (card_types, question_states, member_states, poll_types,
-                            deleted_members, manager_rights, member_rights, chatroom_states)
+from utility.states import (card_types, question_states, poll_types,
+                            deleted_members, chatroom_states)
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
+from .member_community.constants import CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED, CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED, \
+    CUSTOM_CLICK_TEXT_DELETED, CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_LEFT, CUSTOM_INTRO_TEXT_LEFT
 from .user_moderation_rights import *
 import time
 
@@ -26,6 +20,7 @@ from .user_moderation_rights import check_member_invite_private_right, check_adm
 from .branch import create_community_branch_links
 from utility.constants import *
 from utility.number_utilities import NumberUtilities
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 url = settings.URL
@@ -50,7 +45,11 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         'name': community.name,
         'purpose': community.purpose,
         'location': community.location if community.location else "",
-
+        'is_paid': community.is_paid,
+        'auto_approval': community.auto_approval,
+        'grace_period': community.grace_period,
+        'is_discoverable': community.is_discoverable,
+        'website_url': community.website_url,
     }
 
     if not current_user_instance and current_user_id:
@@ -122,8 +121,6 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     elif current_user_instance:
 
         if user_has_share_permission:
-            # private_link = generate_private_link(community_instance=community,
-            #                                      promoter_instance=current_user_instance)
 
             new_dict[
                 'private_link_text_member'] = PRIVATE_LINK_FOR_PERMITTED_USER % (community.name, branch_links[1]['url'])
@@ -219,7 +216,7 @@ def get_logged_in_user(user_instance):
     return context
 
 
-def CollabcardSerializer(card, user, community=None, current_user_id=None, preview=False):
+def CollabcardSerializer(card, user, community=None, current_user_id=None, preview=False, return_topic=False):
     # function to serialize a community object
     collabcard = {
         'id': card.id,
@@ -366,6 +363,9 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         reactions = []
 
     collabcard['reactions'] = reactions
+
+    if return_topic and card.topic is not None:
+        collabcard['topic'] = conversationSerializer(card.topic, fetch_reply=False)
 
     return collabcard
 
@@ -657,11 +657,13 @@ def get_chatroom_name(user_name, card):
 
 
 def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None, send_profile=True,
-                          preview=False):
+                          preview=False, return_topic=False):
     if not current_user_id:
         current_user_id = member_id
 
-    collabcard_serializer = CollabcardSerializer(card_instance, member_id, current_user_id=member_id, preview=preview)
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id,
+                                                 current_user_id=member_id, preview=preview,
+                                                 return_topic=return_topic)
 
     # get chatroom status
     if not preview:
@@ -708,21 +710,27 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
 def get_removed_member_custom_text(instance):
     '''function to check removed member state and sending the custom text'''
     temp = {}
-    # instance = status['remove']
+
     remove_state = instance.removed_state
 
     current_date = TimeUtilities.convert_epoch_time_in_date(instance.created_at)
 
     if remove_state == deleted_members.LEFT:
-        temp['custom_intro_text'] = """Left the community on %s""" % current_date
-        temp['custom_click_text'] = """The profile you are trying to access does not exist. %s left the community on %s""" % (
-            instance.member.userinfo.name, current_date)
+        temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_LEFT % current_date
+        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_LEFT % (instance.member.userinfo.name, current_date)
 
     elif remove_state == deleted_members.REMOVED:
-        temp['custom_intro_text'] = """Removed from the community on  %s""" % current_date
+        temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_DELETED % current_date
         temp[
-            'custom_click_text'] = """The profile you are trying to access does not exist. %s was removed from the community on %s""" % (
-            instance.member.userinfo.name,  current_date)
+            'custom_click_text'] = CUSTOM_CLICK_TEXT_DELETED % (instance.member.userinfo.name,  current_date)
+
+    elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
+        temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED
+        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % (instance.member.userinfo.name,  current_date)
+
+    elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
+        temp['custom_intro_text'] = "Profile does not exist"
+        temp['custom_click_text'] = f"The profile you are trying to access does not exist. <member_name>'s membership expired on  {current_date}"
 
     temp['remove_state'] = remove_state
     temp['removed_user_image_url'] = REMOVED_USER_URL

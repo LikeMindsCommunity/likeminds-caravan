@@ -1,5 +1,7 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
+
+from utility.exception_utilities import InvalidHeaderException
 from utility.request_utilities import RequestUtilities
 from django.conf import settings
 from collabmates_api.user.user_impl import UserImpl
@@ -106,5 +108,15 @@ class UserLoginView(APIView):
         user_context = user_manager.login(req_body,
                                           RequestUtilities.get_platform_code(request),
                                           RequestUtilities.get_device_id_from_headers(request))
+
+        return JsonResponse(user_context)
+
+
+class FetchUserAccess(APIView):
+    def get(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        user_manager = UserImpl(user_id=member_id, mobile_no="")
+        user_context = user_manager.fetch_app_access()
 
         return JsonResponse(user_context)

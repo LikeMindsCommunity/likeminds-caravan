@@ -22,6 +22,7 @@ from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 
 from external_services.caching.cache_impl import CacheImpl
+from external_services.mixpanel.events import MixpanelEvents
 from togther.models import *
 from random import randint
 # utility functions
@@ -813,13 +814,12 @@ def community(request, community_id, req_dict=None):
 
         if state == member_states.PENDING_MEMBER:
             block_leave_community = True
-            menu = MENU['pending_member'].copy()
+            menu = MENU['pending_member_in_paid_community'] if community.is_paid else MENU['pending_member']
 
         if state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
-            menu = MENU['member'].copy()
+            menu = MENU['member']
     else:
         block_leave_community = True
-
 
     if is_promoter:
         serialized_object = CommunitySerializer(community, promoter_id=current_user_instance,
@@ -828,7 +828,6 @@ def community(request, community_id, req_dict=None):
     else:
         serialized_object = CommunitySerializer(community, current_user_id=member_id,
                                                 current_user_instance=current_user_instance)
-
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
@@ -1108,7 +1107,9 @@ def join_community_responses_version_1(request):
     send_sync_notification.delay({'community_id': community_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
-    return JsonResponse({'success': True})
+    user_has_access = Members.user_has_app_access(RequestUtilities.get_member_id_from_headers(request))
+
+    return JsonResponse({'success': True, 'access': user_has_access})
 
 
 def join_promoter_created_community_version_1(res, request):
@@ -1171,10 +1172,16 @@ def join_promoter_created_community_version_1(res, request):
     is_valid_private_link = valid_link_dict['valid_link']
     shared_user_instance = valid_link_dict['shared_user_instance']
 
+    if aj is None and shared_by is None:
+        is_valid_private_link = community_instance.is_paid and community_instance.auto_approval
+
     # saving data directly
     if is_valid_private_link:
 
         history_type = moderation_history_types.APPLIED_PRIVATE_LINK
+
+        if aj is None and shared_by is None:
+            history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
 
         if check_user_rejoin(user=user_instance, community=community_instance):
             history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
@@ -2185,132 +2192,6 @@ def edit_member_profile(request):
     return JsonResponse({'success': True})
 
 
-def get_user_lpig_tags(user_id):
-    '''function to get user lpig tags'''
-
-    legacy = User_Legacy.objects.filter(user_id=user_id)
-    profession = User_Profession.objects.filter(user_id=user_id)
-    interest = User_Interest.objects.filter(user_id=user_id)
-    geography = User_Geography.objects.filter(user_id=user_id)
-
-    legacy_list = []
-    profession_list = []
-    interest_list = []
-    geography_list = []
-
-    cluster_tags = []
-    for each in legacy:
-        temp = {}
-        if each.tags_id.id != 15 and each.tags_id.is_cluster == 0:
-            temp['id'] = each.tags_id.id
-            temp['name'] = each.tags_id.name
-            if each.tags_id.image_link:
-                temp['image_url'] = each.tags_id.image_link
-
-            elif each.tags_id.tag_image:
-                temp['image_url'] = url + each.tags_id.tag_image.url
-            attribute_id = each.tags_id.attribute_id.id
-
-            if attribute_id is 1:
-                temp['attribute_name'] = "Work"
-            elif attribute_id is 2:
-                temp['attribute_name'] = "College"
-            elif attribute_id is 3:
-                temp['attribute_name'] = "Hometown"
-            elif attribute_id is 4:
-                temp['attribute_name'] = "Lifestyle"
-            else:
-                continue
-
-            # if each.tags_id.is_cluster:
-            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-            #     cluster_tags=cluster_tags+cluster
-            legacy_list.append(temp)
-
-    # legacy_list=get_clustered_tags_for_user(legacy_list,cluster_tags)
-
-    cluster_tags = []
-    for each in profession:
-        temp = {}
-        if each.tags_id.id != 16 and each.tags_id.is_cluster == 0:
-            temp['id'] = each.tags_id.id
-            temp['name'] = each.tags_id.name
-            if each.tags_id.tag_image:
-                temp['image_url'] = url + each.tags_id.tag_image.url
-            attribute_id = each.tags_id.attribute_id.id
-            if attribute_id is 5:
-                temp['attribute_name'] = "Skill"
-            elif attribute_id is 6:
-                temp['attribute_name'] = "Industry"
-            elif attribute_id is 7:
-                temp['attribute_name'] = "Designation"
-
-            # if each.tags_id.is_cluster:
-            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-            #     cluster_tags=cluster_tags+cluster
-            profession_list.append(temp)
-
-    # profession_list=get_clustered_tags_for_user(profession_list,cluster_tags)
-
-    cluster_tags = []
-    for each in interest:
-        temp = {}
-        if each.tags_id.id != 17 and each.tags_id.is_cluster == 0:
-            temp['id'] = each.tags_id.id
-            temp['name'] = each.tags_id.name
-            if each.tags_id.tag_image:
-                temp['image_url'] = url + each.tags_id.tag_image.url
-            attribute_id = each.tags_id.attribute_id.id
-            if attribute_id is 8:
-                temp['attribute_name'] = "Cause"
-            elif attribute_id is 9:
-                temp['attribute_name'] = "Hobby"
-            elif attribute_id is 10:
-                temp['attribute_name'] = "Sports"
-            elif attribute_id is 11:
-                temp['attribute_name'] = "Fan"
-
-            # if each.tags_id.is_cluster:
-            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-            #     cluster_tags=cluster_tags+cluster
-            interest_list.append(temp)
-
-    # interest_list = get_clustered_tags_for_user(interest_list, cluster_tags)
-
-    cluster_tags = []
-    for each in geography:
-        temp = {}
-        if each.tags_id.id != 18 and each.tags_id.is_cluster == 0:
-            temp['id'] = each.tags_id.id
-            temp['name'] = each.tags_id.name
-            if each.tags_id.tag_image:
-                temp['image_url'] = url + each.tags_id.tag_image.url
-            attribute_id = each.tags_id.attribute_id.id
-            if attribute_id is 12:
-                temp['attribute_name'] = "City"
-            elif attribute_id is 13:
-                temp['attribute_name'] = "State"
-            elif attribute_id is 14:
-                temp['attribute_name'] = "Country"
-
-            # if each.tags_id.is_cluster:
-            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-            #     cluster_tags=cluster_tags+cluster
-            geography_list.append(temp)
-
-    # geography_list = get_clustered_tags_for_user(geography_list, cluster_tags)
-
-    tags = {
-        'legacy': legacy_list,
-        'profession': profession_list,
-        'interest': interest_list,
-        'geography': geography_list
-    }
-
-    # print(tags)
-    return tags
-
-
 @csrf_exempt
 def ask_approval(request):
     '''function to ask for approval in LG communities for member to member verification'''
@@ -2386,11 +2267,19 @@ def remove_from_member(request):
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', '')
 
-    current_user_instance = User.objects.get(pk=member_id)
+    remove_state = request.POST.get('remove_state', None)
+
     community_instance = Community.objects.get(pk=community_id)
 
-    is_promoter = Members.objects.filter(state=member_states.ADMIN, community_id=community_id, member_id=member_id)
-    is_promoter = is_promoter.exists()
+    if remove_state and remove_state == deleted_members.MEMBERSHIP_EXPIRED:
+        is_promoter = True
+        current_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+
+    else:
+        current_user_instance = User.objects.get(pk=member_id)
+
+        is_promoter = Members.objects.filter(state=member_states.ADMIN, community_id=community_id, member_id=member_id)
+        is_promoter = is_promoter.exists()
 
     if member_ids:
         if is_promoter:
@@ -2445,20 +2334,20 @@ def remove_from_member(request):
                             f", community id = {community_id}")
 
                         send_sync_notification.delay({'community_id':community_id,
-                                                'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+                                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
                         update_multiple_previews_in_community.delay({'community_id': community_id})
 
                         ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member)
 
                     else:
                         return JsonResponse(
-                            {'success': False, 'error_message': "Cannot the Owner of this community"})
+                            {'success': False, 'error_message': "Cannot remove the Owner of this community"})
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'error_message': "You are not the promoter of this community"})
 
-    ##pending member check
-    if member_ids == False:
+    # pending member check
+    if member_ids is False:
         is_pending = Members.objects.filter(state=member_states.PENDING_MEMBER, community_id=community_id,
                                             member_id=member_id)
         if is_pending.exists():
@@ -2478,7 +2367,7 @@ def remove_from_member(request):
             return JsonResponse({'success': True})
 
     # flow to leave the community
-    if not is_promoter and member_ids == False:
+    if not is_promoter and member_ids is False:
 
         is_member = Members.objects.filter(community_id=community_id, member_id=member_id).filter(
             Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER) |
@@ -2509,6 +2398,7 @@ def remove_from_member(request):
             send_notification_to_managers_when_member_leaves_community.delay(member_id, community_id)
 
             ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member_id)
+            MixpanelEvents.leave_community.delay(member_id, community_id)
 
             return JsonResponse({'success': True})
         else:
@@ -3732,7 +3622,7 @@ def create_draft_collabcard(request, res=None):
     return JsonResponse({'success': True, "chatroom": chatroom})
 
 
-def create_chatroom(card_instance, user_instance, state, current_user_id=None, answer="", **kwargs):
+def create_chatroom(card_instance, user_instance, state, current_user_id=None, answer="", topic_text=None, **kwargs):
     '''function to create chat-room and perform follow unfollow operations'''
     # handling answer states
 
@@ -3749,8 +3639,8 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
         community_id = community_instance.id
         community_name = community_instance.name
 
-        user_route = "route://member_profile/" + str(user_instance.id) + "?member_id=" + str(user_instance.id)
-        user_name = "<<" + user_name + "|" + user_route + "&community_id=" + str(community_id) + ">>"
+        user_route = f"route://member_profile/{user_instance.id}?member_id={user_instance.id}"
+        user_name = f"<<{user_name}|{user_route}&community_id={community_id}>>"
 
         if state == chatroom_states.CHATROOM_HEADER:
 
@@ -3802,13 +3692,18 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 
                 answer = f"{encoded_current_user_name} removed {user_name}"
 
-    instance = card_answers()
-    instance.answer = answer
-    instance.card = card_instance
-    instance.user = user_instance
-    instance.community = community_instance
-    instance.state = state
-    instance.save()
+        elif state == chatroom_states.ADDED_CHATROOM_TOPIC:
+            if topic_text is not None:
+                answer = f"{user_name} changed current topic to {topic_text}"
+
+    if answer:
+        instance = card_answers()
+        instance.answer = answer
+        instance.card = card_instance
+        instance.user = user_instance
+        instance.community = community_instance
+        instance.state = state
+        instance.save()
 
     if state == chatroom_states.CHATROOM_HEADER and\
             card_instance.type == card_types.CARD_INTRO:
@@ -4267,12 +4162,15 @@ def set_chatroom_active(request):
     return JsonResponse({"success": True})
 
 
-def get_branch_links_for_community_share(user_instance, community_instance):
+def get_branch_links_for_community_share(user_instance, community_instance,
+                                         payment_id=None, shared_by=None):
     is_promoter = False
     is_owner = False
+    is_member = False
     member_filter = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
-    user_has_share_permission = check_member_invite_private_right(user_instance, community_instance)
+    user_has_share_permission = False
+    user_has_approve_right = False
     community_id = community_instance.id
     member_id = user_instance.id
     if member_filter.exists():
@@ -4281,16 +4179,30 @@ def get_branch_links_for_community_share(user_instance, community_instance):
         if member_instance.state == member_states.ADMIN:
             is_promoter = True
 
+        if member_instance.state in [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE] :
+            is_member = True
+
         is_owner = member_instance.is_owner
 
-        if is_promoter or is_owner or user_has_share_permission:
+        if is_member:
+            user_has_share_permission = check_member_invite_private_right(user_instance, community_instance)
+        elif is_promoter or is_owner:
+            user_has_approve_right = check_admin_approve_right(user_instance, community_instance)
+
+        if user_has_approve_right or user_has_share_permission:
             aj = generate_private_link(community_instance=community_instance,
                                        promoter_instance=user_instance,
                                        just_send_aj=True)
-            branch_links = create_community_branch_links(community_id, member_id, aj)
+            branch_links = create_community_branch_links(community_id, member_id, aj,
+                                                         payment_id=payment_id,
+                                                         shared_by_id=shared_by,
+                                                         )
 
         else:
-            branch_links = create_community_branch_links(community_id, member_id)
+            branch_links = create_community_branch_links(community_id, member_id,
+                                                         payment_id=payment_id,
+                                                         shared_by_id=shared_by,
+                                                         )
 
     else:
         branch_links = create_community_branch_links(community_id, member_id)
@@ -4299,7 +4211,8 @@ def get_branch_links_for_community_share(user_instance, community_instance):
         'branch_links': branch_links,
         'is_owner': is_owner,
         'is_promoter': is_promoter,
-        'user_has_share_permission': user_has_share_permission
+        'user_has_share_permission': user_has_share_permission,
+        'user_has_approve_right': user_has_approve_right
     }
     return share_context
 
@@ -4311,10 +4224,8 @@ def fetch_share_url(request):
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
 
-    if RequestUtilities.is_request_web(request):
-        branch_links = generate_links_for_guest_web(community_id,member_id)
-        url = branch_links[2]['url']
-        return JsonResponse({'community_share': url, 'success': True})
+    payment_id = request.GET.get('payment_id')
+    shared_by = request.GET.get('shared_by')
 
     if not member_id:
         context = get_error_context(False, "send member id in headers")
@@ -4344,7 +4255,6 @@ def fetch_share_url(request):
             chatroom_share['creator_share_url'] = ''
             chatroom_share['link_created_at'] = ''
 
-
         return JsonResponse({'chatroom_share': chatroom_share, 'success': True})
 
     if community_id:
@@ -4353,20 +4263,25 @@ def fetch_share_url(request):
             user_instance = User.objects.get(id=member_id)
 
         except Exception as e:
-            context = get_error_context(False, e.args)
+            context = get_error_context(False, e.args[0])
 
             return JsonResponse(context, status=400)
 
-        share_context = get_branch_links_for_community_share(user_instance, community_instance)
+        share_context = get_branch_links_for_community_share(user_instance, community_instance,
+                                                             payment_id=payment_id,
+                                                             shared_by=shared_by)
         branch_links = share_context['branch_links']
-        community_share = dict()
+        community_share = {}
         community_name = community_instance.name
 
         try:
             if len(branch_links) > 0:
                 community_share['public_link'] = branch_links[0]['url']
 
-                if share_context['is_promoter'] or share_context['is_owner']:
+                community_share['public_link_text'] = SHARE_TEXT_ADMIN % (
+                    community_name, community_instance.purpose, community_share['public_link'])
+
+                if share_context['user_has_approve_right']:
                     community_share['private_link'] = branch_links[1]['url']
                     members_count = get_members_count_in_community(community_id)
 
@@ -4379,9 +4294,6 @@ def fetch_share_url(request):
                             community_name, branch_links[1]['url'])
 
                     community_share['private_link_members_directory'] = branch_links[2]['url']
-
-                    community_share['public_link_text'] = SHARE_TEXT_ADMIN % (
-                        community_name, community_instance.purpose, community_share['public_link'])
 
                     if share_context['is_owner']:
                         private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
@@ -4416,14 +4328,14 @@ def fetch_share_url(request):
                 return JsonResponse({'error_message': error_message, 'success': False})
 
         except Exception as e:
-            return JsonResponse({'success':False, 'error_message': e.args}, status=500)
+            return JsonResponse({'success': False, 'error_message': e.args}, status=500)
 
         return JsonResponse({'community_share': community_share, 'success': True})
 
     return JsonResponse({'error_message': "Invalid request", 'success': False}, status=400)
 
 
-def generate_links_for_guest_web(community_id,member_id):
+def generate_links_for_guest_web(community_id, member_id):
 
     if member_id and community_id:
         branch_link = create_community_branch_links(community_id, member_id, aj=None)
@@ -5159,6 +5071,8 @@ def approve_or_decline_private_community(req_dict, request):
                                                       promoter_name)
             send_community_confirmation_email.delay(req_dict['member_id'], community_id)
 
+            MixpanelEvents.member_approved_by_cm.delay(req_dict['member_id'], current_user_id, community_id)
+
     else:
 
         Members.objects.filter(member_id=req_dict['member_id'], community_id=community_id).delete()
@@ -5176,6 +5090,7 @@ def approve_or_decline_private_community(req_dict, request):
             toast_message="Your request for joining this community was rejected. You can apply again to join this community")
 
         send_notification_for_join_requests.delay(community_id, False, req_dict['member_id'], promoter_name)
+        MixpanelEvents.member_rejected_by_cm.delay(req_dict['member_id'], current_user_id, community_id)
 
 
 def set_state_for_onboarding_chatroom(community_instance, user_id, request):
@@ -9783,21 +9698,9 @@ def login_with_apple(request, res, json_to_save, login_type="apple"):
 
     # usr = UserinfoSerializer(userinfo)
     usr = get_logged_in_user(user_instance=userinfo.user_id)
-    # see if user has tags or not
-    has_tags = userinfo.has_tags
-
-    # # saving the OS type of user (Android,iOS,WEB)
-    # request_type = get_request_type(request)
-    # if request_type:
-    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
-
-    # User asscoaited tags if any present
-    if has_tags:
-        tags = get_user_lpig_tags(usr['id'])
-        usr['tags'] = tags
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'access': access, 'email_exists': email_exists, 'has_tags': has_tags}
+    context = {'user': usr, 'access': access, 'email_exists': email_exists}
     return context
 
 def decode_landing_type_from_url(user_acquisition_url):
@@ -10595,9 +10498,9 @@ def is_user_community_part(user_id):
     '''function to tell whether the user is a part of any community or nor'''
 
     members_filter = Members.objects.filter(member_id=user_id).filter(
-        Q(state=member_states.ADMIN) | Q(state=member_states.TEMP_ADMIN) |
-        Q(state=member_states.MEMBER) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(
-            state=member_states.PROFILE_UNAVAILABLE))
+        Q(state=member_states.ADMIN) |
+        Q(state=member_states.MEMBER) |
+        Q(state=member_states.PROFILE_UNAVAILABLE))
 
     return members_filter.exists()
 
@@ -10611,6 +10514,7 @@ def limit_access(request):
     except:
         context = get_error_context(False, "send correct user id")
         return JsonResponse(context)
+
     context = {}
 
     context['header_image'] = LIMIT_ACCESS_HEADER_IMAGE
@@ -12000,10 +11904,6 @@ def get_profile(request):
     try:
         user = Userinfo.objects.get(user_id=member_id)
         usr = UserinfoSerializer(user)
-        tags = get_user_lpig_tags(usr['id'])
-        if tags:
-            usr['tags'] = tags
-            return JsonResponse({'user': usr})
         return JsonResponse({'user': usr})
     except:
         print("userinfo object does not exist")
