@@ -22,6 +22,7 @@ from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 
 from external_services.caching.cache_impl import CacheImpl
+from external_services.mixpanel.events import MixpanelEvents
 from togther.models import *
 from random import randint
 # utility functions
@@ -2397,6 +2398,7 @@ def remove_from_member(request):
             send_notification_to_managers_when_member_leaves_community.delay(member_id, community_id)
 
             ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member_id)
+            MixpanelEvents.leave_community.delay(member_id, community_id)
 
             return JsonResponse({'success': True})
         else:
@@ -5069,6 +5071,8 @@ def approve_or_decline_private_community(req_dict, request):
                                                       promoter_name)
             send_community_confirmation_email.delay(req_dict['member_id'], community_id)
 
+            MixpanelEvents.member_approved_by_cm.delay(req_dict['member_id'], current_user_id, community_id)
+
     else:
 
         Members.objects.filter(member_id=req_dict['member_id'], community_id=community_id).delete()
@@ -5086,6 +5090,7 @@ def approve_or_decline_private_community(req_dict, request):
             toast_message="Your request for joining this community was rejected. You can apply again to join this community")
 
         send_notification_for_join_requests.delay(community_id, False, req_dict['member_id'], promoter_name)
+        MixpanelEvents.member_rejected_by_cm.delay(req_dict['member_id'], current_user_id, community_id)
 
 
 def set_state_for_onboarding_chatroom(community_instance, user_id, request):

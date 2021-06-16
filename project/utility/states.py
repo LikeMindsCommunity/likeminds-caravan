@@ -438,3 +438,13 @@ class LoginTypes:
 
 
 login_types = LoginTypes()
+
+
+class SubscriptionStatus(enum.Enum):
+    active = 0
+    expired = 1
+    grace_period = 2
+    renewal_due = 3
+
+    def fetch_name(self):
+        return '%s' % (" ".join(self.name.split("_")))

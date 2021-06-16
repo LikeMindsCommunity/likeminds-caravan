@@ -23,3 +23,11 @@ class MixpanelImpl(MixpanelManager):
                                          properties=properties)
         except Exception as e:
             error_logger.error(e)
+
+    def track_event(self, event_name, distinct_id, properties) -> None:
+        try:
+            self.mixpanel_instance.track(distinct_id=distinct_id,
+                                         event_name=event_name,
+                                         properties=properties)
+        except Exception as e:
+            error_logger.error(e)
