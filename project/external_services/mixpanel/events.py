@@ -10,6 +10,11 @@ from collabmates_api.user.constants import SUBSCRIPTION_FETCH_API_PATH
 from utility.api_client import ApiClient
 from utility.states import SubscriptionStatus
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
+
 
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
 
@@ -93,8 +98,13 @@ class MixpanelEventHelper:
 
         if response.get('success'):
             subscriptions = response.get("subscriptions", None)
+
             if subscriptions:
                 membership_state = subscriptions[0].get('membership_state', 1)
-                return SubscriptionStatus(membership_state).fetch_name()
 
-        return SubscriptionStatus.expired.name
+                try:
+                    return SubscriptionStatus(membership_state).fetch_name()
+                except ValueError as e:
+                    error_logger.error(f"enum value does not exist - {e}")
+
+        return SubscriptionStatus.SUBSCRIPTION_NOT_FOUND.fetch_name()

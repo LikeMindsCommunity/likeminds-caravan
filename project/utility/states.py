@@ -427,7 +427,7 @@ class SearchIndexes(enum.Enum):
     CHATROOM = "chatroom"
     CONVERSATION = "conversation"
 
-    
+
 class LoginTypes:
     GOOGLE = "google"
     FACEBOOK = "facebook"
@@ -441,10 +441,11 @@ login_types = LoginTypes()
 
 
 class SubscriptionStatus(enum.Enum):
-    active = 0
-    expired = 1
-    grace_period = 2
-    renewal_due = 3
+    ACTIVE = 0
+    EXPIRED = 1
+    GRACE_PERIOD = 2
+    RENEWAL_DUE = 3
+    SUBSCRIPTION_NOT_FOUND = 4
 
     def fetch_name(self):
-        return '%s' % (" ".join(self.name.split("_")))
+        return '%s' % (" ".join([word.lower() for word in self.name.split("_")]))
