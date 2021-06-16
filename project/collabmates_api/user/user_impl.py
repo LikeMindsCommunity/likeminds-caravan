@@ -494,6 +494,10 @@ class UserImpl(UserManager):
         return context
 
     def fetch_app_access(self) -> dict:
+
+        if not self.get_user_id():
+            return CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES
+        
         user_communities = Members.fetch_all_user_communties(self.get_user_id())
 
         user_community_data = self._process_user_communties_for_access(user_communities)

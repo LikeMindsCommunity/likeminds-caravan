@@ -116,9 +116,6 @@ class FetchUserAccess(APIView):
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
-        if not member_id:
-            raise InvalidHeaderException()
-
         user_manager = UserImpl(user_id=member_id, mobile_no="")
         user_context = user_manager.fetch_app_access()
 
