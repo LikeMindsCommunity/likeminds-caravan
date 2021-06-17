@@ -1473,10 +1473,10 @@ class ChatroomHelper:
 
         # local imports for conversation helper
         from ..conversation.conversation_impl import ConversationHelper
-        ConversationHelper.update_the_activity_time_for_new_conversation_creation(card_instance.id, user_instance.id)
+        ConversationHelper.update_the_activity_time_for_new_conversation_creation(master_intro_instance.id, user_instance.id)
 
         ConversationHelper.update_homescreen_meta_on_conversation_creation(community_instance,
-                                                                           card_instance,
+                                                                           master_intro_instance,
                                                                            answer_instance)
 
         update_preview_of_chatroom_in_cache({'chatroom_id': card_instance.id,
