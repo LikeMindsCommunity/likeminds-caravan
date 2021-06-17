@@ -213,14 +213,14 @@ def create_community_feed_url(community_instance):
     return data[0]['url']
 
 
-def create_community_otl_url(community_instance, payment_id, shared_by_id=None):
+def create_community_otl_url(community_instance, payment_id, shared_by=None):
 
     data = []
 
     base_url = f'{host_url}/community/{community_instance.id}'
 
-    if payment_id and shared_by_id:
-        private_url = base_url + f'?shared_by={shared_by_id}&payment_id={payment_id}'
+    if payment_id and shared_by:
+        private_url = base_url + f'?shared_by={shared_by}&payment_id={payment_id}'
 
     else:
         private_url = base_url + f'?payment_id={payment_id}'

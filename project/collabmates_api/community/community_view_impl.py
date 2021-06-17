@@ -140,7 +140,7 @@ class FetchCommunityOTLUrl(APIView):
         community_id = request.GET.get('community_id')
 
         payment_id = request.GET.get('payment_id')
-        shared_by_id = request.GET.get('shared_by_id')
+        shared_by = request.GET.get('shared_by')
 
         if not community_id:
             response = {
@@ -159,7 +159,7 @@ class FetchCommunityOTLUrl(APIView):
             raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id, community_id)
-        response_context = community_manager.fetch_otl_url(payment_id, shared_by_id)
+        response_context = community_manager.fetch_otl_url(payment_id, shared_by)
 
         return JsonResponse(response_context)
 

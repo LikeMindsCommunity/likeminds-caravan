@@ -421,10 +421,10 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True, 'feed_url': feed_url}
 
-    def fetch_otl_url(self, payment_id, shared_by_id):
+    def fetch_otl_url(self, payment_id, shared_by):
         community_instance = Community.get_community_or_raise_exception(self.get_community_id())
 
-        private_link = create_community_otl_url(community_instance, payment_id, shared_by_id)
+        private_link = create_community_otl_url(community_instance, payment_id, shared_by)
 
         return {'success': True, 'private_link': private_link}
 
