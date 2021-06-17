@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from collabmates_api.community.constants import MENU, COMMUNITY_REJECT_TOAST, LEVEL_3_TITLE, LEVEL_3_SUB_TITLE, \
     LEVEL_4_TITLE, LEVEL_4_SUB_TITLE
-from collabmates_api.branch import create_community_feed_url
+from collabmates_api.branch import create_community_feed_url, create_community_otl_url
 from collabmates_api.community.constants import MENU
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right
@@ -420,6 +420,13 @@ class CommunityImpl(CommunityManager):
         feed_url = create_community_feed_url(community_instance)
 
         return {'success': True, 'feed_url': feed_url}
+
+    def fetch_otl_url(self, payment_id, shared_by_id):
+        community_instance = Community.get_community_or_raise_exception(self.get_community_id())
+
+        private_link = create_community_otl_url(community_instance, payment_id, shared_by_id)
+
+        return {'success': True, 'private_link': private_link}
 
     def fetch_discoverable_communities(self, page, page_size):
         communities = Community.objects.filter(is_discoverable=True).order_by("id")

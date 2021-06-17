@@ -4162,8 +4162,7 @@ def set_chatroom_active(request):
     return JsonResponse({"success": True})
 
 
-def get_branch_links_for_community_share(user_instance, community_instance,
-                                         payment_id=None, shared_by=None):
+def get_branch_links_for_community_share(user_instance, community_instance):
     is_promoter = False
     is_owner = False
     is_member = False
@@ -4193,16 +4192,10 @@ def get_branch_links_for_community_share(user_instance, community_instance,
             aj = generate_private_link(community_instance=community_instance,
                                        promoter_instance=user_instance,
                                        just_send_aj=True)
-            branch_links = create_community_branch_links(community_id, member_id, aj,
-                                                         payment_id=payment_id,
-                                                         shared_by_id=shared_by,
-                                                         )
+            branch_links = create_community_branch_links(community_id, member_id, aj)
 
         else:
-            branch_links = create_community_branch_links(community_id, member_id,
-                                                         payment_id=payment_id,
-                                                         shared_by_id=shared_by,
-                                                         )
+            branch_links = create_community_branch_links(community_id, member_id)
 
     else:
         branch_links = create_community_branch_links(community_id, member_id)
@@ -4223,9 +4216,6 @@ def fetch_share_url(request):
 
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
-
-    payment_id = request.GET.get('payment_id')
-    shared_by = request.GET.get('shared_by')
 
     if not member_id:
         context = get_error_context(False, "send member id in headers")
@@ -4267,9 +4257,7 @@ def fetch_share_url(request):
 
             return JsonResponse(context, status=400)
 
-        share_context = get_branch_links_for_community_share(user_instance, community_instance,
-                                                             payment_id=payment_id,
-                                                             shared_by=shared_by)
+        share_context = get_branch_links_for_community_share(user_instance, community_instance)
         branch_links = share_context['branch_links']
         community_share = {}
         community_name = community_instance.name

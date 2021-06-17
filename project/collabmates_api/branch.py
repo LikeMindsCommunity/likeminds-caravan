@@ -8,6 +8,7 @@ from togther.models import Community
 from .static_files import *
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK)
+from utility.api_client import ApiClient
 
 info_logger = LoggingWrapper.get_instance()
 
@@ -22,8 +23,7 @@ host_url = strip_scheme(settings.URL)
 api_endpoint = BRANCH_QUICKLINK_URI % settings.BRANCH_KEY
 
 
-def create_community_branch_links(community_id, member_id, aj=None,
-                                  payment_id=None, shared_by_id=None):
+def create_community_branch_links(community_id, member_id, aj=None):
     """
     This will return 2 links in case of member and 3 in case of a owner or promoter
     For public
@@ -62,13 +62,7 @@ def create_community_branch_links(community_id, member_id, aj=None,
     if aj:
         # if the user is owner or promoter
         # create private link
-        if community_instance.is_paid and payment_id and shared_by_id:
-            private_url = base_url + f'?shared_by={shared_by_id}&payment_id={payment_id}'
-
-        elif community_instance.is_paid and payment_id:
-            private_url = base_url + f'?payment_id={payment_id}'
-
-        elif member_id:
+        if member_id:
             private_url = base_url + f'?shared_by={member_id}&aj={aj}'
 
         else:
@@ -170,7 +164,7 @@ def create_link_item(base_url, community, channel, feature, private=False):
         link_item["data"]['$web_only'] = True
         link_item["data"]['$ios_url'] = fallback_url
         link_item["data"]['$android_url'] = fallback_url
-        link_item["data"]['$android_deeplink_path'] = 'random'
+        link_item["data"]['$android_deeplink_path'] = fallback_url
 
     """
     redirect to web in case of member directory 
@@ -201,16 +195,52 @@ def create_community_feed_url(community_instance):
     long_url_item = create_link_item(feed_url, community_instance, "AppBackend", "CommunityFeed", private=True)
     data.append(long_url_item)
 
-    r = requests.post(url=api_endpoint, json=data)
+    client = ApiClient()
+    client.update_request_url(api_endpoint)
+    client.update_body(data)
+    client.post()
 
-    if r.status_code != 200:
+    if client.fetch_response_code() != 200:
         data = [{}]
         info_logger.info("Branch failed, sending normal links")
     else:
-        data = r.json()
+        data = client.fetch_response()
 
     # in case branch fails
     if 'url' not in data[0]:
         data[0]['url'] = f'https://{feed_url}'
+
+    return data[0]['url']
+
+
+def create_community_otl_url(community_instance, payment_id, shared_by_id=None):
+
+    data = []
+
+    base_url = f'{host_url}/community/{community_instance.id}'
+
+    if payment_id and shared_by_id:
+        private_url = base_url + f'?shared_by={shared_by_id}&payment_id={payment_id}'
+
+    else:
+        private_url = base_url + f'?payment_id={payment_id}'
+
+    long_url_item = create_link_item(private_url, community_instance, "AppBackend", "CommunityFeed", private=True)
+    data.append(long_url_item)
+
+    client = ApiClient()
+    client.update_request_url(api_endpoint)
+    client.update_body(data)
+    client.post()
+
+    if client.fetch_response_code() != 200:
+        data = [{}]
+        info_logger.info("Branch failed, sending normal links")
+    else:
+        data = client.fetch_response()
+
+    # in case branch fails
+    if 'url' not in data[0]:
+        data[0]['url'] = f'https://{private_url}'
 
     return data[0]['url']

@@ -4,7 +4,7 @@ from utility.request_utilities import RequestUtilities
 from rest_framework.views import APIView
 from external_services.logging.logging_wrapper import LoggingWrapper
 
-from utility.exception_utilities import InvalidHeaderException
+from utility.exception_utilities import InvalidHeaderException, CustomException
 from utility.number_utilities import NumberUtilities
 from rest_framework import status as status_codes
 
@@ -116,13 +116,50 @@ class FetchCommunityFeedUrl(APIView):
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
-        if not member_id:
-            raise InvalidHeaderException()
-
         community_id = request.GET.get('community_id')
+
+        if not community_id:
+            response = {
+                "success": False,
+                "error_message": "Send community_id in query params"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id, community_id)
         response_context = community_manager.fetch_feed_url()
+
+        return JsonResponse(response_context)
+
+
+class FetchCommunityOTLUrl(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        community_id = request.GET.get('community_id')
+
+        payment_id = request.GET.get('payment_id')
+        shared_by_id = request.GET.get('shared_by_id')
+
+        if not community_id:
+            response = {
+                "success": False,
+                "error_message": "Send community_id in query params"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        if not payment_id:
+            response = {
+                "success": False,
+                "error_message": "Send payment_id in query params"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id, community_id)
+        response_context = community_manager.fetch_otl_url(payment_id, shared_by_id)
 
         return JsonResponse(response_context)
 
