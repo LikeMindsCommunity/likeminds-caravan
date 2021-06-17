@@ -191,7 +191,7 @@ class Members(models.Model):
     @staticmethod
     def get_community_owner_user_instance_or_none(community: Community) -> object:
         member = Members.objects.filter(community_id=community, is_owner=True)
-        if member.exists():
+        if member:
             return member[0].member_id
         return None
 
@@ -201,7 +201,7 @@ class Members(models.Model):
         member = Members.objects.filter(community_id=community, member_id=member).prefetch_related('member_id',
                                                                                                    'approved_by')
 
-        if member.exists():
+        if member:
             return member[0]
 
         return None
@@ -210,6 +210,30 @@ class Members(models.Model):
     def get_managers_list(community: Community) -> list:
         return list(Members.objects.filter(community_id=community, state=member_states.ADMIN)
                     .values_list("member_id__id", flat=True))
+
+    @staticmethod
+    def get_pending_members(community: Community) -> list:
+
+        return Members.objects.filter(community_id=community, state=member_states.PENDING_MEMBER)
+
+    @staticmethod
+    def get_members_count_in_community(community_instance):
+
+        return Members.objects.filter(community_id=community_instance).filter(
+            Q(state=member_states.MEMBER)
+            | Q(state=member_states.ADMIN)
+            | Q(state=member_states.PROFILE_UNAVAILABLE)
+        ).count()
+    
+    @staticmethod
+    def get_members_of_community(community_instance):
+
+        return Members.objects.filter(community_id=community_instance).filter(
+            Q(state=member_states.MEMBER)
+            | Q(state=member_states.ADMIN)
+            | Q(state=member_states.PROFILE_UNAVAILABLE)
+        )
+
 
     @staticmethod
     def get_community_managers(community_id_list: list) -> list:
@@ -786,6 +810,45 @@ class collabcardState(models.Model):
 
             error_logger.error(e)
 
+    @staticmethod
+    def create_chatroom_state_instances_for_bulk_create(card_instance, user_instance, state=1,
+                                                        expire_at=None, external_seen=True, is_guest=False, source=None,
+                                                        follow_status=False,
+                                                        mute_status=False, is_tagged=False, external_follow=False,
+                                                        attending_status=False, **kwargs):
+        """function to create chatroom state instance for bulk create"""
+
+        if kwargs.get('community_instance'):
+            community_instance = kwargs.get('community_instance')
+        
+        else:
+            community_instance = card_instance.community
+
+        try:
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = card_instance
+            collabcard_state_instance.community = community_instance
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = state
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.external_seen = external_seen
+            collabcard_state_instance.expiry_time = expire_at
+            collabcard_state_instance.attending_status = attending_status
+            collabcard_state_instance.follow_status = follow_status
+            collabcard_state_instance.mute_status = mute_status
+            collabcard_state_instance.is_tagged = is_tagged
+            collabcard_state_instance.is_guest = is_guest
+            collabcard_state_instance.source = source
+            collabcard_state_instance.external_follow = external_follow
+
+            return collabcard_state_instance
+
+        except Exception as e:
+            error_logger.error(e)
+
+            return None
+
 
 class conversationMemberState(models.Model):
     '''function to save member state of conversation'''
@@ -830,6 +893,19 @@ class conversationEngage(models.Model):
                                                       related_name='second_last_conversation_user')
 
     rights_list = models.TextField(null=True)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = conversationEngage()
+        instance.card = create_info.get('card_instance')
+        instance.user = create_info.get('user_instance')
+        instance.community = create_info.get('community_instance')
+        instance.last_conversation = None
+        instance.unseen_count = 0
+        instance.rights_list = create_info.get('rights_list')
+        instance.created_at = TimeUtilities.current_time_in_sec()
+        instance.updated_at = TimeUtilities.current_time_in_sec()
+        instance.save()
 
 
 class temp_admin(models.Model):
@@ -1718,8 +1794,14 @@ class moderationHistory(models.Model):
                                       null=True)
     moderation_time = models.BigIntegerField(default=0)
 
-    def __str__(self):
-        return self.user.userinfo.name + "__" + self.community.name
+    @staticmethod
+    def create_instance(create_dict):
+        instance = moderationHistory()
+        instance.user = create_dict.get('user_instance')
+        instance.community = create_dict.get('community_instance')
+        instance.moderation_by = create_dict.get('moderation_by')
+        instance.type = create_dict.get('type')
+        instance.save()
 
     def save(self, *args, **kwargs):
         if self.moderation_time <= 0:

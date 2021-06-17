@@ -63,7 +63,8 @@ class FetchChatroomFeed(APIView):
         except Exception as e:
 
             error_logger.error(e.args)
-            return JsonResponse({'error_message': "Internal server error"}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JsonResponse({'error_message': "Internal server error"},
+                                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -90,10 +91,29 @@ class DeleteCommunityView(APIView):
         return JsonResponse(community_context)
 
 
+class ApproveOrDeclineCommunity(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid community"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id, req_body.get('community_id'))
+        community_context = community_manager.approve_or_decline_community(req_body)
+
+        if 'error_message' in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
+
+
 class FetchCommunityFeedUrl(APIView):
 
     def get(self, request):
-
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
         if not member_id:
@@ -110,7 +130,6 @@ class FetchCommunityFeedUrl(APIView):
 class FetchDiscoverableCommunities(APIView):
 
     def get(self, request):
-
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
         if not member_id:

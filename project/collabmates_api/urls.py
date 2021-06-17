@@ -2,24 +2,15 @@ from django.conf.urls import url
 from django.urls import path, include
 from . import views
 from collabmates_api import views as api_views
-# from collabmates_api.notification import send_poll_notification_manually
-from django.views.decorators.csrf import csrf_exempt
 from cms.marketing_banner.banner_views_impl import FetchBannerView
-
-#for testing email templates only remove.  in prod/beta
 from django.views.generic import TemplateView
 from .notification import send_test_notification
-
+from .community.community_view_impl import ApproveOrDeclineCommunity
 
 urlpatterns = [
 
     url('', include('django_prometheus.urls')),
-    #for testing email templates only. remove in prod/beta
-#     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
     path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
-
-    #path('communities', api_views.communities, name="communities"),
-  
     path('your_communities/<int:user_id>/', include('collabmates_api.member_community.urls')),
 
     path('community/<int:community_id>', api_views.community, name="community"),
@@ -28,22 +19,19 @@ urlpatterns = [
 
     path('v1/join_community', views.join_community_responses_version_1, name="join_community_responses_version_1"),
 
-    path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
+    path('v1/create_community', api_views.create_community_version_1, name='create_community_version_1'),
     path('fetch_community_types', api_views.fetch_community_types, name='fetch_community_types'),
     path('get_basic_directory_options', api_views.get_basic_directory_options, name='get_basic_directory_options'),
 
-    #path('v1/create_community_questions',api_views.create_community_questions,name='create_community_questions'),
     path('v1/edit_questions', api_views.edit_questions_version_1,
          name="edit_questions_version_1"),
-    #path('get_onboarding_examples', api_views.get_onboarding_examples,name="get_onboarding_examples"),
 
     path('multimedia/', include('collabmates_api.multimedia_operations.urls')),
 
-    path('dismiss', api_views.dismiss,name="dismiss"),
-
+    path('dismiss', api_views.dismiss, name="dismiss"),
 
     path('user/<int:user_id>', api_views.user, name="user"),
-    path('edit_user',api_views.edit_user,name="edit_user"),
+    path('edit_user', api_views.edit_user, name="edit_user"),
     path('update_email', api_views.update_email, name="update_email"),
     path('update_mobiles', api_views.update_mobiles, name="update_mobiles"),
     path('send_feedback', api_views.send_feedback, name="send_feedback"),
@@ -64,33 +52,30 @@ urlpatterns = [
 
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
     path('v1/fetch_chatroom_feed', api_views.fetch_chatroom_feed_version_1, name="fetch_chatroom_feed_version_1"),
-    path('fetch_community_chatroom_feed', api_views.fetch_community_chatroom_feed, name="fetch_community_chatroom_feed"),
+    path('fetch_community_chatroom_feed', api_views.fetch_community_chatroom_feed,
+         name="fetch_community_chatroom_feed"),
 
-
-    #path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
-    path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
+    path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite,
+         name="community_collabcard_invite"),
     path('v1/community_collabcard/<int:community_id>', api_views.community_cards_version_1,
          name="community_cards_version_1"),
     path('create_conversation', api_views.create_conversation, name="create_conversation"),
-    path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
-    path('generate_otp',api_views.generate_otp,name = 'generate_otp'),
-    path('verify_otp',api_views.verify_otp,name = 'verify_otp'),
-    path('merge_account',api_views.merge_account,name='merge_account'),
+    path('v1/login', api_views.login_authenticate_version_1, name='v1/login'),
+    path('generate_otp', api_views.generate_otp, name='generate_otp'),
+    path('verify_otp', api_views.verify_otp, name='verify_otp'),
+    path('merge_account', api_views.merge_account, name='merge_account'),
 
-    path('popup',api_views.popup,name='popup'),
-    path('snooze_popup',api_views.snooze_popup,name='snooze_popup'),
-    path('dismiss_popup',api_views.dismiss_popup,name='dismiss_popup'),
+    path('popup', api_views.popup, name='popup'),
+    path('snooze_popup', api_views.snooze_popup, name='snooze_popup'),
+    path('dismiss_popup', api_views.dismiss_popup, name='dismiss_popup'),
     path('phonebook', api_views.phonebook, name='phonebook'),
 
+    path('add_admin/<int:community_id>', api_views.add_admin, name='add_admin'),
+    path('remove_promoter', api_views.remove_promoter, name='remove_promoter'),
 
-
-    #path('image_upload',api_views.image_upload,name = 'image'),
-    path('add_admin/<int:community_id>',api_views.add_admin,name = 'add_admin'),
-    path('remove_promoter',api_views.remove_promoter,name = 'remove_promoter'),
-
-    path('pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
-    path('join',api_views.request_response,name = 'join'),
-    path('pending_members_count/<int:community_id>',api_views.pending_request_count,name = 'pending_request_count'),
+    path('pending_members/<int:community_id>', api_views.pending_members, name='pending_members'),
+    path('join', ApproveOrDeclineCommunity.as_view(), name='approve_or_decline_community'),
+    path('pending_members_count/<int:community_id>', api_views.pending_request_count, name='pending_request_count'),
 
     path('collabcard_seen', api_views.collabcards_seen, name='collabcard_seen'),
     path('collabcard_attend', api_views.collabcard_attend, name='collabcard_attend'),
@@ -112,27 +97,27 @@ urlpatterns = [
     path('limit_access', api_views.limit_access, name='limit_access'),
     path('skip_community', api_views.skip_community, name='skip_community'),
 
-    path('members_state',api_views.members_state,name='members_state'),
-    path('edit_member_profile',api_views.edit_member_profile,name='edit_member_profile'),
-    path('remove_from_member',api_views.remove_from_member,name='remove_from_member'),
-    path('fetch_community_profile',api_views.fetch_community_profile,name='fetch_community_profile'),
+    path('members_state', api_views.members_state, name='members_state'),
+    path('edit_member_profile', api_views.edit_member_profile, name='edit_member_profile'),
+    path('remove_from_member', api_views.remove_from_member, name='remove_from_member'),
+    path('fetch_community_profile', api_views.fetch_community_profile, name='fetch_community_profile'),
     path('fetch_user_chatrooms', api_views.fetch_user_chatrooms, name='fetch_user_chatrooms'),
     path('fetch_common_communities', api_views.fetch_common_communities, name='fetch_common_communities'),
 
     path('push', api_views.push, name='push'),
-    path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
-    path('accept_invitation',views.accept_invitation,name='accept_invitation'),
+    path('collabcard_follow', api_views.collabcard_follow, name='collabcard_follow'),
+    path('accept_invitation', views.accept_invitation, name='accept_invitation'),
 
     path('edit_community', views.edit_community, name='edit_community'),
     path('v1/edit_community', views.edit_community_version_1, name='edit_community_version_1'),
     path('edit_community_questions', views.edit_community_questions, name='edit_community_questions'),
 
-    #path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
+    # path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
     path('v1/upload_files', api_views.upload_files_version_1, name='upload_files_version_1'),
 
-    path('update_location',api_views.update_location,name='upload_location'),
-    path('fetch_location/<int:user_id>',api_views.get_user_location,name='fetch_location'),
+    path('update_location', api_views.update_location, name='upload_location'),
+    path('fetch_location/<int:user_id>', api_views.get_user_location, name='fetch_location'),
 
     path('decode_url', api_views.decode_url, name='decode_url'),
 
@@ -164,11 +149,10 @@ urlpatterns = [
     path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),
     path('push_email', api_views.push_email, name='push_email'),
 
-    #email verify
     path('email_verify', api_views.email_verify, name='email_verify'),
     path('sync_email', api_views.sync_email, name='sync_email'),
 
-    path('test_notification_api',api_views.test_notification_api,name='test_notification_api'),
+    path('test_notification_api', api_views.test_notification_api, name='test_notification_api'),
     path('unread_conversation_notification', api_views.unread_conversation_notification,
          name='unread_conversation_notification'),
 
@@ -226,7 +210,7 @@ urlpatterns = [
     path('sync_conversation_diff', api_views.SyncConversationDiff.as_view(), name='sync_conversation_diff'),
 
     #######################################################################################
-    path('conversation/',include('collabmates_api.conversation.urls')),
+    path('conversation/', include('collabmates_api.conversation.urls')),
     path('block_member', api_views.block_member, name='block_member'),
     path('send_test_notification', send_test_notification, name='send_test_notification'),
     path('chatroom/', include('collabmates_api.chatroom.urls')),
@@ -243,4 +227,3 @@ urlpatterns = [
 ]
 
 app_name = 'collabmates_api'
-

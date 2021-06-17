@@ -1,19 +1,36 @@
+import json
+
+from celery import shared_task
 from django.contrib.auth.models import User
 
+from collabmates_api.community.constants import MENU, COMMUNITY_REJECT_TOAST, LEVEL_3_TITLE, LEVEL_3_SUB_TITLE, \
+    LEVEL_4_TITLE, LEVEL_4_SUB_TITLE
 from collabmates_api.branch import create_community_feed_url
 from collabmates_api.community.constants import MENU
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right
-from collabmates_api.views import get_leave_community_text
+from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
+    give_default_member_rights
 from django.db.models import Q, F
+
+from external_services.mixpanel.events import MixpanelEvents
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
-    card_answers, collabcardState
+    card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
+    communityLevels, conversationEngage, userMemberRights, moderationHistory
+
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.states import member_states, card_types
+from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
+    community_level_states, moderation_history_types, question_states
 from utility.time_utilities import TimeUtilities
-from ..utility import pagination
+from utility.utils import check_notification_flag, get_first_name_from_name
+from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
+from ..mails import send_8am_level_mails_to_admin_scheduler
+from ..search.sync import ElasticSearchSync
+
+from ..tasks import send_community_confirmation_email
+from ..sms import send_community_confirmation_sms
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -277,6 +294,126 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True}
 
+    @staticmethod
+    def update_pending_members_after_request_accept_or_reject(community_instance):
+
+        pending_members = Members.get_pending_members(community_instance)
+        pending_members_count = len(pending_members)
+
+        ModelUtilities.model_update(Member_Engage, {'community_id': community_instance,
+                                                    'member_state': member_states.ADMIN},
+                                    {'pending_members': pending_members_count})
+
+    def decline_community_join_request(self, community_instance, user_instance):
+
+        ModelUtilities.delete_record_in_model(Members, {'member_id': user_instance.id,
+                                                        'community_id': community_instance.id})
+
+        ModelUtilities.delete_record_in_model(Member_Engage, {'member_id': user_instance.id,
+                                                              'community_id': community_instance.id})
+
+        ModelUtilities.delete_record_in_model(communityAnswers, {'member_id': user_instance.id,
+                                                                 'community_id': community_instance.id})
+
+        ModelUtilities.model_update(communityToast, {'community': community_instance.id,
+                                                     'user': user_instance.id},
+                                    {'toast_message': COMMUNITY_REJECT_TOAST})
+
+        self.update_pending_members_after_request_accept_or_reject(community_instance)
+
+    def approve_community_join_request(self, community_instance, user_instance, promoter_instance):
+
+        ModelUtilities.model_update(
+            Members,
+            {"member_id": user_instance, "community_id": community_instance},
+            {
+                "state": member_states.MEMBER,
+                "approved_by": promoter_instance,
+                "custom_title": "Member",
+                "created_at": TimeUtilities.current_time_in_sec(),
+                "updated_at": TimeUtilities.current_time_in_sec(),
+                "became_member_at": TimeUtilities.current_time_in_sec(),
+            }
+        )
+        ModelUtilities.model_update(
+            Member_Engage,
+            {"community_id": community_instance, "member_id": user_instance},
+            {
+                "click_state": click_states.DEFAULT,
+                "member_state": member_states.MEMBER,
+                "updated_at": TimeUtilities.current_time_in_sec(),
+                "rights_list": json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS),
+            }
+        )
+        ModelUtilities.model_update(collabcardState,
+                                    {'community': community_instance, 'user': user_instance},
+                                    {'is_guest': False, 'remove': None,
+                                     'updated_at': TimeUtilities.current_time_in_sec()})
+
+        ModelUtilities.model_update(card_answers,
+                                    {'community': community_instance, 'user': user_instance},
+                                    {'is_guest': False, 'remove': None,
+                                     'last_updated': TimeUtilities.current_time_in_milliseconds()})
+        self.update_pending_members_after_request_accept_or_reject(community_instance)
+
+    def set_members_count_in_community(self, community_id, members_count):
+
+        ModelUtilities.model_update(Community, {'id': community_id}, {'members_count': members_count})
+
+    def approve_or_decline_community(self, req_body) -> {}:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, req_body.get('community_id'))
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community id"}
+
+        promoter_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                    'member_id': self.get_member_id(),
+                                                                    'state': member_states.ADMIN})
+
+        if promoter_filter:
+            promoter_instance = promoter_filter[0].member_id
+            promoter_userinfo_instance = promoter_instance.userinfo
+            action_required_by_promoter = promoter_filter[0].actions_required
+
+        else:
+            return {'success': False, 'error_message': "You cannot approve or decline the request"}
+
+        if req_body.get('accepted'):
+
+            if Members.is_community_member(community_instance, user_instance):
+                return {'success': False, 'error_message': "You are already a community member"}
+
+            self.approve_community_join_request(community_instance, user_instance, promoter_instance)
+            members_count = Members.get_members_count_in_community(community_instance)
+            self.set_members_count_in_community(community_instance.id, members_count)
+
+            CommunityHelper.update_community_level_actions(community_instance,
+                                                           action_required_by_promoter, members_count)
+            CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
+                                                                                      user_instance)
+
+            card_instance = CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
+                                                                                   member_states.MEMBER)
+
+            CommunityHelper.run_async_for_for_community_approve(community_instance, user_instance,
+                                                                promoter_userinfo_instance)
+
+        else:
+            self.decline_community_join_request(community_instance, user_instance)
+            members_count = Members.get_members_count_in_community(community_instance)
+            self.set_members_count_in_community(community_instance.id, members_count)
+
+            CommunityHelper.run_async_task_for_community_declined(community_instance, user_instance,
+                                                               promoter_userinfo_instance)
+
+        return {'success': True}
+
     def fetch_feed_url(self):
         community_instance = Community.get_community_or_raise_exception(self.get_community_id())
 
@@ -319,3 +456,269 @@ class CommunityHelper:
             error_logger.error(e.args)
 
         return user_instance
+
+    @staticmethod
+    def save_level_2_details_in_community(level_instance, member_count, community_instance):
+
+        if level_instance.level == "Level 2" and level_instance.state == community_level_states.PENDING:
+            member_count = member_count - 1
+
+            if level_instance.joined_members < level_instance.max_members:
+                level_instance.joined_members = member_count
+                level_instance.save()
+
+            if level_instance.joined_members >= level_instance.max_members:
+                level_instance.state = community_level_states.COMPLETE
+                level_instance.save()
+
+                ModelUtilities.model_update(
+                    communityLevels,
+                    {'community': community_instance, 'level': "Level 3"},
+                    {
+                        'title': LEVEL_3_TITLE,
+                        'sub_title': LEVEL_3_SUB_TITLE,
+                        'state': community_level_states.PENDING,
+                    })
+                # community managers emails
+                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
+                                                              TimeUtilities.current_time_in_sec(), level=2, day=0,
+                                                              counter=0)
+
+    @staticmethod
+    def save_level_3_details_in_community(level_instance, community_instance):
+
+        if level_instance.level == "Level 3" and level_instance.state == community_level_states.PENDING:
+
+            if level_instance.joined_members < level_instance.max_members:
+                level_instance.joined_members = level_instance.joined_members + 1
+                level_instance.save()
+
+            if level_instance.joined_members >= level_instance.max_members:
+                level_instance.state = community_level_states.COMPLETE
+                level_instance.save()
+
+                ModelUtilities.model_update(
+                    communityLevels,
+                    {'community': community_instance, 'level': "Level 4"},
+                    {
+                        'title': LEVEL_4_TITLE,
+                        'sub_title': LEVEL_4_SUB_TITLE,
+                        'state': community_level_states.PENDING,
+                    })
+
+                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
+                                                              TimeUtilities.current_time_in_sec(), level=3, day=0,
+                                                              counter=0)
+
+    @staticmethod
+    def save_level_4_details_in_community(level_instance, community_instance):
+
+        if level_instance.level == "Level 4" and level_instance.state == community_level_states.PENDING:
+
+            if level_instance.joined_members < level_instance.max_members:
+                level_instance.joined_members = level_instance.joined_members + 1
+                level_instance.save()
+
+            if level_instance.joined_members >= level_instance.max_members:
+                level_instance.state = community_level_states.COMPLETE
+                level_instance.save()
+
+                ModelUtilities.model_update(Members, {'community_id': community_instance,
+                                                      'state': member_states.ADMIN},
+                                            {'actions_required': False,
+                                             'updated_at': TimeUtilities.current_time_in_sec()})
+
+                # community managers emails
+                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
+                                                              TimeUtilities.current_time_in_sec(), level=4, day=0,
+                                                              counter=0)
+
+    @staticmethod
+    def update_community_level_actions(community_instance, action_required_by_promoter, member_count):
+
+        if not action_required_by_promoter:
+            return
+
+        instance_list = ModelUtilities.get_model_filter(communityLevels,
+                                                        {'community': community_instance}).order_by('id')
+
+        for instance in instance_list:
+            CommunityHelper.save_level_2_details_in_community(instance, member_count, community_instance)
+            CommunityHelper.save_level_3_details_in_community(instance, community_instance)
+            CommunityHelper.save_level_4_details_in_community(instance, community_instance)
+
+    @staticmethod
+    @shared_task
+    def send_sms_to_the_approved_member_of_community(user_id, community_id):
+
+        notification_list = [
+            'mail_has_installed_app'
+        ]
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return
+
+        if check_notification_flag(user_instance.id, notification_list, card_id=None, community_id=None):
+            userinfo_instance = user_instance.userinfo
+            new_user_name = get_first_name_from_name(userinfo_instance.name)
+
+            mobile_filter = ModelUtilities.get_model_filter(userMobiles, {'user': user_instance,
+                                                                          'state': mobile_states.PRIMARY})
+
+            community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+            if not community_instance:
+                return
+
+            for instance in mobile_filter:
+                phone_no = str(instance.country_code) + str(instance.mobile_no)
+                send_community_confirmation_sms.delay(phone_no, community_instance.name,
+                                                      new_user_name, user_instance.id)
+
+    @staticmethod
+    def run_async_for_for_community_approve(community_instance, user_instance, promoter_userinfo_instance):
+        CommunityHelper.set_moderation_rights_and_and_delete_user_previous_metadata.delay(user_instance.id,
+                                                                                          community_instance.id,
+                                                                                          promoter_userinfo_instance.user_id_id)
+        CommunityHelper.send_sms_to_the_approved_member_of_community.delay(user_instance.id, community_instance.id)
+        send_notification_for_join_requests.delay(community_instance.id, True, user_instance.id,
+                                                  promoter_userinfo_instance.name)
+        send_community_confirmation_email.delay(user_instance.id, community_instance.id)
+        MixpanelEvents.member_approved_by_cm.delay(user_instance.id, promoter_userinfo_instance.user_id_id
+                                                   , community_instance.id)
+
+    @staticmethod
+    def run_async_task_for_community_declined(community_instance, user_instance, promoter_userinfo_instance):
+        send_notification_for_join_requests.delay(community_instance.id, False,
+                                                  user_instance.id, promoter_userinfo_instance.name)
+        MixpanelEvents.member_rejected_by_cm.delay(user_instance.id, promoter_userinfo_instance.user_id_id,
+                                                   community_instance.id)
+
+    @staticmethod
+    @shared_task
+    def set_moderation_rights_and_and_delete_user_previous_metadata(user_id, community_id, promoter_id):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return
+
+        promoter_instance = ModelUtilities.get_model_instance_or_none(User, promoter_id)
+
+        if not promoter_instance:
+            return
+
+        give_default_member_rights(user=user_instance, community=community_instance)
+
+        history_type = moderation_history_types.APPROVED_FROM
+
+        is_rejoined = ModelUtilities.is_model_filter_exists(removedMembers, {'member': user_instance,
+                                                                             'community': community_instance})
+
+        ModelUtilities.delete_record_in_model(communityToast, {'community': community_instance,
+                                                               'user': user_instance})
+        ModelUtilities.delete_record_in_model(removedMembers, {'community': community_instance,
+                                                               'member': user_instance})
+
+        if is_rejoined:
+            history_type = moderation_history_types.REJOINED_COMMUNITY_PUBLIC_LINK
+            CommunityHelper.update_followed_chatrooms_for_rejoined_member(user_instance, community_instance)
+
+        moderationHistory.create_instance({'user_instance': user_instance, 'community_instance': community_instance,
+                                           'moderation_by': promoter_instance, 'type': history_type})
+
+    @staticmethod
+    def update_followed_chatrooms_for_rejoined_member(user_instance, community_instance):
+
+        followed_filter = ModelUtilities.get_model_filter(collabcardState, {'user': user_instance,
+                                                                            'community': community_instance})
+        for instance in followed_filter:
+
+            engage_filter_exists = ModelUtilities.is_model_filter_exists(conversationEngage,
+                                                                         {'card': instance.card,
+                                                                          'user': user_instance})
+            if not engage_filter_exists:
+                engage_instance = conversationEngage()
+                engage_instance.community = community_instance
+                engage_instance.card = instance.card
+                engage_instance.user = instance.user
+                engage_instance.created_at = instance.created_at
+                engage_instance.updated_at = instance.updated_at
+                engage_instance.save()
+
+        rights_list = list(ModelUtilities.get_model_filter(userMemberRights,
+                                                           {'user': user_instance,
+                                                            'community': community_instance}).
+                           values_list("right__state", flat=True))
+        rights_list = json.dumps(rights_list)
+        ModelUtilities.model_update(conversationEngage, {'user': user_instance,
+                                                         'community': community_instance},
+                                    {'rights_list': rights_list})
+
+        # update elastic search
+        ElasticSearchSync.update_chatrooms_for_rejoined_member(community_instance.id, user_instance.id)
+
+    @staticmethod
+    def set_follow_status_for_announcement_chatroom_for_community(community_instance, user_instance):
+
+        card_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
+                                                                   'type': card_types.CARD_PURPOSE})
+        if card_filter:
+            card_instance = card_filter[0]
+
+            ChatroomHelper.auto_follow_chatroom(card_instance, user_instance, community_instance, status=True,
+                                                member_state=member_states.MEMBER)
+
+    @staticmethod
+    def create_introduction_text_for_intro_chatroom(community_instance, user_instance):
+        intro_answer = ModelUtilities.get_model_filter(communityAnswers, {'community': community_instance,
+                                                                          'member': user_instance,
+                                                                          'question__question_state': question_states.INTRODUCTION})
+
+        if intro_answer:
+            return intro_answer[0].question_answer
+
+    @staticmethod
+    def add_introductions_room_in_master_intro(community_instance, user_instance, member_state):
+
+        master_intro = ModelUtilities.get_model_filter(Collabcard,
+                                                       {'community': community_instance,
+                                                        'type': card_types.CARD_MASTER_INTRO,
+                                                        'is_deleted': False})
+
+        if not master_intro:
+            return
+
+        intro_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
+                                                                    'user': user_instance,
+                                                                    'type': card_types.CARD_INTRO,
+                                                                    'is_deleted': False})
+
+        if intro_filter:
+            return
+
+        userinfo_instance = user_instance.userinfo
+        master_intro_instance = master_intro[0]
+
+        introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(community_instance,
+                                                                                          user_instance)
+        req_dict = {
+            'title': introduction_answer,
+            'type': 1,
+            'header': userinfo_instance.name
+        }
+
+        chatroom_manager = ChatroomImpl(user_instance.id)
+
+        card_instance = chatroom_manager.create_introduction_card_in_community(community_instance, user_instance,
+                                                                               req_dict,
+                                                                               member_state, master_intro_instance)
+
+        return card_instance

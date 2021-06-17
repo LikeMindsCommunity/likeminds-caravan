@@ -136,13 +136,13 @@ def get_user_image_based_on_community(user_id, community_id):
     image_url = ""
     member_filter = Members.objects.filter(member_id=user_id, community_id=community_id)
 
-    if member_filter.exists() and member_filter[0].image_url:
+    if member_filter and member_filter[0].image_url:
         image_url = member_filter[0].image_url
 
     else:
         userinfo_filter = Userinfo.objects.filter(user_id=user_id)
 
-        if userinfo_filter.exists() and userinfo_filter[0].image_link:
+        if userinfo_filter:
             image_url = userinfo_filter[0].image_link
 
     return image_url

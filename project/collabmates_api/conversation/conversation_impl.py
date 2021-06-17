@@ -1180,7 +1180,7 @@ class ConversationHelper:
             )
 
         if unseen_count > 0:
-            card_state_instance.expiry_time=None
+            card_state_instance.expiry_time = None
             card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             card_state_instance.save()
 

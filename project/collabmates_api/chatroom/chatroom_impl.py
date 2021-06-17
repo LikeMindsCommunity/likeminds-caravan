@@ -4,9 +4,10 @@ import time
 from typing import Union
 from rest_framework import status as status_codes
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.db.models import Q, Max
 from celery import shared_task
 
+from django.conf import settings
 from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_PLACEHOLDER_USER_ROUTE
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
@@ -14,11 +15,12 @@ from ..rest_api import GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, get_chatroom_instance, CommunitySerializer,
                            CollabcardSerializer, UserinfoSerializer)
 from ..sync.model_update import update_models_for_syncing_apis
+from ..upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
 from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_time_of_chatroom,
                      create_chatroom_state_instance, get_icons_states_of_chatroom_version_1,
                      save_the_latest_conversation, collabcard_follow_internal,
                      send_chatroom_creation_notifications_and_mails, update_seen_status_for_new_user_in_chatroom,
-                     create_chatroom, get_latest_conversation_members, )
+                     create_chatroom, get_latest_conversation_members, create_chatroom_engagement, )
 from ..tasks import update_pending_chatroom_count_for_promoters
 from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts,
                             send_ice_breaker_notification, send_sync_notification,
@@ -32,12 +34,13 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import chatroom_states, member_states, card_types, collabcard_states, SyncNotificationTypes, \
-    SyncTypes
+    SyncTypes, member_rights
 
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation, get_chatroom_user_images_for_web, \
-    schedule_chatroom_unpinning_after_event_completion, update_last_unseen_in_engage
+    schedule_chatroom_unpinning_after_event_completion, update_last_unseen_in_engage, \
+    update_preview_of_chatroom_in_cache
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
@@ -307,7 +310,7 @@ class ChatroomImpl(ChatroomManager):
         card_content['multiple_select_no'] = req_body.get('multiple_select_no', None)
         card_content['multiple_select_state'] = req_body.get('multiple_select_state', None)
 
-    def _fill_chatroom_header(self, card_content, req_body, chatroom_type, chatroom_name, decoded_chatroom_title):
+    def _fill_chatroom_header(self, card_content, req_body, chatroom_type, chatroom_name, decoded_chatroom_title=""):
 
         card_type = chatroom_type
         has_been_named = False
@@ -973,6 +976,64 @@ class ChatroomImpl(ChatroomManager):
 
         return {'members': members, 'participants': participant_list}
 
+    def create_introduction_card_in_community(self, community_instance, user_instance, req_body, member_state,
+                                              master_intro_instance):
+
+        card_content = {}
+        chatroom_name = req_body.get('title')
+        chatroom_type = card_types.CARD_INTRO
+
+        self._fill_chatroom_basic_info(card_content, chatroom_name,
+                                       community_instance, user_instance, chatroom_type)
+
+        self._fill_chatroom_attachment_count(card_content, req_body)
+        self._fill_chatroom_epoch_time(card_content, req_body)
+
+        self._fill_chatroom_event_details(card_content=card_content, req_body=req_body)
+        self._fill_chatroom_poll_details(card_content, req_body)
+        self._fill_chatroom_header(card_content, req_body, chatroom_type, chatroom_name)
+
+        self._add_og_tags(req_body=req_body, card_content=card_content)
+        self._fill_secret_room_details(card_content, req_body, community_instance)
+
+        card_content['member_state'] = member_state
+        chatroom_instance = self._create_chatroom_with_contents(card_content=card_content)
+
+        self.add_files_for_introduction_card(chatroom_instance, user_instance, community_instance)
+        ChatroomHelper.update_time_for_community_members_on_card_creation(community_instance)
+        ChatroomHelper.auto_follow_chatroom(chatroom_instance, user_instance,
+                                            community_instance, member_state=member_state)
+        create_chatroom(card_instance=chatroom_instance, user_instance=user_instance,
+                        state=chatroom_states.CHATROOM_HEADER, current_user_id=self.get_member_id())
+
+        # async task for posting introduction room
+        ChatroomHelper.update_old_chatrooms_relation_and_post_introduction_conversation.delay(master_intro_instance.id,
+                                                                                              user_instance.id,
+                                                                                              chatroom_instance.id,
+                                                                                              community_instance.id,
+                                                                                              member_state)
+
+        ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(chatroom_instance.id,
+                                                                                    user_instance.id,
+                                                                                    community_instance.id)
+        send_ice_breaker_notification.delay(community_instance.id, TimeUtilities.current_time_in_sec(), day=0)
+
+        return chatroom_instance
+
+    def add_files_for_introduction_card(self, card_instance, user_instance, community_instance):
+
+        image_url = get_user_image_based_on_community(user_instance.id, community_instance.id)
+
+        if card_instance and image_url:
+            save_chatroom_attachments(card_instance, body={
+                'url': image_url,
+                'type': "image",
+                'index': 1
+            })
+            ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
+                                        {'has_files': True, 'attachment_count': 1,
+                                         'attachments_uploaded': True})
+
 
 class ChatroomHelper:
 
@@ -1149,3 +1210,276 @@ class ChatroomHelper:
         placeholder = placeholder + user_name
 
         return placeholder
+
+    @staticmethod
+    def create_card_engagement_for_home_screen(card_instance, user_instance, community_instance, member_state=0):
+
+        instance_list = ModelUtilities.get_model_filter(conversationEngage,
+                                                        {'card': card_instance,
+                                                         'user': user_instance})
+
+        rights_list = None
+
+        if member_state == member_states.ADMIN:
+            rights_list = json.dumps(member_rights.ALL_MEMBER_RIGHTS)
+        elif member_state == member_states.MEMBER or member_state == member_states.PROFILE_UNAVAILABLE:
+            rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
+
+        if not instance_list:
+            conversationEngage.create_instance({'card_instance': card_instance,
+                                                'user_instance': user_instance,
+                                                'community_instance': community_instance,
+                                                'rights_list': rights_list})
+
+        else:
+            instance = instance_list[0]
+            ModelUtilities.model_update(conversationEngage, {'id': instance.id},
+                                        {'last_conversation': None,
+                                         'updated_at': TimeUtilities.current_time_in_sec()})
+
+        ChatroomHelper.update_rights_list_in_conversationEngage(user_instance, community_instance)
+
+    @staticmethod
+    def update_rights_list_in_conversationEngage(user_instance, community_instance):
+        rights_list = list(userMemberRights.objects.filter(user=user_instance,
+                                                           community=community_instance).values_list("right__state",
+                                                                                                     flat=True))
+        rights_list = json.dumps(rights_list)
+
+        ModelUtilities.model_update(conversationEngage, {'user': user_instance,
+                                                         'community': community_instance},
+                                    {'rights_list': rights_list})
+
+    @staticmethod
+    def auto_follow_chatroom(card_instance, user_instance, community_instance, status=True, func_dict=None,
+                             member_state=0):
+
+        if func_dict is None:
+            func_dict = {}
+
+        is_guest = False
+        is_tagged = False
+        ref_instance = None
+        mute_status = False
+
+        if func_dict.get('is_guest') and func_dict.get('source_id'):
+            is_guest = func_dict['is_guest']
+            source_id = func_dict['source_id']
+            ref_instance = ModelUtilities.get_model_instance_or_none(User, source_id)
+
+            if not ref_instance:
+                return
+
+        elif func_dict.get('is_tagged'):
+            is_tagged = True
+            mute_status = True
+
+        chatroom_state_instance = None
+
+        collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                                    'user': user_instance})
+
+        if not collabcard_state_filter:
+
+            expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
+            card_state_instance = collabcardState.create_chatroom_state_instance(card_instance, user_instance,
+                                                                                 state=collabcard_states.COLLABCARD_STATE_SEEN,
+                                                                                 expire_at=expiry_time,
+                                                                                 is_guest=is_guest,
+                                                                                 source=ref_instance,
+                                                                                 follow_status=status,
+                                                                                 mute_status=mute_status,
+                                                                                 is_tagged=is_tagged
+                                                                                 )
+        else:
+            card_state_instance = collabcard_state_filter[0]
+            expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
+            card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+            card_state_instance.expiry_time = expiry_time
+            card_state_instance.follow_status = status
+            card_state_instance.mute_status = mute_status
+            card_state_instance.is_guest = is_guest
+            card_state_instance.is_tagged = is_tagged
+            card_state_instance.save()
+
+        if status:
+            ChatroomHelper.create_card_engagement_for_home_screen(card_instance, user_instance, community_instance,
+                                                                  member_state=member_state)
+
+        # local imports for conversation helper
+        from ..conversation.conversation_impl import ConversationHelper
+
+        ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance, card_instance,
+                                                                     card_state_instance, user_instance)
+
+        ElasticSearchSync.update_chatroom_for_user.delay(card_instance.id, user_instance.id)
+
+    @staticmethod
+    def pre_compute_existance_in_chatroom_state(chatroom_list, user_instance):
+
+        state_filter = collabcardState.objects.filter(card__in=chatroom_list, user=user_instance)
+
+        chatroom_state_dict = {chatroom_id: False for chatroom_id in chatroom_list}
+
+        for data in state_filter:
+            card_id = data.card_id
+
+            if chatroom_state_dict.get(card_id) is False:
+                chatroom_state_dict[card_id] = True
+
+        return chatroom_state_dict
+
+    @staticmethod
+    def pre_compute_last_conversation_in_chatroom(chatroom_list):
+
+        conversation_filter = card_answers.objects.filter(card__in=chatroom_list,
+                                                          state=chatroom_states.ANSWER).values('card'). \
+            annotate(created_at=Max('created_at'))
+
+        chatroom_set = set(chatroom_list)
+        conversation_created_at = {}
+
+        for data in conversation_filter:
+
+            if data['card'] in chatroom_set:
+                created_at = data['created_at']
+
+                if TimeUtilities.is_epoch_in_milliseconds(created_at):
+                    created_at = TimeUtilities.convert_milliseconds_to_sec(created_at)
+
+                conversation_created_at['created_at'] = created_at
+
+        return conversation_created_at
+
+    @staticmethod
+    @shared_task
+    def update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance):
+        chatroom_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
+                                                                       'is_pending': False,
+                                                                       'is_deleted': False,
+                                                                       'is_secret': False})
+
+        chatroom_list = list(chatroom_filter.values_list('id', flat=True))
+        chatroom_state_dict = ChatroomHelper.pre_compute_existance_in_chatroom_state(chatroom_list, user_instance)
+        conversation_created_at = ChatroomHelper.pre_compute_last_conversation_in_chatroom(chatroom_list)
+
+        bulk_create_list = []
+
+        for card_instance in chatroom_filter:
+
+            if chatroom_state_dict.get(card_instance.id) is False:
+                expire_at = conversation_created_at.get(card_instance.id, card_instance.date_epoch) + \
+                            CHATROOM_EXPIRE_DURATION
+
+                instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
+                                                                                           user_instance,
+                                                                                           expire_at=expire_at,
+                                                                                           community_instance=community_instance)
+                if instance:
+                    bulk_create_list.append(instance)
+
+        collabcardState.objects.bulk_create(bulk_create_list)
+
+    @staticmethod
+    def pre_compute_existance_of_members_in_chatroom_state(card_instance, member_list):
+        state_filter = collabcardState.objects.filter(card=card_instance, user__in=member_list)
+
+        member_dict = {user_id: False for user_id in member_list}
+
+        for data in state_filter:
+            user_id = data.user_id
+
+            if member_dict.get(user_id) is False:
+                member_dict[user_id] = True
+
+        return member_dict
+
+    @staticmethod
+    def set_state_for_all_chatroom_members_in_community(card_instance, community_instance):
+
+        member_filter = Members.get_members_of_community(community_instance).select_related('member_id')
+        member_list = list(member_filter.values_list('member_id_id', flat=True))
+
+        member_dict = ChatroomHelper.pre_compute_existance_of_members_in_chatroom_state(card_instance, member_list)
+        bulk_create_list = []
+
+        for data in member_filter:
+            user_instance = data.member_id
+
+            if member_dict.get(user_instance.id) is False:
+                instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
+                                                                                           user_instance,
+                                                                                           community_instance=community_instance)
+                if instance:
+                    bulk_create_list.append(instance)
+
+        collabcardState.objects.bulk_create(bulk_create_list)
+
+    @staticmethod
+    def update_unseen_count_for_homescreen_communitites(card_instance, community_instance):
+        # updating last unseen chatrooms for home screen
+        member_filter = Members.get_members_of_community(community_instance)
+
+        for data in member_filter:
+            user_instance = data.member_id
+
+            if card_instance.attachment_count != 0 and card_instance.attachments_uploaded is False:
+                continue
+
+            update_last_unseen_in_engage(user=user_instance.id, community=community_instance.id, is_seen=True)
+
+    @staticmethod
+    @shared_task
+    def run_async_tasks_related_to_member_for_chatroom_posting(card_id, user_id, community_id):
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not card_instance \
+                or not user_instance \
+                or not community_instance:
+            return
+
+        ChatroomHelper.set_state_for_all_chatroom_members_in_community(card_instance, community_instance)
+        update_last_answer_id(card_instance.id, "")
+        ChatroomHelper.update_unseen_count_for_homescreen_communitites(card_instance, community_instance)
+        ElasticSearchSync.update_all_community_chatrooms_for_user(community_instance.id, user_instance.id)
+        ElasticSearchSync.update_chatroom(card_instance.id)
+
+    @staticmethod
+    @shared_task
+    def update_old_chatrooms_relation_and_post_introduction_conversation(master_intro_id, user_id, card_id,
+                                                                         community_id, member_state):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        master_intro_instance = ModelUtilities.get_model_instance_or_none(Collabcard, master_intro_id)
+
+        ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
+
+        preview_url = settings.URL + "/collabcard/" + str(card_instance.id)
+        conversation_context = {'answer': card_instance.title, 'card': master_intro_instance, 'user': user_instance,
+                                'community': community_instance, 'has_files': False, 'attachment_count': 0,
+                                'attachments_uploaded': False, 'api_version': 1, 'preview_chatroom': card_instance,
+                                'preview_community': community_instance, 'internal_link': preview_url,
+                                'preview_type': "chatroom"}
+
+        answer_instance = card_answers(**conversation_context)
+        answer_instance.save()
+        ChatroomHelper.auto_follow_chatroom(master_intro_instance, user_instance, community_instance,
+                                            member_state=member_state)
+
+        # local imports for conversation helper
+        from ..conversation.conversation_impl import ConversationHelper
+        ConversationHelper.update_the_activity_time_for_new_conversation_creation(card_instance.id, user_instance.id)
+
+        ConversationHelper.update_homescreen_meta_on_conversation_creation(community_instance,
+                                                                           card_instance,
+                                                                           answer_instance)
+
+        update_preview_of_chatroom_in_cache({'chatroom_id': card_instance.id,
+                                             'preview_url': preview_url,
+                                             'conversation_id': answer_instance.id})
+        ElasticSearchSync.update_chatroom_for_user(master_intro_instance.id, user_instance.id)
