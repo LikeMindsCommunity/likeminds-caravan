@@ -252,9 +252,12 @@ class ChatroomImpl(ChatroomManager):
             secret_chatroom_participants = req_body.get("secret_chatroom_participants", None)
 
             if secret_chatroom_participants:
-                cm_list = set(Members.get_managers_list(community=community))
-                final_participants_list = list(set(secret_chatroom_participants) | cm_list)
-                card_content['secret_chatroom_participants'] = json.dumps(final_participants_list)
+                member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
+
+                if member_id not in secret_chatroom_participants:
+                    secret_chatroom_participants.append(member_id)
+
+                card_content['secret_chatroom_participants'] = json.dumps(secret_chatroom_participants)
 
     def _fill_chatroom_attachment_count(self, card_content, req_body):
         card_content['image_count'] = req_body.get('image_count', 0)
@@ -808,28 +811,6 @@ class ChatroomImpl(ChatroomManager):
             raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
         user_instance = ChatroomHelper.fetch_user_instance(member_id=member_id)
-
-        member_instance = Members.objects.filter(community_id=chatroom_instance.community,
-                                                 member_id=user_instance)
-
-        if member_instance.exists():
-            member_instance = member_instance[0]
-            is_owner = member_instance.is_owner
-            is_cm = member_instance.state == member_states.ADMIN
-
-        else:
-            response = {
-                'success': False,
-                'error_message': 'non member cannot leave secret chatroom or cannot be removed from secret chatroom'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
-
-        if is_cm or is_owner:
-            response = {
-                'success': False,
-                'error_message': 'community manager or owner cannot leave secret chatroom or cannot be removed from secret chatroom'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
         # removing member id from secret_chatroom_participants list
         existing_participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
