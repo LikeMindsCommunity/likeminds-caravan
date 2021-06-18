@@ -348,7 +348,7 @@ def get_secret_chatroom_participants(chatroom_instance, current_user_id, page=1,
 
         member_profile_list.append(community_profile)
 
-    can_edit_participant = current_user_id == chatroom_instance.user.id
+    can_edit_participant = current_user_id == chatroom_instance.user_id
 
     if current_user_profile is not None:
         member_profile_list.insert(0, current_user_profile)
