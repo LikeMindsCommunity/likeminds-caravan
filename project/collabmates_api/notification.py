@@ -59,6 +59,11 @@ from utility.celery_tasks import save_users_with_muted_chatrooms
 from utility.cache_keys import USER_MUTED_CHATROOM
 from external_services.caching.cache_impl import CacheImpl
 
+from external_services.wa_notification.wa_notification_impl import NotificationImpl
+from external_services.wa_notification.constants import WATI_NOTIFICATION_CONST
+
+from collabmates_api.user.user_impl import UserHelper
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -656,6 +661,17 @@ def schedule_online_event_future_notification(card_instance):
                                                           eta=task_begin_date_time,
                                                           expires=task_expiry_date_time)
 
+    task_begin_epoch_time = TimeUtilities.subtract_minutes_from_epoch_time(card_end_time, minutes=10)
+    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=15)
+
+    # scheduling event remainder on whatsapp before 10 minutes
+    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
+    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
+    online_event_remainder_notification_10_min.apply_async(args=args,
+                                                          kwargs={},
+                                                          eta=task_begin_date_time,
+                                                          expires=task_expiry_epoch_time)
+
 
 def schedule_offline_event_future_notifications(card_instance):
 
@@ -696,7 +712,7 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
 
     collabcardstates = collabcardState.objects.filter(card=card_id,
                                                       attending_status=True,
-                                                      remove=None).select_related('user')
+                                                      remove=None).select_related('user', 'community')
 
     notification_list = []
     for ccs in collabcardstates:
@@ -717,6 +733,86 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
     }}
 
     return notification_list, message
+
+
+def get_user_data_for_event_wa_notification(card_instance):
+
+    card_id = card_instance.id
+    community_instance = card_instance.community
+    card_title = get_title_from_collabcard(card_instance)
+
+    collabcardstates_queryset = ModelUtilities.get_model_filter(collabcardState, {
+        'card': card_id,
+        'attending_status': True,
+        'remove': None
+    })
+
+    data_list = []
+    user_ids = [data.user_id for data in collabcardstates_queryset]
+
+    user_data = get_user_details_for_event_attendees(user_ids)
+
+    for user_id in user_ids:
+        data_item = {
+            "phone": user_data[user_id]['phone'],
+            "parameters": [
+                {
+                    "name": "name",
+                    "value": user_data[user_id]['name'].strip(),
+                },
+                {
+                    "name": "event_name",
+                    "value": card_title.strip()
+                },
+                {
+                    "name": "community_name",
+                    "value": community_instance.name.strip()
+                },
+                {
+                    "name": "event_link",
+                    "value": str(card_instance.id)
+                }
+            ]
+        }
+        data_list.append(data_item)
+
+    return data_list
+
+
+
+def precompute_usernames_for_evebt_attendies(user_ids):
+    userinfo_queryset = ModelUtilities.get_model_filter(Userinfo, {
+        'user_id__in': user_ids
+    })
+
+    user_names = {}
+
+    for userinfo in userinfo_queryset:
+        user_names[userinfo.user_id_id] = userinfo.name
+
+    return user_names
+
+
+def get_user_details_for_event_attendees(user_ids):
+
+    mobile_queryset = ModelUtilities.get_model_filter(userMobiles, {
+        'user__in': user_ids,
+        'state': mobile_states.PRIMARY
+    })
+
+    user_names = precompute_usernames_for_evebt_attendies(user_ids)
+
+    user_data = {}
+
+    for mobile in mobile_queryset:
+        user_name = user_names[mobile.user_id]
+        user_mobile = str(mobile.country_code) + str(mobile.mobile_no)
+
+        user_data[mobile.user_id] = {}
+        user_data[mobile.user_id]['phone'] = user_mobile
+        user_data[mobile.user_id]['name'] = user_name
+
+    return user_data
 
 
 def fetch_all_valid_urls(string):
@@ -781,6 +877,22 @@ def online_event_remainder_notification_2_min(card_id, **kwargs):
 
     except Exception as e:
         error_logger.error(f"online_event_remainder_notification_2_min {e.args}")
+
+
+@app.task
+@shared_task
+def online_event_remainder_notification_10_min(card_id, **kwargs):
+    """ function to send notification to all members when event/poll is going to start/end """
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+    if card_instance:
+        user_data_for_wa_notification = get_user_data_for_event_wa_notification(card_instance)
+        template_name = WATI_NOTIFICATION_CONST['TEMPLATE_NAMES']['EVENT_REMINDER']
+        broadcast_name = WATI_NOTIFICATION_CONST['BROADCAST_NAMES']['EVENT_REMINDER']
+        NotificationImpl.send_wa_notifications(user_data_for_wa_notification, template_name, broadcast_name)
+
+    else:
+        error_logger.error(f"Card with pk={card_id} does not exist")
 
 
 @app.task

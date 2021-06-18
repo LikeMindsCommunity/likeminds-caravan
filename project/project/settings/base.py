@@ -337,3 +337,6 @@ ELASTICSEARCH_INDEX_NAMES = {
 }
 
 SUBSCRIPTION_SERVER_URL = os.getenv('SUBSCRIPTION_SERVER_URL')
+
+# whatsapp api key to send broadcast messages
+WA_API_KEY = os.getenv('WA_API_KEY')
