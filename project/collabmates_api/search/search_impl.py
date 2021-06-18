@@ -6,10 +6,11 @@ from togther.models import collabcardState
 
 class SearchImpl(SearchManager):
 
-    def __init__(self, member_id: str, search_term: str,
+    def __init__(self, member_id: str, search_term: str, search_field: str,
                  follow_status: bool = False, page: int = 1, page_size: int = 300):
         self.member_id = member_id
         self.search_term = search_term
+        self.search_field = search_field
         self.follow_status = follow_status
         self.page = page
         self.page_size = page_size
@@ -21,7 +22,10 @@ class SearchImpl(SearchManager):
         self.member_id = member_id
 
     def get_search_term(self) -> str:
-        return self.search_term
+        return self.search_term.lower()
+
+    def get_search_field(self) -> str:
+        return self.search_field.lower()
 
     def get_follow_status(self) -> bool:
         return self.follow_status
@@ -33,6 +37,10 @@ class SearchImpl(SearchManager):
         return self.page_size
 
     def _get_chatroom_search_query_dict(self):
+        """
+        @param search_field: str
+        @return: dict
+        """
         return {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
@@ -47,8 +55,7 @@ class SearchImpl(SearchManager):
                         "query_string": {
                             "query": f"*{self.get_search_term()}*",
                             "fields": [
-                                "chatroom.name",
-                                "chatroom.header"
+                                f"chatroom.{self.get_search_field()}"
                             ]
                         }
                     }

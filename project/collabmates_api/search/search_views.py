@@ -1,7 +1,9 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
+from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
+from .constants import CHATROOM_SEARCHABLE_FIELDS, CHATROOM_FIELD_HEADER
 
 # ------------  do not remove these imports --------------
 from .chatroom_index import ChatroomDocument
@@ -20,6 +22,16 @@ class ChatroomSearchView(APIView):
             raise InvalidHeaderException()
 
         search_term = request.GET.get('search')
+        search_field = request.GET.get('search_type', CHATROOM_FIELD_HEADER)
+
+        if search_field.lower() not in CHATROOM_SEARCHABLE_FIELDS:
+            response = {
+                "success": False,
+                "error_message": "Invalid search type"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
         page = RequestUtilities.get_page_number(request)
         page_size = RequestUtilities.get_page_size(request, default=300)
 
@@ -29,7 +41,7 @@ class ChatroomSearchView(APIView):
             follow_status = follow_status.lower() == 'true'
 
         search_manager = SearchImpl(member_id=member_id, search_term=search_term,
-                                    follow_status=follow_status,
+                                    search_field=search_field, follow_status=follow_status,
                                     page=page, page_size=page_size)
 
         chatrooms_data = search_manager.search_chatroom()

@@ -61,7 +61,7 @@ class ChatroomDocument(Document):
             'attachments_uploaded': BooleanField(),
             'device_id': TextField(),
             'platform': TextField(),
-            'date_epoch': LongField(),
+            'created_at': LongField(attr='date_epoch'),
         },
     )
 
@@ -74,6 +74,12 @@ class ChatroomDocument(Document):
         attr='user',
         properties={
             'id': fields.IntegerField(),
+            'profile': fields.ObjectField(
+                attr='userinfo',
+                properties={
+                    'name': StringField(),
+                }
+            )
         }
     )
 

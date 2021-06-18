@@ -91,7 +91,7 @@ class ConversationDocument(Document):
             'attachments_uploaded': BooleanField(),
             'device_id': TextField(),
             'platform': TextField(),
-            'date_epoch': LongField(),
+            'created_at': LongField(attr='date_epoch'),
         }
     )
 
