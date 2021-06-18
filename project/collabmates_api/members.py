@@ -333,8 +333,6 @@ def get_secret_chatroom_participants(chatroom_instance, current_user_id, page=1,
                 member_id__id__in=paginated_participants_list)\
         .prefetch_related('member_id')
 
-    current_user_member_instance = None
-
     current_user_profile = None
 
     for participant in chatroom_participants:
@@ -342,51 +340,15 @@ def get_secret_chatroom_participants(chatroom_instance, current_user_id, page=1,
         community_profile = MembersSerializer(participant, community_id, current_user_id=current_user_id,
                                               send_profile=False)
 
-        if isinstance(community_id, Community):
-            community_profile['community_id'] = community_id.id
-        else:
-            community_profile['community_id'] = community_id
+        community_profile['community_id'] = community_id
 
-        if participant.member_id.id == current_user_id:
-            current_user_member_instance = participant
+        if participant.member_id_id == current_user_id:
             current_user_profile = community_profile
             continue
 
         member_profile_list.append(community_profile)
 
-    can_edit_participant = False
-    is_owner = False
-    is_room_creator = current_user_id == chatroom_instance.user.id
-    is_parent_to_creator = False
-
-    if current_user_member_instance is None:
-        user_member_instance = Members.objects \
-            .filter(community_id=community_instance,
-                    member_id__id=current_user_id) \
-            .prefetch_related('member_id')
-
-        if user_member_instance.exists():
-            current_user_member_instance = user_member_instance[0]
-
-    if current_user_member_instance is not None:
-
-        is_owner = current_user_member_instance.is_owner
-
-        current_user_member_instance = Members.objects \
-            .filter(community_id=community_instance,
-                    member_id__id=current_user_id) \
-            .prefetch_related('member_id')
-
-        if current_user_member_instance.exists():
-            current_user_member_instance = current_user_member_instance[0]
-            is_owner = current_user_member_instance.is_owner
-
-            if current_user_member_instance.parent_cm_list is not None:
-                parent_list = json.loads(current_user_member_instance.parent_cm_list)
-                is_parent_to_creator = current_user_id in parent_list
-
-    if is_owner or is_room_creator or is_parent_to_creator:
-        can_edit_participant = True
+    can_edit_participant = current_user_id == chatroom_instance.user.id
 
     if current_user_profile is not None:
         member_profile_list.insert(0, current_user_profile)
