@@ -62,8 +62,6 @@ from external_services.caching.cache_impl import CacheImpl
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from external_services.wa_notification.constants import WATI_NOTIFICATION_CONST
 
-from collabmates_api.user.user_impl import UserHelper
-
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
