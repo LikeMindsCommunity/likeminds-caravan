@@ -181,6 +181,26 @@ class FetchDiscoverableCommunities(APIView):
         return JsonResponse(response_context)
 
 
+class CommunityJoinView(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid Json Body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id, req_body.get('community_id'))
+        community_context = community_manager.join_community(req_body)
+
+        if 'error_message' in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
+
+
 class CommunityViewsHelper:
 
     def request_validator(request, community_id, member_id) -> {}:

@@ -123,6 +123,30 @@ class communityToast(models.Model):
     created_at = models.BigIntegerField(default=0)
     toast_message = models.TextField(null=True)
 
+    @staticmethod
+    def update_or_create_toast_message(create_info):
+
+        toast_filter = communityToast.objects.filter(community=create_info.get('community_instance'),
+                                                     user=create_info.get('user_instance'))
+
+        if not create_info.get('message'):
+            return
+
+        if not toast_filter:
+            toast = communityToast()
+            toast.community = create_info.get('community_instance')
+            toast.user = create_info.get('user_instance')
+            toast.created_at = TimeUtilities.current_time_in_sec()
+            toast.toast_message = create_info.get('message')
+            toast.save()
+
+        else:
+            toast = toast_filter[0]
+            toast.community = create_info.get('community_instance')
+            toast.user = create_info.get('user_instance')
+            toast.toast_message = create_info.get('message')
+            toast.save()
+
 
 class Members(models.Model):
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -154,6 +178,19 @@ class Members(models.Model):
     became_member_at = models.BigIntegerField(default=0)
 
     has_onboarded = models.BooleanField(default=False)
+
+    @staticmethod
+    def create_instance(create_info):
+        member_instance = Members()
+        member_instance.member_id = create_info.get('user_instance')
+        member_instance.community_id = create_info.get('community_instance')
+        member_instance.state = create_info.get('state')
+        member_instance.created_at = TimeUtilities.current_time_in_sec()
+        member_instance.updated_at = TimeUtilities.current_time_in_sec()
+        member_instance.joined_by = create_info.get('joined_by', None)
+        member_instance.custom_title = create_info.get('custom_title', None)
+        member_instance.became_member_at = create_info.get('became_member_at', 0)
+        member_instance.save()
 
     @staticmethod
     def is_community_member(community: Community, member: Union[User, str, int]) -> bool:
@@ -1076,10 +1113,24 @@ class Member_Engage(models.Model):
     rights_list = models.TextField(null=True)
     order_time = models.BigIntegerField(null=True)
 
+    @staticmethod
+    def create_instance(create_info):
+        engage = Member_Engage()
+        engage.member_id = create_info.get('user_instance')
+        engage.community_id = create_info.get('community_instance')
+        engage.updated_at = TimeUtilities.current_time_in_sec()
+        engage.member_state = create_info.get('state')
+        engage.click_state = create_info.get('click_state',0)
+        engage.save()
+
     def save(self, *args, **kwargs):
+
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
         if not self.order_time:
-            self.order_time = int(time.time() * 1000)
-        self.order_time = int(time.time() * 1000)
+            self.order_time = current_time
+
+        self.order_time = current_time
         super(Member_Engage, self).save(*args, **kwargs)
 
 
@@ -1379,6 +1430,18 @@ class communityAnswers(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
 
+    @staticmethod
+    def create_instance(create_dict):
+        answer_instance = communityAnswers()
+        answer_instance.question = create_dict.get('question_instance')
+        answer_instance.member = create_dict.get('user_instance')
+        answer_instance.community = create_dict.get('community_instance')
+        answer_instance.question_answer = create_dict.get('question_answer')
+        answer_instance.question_title = create_dict.get('question_title')
+        answer_instance.save()
+
+        return answer_instance
+
 
 # master questions flow
 
@@ -1427,6 +1490,15 @@ class questionFilters(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=0, null=True)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = questionFilters()
+        instance.question = create_info.get('question_instance')
+        instance.filter = create_info.get('option')
+        instance.member = create_info.get('user_instance')
+        instance.community = create_info.get('community_instance')
+        instance.save()
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:

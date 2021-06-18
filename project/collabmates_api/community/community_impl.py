@@ -3,6 +3,24 @@ import json
 from celery import shared_task
 from django.contrib.auth.models import User
 
+from cms.models import NewAnswer
+from collabmates_api.community.constants import MENU, COMMUNITY_REJECT_TOAST, LEVEL_3_TITLE, LEVEL_3_SUB_TITLE, \
+    LEVEL_4_TITLE, LEVEL_4_SUB_TITLE, COMMUNITY_PENDING_MEMBER_TOAST, INSTAGRAM, TWITTER, INSTAGRAM_URL, TWITTER_URL
+from collabmates_api.branch import create_community_feed_url
+from collabmates_api.community.constants import MENU
+from collabmates_api.rest_api import CommunitySerializerV1
+from collabmates_api.user_moderation_rights import check_admin_edit_community_right, \
+    update_member_rights_in_member_engage
+from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
+    give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage
+from django.db.models import Q, F
+
+from utility.number_utilities import NumberUtilities
+from external_services.mixpanel.events import MixpanelEvents
+from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
+    card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
+    communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
+    communityExpiryCodes
 from collabmates_api.community.constants import MENU, COMMUNITY_REJECT_TOAST, LEVEL_3_TITLE, LEVEL_3_SUB_TITLE, \
     LEVEL_4_TITLE, LEVEL_4_SUB_TITLE
 from collabmates_api.branch import create_community_feed_url, create_community_otl_url
@@ -22,7 +40,8 @@ from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
-    community_level_states, moderation_history_types, question_states
+    community_level_states, moderation_history_types, question_states, level_click_states
+from utility.utils import check_notification_flag, get_first_name_from_name, decode_option
 from utility.time_utilities import TimeUtilities
 from utility.utils import check_notification_flag, get_first_name_from_name
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
@@ -360,6 +379,130 @@ class CommunityImpl(CommunityManager):
 
         ModelUtilities.model_update(Community, {'id': community_id}, {'members_count': members_count})
 
+    def make_requesting_user_as_pending_member(self, community_instance, user_instance, shared_by_user, req_body):
+
+        CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
+                                                                    community_instance.id,
+                                                                    req_body.get('questions'))
+
+        ModelUtilities.delete_record_in_model(removedMembers, {'community': community_instance,
+                                                               'member': user_instance})
+        Members.create_instance({'user_instance': user_instance,
+                                 'community_instance': community_instance,
+                                 'state': member_states.PENDING_MEMBER,
+                                 'joined_by': shared_by_user
+                                 })
+        Member_Engage.create_instance({'user_instance': user_instance,
+                                       'community_instance': community_instance,
+                                       'state': member_states.PENDING_MEMBER,
+                                       'click_state': click_states.PENDING_APPROVAL
+                                       })
+        self.update_pending_members_after_request_accept_or_reject(community_instance)
+
+        history_type = moderation_history_types.APPLIED_PUBLIC_LINK if shared_by_user \
+            else moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+
+        moderationHistory.create_instance({'user_instance': user_instance, 'community_instance': community_instance,
+                                           'moderation_by': shared_by_user, 'type': history_type})
+        communityToast.update_or_create_toast_message({'user_instance': user_instance,
+                                                       'community_instance': community_instance,
+                                                       'message': COMMUNITY_PENDING_MEMBER_TOAST})
+
+        send_notification_to_admins.delay(community_instance.id, user_instance.userinfo.name)
+
+    @staticmethod
+    def make_promoter_profile_in_community(user_instance, community_instance, req_body):
+        CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
+                                                                    community_instance.id,
+                                                                    req_body.get('questions'))
+        introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(community_instance,
+                                                                                          user_instance,
+                                                                                          req_body.get('questions'))
+        CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
+                                                               member_states.ADMIN,
+                                                               introduction_answer=introduction_answer)
+        ModelUtilities.model_update(Members, {'member_id': user_instance, 'community_id': community_instance},
+                                    {'updated_at': TimeUtilities.current_time_in_sec()})
+        ModelUtilities.model_update(Member_Engage, {'community_id': community_instance, 'member_id': user_instance},
+                                    {'click_state': click_states.DEFAULT})
+        ModelUtilities.model_update(communityLevels, {'community': community_instance},
+                                    {'level_click_state': level_click_states.COMMUNITY_JOINED})
+
+    @staticmethod
+    def make_skipped_member_profile_in_community(user_instance, community_instance, req_body):
+
+        CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
+                                                                    community_instance.id,
+                                                                    req_body.get('questions'))
+        ModelUtilities.model_update(Members, {'member_id': user_instance, 'community_id': community_instance},
+                                    {'updated_at': TimeUtilities.current_time_in_sec(),
+                                     'state': member_states.MEMBER})
+        ModelUtilities.model_update(Member_Engage, {'community_id': community_instance, 'member_id': user_instance},
+                                    {'click_state': click_states.DEFAULT,
+                                     'member_state': member_states.MEMBER,
+                                     'updated_at': TimeUtilities.current_time_in_sec()})
+        CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
+                                                                                  user_instance)
+        introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(community_instance,
+                                                                                          user_instance,
+                                                                                          req_body.get('questions'))
+        CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
+                                                               member_states.MEMBER,
+                                                               introduction_answer=introduction_answer)
+        ModelUtilities.delete_record_in_model(communityToast, {'community': community_instance,
+                                                               'user': user_instance})
+        ModelUtilities.delete_record_in_model(removedMembers, {'community': community_instance,
+                                                               'member': user_instance})
+        give_default_member_rights(user=user_instance, community=community_instance)
+        update_member_rights_in_member_engage.delay(community_instance.id, user_instance.id)
+        update_member_rights_in_conversation_engage.delay(community_instance.id, user_instance.id)
+
+    def make_requesting_user_as_member_of_community_automatically(self, user_instance, community_instance,
+                                                                  auto_join_code, shared_by_user, req_body):
+
+        CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
+                                                                    community_instance.id,
+                                                                    req_body.get('questions'))
+        Members.create_instance({'user_instance': user_instance,
+                                 'community_instance': community_instance,
+                                 'state': member_states.MEMBER,
+                                 'joined_by': shared_by_user,
+                                 'custom_title': "Member",
+                                 'become_member_at': TimeUtilities.current_time_in_sec()
+                                 })
+        Member_Engage.create_instance({'user_instance': user_instance,
+                                       'community_instance': community_instance,
+                                       'state': member_states.MEMBER,
+                                       })
+        update_member_rights_in_member_engage.delay(community_instance.id, user_instance.id)
+
+        CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
+                                                                                  user_instance)
+        introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(community_instance,
+                                                                                          user_instance,
+                                                                                          req_body.get('questions'))
+        CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
+                                                               member_states.MEMBER,
+                                                               introduction_answer=introduction_answer)
+
+        shared_user_id = shared_by_user.id if shared_by_user else None
+        CommunityHelper.set_moderation_rights_and_and_delete_user_previous_metadata_for_auto_join.delay(
+            user_instance.id,
+            community_instance.id,
+            shared_user_id,
+            auto_join_code)
+
+        members_count = Members.get_members_count_in_community(community_instance)
+        self.set_members_count_in_community(community_instance.id, members_count)
+        action_required_by_promoter = ModelUtilities.is_model_filter_exists(Members,
+                                                                            {'community_id': community_instance,
+                                                                             'state': member_states.ADMIN,
+                                                                             'actions_required': True})
+
+        if action_required_by_promoter:
+            CommunityHelper.update_community_level_actions(community_instance,
+                                                           action_required_by_promoter, members_count)
+
     def approve_or_decline_community(self, req_body) -> {}:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
@@ -436,6 +579,51 @@ class CommunityImpl(CommunityManager):
         community_data = CommunitySerializerV1(communities, many=True).data
 
         return {'success': True, 'community': community_data}
+
+    def join_community(self, req_body):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community id"}
+
+        member_state = Members.get_community_member_state(community_instance, user_instance)
+
+        if member_state == member_states.MEMBER:
+            return {'success': False, 'error_message': "You are already a member of this community"}
+
+        auto_join_code = req_body.get('aj')
+        shared_by_user = ModelUtilities.get_model_instance_or_none(User, req_body.get('shared_by'))
+
+        if member_state == member_states.GUEST:
+
+            join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance)
+
+            if join_link_valid:
+                self.make_requesting_user_as_member_of_community_automatically(user_instance, community_instance,
+                                                                               auto_join_code, shared_by_user, req_body)
+
+            else:
+                self.make_requesting_user_as_pending_member(community_instance, user_instance, shared_by_user, req_body)
+
+        elif member_state == member_states.ADMIN:
+            self.make_promoter_profile_in_community(user_instance, community_instance, req_body)
+
+        elif member_state == member_states.PROFILE_UNAVAILABLE:
+            self.make_skipped_member_profile_in_community(user_instance, community_instance, req_body)
+
+        else:
+
+            return {'success': False, 'error_message': "Invalid member state"}
+
+        user_has_access = Members.user_has_app_access(user_instance.id)
+
+        return {'success': True, 'access': user_has_access}
 
 
 class CommunityHelper:
@@ -642,6 +830,55 @@ class CommunityHelper:
                                            'moderation_by': promoter_instance, 'type': history_type})
 
     @staticmethod
+    @shared_task
+    def set_moderation_rights_and_and_delete_user_previous_metadata_for_auto_join(user_id, community_id, shared_id,
+                                                                                  auto_join_code):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return
+
+        shared_by_user = ModelUtilities.get_model_instance_or_none(User, shared_id)
+
+        ModelUtilities.model_update(collabcardState,
+                                    {'community': community_instance, 'user': user_instance},
+                                    {'is_guest': False, 'remove': None,
+                                     'updated_at': TimeUtilities.current_time_in_sec()})
+
+        ModelUtilities.model_update(card_answers,
+                                    {'community': community_instance, 'user': user_instance},
+                                    {'is_guest': False, 'remove': None,
+                                     'last_updated': TimeUtilities.current_time_in_milliseconds()})
+
+        give_default_member_rights(user=user_instance, community=community_instance)
+
+        history_type = moderation_history_types.APPLIED_PRIVATE_LINK
+
+        if auto_join_code is None and shared_by_user is None:
+            history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+
+        is_rejoined = ModelUtilities.is_model_filter_exists(removedMembers, {'member': user_instance,
+                                                                             'community': community_instance})
+
+        ModelUtilities.delete_record_in_model(communityToast, {'community': community_instance,
+                                                               'user': user_instance})
+        ModelUtilities.delete_record_in_model(removedMembers, {'community': community_instance,
+                                                               'member': user_instance})
+
+        if is_rejoined:
+            history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
+            CommunityHelper.update_followed_chatrooms_for_rejoined_member(user_instance, community_instance)
+
+        moderationHistory.create_instance({'user_instance': user_instance, 'community_instance': community_instance,
+                                           'moderation_by': shared_by_user, 'type': history_type})
+
+    @staticmethod
     def update_followed_chatrooms_for_rejoined_member(user_instance, community_instance):
 
         followed_filter = ModelUtilities.get_model_filter(collabcardState, {'user': user_instance,
@@ -684,16 +921,35 @@ class CommunityHelper:
                                                 member_state=member_states.MEMBER)
 
     @staticmethod
-    def create_introduction_text_for_intro_chatroom(community_instance, user_instance):
-        intro_answer = ModelUtilities.get_model_filter(communityAnswers, {'community': community_instance,
-                                                                          'member': user_instance,
-                                                                          'question__question_state': question_states.INTRODUCTION})
+    def create_introduction_text_for_intro_chatroom(community_instance, user_instance, question_list=None):
 
-        if intro_answer:
-            return intro_answer[0].question_answer
+        introduction_answer = ""
+
+        if question_list is not None:
+
+            for question in question_list:
+
+                if not question.get('value'):
+                    continue
+
+                if question.get('state') == question_states.INTRODUCTION:
+                    introduction_answer = question.get('value')
+
+        else:
+
+            intro_answer = ModelUtilities.get_model_filter(communityAnswers,
+                                                           {'community': community_instance,
+                                                            'member': user_instance,
+                                                            'question__question_state': question_states.INTRODUCTION})
+
+            if intro_answer:
+                introduction_answer = intro_answer[0].question_answer
+
+        return introduction_answer
 
     @staticmethod
-    def add_introductions_room_in_master_intro(community_instance, user_instance, member_state):
+    def add_introductions_room_in_master_intro(community_instance, user_instance, member_state,
+                                               introduction_answer=""):
 
         master_intro = ModelUtilities.get_model_filter(Collabcard,
                                                        {'community': community_instance,
@@ -714,8 +970,9 @@ class CommunityHelper:
         userinfo_instance = user_instance.userinfo
         master_intro_instance = master_intro[0]
 
-        introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(community_instance,
-                                                                                          user_instance)
+        if not introduction_answer:
+            introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(community_instance,
+                                                                                              user_instance)
         req_dict = {
             'title': introduction_answer,
             'type': 1,
@@ -729,3 +986,161 @@ class CommunityHelper:
                                                                                member_state, master_intro_instance)
 
         return card_instance
+
+    @staticmethod
+    def pre_compute_question_instances_for_saving_responses(question_list):
+
+        question_id_list = [question['id'] for question in question_list if question.get('id')]
+        question_instances = ModelUtilities.get_model_filter(communityQuestions, {'id__in': question_id_list})
+        question_instance_dict = {}
+
+        for data in question_instances:
+            question_instance_dict[data.id] = data
+
+        return question_instance_dict
+
+    @staticmethod
+    def is_dropdown_option_present(option, dropdown_list):
+
+        for data in dropdown_list:
+            if data.lower() == option.lower():
+                return True
+        return False
+
+    @staticmethod
+    def save_user_selected_options_for_member_directory_filter(question_instance, value, user_instance,
+                                                               community_instance):
+
+        if question_instance.question_state == question_states.CHOICE_SINGLE \
+                or question_instance.question_state == question_states.CHOICE_MULTIPLE:
+            selected_choices = value.split("$#")
+
+            dropdown_list = decode_option(question_instance.value)
+
+            for choice in selected_choices:
+                option = choice.strip()
+
+                if not CommunityHelper.is_dropdown_option_present(option, dropdown_list):
+                    new_answer_instance = NewAnswer()
+                    new_answer_instance.option = option
+                    new_answer_instance.question = question_instance
+                    new_answer_instance.user = user_instance
+                    new_answer_instance.community = community_instance
+                    new_answer_instance.save()
+
+                    dropdown_list.append(option)
+                questionFilters.create_instance({'question_instance': question_instance,
+                                                 'option': option,
+                                                 'user_instance': user_instance,
+                                                 'community_instance': community_instance})
+
+            result = [{'value': value} for value in dropdown_list]
+            json_dump = json.dumps(result)
+            question_instance.value = json_dump
+            question_instance.save()
+
+    @staticmethod
+    def save_profile_links_for_social_handles(question_instance, answer_instance):
+
+        if question_instance.question_state == question_states.PROFILE_LINK:
+
+            try:
+                value_list = json.loads(question_instance.value)
+
+            except Exception as e:
+                error_logger.error(e)
+
+                return
+
+            if value_list and value_list[0]['profile_platform'] == INSTAGRAM:
+                answer_instance.question_answer = INSTAGRAM_URL + answer_instance.question_answer
+                answer_instance.save()
+
+            elif value_list and value_list[0]['profile_platform'] == TWITTER:
+                answer_instance.question_answer = TWITTER_URL + answer_instance.question_answer
+                answer_instance.save()
+
+    @staticmethod
+    def update_hidden_fields_in_member_responses(user_instance, community_instance):
+
+        question_filter = ModelUtilities.get_model_filter(communityQuestions, {
+            'community': community_instance,
+            'is_hidden': True,
+            'question_state': question_states.MOBILE_NO
+        })
+
+        if question_filter:
+            question_instance = question_filter[0]
+            mobile_filter = ModelUtilities.get_model_filter(userMobiles, {'user': user_instance,
+                                                                          'state': mobile_states.PRIMARY})
+            if mobile_filter:
+                mobile_no = "+" + str(mobile_filter[0].country_code) + " " + str(mobile_filter[0].mobile_no)
+                communityAnswers.create_instance({
+                    'question_instance': question_instance,
+                    'user_instance': user_instance,
+                    'community_instance': community_instance,
+                    'question_answer': mobile_no,
+                    'question_title': question_instance.question_title
+                })
+
+    @staticmethod
+    @shared_task
+    def save_responses_of_member_in_community(user_id, community_id, question_list):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not question_list or \
+                not user_instance or \
+                not community_instance:
+            return
+
+        question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(question_list)
+
+        for question in question_list:
+
+            if not question.get('value'):
+                continue
+
+            question_id = NumberUtilities.get_integer_from_string(question['id'])
+            question_instance = question_instance_dict.get(question_id)
+
+            if question_instance.is_hidden:
+                continue
+
+            answer_instance = communityAnswers.create_instance({'question_instance': question_instance,
+                                                                'user_instance': user_instance,
+                                                                'community_instance': community_instance,
+                                                                'question_answer': question['value'],
+                                                                'question_title': question['question_title']})
+
+            CommunityHelper.save_user_selected_options_for_member_directory_filter(question_instance,
+                                                                                   question.get('value'),
+                                                                                   user_instance,
+                                                                                   community_instance)
+            CommunityHelper.save_profile_links_for_social_handles(question_instance, answer_instance)
+
+        CommunityHelper.update_hidden_fields_in_member_responses(user_instance, community_instance)
+
+    @staticmethod
+    def is_join_link_valid(auto_join_code, shared_by_user, community_instance):
+        join_link_valid = False
+
+        if auto_join_code is None \
+                and shared_by_user is None:
+            join_link_valid = community_instance.is_paid and community_instance.auto_approval
+
+        else:
+
+            auto_join_code = NumberUtilities.get_integer_from_string(auto_join_code)
+            aj_filter = ModelUtilities.get_model_filter(communityExpiryCodes, {'community': community_instance,
+                                                                               'unique_code': auto_join_code})
+            timestamp = TimeUtilities.current_time_in_sec()
+
+            if aj_filter:
+                expiry_instance = aj_filter[0]
+                expiry_time = expiry_instance.created_at
+                join_link_valid = (timestamp - expiry_time) <= expiry_instance.expire_duration
+
+        return join_link_valid
+

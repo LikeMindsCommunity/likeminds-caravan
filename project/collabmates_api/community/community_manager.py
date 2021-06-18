@@ -49,3 +49,8 @@ class CommunityManager(metaclass=abc.ABCMeta):
         """returns communities objects which are discoverable"""
 
         raise NotImplementedError
+
+    def join_community(self, req_body):
+        """make a user either a pending member or a member in community"""
+
+        raise NotImplementedError

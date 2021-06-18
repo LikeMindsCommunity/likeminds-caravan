@@ -5,7 +5,7 @@ from collabmates_api import views as api_views
 from cms.marketing_banner.banner_views_impl import FetchBannerView
 from django.views.generic import TemplateView
 from .notification import send_test_notification
-from .community.community_view_impl import ApproveOrDeclineCommunity
+from .community.community_view_impl import ApproveOrDeclineCommunity, CommunityJoinView
 
 urlpatterns = [
 
@@ -17,7 +17,7 @@ urlpatterns = [
 
     path('similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
 
-    path('v1/join_community', views.join_community_responses_version_1, name="join_community_responses_version_1"),
+    path('v1/join_community', CommunityJoinView.as_view(), name="join_community_responses_version_1"),
 
     path('v1/create_community', api_views.create_community_version_1, name='create_community_version_1'),
     path('fetch_community_types', api_views.fetch_community_types, name='fetch_community_types'),
