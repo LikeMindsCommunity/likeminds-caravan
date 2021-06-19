@@ -1910,9 +1910,25 @@ class userDevices(models.Model):
 
     device_id = models.TextField(null=True)
 
+    @staticmethod
+    def create_instance(create_info):
+
+        instance = userDevices()
+        instance.user = create_info.get('user_instance')
+        instance.mobile_os = create_info.get('platform_code')
+        instance.fcm_token = create_info.get('token')
+        instance.device_id = create_info.get('device_id')
+        instance.save()
+
     def save(self, *args, **kwargs):
-        if self.created_at <= 0:
-            self.created_at = time.time()
+
+        current_time = TimeUtilities.current_time_in_sec()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
         super(userDevices, self).save(*args, **kwargs)
 
 

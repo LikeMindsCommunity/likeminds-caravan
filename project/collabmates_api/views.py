@@ -10817,15 +10817,51 @@ def dismiss(request):
     return JsonResponse(context)
 
 
+def save_push_notification_details_for_web(user_id, token):
+
+    user_instance = ModelUtilities.get_model_instance_or_none(User,user_id)
+
+    if not user_instance:
+        return {'success': False, 'error_message': "Invalid user id"}
+
+    if not token:
+        return {'success': False, 'error_message': "Invalid fcm token"}
+
+    device_id = "fcm_token_%s" % (str(user_instance.id))
+
+    device_filter = ModelUtilities.get_model_filter(userDevices, {'user': user_instance,
+                                                                  'device_id': device_id})
+    if not device_filter:
+        userDevices.create_instance({'user_instance': user_instance,
+                                     'platform_code': "web",
+                                     'token': token,
+                                     'device_id': device_id})
+    else:
+        ModelUtilities.model_update(userDevices,
+                                    {'user': user_instance, 'device_id': device_id},
+                                    {'updated_at': TimeUtilities.current_time_in_sec(), 'fcm_token': token})
+
+    return {'success': True}
+
+
 @csrf_exempt
 def push(request):
-    '''This function is used to insert fcm token to the database in order to generate notifications from database'''
+    """This function is used to insert fcm token to the database in order to generate notifications from database"""
 
     member_id = request.GET.get('member_id', '')
     token = request.GET.get('token', '')
     platform_code = get_platform_code_from_headers(request)
 
     device_id = request.GET.get('device_id', None)
+
+    if RequestUtilities.is_request_web(request):
+        user_id = RequestUtilities.get_member_id_from_headers(request)
+        response = save_push_notification_details_for_web(user_id, token)
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
 
     if member_id:
         is_member = Userinfo.objects.filter(user_id=member_id)

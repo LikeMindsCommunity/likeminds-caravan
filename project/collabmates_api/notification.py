@@ -144,6 +144,17 @@ def send_notification_for_ios(token_list, message):
     return result
 
 
+def send_notification_for_web(token_list, message):
+    '''function to send notification to web'''
+
+    push_service = FCMNotification(api_key=server_key)
+
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  data_message=message['payload'])
+
+    return result
+
+
 def send_silent_notification(token_list):
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list)
@@ -198,19 +209,17 @@ def notification_meta(notification_list, message, calling_notification=""):
         for device in user_devices:
 
             token_list = [device['fcm_token']]
+            payload = data['message'] if data.get('message') else message
 
             if device['mobile_os'] == "Android":
-                payload = message
                 send_notification_for_android(token_list, message)
 
             elif device['mobile_os'] == 'iOS':
-                if 'message' in data:
-                    payload = data['message']
-                else:
-                    payload = message
-
                 send_notification_for_ios(token_list, payload)
-        
+
+            elif device['mobile_os'] == 'web':
+                send_notification_for_web(token_list, payload)
+
             payload['fcm_token'] = device['fcm_token']
 
         track_notification(user_id, notification_payload=payload)
