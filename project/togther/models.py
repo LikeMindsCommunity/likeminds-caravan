@@ -2026,6 +2026,17 @@ class ModelUtilities:
         for instance_list in bulk_create_list:
             model.objects.bulk_create(instance_list)
 
+    @staticmethod
+    def bulk_update_instances(model, model_list, fields, chunk_size=1000):
+
+        if not fields:
+            return
+
+        bulk_create_list = list(ModelUtilities.divide_chunks(model_list, chunk_size))
+
+        for instance_list in bulk_create_list:
+            model.objects.bulk_update(instance_list, fields, chunk_size)
+
 
 class MessageReactions(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
