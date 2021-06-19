@@ -754,6 +754,17 @@ class ConversationImpl(ConversationManager):
                                                                self.get_conversation_id(),
                                                                reaction)
 
+        if self.get_chatroom_id():
+
+            ModelUtilities.model_update(collabcardState,
+                                        {'card': chatroom_instance},
+                                        {'updated_at': TimeUtilities.current_time_in_sec()}
+                                        )
+
+        else:
+            conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
+            conversation_instance.save()
+
         context = {
             "success": True
         }
@@ -790,6 +801,17 @@ class ConversationImpl(ConversationManager):
         fetch_chatroom_or_conversation_reactions(self.get_chatroom_id(),
                                                  self.get_conversation_id(),
                                                  update_cache=True)
+
+        if self.get_chatroom_id():
+
+            ModelUtilities.model_update(collabcardState,
+                                        {'card': chatroom_instance},
+                                        {'updated_at': TimeUtilities.current_time_in_sec()}
+                                        )
+
+        else:
+            conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
+            conversation_instance.save()
 
         context = {
             "success": True
@@ -921,6 +943,11 @@ class ConversationImpl(ConversationManager):
         ConversationHelper.create_answer(chatroom_instance, user_instance,
                                          state=chatroom_states.ADDED_CHATROOM_TOPIC,
                                          topic_text=conversation_instance.answer)
+
+        ModelUtilities.model_update(collabcardState,
+                                    {'card': chatroom_instance},
+                                    {'updated_at': TimeUtilities.current_time_in_sec()}
+                                    )
 
         return {'success': True}
 
@@ -1214,5 +1241,3 @@ class ConversationHelper:
             response['error_message'] = "only chatroom creator can change the topic of chatroom"
 
         return response
-
-

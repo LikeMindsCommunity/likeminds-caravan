@@ -14649,6 +14649,10 @@ class SyncChatrooms(APIView):
 
             chatroom['reactions'] = reactions if reactions else []
 
+            # chatroom topic
+            if data[52]:
+                chatroom['topic_id'] = data[52]
+
             chatrooms.append(chatroom)
 
         if max_last_updated:
@@ -14827,8 +14831,6 @@ class SyncChatroomsDiff(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
         version_code = RequestUtilities.get_version_code_from_headers(request)
-        is_platform_android = RequestUtilities.is_request_android(request)
-        is_platform_ios = RequestUtilities.is_request_ios(request)
 
         query_params = request.query_params
 
@@ -14851,8 +14853,7 @@ class SyncChatroomsDiff(APIView):
         video_chatroom_list = set()
         secret_chatroom_list = set()
         chatrooms_with_reactions_list = set()
-
-        common_list = []
+        chatrooms_with_topics_list = set()
 
         if not is_synced:
 
@@ -14860,28 +14861,18 @@ class SyncChatroomsDiff(APIView):
 
             if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
-                common_list = tuple(video_chatroom_list)
 
-            if previous_app_version < SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN and\
-                    (REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN >= version_code >= SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN):
+            if previous_app_version < SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 secret_chatroom_list = self._get_secret_chatrooms_of_user(user_instance)
-                common_list = tuple(secret_chatroom_list)
 
-            if version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
+            if previous_app_version < REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 chatrooms_with_reactions_list = self._get_chatrooms_with_reactions_of_user(user_instance)
-                common_list = tuple(chatrooms_with_reactions_list)
 
-            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and\
-                    version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
-                common_list = tuple(secret_chatroom_list | video_chatroom_list | chatrooms_with_reactions_list)
+            if previous_app_version < TOPIC_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
+                chatrooms_with_topics_list = self._get_chatrooms_with_topics_of_user(user_instance)
 
-            elif previous_app_version < SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN and\
-                    version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
-                common_list = tuple(secret_chatroom_list | chatrooms_with_reactions_list)
-
-            elif previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and \
-                    SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN <= version_code < REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
-                common_list = tuple(video_chatroom_list | secret_chatroom_list)
+        common_list = tuple(secret_chatroom_list | video_chatroom_list |
+                            chatrooms_with_reactions_list | chatrooms_with_topics_list)
 
         if len(common_list) > 0:
 
@@ -14970,12 +14961,17 @@ class SyncChatroomsDiff(APIView):
 
             chatroom['secret_chatroom_left'] = data[49]
 
+            # has reactions
             if data[50]:
                 reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
             else:
                 reactions = []
 
             chatroom['reactions'] = reactions if reactions else []
+
+            # chatroom topic
+            if data[52]:
+                chatroom['topic_id'] = data[52]
 
             chatrooms.append(chatroom)
 
@@ -15179,6 +15175,15 @@ class SyncChatroomsDiff(APIView):
                                             .values_list('card', flat=True))
 
         return chatrooms_with_reactions_list
+
+    def _get_chatrooms_with_topics_of_user(self, user_instance):
+
+        chatrooms_with_topics_list = set(collabcardState.objects
+                                         .filter(user=user_instance)
+                                         .exclude(card__topic=None)
+                                         .values_list('card', flat=True))
+
+        return chatrooms_with_topics_list
 
 
 class SyncConversation(APIView):
