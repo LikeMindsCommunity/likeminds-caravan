@@ -1333,7 +1333,6 @@ class ChatroomHelper:
         return conversation_created_at
 
     @staticmethod
-    @shared_task
     def update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance):
         chatroom_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
                                                                        'is_pending': False,
@@ -1341,9 +1340,9 @@ class ChatroomHelper:
                                                                        'is_secret': False})
 
         chatroom_list = list(chatroom_filter.values_list('id', flat=True))
+
         chatroom_state_dict = ChatroomHelper.pre_compute_existance_in_chatroom_state(chatroom_list, user_instance)
         conversation_created_at = ChatroomHelper.pre_compute_last_conversation_in_chatroom(chatroom_list)
-
         bulk_create_list = []
 
         for card_instance in chatroom_filter:
@@ -1359,7 +1358,7 @@ class ChatroomHelper:
                 if instance:
                     bulk_create_list.append(instance)
 
-        collabcardState.objects.bulk_create(bulk_create_list)
+        ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
 
     @staticmethod
     def pre_compute_existance_of_members_in_chatroom_state(card_instance, member_list):
@@ -1394,7 +1393,7 @@ class ChatroomHelper:
                 if instance:
                     bulk_create_list.append(instance)
 
-        collabcardState.objects.bulk_create(bulk_create_list)
+        ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
 
     @staticmethod
     def update_unseen_count_for_homescreen_communitites(card_instance, community_instance):
