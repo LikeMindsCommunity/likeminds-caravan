@@ -1017,19 +1017,17 @@ class ChatroomImpl(ChatroomManager):
                                          'attachments_uploaded': True})
 
     def follow_chatroom_automatically_for_all_members_of_chatroom(self, member_id, chatroom_id) -> dict:
-        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
         if not chatroom_instance:
             return {'success': False, 'error_message': "invalid chatroom id"}
 
-        user_instance = ChatroomHelper.fetch_user_instance(member_id=member_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user id"}
 
         community_id = chatroom_instance.community_id
-
-        community_instance = Community.get_community_or_None(community_id)
 
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_id,
                                                                   'member_id': user_instance})

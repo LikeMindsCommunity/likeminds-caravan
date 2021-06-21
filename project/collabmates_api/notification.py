@@ -3134,12 +3134,17 @@ def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_i
     if not chatroom_instance:
         return
 
+    userinfo_instance = Userinfo.get_userinfo_or_None(cm_id)
+
+    if not userinfo_instance:
+        return
+
     for user_id in user_ids:
         notification_list.append({"id": user_id})
 
     message = {
         'payload': {
-            "title": CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE % (cm_id, chatroom_instance.id),
+            "title": CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE % (userinfo_instance.name, chatroom_instance.title),
             'sub_title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE,
             'route': "route://collabcard?collabcard_id=" + str(chatroom_id)
         }
