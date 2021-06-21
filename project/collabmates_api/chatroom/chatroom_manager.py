@@ -18,6 +18,8 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                  callable(subclass.add_secret_chatroom_participant)) and
                 (hasattr(subclass, 'get_tagging_list') and
                  callable(subclass.get_tagging_list)) or
+                (hasattr(subclass, 'follow_chatroom_automatically_for_all_members_of_chatroom') and
+                 callable(subclass.follow_chatroom_automatically_for_all_members_of_chatroom)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -66,5 +68,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def get_tagging_list(self) -> dict:
 
         """return the tagging list of users in chatroom"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def follow_chatroom_automatically_for_all_members_of_chatroom(self, member_id, chatroom_id) -> dict:
+
+        """
+        to auto follow a chatroom
+        """
 
         raise NotImplementedError

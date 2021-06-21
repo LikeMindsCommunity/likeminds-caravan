@@ -1560,7 +1560,7 @@ def send_notification_to_all_admins(community_id, name, current_promoter_id):
         }
         send_notification_to_multiple_devices(token_list, message)
         curr.close()
-        
+
     except (Exception, psycopg2.Error) as error:
 
         print ("Error while connecting to PostgreSQL", error)
@@ -2828,7 +2828,7 @@ def send_notification_to_managers_when_member_leaves_community(user_id, communit
 
     notification_meta(notification_list, message)
 
-    
+
 def query_executer(query):
 
     """executes a query and returns a response"""
@@ -3072,7 +3072,7 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
     }
 
     notification_list = [creator_dict]
-    
+
     notification_meta(notification_list, message)
 
 
@@ -3120,5 +3120,30 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
         notification_list.append(temp)
 
     print("notification_list", notification_list)
+    notification_meta(notification_list, message)
+
+@shared_task
+def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_id, user_ids):
+    notification_list = []
+
+    if len(user_ids) <= 0:
+        return
+
+    chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+    if not chatroom_instance:
+        return
+
+    for user_id in user_ids:
+        notification_list.append({"id": user_id})
+
+    message = {
+        'payload': {
+            "title": CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE % (cm_id, chatroom_instance.id),
+            'sub_title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE,
+            'route': "route://collabcard?collabcard_id=" + str(chatroom_id)
+        }
+    }
+
     notification_meta(notification_list, message)
 

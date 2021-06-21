@@ -1352,7 +1352,8 @@ class MemberCommunityHelper:
                             'date': TimeUtilities.convert_epoch_time_in_date(card_instance.date_epoch),
                             'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(card_instance.date_epoch),
                             'card_creation_time': TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(
-                                card_instance.date_epoch)}
+                                card_instance.date_epoch),
+                            'auto_follow_done': card_instance.auto_follow_done}
 
         if card_instance.is_secret:
             chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)

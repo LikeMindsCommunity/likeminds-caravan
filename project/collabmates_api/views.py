@@ -3795,6 +3795,7 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
     collabcard_filter = Collabcard.objects.filter(community=community_instance,
                                                   is_pending=False, is_deleted=False,
                                                   is_secret=False).order_by('id')
+    chatroom_ids = []
 
     for card_instance in collabcard_filter:
 
@@ -3814,8 +3815,19 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
             else:
                 expire_at = card_instance.date_epoch + HOURS_24
 
+            follow_status = False
+
+            if card_instance.auto_follow_done:
+                follow_status = True
+                chatroom_ids.append(card_instance.id)
+
             create_chatroom_state_instance(card_instance, user_instance, expire_at=expire_at,
+                                           follow_status=follow_status,
                                            function_called="update_seen_status_for_new_user_in_chatroom")
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+    ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_chatroom_list.delay(
+        chatroom_ids, user_instance.id, community_instance.id, member_state=0)
 
     update_last_unseen_in_engage(user=user_instance, community=community_instance)
 
@@ -4239,7 +4251,7 @@ def fetch_share_url(request):
             chatroom_share['share_url'] = share['share_url']
             chatroom_share['creator_share_url'] = share['creator_share_url']
             chatroom_share['link_created_at'] = share['link_created_at']
-                             
+
         else:
             chatroom_share['share_url'] = ''
             chatroom_share['creator_share_url'] = ''
@@ -6165,6 +6177,8 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             actions.insert(1, unpin_chatroom)
         else:
             actions.insert(1, pin_chatroom)
+
+        actions.insert(2, add_all_members)
 
     if card_instance.is_secret and\
             current_user_instance is not None:
@@ -11725,9 +11739,9 @@ class AllMembersVersion1(APIView):
 
         if not member_id:
             raise InvalidHeaderException()
-        
+
         platform_code = RequestUtilities.get_request_type(request)
-        
+
         if platform_code == INVALID_PLATFORM:
             response = {
                 'success': False,
@@ -14646,6 +14660,8 @@ class SyncChatrooms(APIView):
                 reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
             else:
                 reactions = []
+
+            chatroom['auto_follow_done'] = data[53]
 
             chatroom['reactions'] = reactions if reactions else []
 

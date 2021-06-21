@@ -266,7 +266,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
                   'poll_type', 'last_seen_conversation', 'is_secret', 'secret_chatroom_participants',
-                  'topic_id'
+                  'topic_id', 'auto_follow_done'
                   )
 
     def __init__(self, *args, **kwargs):

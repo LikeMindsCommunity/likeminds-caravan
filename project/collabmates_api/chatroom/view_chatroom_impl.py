@@ -207,3 +207,30 @@ class GetTaggingList(APIView):
             return JsonResponse(chatroom_data, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(chatroom_data)
+
+
+class AutoFollowChatroomForAllMembersView(APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(AutoFollowChatroomForAllMembersView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        header_member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not header_member_id:
+            raise InvalidHeaderException()
+
+        request_body = RequestUtilities.fetch_request_body(request)
+
+        chatroom_id = request_body.get('chatroom_id', None)
+
+        chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=chatroom_id)
+
+        response = chatroom_manager.follow_chatroom_automatically_for_all_members_of_chatroom(header_member_id, chatroom_id)
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
+

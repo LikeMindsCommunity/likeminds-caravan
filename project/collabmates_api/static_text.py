@@ -205,6 +205,7 @@ unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
 
 leave_chatroom = {'id': 15, 'title': "Leave chatroom"}
 
+add_all_members = {'id': 16, 'title': "Add all members"}
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
 
@@ -412,3 +413,5 @@ CURRENT_IOS_VERSION = 91
 
 GIF_ATTACHMENT_FILL_TEXT = "\n * This is a gif message. Please update your app *"
 
+CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE = "%s added you to %s chatroom!"
+CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE = "Tap to join in the conversation."

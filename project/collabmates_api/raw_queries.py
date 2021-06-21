@@ -765,7 +765,8 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
              togther_collabcardState.secret_chatroom_left,
              togther_collabcard.has_reactions,
              togther_collabcard.device_id,
-             togther_collabcard.topic_id
+             togther_collabcard.topic_id,
+             togther_collabcard.auto_follow_done
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -849,7 +850,8 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
              togther_collabcardState.secret_chatroom_left,
              togther_collabcard.has_reactions,
              togther_collabcard.device_id,
-             togther_collabcard.topic_id
+             togther_collabcard.topic_id,
+             togther_collabcard.auto_follow_done
     FROM togther_collabcard
     INNER JOIN togther_collabcardState
         ON togther_collabcardState.card_id = togther_collabcard.id
@@ -942,7 +944,8 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                      togther_collabcardState.secret_chatroom_left,
                      togther_collabcard.has_reactions,
                      togther_collabcard.device_id,
-                     togther_collabcard.topic_id
+                     togther_collabcard.topic_id,
+                     togther_collabcard.auto_follow_done
             FROM togther_collabcard
             INNER JOIN togther_collabcardState
                 ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1219,7 +1222,8 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
                  togther_collabcardState.secret_chatroom_left,
                  togther_collabcard.has_reactions,
                  togther_collabcard.device_id,
-                 togther_collabcard.topic_id
+                 togther_collabcard.topic_id,
+                 togther_collabcard.auto_follow_done
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1309,7 +1313,8 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
                          togther_collabcardState.secret_chatroom_left,
                          togther_collabcard.has_reactions,
                          togther_collabcard.device_id,
-                         togther_collabcard.topic_id
+                         togther_collabcard.topic_id,
+                         togther_collabcard.auto_follow_done
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1399,7 +1404,8 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                          togther_collabcardState.secret_chatroom_left,
                          togther_collabcard.has_reactions,
                          togther_collabcard.device_id,
-                         togther_collabcard.topic_id
+                         togther_collabcard.topic_id,
+                         togther_collabcard.auto_follow_done
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id

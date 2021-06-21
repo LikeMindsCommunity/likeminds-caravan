@@ -243,6 +243,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "created_at": TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch),
         "date_epoch": card.date_epoch,
         'is_secret': card.is_secret,
+        'auto_follow_done': card.auto_follow_done
     }
 
     if card.secret_chatroom_participants:

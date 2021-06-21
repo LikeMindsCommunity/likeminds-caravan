@@ -469,6 +469,7 @@ class Collabcard(models.Model):
     device_id = models.TextField(null=True)
     platform = models.TextField(null=True)
 
+    auto_follow_done = models.BooleanField(default=False)
     topic = models.ForeignKey('card_answers', on_delete=models.SET_NULL, null=True)
 
     @staticmethod
