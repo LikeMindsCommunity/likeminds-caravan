@@ -1069,8 +1069,10 @@ class ChatroomImpl(ChatroomManager):
                     from collabmates_api.conversation.conversation_impl import ConversationHelper
                     ConversationHelper.create_conversation_state(chatroom_instance, user_instance,
                                                                  conversation_states.CONVERSATION_ADD_ALL_MEMBERS)
-                    send_notification_for_auto_follow_chatroom_for_all_members.delay(chatroom_id, user_instance.id,
-                                                                                     user_list)
+
+                    if len(user_list) > 0:
+                        send_notification_for_auto_follow_chatroom_for_all_members.delay(chatroom_id, user_instance.id,
+                                                                                         user_list)
 
                     return {'success': True}
 

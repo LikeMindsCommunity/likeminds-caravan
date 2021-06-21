@@ -3126,9 +3126,6 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
 def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_id, user_ids):
     notification_list = []
 
-    if len(user_ids) <= 0:
-        return
-
     chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
     if not chatroom_instance:
@@ -3144,9 +3141,9 @@ def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_i
 
     message = {
         'payload': {
-            "title": CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE % (userinfo_instance.name, chatroom_instance.title),
+            'title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE % (userinfo_instance.name, chatroom_instance.title),
             'sub_title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE,
-            'route': "route://collabcard?collabcard_id=" + str(chatroom_id)
+            'route': "route://chatroom_detail?chatroom_id=%s" % str(chatroom_id)
         }
     }
 
