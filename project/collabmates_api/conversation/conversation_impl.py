@@ -756,6 +756,19 @@ class ConversationImpl(ConversationManager):
                                                                self.get_conversation_id(),
                                                                reaction)
 
+        if self.get_chatroom_id():
+
+            ModelUtilities.model_update(collabcardState,
+                                        {'card': chatroom_instance},
+                                        {'updated_at': TimeUtilities.current_time_in_sec()}
+                                        )
+
+        else:
+            ModelUtilities.model_update(card_answers,
+                                        {'pk': self.get_conversation_id()},
+                                        {'last_updated': TimeUtilities.current_time_in_milliseconds()}
+                                        )
+
         context = {
             "success": True
         }
@@ -792,6 +805,19 @@ class ConversationImpl(ConversationManager):
         fetch_chatroom_or_conversation_reactions(self.get_chatroom_id(),
                                                  self.get_conversation_id(),
                                                  update_cache=True)
+
+        if self.get_chatroom_id():
+
+            ModelUtilities.model_update(collabcardState,
+                                        {'card': chatroom_instance},
+                                        {'updated_at': TimeUtilities.current_time_in_sec()}
+                                        )
+
+        else:
+            ModelUtilities.model_update(card_answers,
+                                        {'pk': self.get_conversation_id()},
+                                        {'last_updated': TimeUtilities.current_time_in_milliseconds()}
+                                        )
 
         context = {
             "success": True
@@ -923,6 +949,11 @@ class ConversationImpl(ConversationManager):
         ConversationHelper.create_answer(chatroom_instance, user_instance,
                                          state=chatroom_states.ADDED_CHATROOM_TOPIC,
                                          topic_text=conversation_instance.answer)
+
+        ModelUtilities.model_update(collabcardState,
+                                    {'card': chatroom_instance},
+                                    {'updated_at': TimeUtilities.current_time_in_sec()}
+                                    )
 
         return {'success': True}
 

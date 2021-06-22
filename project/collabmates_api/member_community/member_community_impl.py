@@ -1392,7 +1392,11 @@ class MemberCommunityHelper:
             chatroom_context['online_link'] = card_instance.online_link
 
         if return_topic and card_instance.topic is not None:
-            chatroom_context['topic'] = conversationSerializer(card_instance.topic, fetch_reply=False)
+            conversation_serializer = conversationSerializer(card_instance.topic, fetch_reply=False)
+            conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
+                conversation_serializer['created_at'])
+
+            chatroom_context['topic'] = conversation_serializer
 
         return chatroom_context
 

@@ -366,7 +366,10 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
     collabcard['reactions'] = reactions
 
     if return_topic and card.topic is not None:
-        collabcard['topic'] = conversationSerializer(card.topic, fetch_reply=False)
+        conversation_serializer = conversationSerializer(card.topic, fetch_reply=False)
+        conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(conversation_serializer['created_at'])
+
+        collabcard['topic'] = conversation_serializer
 
     return collabcard
 
