@@ -23,6 +23,22 @@ html_strip = analyzer(
     char_filter=["html_strip"]
 )
 
+# creates a reverse index mappings for combinations of words starting from left
+# Ref: https://www.elastic.co/guide/en/elasticsearch/guide/current/_index_time_search_as_you_type.htmlg
+edge_ngram_completion_filter = token_filter(
+    'edge_ngram_completion_filter',
+    type="edge_ngram",
+    min_gram=1,
+    max_gram=20,
+)
+
+autocomplete = analyzer(
+    'autocomplete',
+    tokenizer="standard",
+    filter=["lowercase", edge_ngram_completion_filter],
+    char_filter=["html_strip"]
+)
+
 
 @INDEX.doc_type
 class ChatroomDocument(Document):
@@ -35,17 +51,19 @@ class ChatroomDocument(Document):
         properties={
             'id': IntegerField(),
             'title': TextField(
-                analyzer=html_strip,
+                analyzer=autocomplete,
+                search_analyzer="standard",
                 fields={
                     'raw': KeywordField(),
-                    'lower': TextField(analyzer=html_strip)
+                    'lower': TextField(analyzer=autocomplete)
                 }
             ),
             'header': StringField(
-                analyzer=html_strip,
+                analyzer=autocomplete,
+                search_analyzer="standard",
                 fields={
                     'raw': KeywordField(),
-                    'lower': StringField(analyzer=html_strip)
+                    'lower': StringField(analyzer=autocomplete)
                 }
             ),
             'type': IntegerField(),

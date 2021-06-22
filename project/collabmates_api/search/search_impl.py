@@ -6,7 +6,7 @@ from togther.models import collabcardState
 
 class SearchImpl(SearchManager):
 
-    def __init__(self, member_id: str, search_term: str, search_field: str,
+    def __init__(self, member_id: str, search_term: str, search_field: str = None,
                  follow_status: bool = False, page: int = 1, page_size: int = 300):
         self.member_id = member_id
         self.search_term = search_term
@@ -38,7 +38,6 @@ class SearchImpl(SearchManager):
 
     def _get_chatroom_search_query_dict(self):
         """
-        @param search_field: str
         @return: dict
         """
         return {
@@ -63,6 +62,41 @@ class SearchImpl(SearchManager):
                     "filter": [
                         {"term": {"member.id": f"{self.get_member_id()}"}},
                         {"term": {"follow_status": self.get_follow_status()}}
+                    ]
+                }
+            }
+        }
+
+    def _get_chatroom_search_ngram_query_dict(self):
+        """
+        @return: dict
+        """
+        return {
+            "from": self.get_page_size()*(self.get_page_number()-1),
+            "size": self.get_page_size(),
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "term": {"member.id": self.get_member_id()}
+                        },
+                        {
+                            "term": {"follow_status": self.get_follow_status()}
+                        },
+                        {
+                            "bool": {
+                                "should": [
+                                    {
+                                        "match": {
+                                            f"chatroom.{self.get_search_field()}": {
+                                                "query": self.get_search_term(),
+                                                "analyzer": "standard"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
                     ]
                 }
             }
@@ -94,17 +128,48 @@ class SearchImpl(SearchManager):
             }
         }
 
+    def _get_conversation_search_ngram_query_dict(self, chatroom_id_list):
+
+        return {
+            "from": self.get_page_size()*(self.get_page_number()-1),
+            "size": self.get_page_size(),
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "terms": {"chatroom.id": chatroom_id_list}
+                        },
+                        {
+                            "bool": {
+                                "should": [
+                                    {
+                                        "match": {
+                                            "answer": {
+                                                "query": f"{self.get_search_term()}",
+                                                "analyzer": "standard"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+
     def _fetch_user_chatrooms_id_list(self):
         return list(collabcardState.objects
                     .filter(user__id=self.get_member_id(),
                             card__is_deleted=False,
                             secret_chatroom_left=False,
-                            follow_status=self.get_follow_status())
-                    .values_list('id', flat=True))
+                            follow_status=self.get_follow_status(),
+                            remove=None)
+                    .values_list('card_id', flat=True))
 
     def search_chatroom(self):
 
-        res = Search.from_dict(self._get_chatroom_search_query_dict()).execute()
+        res = Search.from_dict(self._get_chatroom_search_ngram_query_dict()).execute()
 
         context = {
             'chatrooms': [hit.to_dict() for hit in res]
@@ -114,7 +179,9 @@ class SearchImpl(SearchManager):
 
     def search_conversation(self):
 
-        res = Search.from_dict(self._get_conversation_search_query_dict(self._fetch_user_chatrooms_id_list())).execute()
+        chatroom_id_list = self._fetch_user_chatrooms_id_list()
+
+        res = Search.from_dict(self._get_conversation_search_ngram_query_dict(chatroom_id_list)).execute()
 
         context = {
             'conversations': [hit.to_dict() for hit in res]
