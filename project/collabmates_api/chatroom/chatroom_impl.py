@@ -959,7 +959,7 @@ class ChatroomImpl(ChatroomManager):
         return {'members': members, 'participants': participant_list}
 
     def create_introduction_card_in_community(self, community_instance, user_instance, req_body, member_state,
-                                              master_intro_instance):
+                                               master_intro_instance):
 
         card_content = {}
         chatroom_name = req_body.get('title')
@@ -1016,7 +1016,7 @@ class ChatroomImpl(ChatroomManager):
                                         {'has_files': True, 'attachment_count': 1,
                                          'attachments_uploaded': True})
 
-    def follow_chatroom_automatically_for_all_members_of_chatroom(self, member_id, chatroom_id) -> dict:
+    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, chatroom_id) -> dict:
         chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
         if not chatroom_instance:
@@ -1443,7 +1443,7 @@ class ChatroomHelper:
             auto_follow_chatroom_list, user_instance.id, community_instance.id, member_state=member_states.MEMBER)
 
     @staticmethod
-    def pre_compute_existance_of_members_in_chatroom_state(card_instance, member_list):
+    def pre_compute_existence_of_members_in_chatroom_state(card_instance, member_list):
         state_filter = collabcardState.objects.filter(card=card_instance, user__in=member_list)
 
         member_dict = {user_id: False for user_id in member_list}
@@ -1462,7 +1462,7 @@ class ChatroomHelper:
         member_filter = Members.get_members_of_community(community_instance).select_related('member_id')
         member_list = list(member_filter.values_list('member_id_id', flat=True))
 
-        member_dict = ChatroomHelper.pre_compute_existance_of_members_in_chatroom_state(card_instance, member_list)
+        member_dict = ChatroomHelper.pre_compute_existence_of_members_in_chatroom_state(card_instance, member_list)
         bulk_create_list = []
 
         for data in member_filter:
@@ -1618,4 +1618,3 @@ class ChatroomHelper:
                 chatroom_dict[chatroom_id] = data
 
         return chatroom_dict
-

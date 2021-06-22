@@ -323,7 +323,7 @@ class CommunityImpl(CommunityManager):
                                                     'member_state': member_states.ADMIN},
                                     {'pending_members': pending_members_count})
 
-    def decline_community_join_request(self, community_instance, user_instance):
+    def _decline_community_join_request(self, community_instance, user_instance):
 
         ModelUtilities.delete_record_in_model(Members, {'member_id': user_instance.id,
                                                         'community_id': community_instance.id})
@@ -486,7 +486,7 @@ class CommunityImpl(CommunityManager):
                                                                introduction_answer=introduction_answer)
 
         shared_user_id = shared_by_user.id if shared_by_user else None
-        CommunityHelper.set_moderation_rights_and_and_delete_user_previous_metadata_for_auto_join.delay(
+        CommunityHelper.set_moderation_rights_and_delete_user_previous_metadata_for_auto_join.delay(
             user_instance.id,
             community_instance.id,
             shared_user_id,
@@ -544,11 +544,11 @@ class CommunityImpl(CommunityManager):
             card_instance = CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
                                                                                    member_states.MEMBER)
 
-            CommunityHelper.run_async_for_for_community_approve(community_instance, user_instance,
+            CommunityHelper.run_async_for_community_approve(community_instance, user_instance,
                                                                 promoter_userinfo_instance)
 
         else:
-            self.decline_community_join_request(community_instance, user_instance)
+            self._decline_community_join_request(community_instance, user_instance)
             members_count = Members.get_members_count_in_community(community_instance)
             self.set_members_count_in_community(community_instance.id, members_count)
 
@@ -773,8 +773,8 @@ class CommunityHelper:
                                                       new_user_name, user_instance.id)
 
     @staticmethod
-    def run_async_for_for_community_approve(community_instance, user_instance, promoter_userinfo_instance):
-        CommunityHelper.set_moderation_rights_and_and_delete_user_previous_metadata.delay(user_instance.id,
+    def run_async_for_community_approve(community_instance, user_instance, promoter_userinfo_instance):
+        CommunityHelper.set_moderation_rights_and_delete_user_previous_metadata.delay(user_instance.id,
                                                                                           community_instance.id,
                                                                                           promoter_userinfo_instance.user_id_id)
         CommunityHelper.send_sms_to_the_approved_member_of_community.delay(user_instance.id, community_instance.id)
@@ -793,7 +793,7 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def set_moderation_rights_and_and_delete_user_previous_metadata(user_id, community_id, promoter_id):
+    def set_moderation_rights_and_delete_user_previous_metadata(user_id, community_id, promoter_id):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -831,7 +831,7 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def set_moderation_rights_and_and_delete_user_previous_metadata_for_auto_join(user_id, community_id, shared_id,
+    def set_moderation_rights_and_delete_user_previous_metadata_for_auto_join(user_id, community_id, shared_id,
                                                                                   auto_join_code):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)

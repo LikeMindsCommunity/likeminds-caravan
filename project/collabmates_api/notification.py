@@ -674,7 +674,7 @@ def schedule_online_event_future_notification(card_instance):
     # scheduling event remainder on whatsapp before 10 minutes
     task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
     task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
-    online_event_remainder_notification_10_min.apply_async(args=args,
+    online_event_reminder_notification_10_min.apply_async(args=args,
                                                           kwargs={},
                                                           eta=task_begin_date_time,
                                                           expires=task_expiry_epoch_time)
@@ -787,7 +787,7 @@ def get_user_data_for_event_wa_notification(card_instance):
 
 
 
-def precompute_usernames_for_evebt_attendies(user_ids):
+def precompute_usernames_for_event_attendies(user_ids):
     userinfo_queryset = ModelUtilities.get_model_filter(Userinfo, {
         'user_id__in': user_ids
     })
@@ -807,7 +807,7 @@ def get_user_details_for_event_attendees(user_ids):
         'state': mobile_states.PRIMARY
     })
 
-    user_names = precompute_usernames_for_evebt_attendies(user_ids)
+    user_names = precompute_usernames_for_event_attendies(user_ids)
 
     user_data = {}
 
@@ -888,7 +888,7 @@ def online_event_remainder_notification_2_min(card_id, **kwargs):
 
 @app.task
 @shared_task
-def online_event_remainder_notification_10_min(card_id, **kwargs):
+def online_event_reminder_notification_10_min(card_id, **kwargs):
     """ function to send notification to all members when event/poll is going to start/end """
 
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)

@@ -227,7 +227,7 @@ class AutoFollowChatroomForAllMembersView(APIView):
 
         chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=chatroom_id)
 
-        response = chatroom_manager.follow_chatroom_automatically_for_all_members_of_chatroom(header_member_id, chatroom_id)
+        response = chatroom_manager.follow_chatroom_automatically_for_all_members_of_community(header_member_id, chatroom_id)
 
         if response.get('error_message'):
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
