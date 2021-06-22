@@ -205,6 +205,7 @@ unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
 
 leave_chatroom = {'id': 15, 'title': "Leave chatroom"}
 
+add_all_members = {'id': 16, 'title': "Add all members"}
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
 
@@ -356,10 +357,9 @@ VIDEO_ATTACHMENT_FILL_TEXT = "\n * This is a video message. Please update your a
 
 VIDEO_SYNC_TRIGGER_VERSION_CODE_AN = 85
 VIDEO_SYNC_TRIGGER_VERSION_CODE_iOS = 85
-
 SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN = 110
-
 REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN = 112
+TOPIC_SYNC_TRIGGER_VERSION_CODE_AN = 128
 
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
 EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%S added you as a host for %s in %s"
@@ -413,3 +413,8 @@ CURRENT_IOS_VERSION = 91
 
 GIF_ATTACHMENT_FILL_TEXT = "\n * This is a gif message. Please update your app *"
 
+PENDING_MEMBER_TOAST = "Your request for joining this community is pending"
+PAID_COMMUNITY_PENDING_MEMBER_TOAST = "Your request for joining this community is pending. Usually it takes upto 48 hours to get approved. In case you are not approved, your payment would be refunded."
+
+CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE = "%s added you to %s chatroom!"
+CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE = "Tap to join in the conversation."

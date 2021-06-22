@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from elasticsearch_dsl import analyzer, token_filter
+from elasticsearch_dsl import analyzer, token_filter, tokenizer
 from django_elasticsearch_dsl_drf.compat import StringField
 from django_elasticsearch_dsl import (Document, Index, fields, KeywordField,
                                       BooleanField, IntegerField, TextField, LongField)
@@ -20,31 +20,21 @@ INDEX.settings(
     number_of_replicas=1
 )
 
-length_filter = token_filter(
-    'keyword_max_length_truncate',
-    type="truncate",
-    length=10000
-)
 
-html_strip = analyzer(
-    'html_strip',
-    tokenizer="standard",
-    filter=["lowercase", "stop", "snowball", length_filter],
-    char_filter=["html_strip"]
-)
-
-ngram_tokenizer = token_filter(
-    'ngram_tokenizer',
-    type="ngram",
+# creates a reverse index mappings for combinations of words starting from left
+# Ref: https://www.elastic.co/guide/en/elasticsearch/guide/current/_index_time_search_as_you_type.html
+edge_ngram_completion_filter = token_filter(
+    'edge_ngram_completion_filter',
+    type="edge_ngram",
     min_gram=1,
     max_gram=20,
-    token_chars=["letter", "digit"]
 )
 
-ngram_analyzer = analyzer(
-    "ngram_completion",
-    tokenizer="ngram_tokenizer",
-    filter=["lowercase"]
+autocomplete = analyzer(
+    'autocomplete',
+    tokenizer="standard",
+    filter=["lowercase", edge_ngram_completion_filter],
+    char_filter=["html_strip"]
 )
 
 
@@ -54,10 +44,11 @@ class ConversationDocument(Document):
 
     id = IntegerField()
     answer = TextField(
-        analyzer=html_strip,
+        analyzer=autocomplete,
+        search_analyzer="standard",
         fields={
             'raw': KeywordField(),
-            'lower': TextField(analyzer=html_strip)
+            'lower': TextField(analyzer=autocomplete)
         }
     )
 
@@ -91,7 +82,7 @@ class ConversationDocument(Document):
             'attachments_uploaded': BooleanField(),
             'device_id': TextField(),
             'platform': TextField(),
-            'date_epoch': LongField(),
+            'created_at': LongField(attr='date_epoch'),
         }
     )
 

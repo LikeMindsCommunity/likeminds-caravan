@@ -6,7 +6,8 @@ from typing import Union
 from django.db.models import F, Q
 from rest_framework import status as status_codes
 
-from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT
+from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
+    MINUTES_30
 
 from .conversation_manager import ConversationManager
 from .reactions import fetch_chatroom_or_conversation_reactions
@@ -53,6 +54,7 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from celery import shared_task
+from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -754,6 +756,19 @@ class ConversationImpl(ConversationManager):
                                                                self.get_conversation_id(),
                                                                reaction)
 
+        if self.get_chatroom_id():
+
+            ModelUtilities.model_update(collabcardState,
+                                        {'card': chatroom_instance},
+                                        {'updated_at': TimeUtilities.current_time_in_sec()}
+                                        )
+
+        else:
+            ModelUtilities.model_update(card_answers,
+                                        {'pk': self.get_conversation_id()},
+                                        {'last_updated': TimeUtilities.current_time_in_milliseconds()}
+                                        )
+
         context = {
             "success": True
         }
@@ -790,6 +805,19 @@ class ConversationImpl(ConversationManager):
         fetch_chatroom_or_conversation_reactions(self.get_chatroom_id(),
                                                  self.get_conversation_id(),
                                                  update_cache=True)
+
+        if self.get_chatroom_id():
+
+            ModelUtilities.model_update(collabcardState,
+                                        {'card': chatroom_instance},
+                                        {'updated_at': TimeUtilities.current_time_in_sec()}
+                                        )
+
+        else:
+            ModelUtilities.model_update(card_answers,
+                                        {'pk': self.get_conversation_id()},
+                                        {'last_updated': TimeUtilities.current_time_in_milliseconds()}
+                                        )
 
         context = {
             "success": True
@@ -921,6 +949,11 @@ class ConversationImpl(ConversationManager):
         ConversationHelper.create_answer(chatroom_instance, user_instance,
                                          state=chatroom_states.ADDED_CHATROOM_TOPIC,
                                          topic_text=conversation_instance.answer)
+
+        ModelUtilities.model_update(collabcardState,
+                                    {'card': chatroom_instance},
+                                    {'updated_at': TimeUtilities.current_time_in_sec()}
+                                    )
 
         return {'success': True}
 
@@ -1180,7 +1213,7 @@ class ConversationHelper:
             )
 
         if unseen_count > 0:
-            card_state_instance.expiry_time=None
+            card_state_instance.expiry_time = None
             card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             card_state_instance.save()
 
@@ -1215,4 +1248,105 @@ class ConversationHelper:
 
         return response
 
+    @staticmethod
+    def create_conversation_state(card_instance, user_instance, state, current_user_id=None, answer="", topic_text=None,
+                        **kwargs):
 
+        if not kwargs.get('community_instance'):
+            community_instance = card_instance.community
+
+        else:
+            community_instance = kwargs.get('community_instance')
+
+        if not answer:
+
+            user_name = user_instance.userinfo.name
+
+            community_id = community_instance.id
+            community_name = community_instance.name
+
+            user_route = f"route://member_profile/{user_instance.id}?member_id={user_instance.id}"
+            user_name = f"<<{user_name}|{user_route}&community_id={community_id}>>"
+
+            if state == conversation_states.CONVERSATION_HEADER:
+
+                community_route = "route://community?community_id=" + str(community_id)
+                community_name = "<<" + str(community_name) + "|" + community_route + ">>"
+
+                if card_instance.is_secret:
+                    secret_participants_count = len(json.loads(card_instance.secret_chatroom_participants))
+
+                    prefix = "others"
+                    if secret_participants_count == 2:
+                        prefix = "other"
+
+                    answer = f"{user_name} started this secret chatroom with {secret_participants_count - 1} {prefix}"
+
+                elif (card_instance.type == card_types.CARD_POLL):
+                    answer = user_name + " started this poll in " + community_name
+
+                else:
+                    answer = user_name + " started this chatroom in " + community_name
+
+            elif state == conversation_states.CONVERSATION_FOLLOW:
+                answer = user_name + " followed this chatroom"
+
+            elif state == conversation_states.CONVERSATION_UNFOLLOW:
+                answer = user_name + " unfollowed this chatroom"
+            elif state == conversation_states.CONVERSATION_COMMUNITY_EDIT:
+                answer = user_name + " edited community purpose"
+
+            elif state == conversation_states.CONVERSATION_ADD_PARTICIPANT:
+
+                if current_user_id is not None:
+                    current_user_name = Userinfo.get_username(current_user_id)
+
+                    current_user_route = f"route://member_profile/{current_user_id}?member_id={current_user_id}"
+                    encoded_current_user_name = f"<<{current_user_name}|{current_user_route}&community_id={community_id}>>"
+
+                    answer = f"{encoded_current_user_name} added {user_name}"
+
+            elif state == conversation_states.LEAVE_CONVERSATION:
+
+                answer = user_name + " left this chatroom"
+
+            elif state == conversation_states.REMOVED_FROM_CONVERSATION:
+                if current_user_id is not None:
+                    current_user_name = Userinfo.get_username(current_user_id)
+
+                    current_user_route = f"route://member_profile/{current_user_id}?member_id={current_user_id}"
+                    encoded_current_user_name = f"<<{current_user_name}|{current_user_route}&community_id={community_id}>>"
+
+                    answer = f"{encoded_current_user_name} removed {user_name}"
+
+            # elif state == conversation_states.ADDED_CONVERSATION_TOPIC:
+            #     if topic_text is not None:
+            #         answer = f"{user_name} changed current topic to {topic_text}"
+
+            elif state == conversation_states.CONVERSATION_ADD_ALL_MEMBERS:
+                user_route = f"route://member_profile/{user_instance.id}?member_id={user_instance.id}"
+                user_name = f"<<{user_name}|{user_route}&community_id={community_id}>>"
+
+                answer = user_name + " added all members"
+                print(answer)
+
+        if answer:
+            instance = card_answers()
+            instance.answer = answer
+            instance.card = card_instance
+            instance.user = user_instance
+            instance.community = community_instance
+            instance.state = state
+            instance.save()
+
+        if state == conversation_states.CONVERSATION_HEADER and \
+                card_instance.type == card_types.CARD_INTRO:
+            community_id = card_instance.community_id
+            member_id = user_instance.id
+
+            post_owner_message_template_in_intro_room(card_instance.community_id, member_id)
+
+            args = [community_id, member_id]
+            # runs after 5 minutes, expires after 30 minutes
+            check_owner_template_posted.apply_async(args=args, kwargs={},
+                                                    countdown=MINUTES_5, expires=MINUTES_30)

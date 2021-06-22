@@ -1,6 +1,7 @@
 from django.urls import path
 from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpinChatroomView,
-                                 LeaveSecretChatroomView, AddSecretChatroomParticipantView, GetTaggingList)
+                                 LeaveSecretChatroomView, AddSecretChatroomParticipantView, GetTaggingList,
+                                 AutoFollowChatroomForAllMembersView)
 
 urlpatterns = [
     path('fetch', FetchChatroomView.as_view(), name="fetch_chatroom"),
@@ -9,5 +10,7 @@ urlpatterns = [
     path('secret/add', AddSecretChatroomParticipantView.as_view(), name="add_secret_room_participant"),
     path('secret/leave', LeaveSecretChatroomView.as_view(), name="leave_secret_chatroom"),
     path('get_tagging_list', GetTaggingList.as_view(), name="get_tagging_list"),
+    path('auto_follow_for_all_members', AutoFollowChatroomForAllMembersView.as_view(),
+         name="auto_follow_for_all_members")
 
 ]

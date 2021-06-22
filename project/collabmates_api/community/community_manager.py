@@ -5,11 +5,12 @@ class CommunityManager(metaclass=abc.ABCMeta):
 
     @classmethod
     def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'fetch_community') and callable(subclass.fetch_community) and
+        return ((hasattr(subclass, 'fetch_community') and callable(subclass.fetch_community)) and
                 (hasattr(subclass, 'fetch_chatroom_feed') and callable(subclass.fetch_chatroom_feed)) and
-                (hasattr(subclass, 'delete_community') and callable(subclass.delete_community) and
-                 (hasattr(subclass, 'fetch_feed_url') and callable(subclass.fetch_feed_url)) and
-                 (hasattr(subclass, 'fetch_discoverable_communities') and callable(subclass.fetch_discoverable_communities))) or
+                (hasattr(subclass, 'delete_community') and callable(subclass.delete_community)) and
+                (hasattr(subclass, 'fetch_feed_url') and callable(subclass.fetch_feed_url)) and
+                (hasattr(subclass, 'fetch_otl_url') and callable(subclass.fetch_otl_url)) and
+                (hasattr(subclass, 'fetch_discoverable_communities') and callable(subclass.fetch_discoverable_communities)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -29,8 +30,18 @@ class CommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    def approve_or_decline_community(self, req_body):
+        """approves or declines community"""
+
+        raise NotImplementedError
+
     def fetch_feed_url(self):
         """returns community feed url as a branch link"""
+
+        raise NotImplementedError
+
+    def fetch_otl_url(self, payment_id, shared_by_id):
+        """returns community otl url as a branch link"""
 
         raise NotImplementedError
 
@@ -39,3 +50,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    def join_community(self, req_body):
+        """make a user either a pending member or a member in community"""
+
+        raise NotImplementedError

@@ -243,6 +243,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "created_at": TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch),
         "date_epoch": card.date_epoch,
         'is_secret': card.is_secret,
+        'auto_follow_done': card.auto_follow_done
     }
 
     if card.secret_chatroom_participants:
@@ -365,7 +366,10 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
     collabcard['reactions'] = reactions
 
     if return_topic and card.topic is not None:
-        collabcard['topic'] = conversationSerializer(card.topic, fetch_reply=False)
+        conversation_serializer = conversationSerializer(card.topic, fetch_reply=False)
+        conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(conversation_serializer['created_at'])
+
+        collabcard['topic'] = conversation_serializer
 
     return collabcard
 
@@ -727,10 +731,6 @@ def get_removed_member_custom_text(instance):
     elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
         temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED
         temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % (instance.member.userinfo.name,  current_date)
-
-    elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
-        temp['custom_intro_text'] = "Profile does not exist"
-        temp['custom_click_text'] = f"The profile you are trying to access does not exist. <member_name>'s membership expired on  {current_date}"
 
     temp['remove_state'] = remove_state
     temp['removed_user_image_url'] = REMOVED_USER_URL

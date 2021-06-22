@@ -1278,8 +1278,10 @@ def join_promoter_created_community_version_1(res, request):
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
+        message = PAID_COMMUNITY_PENDING_MEMBER_TOAST if community_instance.is_paid else PENDING_MEMBER_TOAST
+
         update_community_toast(user_instance, community_instance,
-                               message="Your request for joining this community is pending")
+                               message=message)
 
         if shared_user_instance:
             history_type = moderation_history_types.APPLIED_PUBLIC_LINK
@@ -3795,6 +3797,7 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
     collabcard_filter = Collabcard.objects.filter(community=community_instance,
                                                   is_pending=False, is_deleted=False,
                                                   is_secret=False).order_by('id')
+    chatroom_ids = []
 
     for card_instance in collabcard_filter:
 
@@ -3814,8 +3817,19 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
             else:
                 expire_at = card_instance.date_epoch + HOURS_24
 
+            follow_status = False
+
+            if card_instance.auto_follow_done:
+                follow_status = True
+                chatroom_ids.append(card_instance.id)
+
             create_chatroom_state_instance(card_instance, user_instance, expire_at=expire_at,
+                                           follow_status=follow_status,
                                            function_called="update_seen_status_for_new_user_in_chatroom")
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+    ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_chatroom_list.delay(
+        chatroom_ids, user_instance.id, community_instance.id, member_state=0)
 
     update_last_unseen_in_engage(user=user_instance, community=community_instance)
 
@@ -4162,8 +4176,7 @@ def set_chatroom_active(request):
     return JsonResponse({"success": True})
 
 
-def get_branch_links_for_community_share(user_instance, community_instance,
-                                         payment_id=None, shared_by=None):
+def get_branch_links_for_community_share(user_instance, community_instance):
     is_promoter = False
     is_owner = False
     is_member = False
@@ -4193,16 +4206,10 @@ def get_branch_links_for_community_share(user_instance, community_instance,
             aj = generate_private_link(community_instance=community_instance,
                                        promoter_instance=user_instance,
                                        just_send_aj=True)
-            branch_links = create_community_branch_links(community_id, member_id, aj,
-                                                         payment_id=payment_id,
-                                                         shared_by_id=shared_by,
-                                                         )
+            branch_links = create_community_branch_links(community_id, member_id, aj)
 
         else:
-            branch_links = create_community_branch_links(community_id, member_id,
-                                                         payment_id=payment_id,
-                                                         shared_by_id=shared_by,
-                                                         )
+            branch_links = create_community_branch_links(community_id, member_id)
 
     else:
         branch_links = create_community_branch_links(community_id, member_id)
@@ -4223,9 +4230,6 @@ def fetch_share_url(request):
 
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
-
-    payment_id = request.GET.get('payment_id')
-    shared_by = request.GET.get('shared_by')
 
     if not member_id:
         context = get_error_context(False, "send member id in headers")
@@ -4249,7 +4253,7 @@ def fetch_share_url(request):
             chatroom_share['share_url'] = share['share_url']
             chatroom_share['creator_share_url'] = share['creator_share_url']
             chatroom_share['link_created_at'] = share['link_created_at']
-                             
+
         else:
             chatroom_share['share_url'] = ''
             chatroom_share['creator_share_url'] = ''
@@ -4267,9 +4271,7 @@ def fetch_share_url(request):
 
             return JsonResponse(context, status=400)
 
-        share_context = get_branch_links_for_community_share(user_instance, community_instance,
-                                                             payment_id=payment_id,
-                                                             shared_by=shared_by)
+        share_context = get_branch_links_for_community_share(user_instance, community_instance)
         branch_links = share_context['branch_links']
         community_share = {}
         community_name = community_instance.name
@@ -6177,6 +6179,8 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             actions.insert(1, unpin_chatroom)
         else:
             actions.insert(1, pin_chatroom)
+
+        actions.insert(2, add_all_members)
 
     if card_instance.is_secret and\
             current_user_instance is not None:
@@ -10829,15 +10833,51 @@ def dismiss(request):
     return JsonResponse(context)
 
 
+def save_push_notification_details_for_web(user_id, token):
+
+    user_instance = ModelUtilities.get_model_instance_or_none(User,user_id)
+
+    if not user_instance:
+        return {'success': False, 'error_message': "Invalid user id"}
+
+    if not token:
+        return {'success': False, 'error_message': "Invalid fcm token"}
+
+    device_id = "fcm_token_%s" % (str(user_instance.id))
+
+    device_filter = ModelUtilities.get_model_filter(userDevices, {'user': user_instance,
+                                                                  'device_id': device_id})
+    if not device_filter:
+        userDevices.create_instance({'user_instance': user_instance,
+                                     'platform_code': "web",
+                                     'token': token,
+                                     'device_id': device_id})
+    else:
+        ModelUtilities.model_update(userDevices,
+                                    {'user': user_instance, 'device_id': device_id},
+                                    {'updated_at': TimeUtilities.current_time_in_sec(), 'fcm_token': token})
+
+    return {'success': True}
+
+
 @csrf_exempt
 def push(request):
-    '''This function is used to insert fcm token to the database in order to generate notifications from database'''
+    """This function is used to insert fcm token to the database in order to generate notifications from database"""
 
     member_id = request.GET.get('member_id', '')
     token = request.GET.get('token', '')
     platform_code = get_platform_code_from_headers(request)
 
     device_id = request.GET.get('device_id', None)
+
+    if RequestUtilities.is_request_web(request):
+        user_id = RequestUtilities.get_member_id_from_headers(request)
+        response = save_push_notification_details_for_web(user_id, token)
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
 
     if member_id:
         is_member = Userinfo.objects.filter(user_id=member_id)
@@ -11701,9 +11741,9 @@ class AllMembersVersion1(APIView):
 
         if not member_id:
             raise InvalidHeaderException()
-        
+
         platform_code = RequestUtilities.get_request_type(request)
-        
+
         if platform_code == INVALID_PLATFORM:
             response = {
                 'success': False,
@@ -14623,7 +14663,13 @@ class SyncChatrooms(APIView):
             else:
                 reactions = []
 
+            chatroom['auto_follow_done'] = data[53]
+
             chatroom['reactions'] = reactions if reactions else []
+
+            # chatroom topic
+            if data[52]:
+                chatroom['topic_id'] = data[52]
 
             chatrooms.append(chatroom)
 
@@ -14803,8 +14849,6 @@ class SyncChatroomsDiff(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
         version_code = RequestUtilities.get_version_code_from_headers(request)
-        is_platform_android = RequestUtilities.is_request_android(request)
-        is_platform_ios = RequestUtilities.is_request_ios(request)
 
         query_params = request.query_params
 
@@ -14827,8 +14871,7 @@ class SyncChatroomsDiff(APIView):
         video_chatroom_list = set()
         secret_chatroom_list = set()
         chatrooms_with_reactions_list = set()
-
-        common_list = []
+        chatrooms_with_topics_list = set()
 
         if not is_synced:
 
@@ -14836,28 +14879,18 @@ class SyncChatroomsDiff(APIView):
 
             if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
-                common_list = tuple(video_chatroom_list)
 
-            if previous_app_version < SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN and\
-                    (REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN >= version_code >= SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN):
+            if previous_app_version < SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 secret_chatroom_list = self._get_secret_chatrooms_of_user(user_instance)
-                common_list = tuple(secret_chatroom_list)
 
-            if version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
+            if previous_app_version < REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 chatrooms_with_reactions_list = self._get_chatrooms_with_reactions_of_user(user_instance)
-                common_list = tuple(chatrooms_with_reactions_list)
 
-            if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and\
-                    version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
-                common_list = tuple(secret_chatroom_list | video_chatroom_list | chatrooms_with_reactions_list)
+            if previous_app_version < TOPIC_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
+                chatrooms_with_topics_list = self._get_chatrooms_with_topics_of_user(user_instance)
 
-            elif previous_app_version < SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN and\
-                    version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
-                common_list = tuple(secret_chatroom_list | chatrooms_with_reactions_list)
-
-            elif previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN and \
-                    SECRET_CHATROOM_SYNC_TRIGGER_VERSION_CODE_AN <= version_code < REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
-                common_list = tuple(video_chatroom_list | secret_chatroom_list)
+        common_list = tuple(secret_chatroom_list | video_chatroom_list |
+                            chatrooms_with_reactions_list | chatrooms_with_topics_list)
 
         if len(common_list) > 0:
 
@@ -14946,12 +14979,17 @@ class SyncChatroomsDiff(APIView):
 
             chatroom['secret_chatroom_left'] = data[49]
 
+            # has reactions
             if data[50]:
                 reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom['id'])
             else:
                 reactions = []
 
             chatroom['reactions'] = reactions if reactions else []
+
+            # chatroom topic
+            if data[52]:
+                chatroom['topic_id'] = data[52]
 
             chatrooms.append(chatroom)
 
@@ -15155,6 +15193,15 @@ class SyncChatroomsDiff(APIView):
                                             .values_list('card', flat=True))
 
         return chatrooms_with_reactions_list
+
+    def _get_chatrooms_with_topics_of_user(self, user_instance):
+
+        chatrooms_with_topics_list = set(collabcardState.objects
+                                         .filter(user=user_instance)
+                                         .exclude(card__topic=None)
+                                         .values_list('card', flat=True))
+
+        return chatrooms_with_topics_list
 
 
 class SyncConversation(APIView):

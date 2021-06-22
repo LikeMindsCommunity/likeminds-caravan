@@ -1,3 +1,5 @@
+from typing import Union
+
 import requests
 from rest_framework import status as status_codes
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -13,7 +15,7 @@ class ApiClient:
     response = None
     url = None
 
-    def __init__(self, host: str, path: str, method: str, schema: str = None):
+    def __init__(self, host: str = None, path: str = None, method: str = "GET", schema: str = None):
         self.host = host
         self.path = path
         self.method = method.upper()
@@ -62,7 +64,7 @@ class ApiClient:
         self.params.update(**params)
         return self
 
-    def update_body(self, data: dict):
+    def update_body(self, data: Union[dict, list]):
         self.body = data
         return self
 
@@ -80,7 +82,7 @@ class ApiClient:
         self.response = requests.request(method=self.get_request_method(),
                                          url=url,
                                          headers=self.get_headers(),
-                                         data=self.get_body())
+                                         json=self.get_body())
         return self
 
     def get(self):
@@ -89,7 +91,7 @@ class ApiClient:
         self.response = requests.request(method="GET",
                                          url=url,
                                          headers=self.get_headers(),
-                                         data=self.get_body())
+                                         json=self.get_body())
         return self
 
     def post(self):
@@ -98,7 +100,7 @@ class ApiClient:
         self.response = requests.request(method="POST",
                                          url=url,
                                          headers=self.get_headers(),
-                                         data=self.get_body())
+                                         json=self.get_body())
         return self
 
     def delete(self):
@@ -107,8 +109,11 @@ class ApiClient:
         self.response = requests.request(method="DELETE",
                                          url=url,
                                          headers=self.get_headers(),
-                                         data=self.get_body())
+                                         json=self.get_body())
         return self
+
+    def fetch_response_code(self):
+        return self.response.status_code
 
     def fetch_response(self):
         if self.response.status_code == status_codes.HTTP_200_OK:
@@ -123,4 +128,3 @@ class ApiClient:
                                f"data={self.get_body()}, status - {self.response.status_code}\n"
                                f"response-content = {self.response.text}")
             return {}
-

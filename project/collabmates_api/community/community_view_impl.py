@@ -4,7 +4,7 @@ from utility.request_utilities import RequestUtilities
 from rest_framework.views import APIView
 from external_services.logging.logging_wrapper import LoggingWrapper
 
-from utility.exception_utilities import InvalidHeaderException
+from utility.exception_utilities import InvalidHeaderException, CustomException
 from utility.number_utilities import NumberUtilities
 from rest_framework import status as status_codes
 
@@ -63,7 +63,8 @@ class FetchChatroomFeed(APIView):
         except Exception as e:
 
             error_logger.error(e.args)
-            return JsonResponse({'error_message': "Internal server error"}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JsonResponse({'error_message': "Internal server error"},
+                                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -90,16 +91,40 @@ class DeleteCommunityView(APIView):
         return JsonResponse(community_context)
 
 
+class ApproveOrDeclineCommunity(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid community"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id, req_body.get('community_id'))
+        community_context = community_manager.approve_or_decline_community(req_body)
+
+        if 'error_message' in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
+
+
 class FetchCommunityFeedUrl(APIView):
 
     def get(self, request):
-
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
-        if not member_id:
-            raise InvalidHeaderException()
-
         community_id = request.GET.get('community_id')
+
+        if not community_id:
+            response = {
+                "success": False,
+                "error_message": "Send community_id in query params"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id, community_id)
         response_context = community_manager.fetch_feed_url()
@@ -107,10 +132,41 @@ class FetchCommunityFeedUrl(APIView):
         return JsonResponse(response_context)
 
 
+class FetchCommunityOTLUrl(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        community_id = request.GET.get('community_id')
+
+        payment_id = request.GET.get('payment_id')
+        shared_by = request.GET.get('shared_by')
+
+        if not community_id:
+            response = {
+                "success": False,
+                "error_message": "Send community_id in query params"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        if not payment_id:
+            response = {
+                "success": False,
+                "error_message": "Send payment_id in query params"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id, community_id)
+        response_context = community_manager.fetch_otl_url(payment_id, shared_by)
+
+        return JsonResponse(response_context)
+
+
 class FetchDiscoverableCommunities(APIView):
 
     def get(self, request):
-
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
         if not member_id:
@@ -123,6 +179,26 @@ class FetchDiscoverableCommunities(APIView):
         response_context = community_manager.fetch_discoverable_communities(page=page, page_size=page_size)
 
         return JsonResponse(response_context)
+
+
+class CommunityJoinView(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid Json Body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id, req_body.get('community_id'))
+        community_context = community_manager.join_community(req_body)
+
+        if 'error_message' in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
 
 
 class CommunityViewsHelper:

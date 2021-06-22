@@ -59,6 +59,9 @@ from utility.celery_tasks import save_users_with_muted_chatrooms
 from utility.cache_keys import USER_MUTED_CHATROOM
 from external_services.caching.cache_impl import CacheImpl
 
+from external_services.wa_notification.wa_notification_impl import NotificationImpl
+from external_services.wa_notification.constants import WATI_NOTIFICATION_CONST
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -141,6 +144,17 @@ def send_notification_for_ios(token_list, message):
     return result
 
 
+def send_notification_for_web(token_list, message):
+    '''function to send notification to web'''
+
+    push_service = FCMNotification(api_key=server_key)
+
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  data_message=message['payload'])
+
+    return result
+
+
 def send_silent_notification(token_list):
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list)
@@ -195,19 +209,17 @@ def notification_meta(notification_list, message, calling_notification=""):
         for device in user_devices:
 
             token_list = [device['fcm_token']]
+            payload = data['message'] if data.get('message') else message
 
             if device['mobile_os'] == "Android":
-                payload = message
                 send_notification_for_android(token_list, message)
 
             elif device['mobile_os'] == 'iOS':
-                if 'message' in data:
-                    payload = data['message']
-                else:
-                    payload = message
-
                 send_notification_for_ios(token_list, payload)
-        
+
+            elif device['mobile_os'] == 'web':
+                send_notification_for_web(token_list, payload)
+
             payload['fcm_token'] = device['fcm_token']
 
         track_notification(user_id, notification_payload=payload)
@@ -656,6 +668,17 @@ def schedule_online_event_future_notification(card_instance):
                                                           eta=task_begin_date_time,
                                                           expires=task_expiry_date_time)
 
+    task_begin_epoch_time = TimeUtilities.subtract_minutes_from_epoch_time(card_end_time, minutes=10)
+    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=15)
+
+    # scheduling event remainder on whatsapp before 10 minutes
+    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
+    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
+    online_event_reminder_notification_10_min.apply_async(args=args,
+                                                          kwargs={},
+                                                          eta=task_begin_date_time,
+                                                          expires=task_expiry_epoch_time)
+
 
 def schedule_offline_event_future_notifications(card_instance):
 
@@ -696,7 +719,7 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
 
     collabcardstates = collabcardState.objects.filter(card=card_id,
                                                       attending_status=True,
-                                                      remove=None).select_related('user')
+                                                      remove=None).select_related('user', 'community')
 
     notification_list = []
     for ccs in collabcardstates:
@@ -717,6 +740,86 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
     }}
 
     return notification_list, message
+
+
+def get_user_data_for_event_wa_notification(card_instance):
+
+    card_id = card_instance.id
+    community_instance = card_instance.community
+    card_title = get_title_from_collabcard(card_instance)
+
+    collabcardstates_queryset = ModelUtilities.get_model_filter(collabcardState, {
+        'card': card_id,
+        'attending_status': True,
+        'remove': None
+    })
+
+    data_list = []
+    user_ids = [data.user_id for data in collabcardstates_queryset]
+
+    user_data = get_user_details_for_event_attendees(user_ids)
+
+    for user_id in user_ids:
+        data_item = {
+            "phone": user_data[user_id]['phone'],
+            "parameters": [
+                {
+                    "name": "name",
+                    "value": user_data[user_id]['name'].strip(),
+                },
+                {
+                    "name": "event_name",
+                    "value": card_title.strip()
+                },
+                {
+                    "name": "community_name",
+                    "value": community_instance.name.strip()
+                },
+                {
+                    "name": "event_link",
+                    "value": str(card_instance.id)
+                }
+            ]
+        }
+        data_list.append(data_item)
+
+    return data_list
+
+
+
+def precompute_usernames_for_event_attendies(user_ids):
+    userinfo_queryset = ModelUtilities.get_model_filter(Userinfo, {
+        'user_id__in': user_ids
+    })
+
+    user_names = {}
+
+    for userinfo in userinfo_queryset:
+        user_names[userinfo.user_id_id] = userinfo.name
+
+    return user_names
+
+
+def get_user_details_for_event_attendees(user_ids):
+
+    mobile_queryset = ModelUtilities.get_model_filter(userMobiles, {
+        'user__in': user_ids,
+        'state': mobile_states.PRIMARY
+    })
+
+    user_names = precompute_usernames_for_event_attendies(user_ids)
+
+    user_data = {}
+
+    for mobile in mobile_queryset:
+        user_name = user_names[mobile.user_id]
+        user_mobile = str(mobile.country_code) + str(mobile.mobile_no)
+
+        user_data[mobile.user_id] = {}
+        user_data[mobile.user_id]['phone'] = user_mobile
+        user_data[mobile.user_id]['name'] = user_name
+
+    return user_data
 
 
 def fetch_all_valid_urls(string):
@@ -781,6 +884,22 @@ def online_event_remainder_notification_2_min(card_id, **kwargs):
 
     except Exception as e:
         error_logger.error(f"online_event_remainder_notification_2_min {e.args}")
+
+
+@app.task
+@shared_task
+def online_event_reminder_notification_10_min(card_id, **kwargs):
+    """ function to send notification to all members when event/poll is going to start/end """
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+    if card_instance:
+        user_data_for_wa_notification = get_user_data_for_event_wa_notification(card_instance)
+        template_name = WATI_NOTIFICATION_CONST['TEMPLATE_NAMES']['EVENT_REMINDER']
+        broadcast_name = WATI_NOTIFICATION_CONST['BROADCAST_NAMES']['EVENT_REMINDER']
+        NotificationImpl.send_wa_notifications(user_data_for_wa_notification, template_name, broadcast_name)
+
+    else:
+        error_logger.error(f"Card with pk={card_id} does not exist")
 
 
 @app.task
@@ -1441,7 +1560,7 @@ def send_notification_to_all_admins(community_id, name, current_promoter_id):
         }
         send_notification_to_multiple_devices(token_list, message)
         curr.close()
-        
+
     except (Exception, psycopg2.Error) as error:
 
         print ("Error while connecting to PostgreSQL", error)
@@ -2709,7 +2828,7 @@ def send_notification_to_managers_when_member_leaves_community(user_id, communit
 
     notification_meta(notification_list, message)
 
-    
+
 def query_executer(query):
 
     """executes a query and returns a response"""
@@ -2953,7 +3072,7 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
     }
 
     notification_list = [creator_dict]
-    
+
     notification_meta(notification_list, message)
 
 
@@ -3001,5 +3120,32 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
         notification_list.append(temp)
 
     print("notification_list", notification_list)
+    notification_meta(notification_list, message)
+
+@shared_task
+def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_id, user_ids):
+    notification_list = []
+
+    chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+    if not chatroom_instance:
+        return
+
+    userinfo_instance = Userinfo.get_userinfo_or_None(cm_id)
+
+    if not userinfo_instance:
+        return
+
+    for user_id in user_ids:
+        notification_list.append({"id": user_id})
+
+    message = {
+        'payload': {
+            'title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE % (userinfo_instance.name, chatroom_instance.title),
+            'sub_title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE,
+            'route': "route://chatroom_detail?chatroom_id=%s" % str(chatroom_id)
+        }
+    }
+
     notification_meta(notification_list, message)
 

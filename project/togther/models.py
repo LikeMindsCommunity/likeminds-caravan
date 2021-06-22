@@ -123,6 +123,30 @@ class communityToast(models.Model):
     created_at = models.BigIntegerField(default=0)
     toast_message = models.TextField(null=True)
 
+    @staticmethod
+    def update_or_create_toast_message(create_info):
+
+        toast_filter = communityToast.objects.filter(community=create_info.get('community_instance'),
+                                                     user=create_info.get('user_instance'))
+
+        if not create_info.get('message'):
+            return
+
+        if not toast_filter:
+            toast = communityToast()
+            toast.community = create_info.get('community_instance')
+            toast.user = create_info.get('user_instance')
+            toast.created_at = TimeUtilities.current_time_in_sec()
+            toast.toast_message = create_info.get('message')
+            toast.save()
+
+        else:
+            toast = toast_filter[0]
+            toast.community = create_info.get('community_instance')
+            toast.user = create_info.get('user_instance')
+            toast.toast_message = create_info.get('message')
+            toast.save()
+
 
 class Members(models.Model):
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -154,6 +178,19 @@ class Members(models.Model):
     became_member_at = models.BigIntegerField(default=0)
 
     has_onboarded = models.BooleanField(default=False)
+
+    @staticmethod
+    def create_instance(create_info):
+        member_instance = Members()
+        member_instance.member_id = create_info.get('user_instance')
+        member_instance.community_id = create_info.get('community_instance')
+        member_instance.state = create_info.get('state')
+        member_instance.created_at = TimeUtilities.current_time_in_sec()
+        member_instance.updated_at = TimeUtilities.current_time_in_sec()
+        member_instance.joined_by = create_info.get('joined_by', None)
+        member_instance.custom_title = create_info.get('custom_title', None)
+        member_instance.became_member_at = create_info.get('became_member_at', 0)
+        member_instance.save()
 
     @staticmethod
     def is_community_member(community: Community, member: Union[User, str, int]) -> bool:
@@ -191,7 +228,7 @@ class Members(models.Model):
     @staticmethod
     def get_community_owner_user_instance_or_none(community: Community) -> object:
         member = Members.objects.filter(community_id=community, is_owner=True)
-        if member.exists():
+        if member:
             return member[0].member_id
         return None
 
@@ -201,7 +238,7 @@ class Members(models.Model):
         member = Members.objects.filter(community_id=community, member_id=member).prefetch_related('member_id',
                                                                                                    'approved_by')
 
-        if member.exists():
+        if member:
             return member[0]
 
         return None
@@ -210,6 +247,30 @@ class Members(models.Model):
     def get_managers_list(community: Community) -> list:
         return list(Members.objects.filter(community_id=community, state=member_states.ADMIN)
                     .values_list("member_id__id", flat=True))
+
+    @staticmethod
+    def get_pending_members(community: Community) -> list:
+
+        return Members.objects.filter(community_id=community, state=member_states.PENDING_MEMBER)
+
+    @staticmethod
+    def get_members_count_in_community(community_instance):
+
+        return Members.objects.filter(community_id=community_instance).filter(
+            Q(state=member_states.MEMBER)
+            | Q(state=member_states.ADMIN)
+            | Q(state=member_states.PROFILE_UNAVAILABLE)
+        ).count()
+    
+    @staticmethod
+    def get_members_of_community(community_instance):
+
+        return Members.objects.filter(community_id=community_instance).filter(
+            Q(state=member_states.MEMBER)
+            | Q(state=member_states.ADMIN)
+            | Q(state=member_states.PROFILE_UNAVAILABLE)
+        )
+
 
     @staticmethod
     def get_community_managers(community_id_list: list) -> list:
@@ -237,6 +298,30 @@ class Members(models.Model):
             .order_by('community_id', 'id')
 
         return members
+
+    @staticmethod
+    def create_instance_from_expired_member_instace(expired_instance):
+        member_instance = Members()
+        member_instance.member_id = expired_instance.member
+        member_instance.community_id = expired_instance.community
+        member_instance.state = expired_instance.state
+        member_instance.created_at = expired_instance.created_at
+        member_instance.updated_at = expired_instance. updated_at
+        member_instance.tool_state = expired_instance.tool_state
+        member_instance.ask_member_id = expired_instance.ask_member_id
+        member_instance.approved_member_id = expired_instance.approved_member_id
+        member_instance.edit_required = expired_instance.edit_required
+        member_instance.actions_required = expired_instance.actions_required
+        member_instance.image_url = expired_instance.image_url
+        member_instance.is_owner = expired_instance.is_owner
+        member_instance.custom_title = expired_instance.custom_title
+        member_instance.joined_by = expired_instance.joined_by
+        member_instance.approved_by = expired_instance.approved_by
+        member_instance.parent_cm = expired_instance.parent_cm
+        member_instance.parent_cm_list = expired_instance.parent_cm_list
+        member_instance.became_member_at = expired_instance.became_member_at
+        member_instance.has_onboarded = expired_instance.has_onboarded
+        member_instance.save()
 
 
 class removedMembers(models.Model):
@@ -408,6 +493,7 @@ class Collabcard(models.Model):
     device_id = models.TextField(null=True)
     platform = models.TextField(null=True)
 
+    auto_follow_done = models.BooleanField(default=False)
     topic = models.ForeignKey('card_answers', on_delete=models.SET_NULL, null=True)
 
     @staticmethod
@@ -786,6 +872,45 @@ class collabcardState(models.Model):
 
             error_logger.error(e)
 
+    @staticmethod
+    def create_chatroom_state_instances_for_bulk_create(card_instance, user_instance, state=1,
+                                                        expire_at=None, external_seen=True, is_guest=False, source=None,
+                                                        follow_status=False,
+                                                        mute_status=False, is_tagged=False, external_follow=False,
+                                                        attending_status=False, **kwargs):
+        """function to create chatroom state instance for bulk create"""
+
+        if kwargs.get('community_instance'):
+            community_instance = kwargs.get('community_instance')
+        
+        else:
+            community_instance = card_instance.community
+
+        try:
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = card_instance
+            collabcard_state_instance.community = community_instance
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = state
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.external_seen = external_seen
+            collabcard_state_instance.expiry_time = expire_at
+            collabcard_state_instance.attending_status = attending_status
+            collabcard_state_instance.follow_status = follow_status
+            collabcard_state_instance.mute_status = mute_status
+            collabcard_state_instance.is_tagged = is_tagged
+            collabcard_state_instance.is_guest = is_guest
+            collabcard_state_instance.source = source
+            collabcard_state_instance.external_follow = external_follow
+
+            return collabcard_state_instance
+
+        except Exception as e:
+            error_logger.error(e)
+
+            return None
+
 
 class conversationMemberState(models.Model):
     '''function to save member state of conversation'''
@@ -830,6 +955,41 @@ class conversationEngage(models.Model):
                                                       related_name='second_last_conversation_user')
 
     rights_list = models.TextField(null=True)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = conversationEngage()
+        instance.card = create_info.get('card_instance')
+        instance.user = create_info.get('user_instance')
+        instance.community = create_info.get('community_instance')
+        instance.last_conversation = None
+        instance.unseen_count = 0
+        instance.rights_list = create_info.get('rights_list')
+        instance.created_at = TimeUtilities.current_time_in_sec()
+        instance.updated_at = TimeUtilities.current_time_in_sec()
+        instance.save()
+
+    @staticmethod
+    def create_instance_for_bulk_create(community_instance, chatroom_instance, user_instance,
+                                        unseen_count=0, rights_list=None, last_conversation=None,
+                                        created_at=None, updated_at=None):
+
+        current_time_in_sec = TimeUtilities.current_time_in_sec()
+
+        created_at = created_at if created_at else current_time_in_sec
+        updated_at = updated_at if updated_at else current_time_in_sec
+
+        instance = conversationEngage()
+        instance.card = chatroom_instance
+        instance.user = user_instance
+        instance.community = community_instance
+        instance.last_conversation = last_conversation
+        instance.unseen_count = unseen_count
+        instance.rights_list = rights_list
+        instance.created_at = created_at
+        instance.updated_at = updated_at
+
+        return instance
 
 
 class temp_admin(models.Model):
@@ -1000,10 +1160,24 @@ class Member_Engage(models.Model):
     rights_list = models.TextField(null=True)
     order_time = models.BigIntegerField(null=True)
 
+    @staticmethod
+    def create_instance(create_info):
+        engage = Member_Engage()
+        engage.member_id = create_info.get('user_instance')
+        engage.community_id = create_info.get('community_instance')
+        engage.updated_at = TimeUtilities.current_time_in_sec()
+        engage.member_state = create_info.get('state')
+        engage.click_state = create_info.get('click_state',0)
+        engage.save()
+
     def save(self, *args, **kwargs):
+
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
         if not self.order_time:
-            self.order_time = int(time.time() * 1000)
-        self.order_time = int(time.time() * 1000)
+            self.order_time = current_time
+
+        self.order_time = current_time
         super(Member_Engage, self).save(*args, **kwargs)
 
 
@@ -1303,6 +1477,18 @@ class communityAnswers(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
 
+    @staticmethod
+    def create_instance(create_dict):
+        answer_instance = communityAnswers()
+        answer_instance.question = create_dict.get('question_instance')
+        answer_instance.member = create_dict.get('user_instance')
+        answer_instance.community = create_dict.get('community_instance')
+        answer_instance.question_answer = create_dict.get('question_answer')
+        answer_instance.question_title = create_dict.get('question_title')
+        answer_instance.save()
+
+        return answer_instance
+
 
 # master questions flow
 
@@ -1351,6 +1537,15 @@ class questionFilters(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=0, null=True)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = questionFilters()
+        instance.question = create_info.get('question_instance')
+        instance.filter = create_info.get('option')
+        instance.member = create_info.get('user_instance')
+        instance.community = create_info.get('community_instance')
+        instance.save()
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
@@ -1718,8 +1913,14 @@ class moderationHistory(models.Model):
                                       null=True)
     moderation_time = models.BigIntegerField(default=0)
 
-    def __str__(self):
-        return self.user.userinfo.name + "__" + self.community.name
+    @staticmethod
+    def create_instance(create_dict):
+        instance = moderationHistory()
+        instance.user = create_dict.get('user_instance')
+        instance.community = create_dict.get('community_instance')
+        instance.moderation_by = create_dict.get('moderation_by')
+        instance.type = create_dict.get('type')
+        instance.save()
 
     def save(self, *args, **kwargs):
         if self.moderation_time <= 0:
@@ -1756,9 +1957,25 @@ class userDevices(models.Model):
 
     device_id = models.TextField(null=True)
 
+    @staticmethod
+    def create_instance(create_info):
+
+        instance = userDevices()
+        instance.user = create_info.get('user_instance')
+        instance.mobile_os = create_info.get('platform_code')
+        instance.fcm_token = create_info.get('token')
+        instance.device_id = create_info.get('device_id')
+        instance.save()
+
     def save(self, *args, **kwargs):
-        if self.created_at <= 0:
-            self.created_at = time.time()
+
+        current_time = TimeUtilities.current_time_in_sec()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
         super(userDevices, self).save(*args, **kwargs)
 
 
@@ -1858,6 +2075,31 @@ class ModelUtilities:
     def delete_record_in_model(model, filter_dict):
         return model.objects.filter(**filter_dict).delete()
 
+    @staticmethod
+    def divide_chunks(model_list, chunk_size=1000):
+
+        for i in range(0, len(model_list), chunk_size):
+            yield model_list[i:i + chunk_size]
+
+    @staticmethod
+    def bulk_create_instances(model, model_list, chunk_size=1000):
+
+        bulk_create_list = list(ModelUtilities.divide_chunks(model_list, chunk_size))
+
+        for instance_list in bulk_create_list:
+            model.objects.bulk_create(instance_list)
+
+    @staticmethod
+    def bulk_update_instances(model, model_list, fields, chunk_size=1000):
+
+        if not fields:
+            return
+
+        bulk_create_list = list(ModelUtilities.divide_chunks(model_list, chunk_size))
+
+        for instance_list in bulk_create_list:
+            model.objects.bulk_update(instance_list, fields, chunk_size)
+
 
 class MessageReactions(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -1902,3 +2144,59 @@ class CommunityUserDelete(models.Model):
         self.created_at = current_time
 
         super(CommunityUserDelete, self).save(*args, **kwargs)
+
+
+class SubscriptionExpiredMembers(models.Model):
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    state = models.IntegerField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    tool_state = models.IntegerField(default=0)
+
+    updated_at = models.BigIntegerField(default=0)
+
+    # columns for referal in LG communities
+    ask_member_id = models.IntegerField(null=True)
+    approved_member_id = models.IntegerField(null=True)
+
+    # columns for edit member profile required
+    edit_required = models.BooleanField(default=False)
+
+    # column to edit actions required
+    actions_required = models.BooleanField(null=True)
+
+    image_url = models.TextField(null=True)
+
+    is_owner = models.BooleanField(default=False)
+    custom_title = models.TextField(null=True)
+    joined_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="expired_joined_by_user")
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="expired_approved_by_user")
+    parent_cm = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="expired_parent_cm_user")
+    parent_cm_list = models.TextField(null=True)  # it has the user id's of parent's hierarchy
+    became_member_at = models.BigIntegerField(default=0)
+
+    has_onboarded = models.BooleanField(default=False)
+
+    @staticmethod
+    def create_instance_from_member(member_instance: Members):
+        expired_instance = SubscriptionExpiredMembers()
+        expired_instance.member = member_instance.member_id
+        expired_instance.community = member_instance.community_id
+        expired_instance.state = member_instance.state
+        expired_instance.created_at = member_instance.created_at
+        expired_instance.updated_at = member_instance. updated_at
+        expired_instance.tool_state = member_instance.tool_state
+        expired_instance.ask_member_id = member_instance.ask_member_id
+        expired_instance.approved_member_id = member_instance.approved_member_id
+        expired_instance.edit_required = member_instance.edit_required
+        expired_instance.actions_required = member_instance.actions_required
+        expired_instance.image_url = member_instance.image_url
+        expired_instance.is_owner = member_instance.is_owner
+        expired_instance.custom_title = member_instance.custom_title
+        expired_instance.joined_by = member_instance.joined_by
+        expired_instance.approved_by = member_instance.approved_by
+        expired_instance.parent_cm = member_instance.parent_cm
+        expired_instance.parent_cm_list = member_instance.parent_cm_list
+        expired_instance.became_member_at = member_instance.became_member_at
+        expired_instance.has_onboarded = member_instance.has_onboarded
+        expired_instance.save()
