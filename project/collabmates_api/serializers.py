@@ -732,10 +732,6 @@ def get_removed_member_custom_text(instance):
         temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED
         temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % (instance.member.userinfo.name,  current_date)
 
-    elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
-        temp['custom_intro_text'] = "Profile does not exist"
-        temp['custom_click_text'] = f"The profile you are trying to access does not exist. <member_name>'s membership expired on  {current_date}"
-
     temp['remove_state'] = remove_state
     temp['removed_user_image_url'] = REMOVED_USER_URL
     return temp

@@ -1,15 +1,22 @@
 from typing import Union
 
 from django.db.models import Count
+from django.contrib.auth.models import User
 
 from collabmates_api.rest_api import CommunitySerializerV1
 
 from togther.models import (Community, Members, card_answers, collabcardState,
-                            userEmails)
+                            userEmails, removedMembers, ModelUtilities, communityToast, conversationEngage,
+                            SubscriptionExpiredMembers)
 
 from utility.states import member_states, conversation_states, email_states
+from utility.states import deleted_members as removed_member_states
+from utility.time_utilities import TimeUtilities
 
 from .membership_manager import MembershipManager
+from ..search.sync import ElasticSearchSync
+from ..community.community_impl import CommunityHelper
+
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
@@ -133,9 +140,120 @@ class MembershipImpl(MembershipManager):
             "community_benefits": community_benefits
         }
 
+    def remove_community_membership(self, community_id, member_id) -> dict:
+        remove_state = removed_member_states.MEMBERSHIP_EXPIRED
+
+        user_instance = User.get_user_or_raise_exception(member_id)
+        community_instance = MembershipHelper.fetch_community_instance(community_id)
+
+        is_member_removed = ModelUtilities.get_model_filter(removedMembers,
+                                                          {
+                                                              "member": user_instance,
+                                                              "community": community_instance
+                                                          })
+
+        if not is_member_removed:
+
+            member_queryset = ModelUtilities.get_model_filter(Members,
+                                                              {
+                                                                  "member_id": user_instance,
+                                                                  "community_id": community_instance
+                                                              })
+
+            if member_queryset:
+                member_instance = member_queryset[0]
+                SubscriptionExpiredMembers.create_instance_from_member(member_instance)
+
+                member_queryset.delete()
+
+            else:
+                return {"success": True}
+
+            instance = removedMembers(community=community_instance, member=user_instance,
+                                      removed_state=remove_state, created_at=TimeUtilities.current_time_in_sec())
+            instance.save()
+
+            ModelUtilities.delete_record_in_model(conversationEngage,
+                                                  {
+                                                      "community": community_id,
+                                                      "user": member_id
+                                                  })
+
+            filter_dict = {'community': community_instance, 'user': user_instance}
+
+            update_dict = {
+                'remove': instance,
+                'updated_at': TimeUtilities.current_time_in_sec()
+            }
+
+            ModelUtilities.model_update(collabcardState, filter_dict, update_dict)
+
+            update_dict = {
+                'remove': None,
+                'last_updated': TimeUtilities.current_time_in_milliseconds()
+            }
+
+            ModelUtilities.model_update(card_answers, filter_dict, update_dict)
+
+            ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member_id)
+
+        return {"success": True}
+
+    def renew_community_membership(self, community_id) -> dict:
+
+        user_instance = User.get_user_or_raise_exception(self.get_member_id())
+        community_instance = MembershipHelper.fetch_community_instance(community_id)
+
+        expired_member_queryset = ModelUtilities.get_model_filter(SubscriptionExpiredMembers,
+                                                                  {
+                                                                      "member": user_instance,
+                                                                      "community": community_instance
+                                                                  })
+
+        if expired_member_queryset:
+            expired_member_instance = expired_member_queryset[0]
+            Members.create_instance_from_expired_member_instace(expired_member_instance)
+
+            expired_member_queryset.delete()
+
+        else:
+            return {"success": True}
+
+        ModelUtilities.delete_record_in_model(removedMembers,
+                                              {
+                                                  "community": community_instance,
+                                                  "member": user_instance
+                                              })
+
+        filter_dict = {'community': community_instance, 'user': user_instance}
+
+        update_dict = {
+            'remove': None,
+            'updated_at': TimeUtilities.current_time_in_sec()
+        }
+
+        ModelUtilities.model_update(collabcardState, filter_dict, update_dict)
+
+        update_dict = {
+            'remove': None,
+            'last_updated': TimeUtilities.current_time_in_milliseconds()
+        }
+
+        ModelUtilities.model_update(card_answers, filter_dict, update_dict)
+
+        CommunityHelper.update_followed_chatrooms_for_rejoined_member(user_instance, community_instance)
+
+        ElasticSearchSync.update_chatrooms_for_rejoined_member.delay(community_id, user_instance.id)
+
+        return {"success": True}
+
 
 class MembershipHelper:
 
     @staticmethod
     def fetch_community_instances(community_ids):
         return Community.objects.filter(pk__in=community_ids)
+
+    @staticmethod
+    def fetch_community_instance(community_id):
+        return Community.get_community_or_raise_exception(community_id)

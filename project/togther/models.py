@@ -299,6 +299,30 @@ class Members(models.Model):
 
         return members
 
+    @staticmethod
+    def create_instance_from_expired_member_instace(expired_instance):
+        member_instance = Members()
+        member_instance.member_id = expired_instance.member
+        member_instance.community_id = expired_instance.community
+        member_instance.state = expired_instance.state
+        member_instance.created_at = expired_instance.created_at
+        member_instance.updated_at = expired_instance. updated_at
+        member_instance.tool_state = expired_instance.tool_state
+        member_instance.ask_member_id = expired_instance.ask_member_id
+        member_instance.approved_member_id = expired_instance.approved_member_id
+        member_instance.edit_required = expired_instance.edit_required
+        member_instance.actions_required = expired_instance.actions_required
+        member_instance.image_url = expired_instance.image_url
+        member_instance.is_owner = expired_instance.is_owner
+        member_instance.custom_title = expired_instance.custom_title
+        member_instance.joined_by = expired_instance.joined_by
+        member_instance.approved_by = expired_instance.approved_by
+        member_instance.parent_cm = expired_instance.parent_cm
+        member_instance.parent_cm_list = expired_instance.parent_cm_list
+        member_instance.became_member_at = expired_instance.became_member_at
+        member_instance.has_onboarded = expired_instance.has_onboarded
+        member_instance.save()
+
 
 class removedMembers(models.Model):
     '''model for saving removed or members who left the community details'''
@@ -944,6 +968,28 @@ class conversationEngage(models.Model):
         instance.created_at = TimeUtilities.current_time_in_sec()
         instance.updated_at = TimeUtilities.current_time_in_sec()
         instance.save()
+
+    @staticmethod
+    def create_instance_for_bulk_create(community_instance, chatroom_instance, user_instance,
+                                        unseen_count=0, rights_list=None, last_conversation=None,
+                                        created_at=None, updated_at=None):
+
+        current_time_in_sec = TimeUtilities.current_time_in_sec()
+
+        created_at = created_at if created_at else current_time_in_sec
+        updated_at = updated_at if updated_at else current_time_in_sec
+
+        instance = conversationEngage()
+        instance.card = chatroom_instance
+        instance.user = user_instance
+        instance.community = community_instance
+        instance.last_conversation = last_conversation
+        instance.unseen_count = unseen_count
+        instance.rights_list = rights_list
+        instance.created_at = created_at
+        instance.updated_at = updated_at
+
+        return instance
 
 
 class temp_admin(models.Model):
@@ -2098,3 +2144,59 @@ class CommunityUserDelete(models.Model):
         self.created_at = current_time
 
         super(CommunityUserDelete, self).save(*args, **kwargs)
+
+
+class SubscriptionExpiredMembers(models.Model):
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    state = models.IntegerField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    tool_state = models.IntegerField(default=0)
+
+    updated_at = models.BigIntegerField(default=0)
+
+    # columns for referal in LG communities
+    ask_member_id = models.IntegerField(null=True)
+    approved_member_id = models.IntegerField(null=True)
+
+    # columns for edit member profile required
+    edit_required = models.BooleanField(default=False)
+
+    # column to edit actions required
+    actions_required = models.BooleanField(null=True)
+
+    image_url = models.TextField(null=True)
+
+    is_owner = models.BooleanField(default=False)
+    custom_title = models.TextField(null=True)
+    joined_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="expired_joined_by_user")
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="expired_approved_by_user")
+    parent_cm = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="expired_parent_cm_user")
+    parent_cm_list = models.TextField(null=True)  # it has the user id's of parent's hierarchy
+    became_member_at = models.BigIntegerField(default=0)
+
+    has_onboarded = models.BooleanField(default=False)
+
+    @staticmethod
+    def create_instance_from_member(member_instance: Members):
+        expired_instance = SubscriptionExpiredMembers()
+        expired_instance.member = member_instance.member_id
+        expired_instance.community = member_instance.community_id
+        expired_instance.state = member_instance.state
+        expired_instance.created_at = member_instance.created_at
+        expired_instance.updated_at = member_instance. updated_at
+        expired_instance.tool_state = member_instance.tool_state
+        expired_instance.ask_member_id = member_instance.ask_member_id
+        expired_instance.approved_member_id = member_instance.approved_member_id
+        expired_instance.edit_required = member_instance.edit_required
+        expired_instance.actions_required = member_instance.actions_required
+        expired_instance.image_url = member_instance.image_url
+        expired_instance.is_owner = member_instance.is_owner
+        expired_instance.custom_title = member_instance.custom_title
+        expired_instance.joined_by = member_instance.joined_by
+        expired_instance.approved_by = member_instance.approved_by
+        expired_instance.parent_cm = member_instance.parent_cm
+        expired_instance.parent_cm_list = member_instance.parent_cm_list
+        expired_instance.became_member_at = member_instance.became_member_at
+        expired_instance.has_onboarded = member_instance.has_onboarded
+        expired_instance.save()

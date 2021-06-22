@@ -881,21 +881,20 @@ class CommunityHelper:
     @staticmethod
     def update_followed_chatrooms_for_rejoined_member(user_instance, community_instance):
 
-        followed_filter = ModelUtilities.get_model_filter(collabcardState, {'user': user_instance,
-                                                                            'community': community_instance})
+        followed_filter = collabcardState.objects\
+            .filter(user=user_instance, community=community_instance)\
+            .select_related('card')
+
+        engage_list = []
+
         for instance in followed_filter:
 
-            engage_filter_exists = ModelUtilities.is_model_filter_exists(conversationEngage,
-                                                                         {'card': instance.card,
-                                                                          'user': user_instance})
-            if not engage_filter_exists:
-                engage_instance = conversationEngage()
-                engage_instance.community = community_instance
-                engage_instance.card = instance.card
-                engage_instance.user = instance.user
-                engage_instance.created_at = instance.created_at
-                engage_instance.updated_at = instance.updated_at
-                engage_instance.save()
+            engage_instance = conversationEngage.create_instance_for_bulk_create(community_instance, instance.card, user_instance,
+                                                                                 created_at=instance.created_at,
+                                                                                 updated_at=instance.updated_at)
+            engage_list.append(engage_instance)
+
+        ModelUtilities.bulk_create_instances(conversationEngage, engage_list)
 
         rights_list = list(ModelUtilities.get_model_filter(userMemberRights,
                                                            {'user': user_instance,

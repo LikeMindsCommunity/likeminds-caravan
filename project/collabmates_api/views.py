@@ -1278,8 +1278,10 @@ def join_promoter_created_community_version_1(res, request):
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
+        message = PAID_COMMUNITY_PENDING_MEMBER_TOAST if community_instance.is_paid else PENDING_MEMBER_TOAST
+
         update_community_toast(user_instance, community_instance,
-                               message="Your request for joining this community is pending")
+                               message=message)
 
         if shared_user_instance:
             history_type = moderation_history_types.APPLIED_PUBLIC_LINK

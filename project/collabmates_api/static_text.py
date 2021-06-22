@@ -413,5 +413,8 @@ CURRENT_IOS_VERSION = 91
 
 GIF_ATTACHMENT_FILL_TEXT = "\n * This is a gif message. Please update your app *"
 
+PENDING_MEMBER_TOAST = "Your request for joining this community is pending"
+PAID_COMMUNITY_PENDING_MEMBER_TOAST = "Your request for joining this community is pending. Usually it takes upto 48 hours to get approved. In case you are not approved, your payment would be refunded."
+
 CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE = "%s added you to %s chatroom!"
 CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE = "Tap to join in the conversation."
