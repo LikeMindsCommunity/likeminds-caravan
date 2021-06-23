@@ -15511,6 +15511,10 @@ class SyncConversation(APIView):
                     pdf_attachment['width'] = file['width']
                     attachment_pdf_context['width'] = file['width']
 
+                if file['thumbnail_url']:
+                    attachment_pdf_context['width'] = file['width']
+                    attachment_pdf_context['thumbnail_url'] = file['thumbnail_url']
+
                 conversation_files_response['pdf'].append(pdf_attachment)
                 attachment_list.append(attachment_pdf_context)
 
@@ -15531,6 +15535,9 @@ class SyncConversation(APIView):
 
                 if file['width']:
                     attachment_gif_context['width'] = file['width']
+
+                if file['thumbnail_url']:
+                    attachment_gif_context['thumbnail_url'] = file['thumbnail_url']
 
                 attachment_list.append(attachment_gif_context)
 

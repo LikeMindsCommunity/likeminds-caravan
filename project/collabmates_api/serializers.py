@@ -1804,14 +1804,24 @@ def get_answer_files(answer_id):
                 attachments_list.append(video_attachment)
 
         elif file.type == 'audio':
+
             if file.file_url:
                 audio_url = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
+
+                if file.thumbnail_url:
+                    audio_url['thumbnail_url'] = file.thumbnail_url
+
                 audios.append(audio_url)
 
         elif file.type == 'pdf':
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
                 pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                if file.thumbnail_url:
+                    pdf_url['thumbnail_url'] = file.thumbnail_url
+                    pdf_attachment['thumbnail_url'] = file.thumbnail_url
+
                 pdf.append(pdf_url)
                 attachments_list.append(pdf_attachment)
 
@@ -1832,6 +1842,9 @@ def get_answer_files(answer_id):
 
             if file.width:
                 gif_attachment['width'] = file.width
+
+            if file.thumbnail_url:
+                gif_attachment['thumbnail_url'] = file.thumbnail_url
 
             attachments_list.append(gif_attachment)
 
