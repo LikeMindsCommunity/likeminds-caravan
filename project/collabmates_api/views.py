@@ -1298,20 +1298,14 @@ def join_promoter_created_community_version_1(res, request):
 
 def update_community_toast(user_instance, community_instance, message=''):
     # setting the toast messages to show on community detail page
-    toast_filter = communityToast.objects.filter(community=community_instance, user=user_instance)
-    if not toast_filter.exists():
-        toast = communityToast()
-        toast.community = community_instance
-        toast.user = user_instance
-        toast.created_at = time.time()
-        toast.toast_message = message
-        toast.save()
-    else:
-        toast = toast_filter[0]
-        toast.community = community_instance
-        toast.user = user_instance
-        toast.toast_message = message
-        toast.save()
+    update_dict = {
+        'toast_message': message,
+        "created_at": TimeUtilities.current_time_in_sec()
+    }
+
+    instance, created = communityToast.objects.update_or_create(user=user_instance,
+                                                                community=community_instance,
+                                                                defaults=update_dict)
 
 
 def validate_private_link(aj, shared_by, community, timestamp=time.time()):
@@ -2269,19 +2263,14 @@ def remove_from_member(request):
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', '')
 
-    remove_state = request.POST.get('remove_state', None)
+    community_instance = Community.get_community_or_raise_exception(community_id)
 
-    community_instance = Community.objects.get(pk=community_id)
+    current_user_instance = User.get_user_or_raise_exception(member_id)
 
-    if remove_state and remove_state == deleted_members.MEMBERSHIP_EXPIRED:
-        is_promoter = True
-        current_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
-
-    else:
-        current_user_instance = User.objects.get(pk=member_id)
-
-        is_promoter = Members.objects.filter(state=member_states.ADMIN, community_id=community_id, member_id=member_id)
-        is_promoter = is_promoter.exists()
+    is_promoter = Members.objects.filter(state=member_states.ADMIN,
+                                         community_id=community_instance,
+                                         member_id=current_user_instance)
+    is_promoter = is_promoter.exists()
 
     if member_ids:
         if is_promoter:
@@ -2290,7 +2279,7 @@ def remove_from_member(request):
             member_ids = json.loads(member_ids)
 
             for member in member_ids:
-                member_filter = Members.objects.filter(community_id=community_id, member_id=member)
+                member_filter = Members.objects.filter(community_id=community_instance, member_id=member)
 
                 if member_filter:
                     member_state = member_filter[0].state
@@ -2303,7 +2292,7 @@ def remove_from_member(request):
 
                         user_instance = member_filter[0].member_id
 
-                        remove_members(community_id, user_instance.id,
+                        remove_members(community_instance, user_instance,
                                        removed_state=deleted_members.REMOVED,
                                        current_user_instance=current_user_instance)
 
@@ -2353,10 +2342,10 @@ def remove_from_member(request):
         is_pending = Members.objects.filter(state=member_states.PENDING_MEMBER, community_id=community_id,
                                             member_id=member_id)
         if is_pending.exists():
-            remove_members(community_id, member_id, removed_state=deleted_members.LEFT,
+            remove_members(community_instance, current_user_instance, removed_state=deleted_members.LEFT,
                            current_user_instance=current_user_instance)
-            toast_filter = communityToast.objects.filter(community_id=community_id, user=member_id)
-            toast_filter.update(toast_message="Your request for joining this community is cancelled")
+            toast_filter = communityToast.objects.filter(community=community_instance, user=current_user_instance)
+            toast_filter.update(toast_message=PENDING_MEMBER_REQUEST_REJECTED_COMMUNITY_TOAST)
 
             check_reports_and_update_action.delay(action_taken_by=member_id,
                                                   action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
@@ -2371,16 +2360,15 @@ def remove_from_member(request):
     # flow to leave the community
     if not is_promoter and member_ids is False:
 
-        is_member = Members.objects.filter(community_id=community_id, member_id=member_id).filter(
+        is_member = Members.objects.filter(community_id=community_instance, member_id=current_user_instance).filter(
             Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER) |
             Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
         if is_member.exists():
-            user_instance = User.objects.get(pk=member_id)
-            remove_members(community_id, member_id, removed_state=deleted_members.LEFT,
+            remove_members(community_instance, current_user_instance, removed_state=deleted_members.LEFT,
                            current_user_instance=current_user_instance)
 
-            save_moderation_history(user=user_instance, community=community_instance,
+            save_moderation_history(user=current_user_instance, community=community_instance,
                                     moderation_by=current_user_instance,
                                     type=moderation_history_types.LEFT_COMMUNITY)
 
@@ -2391,8 +2379,8 @@ def remove_from_member(request):
             info_logger.info(f"REMOVE_MEMBER_API (Left CASE) - current user id = {member_id}, user id = {member_id}"
                              f", community id = {community_id}")
 
-            remove_all_member_rights(community_instance, user_instance)
-            remove_all_manager_rights(community_instance, user_instance)
+            remove_all_member_rights(community_instance, current_user_instance)
+            remove_all_manager_rights(community_instance, current_user_instance)
 
             send_sync_notification.delay({'community_id': community_id,
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -2411,75 +2399,80 @@ def remove_from_member(request):
 
 
 @csrf_exempt
-def remove_members(community_id, member_id, removed_state, current_user_instance):
-    '''function to remove member'''
+def remove_members(community_instance, user_instance, removed_state, current_user_instance):
+    """ function to remove member and delete user's community related data """
 
-    try:
-        community_instance = Community.objects.get(id=community_id)
-        user_instance = User.objects.get(id=member_id)
-    except:
-        return
+    update_dict = {
+        'removed_state': removed_state,
+        "created_at": TimeUtilities.current_time_in_sec()
+    }
 
-    # communityAnswers.objects.filter(community=community_id, member=member_id).delete()
+    instance, created = removedMembers.objects.update_or_create(member=user_instance,
+                                                                community=community_instance,
+                                                                defaults=update_dict)
 
-    is_member_left = removedMembers.objects.filter(community=community_id, member=member_id)
+    if removed_state == deleted_members.LEFT or removed_state == deleted_members.REMOVED:
+        message = MEMBER_LEFT_COMMUNITY_TOAST if deleted_members.LEFT else MEMBER_REMOVED_FROM_COMMUNITY_TOAST
 
-    if not is_member_left.exists():
-        instance = removedMembers(community=community_instance, member=user_instance,
-                                  removed_state=removed_state, created_at=time.time())
-        instance.save()
+        create_info ={
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'message': message
+        }
 
-        # updating the toast messages in case of removed and left
-        # toast_filter = communityToast.objects.filter(community=community_instance,user=user_instance)
-        if removed_state == deleted_members.LEFT:
-            update_community_toast(user_instance, community_instance, message="You left the community.")
+        communityToast.update_or_create_toast_message(create_info)
 
-        elif removed_state == deleted_members.REMOVED:
-            update_community_toast(user_instance, community_instance,
-                                   message="You are no longer a member of this community.")
+    # removing the intro chatroom
+    intro_filter = Collabcard.objects.filter(community=community_instance,
+                                             user=user_instance,
+                                             type=card_types.CARD_INTRO,
+                                             is_deleted=False)
+    if intro_filter:
+        intro_instance = intro_filter[0]
+        intro_instance.is_deleted = True
+        intro_instance.deleted_by_user = current_user_instance
+        intro_instance.save()
+        update_multiple_previews_in_chatroom.delay({'chatroom_id': intro_instance.id})
 
-        # removing the intro chatroom
-        intro_filter = Collabcard.objects.filter(community=community_id,
-                                  user=member_id,
-                                  type=card_types.CARD_INTRO,
-                                  is_deleted=False)
-        if intro_filter:
-            intro_instance = intro_filter[0]
-            intro_instance.is_deleted=True
-            intro_instance.deleted_by_user = current_user_instance
-            intro_instance.save()
-            update_multiple_previews_in_chatroom.delay({'chatroom_id': intro_instance.id})
+    ModelUtilities.model_update(collabcardState,
+                                {'community': community_instance, 'user': user_instance},
+                                {'remove': instance, 'updated_at': TimeUtilities.current_time_in_sec()}
+                                )
 
-        # saving collabcard state in update status
-        update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                       {'community': community_instance, 'user': member_id},
-                                       {'remove': instance})
+    ModelUtilities.model_update(card_answers,
+                                {'community': community_instance, 'user': user_instance},
+                                {'remove': instance, 'last_updated': TimeUtilities.current_time_in_milliseconds()}
+                                )
 
-        update_models_for_syncing_apis(SyncTypes.CONVERSATION,
-                                       {'community': community_instance, 'user': member_id},
-                                       {'remove': instance})
+    # deleting member record
+    ModelUtilities.delete_record_in_model(Members,
+                                          {"community_id": community_instance, "member_id": user_instance}
+                                          )
 
-    # your chatrooms removed
-    member_removerd = Members.objects.filter(community_id=community_id, member_id=member_id).delete()
-    # print(member_removerd)
-
-    # your community removed
-    engage_removed = Member_Engage.objects.filter(community_id=community_id, member_id=member_id).delete()
-    # print(engage_removed)
-
-    profile_removed = communityAnswers.objects.filter(community=community_id, member=member_id).delete()
-    # print(profile_removed)
+    # deleting from your communities
+    ModelUtilities.delete_record_in_model(Member_Engage,
+                                          {"community_id": community_instance, "member_id": user_instance}
+                                          )
+    # deleting user answers
+    ModelUtilities.delete_record_in_model(communityAnswers,
+                                          {"community": community_instance, "member": user_instance}
+                                          )
 
     # removing the draft chatrooms
-    draft_removed = draftChatroom.objects.filter(community=community_id, user=member_id).delete()
+    ModelUtilities.delete_record_in_model(draftChatroom,
+                                          {"community": community_instance, "user": user_instance}
+                                          )
 
     # removing the followed chatrooms
-    conversation_engage = conversationEngage.objects.filter(community=community_id, user=member_id).delete()
-
+    ModelUtilities.delete_record_in_model(conversationEngage,
+                                          {"community": community_instance, "user": user_instance}
+                                          )
     # removing the filter data
-    filter_data = questionFilters.objects.filter(community=community_id, member=member_id).delete()
+    ModelUtilities.delete_record_in_model(questionFilters,
+                                          {"community": community_instance, "member": user_instance}
+                                          )
 
-    update_last_unseen_in_engage_on_card_creation.delay(community_id, is_seen=False)
+    update_last_unseen_in_engage_on_card_creation.delay(community_instance.id, is_seen=False)
 
 
 def update_followed_for_rejoined_member(user, community):

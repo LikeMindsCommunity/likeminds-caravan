@@ -116,7 +116,7 @@ class Community(models.Model):
 
 
 class communityToast(models.Model):
-    '''table to save the toast messages of community'''
+    """table to save the toast messages of community"""
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
@@ -126,26 +126,17 @@ class communityToast(models.Model):
     @staticmethod
     def update_or_create_toast_message(create_info):
 
-        toast_filter = communityToast.objects.filter(community=create_info.get('community_instance'),
-                                                     user=create_info.get('user_instance'))
-
         if not create_info.get('message'):
             return
 
-        if not toast_filter:
-            toast = communityToast()
-            toast.community = create_info.get('community_instance')
-            toast.user = create_info.get('user_instance')
-            toast.created_at = TimeUtilities.current_time_in_sec()
-            toast.toast_message = create_info.get('message')
-            toast.save()
+        update_dict = {
+            'toast_message': create_info.get('message'),
+            "created_at": TimeUtilities.current_time_in_sec()
+        }
 
-        else:
-            toast = toast_filter[0]
-            toast.community = create_info.get('community_instance')
-            toast.user = create_info.get('user_instance')
-            toast.toast_message = create_info.get('message')
-            toast.save()
+        instance, created = communityToast.objects.update_or_create(user=create_info.get('user_instance'),
+                                                                    community=create_info.get('community_instance'),
+                                                                    defaults=update_dict)
 
 
 class Members(models.Model):
