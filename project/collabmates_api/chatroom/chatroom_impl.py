@@ -1090,6 +1090,32 @@ class ChatroomImpl(ChatroomManager):
                 }
                 raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
+    def edit_chatroom(self, req_body) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
+
+        if not card_instance:
+            return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        text = req_body.get('text')
+
+        if not text:
+            return {'success': False, 'error_message': "Empty text for edit"}
+
+        if card_instance.user_id != user_instance.id:
+            return {'success': False, 'error_message': "Only chat room creator can edit"}
+
+        ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, {'title': text, 'is_edited': True})
+
+        ChatroomHelper.run_async_tasks_related_to_chatroom_edit.delay(card_instance.id, text)
+
+        return {'success': True}
+
 
 class ChatroomHelper:
 
@@ -1618,3 +1644,12 @@ class ChatroomHelper:
                 chatroom_dict[chatroom_id] = data
 
         return chatroom_dict
+
+    @staticmethod
+    @shared_task
+    def run_async_tasks_related_to_chatroom_edit(card_id, text):
+
+        ModelUtilities.model_update(collabcardState, {'card': card_id},
+                                    {'updated_at': TimeUtilities.current_time_in_sec()})
+        ElasticSearchSync.update_chatroom_title(card_id, text)
+

@@ -266,7 +266,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
                   'poll_type', 'last_seen_conversation', 'is_secret', 'secret_chatroom_participants',
-                  'topic_id', 'auto_follow_done'
+                  'topic_id', 'auto_follow_done', 'is_edited'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -813,7 +813,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'preview', 'member_id', 'created_epoch', 'temporary_id', 'is_anonymous',
                   'allow_add_option', 'poll_type', 'expiry_time', 'multiple_select_state',
                   'multiple_select_no', 'polls', 'reactions', 'poll_type_text', 'submit_type_text',
-                  'poll_answer_text')
+                  'poll_answer_text', 'reply_chatroom_id')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)

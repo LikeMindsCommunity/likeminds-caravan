@@ -486,6 +486,7 @@ class Collabcard(models.Model):
 
     auto_follow_done = models.BooleanField(default=False)
     topic = models.ForeignKey('card_answers', on_delete=models.SET_NULL, null=True)
+    is_edited = models.BooleanField(default=False)
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
@@ -697,6 +698,8 @@ class card_answers(models.Model):
 
     has_reactions = models.BooleanField(default=False)
     poll_answer_text = models.TextField(default='')
+    reply_chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True,
+                                       related_name="reply_chatroom_action")
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):

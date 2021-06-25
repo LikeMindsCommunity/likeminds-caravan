@@ -243,7 +243,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "created_at": TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch),
         "date_epoch": card.date_epoch,
         'is_secret': card.is_secret,
-        'auto_follow_done': card.auto_follow_done
+        'auto_follow_done': card.auto_follow_done,
+        'is_edited': card.is_edited
     }
 
     if card.secret_chatroom_participants:
@@ -1743,6 +1744,9 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         reactions = []
 
     temp['reactions'] = reactions
+    
+    if conversation.reply_chatroom_id:
+        temp['reply_chatroom_id'] = conversation.reply_chatroom_id
 
     return temp
 

@@ -768,7 +768,8 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
              togther_collabcard.has_reactions,
              togther_collabcard.device_id,
              togther_collabcard.topic_id,
-             togther_collabcard.auto_follow_done
+             togther_collabcard.auto_follow_done,
+             togther_collabcard.is_edited
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -853,7 +854,8 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
              togther_collabcard.has_reactions,
              togther_collabcard.device_id,
              togther_collabcard.topic_id,
-             togther_collabcard.auto_follow_done
+             togther_collabcard.auto_follow_done,
+             togther_collabcard.is_edited
     FROM togther_collabcard
     INNER JOIN togther_collabcardState
         ON togther_collabcardState.card_id = togther_collabcard.id
@@ -947,7 +949,8 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
                      togther_collabcard.has_reactions,
                      togther_collabcard.device_id,
                      togther_collabcard.topic_id,
-                     togther_collabcard.auto_follow_done
+                     togther_collabcard.auto_follow_done,
+                     togther_collabcard.is_edited
             FROM togther_collabcard
             INNER JOIN togther_collabcardState
                 ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1225,7 +1228,8 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
                  togther_collabcard.has_reactions,
                  togther_collabcard.device_id,
                  togther_collabcard.topic_id,
-                 togther_collabcard.auto_follow_done
+                 togther_collabcard.auto_follow_done,
+                 togther_collabcard.is_edited
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1316,7 +1320,8 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
                          togther_collabcard.has_reactions,
                          togther_collabcard.device_id,
                          togther_collabcard.topic_id,
-                         togther_collabcard.auto_follow_done
+                         togther_collabcard.auto_follow_done,
+                         togther_collabcard.is_edited
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1407,7 +1412,8 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                          togther_collabcard.has_reactions,
                          togther_collabcard.device_id,
                          togther_collabcard.topic_id,
-                         togther_collabcard.auto_follow_done
+                         togther_collabcard.auto_follow_done,
+                         togther_collabcard.is_edited
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1576,7 +1582,8 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
                          preview_community_id,
                          has_reactions,
                          device_id,
-                         poll_answer_text
+                         poll_answer_text,
+                         reply_chatroom_id
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
@@ -1645,14 +1652,14 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
                          preview_community_id,
                          has_reactions,
                          device_id,
-                         poll_answer_text
+                         poll_answer_text,
+                         reply_chatroom_id
                 FROM togther_card_answers
                 WHERE last_updated > %s
                         AND card_id IN %s
                         AND community_id = %s
                 ORDER BY  last_updated limit %s offset %s
                """ % (str(last_updated), str(chatroom_id_tupple), str(community_id), str(limit), str(offset))
-
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()

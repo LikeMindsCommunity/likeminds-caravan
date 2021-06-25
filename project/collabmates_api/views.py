@@ -15434,6 +15434,9 @@ class SyncConversation(APIView):
 
             conversation_context['reactions'] = reactions if reactions else []
 
+            if conversation[30]:
+                conversation_context['reply_chatroom_id'] = conversation[30]
+
             conversation_list.append(conversation_context)
 
         return conversation_list, max_last_updated

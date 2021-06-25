@@ -234,3 +234,26 @@ class AutoFollowChatroomForAllMembersView(APIView):
 
         return JsonResponse(response)
 
+
+class EditChatroomView(APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(EditChatroomView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid request"})
+
+        chatroom_manager = ChatroomImpl(member_id)
+
+        response = chatroom_manager.edit_chatroom(req_body)
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)

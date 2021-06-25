@@ -289,11 +289,12 @@ class ConversationImpl(ConversationManager):
         conversation_content['api_version'] = 1
         conversation_content['device_id'] = self.device_id
         conversation_content['platform'] = self.platform_code
+        conversation_content['is_guest'] = chatroom_state_instance.is_guest if chatroom_state_instance else False
 
-        if chatroom_state_instance:
-            conversation_content['is_guest'] = chatroom_state_instance.is_guest
-        else:
-            conversation_content['is_guest'] = False
+        if req_body.get('replied_chatroom_id'):
+            conversation_content['reply_chatroom'] = chatroom_instance \
+                if chatroom_instance.id == req_body.get('replied_chatroom_id') \
+                else ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('replied_chatroom_id'))
 
         poll_context = self._fill_poll_conversation_context(req_body)
 
