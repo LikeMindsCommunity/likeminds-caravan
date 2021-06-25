@@ -113,6 +113,7 @@ from utility.exception_utilities import (CustomException, InvalidHeaderException
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from .search.sync import ElasticSearchSync
+from .community.constants import *
 
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -1664,15 +1665,12 @@ def update_community_actions(community_instance):
                 instance.state = community_level_states.COMPLETE
                 instance.save()
 
-                community_level_filter.filter(level="Level 3").update(title="Set up community directory",
-                                                                      sub_title="Help members know each other. Ask members to complete their profile for the directory or add new members.",
+                community_level_filter.filter(level="Level 3").update(title=LEVEL_3_TITLE,
+                                                                      sub_title=LEVEL_3_SUB_TITLE,
                                                                       state=community_level_states.PENDING)
                 # community managers emails
                 send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=2, day=0,
                                                               counter=0)
-                # community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
-                #                                                       sub_title="Grow your community. Start social sharing and approve 10 new members.",
-                #                                                       state=community_level_states.PENDING)
 
         elif instance.level == "Level 3" and instance.state == community_level_states.PENDING:
 
@@ -1684,8 +1682,8 @@ def update_community_actions(community_instance):
                 instance.state = community_level_states.COMPLETE
                 instance.save()
 
-                community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
-                                                                      sub_title="Grow your community. Start social sharing and approve 10 new members.",
+                community_level_filter.filter(level="Level 4").update(title=LEVEL_4_TITLE,
+                                                                      sub_title=LEVEL_4_SUB_TITLE,
                                                                       state=community_level_states.PENDING)
                 # community managers emails
                 send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=3, day=0,
@@ -1726,8 +1724,8 @@ def set_levels_on_ctc(community_instance, level, promoter=False):
                 instance.state = community_level_states.COMPLETE
                 instance.save()
 
-                community_level_filter.filter(level="Level 3").update(title="Set up community directory",
-                                                                      sub_title="Help members know each other. Give 10 members a community-specific identity.",
+                community_level_filter.filter(level="Level 3").update(title=LEVEL_3_TITLE,
+                                                                      sub_title=LEVEL_3_SUB_TITLE,
                                                                       state=community_level_states.PENDING)
 
 
@@ -1741,8 +1739,8 @@ def set_levels_on_ctc(community_instance, level, promoter=False):
                 instance.state = community_level_states.COMPLETE
                 instance.save()
 
-                community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
-                                                                      sub_title="Grow your community. Start social sharing and approve 10 new members.",
+                community_level_filter.filter(level="Level 4").update(title=LEVEL_4_TITLE,
+                                                                      sub_title=LEVEL_4_SUB_TITLE,
                                                                       state=community_level_states.PENDING)
 
 
@@ -2690,20 +2688,20 @@ def set_community_actions(community_instance):
         communityLevels.create_instance({
             'community': community_instance,
             'level': 'Level 1',
-            'title': 'Create onboarding room',
-            'sub_title': 'Break the ice for new members. Tell what this community stands for.',
+            'title': LEVEL_1_TITLE,
+            'sub_title': LEVEL_1_SUB_TITLE,
             'level_state': community_level_states.COMPLETE,
             'image': IMAGE_LEVEL_1,
-            'joined_members':None,
-            'max_members':None
+            'joined_members': None,
+            'max_members': None
         })
 
         # second level
         communityLevels.create_instance({
             'community': community_instance,
             'level': 'Level 2',
-            'title': 'Invite your inner circle',
-            'sub_title': 'Bring 5 trusted people you want to build this community with.',
+            'title': LEVEL_2_TITLE,
+            'sub_title': LEVEL_2_SUB_TITLE,
             'level_state': community_level_states.PENDING,
             'image': IMAGE_LEVEL_2,
             'joined_members': 0,
@@ -2714,8 +2712,8 @@ def set_community_actions(community_instance):
         communityLevels.create_instance({
             'community': community_instance,
             'level': 'Level 3',
-            'title': 'Community Directory',
-            'sub_title': 'Help members know each other. Ask members to complete their profile for the directory or add new members.',
+            'title': LEVEL_3_TITLE,
+            'sub_title': LEVEL_3_SUB_TITLE,
             'level_state': community_level_states.LOCKED,
             'image': IMAGE_LEVEL_3,
             'joined_members': 0,
@@ -2726,7 +2724,7 @@ def set_community_actions(community_instance):
         communityLevels.create_instance({
             'community': community_instance,
             'level': 'Level 4',
-            'title': 'Growth',
+            'title': LEVEL_4_TITLE,
             'sub_title': None,
             'level_state': community_level_states.LOCKED,
             'image': IMAGE_LEVEL_4,
@@ -11219,47 +11217,61 @@ def edit_community(request):
 def edit_community_version_1(request):
     '''function to edit the community'''
 
-    res = json.loads(request.body)
-    community_id = res['community_id']
-    member_id = get_member_id_from_headers(request)
+    member_id = RequestUtilities.get_member_id_from_headers(request)
+
+    if not member_id:
+        error_context = get_error_context(False, "Send member id in headers")
+        return JsonResponse(error_context)
+
     try:
-        user_instance = User.objects.get(id=member_id)
-    except:
-        context = get_error_context(False, "send correct community id")
-        return JsonResponse(context)
+        res = json.loads(request.body)
+        community_id = res['community_id']
 
-    community_filter = Community.objects.filter(id=community_id)
+    except Exception as e:
+        error_context = get_error_context(False, f"{e.args[0]}")
+        return JsonResponse(error_context)
 
-    type_id = res['type'] if 'type' in res else None
-    subtype_id = res['sub_type'] if 'sub_type' in res else None
-    purpose = res['purpose'] if 'purpose' in res else None
-    name = res['community_name']
-    image_link = res['image_url']
+    user_instance = User.get_user_or_raise_exception(member_id)
+    community_instance = Community.get_community_or_raise_exception(community_id)
 
-    if community_filter.exists():
-        community_instance = community_filter[0]
-        community_instance.type = type_id
-        community_instance.sub_type = subtype_id
+    purpose = res.get('purpose', community_instance.purpose)
+    name = res.get('community_name', community_instance.name)
+    image_link = res.get('image_url', community_instance.image_link)
 
-        # checking name change
-        if community_instance.name != name:
-            community_instance.name = name
-            edit_community_data(community_instance, user_instance, edit_field="name")
+    community_instance.purpose = purpose
+    community_instance.name = name
+    community_instance.image_link = image_link
 
-        if community_instance.purpose != purpose:
-            community_instance.purpose = purpose
-            edit_community_data(community_instance, user_instance, edit_field="purpose")
+    community_instance.type = res.get('type', community_instance.type)
+    community_instance.subtype = res.get('sub_type', community_instance.sub_type)
 
-        if community_instance.image_link != image_link:
-            community_instance.image_link = image_link
-            edit_community_data(community_instance, user_instance, edit_field="image_url")
+    community_instance.is_paid = res.get('is_paid', community_instance.is_paid)
+    community_instance.is_discoverable = res.get('is_discoverable', community_instance.is_discoverable)
+    community_instance.website_url = res.get('website_url', community_instance.website_url)
+    community_instance.community_category = res.get('community_category', community_instance.community_category)
+    community_instance.referral_enabled = res.get('referral_enabled', community_instance.referral_enabled)
 
-        community_instance.save()
+    edit_field = None
 
-        # edit_community_data(community_instance, user_instance, edit_field=purpose)
-        send_sync_notification.delay({'community_id': community_id,
-                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
-        update_multiple_previews_in_community.delay({'community_id': community_id})
+    # checking name change
+    if community_instance.name != name:
+        edit_field = "name"
+
+    if community_instance.purpose != purpose:
+        edit_field = "purpose"
+
+    if community_instance.image_link != image_link:
+        edit_field = "image_url"
+
+    if edit_field:
+        edit_community_data(community_instance, user_instance, edit_field=edit_field)
+
+    community_instance.save()
+
+    # edit_community_data(community_instance, user_instance, edit_field=purpose)
+    send_sync_notification.delay({'community_id': community_id,
+                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+    update_multiple_previews_in_community.delay({'community_id': community_id})
 
     return JsonResponse({'success': True})
 

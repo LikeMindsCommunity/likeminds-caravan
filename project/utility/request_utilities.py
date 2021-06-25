@@ -1,4 +1,7 @@
 import json
+from rest_framework import status as status_codes
+
+from .exception_utilities import JsonDecodeException
 from .number_utilities import NumberUtilities
 from .constants import INVALID_PLATFORM
 
@@ -87,9 +90,21 @@ class RequestUtilities:
         return request_body
 
     @staticmethod
-    def get_page_number(request: object, default: int = 1) -> int:
+    def fetch_body_or_raise_exception(request):
+        try:
+            return RequestUtilities.fetch_request_body(request)
+        except Exception as e:
+            response = {
+                'success': False,
+                'error_message': f'Error in request body: {e.__class__.__name__} - {e.__str__()}'
+            }
+            raise JsonDecodeException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+
+    @staticmethod
+    def get_page_number(request: object, key: str = "page", default: int = 1) -> int:
         return NumberUtilities.get_integer_from_string(request.query_params.get('page', default))
 
     @staticmethod
-    def get_page_size(request: object, default: int = 100) -> int:
-        return NumberUtilities.get_integer_from_string(request.query_params.get('page_size', default))
+    def get_page_size(request: object, key: str = "page_size", default: int = 100) -> int:
+        return NumberUtilities.get_integer_from_string(request.query_params.get(key, default))

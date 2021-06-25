@@ -49,8 +49,14 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         'auto_approval': community.auto_approval,
         'grace_period': community.grace_period,
         'is_discoverable': community.is_discoverable,
-        'website_url': community.website_url,
+        'referral_enabled': community.referral_enabled,
     }
+
+    if community.website_url:
+        new_dict['website_url'] = community.website_url
+
+    if community.community_category:
+        new_dict['community_category'] = community.community_category
 
     if not current_user_instance and current_user_id:
         current_user_instance = User.objects.get(pk=current_user_id)

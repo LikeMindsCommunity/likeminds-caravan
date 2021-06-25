@@ -493,6 +493,38 @@ class UserImpl(UserManager):
 
         return context
 
+    @staticmethod
+    def fetch_user_verified_mobile_numbers(user_id_list):
+        hash_map = {}
+
+        user_mobiles = userMobiles.objects.filter(user__id__in=user_id_list)
+
+        for num_instance in user_mobiles:
+            serialized_instance = UserHelper.mobilesSerializer(num_instance)
+
+            if num_instance.user_id in hash_map:
+                hash_map[num_instance.user_id].append(serialized_instance)
+            else:
+                hash_map[num_instance.user_id] = [serialized_instance]
+
+        return hash_map
+
+    @staticmethod
+    def fetch_user_verified_emails(user_id_list):
+        hash_map = {}
+
+        user_emails = userEmails.objects.filter(user__id__in=user_id_list)
+
+        for email_instance in user_emails:
+            serialized_instance = UserHelper.emailSerializer(email_instance)
+
+            if email_instance.user_id in hash_map:
+                hash_map[email_instance.user_id].append(serialized_instance)
+            else:
+                hash_map[email_instance.user_id] = [serialized_instance]
+
+        return hash_map
+
     def fetch_app_access(self) -> dict:
 
         if not self.get_user_id():

@@ -80,6 +80,9 @@ class Community(models.Model):
     grace_period = models.BigIntegerField(default=86400*4*1000)  # 4 days in ms
     is_discoverable = models.BooleanField(default=False)
 
+    community_category = models.TextField(null=True)
+    referral_enabled = models.BooleanField(default=False)
+
     def __str__(self):
         return self.name
 
@@ -209,6 +212,11 @@ class Members(models.Model):
             return member[0].state
 
         return member_states.GUEST
+
+    @staticmethod
+    def is_member_community_promoter(community: Community, member: User) -> int:
+        member_state = Members.get_community_member_state(community, member)
+        return member_state == member_states.ADMIN
 
     @staticmethod
     def is_member_community_owner(community: Community, member: User) -> int:

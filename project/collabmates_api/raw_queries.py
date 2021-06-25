@@ -1750,7 +1750,7 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
         return {}
 
 
-def get_members_based_on_user_list_query(user_list, community_id):
+def get_members_based_on_user_list_query(user_list, community_id, order_by_name=False):
     """returns the members of the community based on user list"""
 
     try:
@@ -1775,6 +1775,9 @@ def get_members_based_on_user_list_query(user_list, community_id):
                     ON ("togther_members"."member_id_id" = "togther_userinfo"."user_id_id")
                 WHERE ("togther_members"."community_id_id" = %s
                         AND "togther_members"."member_id_id" IN %s)""" % (str(community_id), str(user_tupple))
+
+        if order_by_name:
+            sql += " order by lower(togther_userinfo.name) ASC"
 
         curr.execute(sql)
         member_data = curr.fetchall()

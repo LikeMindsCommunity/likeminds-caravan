@@ -17,8 +17,8 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'completed_onboarding_communites') and callable(
                     subclass.completed_onboarding_communites)) and
                 (hasattr(subclass, 'fetch_deleted_communities') and callable(
-                    subclass.fetch_deleted_communities))
-                or
+                    subclass.fetch_deleted_communities)) and
+                (hasattr(subclass, 'fetch_members_detail') and callable(subclass.fetch_members_detail)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -85,3 +85,9 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def fetch_members_detail(self, page, page_size) -> dict:
+        """
+        Get member details of community
+        """
+        raise NotImplementedError
