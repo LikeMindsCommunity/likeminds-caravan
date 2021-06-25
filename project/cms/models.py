@@ -376,7 +376,7 @@ class LMOptions(models.Model):
         except:
             response = {
                 "success": False,
-                "error_message": f"Option doest not exist with the given {slug=}"
+                "error_message": f"Option doest not exist with the given slug = {slug}"
             }
             raise CustomException(response)
 
