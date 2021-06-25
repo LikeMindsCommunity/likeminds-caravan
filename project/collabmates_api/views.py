@@ -44,7 +44,7 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail, upload_community_files)
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.states import (collabcard_states, member_states, question_states, community_states,
-                            deleted_members, card_types, chatroom_states, email_states, mobile_states,
+                            deleted_members, card_types, email_states, mobile_states,
                             poll_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types, report_Types, HomeSnackbarType)
 from utility.tasks import (mail_triger, new_member_request, member_request_approval_or_denied,
@@ -2362,7 +2362,13 @@ def remove_from_member(request):
             Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER) |
             Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
-        if is_member.exists():
+        if not is_member and community_instance.is_paid:
+            is_member = SubscriptionExpiredMembers.objects\
+                .filter(community=community_instance, member=current_user_instance)\
+                .filter(Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER) |
+                        Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+
+        if is_member:
             remove_members(community_instance, current_user_instance, removed_state=deleted_members.LEFT,
                            current_user_instance=current_user_instance)
 
@@ -3426,7 +3432,7 @@ def create_card_internal(user_id, community_id, res):
 
         # creating a chatroom for the collabcard posted
         create_chatroom(card_instance=card_instance, user_instance=user_instance,
-                        state=chatroom_states.CHATROOM_HEADER, current_user_id=user_id)
+                        state=conversation_states.CONVERSATION_HEADER, current_user_id=user_id)
 
         send_ice_breaker_notification.delay(community_id, time.time(), day=0)
 
@@ -3635,7 +3641,7 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
         user_route = f"route://member_profile/{user_instance.id}?member_id={user_instance.id}"
         user_name = f"<<{user_name}|{user_route}&community_id={community_id}>>"
 
-        if state == chatroom_states.CHATROOM_HEADER:
+        if state == conversation_states.CONVERSATION_HEADER:
 
             community_route = "route://community?community_id=" + str(community_id)
             community_name = "<<" + str(community_name) + "|" + community_route + ">>"
@@ -3655,16 +3661,16 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
             else:
                 answer = user_name + " started this chatroom in " + community_name
 
-        elif state == chatroom_states.CHATROOM_FOLLOW:
+        elif state == conversation_states.CONVERSATION_FOLLOW:
             answer = user_name + " followed this chatroom"
 
-        elif state == chatroom_states.CHATROOM_UNFOLLOW:
+        elif state == conversation_states.CONVERSATION_UNFOLLOW:
             answer = user_name + " unfollowed this chatroom"
 
-        elif state == chatroom_states.CHATROOM_COMMUNITY_EDIT:
+        elif state == conversation_states.CONVERSATION_COMMUNITY_EDIT:
             answer = user_name + " edited community purpose"
 
-        elif state == chatroom_states.CHATROOM_ADD_PARTICIPANT:
+        elif state == conversation_states.CONVERSATION_ADD_PARTICIPANT:
             if current_user_id is not None:
                 current_user_name = Userinfo.get_username(current_user_id)
 
@@ -3673,10 +3679,10 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 
                 answer = f"{encoded_current_user_name} added {user_name}"
 
-        elif state == chatroom_states.LEAVE_CHATROOM:
+        elif state == conversation_states.CONVERSATION_LEAVE_CHATROOM:
             answer = user_name + " left this chatroom"
 
-        elif state == chatroom_states.REMOVED_FROM_CHATROOM:
+        elif state == conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM:
             if current_user_id is not None:
                 current_user_name = Userinfo.get_username(current_user_id)
 
@@ -3685,9 +3691,9 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 
                 answer = f"{encoded_current_user_name} removed {user_name}"
 
-        elif state == chatroom_states.ADDED_CHATROOM_TOPIC:
+        elif state == conversation_states.CHATROOM_TOPIC:
             if topic_text is not None:
-                answer = f"{user_name} changed current topic to {topic_text}"
+                answer = f"{user_name} {topic_text}"
 
     if answer:
         instance = card_answers()
@@ -3698,7 +3704,7 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
         instance.state = state
         instance.save()
 
-    if state == chatroom_states.CHATROOM_HEADER and\
+    if state == conversation_states.CONVERSATION_HEADER and\
             card_instance.type == card_types.CARD_INTRO:
 
         community_id = card_instance.community_id
@@ -3795,7 +3801,7 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
         state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
         if not state_filter.exists():
-            last_conversation = card_answers.objects.filter(card=card_instance, state=chatroom_states.ANSWER).last()
+            last_conversation = card_answers.objects.filter(card=card_instance, state=conversation_states.ANSWER).last()
 
             if last_conversation:
 
@@ -5497,7 +5503,7 @@ def get_normal_chatroom_context(request, card_instance):
                                           scroll_direction=None, is_ios=False)
 
     has_conversation = card_answers.objects.filter(card=card_instance, user=current_user_id,
-                                                   state=chatroom_states.ANSWER).exists()
+                                                   state=conversation_states.ANSWER).exists()
 
     member_state = members_state(request,
                                  req_dict={'community_id': card_instance.community.id, 'member_id': current_user_id})
@@ -6048,7 +6054,7 @@ def get_answer_data(answer_filter, community_id, current_user_id, last_seen=None
 def get_answer_bubble_context_for_web(ans):
     '''function to get answer bubble context'''
     answer_bubble = ""
-    if ans.state == chatroom_states.CHATROOM_GUEST:
+    if ans.state == conversation_states.CONVERSATION_GUEST:
 
         ans = re.findall("""\<<.*?\|""", ans.answer, re.DOTALL)
         user_list = []
@@ -6060,12 +6066,12 @@ def get_answer_bubble_context_for_web(ans):
         if len(user_list) == 2:
             answer_bubble = user_list[0] + " joined via a " + user_list[1] + "'s invite"
 
-    elif ans.state == chatroom_states.CHATROOM_FOLLOW:
+    elif ans.state == conversation_states.CONVERSATION_FOLLOW:
         answer_bubble = str(ans.user.userinfo.name) + " followed this chatroom"
-    elif ans.state == chatroom_states.CHATROOM_UNFOLLOW:
+
+    elif ans.state == conversation_states.CONVERSATION_UNFOLLOW:
         answer_bubble = str(ans.user.userinfo.name) + " unfollowed this chatroom"
-    # elif ans.state == chatroom_states.CHATROOM_COMMUNITY_EDIT:
-    #     answer_bubble= str(ans.user.userinfo.name) +  " edited community purpose"
+
     return answer_bubble
 
 
@@ -6221,7 +6227,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'created_at')
 
     total_response_count = card_answers.objects.filter(card=card_instance,
-                                                       state=chatroom_states.ANSWER
+                                                       state=conversation_states.ANSWER
                                                        ).filter(Q(attachment_count=0) |
                                                                 Q(attachments_uploaded=True)
                                                                 ).count()
@@ -6443,7 +6449,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
                                                                'preview_chatroom').filter(card=card_instance).order_by(
         'id')
     total_response_count = card_answers.objects.filter(card=card_instance,
-                                                       state=chatroom_states.ANSWER
+                                                       state=conversation_states.ANSWER
                                                        ).filter(Q(attachment_count=0) |
                                                                 Q(attachments_uploaded=True)
                                                                 ).count()
@@ -6867,13 +6873,13 @@ def create_guest_header(guest_id, invitee_id, card_instance, current_user_id,
     answer = guest_user_name + " joined via " + invitee_user_name + "'s link"
 
     cardAnswer_filter = card_answers.objects.filter(card=card_instance, user=guest_instance,
-                                                    state=chatroom_states.CHATROOM_GUEST)
+                                                    state=conversation_states.CONVERSATION_GUEST)
     if not cardAnswer_filter.exists():
         instance = card_answers()
         instance.answer = answer
         instance.card = card_instance
         instance.user = guest_instance
-        instance.state = chatroom_states.CHATROOM_GUEST
+        instance.state = conversation_states.CONVERSATION_GUEST
         instance.community = card_instance.community
         instance.created_at = created_at
         instance.save()
@@ -7858,7 +7864,7 @@ def collabcard_follow(request, function_dict=None):
 
         if status:
             create_chatroom(card_instance=card_instance, user_instance=user_instance,
-                            state=chatroom_states.CHATROOM_FOLLOW, community_instance=community_instance)
+                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance)
 
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
@@ -7883,7 +7889,7 @@ def collabcard_follow(request, function_dict=None):
                                            external_seen=True, external_follow=status)
 
             create_chatroom(card_instance=card_instance, user_instance=user_instance,
-                            state=chatroom_states.CHATROOM_FOLLOW, community_instance=community_instance)
+                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance)
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
 
@@ -7897,7 +7903,7 @@ def collabcard_follow(request, function_dict=None):
             ModelUtilities.delete_record_in_model(conversationEngage, {'card': card_instance,
                                                                            'user': user_instance})
             create_chatroom(card_instance=card_instance, user_instance=user_instance,
-                                state=chatroom_states.CHATROOM_UNFOLLOW, community_instance=community_instance)
+                                state=conversation_states.CONVERSATION_UNFOLLOW, community_instance=community_instance)
 
     # local imports from conversations in order to resolve circular import
     from .conversation.conversation_impl import ConversationHelper
@@ -8045,7 +8051,7 @@ def set_state_for_event_cards(collabcard, community_instance, user_instance, sta
 
             if explicit_call:
                 create_chatroom(card_instance=collabcard, user_instance=user_instance,
-                                state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
+                                state=conversation_states.CONVERSATION_FOLLOW, current_user_id=current_member_id)
 
         else:
             collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
@@ -8064,7 +8070,7 @@ def set_state_for_event_cards(collabcard, community_instance, user_instance, sta
 
             if explicit_call:
                 create_chatroom(card_instance=collabcard, user_instance=user_instance,
-                                state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
+                                state=conversation_states.CONVERSATION_UNFOLLOW, current_user_id=current_member_id)
 
         update_my_chatrooms_for_users(chatroom_id=collabcard.id, user_id=current_member_id)
         return {'success': True}
@@ -8443,7 +8449,7 @@ def get_chatrooms(chatroom_list, member_id, active=None, device_id=''):
             continue
 
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                          state=chatroom_states.ANSWER
+                                                          state=conversation_states.ANSWER
                                                           ).filter(Q(attachment_count=0) |
                                                                    Q(attachments_uploaded=True)
                                                                    ).order_by('id')
@@ -8501,7 +8507,7 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, device_id='')
             continue
 
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                          state=chatroom_states.ANSWER
+                                                          state=conversation_states.ANSWER
                                                           ).filter(Q(attachment_count=0) |
                                                                    Q(attachments_uploaded=True)
                                                                    ).order_by('id')
@@ -8551,7 +8557,7 @@ def get_chatrooms_version_2(chatroom_list, member_id, active=None, device_id='')
 
         chatroom_instance = get_chatroom_instance(card_instance, member_id, state_instance=data)
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                          state=chatroom_states.ANSWER
+                                                          state=conversation_states.ANSWER
                                                           ).filter(Q(attachment_count=0) |
                                                                    Q(attachments_uploaded=True)
                                                                    ).order_by('id')
@@ -11566,7 +11572,7 @@ def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
     instance.card = card_instance
     instance.user = user_instance
     instance.community = card_instance.community
-    instance.state = chatroom_states.CHATROOM_COMMUNITY_EDIT
+    instance.state = conversation_states.CONVERSATION_COMMUNITY_EDIT
     instance.save()
 
 
@@ -14170,7 +14176,7 @@ class ActionPendingChatroom(APIView):
 
             # creating a chatroom for the collabcard posted
             create_chatroom(card_instance=chatroom, user_instance=chatroom.user,
-                            state=chatroom_states.CHATROOM_HEADER, current_user_id=chatroom.user.id)
+                            state=conversation_states.CONVERSATION_HEADER, current_user_id=chatroom.user.id)
 
             send_ice_breaker_notification.delay(chatroom.community.id, time.time(), day=0)
 

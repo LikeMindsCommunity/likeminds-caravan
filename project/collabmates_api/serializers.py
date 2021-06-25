@@ -6,7 +6,7 @@ from utility.utils import (generate_private_link, get_time_text, eligibility_cou
                            get_date_time_from_timestamp, get_community_members_count_for_preview)
 
 from utility.states import (card_types, question_states, poll_types,
-                            deleted_members, chatroom_states)
+                            deleted_members, conversation_states)
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .member_community.constants import CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED, CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED, \
     CUSTOM_CLICK_TEXT_DELETED, CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_LEFT, CUSTOM_INTRO_TEXT_LEFT
@@ -882,11 +882,11 @@ def get_member_images_of_chatroom(conversation_filter):
 
     return temp
 
+
 def get_member_instances_for_footer_images_in_chatroom(card_instance):
 
-
     conversation_filter = card_answers.objects\
-                              .filter(card=card_instance,state=chatroom_states.ANSWER)\
+                              .filter(card=card_instance,state=conversation_states.ANSWER)\
                               .filter(Q(attachment_count=0) |
                                       Q(attachments_uploaded=True))\
                               .distinct('user')\
@@ -2183,7 +2183,7 @@ def get_chatroom_preview(card_instance, member_id, active=None):
 
     chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False, preview=True)
     conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                      state=chatroom_states.ANSWER
+                                                      state=conversation_states.ANSWER
                                                       ).filter(Q(attachment_count=0) |
                                                                Q(attachments_uploaded=True))
     chatroom_instance['total_response_count'] = conversation_filter.count()

@@ -38,6 +38,7 @@ LEVEL_4_SUB_TITLE = "Monetize your community. Start social sharing and onboard 1
 
 
 COMMUNITY_PENDING_MEMBER_TOAST = "Your request for joining this community is pending"
+PAID_COMMUNITY_PENDING_MEMBER_TOAST = "Your request for joining this community is pending. Usually it takes upto 48 hours to get approved. In case you are not approved, your payment would be refunded."
 
 INSTAGRAM = "Instagram"
 TWITTER = "Twitter"

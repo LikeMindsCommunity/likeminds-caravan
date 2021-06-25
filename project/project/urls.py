@@ -14,28 +14,20 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, re_path, include
+from django.urls import path
 from django.conf.urls import url, include
-from togther import views
-from collabmates_api import views as api_views  
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 from dashboard.views import admin_login
 
-# handler404 = 'utility.exceptions.handler404'
-# handler500 = 'utility.exceptions.handler500'
 
 urlpatterns = [
-    #url(r'^login/$', auth_views.LoginView, name='login'),
     url(r'^logout/$', auth_views.LogoutView, name='logout'),
-    #url(r'^oauth/', include('social_django.urls', namespace='social')),  # <--
     url(r'^collabmates_admin/', admin.site.urls),
     path('', include('togther.urls'),name= 'togther'),
-    # path('accounts/login/', views.home, name='login'),
     path('api/', include('collabmates_api.urls'),name= 'api'),
     path('admin_dashboard/',include('dashboard.urls'),name='admin_dashboard'),
-    path('utils/', include('utility.urls'), name='utils'),
     path('cms/', include('cms.urls'), name='cms'),
     path('admin_login', admin_login, name="admin_login"),
 ]

@@ -34,7 +34,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo)
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.states import chatroom_states, member_states, card_types, collabcard_states, SyncNotificationTypes, \
+from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states
 
 from utility.utils import decode_meta_from_url, check_notification_flag
@@ -128,7 +128,7 @@ class ChatroomImpl(ChatroomManager):
     def _fetch_total_response_count(self, card_instance):
 
         total_response_count = card_answers.objects.filter(card=card_instance,
-                                                           state=chatroom_states.ANSWER
+                                                           state=conversation_states.ANSWER
                                                            ).filter(Q(attachment_count=0) |
                                                                     Q(attachments_uploaded=True)
                                                                     ).count()
@@ -465,7 +465,7 @@ class ChatroomImpl(ChatroomManager):
 
             # creating default conversation for chatroom creation
             create_chatroom(card_instance=chatroom_instance, user_instance=user_instance,
-                            state=chatroom_states.CHATROOM_HEADER, current_user_id=self.get_member_id())
+                            state=conversation_states.CONVERSATION_HEADER, current_user_id=self.get_member_id())
 
             send_ice_breaker_notification.delay(community_id, time.time(), day=0)
 
@@ -799,10 +799,10 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_instance = Collabcard.get_chatroom_with_joins_or_raise_exception(self.get_chatroom_id())
 
-        chatroom_state = chatroom_states.REMOVED_FROM_CHATROOM
+        chatroom_state = conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM
         if member_id is None:
             member_id = self.get_member_id()
-            chatroom_state = chatroom_states.LEAVE_CHATROOM
+            chatroom_state = conversation_states.CONVERSATION_LEAVE_CHATROOM
 
         if NumberUtilities.get_integer_from_string(member_id) == chatroom_instance.user.id:
             response = {
@@ -868,7 +868,7 @@ class ChatroomImpl(ChatroomManager):
 
         ElasticSearchSync.delete_chatroom.delay(chatroom_instance.id)
 
-        if chatroom_state == chatroom_states.REMOVED_FROM_CHATROOM:
+        if chatroom_state == conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM:
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
     def add_secret_chatroom_participant(self, req_body: dict) -> dict:
@@ -986,7 +986,7 @@ class ChatroomImpl(ChatroomManager):
         ChatroomHelper.auto_follow_chatroom(chatroom_instance, user_instance,
                                             community_instance, member_state=member_state)
         create_chatroom(card_instance=chatroom_instance, user_instance=user_instance,
-                        state=chatroom_states.CHATROOM_HEADER, current_user_id=self.get_member_id())
+                        state=conversation_states.CONVERSATION_HEADER, current_user_id=self.get_member_id())
 
         # async task for posting introduction room
         ChatroomHelper.update_old_chatrooms_relation_and_post_introduction_conversation.delay(master_intro_instance.id,
@@ -1246,7 +1246,7 @@ class ChatroomHelper:
 
             if user.id != NumberUtilities.get_integer_from_string(current_user_id):
                 ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=user,
-                                             state=chatroom_states.CHATROOM_ADD_PARTICIPANT,
+                                             state=conversation_states.CONVERSATION_ADD_PARTICIPANT,
                                              current_user_id=current_user_id)
 
             update_last_unseen_in_engage(user=user.id, community=chatroom_instance.community_id)
@@ -1415,7 +1415,7 @@ class ChatroomHelper:
     def pre_compute_last_conversation_in_chatroom(chatroom_list):
 
         conversation_filter = card_answers.objects.filter(card__in=chatroom_list,
-                                                          state=chatroom_states.ANSWER).values('card'). \
+                                                          state=conversation_states.ANSWER).values('card'). \
             annotate(created_at=Max('created_at'))
 
         chatroom_set = set(chatroom_list)

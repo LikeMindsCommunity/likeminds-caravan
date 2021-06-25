@@ -38,7 +38,8 @@ from togther.models import (Member_Engage, Community, Members, collabcardState, 
 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
-from utility.states import member_states, card_types, poll_types, deleted_members, chatroom_states, question_states
+from utility.states import member_states, card_types, poll_types, deleted_members, question_states, \
+    conversation_states
 from utility.exception_utilities import CustomException
 
 error_logger = LoggingWrapper.get_instance()
@@ -590,7 +591,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
 
             conversation_filter = card_answers.objects \
-                                      .filter(card=card_instance, state=chatroom_states.ANSWER) \
+                                      .filter(card=card_instance, state=conversation_states.ANSWER) \
                                       .filter(Q(attachment_count=0) |
                                               Q(attachments_uploaded=True)) \
                                       .distinct('user') \
@@ -771,7 +772,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             return conversation_count['total_responses_count']
         else:
             conversations_count = card_answers.objects.filter(card=card_instance.id,
-                                                              state=chatroom_states.ANSWER).filter(Q(attachment_count=0)
+                                                              state=conversation_states.ANSWER).filter(Q(attachment_count=0)
                                                                                                    | Q(
                 attachments_uploaded=True)).count()
             update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance.id,
