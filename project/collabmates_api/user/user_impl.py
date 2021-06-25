@@ -11,12 +11,12 @@ from django.conf import settings
 
 from cms.models import userAcquition
 from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
-                            Members, userEmails, Userinfo, emailTokens, Collabcard)
+                            Members, userEmails, Userinfo, emailTokens, Collabcard, removedMembers)
 from collabmates_api.user.user_manager import UserManager
 
 from utility.exception_utilities import InvalidUserException
 from utility.time_utilities import TimeUtilities
-from utility.states import email_states, mobile_states, member_states, login_types
+from utility.states import email_states, mobile_states, member_states, login_types, deleted_members
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
@@ -436,10 +436,16 @@ class UserImpl(UserManager):
 
     def _fetch_expired_subscriptions_of_user(self, subscriptions):
 
+        removed_community_ids = list(removedMembers.objects
+                                     .filter(member__id=self.get_user_id(),
+                                             removed_state=deleted_members.MEMBERSHIP_EXPIRED)
+                                     .values_list("community_id", flat=True))
+
         current_time = TimeUtilities.current_time_in_milliseconds()
 
         community_ids = [subscription['community_id'] for subscription in subscriptions
-                         if current_time > subscription['valid_till_grace_period']]
+                         if (current_time > subscription['valid_till_grace_period'] and
+                             subscription['community_id'] in removed_community_ids)]
 
         return community_ids
 
