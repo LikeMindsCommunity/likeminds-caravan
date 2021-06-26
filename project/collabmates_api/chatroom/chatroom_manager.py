@@ -17,7 +17,9 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'add_secret_chatroom_participant') and
                  callable(subclass.add_secret_chatroom_participant)) and
                 (hasattr(subclass, 'get_tagging_list') and
-                 callable(subclass.get_tagging_list)) or
+                 callable(subclass.get_tagging_list)) and
+                (hasattr(subclass, 'edit_chatroom') and
+                 callable(subclass.edit_chatroom)) and
                 (hasattr(subclass, 'follow_chatroom_automatically_for_all_members_of_community') and
                  callable(subclass.follow_chatroom_automatically_for_all_members_of_community)) or
                 NotImplemented)
@@ -79,6 +81,11 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def edit_chatroom(self, req_body) -> dict:
+        """edit the chatroom for first message action"""
+
+        raise NotImplementedError
+
     def create_introduction_card_in_community(self, community_instance, user_instance, req_body, member_state,
                                               master_intro_instance):
         """create the introduction card of community"""

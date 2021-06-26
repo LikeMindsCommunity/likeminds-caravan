@@ -6,7 +6,7 @@ from utility.utils import (generate_private_link, get_time_text, eligibility_cou
                            get_date_time_from_timestamp, get_community_members_count_for_preview)
 
 from utility.states import (card_types, question_states, poll_types,
-                            deleted_members, chatroom_states)
+                            deleted_members, conversation_states)
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .member_community.constants import CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED, CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED, \
     CUSTOM_CLICK_TEXT_DELETED, CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_LEFT, CUSTOM_INTRO_TEXT_LEFT
@@ -49,8 +49,14 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         'auto_approval': community.auto_approval,
         'grace_period': community.grace_period,
         'is_discoverable': community.is_discoverable,
-        'website_url': community.website_url,
+        'referral_enabled': community.referral_enabled,
     }
+
+    if community.website_url:
+        new_dict['website_url'] = community.website_url
+
+    if community.community_category:
+        new_dict['community_category'] = community.community_category
 
     if not current_user_instance and current_user_id:
         current_user_instance = User.objects.get(pk=current_user_id)
@@ -243,7 +249,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "created_at": TimeUtilities.convert_epoch_time_in_hh_mm(card.date_epoch),
         "date_epoch": card.date_epoch,
         'is_secret': card.is_secret,
-        'auto_follow_done': card.auto_follow_done
+        'auto_follow_done': card.auto_follow_done,
+        'is_edited': card.is_edited
     }
 
     if card.secret_chatroom_participants:
@@ -875,11 +882,11 @@ def get_member_images_of_chatroom(conversation_filter):
 
     return temp
 
+
 def get_member_instances_for_footer_images_in_chatroom(card_instance):
 
-
     conversation_filter = card_answers.objects\
-                              .filter(card=card_instance,state=chatroom_states.ANSWER)\
+                              .filter(card=card_instance,state=conversation_states.ANSWER)\
                               .filter(Q(attachment_count=0) |
                                       Q(attachments_uploaded=True))\
                               .distinct('user')\
@@ -1743,6 +1750,9 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         reactions = []
 
     temp['reactions'] = reactions
+    
+    if conversation.reply_chatroom_id:
+        temp['reply_chatroom_id'] = conversation.reply_chatroom_id
 
     return temp
 
@@ -1804,14 +1814,24 @@ def get_answer_files(answer_id):
                 attachments_list.append(video_attachment)
 
         elif file.type == 'audio':
+
             if file.file_url:
                 audio_url = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
+
+                if file.thumbnail_url:
+                    audio_url['thumbnail_url'] = file.thumbnail_url
+
                 audios.append(audio_url)
 
         elif file.type == 'pdf':
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
                 pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                if file.thumbnail_url:
+                    pdf_url['thumbnail_url'] = file.thumbnail_url
+                    pdf_attachment['thumbnail_url'] = file.thumbnail_url
+
                 pdf.append(pdf_url)
                 attachments_list.append(pdf_attachment)
 
@@ -1832,6 +1852,9 @@ def get_answer_files(answer_id):
 
             if file.width:
                 gif_attachment['width'] = file.width
+
+            if file.thumbnail_url:
+                gif_attachment['thumbnail_url'] = file.thumbnail_url
 
             attachments_list.append(gif_attachment)
 
@@ -2160,7 +2183,7 @@ def get_chatroom_preview(card_instance, member_id, active=None):
 
     chatroom_instance = get_chatroom_instance(card_instance, member_id, send_profile=False, preview=True)
     conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                      state=chatroom_states.ANSWER
+                                                      state=conversation_states.ANSWER
                                                       ).filter(Q(attachment_count=0) |
                                                                Q(attachments_uploaded=True))
     chatroom_instance['total_response_count'] = conversation_filter.count()

@@ -1,10 +1,10 @@
 from togther.models import Members,collabcardState,Userinfo,Collabcard, blockedMembers
 from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
-    card_types, chatroom_states, email_states
+    card_types, email_states
 from utility.exception_utilities import (CustomException, InvalidHeaderException,
                                             InvalidCommunityException, InvalidUserException,
                                             InvalidChatroomException)
-from django.db.models import Q,Subquery
+from django.db.models import Q, Subquery
 from django.db import connection
 from .serializers import *
 from .utility import *

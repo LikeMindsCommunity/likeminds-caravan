@@ -15,7 +15,7 @@ from utility.utils import (android_app_download_link, ios_app_download_link,
                            is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email,
                            android_app_download_link,ios_app_download_link,check_notification_flag)
 from utility.states import (collabcard_states, member_states, community_states,
-                            card_types, chatroom_states, chatroom_actions, member_rights, manager_rights,
+                            card_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse

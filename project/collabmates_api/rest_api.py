@@ -16,7 +16,7 @@ from .serializers import (get_answer_files, get_preview_for_url, get_category_of
                           get_removed_member_custom_text, get_collabcard_files, get_user_profile,
                           get_answer_text_for_poll)
 from utility.states import (card_types, question_states, member_states, poll_types,
-                            deleted_members, manager_rights, member_rights, chatroom_states, conversation_states,
+                            deleted_members, manager_rights, member_rights, conversation_states,
                             conversation_poll_types)
 from utility.utils import (get_time_text, generate_private_link, eligibility_count,
                            get_members_count_in_community)
@@ -172,7 +172,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         model = Community
         fields = ('id', 'name', 'purpose', 'about', 'image_url', 'members_count',
                   'type', 'sub_type', 'is_paid', 'auto_approval', 'grace_period',
-                  'is_discoverable', 'website_url')
+                  'is_discoverable', 'website_url', "community_category", "referral_enabled")
 
     def __init__(self, *args, **kwargs):
         super(CommunitySerializerV1, self).__init__(*args, **kwargs)
@@ -266,7 +266,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
                   'poll_type', 'last_seen_conversation', 'is_secret', 'secret_chatroom_participants',
-                  'topic_id', 'auto_follow_done'
+                  'topic_id', 'auto_follow_done', 'is_edited'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -813,7 +813,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'preview', 'member_id', 'created_epoch', 'temporary_id', 'is_anonymous',
                   'allow_add_option', 'poll_type', 'expiry_time', 'multiple_select_state',
                   'multiple_select_no', 'polls', 'reactions', 'poll_type_text', 'submit_type_text',
-                  'poll_answer_text')
+                  'poll_answer_text', 'reply_chatroom_id')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)

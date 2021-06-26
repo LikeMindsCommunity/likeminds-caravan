@@ -11,12 +11,12 @@ from django.conf import settings
 
 from cms.models import userAcquition
 from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
-                            Members, userEmails, Userinfo, emailTokens, Collabcard)
+                            Members, userEmails, Userinfo, emailTokens, Collabcard, removedMembers)
 from collabmates_api.user.user_manager import UserManager
 
 from utility.exception_utilities import InvalidUserException
 from utility.time_utilities import TimeUtilities
-from utility.states import email_states, mobile_states, member_states, login_types
+from utility.states import email_states, mobile_states, member_states, login_types, deleted_members
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
@@ -436,10 +436,16 @@ class UserImpl(UserManager):
 
     def _fetch_expired_subscriptions_of_user(self, subscriptions):
 
+        removed_community_ids = list(removedMembers.objects
+                                     .filter(member__id=self.get_user_id(),
+                                             removed_state=deleted_members.MEMBERSHIP_EXPIRED)
+                                     .values_list("community_id", flat=True))
+
         current_time = TimeUtilities.current_time_in_milliseconds()
 
         community_ids = [subscription['community_id'] for subscription in subscriptions
-                         if current_time > subscription['valid_till_grace_period']]
+                         if (current_time > subscription['valid_till_grace_period'] and
+                             subscription['community_id'] in removed_community_ids)]
 
         return community_ids
 
@@ -462,7 +468,7 @@ class UserImpl(UserManager):
 
             context = CONTEXT_ACCESS_ONE_EXPIRED_COMMUNITY.copy()
             context['sub_title_1'] = SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY % (community_name, community_id, community_id)
-            context['cta'] = CTA_ACCESS_ONE_EXPIRED_COMMUNITY % (host_url, community_id)
+            context['cta'] = CTA_ACCESS_ONE_EXPIRED_COMMUNITY % (community_id, self.get_user_id())
             context['membership_expired_communities'] = expired_communities
 
         elif pending_count > 1 and subscription_count == 0:
@@ -492,6 +498,38 @@ class UserImpl(UserManager):
             context = CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES
 
         return context
+
+    @staticmethod
+    def fetch_user_verified_mobile_numbers(user_id_list):
+        hash_map = {}
+
+        user_mobiles = userMobiles.objects.filter(user__id__in=user_id_list)
+
+        for num_instance in user_mobiles:
+            serialized_instance = UserHelper.mobilesSerializer(num_instance)
+
+            if num_instance.user_id in hash_map:
+                hash_map[num_instance.user_id].append(serialized_instance)
+            else:
+                hash_map[num_instance.user_id] = [serialized_instance]
+
+        return hash_map
+
+    @staticmethod
+    def fetch_user_verified_emails(user_id_list):
+        hash_map = {}
+
+        user_emails = userEmails.objects.filter(user__id__in=user_id_list)
+
+        for email_instance in user_emails:
+            serialized_instance = UserHelper.emailSerializer(email_instance)
+
+            if email_instance.user_id in hash_map:
+                hash_map[email_instance.user_id].append(serialized_instance)
+            else:
+                hash_map[email_instance.user_id] = [serialized_instance]
+
+        return hash_map
 
     def fetch_app_access(self) -> dict:
 

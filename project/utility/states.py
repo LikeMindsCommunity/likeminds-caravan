@@ -180,25 +180,6 @@ class PollTypes:
 poll_types = PollTypes()
 
 
-class ChatroomStates:
-    ANSWER = 0
-    CHATROOM_HEADER = 1
-    CHATROOM_FOLLOW = 2
-    CHATROOM_UNFOLLOW = 3
-    CHATROOM_CREATER = 4
-    CHATROOM_COMMUNITY_EDIT = 5
-    CHATROOM_GUEST = 6
-
-    CHATROOM_ADD_PARTICIPANT = 7
-    LEAVE_CHATROOM = 8
-    REMOVED_FROM_CHATROOM = 9
-
-    ADDED_CHATROOM_TOPIC = 10
-
-
-chatroom_states = ChatroomStates()
-
-
 class MultiSelectPollStates:
     # class to save states of multiple select poll
     EXACTLY = 0
@@ -235,48 +216,6 @@ class DeletedMembers:
 
 
 deleted_members = DeletedMembers()
-
-
-# community types
-class CommunityTypes(enum.IntEnum):
-    TYPE_NONE = -1
-    TYPE_LC_GC = 0
-    TYPE_LH_GC = 1
-    TYPE_LC_PS = 2
-    TYPE_LC_PI = 3
-    TYPE_IH_GC = 4
-    TYPE_IS_GC = 5
-    TYPE_IF_GC = 6
-    TYPE_IC_GC = 7
-    # TYPE_PI_GC = 8
-    # TYPE_PS_GC = 9
-    # TYPE_GN = 10
-    # TYPE_SS_GN = 11
-    # TYPE_SS_GC = 12
-
-
-# community attributes
-class CommunityAttributes(enum.IntEnum):
-    Legacy_work = 1
-    Legacy_education = 2
-    Legacy_hometown = 3
-    Legacy_lifestyle = 4
-    Profession_skill = 5
-    Profession_industry = 6
-    Profession_designation = 7
-    Interests_cause = 8
-    Interests_hobby = 9
-    Interests_sports = 10
-    Interests_fan = 11
-    Geography_city = 12
-    Geography_state = 13
-    Geography_country = 14
-    Geography_pincode = 15
-    Global = 16
-    Legacy_uncategorized = 17
-    Profession_uncategorized = 18
-    Interests_uncategorized = 19
-    Geography_uncategorized = 20
 
 
 class QuestionStates:
@@ -410,11 +349,13 @@ class ConversationStates:
     CONVERSATION_GUEST = 6
 
     CONVERSATION_ADD_PARTICIPANT = 7
-    LEAVE_CONVERSATION = 8
-    REMOVED_FROM_CONVERSATION = 9
+    CONVERSATION_LEAVE_CHATROOM = 8
+    CONVERSATION_REMOVED_FROM_CHATROOM = 9
 
     CONVERSATION_POLL = 10
     CONVERSATION_ADD_ALL_MEMBERS = 11
+
+    CHATROOM_TOPIC = 12
 
 
 conversation_states = ConversationStates()

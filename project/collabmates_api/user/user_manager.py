@@ -55,3 +55,17 @@ class UserManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @staticmethod
+    def fetch_user_verified_mobile_numbers(user_id_list) -> dict:
+        """
+        fetch users verified mobile numbers list
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def fetch_user_verified_emails(user_id_list) -> dict:
+        """
+        fetch users verified email ids list
+        """
+        raise NotImplementedError
+

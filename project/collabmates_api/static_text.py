@@ -418,3 +418,7 @@ PAID_COMMUNITY_PENDING_MEMBER_TOAST = "Your request for joining this community i
 
 CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE = "%s added you to %s chatroom!"
 CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE = "Tap to join in the conversation."
+
+MEMBER_LEFT_COMMUNITY_TOAST = "You left the community."
+MEMBER_REMOVED_FROM_COMMUNITY_TOAST = "You are no longer a member of this community."
+PENDING_MEMBER_REQUEST_REJECTED_COMMUNITY_TOAST = "Your request for joining this community is cancelled"

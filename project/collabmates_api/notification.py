@@ -677,7 +677,7 @@ def schedule_online_event_future_notification(card_instance):
     online_event_reminder_notification_10_min.apply_async(args=args,
                                                           kwargs={},
                                                           eta=task_begin_date_time,
-                                                          expires=task_expiry_epoch_time)
+                                                          expires=task_expiry_date_time)
 
 
 def schedule_offline_event_future_notifications(card_instance):

@@ -17,7 +17,7 @@ from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVER
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
-from utility.states import card_types, chatroom_states, conversation_poll_types, conversation_states
+from utility.states import card_types, conversation_poll_types, conversation_states
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -583,7 +583,7 @@ def update_chatroom_conversation_count_in_cache(count_info):
         if not conversations_count:
             conversations_count = ModelUtilities.get_model_filter(card_answers,
                                                                   {'card': chatroom_id,
-                                                                   'state': chatroom_states.ANSWER}).filter(
+                                                                   'state': conversation_states.ANSWER}).filter(
                 Q(attachment_count=0)
                 | Q(attachments_uploaded=True)).count()
 
@@ -627,7 +627,7 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
         if not conversation_creator_list:
             conversation_creator_list = []
             conversation_filter = card_answers.objects \
-                                      .filter(card=chatroom_id, state=chatroom_states.ANSWER) \
+                                      .filter(card=chatroom_id, state=conversation_states.ANSWER) \
                                       .filter(Q(attachment_count=0) |
                                               Q(attachments_uploaded=True)) \
                                       .distinct('user') \

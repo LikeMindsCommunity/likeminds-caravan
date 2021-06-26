@@ -3,7 +3,7 @@ import json
 from django.contrib.auth.models import User
 from typing import Union
 
-from django.db.models import F, Q
+from django.db.models import F, Q, Count
 from rest_framework import status as status_codes
 
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
@@ -29,21 +29,18 @@ from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_
                      generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification,
                      create_chatroom_engagement, create_chatroom)
 
-from .constants import (UPWARD_SCROLL_DIRECTION,
-                        DOWNWARD_SCROLL_DIRECTION, ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM, PREVIEW_CHATROOM,
-                        PREVIEW_COMMUNITY, PREVIEW_DIRECTORY, POLL_ANSWER_TEXT, POLL_ANSWER_TEXT_FOR_ONE_MEMBER,
-                        POLL_ANSWER_TEXT_FOR_MULTIPLE_MEMBER)
+from .constants import *
 
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
-                            conversationPollMembers, Userinfo, conversationEngage)
+                            conversationPollMembers, Userinfo, conversationEngage, answerAttachment)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
-    conversation_states, conversation_poll_types, chatroom_states
+    conversation_states, conversation_poll_types
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
@@ -289,11 +286,12 @@ class ConversationImpl(ConversationManager):
         conversation_content['api_version'] = 1
         conversation_content['device_id'] = self.device_id
         conversation_content['platform'] = self.platform_code
+        conversation_content['is_guest'] = chatroom_state_instance.is_guest if chatroom_state_instance else False
 
-        if chatroom_state_instance:
-            conversation_content['is_guest'] = chatroom_state_instance.is_guest
-        else:
-            conversation_content['is_guest'] = False
+        if req_body.get('replied_chatroom_id'):
+            conversation_content['reply_chatroom'] = chatroom_instance \
+                if chatroom_instance.id == req_body.get('replied_chatroom_id') \
+                else ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('replied_chatroom_id'))
 
         poll_context = self._fill_poll_conversation_context(req_body)
 
@@ -932,11 +930,63 @@ class ConversationImpl(ConversationManager):
 
         return {'status': True, 'members': member_list}
 
+    def _fetch_chatroom_topic_text(self):
+
+        conversation_attachments = answerAttachment.objects.filter(
+            answer__id=self.get_conversation_id())\
+            .values('type')\
+            .annotate(count=Count('type'))
+
+        topic_text = None
+
+        image_count = 0
+        video_count = 0
+        pdf_count = 0
+        audio_count = 0
+        gif_count = 0
+
+        for attachment in conversation_attachments:
+
+            if attachment['type'] == 'image':
+                image_count = attachment['count']
+
+            elif attachment['type'] == 'video':
+                video_count = attachment['count']
+
+            elif attachment['type'] == 'pdf':
+                pdf_count = attachment['count']
+
+            elif attachment['type'] == 'audio':
+                audio_count = attachment['count']
+
+            elif attachment['type'] == 'gif':
+                gif_count = attachment['count']
+
+        if video_count > 0:
+            topic_text = TOPIC_TEXT_VIDEO
+
+        elif image_count > 0:
+            topic_text = TOPIC_TEXT_IMAGE
+
+        elif gif_count > 0:
+            topic_text = TOPIC_TEXT_GIF
+
+        elif audio_count > 0:
+            topic_text = TOPIC_TEXT_AUDIO
+
+        elif pdf_count > 1:
+            topic_text = TOPIC_TEXT_MULTIPLE_PDF
+
+        elif pdf_count == 1:
+            topic_text = TOPIC_TEXT_PDF
+
+        return topic_text
+
     def set_chatroom_topic(self) -> dict:
 
-        user_instance = User.get_user_or_none(self.get_member_id())
-        conversation_instance = card_answers.get_conversation_or_None(self.get_conversation_id())
-        chatroom_instance = Collabcard.get_chatroom_or_None(self.get_chatroom_id())
+        user_instance = User.get_user_or_raise_exception(self.get_member_id())
+        conversation_instance = card_answers.get_conversation_or_raise_exception(self.get_conversation_id())
+        chatroom_instance = Collabcard.get_chatroom_or_raise_exception(self.get_chatroom_id())
 
         validation_dict = ConversationHelper.validate_set_topic_request(user_instance, conversation_instance, chatroom_instance)
 
@@ -946,9 +996,14 @@ class ConversationImpl(ConversationManager):
         chatroom_instance.topic = conversation_instance
         chatroom_instance.save()
 
+        if len(conversation_instance.answer) == 0:
+            topic_text = self._fetch_chatroom_topic_text()
+        else:
+            topic_text = TOPIC_TEXT_NORMAL + conversation_instance.answer
+
         ConversationHelper.create_answer(chatroom_instance, user_instance,
-                                         state=chatroom_states.ADDED_CHATROOM_TOPIC,
-                                         topic_text=conversation_instance.answer)
+                                         state=conversation_states.CHATROOM_TOPIC,
+                                         topic_text=topic_text)
 
         ModelUtilities.model_update(collabcardState,
                                     {'card': chatroom_instance},
@@ -1230,19 +1285,7 @@ class ConversationHelper:
             "success": True,
         }
 
-        if user_instance is None:
-            response['success'] = False
-            response['error_message'] = f"Headers: user does not exist"
-
-        elif conversation_instance is None:
-            response['success'] = False
-            response['error_message'] = f"conversation id does not exist"
-
-        elif chatroom_instance is None:
-            response['success'] = False
-            response['error_message'] = f"chatroom id does not exist"
-
-        elif chatroom_instance.user_id != user_instance.id:
+        if chatroom_instance.user_id != user_instance.id:
             response['success'] = False
             response['error_message'] = "only chatroom creator can change the topic of chatroom"
 
@@ -1306,11 +1349,11 @@ class ConversationHelper:
 
                     answer = f"{encoded_current_user_name} added {user_name}"
 
-            elif state == conversation_states.LEAVE_CONVERSATION:
+            elif state == conversation_states.CONVERSATION_LEAVE_CHATROOM:
 
                 answer = user_name + " left this chatroom"
 
-            elif state == conversation_states.REMOVED_FROM_CONVERSATION:
+            elif state == conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM:
                 if current_user_id is not None:
                     current_user_name = Userinfo.get_username(current_user_id)
 
@@ -1319,16 +1362,12 @@ class ConversationHelper:
 
                     answer = f"{encoded_current_user_name} removed {user_name}"
 
-            # elif state == conversation_states.ADDED_CONVERSATION_TOPIC:
-            #     if topic_text is not None:
-            #         answer = f"{user_name} changed current topic to {topic_text}"
+            elif state == conversation_states.CHATROOM_TOPIC:
+                if topic_text is not None:
+                    answer = f"{user_name} changed current topic to {topic_text}"
 
             elif state == conversation_states.CONVERSATION_ADD_ALL_MEMBERS:
-                user_route = f"route://member_profile/{user_instance.id}?member_id={user_instance.id}"
-                user_name = f"<<{user_name}|{user_route}&community_id={community_id}>>"
-
                 answer = user_name + " added all members"
-                print(answer)
 
         if answer:
             instance = card_answers()

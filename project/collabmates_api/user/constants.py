@@ -1,3 +1,6 @@
+from django.conf import settings
+web_url = settings.WEB_URL
+
 REMOVED_PROFILE_NAME = "Anonymous"
 REMOVED_PROFILE_URL = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fuser.png?alt=media&token=8fd0a21e-6d77-4947-afc7-4d67eaf63b99"
 VERIFICATION_EMAIL_EXPIRE_TIME = 86400      # 24 hours
@@ -28,7 +31,7 @@ SECOND_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'Are you a community builder and w
 
 SUB_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'If yes, click on the invitation link you have received.\n\n In case you purchased a membership plan, you would have received an invitation link via email/WhatsApp. Use this link to join your community and get started. Or, <<enter Payment ID here|route://payment_dialog>>.'
 SUB_TITLE_ACCESS_ONE_PENDING_COMMUNITY = 'Your application to join this community has been submitted. You will have access to community events, chat rooms and member profiles as soon as you are approved.'
-SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY = 'Your subscription to %s community has expired. <<Buy a membership plan|route://renew_membership?community_id=%s>> of your choice to regain access to community events, chat rooms and member profiles. Want to leave? do it <<here||route://leave_community?community_id=%s>>.'
+SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY = 'Your subscription to %s community has expired. <<Buy a membership plan|route://renew_membership?community_id=%s>> of your choice to regain access to community events, chat rooms and member profiles. Want to leave? do it <<here|route://leave_community?community_id=%s>>.'
 SUB_TITLE_ACCESS_MORE_PENDING_COMMUNITIES = 'Your applications to join the following communities have been submitted. You will have access to community events, chat rooms and member profiles as soon as you are approved.'
 SUB_TITLE_ACCESS_MORE_EXPIRED_COMMUNITIES = 'Your subscription to following communities has expired. Buy membership plans of your choice to regain access to community events, chat rooms and member profiles.'
 SUB_TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITY = 'Your membership plan for “%s” has expired. You will have access to community events, chat rooms and member profiles as soon as you <<renew your membership|route://renew_membership?community_id=%s>>'
@@ -39,7 +42,7 @@ SUB_TITLE_2_ACCESS_COMMON = '**Usually It takes upto 48 hours to get approved. I
 
 ACCESS_FOOTER = 'Need help? <<Get in touch|route://mail?to=hello@likeminds.community>>'
 
-CTA_ACCESS_ONE_EXPIRED_COMMUNITY = '<<CHOOSE MEMBERSHIP PLAN|route://browser?link=%s/community/%s?renew=true>>'
+CTA_ACCESS_ONE_EXPIRED_COMMUNITY = f'<<CHOOSE MEMBERSHIP PLAN|route://browser?link={web_url}/renewal/%s?renew=true&user_id=%s>>'
 
 CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES = {
     'success': True,
@@ -67,7 +70,7 @@ CONTEXT_ACCESS_ONE_PENDING_COMMUNITY = {
 
 CONTEXT_ACCESS_ONE_EXPIRED_COMMUNITY = {
     'success': True,
-    'header': HEADER_ACCESS_NOT_PART_OF_COMMUNITIES,
+    'header': HEADER_ACCESS_ONE_EXPIRED_COMMUNITY,
     'header_image': ACCESS_HEADER_IMAGE,
     'title_1': TITLE_ACCESS_ONE_EXPIRED_COMMUNITY,
     'sub_title_1': '',

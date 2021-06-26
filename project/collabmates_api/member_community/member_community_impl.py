@@ -1,6 +1,9 @@
 from django.contrib.auth.models import User
-from rest_framework.utils import json
 from django.db.models import Q
+from django.db.models.functions import Lower
+
+from rest_framework.utils import json
+from rest_framework import status as status_codes
 
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -18,6 +21,7 @@ from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_me
                            get_community_introductions_based_on_user_list_query,
                            get_chatroom_count_based_on_community_list, get_distinct_chatroom_creator_list,
                            get_count_of_community_members_based_on_community_list)
+from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right
 from ..utility import pagination
 from ..views import get_home_screen_community_actions, get_active_chatroom_member_images, \
@@ -28,13 +32,15 @@ from ..serializers import get_user_profile, get_members_profile, get_collabcard_
     get_draft_chatroom_instance, conversationSerializer
 from ..static_files import REMOVED_USER_URL
 
-from togther.models import Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers, \
-    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage, communityQuestions, Userinfo, \
-    CommunityUserDelete
+from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
+    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage, communityQuestions, Userinfo,
+    CommunityUserDelete, userMobiles, userEmails)
 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
-from utility.states import member_states, card_types, poll_types, deleted_members, chatroom_states, question_states
+from utility.states import member_states, card_types, poll_types, deleted_members, question_states, \
+    conversation_states
+from utility.exception_utilities import CustomException
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -480,10 +486,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         return member_list
 
     @staticmethod
-    def fetch_members_based_on_user_list(user_list, community_instance) -> {}:
+    def fetch_members_based_on_user_list(user_list, community_instance, order_by_name=False) -> {}:
 
         member_dict = {}
-        member_list = get_members_based_on_user_list_query(user_list, community_instance.id)
+        member_list = get_members_based_on_user_list_query(user_list, community_instance.id, order_by_name=order_by_name)
         community_name = community_instance.name
 
         for data in member_list:
@@ -585,7 +591,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
 
             conversation_filter = card_answers.objects \
-                                      .filter(card=card_instance, state=chatroom_states.ANSWER) \
+                                      .filter(card=card_instance, state=conversation_states.ANSWER) \
                                       .filter(Q(attachment_count=0) |
                                               Q(attachments_uploaded=True)) \
                                       .distinct('user') \
@@ -766,7 +772,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             return conversation_count['total_responses_count']
         else:
             conversations_count = card_answers.objects.filter(card=card_instance.id,
-                                                              state=chatroom_states.ANSWER).filter(Q(attachment_count=0)
+                                                              state=conversation_states.ANSWER).filter(Q(attachment_count=0)
                                                                                                    | Q(
                 attachments_uploaded=True)).count()
             update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance.id,
@@ -1169,6 +1175,53 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                                           flat=True))
         return {'community_ids': community_id_list}
 
+    def _add_emails_and_mobiles_to_member_profie_data(self, members_data, user_mobiles, user_emails):
+
+        final_data = []
+
+        for user_id, data in members_data.items():
+            profile = data
+            profile['mobiles'] = user_mobiles.get(user_id, [])
+            profile['emails'] = user_emails.get(user_id, [])
+
+            final_data.append(profile)
+
+        return final_data
+
+    def fetch_members_detail(self, page, page_size) -> dict:
+
+        user_instance = User.get_user_or_raise_exception(self.get_member_id())
+        community_instance = Community.get_community_or_raise_exception(self.get_community_id())
+
+        is_promoter = Members.is_member_community_promoter(community=community_instance,
+                                                           member=user_instance)
+
+        if not is_promoter:
+            response = {
+                "success": False,
+                "error_message": f"You are not the Owner/CM of the community {community_instance.name}"
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
+        total_member_count = Members.objects.filter(community_id=community_instance).count()
+
+        user_id_list = list(Members.objects
+                            .filter(community_id=community_instance)
+                            .order_by(Lower('member_id__userinfo__name'))
+                            .values_list("member_id_id", flat=True))
+
+        user_id_list = ModelUtilities.paginate_queryset(user_id_list, page, page_size)
+
+        members_data = self.fetch_members_based_on_user_list(user_id_list, community_instance, order_by_name=True)
+
+        user_mobiles = UserImpl.fetch_user_verified_mobile_numbers(user_id_list)
+
+        user_emails = UserImpl.fetch_user_verified_emails(user_id_list)
+
+        final_data = self._add_emails_and_mobiles_to_member_profie_data(members_data, user_mobiles, user_emails)
+
+        return {"success": True, "total_count": total_member_count, "members": final_data}
+
 
 class MemberCommunityHelper:
     @staticmethod
@@ -1353,7 +1406,8 @@ class MemberCommunityHelper:
                             'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(card_instance.date_epoch),
                             'card_creation_time': TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(
                                 card_instance.date_epoch),
-                            'auto_follow_done': card_instance.auto_follow_done}
+                            'auto_follow_done': card_instance.auto_follow_done,
+                            'is_edited': card_instance.is_edited}
 
         if card_instance.is_secret:
             chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)

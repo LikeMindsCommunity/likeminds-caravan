@@ -1,13 +1,15 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
+from rest_framework import status as status_codes
 
-from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
-from collabmates_api.member_community.views_manager import ViewsManager
 from utility.request_utilities import RequestUtilities
 from utility.number_utilities import NumberUtilities
-from collabmates_api.views import get_error_context
 from utility.string_utilities import StringUtilities
-from rest_framework import status as status_codes
+from utility.exception_utilities import InvalidHeaderException, CustomException
+
+from collabmates_api.views import get_error_context
+from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.member_community.views_manager import ViewsManager
 
 
 class ViewsImpl(ViewsManager):
@@ -206,5 +208,32 @@ class FetchUserDeletedCommunities(APIView):
             response_context = {'error_message': community_context['error_message']}
 
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
+
+
+class FetchMemberDetails(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        community_id = request.GET.get('community_id')
+
+        if not community_id:
+            response = {
+                "success": False,
+                "error_message": f"Send community_id in url params"
+            }
+            raise CustomException(response)
+
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=10)
+
+        member_community_manager = MemberCommunityImpl(member_id=member_id, community_id=community_id)
+        community_context = member_community_manager.fetch_members_detail(page, page_size)
 
         return JsonResponse(community_context)

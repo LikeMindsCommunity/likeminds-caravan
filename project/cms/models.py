@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 import time
 from datetime import datetime
@@ -343,3 +345,58 @@ class Subscription(models.Model):
         self.updated_at = current_time
 
         super(Subscription, self).save(*args, **kwargs)
+
+
+class LMOptions(models.Model):
+    slug = models.TextField(unique=True)
+    value = models.TextField()
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(LMOptions, self).save(*args, **kwargs)
+
+    def get_value(self):
+        try:
+            return json.loads(self.value)
+        except:
+            return self.value
+
+    @staticmethod
+    def get_object_or_raise_exception(slug):
+        try:
+            return LMOptions.objects.get(slug=slug)
+        except:
+            response = {
+                "success": False,
+                "error_message": f"Option doest not exist with the given slug = {slug}"
+            }
+            raise CustomException(response)
+
+    @staticmethod
+    def update_or_create_option(slug, value):
+        if not value:
+            return
+
+        slug = slug.strip()
+        value = json.dumps(value)
+
+        create_dict = {
+            'value': value,
+            "created_at": TimeUtilities.current_time_in_sec(),
+            "updated_at": TimeUtilities.current_time_in_sec()
+        }
+
+        obj, created = LMOptions.objects.get_or_create(slug=slug, defaults=create_dict)
+
+        if not created:
+            obj.value = value
+            obj.save()
+

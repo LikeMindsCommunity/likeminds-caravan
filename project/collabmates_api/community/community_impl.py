@@ -4,10 +4,8 @@ from celery import shared_task
 from django.contrib.auth.models import User
 
 from cms.models import NewAnswer
-from collabmates_api.community.constants import MENU, COMMUNITY_REJECT_TOAST, LEVEL_3_TITLE, LEVEL_3_SUB_TITLE, \
-    LEVEL_4_TITLE, LEVEL_4_SUB_TITLE, COMMUNITY_PENDING_MEMBER_TOAST, INSTAGRAM, TWITTER, INSTAGRAM_URL, TWITTER_URL
+from collabmates_api.community.constants import *
 from collabmates_api.branch import create_community_feed_url
-from collabmates_api.community.constants import MENU
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right, \
     update_member_rights_in_member_engage
@@ -21,10 +19,8 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
     communityExpiryCodes
-from collabmates_api.community.constants import MENU, COMMUNITY_REJECT_TOAST, LEVEL_3_TITLE, LEVEL_3_SUB_TITLE, \
-    LEVEL_4_TITLE, LEVEL_4_SUB_TITLE
+
 from collabmates_api.branch import create_community_feed_url, create_community_otl_url
-from collabmates_api.community.constants import MENU
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
@@ -404,9 +400,12 @@ class CommunityImpl(CommunityManager):
 
         moderationHistory.create_instance({'user_instance': user_instance, 'community_instance': community_instance,
                                            'moderation_by': shared_by_user, 'type': history_type})
+
+        message = PAID_COMMUNITY_PENDING_MEMBER_TOAST if community_instance.is_paid else COMMUNITY_PENDING_MEMBER_TOAST
+
         communityToast.update_or_create_toast_message({'user_instance': user_instance,
                                                        'community_instance': community_instance,
-                                                       'message': COMMUNITY_PENDING_MEMBER_TOAST})
+                                                       'message': message})
 
         send_notification_to_admins.delay(community_instance.id, user_instance.userinfo.name)
 
