@@ -1367,9 +1367,6 @@ class ConversationHelper:
                     answer = f"{user_name} changed current topic to {topic_text}"
 
             elif state == conversation_states.CONVERSATION_ADD_ALL_MEMBERS:
-                user_route = f"route://member_profile/{user_instance.id}?member_id={user_instance.id}"
-                user_name = f"<<{user_name}|{user_route}&community_id={community_id}>>"
-
                 answer = user_name + " added all members"
 
         if answer:
