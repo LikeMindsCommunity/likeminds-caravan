@@ -468,7 +468,7 @@ class UserImpl(UserManager):
 
             context = CONTEXT_ACCESS_ONE_EXPIRED_COMMUNITY.copy()
             context['sub_title_1'] = SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY % (community_name, community_id, community_id)
-            context['cta'] = CTA_ACCESS_ONE_EXPIRED_COMMUNITY % community_id
+            context['cta'] = CTA_ACCESS_ONE_EXPIRED_COMMUNITY % (community_id, self.get_user_id())
             context['membership_expired_communities'] = expired_communities
 
         elif pending_count > 1 and subscription_count == 0:

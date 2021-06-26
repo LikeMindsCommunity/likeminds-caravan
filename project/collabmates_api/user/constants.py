@@ -42,7 +42,7 @@ SUB_TITLE_2_ACCESS_COMMON = '**Usually It takes upto 48 hours to get approved. I
 
 ACCESS_FOOTER = 'Need help? <<Get in touch|route://mail?to=hello@likeminds.community>>'
 
-CTA_ACCESS_ONE_EXPIRED_COMMUNITY = f'<<CHOOSE MEMBERSHIP PLAN|route://browser?link={web_url}/renewal/%s?renew=true>>'
+CTA_ACCESS_ONE_EXPIRED_COMMUNITY = f'<<CHOOSE MEMBERSHIP PLAN|route://browser?link={web_url}/renewal/%s?renew=true&user_id=%s>>'
 
 CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES = {
     'success': True,
