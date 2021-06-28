@@ -1,19 +1,25 @@
 from typing import Union
 from elasticsearch_dsl import Search
 from .search_manager import SearchManager
-from togther.models import collabcardState
+from .search_helper import SearchHelper
+from togther.models import collabcardState, userMemberRights, Members
+
+from utility.states import member_rights, card_types, member_states
+from utility.number_utilities import NumberUtilities
 
 
 class SearchImpl(SearchManager):
 
     def __init__(self, member_id: str, search_term: str, search_field: str = None,
-                 follow_status: bool = False, page: int = 1, page_size: int = 300):
+                 follow_status: bool = False, page: int = 1, page_size: int = 300,
+                 device_id: str = None):
         self.member_id = member_id
         self.search_term = search_term
         self.search_field = search_field
         self.follow_status = follow_status
         self.page = page
         self.page_size = page_size
+        self.device_id = device_id
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -167,6 +173,42 @@ class SearchImpl(SearchManager):
                             remove=None)
                     .values_list('card_id', flat=True))
 
+    def _fetch_user_community_id_list_with_respond_right(self):
+
+        community_ids = list(userMemberRights.objects
+                            .filter(user__id=self.get_member_id(),
+                                    right__state=member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM)
+                            .values_list("community_id", flat=True))
+
+        return community_ids
+
+    def _fetch_user_community_id_list_as_manager(self):
+
+        community_ids = list(Members.objects
+                             .filter(member_id__id=self.get_member_id(),
+                                     state=member_states.ADMIN)
+                             .values_list("community_id", flat=True))
+
+        return community_ids
+
+    def _fetch_hash_for_community_id(self, respond_right_community_id_list):
+
+        return {community_id: True for community_id in respond_right_community_id_list}
+
+    def _should_disable_chatroom(self, chatroom, right_community_id_hash, community_manager_id_hash):
+        is_disabled = False
+
+        if (chatroom['chatroom']['type'] == card_types.CARD_PURPOSE and
+            not community_manager_id_hash.get(chatroom['community']['id'], False)) or \
+                chatroom['chatroom']['type'] == card_types.CARD_MASTER_INTRO or \
+                chatroom['chatroom']['is_pending'] or \
+                not right_community_id_hash.get(chatroom['community']['id'], False) or \
+                not SearchHelper.has_attachments_uploaded(chatroom['chatroom']):
+
+            is_disabled = True
+
+        return is_disabled
+
     def search_chatroom(self):
 
         res = Search.from_dict(self._get_chatroom_search_ngram_query_dict()).execute()
@@ -188,3 +230,21 @@ class SearchImpl(SearchManager):
         }
 
         return context
+
+    def search_third_party(self):
+
+        chatroom_data = self.search_chatroom()
+
+        respond_right_community_id_list = self._fetch_user_community_id_list_with_respond_right()
+
+        community_ids_as_manager = self._fetch_user_community_id_list_as_manager()
+
+        community_manager_id_hash = self._fetch_hash_for_community_id(community_ids_as_manager)
+        right_community_id_hash = self._fetch_hash_for_community_id(respond_right_community_id_list)
+
+        for chatroom in chatroom_data['chatrooms']:
+            chatroom['is_disabled'] = self._should_disable_chatroom(chatroom,
+                                                                    right_community_id_hash,
+                                                                    community_manager_id_hash)
+
+        return chatroom_data
