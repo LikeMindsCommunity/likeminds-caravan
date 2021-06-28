@@ -11292,37 +11292,36 @@ def edit_community_version_1(request):
 
 @csrf_exempt
 def edit_community_questions(request):
-    '''function to update community questions'''
+    """function to update community questions"""
 
     member_id = get_member_id_from_headers(request)
-    if not member_id:
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+    if not user_instance:
         response = get_error_context(False, 'Send member id in headers')
+
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    try:
-        user_instance = User.objects.get(pk=member_id)
-    except:
-        response = get_error_context(False, f'user with id {member_id} does not exist')
+    res = RequestUtilities.load_request_body(request)
+
+    if not res:
+        response = get_error_context(False, 'Invalid request body')
+
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    res = json.loads(request.body)
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, res.get('community_id'))
 
-    # error messages
-    if 'community_id' not in res:
-        response = get_error_context(False, 'send community id in request body')
+    if not community_instance:
+        response = get_error_context(False, 'Invalid community_id')
+
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if 'questions' not in res:
+    if not res.get('questions'):
         response = get_error_context(False, 'send questions data in request body')
+
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     questions_list = res['questions']
-
-    try:
-        community_instance = Community.objects.get(id=res['community_id'])
-    except:
-        response = get_error_context(False, f"community with id {res['community_id']} does not exist")
-        return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_questionId_set = set(communityQuestions.objects
                                  .filter(community=community_instance)
@@ -11330,15 +11329,21 @@ def edit_community_questions(request):
     latest_questionId_set = set()
 
     major_change = False
+
     for question in questions_list:
 
-        if 'id' in question:
+        if question.get('id'):
 
-            try:
-                question_instance = communityQuestions.objects.get(pk=question['id'])
-            except:
-                response = get_error_context(False, f"question with id {question['id']} does not exist")
-                return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+            question_id = NumberUtilities.get_integer_from_string(question.get('id'))
+
+            question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions,
+                                                                          question_id)
+
+            if not question_instance:
+                question_instance = communityQuestions()
+                create_or_update_question_instances(question_instance, question, community_instance)
+                major_change = True
+                continue
 
             if question_instance.question_state == question_states.CHOICE_MULTIPLE or\
                     question_instance.question_state == question_states.CHOICE_SINGLE and\
@@ -11388,7 +11393,7 @@ def edit_community_questions(request):
 
                 major_change = True
 
-            latest_questionId_set.add(int(question['id']))
+            latest_questionId_set.add(question_id)
 
             # updating the question instance
             create_or_update_question_instances(question_instance, question, community_instance)
