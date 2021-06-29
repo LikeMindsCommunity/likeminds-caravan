@@ -24,6 +24,15 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
 
         community_id = card_instance.community_id
 
+    elif chatroom_id and community_id:
+
+        card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+        if not card_instance:
+            return []
+
+    chatroom_id = card_instance.id
+
     member_filter = Members.objects.filter(community_id=community_id).filter(
                     Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
                     Q(state=member_states.PROFILE_UNAVAILABLE)).order_by('id')

@@ -73,3 +73,27 @@ class ConversationSearchView(APIView):
         conversations_data = search_manager.search_conversation()
 
         return JsonResponse(conversations_data)
+
+
+class ThirdPartySearchView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+
+        search_term = request.GET.get('search')
+
+        page = RequestUtilities.get_page_number(request)
+        page_size = RequestUtilities.get_page_size(request, default=300)
+
+        search_manager = SearchImpl(member_id=member_id, search_term=search_term,
+                                    search_field=CHATROOM_FIELD_HEADER, follow_status=True,
+                                    page=page, page_size=page_size, device_id=device_id)
+
+        chatrooms_data = search_manager.search_third_party()
+
+        return JsonResponse(chatrooms_data)

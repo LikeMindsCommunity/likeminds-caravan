@@ -5,8 +5,9 @@ class SearchManager(metaclass=abc.ABCMeta):
 
     @classmethod
     def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'search_chatroom') and callable(subclass.search_chatroom) and
-                (hasattr(subclass, 'search_conversation') and callable(subclass.search_conversation)) or
+        return ((hasattr(subclass, 'search_chatroom') and callable(subclass.search_chatroom)) and
+                (hasattr(subclass, 'search_conversation') and callable(subclass.search_conversation)) and
+                (hasattr(subclass, 'search_third_party') and callable(subclass.search_third_party)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -21,4 +22,11 @@ class SearchManager(metaclass=abc.ABCMeta):
         Search conversation by answer text with elastic search
         """
 
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def search_third_party(self):
+        """
+        Search followed chatrooms by header for third party content sharing with elastic search
+        """
         raise NotImplementedError
