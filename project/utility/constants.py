@@ -55,6 +55,7 @@ DIRECTORY_FEATURE = "Community Members Directory"
 BRANCH_FEATURE_PUBLIC_LINK = "CommunityPublic"
 BRANCH_FEATURE_PRIVATE_LINK = "CommunityPrivate"
 BRANCH_FEATURE_DIRECTORY_LINK = "Community Members Directory"
+BRANCH_FEATURE_COMMUNITY_OTL_URL = "CommunityOtlUrl"
 
 HOURS_24 = 86400
 MINUTES_30 = 1800
