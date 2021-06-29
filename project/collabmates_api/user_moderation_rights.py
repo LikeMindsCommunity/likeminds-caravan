@@ -45,8 +45,7 @@ def give_default_member_rights(user, community):
     rights_removed = []
     for right in member_rights_list:
 
-        if right.state == member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK \
-                or right.state == member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM:
+        if right.state == member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK:
             rights_removed.append(right.id)
             continue
 
@@ -152,12 +151,6 @@ def get_saved_member_rights_list(user_rights, admin_rights=None):
         elif right.state == auto_approve_member_right['state']:
             right_dict["is_selected"] = user_rights["auto_approve"]
             right_dict["is_locked"] = False
-
-        elif right.state == create_secret_chatroom_right['state']:
-            right_dict["is_selected"] = user_rights["create_secret_chatroom"]
-
-            if admin_rights:
-                right_dict["is_locked"] = not admin_rights["delete_room"]
 
         if right.sub_title is None:
             del right_dict["sub_title"]
@@ -267,14 +260,13 @@ def check_all_member_rights(user=None, community=None):
     respond_in_rooms = False
     invite_private = False
     auto_approve = False
-    secret_chatroom = False
 
     if user is None and community is not None:
         member_rights = communityRightsSettings.objects.select_related('right').filter(
                         community=community).order_by("right__state")
     elif user is not None and community is not None:
-        member_rights = userMemberRights.objects.select_related(
-            'right').filter(user=user,community=community).order_by("right__state")
+        member_rights = userMemberRights.objects.select_related('right').filter(user=user,
+                                                                                community=community).order_by("right__state")
     else:
         member_rights = []
         respond_in_rooms = True
@@ -294,12 +286,9 @@ def check_all_member_rights(user=None, community=None):
             invite_private = True
         elif right.state == auto_approve_member_right['state']:
             auto_approve = True
-        elif right.state == create_secret_chatroom_right['state']:
-            secret_chatroom = True
 
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
-              "respond_in_rooms": respond_in_rooms, "invite_private": invite_private, "auto_approve": auto_approve,
-              "create_secret_chatroom": secret_chatroom}
+              "respond_in_rooms": respond_in_rooms, "invite_private": invite_private, "auto_approve": auto_approve}
 
     return rights
 

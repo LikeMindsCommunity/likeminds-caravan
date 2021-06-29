@@ -298,8 +298,6 @@ invite_private_member_right = {'id': 5, 'title': "Invite members via private lin
                                }
 auto_approve_member_right = {'id': 6, 'title': "Auto-approve created chat rooms", 'sub_title': None, "state": 5}
 
-create_secret_chatroom_right = {'id': 7, 'title': "create secret room rights", 'sub_title': None, "state": 6}
-
 member_rights_list = [create_room_member_right, create_poll_member_right,
                       create_event_member_right, respond_in_rooms_member_right,
                       invite_private_member_right, auto_approve_member_right]

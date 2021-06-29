@@ -666,11 +666,10 @@ class ChatroomImpl(ChatroomManager):
 
         card_content['member_state'] = member_state
 
-        if card_content['is_secret'] and \
-                ChatroomHelper.check_user_secret_room_creation_right(user_instance, community_instance):
+        if card_content['is_secret'] and member_state != member_states.ADMIN:
             response = {
                 "success": False,
-                "error_message": "Only CM or member with secret chatroom creation right can create secret chatroom"
+                "error_message": "Only CM can create a secret chatroom"
             }
             raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
@@ -692,10 +691,10 @@ class ChatroomImpl(ChatroomManager):
             participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
             room_creator_id = NumberUtilities.get_integer_from_string(self.get_member_id())
 
-            ChatroomHelper.make_secret_chatroom_relation_for_community_members.delay(participants_list,
-                                                                                     self.get_chatroom_id(),
-                                                                                     community_id,
-                                                                                     room_creator_id=room_creator_id)
+            ChatroomHelper.auto_follow_secret_room_participants.delay(participants_list,
+                                                                      self.get_chatroom_id(),
+                                                                      community_id,
+                                                                      room_creator_id=room_creator_id)
 
         self._send_follow_notifications_to_event_co_hosts(req_body, chatroom_name,
                                                           user_instance.userinfo.name)
@@ -960,7 +959,7 @@ class ChatroomImpl(ChatroomManager):
         return {'members': members, 'participants': participant_list}
 
     def create_introduction_card_in_community(self, community_instance, user_instance, req_body, member_state,
-                                              master_intro_instance):
+                                               master_intro_instance):
 
         card_content = {}
         chatroom_name = req_body.get('title')
@@ -1213,82 +1212,16 @@ class ChatroomHelper:
 
     @staticmethod
     @shared_task
-    def make_secret_chatroom_relation_for_community_members(user_list, chatroom_id, community_id,
-                                                            room_creator_id):
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return
-
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
-
-        if not card_instance:
-            return
-
-        member_dict = ChatroomHelper.pre_compute_existence_of_members_in_chatroom_state(card_instance,
-                                                                                        user_list)
-        user_filter = ModelUtilities.get_model_filter(User,
-                                                      {'member_id__in': user_list})
-        bulk_create_list = []
-
-        for user_instance in user_filter:
-
-            if member_dict.get(user_instance.id) is False:
-
-                expire_at = TimeUtilities.current_time_in_sec() + CHATROOM_EXPIRE_DURATION \
-                    if user_instance.id == room_creator_id else None
-
-                instance = collabcardState.create_chatroom_state_instances_for_bulk_create \
-                    (card_instance,
-                     user_instance,
-                     follow_status=True,
-                     community_instance=community_instance,
-                     external_seen=user_instance.id == room_creator_id,
-                     expire_at=expire_at)
-
-                if instance:
-                    bulk_create_list.append(instance)
-
-        ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
-        ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
-            card_instance.id, user_list)
-
-        for user_id in user_list:
-            update_last_unseen_in_engage(user=user_id, community=community_instance.id)
-
-        ChatroomHelper.update_secret_chatroom_for_community_promoters(card_instance, community_instance, member_dict)
-
-    @staticmethod
-    def update_secret_chatroom_for_community_promoters(card_instance, community_instance, member_dict):
-
-        member_filter = ModelUtilities.get_model_filter(Members,
-                                                        {'community_id': community_instance,
-                                                         'state': member_states.MEMBER}).select_related('member_id')
-        bulk_create_list = []
-        promoter_list = []
-        for data in member_filter:
-
-            if data.member_id_id not in member_dict:
-                user_instance = data.member_id
-                instance = collabcardState.create_chatroom_state_instances_for_bulk_create \
-                    (card_instance,
-                     user_instance,
-                     follow_status=False,
-                     community_instance=community_instance,
-                     external_seen=False,
-                     expire_at=None)
-
-                if instance:
-                    bulk_create_list.append(instance)
-
-                promoter_list.append(data.member_id_id)
-
-        ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
-
-        for user_id in promoter_list:
-            update_last_unseen_in_engage(user=user_id, community=community_instance.id)
-
+    def auto_follow_secret_room_participants(participants_list, chatroom_id, community_id, room_creator_id):
+        for user_id in participants_list:
+            req_dict = ChatroomHelper.get_follow_user_dict(user_id, chatroom_id,
+                                                           is_tagged=False, status=True,
+                                                           source="create_chatroom")
+            collabcard_follow_internal(req_dict,
+                                       state=collabcard_states.COLLABCARD_STATE_SEEN,
+                                       external_seen=user_id == room_creator_id,
+                                       set_expiry_time_none=True)
+            update_last_unseen_in_engage(user=user_id, community=community_id)
 
     @staticmethod
     @shared_task
@@ -1720,10 +1653,3 @@ class ChatroomHelper:
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
         ElasticSearchSync.update_chatroom_title(card_id, text)
 
-    @staticmethod
-    def check_user_secret_room_creation_right(user_instance, community_instance) -> bool:
-
-        return ModelUtilities.is_model_filter_exists(userMemberRights,
-                                                     {'user': user_instance,
-                                                      'community': community_instance,
-                                                      'right__state': member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM})
