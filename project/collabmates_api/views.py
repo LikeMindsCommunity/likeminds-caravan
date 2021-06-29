@@ -7832,13 +7832,19 @@ def collabcard_follow(request, function_dict=None):
     status = request.GET.get('value', 'true')
     aj = request.GET.get('aj')
     source_id = request.GET.get('source_id')
-
     status = (status == "true")
+
+    # local imports from conversations in order to resolve circular import
+    from .conversation.conversation_impl import ConversationHelper
 
     card_instance = Collabcard.get_chatroom_or_None(collabcard_id)
 
     if not card_instance:
         return JsonResponse({'success': False, "error_message": "Invalid chatroom id"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
+
+    if not status and card_instance.is_secret:
+        return JsonResponse({'success': False, "error_message": "Cannot unfollow chatroom"},
                             status=status_codes.HTTP_400_BAD_REQUEST)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
@@ -7871,8 +7877,9 @@ def collabcard_follow(request, function_dict=None):
                                                                              follow_status=status, external_follow=True)
 
         if status:
-            create_chatroom(card_instance=card_instance, user_instance=user_instance,
-                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance)
+            ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
+                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance,
+                                                         member_state=member_state)
 
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
@@ -7896,7 +7903,7 @@ def collabcard_follow(request, function_dict=None):
                                            expiry_time=expiry_time,
                                            external_seen=True, external_follow=status)
 
-            create_chatroom(card_instance=card_instance, user_instance=user_instance,
+            ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
                             state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance)
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
@@ -7910,11 +7917,8 @@ def collabcard_follow(request, function_dict=None):
             # deleting the conversation engage
             ModelUtilities.delete_record_in_model(conversationEngage, {'card': card_instance,
                                                                            'user': user_instance})
-            create_chatroom(card_instance=card_instance, user_instance=user_instance,
+            ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
                                 state=conversation_states.CONVERSATION_UNFOLLOW, community_instance=community_instance)
-
-    # local imports from conversations in order to resolve circular import
-    from .conversation.conversation_impl import ConversationHelper
 
     if status:
         ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance, card_instance,
