@@ -467,7 +467,7 @@ class CommunityImpl(CommunityManager):
                                  'state': member_states.MEMBER,
                                  'joined_by': shared_by_user,
                                  'custom_title': "Member",
-                                 'become_member_at': TimeUtilities.current_time_in_sec()
+                                 'became_member_at': TimeUtilities.current_time_in_sec()
                                  })
         Member_Engage.create_instance({'user_instance': user_instance,
                                        'community_instance': community_instance,

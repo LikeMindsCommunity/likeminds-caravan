@@ -14695,6 +14695,8 @@ class SyncChatrooms(APIView):
             if data[52]:
                 chatroom['topic_id'] = data[52]
 
+            chatroom['is_edited'] = data[54]
+
             chatrooms.append(chatroom)
 
         if max_last_updated:
