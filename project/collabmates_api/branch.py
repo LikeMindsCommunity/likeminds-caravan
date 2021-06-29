@@ -7,7 +7,8 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
 from .static_files import *
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
-                               BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK)
+                               BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
+                               BRANCH_FEATURE_COMMUNITY_OTL_URL)
 from utility.api_client import ApiClient
 
 info_logger = LoggingWrapper.get_instance()
@@ -172,7 +173,8 @@ def create_link_item(base_url, community, channel, feature, private=False):
     """
 
     if community.is_paid:
-        if feature != BRANCH_FEATURE_PRIVATE_LINK:
+        if feature != BRANCH_FEATURE_PRIVATE_LINK \
+                and feature != BRANCH_FEATURE_COMMUNITY_OTL_URL:
             link_item['data']['$fallback_url'] = fallback_url
         else:
             link_item['data']['$desktop_url'] = desktop_url
@@ -225,7 +227,7 @@ def create_community_otl_url(community_instance, payment_id, shared_by=None):
     else:
         private_url = base_url + f'?payment_id={payment_id}'
 
-    long_url_item = create_link_item(private_url, community_instance, "AppBackend", "CommunityFeed", private=True)
+    long_url_item = create_link_item(private_url, community_instance, "AppBackend", BRANCH_FEATURE_COMMUNITY_OTL_URL, private=True)
     data.append(long_url_item)
 
     client = ApiClient()
