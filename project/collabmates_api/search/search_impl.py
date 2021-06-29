@@ -52,6 +52,9 @@ class SearchImpl(SearchManager):
             "sort": {
                 "updated_at": {
                     "order": "desc"
+                },
+                "_score": {
+                    "order": "desc"
                 }
             },
             "query": {
@@ -80,6 +83,14 @@ class SearchImpl(SearchManager):
         return {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
+            "sort": {
+                "updated_at": {
+                    "order": "desc"
+                },
+                "_score": {
+                    "order": "desc"
+                }
+            },
             "query": {
                 "bool": {
                     "must": [
@@ -112,6 +123,14 @@ class SearchImpl(SearchManager):
         return {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
+            "sort": {
+                "last_updated": {
+                    "order": "desc"
+                },
+                "_score": {
+                    "order": "desc"
+                }
+            },
             "query": {
                 "bool": {
                     "must": [{
@@ -139,6 +158,14 @@ class SearchImpl(SearchManager):
         return {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
+            "sort": {
+                "last_updated": {
+                    "order": "desc"
+                },
+                "_score": {
+                    "order": "desc"
+                }
+            },
             "query": {
                 "bool": {
                     "must": [
