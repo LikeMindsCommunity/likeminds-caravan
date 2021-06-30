@@ -12,6 +12,7 @@ from togther.models import (Community, Members, card_answers, collabcardState,
 from utility.states import member_states, conversation_states, email_states
 from utility.states import deleted_members as removed_member_states
 from utility.time_utilities import TimeUtilities
+from .constants import GET_IN_TOUCH_ROUTE
 
 from .membership_manager import MembershipManager
 from ..search.sync import ElasticSearchSync
@@ -106,7 +107,7 @@ class MembershipImpl(MembershipManager):
                     'events_attended': attended_events.get(community_id, 0),
                     'chatroom_participated': participated_rooms.get(community_id, 0),
                     'community_members': member_count.get(community_id, 0),
-                    'get_in_touch_route': f'route://mail?to={owner_mails.get(community_id)}',
+                    'get_in_touch_route': GET_IN_TOUCH_ROUTE % owner_mails.get(community_id),
                     'community': community_hash.get(community_id)
                 }
 

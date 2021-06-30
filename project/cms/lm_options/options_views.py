@@ -18,11 +18,6 @@ class FetchOptionView(APIView):
 
     def get(self, request, *args, **kwargs):
 
-        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
-
-        if not CMSAuthUtilities.validate_user(user_name, password):
-            CMSAuthUtilities.raise_authentication_error()
-
         slug = request.GET.get('slug', None)
 
         if not slug:
