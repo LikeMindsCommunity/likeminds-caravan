@@ -1506,7 +1506,9 @@ def fetch_chatroom_with_videos(limit, page, card_list):
                     togther_collabcardState.secret_chatroom_left,
                     togther_collabcard.has_reactions,
                     togther_collabcard.device_id,
-                    togther_collabcard.topic_id
+                    togther_collabcard.topic_id,
+                    togther_collabcard.auto_follow_done,
+                    togther_collabcard.is_edited
                 FROM togther_collabcard
                 INNER JOIN togther_collabcardState
                     ON togther_collabcardState.card_id = togther_collabcard.id
