@@ -601,7 +601,8 @@ class ChatroomImpl(ChatroomManager):
                         can_access_secret_chatroom = ModelUtilities.is_model_filter_exists(collabcardState,
                                                                                            {'card': card_instance,
                                                                                             'user': self.get_member_id(),
-                                                                                            'remove': None})
+                                                                                            'remove': None,
+                                                                                            'secret_chatroom_left': False})
 
                 except Exception as e:
                     error_logger.error(f"fetch_chatroom - {e.args}")
@@ -1282,6 +1283,7 @@ class ChatroomHelper:
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create \
                     (card_instance,
                      user_instance,
+                     state=0,
                      follow_status=True,
                      community_instance=community_instance,
                      external_seen=user_instance.id == room_creator_id,
@@ -1316,6 +1318,7 @@ class ChatroomHelper:
                     (card_instance,
                      user_instance,
                      follow_status=False,
+                     state=0,
                      community_instance=community_instance,
                      external_seen=False,
                      expire_at=None)

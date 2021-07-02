@@ -6685,7 +6685,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     parent_list = []
     member_instance = Members.objects.filter(member_id=user_id,
                                              community_id=card_instance.community).filter(Q(state=member_states.ADMIN))
-    if member_instance.exists():
+    if member_instance:
         is_promoter = True
         parent_cm_list = member_instance[0].parent_cm_list
         parent_list = json.loads(parent_cm_list) if parent_cm_list else []
@@ -6744,6 +6744,14 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
         if card_instance.is_secret:
             can_access_secret_chatroom = user_id in json.loads(card_instance.secret_chatroom_participants)
+
+            if not can_access_secret_chatroom:
+                can_access_secret_chatroom = ModelUtilities.is_model_filter_exists(collabcardState,
+                                                                                   {'card': card_instance,
+                                                                                    'user': user_id,
+                                                                                    'remove': None,
+                                                                                    'secret_chatroom_left': False})
+
 
         elif card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False:
