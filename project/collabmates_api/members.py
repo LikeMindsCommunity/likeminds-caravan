@@ -823,28 +823,6 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
 
         members.append(user_context)
 
-    # for handling the removed members of community
-    if show_removed and not member_set:
-        removed_list = collabcardState.objects\
-            .filter(card=chatroom_instance, follow_status=True)\
-            .exclude(remove=None)\
-            .order_by('-user_id')
-
-        for instance in removed_list:
-            user_instance = instance.user
-            user_context = get_user_profile(user_instance.id,current_user_id)
-            user_context['collabcard_state'] = instance.state
-            user_context['is_guest'] = instance.is_guest
-            user_context['attending_status'] = instance.attending_status
-
-            temp = get_removed_member_custom_text(instance.remove)
-            user_context['custom_intro_text'] = temp['custom_intro_text']
-            user_context['custom_click_text'] = temp['custom_click_text']
-            user_context['remove_state'] = temp['remove_state']
-            user_context['image_url'] = temp['removed_user_image_url']
-
-            members.append(user_context)
-
     return members
 
 
