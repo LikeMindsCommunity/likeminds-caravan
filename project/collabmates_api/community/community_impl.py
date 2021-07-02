@@ -624,6 +624,22 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True, 'access': user_has_access}
 
+    def fetch_members_meta(self, community_id):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "invalid user id"}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'error_message': "invalid community id"}
+
+        members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance)
+
+        return {'members': members}
+
 
 class CommunityHelper:
 

@@ -5892,17 +5892,24 @@ def conversation_seen(request, req_dict=None):
 def mark_read(request):
     '''api to mark the conversation read'''
     member_id = get_member_id_from_headers(request)
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+    if not user_instance:
+        context = get_error_context(False, "in-correct member id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     chatroom_id = request.POST.get('chatroom_id')
-    if not chatroom_id:
-        context = get_error_context(False, "send chatroom id in headers")
-        return JsonResponse(context)
 
-    chatroom_instance = Collabcard.objects.get(id=chatroom_id)
-    save_the_latest_conversation(chatroom_instance, member_id)
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not chatroom_instance:
+        context = get_error_context(False, "in-correct chatroom id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    save_the_latest_conversation(chatroom_instance, user_instance.id)
 
     send_sync_notification.delay({'chatroom_id': chatroom_instance.id,
                                   'member_id': member_id,
@@ -6090,6 +6097,14 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     purpose_card = False
     intro_card = False
     master_intro_card = False
+    promoter_joined_secret_chatroom = False
+
+    if card_instance.is_secret \
+            and promoter \
+            and card_status.get('follow_status'):
+        promoter_joined_secret_chatroom = True
+        creator = True
+
 
     if parent_list is None:
         parent_list = []
@@ -6119,7 +6134,9 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     final = final_dict.copy()
     admin_has_delete_right = check_admin_delete_right(user=current_user_instance, community=community_instance)
+
     if promoter and not creator:
+
         if admin_has_delete_right:
             final.append(delete_chatroom)
 
@@ -6164,9 +6181,12 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                     admin_has_delete_right:
                 continue
 
-        elif card_instance.is_secret and\
-                action['id'] == chatroom_actions.ACTION_INVITE:
-            continue
+        elif card_instance.is_secret:
+
+            if action['id'] == chatroom_actions.ACTION_FOLLOW \
+                    or action['id'] == chatroom_actions.ACTION_UNFOLLOW\
+                    or action['id'] == chatroom_actions.ACTION_INVITE:
+                continue
 
         actions.append(action)
 
@@ -6197,10 +6217,16 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         participants_list = json.loads(card_instance.secret_chatroom_participants)
 
-        if not promoter and\
-                not creator and\
+        if current_user_id not in participants_list \
+                and report in actions:
+            actions.remove(report)
+
+        if promoter_joined_secret_chatroom or\
+                 creator or\
                 current_user_id in participants_list:
+
             actions.append(leave_chatroom)
+
 
     return actions
 
@@ -7832,13 +7858,19 @@ def collabcard_follow(request, function_dict=None):
     status = request.GET.get('value', 'true')
     aj = request.GET.get('aj')
     source_id = request.GET.get('source_id')
-
     status = (status == "true")
+
+    # local imports from conversations in order to resolve circular import
+    from .conversation.conversation_impl import ConversationHelper
 
     card_instance = Collabcard.get_chatroom_or_None(collabcard_id)
 
     if not card_instance:
         return JsonResponse({'success': False, "error_message": "Invalid chatroom id"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
+
+    if not status and card_instance.is_secret:
+        return JsonResponse({'success': False, "error_message": "Cannot unfollow chatroom"},
                             status=status_codes.HTTP_400_BAD_REQUEST)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
@@ -7871,8 +7903,9 @@ def collabcard_follow(request, function_dict=None):
                                                                              follow_status=status, external_follow=True)
 
         if status:
-            create_chatroom(card_instance=card_instance, user_instance=user_instance,
-                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance)
+            ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
+                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance,
+                                                         member_state=member_state)
 
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
@@ -7896,8 +7929,9 @@ def collabcard_follow(request, function_dict=None):
                                            expiry_time=expiry_time,
                                            external_seen=True, external_follow=status)
 
-            create_chatroom(card_instance=card_instance, user_instance=user_instance,
-                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance)
+            ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
+                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance,
+                                                         member_state=member_state)
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
 
@@ -7910,11 +7944,8 @@ def collabcard_follow(request, function_dict=None):
             # deleting the conversation engage
             ModelUtilities.delete_record_in_model(conversationEngage, {'card': card_instance,
                                                                            'user': user_instance})
-            create_chatroom(card_instance=card_instance, user_instance=user_instance,
+            ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
                                 state=conversation_states.CONVERSATION_UNFOLLOW, community_instance=community_instance)
-
-    # local imports from conversations in order to resolve circular import
-    from .conversation.conversation_impl import ConversationHelper
 
     if status:
         ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance, card_instance,
@@ -7924,6 +7955,17 @@ def collabcard_follow(request, function_dict=None):
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
     ElasticSearchSync.update_chatroom_for_user.delay(card_instance.id, user_instance.id)
+
+    if card_instance.is_secret \
+            and member_state == member_states.ADMIN \
+            and status:
+        participants_list = json.loads(card_instance.secret_chatroom_participants)
+
+        if user_instance.id not in participants_list:
+            participants_list.append(user_instance.id)
+            ModelUtilities.model_update(Collabcard, {'id' : card_instance.id},
+                                        {'secret_chatroom_participants':
+                                          json.dumps(participants_list)})
 
     return JsonResponse({'success': True})
 
