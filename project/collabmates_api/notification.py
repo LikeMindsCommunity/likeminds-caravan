@@ -501,9 +501,16 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_list_member = []
         tagged_users_list = []
         user_names = ''
+        custom_payload = {}
 
         if card.is_secret:
             participants = json.loads(card.secret_chatroom_participants)
+            promoter_list = list(
+                ModelUtilities.get_model_filter(Members,
+                                                {'community_id': card.community_id,
+                                                 'state': member_states.ADMIN}).values_list('member_id',
+                                                                                            flat=True))
+            participants = list(set(participants) | set(promoter_list))
 
             for user_id in participants:
 
@@ -565,7 +572,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
                 if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
                     notification_list_member.append(temp)
 
-        custom_payload = get_custom_data_for_new_chatroom_created(card)
+            custom_payload = get_custom_data_for_new_chatroom_created(card)
 
         collabcard_title = get_title_from_collabcard(card)
 
@@ -580,8 +587,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             route = 'route://chatroom_detail?chatroom_id=' + str(card_id)
 
         elif card.is_secret:
-            sub_title = str(card_creater_name) + " started a new secret chatroom: " + str(collabcard_title) + ". Join now!"
-            route = 'route://collabcard?collabcard_id=' + str(card_id)
+            sub_title = str(card_creater_name) + " created a secret chatroom: " + str(collabcard_title)
+            route = 'route://chatroom_detail?chatroom_id=' + str(card_id)
 
         elif typ == card_types.CARD_EVENT or typ == card_types.CARD_PUBLIC_EVENT:
             sub_title = str(card_creater_name) + " created a new event: " + str(collabcard_title) + ". Join now!"
@@ -609,9 +616,11 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             'route': route
         }
 
-        if not card.is_pending:
-            if typ not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
-                message['payload']['unread_new_chatroom'] = custom_payload
+        if not card.is_pending \
+                and not card.is_secret and \
+                typ not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+
+            message['payload']['unread_new_chatroom'] = custom_payload
 
         notification_meta(notification_list_member, message)
 
@@ -941,15 +950,15 @@ def offline_event_remainder_notification_30_minutes(card_id, **kwargs):
 def get_custom_data_for_new_chatroom_created(card):
     """ function to get data for custom notification """
 
-    time.sleep(10)
-
     unread_conversation = {}
     chatroom_instance = card
     user_instance = chatroom_instance.user
-    unread_conversation['community_name'] = chatroom_instance.community.name
+    community_instance = chatroom_instance.community
+    userinfo_instance = user_instance.userinfo
+    unread_conversation['community_name'] = community_instance.name
     unread_conversation['chatroom_name'] = get_title_from_collabcard(chatroom_instance) + " (New Chatroom)"
     unread_conversation['chatroom_title'] = chatroom_instance.title
-    unread_conversation['chatroom_user_name'] = user_instance.userinfo.name
+    unread_conversation['chatroom_user_name'] = userinfo_instance.name
 
     collabcard_files = get_collabcard_files(card_id=card.id)
     unread_conversation['images'] = collabcard_files[0]
@@ -958,14 +967,13 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['videos'] = collabcard_files[3]
     unread_conversation['attachments'] = collabcard_files[4]
 
-    chatroom_user_image = user_instance.userinfo.image_link
+    chatroom_user_image = userinfo_instance.image_link
     unread_conversation['chatroom_user_image'] = chatroom_user_image if chatroom_user_image else ''
     unread_conversation['chatroom_id'] = chatroom_instance.id
-    unread_conversation['community_id'] = str(chatroom_instance.community.id)
-    unread_conversation['community_image'] = chatroom_instance.community.image_link
-    # unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
+    unread_conversation['community_id'] = str(community_instance.id)
+    unread_conversation['community_image'] = community_instance.image_link
     unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s&community_name=%s""" % (
-    str(chatroom_instance.community.id), str(chatroom_instance.community.name))
+    str(community_instance.id), str(community_instance.name))
     unread_conversation['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(chatroom_instance.id))
     unread_conversation['chatroom_name_ios'] = get_title_from_collabcard(chatroom_instance)
 
