@@ -830,8 +830,13 @@ class ChatroomImpl(ChatroomManager):
             raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
         chatroom_instance.secret_chatroom_participants = existing_participants_list
-
         self._save_chatroom_instance(chatroom_instance)
+
+        member_state = Members.get_community_member_state(chatroom_instance.community_id, user_instance)
+        secret_chatroom_left = True
+
+        if member_state == member_states.ADMIN:
+            secret_chatroom_left = False
 
         filter_dict = {
             'card': chatroom_instance,
@@ -839,14 +844,12 @@ class ChatroomImpl(ChatroomManager):
         }
 
         update_dict = {
-            'secret_chatroom_left': True,
+            'secret_chatroom_left': secret_chatroom_left,
             'follow_status': False,
             'updated_at': TimeUtilities.current_time_in_sec()
         }
 
-        update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                       filter_dict=filter_dict,
-                                       update_dict=update_dict)
+        ModelUtilities.model_update(collabcardState, filter_dict, update_dict)
 
         # updating all secret chatroom participants
         filter_dict = {
@@ -857,9 +860,7 @@ class ChatroomImpl(ChatroomManager):
             'updated_at': TimeUtilities.current_time_in_sec()
         }
 
-        update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                       filter_dict=filter_dict,
-                                       update_dict=update_dict)
+        ModelUtilities.model_update(collabcardState, filter_dict, update_dict)
 
         # deleting conversation engage for this chatroom for this user
         conversationEngage.objects.filter(card=chatroom_instance, user=user_instance).delete()
@@ -869,7 +870,8 @@ class ChatroomImpl(ChatroomManager):
 
         update_last_unseen_in_engage(user=member_id, community=chatroom_instance.community_id)
 
-        ElasticSearchSync.delete_chatroom_for_user.delay(chatroom_instance.id, user_instance.id)
+        if secret_chatroom_left:
+            ElasticSearchSync.delete_chatroom_for_user.delay(chatroom_instance.id, user_instance.id)
 
         if chatroom_state == conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM:
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
