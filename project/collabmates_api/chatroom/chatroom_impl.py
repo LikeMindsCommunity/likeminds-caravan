@@ -471,9 +471,9 @@ class ChatroomImpl(ChatroomManager):
 
             # batch update for already existing users and saving their unseen count
             if not chatroom_instance.is_secret:
-                ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting(chatroom_instance.id,
-                                                                                            user_instance.id,
-                                                                                            community_instance.id)
+                set_chatroom_state_for_all_members_on_card_creation.delay(community_id,
+                                                                          card_id=self.get_chatroom_id(),
+                                                                          function_called="create_card_internal")
 
         else:
             update_pending_chatroom_count_for_promoters.delay(community_id)
