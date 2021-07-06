@@ -54,3 +54,9 @@ class CommunityManager(metaclass=abc.ABCMeta):
         """make a user either a pending member or a member in community"""
 
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_members_meta(self, community_id):
+        """returns list of members to create secret chatrooms"""
+
+        raise NotImplementedError

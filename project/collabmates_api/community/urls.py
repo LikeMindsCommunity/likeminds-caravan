@@ -2,7 +2,7 @@ from django.urls import path
 from collabmates_api.community.community_view_impl import (FetchCommunity, FetchChatroomFeed,
                                                            DeleteCommunityView, FetchCommunityFeedUrl,
                                                            FetchDiscoverableCommunities,
-                                                           FetchCommunityOTLUrl)
+                                                           FetchCommunityOTLUrl, FetchMembersMeta)
 
 urlpatterns = [
     path('fetch', FetchCommunity.as_view(), name="fetch_community"),
@@ -12,5 +12,6 @@ urlpatterns = [
     path('fetch_discoverable_communities', FetchDiscoverableCommunities.as_view(),
          name="fetch_discoverable_communities"),
     path('fetch_otl_url', FetchCommunityOTLUrl.as_view(), name="fetch_otl_url"),
+    path('fetch_members_meta', FetchMembersMeta.as_view(), name="fetch_members"),
 
 ]

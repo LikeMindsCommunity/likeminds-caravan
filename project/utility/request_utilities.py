@@ -27,6 +27,10 @@ class RequestUtilities:
         return request.data
 
     @staticmethod
+    def fetch_request_query_params(request):
+        return request.query_params
+
+    @staticmethod
     def is_request_web(request: object):
         return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "web"
 

@@ -50,6 +50,9 @@ class SearchImpl(SearchManager):
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
             "sort": {
+                "_score": {
+                    "order": "desc"
+                },
                 "updated_at": {
                     "order": "desc"
                 },
@@ -84,10 +87,10 @@ class SearchImpl(SearchManager):
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
             "sort": {
-                "updated_at": {
+                "_score": {
                     "order": "desc"
                 },
-                "_score": {
+                "updated_at": {
                     "order": "desc"
                 }
             },
@@ -124,10 +127,10 @@ class SearchImpl(SearchManager):
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
             "sort": {
-                "last_updated": {
+                "_score": {
                     "order": "desc"
                 },
-                "_score": {
+                "last_updated": {
                     "order": "desc"
                 }
             },
@@ -159,10 +162,10 @@ class SearchImpl(SearchManager):
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
             "sort": {
-                "last_updated": {
+                "_score": {
                     "order": "desc"
                 },
-                "_score": {
+                "last_updated": {
                     "order": "desc"
                 }
             },

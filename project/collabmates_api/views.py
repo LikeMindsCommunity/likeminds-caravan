@@ -433,6 +433,8 @@ def my_chatrooms_version_1(request):
     device_id = RequestUtilities.get_device_id_from_headers(request)
     page = request.GET.get('page', 1)
 
+    is_ios = RequestUtilities.is_request_ios(request)
+
     try:
         page = int(page)
     except:
@@ -541,11 +543,17 @@ def my_chatrooms_version_1(request):
                                                              last_conversation_user,
                                                              second_last_conversation_user)
         chatroom['conversation_users'] = conversation_users
-        chatroom['member_right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
+
+        rights_list = json.loads(instance.rights_list) if instance.rights_list else []
+
+        if is_ios and member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM in rights_list:
+            rights_list.remove(member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM)
+
+        chatroom['member_right_states'] = rights_list
 
         member_instance = Members.objects.filter(member_id=current_user_instance,
                                                  community_id=instance.community)
-        if member_instance.exists():
+        if member_instance:
             chatroom['member_state'] = member_instance[0].state
         else:
             chatroom['member_state'] = member_states.GUEST
@@ -5892,17 +5900,24 @@ def conversation_seen(request, req_dict=None):
 def mark_read(request):
     '''api to mark the conversation read'''
     member_id = get_member_id_from_headers(request)
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+    if not user_instance:
+        context = get_error_context(False, "in-correct member id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     chatroom_id = request.POST.get('chatroom_id')
-    if not chatroom_id:
-        context = get_error_context(False, "send chatroom id in headers")
-        return JsonResponse(context)
 
-    chatroom_instance = Collabcard.objects.get(id=chatroom_id)
-    save_the_latest_conversation(chatroom_instance, member_id)
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not chatroom_instance:
+        context = get_error_context(False, "in-correct chatroom id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    save_the_latest_conversation(chatroom_instance, user_instance.id)
 
     send_sync_notification.delay({'chatroom_id': chatroom_instance.id,
                                   'member_id': member_id,
@@ -6090,6 +6105,14 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     purpose_card = False
     intro_card = False
     master_intro_card = False
+    promoter_joined_secret_chatroom = False
+
+    if card_instance.is_secret \
+            and promoter \
+            and card_status.get('follow_status'):
+        promoter_joined_secret_chatroom = True
+        creator = True
+
 
     if parent_list is None:
         parent_list = []
@@ -6119,7 +6142,9 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     final = final_dict.copy()
     admin_has_delete_right = check_admin_delete_right(user=current_user_instance, community=community_instance)
+
     if promoter and not creator:
+
         if admin_has_delete_right:
             final.append(delete_chatroom)
 
@@ -6164,9 +6189,12 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                     admin_has_delete_right:
                 continue
 
-        elif card_instance.is_secret and\
-                action['id'] == chatroom_actions.ACTION_INVITE:
-            continue
+        elif card_instance.is_secret:
+
+            if action['id'] == chatroom_actions.ACTION_FOLLOW \
+                    or action['id'] == chatroom_actions.ACTION_UNFOLLOW\
+                    or action['id'] == chatroom_actions.ACTION_INVITE:
+                continue
 
         actions.append(action)
 
@@ -6197,10 +6225,16 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         participants_list = json.loads(card_instance.secret_chatroom_participants)
 
-        if not promoter and\
-                not creator and\
+        if current_user_id not in participants_list \
+                and report in actions:
+            actions.remove(report)
+
+        if promoter_joined_secret_chatroom or\
+                 creator or\
                 current_user_id in participants_list:
+
             actions.append(leave_chatroom)
+
 
     return actions
 
@@ -6659,7 +6693,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     parent_list = []
     member_instance = Members.objects.filter(member_id=user_id,
                                              community_id=card_instance.community).filter(Q(state=member_states.ADMIN))
-    if member_instance.exists():
+    if member_instance:
         is_promoter = True
         parent_cm_list = member_instance[0].parent_cm_list
         parent_list = json.loads(parent_cm_list) if parent_cm_list else []
@@ -6718,6 +6752,14 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
         if card_instance.is_secret:
             can_access_secret_chatroom = user_id in json.loads(card_instance.secret_chatroom_participants)
+
+            if not can_access_secret_chatroom:
+                can_access_secret_chatroom = ModelUtilities.is_model_filter_exists(collabcardState,
+                                                                                   {'card': card_instance,
+                                                                                    'user': user_id,
+                                                                                    'remove': None,
+                                                                                    'secret_chatroom_left': False})
+
 
         elif card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False:
@@ -7832,13 +7874,19 @@ def collabcard_follow(request, function_dict=None):
     status = request.GET.get('value', 'true')
     aj = request.GET.get('aj')
     source_id = request.GET.get('source_id')
-
     status = (status == "true")
+
+    # local imports from conversations in order to resolve circular import
+    from .conversation.conversation_impl import ConversationHelper
 
     card_instance = Collabcard.get_chatroom_or_None(collabcard_id)
 
     if not card_instance:
         return JsonResponse({'success': False, "error_message": "Invalid chatroom id"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
+
+    if not status and card_instance.is_secret:
+        return JsonResponse({'success': False, "error_message": "Cannot unfollow chatroom"},
                             status=status_codes.HTTP_400_BAD_REQUEST)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
@@ -7871,8 +7919,9 @@ def collabcard_follow(request, function_dict=None):
                                                                              follow_status=status, external_follow=True)
 
         if status:
-            create_chatroom(card_instance=card_instance, user_instance=user_instance,
-                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance)
+            ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
+                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance,
+                                                         member_state=member_state)
 
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
@@ -7896,8 +7945,9 @@ def collabcard_follow(request, function_dict=None):
                                            expiry_time=expiry_time,
                                            external_seen=True, external_follow=status)
 
-            create_chatroom(card_instance=card_instance, user_instance=user_instance,
-                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance)
+            ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
+                            state=conversation_states.CONVERSATION_FOLLOW, community_instance=community_instance,
+                                                         member_state=member_state)
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
 
@@ -7910,11 +7960,8 @@ def collabcard_follow(request, function_dict=None):
             # deleting the conversation engage
             ModelUtilities.delete_record_in_model(conversationEngage, {'card': card_instance,
                                                                            'user': user_instance})
-            create_chatroom(card_instance=card_instance, user_instance=user_instance,
+            ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
                                 state=conversation_states.CONVERSATION_UNFOLLOW, community_instance=community_instance)
-
-    # local imports from conversations in order to resolve circular import
-    from .conversation.conversation_impl import ConversationHelper
 
     if status:
         ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance, card_instance,
@@ -7924,6 +7971,17 @@ def collabcard_follow(request, function_dict=None):
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
     ElasticSearchSync.update_chatroom_for_user.delay(card_instance.id, user_instance.id)
+
+    if card_instance.is_secret \
+            and member_state == member_states.ADMIN \
+            and status:
+        participants_list = json.loads(card_instance.secret_chatroom_participants)
+
+        if user_instance.id not in participants_list:
+            participants_list.append(user_instance.id)
+            ModelUtilities.model_update(Collabcard, {'id' : card_instance.id},
+                                        {'secret_chatroom_participants':
+                                          json.dumps(participants_list)})
 
     return JsonResponse({'success': True})
 
@@ -10648,6 +10706,19 @@ def get_state_of_community(community):
     return 0
 
 
+def compute_moderation_member_rights_list_for_ios(moderated_member_list):
+    member_rights_list = []
+
+    for data in moderated_member_list:
+
+        if data.get('state') == member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM:
+            continue
+
+        member_rights_list.append(data)
+
+    return member_rights_list
+
+
 def members_state(request, req_dict=None):
     '''This function gives the state of user.Get Api'''
 
@@ -10699,7 +10770,8 @@ def members_state(request, req_dict=None):
     actions_required = False
     created_at = 0
     image_url = ""
-    if query_set.exists():
+
+    if query_set:
         data = query_set[0]
         is_member = False
         tool_state = 0
@@ -10758,22 +10830,28 @@ def members_state(request, req_dict=None):
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
         json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
 
-    if state == member_states.ADMIN or state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
+    if state == member_states.ADMIN or \
+            state == member_states.MEMBER or \
+            state == member_states.PROFILE_UNAVAILABLE:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
-        member_rights = get_saved_member_rights_list(user_rights)
+        moderated_member_rights = get_saved_member_rights_list(user_rights)
 
     else:
         user_rights = check_all_member_rights()
-        # fetching all the rights of the community
-        member_rights = get_saved_member_rights_list(user_rights)
+        moderated_member_rights = get_saved_member_rights_list(user_rights)
 
-    json_response['member_rights'] = member_rights
+    if RequestUtilities.is_request_ios(request):
+        json_response['member_rights'] = compute_moderation_member_rights_list_for_ios(moderated_member_rights)
+
+    else:
+        json_response['member_rights'] = moderated_member_rights
 
     if image_url:
         json_response['member']['image_url'] = image_url
 
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
-    if toast_filter.exists():
+
+    if toast_filter:
         json_response['community_toast'] = toast_filter[0].toast_message
 
     if req_dict:
@@ -14898,10 +14976,14 @@ class SyncChatroomsDiff(APIView):
         secret_chatroom_list = set()
         chatrooms_with_reactions_list = set()
         chatrooms_with_topics_list = set()
+        chatrooms_with_edited_list = set()
 
         if not is_synced:
 
-            user_instance = User.get_user_or_raise_exception(member_id)
+            user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+            if not user_instance:
+                return JsonResponse({'chatrooms': []})
 
             if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
@@ -14915,8 +14997,12 @@ class SyncChatroomsDiff(APIView):
             if previous_app_version < TOPIC_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 chatrooms_with_topics_list = self._get_chatrooms_with_topics_of_user(user_instance)
 
+            if previous_app_version < CHATROOM_FIRST_MESSAGE_ACTION_VERSION_CODE_ANDROID:
+                chatrooms_with_edited_list = self._get_chatrooms_with_edited_first_message(user_instance)
+
         common_list = tuple(secret_chatroom_list | video_chatroom_list |
-                            chatrooms_with_reactions_list | chatrooms_with_topics_list)
+                            chatrooms_with_reactions_list | chatrooms_with_topics_list |
+                            chatrooms_with_edited_list)
 
         if len(common_list) > 0:
 
@@ -15016,6 +15102,9 @@ class SyncChatroomsDiff(APIView):
             # chatroom topic
             if data[52]:
                 chatroom['topic_id'] = data[52]
+
+            chatroom['auto_follow_done'] = data[53]
+            chatroom['is_edited'] = data[54]
 
             chatrooms.append(chatroom)
 
@@ -15228,6 +15317,14 @@ class SyncChatroomsDiff(APIView):
                                          .values_list('card', flat=True))
 
         return chatrooms_with_topics_list
+
+    def _get_chatrooms_with_edited_first_message(self, user_instance):
+
+        chatrooms_with_edited_list = set(collabcardState.objects
+                                         .filter(user=user_instance, card__is_edited=True)
+                                         .values_list('card', flat=True))
+
+        return chatrooms_with_edited_list
 
 
 class SyncConversation(APIView):
@@ -15474,7 +15571,6 @@ class SyncConversation(APIView):
 
         return conversation_list, max_last_updated
 
-
     def process_conversation_files(self, conversation_files):
 
         conversation_files_response = {
@@ -15696,10 +15792,7 @@ class SyncConversationDiff(APIView):
         member_id = get_member_id_from_headers(request)
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
-
         version_code = RequestUtilities.get_version_code_from_headers(request)
-        is_platform_android = RequestUtilities.is_request_android(request)
-        is_platform_ios = RequestUtilities.is_request_ios(request)
 
         if not member_id:
             raise InvalidHeaderException
@@ -15722,10 +15815,14 @@ class SyncConversationDiff(APIView):
 
         video_conversations_list = set()
         conversations_with_reactions_list = set()
+        conversation_with_reply_chatroom_id_list = set()
 
         if not is_synced:
 
-            user_instance = User.get_user_or_raise_exception(member_id)
+            user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+            if not user_instance:
+                return JsonResponse({'conversations': []})
 
             card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
 
@@ -15733,7 +15830,7 @@ class SyncConversationDiff(APIView):
                 video_conversations_list = self._get_video_conversations_list(card_state_list)
                 common_list = tuple(video_conversations_list)
 
-            if version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
+            if previous_app_version < REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 conversations_with_reactions_list = self._get_conversation_with_reactions(card_state_list)
                 common_list = tuple(conversations_with_reactions_list)
 
@@ -15741,10 +15838,17 @@ class SyncConversationDiff(APIView):
                     version_code >= REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN:
                 common_list = tuple(video_conversations_list | conversations_with_reactions_list)
 
+            if previous_app_version < CHATROOM_FIRST_MESSAGE_ACTION_VERSION_CODE_ANDROID:
+                conversation_with_reply_chatroom_id_list = self._get_conversation_with_reply_chatroom_id(card_state_list)
+
+                common_list = tuple(video_conversations_list |
+                                    conversations_with_reactions_list |
+                                    conversation_with_reply_chatroom_id_list)
+
         if len(common_list) > 0:
 
-            conversation_filter = card_answers.objects.filter(pk__in=common_list).select_related('preview_community',
-                                                                                                 'preview_chatroom')
+            conversation_filter = card_answers.objects.filter(pk__in=common_list)\
+                .select_related('preview_community','preview_chatroom').order_by('last_updated')
 
             conversation_list = pagination(conversation_filter, page, paginate_by=paginate_by)
 
@@ -15774,6 +15878,14 @@ class SyncConversationDiff(APIView):
         ans_list = set(card_answers.objects
                        .filter(card__id__in=card_state_list, has_reactions=True)
                        .values_list('id', flat=True))
+        return ans_list
+
+    def _get_conversation_with_reply_chatroom_id(self, card_state_list):
+
+        ans_list = set(card_answers.objects
+                       .filter(card__id__in=card_state_list).filter(~Q(reply_chatroom=None))
+                       .values_list('id', flat=True))
+
         return ans_list
 
 

@@ -1,3 +1,4 @@
+from .number_utilities import NumberUtilities
 from togther.models import Community, Collabcard, card_answers
 from .constants import BRANCH_DECODE_URI
 from collabmates_api.static_text import BRANCH_LINK_PREFIX_ANDROID, BRANCH_LINK_PREFIX_IOS
@@ -91,6 +92,13 @@ class PreviewUtilities:
     def set_previw_object_in_cache(self, res, instance):
 
         preview_obj = res.get('preview')
+
+        if preview_obj.get('community'):
+
+            community_res = preview_obj.get('community')
+
+            if community_res.get('id'):
+                community_res['id'] = NumberUtilities.get_integer_from_string(community_res.get('id'))
 
         if preview_obj and isinstance(instance, card_answers) and preview_obj.get('preview_type') == "chatroom":
             update_preview_of_chatroom_in_cache.delay({'chatroom_id': preview_obj['chatroom']["id"],

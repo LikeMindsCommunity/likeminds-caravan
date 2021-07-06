@@ -21,7 +21,9 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'edit_chatroom') and
                  callable(subclass.edit_chatroom)) and
                 (hasattr(subclass, 'follow_chatroom_automatically_for_all_members_of_community') and
-                 callable(subclass.follow_chatroom_automatically_for_all_members_of_community)) or
+                 callable(subclass.follow_chatroom_automatically_for_all_members_of_community)) and
+                (hasattr(subclass, 'fetch_participants_of_secret_chatroom') and
+                 callable(subclass.fetch_participants_of_secret_chatroom)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -89,5 +91,11 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def create_introduction_card_in_community(self, community_instance, user_instance, req_body, member_state,
                                               master_intro_instance):
         """create the introduction card of community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_participants_of_secret_chatroom(self):
+        """returns list of participants of secret chatrooms"""
 
         raise NotImplementedError

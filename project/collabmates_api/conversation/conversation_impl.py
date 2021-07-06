@@ -1292,14 +1292,11 @@ class ConversationHelper:
         return response
 
     @staticmethod
-    def create_conversation_state(card_instance, user_instance, state, current_user_id=None, answer="", topic_text=None,
-                        **kwargs):
+    def create_conversation_state(card_instance, user_instance, state, current_user_id=None, answer="",
+                                  topic_text=None, member_state=0, community_instance=None):
 
-        if not kwargs.get('community_instance'):
+        if not community_instance:
             community_instance = card_instance.community
-
-        else:
-            community_instance = kwargs.get('community_instance')
 
         if not answer:
 
@@ -1333,6 +1330,9 @@ class ConversationHelper:
 
             elif state == conversation_states.CONVERSATION_FOLLOW:
                 answer = user_name + " followed this chatroom"
+
+                if card_instance.is_secret and member_state == member_states.ADMIN:
+                    answer = user_name + " joined this chatroom"
 
             elif state == conversation_states.CONVERSATION_UNFOLLOW:
                 answer = user_name + " unfollowed this chatroom"

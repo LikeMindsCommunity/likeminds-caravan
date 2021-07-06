@@ -155,6 +155,20 @@ class ElasticSearchSync:
 
     @staticmethod
     @shared_task
+    def delete_chatroom_for_user(chatroom_id: int, user_id: int):
+        """
+        @param chatroom_id: int
+        @param user_id: int
+        @return: None
+        @description: Delete a chatroom for a  particular user and its related conversations
+        """
+
+        query_dict = ElasticSearchQueryHelper.get_chatroom_delete_dict_for_user(chatroom_id, user_id)
+        ElasticSearchSync.delete_documents(index=SearchIndexes.CHATROOM,
+                                           query_dict=query_dict)
+
+    @staticmethod
+    @shared_task
     def delete_chatroom_conversations(chatroom_id: int):
         """
         @param chatroom_id: int
@@ -510,6 +524,29 @@ class ElasticSearchQueryHelper:
                                 "chatroom.id": {
                                     "value": chatroom_id
                                 }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+
+    @staticmethod
+    def get_chatroom_delete_dict_for_user(chatroom_id, user_id):
+        return {
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "match": {
+                                "chatroom.id": chatroom_id
+                            }
+                        }
+                    ],
+                    "filter": [
+                        {
+                            "term": {
+                                "member.id": user_id
                             }
                         }
                     ]

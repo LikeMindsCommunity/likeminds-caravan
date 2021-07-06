@@ -9,6 +9,8 @@ from utility.request_utilities import RequestUtilities
 
 from utility.exception_utilities import InvalidHeaderException, CustomException
 
+from utility.number_utilities import NumberUtilities
+
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
@@ -24,15 +26,25 @@ class FetchCommunityBenefits(APIView):
         if not member_id:
             raise InvalidHeaderException()
 
-        request_body = RequestUtilities.load_request_body(request)
-        community_ids = request_body.get('community_ids', None)
+        query_params = RequestUtilities.fetch_request_query_params(request)
+
+        community_ids = query_params.get('community_ids', None)
 
         if community_ids is None:
             response = {
                 'success': False,
-                'error_message': "community id's missing in body or invalid or format error"
+                'error_message': "community id's missing in query params or invalid or format error"
             }
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+            raise CustomException(response)
+
+        try:
+            community_ids = NumberUtilities.convert_string_list_to_integer_list(community_ids)
+        except:
+            response = {
+                'success': False,
+                'error_message': "community id's in query params are invalid or format error"
+            }
+            raise CustomException(response)
 
         membership_manager = MembershipImpl(member_id)
         response = membership_manager.fetch_community_benefits(community_ids)
