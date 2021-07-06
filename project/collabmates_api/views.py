@@ -433,6 +433,8 @@ def my_chatrooms_version_1(request):
     device_id = RequestUtilities.get_device_id_from_headers(request)
     page = request.GET.get('page', 1)
 
+    is_ios = RequestUtilities.is_request_ios(request)
+
     try:
         page = int(page)
     except:
@@ -541,11 +543,17 @@ def my_chatrooms_version_1(request):
                                                              last_conversation_user,
                                                              second_last_conversation_user)
         chatroom['conversation_users'] = conversation_users
-        chatroom['member_right_states'] = json.loads(instance.rights_list) if instance.rights_list else []
+
+        rights_list = json.loads(instance.rights_list) if instance.rights_list else []
+
+        if is_ios and member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM in rights_list:
+            rights_list.remove(member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM)
+
+        chatroom['member_right_states'] = rights_list
 
         member_instance = Members.objects.filter(member_id=current_user_instance,
                                                  community_id=instance.community)
-        if member_instance.exists():
+        if member_instance:
             chatroom['member_state'] = member_instance[0].state
         else:
             chatroom['member_state'] = member_states.GUEST
@@ -10698,6 +10706,19 @@ def get_state_of_community(community):
     return 0
 
 
+def compute_moderation_member_rights_list_for_ios(moderated_member_list):
+    member_rights_list = []
+
+    for data in moderated_member_list:
+
+        if data.get('state') == member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM:
+            continue
+
+        member_rights_list.append(data)
+
+    return member_rights_list
+
+
 def members_state(request, req_dict=None):
     '''This function gives the state of user.Get Api'''
 
@@ -10749,7 +10770,8 @@ def members_state(request, req_dict=None):
     actions_required = False
     created_at = 0
     image_url = ""
-    if query_set.exists():
+
+    if query_set:
         data = query_set[0]
         is_member = False
         tool_state = 0
@@ -10808,22 +10830,28 @@ def members_state(request, req_dict=None):
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
         json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
 
-    if state == member_states.ADMIN or state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
+    if state == member_states.ADMIN or \
+            state == member_states.MEMBER or \
+            state == member_states.PROFILE_UNAVAILABLE:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
-        member_rights = get_saved_member_rights_list(user_rights)
+        moderated_member_rights = get_saved_member_rights_list(user_rights)
 
     else:
         user_rights = check_all_member_rights()
-        # fetching all the rights of the community
-        member_rights = get_saved_member_rights_list(user_rights)
+        moderated_member_rights = get_saved_member_rights_list(user_rights)
 
-    json_response['member_rights'] = member_rights
+    if RequestUtilities.is_request_ios(request):
+        json_response['member_rights'] = compute_moderation_member_rights_list_for_ios(moderated_member_rights)
+
+    else:
+        json_response['member_rights'] = moderated_member_rights
 
     if image_url:
         json_response['member']['image_url'] = image_url
 
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
-    if toast_filter.exists():
+
+    if toast_filter:
         json_response['community_toast'] = toast_filter[0].toast_message
 
     if req_dict:

@@ -39,7 +39,7 @@ from togther.models import (Member_Engage, Community, Members, collabcardState, 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, card_types, poll_types, deleted_members, question_states, \
-    conversation_states
+    conversation_states, member_rights
 from utility.exception_utilities import CustomException
 
 error_logger = LoggingWrapper.get_instance()
@@ -49,11 +49,13 @@ class MemberCommunityImpl(MemberCommunityManager):
     member_id = None
     community_id = None
     device_id = None
+    platform_code = None
 
-    def __init__(self, member_id: str, community_id: str, device_id: str = None):
+    def __init__(self, member_id: str, community_id: str, device_id: str = None, platform_code: str = ""):
         self.member_id = member_id
         self.community_id = community_id
         self.device_id = device_id
+        self.platform_code = platform_code
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -66,6 +68,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def set_community_id(self, community_id: str) -> None:
         self.community_id = community_id
+
+    def get_platform_code(self) -> str:
+        return self.platform_code
 
     def extract_member_communities(self, page: int) -> list:
 
@@ -176,11 +181,21 @@ class MemberCommunityImpl(MemberCommunityManager):
             if active_chatroom_users:
                 member_community['active_chatroom_users'] = active_chatroom_users
 
-    @staticmethod
-    def _add_member_rights_info(member_community: dict, community: {}) -> None:
-        member_community['member_right_states'] = json.loads(community.rights_list) \
-            if community.rights_list \
-            else []
+    def _add_member_rights_info(self, member_community: dict, community: {}) -> None:
+
+        is_ios = self.get_platform_code() == "ios"
+
+        if community.rights_list:
+            rights_list = json.loads(community.rights_list)
+
+            if is_ios and\
+                    member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM in rights_list:
+                rights_list.remove(member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM)
+
+        else:
+            rights_list = []
+
+        member_community['member_right_states'] = rights_list
 
     @staticmethod
     def _add_additional_keys(member_community: dict, community: {}) -> None:
