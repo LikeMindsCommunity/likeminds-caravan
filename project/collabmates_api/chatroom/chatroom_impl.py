@@ -1156,7 +1156,8 @@ class ChatroomImpl(ChatroomManager):
                         can_edit_participant = ModelUtilities.is_model_filter_exists(collabcardState, {
                             'card': card_instance,
                             'follow_status': True,
-                            'remove': None
+                            'remove': None,
+                            'user': user_instance
                         })
 
             participant_list = self.compute_tagging_list_for_secret_participants(card_instance, community_instance)
