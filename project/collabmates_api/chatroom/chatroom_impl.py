@@ -461,8 +461,6 @@ class ChatroomImpl(ChatroomManager):
                                                            source="create_chatroom")
             collabcard_follow_internal(req_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
-            update_last_answer_id(self.get_chatroom_id(), "")
-
             # creating default conversation for chatroom creation
             create_chatroom(card_instance=chatroom_instance, user_instance=user_instance,
                             state=conversation_states.CONVERSATION_HEADER, current_user_id=self.get_member_id())
@@ -471,9 +469,11 @@ class ChatroomImpl(ChatroomManager):
 
             # batch update for already existing users and saving their unseen count
             if not chatroom_instance.is_secret:
-                set_chatroom_state_for_all_members_on_card_creation.delay(community_id,
-                                                                          card_id=self.get_chatroom_id(),
-                                                                          function_called="create_card_internal")
+                ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(chatroom_instance.id,
+                                                                                            user_instance.id,
+                                                                                            community_instance.id)
+            else:
+                update_last_answer_id(chatroom_instance.id, "")
 
         else:
             update_pending_chatroom_count_for_promoters.delay(community_id)
@@ -534,9 +534,13 @@ class ChatroomImpl(ChatroomManager):
     @staticmethod
     def compute_placeholder_for_intro_room(card_instance, user_instance):
 
+        if not user_instance:
+            return ""
+
         placeholder = ""
 
-        if card_instance.type == card_types.CARD_INTRO and card_instance.user_id != user_instance.id:
+        if card_instance.type == card_types.CARD_INTRO \
+                and card_instance.user_id != user_instance.id:
             last_seen_conversation_filter = ModelUtilities.get_model_filter(collabcardState,
                                                                             {'card': card_instance,
                                                                              'user': user_instance}
@@ -1002,7 +1006,8 @@ class ChatroomImpl(ChatroomManager):
 
         ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(chatroom_instance.id,
                                                                                     user_instance.id,
-                                                                                    community_instance.id)
+                                                                                    community_instance.id,
+                                                                                    is_intro_chatroom=True)
         send_ice_breaker_notification.delay(community_instance.id, TimeUtilities.current_time_in_sec(), day=0)
 
         return chatroom_instance
@@ -1632,7 +1637,8 @@ class ChatroomHelper:
 
     @staticmethod
     @shared_task
-    def run_async_tasks_related_to_member_for_chatroom_posting(card_id, user_id, community_id):
+    def run_async_tasks_related_to_member_for_chatroom_posting(card_id, user_id, community_id,
+                                                               is_intro_chatroom=False):
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
@@ -1644,9 +1650,12 @@ class ChatroomHelper:
             return
 
         ChatroomHelper.set_state_for_all_chatroom_members_in_community(card_instance, community_instance)
-        update_last_answer_id(card_instance.id, "")
         ChatroomHelper.update_unseen_count_for_homescreen_communitites(card_instance, community_instance)
-        ElasticSearchSync.update_all_community_chatrooms_for_user(community_instance.id, user_instance.id)
+        update_last_answer_id(card_instance.id, "")
+
+        if is_intro_chatroom:
+            ElasticSearchSync.update_all_community_chatrooms_for_user(community_instance.id, user_instance.id)
+
         ElasticSearchSync.update_chatroom(card_instance.id)
 
     @staticmethod
