@@ -1293,15 +1293,10 @@ class ConversationHelper:
 
     @staticmethod
     def create_conversation_state(card_instance, user_instance, state, current_user_id=None, answer="",
-                                  topic_text=None, **kwargs):
+                                  topic_text=None, member_state=0, community_instance=None):
 
-        if not kwargs.get('community_instance'):
+        if not community_instance:
             community_instance = card_instance.community
-
-        else:
-            community_instance = kwargs.get('community_instance')
-
-        member_state = kwargs.get('member_state', 0)
 
         if not answer:
 

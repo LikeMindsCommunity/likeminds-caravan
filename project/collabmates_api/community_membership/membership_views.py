@@ -9,6 +9,8 @@ from utility.request_utilities import RequestUtilities
 
 from utility.exception_utilities import InvalidHeaderException, CustomException
 
+from utility.number_utilities import NumberUtilities
+
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
@@ -17,11 +19,6 @@ info_logger = LoggingWrapper.get_instance()
 
 class FetchCommunityBenefits(APIView):
     """inheriting API view class for using class based views in django"""
-
-    def _convert_string_list_to_integer_list(self, string, delimiter=","):
-        map_object = map(int, string.split(delimiter))
-
-        return list(map_object)
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
@@ -41,7 +38,7 @@ class FetchCommunityBenefits(APIView):
             raise CustomException(response)
 
         try:
-            community_ids = self._convert_string_list_to_integer_list(community_ids)
+            community_ids = NumberUtilities.convert_string_list_to_integer_list(community_ids)
         except:
             response = {
                 'success': False,
