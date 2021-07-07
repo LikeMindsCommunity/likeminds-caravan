@@ -6865,7 +6865,11 @@ def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
 
 
 def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id, current_user_id,
-                             guest_header=False, created_at=TimeUtilities.current_time_in_milliseconds()):
+                             guest_header=False, created_at=None):
+
+    if not created_at:
+        created_at = TimeUtilities.current_time_in_milliseconds()
+
     aj_expired = is_chatroom_join_expired(aj, source_id, card_instance.id)
     status = is_member_verified(community_id, current_user_id)
     state_filter = collabcardState.objects.filter(card=card_instance, user=current_user_id, is_guest=True)
@@ -6909,7 +6913,7 @@ def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id
 
 
 def create_guest_header(guest_id, invitee_id, card_instance, current_user_id,
-                        created_at=TimeUtilities.current_time_in_milliseconds()):
+                        created_at=None):
     try:
         guest_instance = User.objects.get(id=guest_id)
         invitee_instance = User.objects.get(id=invitee_id)
@@ -6921,6 +6925,9 @@ def create_guest_header(guest_id, invitee_id, card_instance, current_user_id,
     invitee_user_name = get_user_in_route_form(card_instance, invitee_instance, current_user_id)
 
     answer = guest_user_name + " joined via " + invitee_user_name + "'s link"
+
+    if not created_at:
+        created_at = TimeUtilities.current_time_in_milliseconds()
 
     cardAnswer_filter = card_answers.objects.filter(card=card_instance, user=guest_instance,
                                                     state=conversation_states.CONVERSATION_GUEST)
