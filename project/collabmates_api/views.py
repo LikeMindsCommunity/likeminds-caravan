@@ -7855,10 +7855,12 @@ def handle_guest_follow_case(community_instance, user_instance, card_instance, a
 
     # user is a guest in chatroom
     if aj and source_id and (member_state == 0 or member_state == member_states.PENDING_MEMBER):
+        current_time = TimeUtilities.current_time_in_milliseconds()
         context = {}
         context = adding_guest_in_chatroom(context, card_instance, aj, source_id, community_instance.id,
                                            user_instance.id,
-                                           guest_header=True)
+                                           guest_header=True,
+                                           created_at=current_time)
 
         # updating the collabcard state external follow for guest member
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
