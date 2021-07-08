@@ -39,10 +39,9 @@ pipeline{
             emailext subject: '$DEFAULT_SUBJECT',
             body: '$DEFAULT_CONTENT',
             recipientProviders: [
-                [$class: 'DevelopersRecipientProvider'],
+                [$class: 'CulpritsRecipientProvider'],
             ],
             replyTo: '$DEFAULT_REPLYTO',
-            to: '$DEFAULT_RECIPIENTS'
         }
     }
 }
