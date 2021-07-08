@@ -677,16 +677,18 @@ def schedule_online_event_future_notification(card_instance):
                                                           eta=task_begin_date_time,
                                                           expires=task_expiry_date_time)
 
-    task_begin_epoch_time = TimeUtilities.subtract_minutes_from_epoch_time(card_end_time, minutes=10)
-    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=15)
+    # Do not send wa notifications in beta
+    if not settings.IS_BETA:
+        task_begin_epoch_time = TimeUtilities.subtract_minutes_from_epoch_time(card_end_time, minutes=10)
+        task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=15)
 
-    # scheduling event remainder on whatsapp before 10 minutes
-    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
-    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
-    online_event_reminder_notification_10_min.apply_async(args=args,
-                                                          kwargs={},
-                                                          eta=task_begin_date_time,
-                                                          expires=task_expiry_date_time)
+        # scheduling event remainder on whatsapp before 10 minutes
+        task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
+        task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
+        online_event_reminder_notification_10_min.apply_async(args=args,
+                                                              kwargs={},
+                                                              eta=task_begin_date_time,
+                                                              expires=task_expiry_date_time)
 
 
 def schedule_offline_event_future_notifications(card_instance):
