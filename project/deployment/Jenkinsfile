@@ -1,0 +1,48 @@
+sshID = 'beta-ssh'
+pipeline{
+    agent any
+
+    stages{
+        stage("beta-deployment"){
+            when{
+                branch 'development'
+            }
+
+            stages{
+                stage("deployment-initial"){
+                    steps{
+                        sshagent([sshID]){
+                            // To transfer the file FTP
+                            sh 'scp /var/lib/jenkins/workspace/_development/project/deployment/deploy-on-beta.sh ec2-user@13.235.187.102:~'
+                            // To add execute permissions to the file.
+                            sh 'ssh ec2-user@13.235.187.102 chmod +x /home/ec2-user/deploy-on-beta.sh'
+                            // To run file on beta server.
+                            sh 'ssh -vT ec2-user@13.235.187.102 /home/ec2-user/deploy-on-beta.sh'
+                        }
+                    }
+                }
+                stage("deployment-celery"){
+                    steps{
+                        sshagent([sshID]){
+                            sh 'scp /var/lib/jenkins/workspace/_development/project/deployment/deploy-on-celery.sh ec2-user@ec2-65-0-157-1.ap-south-1.compute.amazonaws.com:~'
+                            sh 'ssh ec2-user@ec2-65-0-157-1.ap-south-1.compute.amazonaws.com chmod +x /home/ec2-user/deploy-on-celery.sh'
+                            sh 'ssh -vT ec2-user@ec2-65-0-157-1.ap-south-1.compute.amazonaws.com /home/ec2-user/deploy-on-celery.sh'
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post{
+        always{
+            emailext subject: '$DEFAULT_SUBJECT',
+            body: '$DEFAULT_CONTENT',
+            recipientProviders: [
+                [$class: 'DevelopersRecipientProvider'],
+            ],
+            replyTo: '$DEFAULT_REPLYTO',
+            to: 'deepanshu.saxena@likeminds.community'
+        }
+    }
+}
