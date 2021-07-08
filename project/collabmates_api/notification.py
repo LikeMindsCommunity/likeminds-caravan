@@ -753,18 +753,13 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
 
 def get_user_data_for_event_wa_notification(card_instance):
 
-    card_id = card_instance.id
     community_instance = card_instance.community
     card_title = get_title_from_collabcard(card_instance)
 
-    collabcardstates_queryset = ModelUtilities.get_model_filter(collabcardState, {
-        'card': card_id,
-        'attending_status': True,
-        'remove': None
-    })
+    members_queryset = Members.get_members_of_community(community_instance)
 
     data_list = []
-    user_ids = [data.user_id for data in collabcardstates_queryset]
+    user_ids = [data.member_id_id for data in members_queryset]
 
     user_data = get_user_details_for_event_attendees(user_ids)
 
