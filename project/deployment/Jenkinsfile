@@ -41,7 +41,7 @@ pipeline{
             recipientProviders: [
                 [$class: 'CulpritsRecipientProvider'],
             ],
-            replyTo: '$DEFAULT_REPLYTO',
+            replyTo: '$DEFAULT_REPLYTO'
         }
     }
 }
