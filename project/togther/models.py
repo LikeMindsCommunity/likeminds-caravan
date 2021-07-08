@@ -2222,3 +2222,4 @@ class SubscriptionExpiredMembers(models.Model):
         expired_instance.became_member_at = member_instance.became_member_at
         expired_instance.has_onboarded = member_instance.has_onboarded
         expired_instance.save()
+

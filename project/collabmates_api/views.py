@@ -94,7 +94,7 @@ from .sms import *
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
-from cms.models import NewAnswer, userAcquition, appUninstalls
+from cms.models import NewAnswer, userAcquition, appUninstalls, InAppReview
 
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
@@ -11164,6 +11164,14 @@ def config(request):
     context['use_segment'] = True
     context['micro_polls_enabled'] = False
     context['enable_gif'] = False
+
+    in_app_review_filter = ModelUtilities.get_model_filter(InAppReview, {'user': user_instance})
+
+    if in_app_review_filter:
+        in_app_review_instance = in_app_review_filter[0]
+
+        if not in_app_review_instance.shown:
+            context['show_in_app_review'] = True
 
     return JsonResponse(context)
 
