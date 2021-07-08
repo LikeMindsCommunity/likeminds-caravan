@@ -42,7 +42,7 @@ pipeline{
                 [$class: 'DevelopersRecipientProvider'],
             ],
             replyTo: '$DEFAULT_REPLYTO',
-            to: 'deepanshu.saxena@likeminds.community'
+            to: '$DEFAULT_RECIPIENTS'
         }
     }
 }
