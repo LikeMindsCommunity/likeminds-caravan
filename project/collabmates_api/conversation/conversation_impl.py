@@ -12,7 +12,8 @@ from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER,
 from .conversation_manager import ConversationManager
 from .reactions import fetch_chatroom_or_conversation_reactions
 from ..chatroom.chatroom_impl import ChatroomHelper
-from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list
+from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list, \
+    send_notification_on_chatroom_topic_update
 from ..member_community.member_community_impl import MemberCommunityImpl
 from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms
@@ -123,8 +124,8 @@ class ConversationImpl(ConversationManager):
                                                                               ).order_by('created_at')
 
     def _fetch_scroll_conversations(self):
-        conversations = card_answers.objects\
-            .select_related('reply', 'preview_community', 'preview_chatroom')\
+        conversations = card_answers.objects \
+            .select_related('reply', 'preview_community', 'preview_chatroom') \
             .filter(card=self.get_chatroom_id())
 
         return conversations
@@ -584,8 +585,9 @@ class ConversationImpl(ConversationManager):
                 downward_scroll_list_size = self.get_paginate_by()
 
                 if self.include_conversation_id:
-                    conversations = self._fetch_downward_conversation_including_given_conversation(downward_scroll_list_size,
-                                                                                                   self.get_conversation_id())
+                    conversations = self._fetch_downward_conversation_including_given_conversation(
+                        downward_scroll_list_size,
+                        self.get_conversation_id())
 
                 else:
                     conversations = self._fetch_downward_conversation_queryset(downward_scroll_list_size,
@@ -933,8 +935,8 @@ class ConversationImpl(ConversationManager):
     def _fetch_chatroom_topic_text(self):
 
         conversation_attachments = answerAttachment.objects.filter(
-            answer__id=self.get_conversation_id())\
-            .values('type')\
+            answer__id=self.get_conversation_id()) \
+            .values('type') \
             .annotate(count=Count('type'))
 
         topic_text = None
@@ -988,7 +990,8 @@ class ConversationImpl(ConversationManager):
         conversation_instance = card_answers.get_conversation_or_raise_exception(self.get_conversation_id())
         chatroom_instance = Collabcard.get_chatroom_or_raise_exception(self.get_chatroom_id())
 
-        validation_dict = ConversationHelper.validate_set_topic_request(user_instance, conversation_instance, chatroom_instance)
+        validation_dict = ConversationHelper.validate_set_topic_request(user_instance, conversation_instance,
+                                                                        chatroom_instance)
 
         if not validation_dict['success']:
             raise CustomException(validation_dict, status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -1001,14 +1004,15 @@ class ConversationImpl(ConversationManager):
         else:
             topic_text = TOPIC_TEXT_NORMAL + conversation_instance.answer
 
-        ConversationHelper.create_answer(chatroom_instance, user_instance,
-                                         state=conversation_states.CHATROOM_TOPIC,
-                                         topic_text=topic_text)
+        ConversationHelper.create_conversation_state(chatroom_instance, user_instance,
+                                                     state=conversation_states.CHATROOM_TOPIC,
+                                                     topic_text=topic_text)
 
         ModelUtilities.model_update(collabcardState,
                                     {'card': chatroom_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()}
                                     )
+        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id)
 
         return {'success': True}
 
