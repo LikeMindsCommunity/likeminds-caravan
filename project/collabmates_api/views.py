@@ -6865,7 +6865,11 @@ def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
 
 
 def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id, current_user_id,
-                             guest_header=False, created_at=TimeUtilities.current_time_in_milliseconds()):
+                             guest_header=False, created_at=None):
+
+    if not created_at:
+        created_at = TimeUtilities.current_time_in_milliseconds()
+
     aj_expired = is_chatroom_join_expired(aj, source_id, card_instance.id)
     status = is_member_verified(community_id, current_user_id)
     state_filter = collabcardState.objects.filter(card=card_instance, user=current_user_id, is_guest=True)
@@ -6909,7 +6913,7 @@ def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id
 
 
 def create_guest_header(guest_id, invitee_id, card_instance, current_user_id,
-                        created_at=TimeUtilities.current_time_in_milliseconds()):
+                        created_at=None):
     try:
         guest_instance = User.objects.get(id=guest_id)
         invitee_instance = User.objects.get(id=invitee_id)
@@ -6921,6 +6925,9 @@ def create_guest_header(guest_id, invitee_id, card_instance, current_user_id,
     invitee_user_name = get_user_in_route_form(card_instance, invitee_instance, current_user_id)
 
     answer = guest_user_name + " joined via " + invitee_user_name + "'s link"
+
+    if not created_at:
+        created_at = TimeUtilities.current_time_in_milliseconds()
 
     cardAnswer_filter = card_answers.objects.filter(card=card_instance, user=guest_instance,
                                                     state=conversation_states.CONVERSATION_GUEST)
@@ -7848,10 +7855,12 @@ def handle_guest_follow_case(community_instance, user_instance, card_instance, a
 
     # user is a guest in chatroom
     if aj and source_id and (member_state == 0 or member_state == member_states.PENDING_MEMBER):
+        current_time = TimeUtilities.current_time_in_milliseconds()
         context = {}
         context = adding_guest_in_chatroom(context, card_instance, aj, source_id, community_instance.id,
                                            user_instance.id,
-                                           guest_header=True)
+                                           guest_header=True,
+                                           created_at=current_time)
 
         # updating the collabcard state external follow for guest member
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
