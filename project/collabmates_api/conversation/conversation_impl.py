@@ -1368,7 +1368,7 @@ class ConversationHelper:
 
             elif state == conversation_states.CHATROOM_TOPIC:
                 if topic_text is not None:
-                    answer = f"{user_name} changed current topic to {topic_text}"
+                    answer = f"{user_name} {topic_text}"
 
             elif state == conversation_states.CONVERSATION_ADD_ALL_MEMBERS:
                 answer = user_name + " added all members"
