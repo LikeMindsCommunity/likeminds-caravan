@@ -1,4 +1,5 @@
 sshID = 'beta-ssh'
+prodID = 'production-ssh'
 pipeline{
     agent any
 
@@ -24,9 +25,36 @@ pipeline{
                 stage("deployment-celery"){
                     steps{
                         sshagent([sshID]){
-                            sh 'scp /var/lib/jenkins/workspace/MultibranchPipeLine_development/project/deployment/deploy-on-celery.sh ec2-user@ec2-65-0-157-1.ap-south-1.compute.amazonaws.com:~'
-                            sh 'ssh ec2-user@ec2-65-0-157-1.ap-south-1.compute.amazonaws.com chmod +x /home/ec2-user/deploy-on-celery.sh'
-                            sh 'ssh -vT ec2-user@ec2-65-0-157-1.ap-south-1.compute.amazonaws.com /home/ec2-user/deploy-on-celery.sh'
+                            sh 'scp /var/lib/jenkins/workspace/MultibranchPipeLine_development/project/deployment/deploy-on-celery-beta.sh ec2-user@ec2-65-0-157-1.ap-south-1.compute.amazonaws.com:~'
+                            sh 'ssh ec2-user@ec2-65-0-157-1.ap-south-1.compute.amazonaws.com chmod +x /home/ec2-user/deploy-on-celery-beta.sh'
+                            sh 'ssh -vT ec2-user@ec2-65-0-157-1.ap-south-1.compute.amazonaws.com /home/ec2-user/deploy-on-celery-beta.sh'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("production-deployment"){
+            when{
+                branch 'master'
+            }
+
+            stages{
+                stage("deployment-prod"){
+                    steps{
+                        sshagent([prodID]){
+                            sh 'scp /var/lib/jenkins/workspace/MultibranchPipeLine_master/project/deployment/deploy-on-production.sh ec2-user@13.235.165.26:~'
+                            sh 'ssh ec2-user@13.235.165.26 chmod +x /home/ec2-user/deploy-on-production.sh'
+                            sh 'ssh -vT ec2-user@13.235.165.26 /home/ec2-user/deploy-on-production.sh'
+                        }
+                    }
+                }
+                stage("deployment-celery-prod"){
+                    steps{
+                        sshagent([prodID]){
+                            sh 'scp /var/lib/jenkins/workspace/MultibranchPipeLine_master/project/deployment/deploy-on-celery-prod.sh ec2-user@3.6.255.233:~'
+                            sh 'ssh ec2-user@3.6.255.233 chmod +x /home/ec2-user/deploy-on-celery-prod.sh'
+                            sh 'ssh -vT ec2-user@3.6.255.233 /home/ec2-user/deploy-on-celery-prod.sh'
                         }
                     }
                 }
