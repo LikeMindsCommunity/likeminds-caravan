@@ -1065,10 +1065,11 @@ class ChatroomImpl(ChatroomManager):
                             collabcard_state = chatroom_state_dict.get(community_member)
                             collabcard_state.follow_status = True
                             collabcard_state.updated_at = TimeUtilities.current_time_in_sec()
+                            collabcard_state.is_tagged = False
                             bulk_update_list.append(collabcard_state)
 
                     ModelUtilities.bulk_update_instances(collabcardState, bulk_update_list,
-                                                         ['follow_status', 'updated_at'])
+                                                         ['follow_status', 'is_tagged', 'updated_at'])
 
                     ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list \
                         .delay(chatroom_id, user_list)
