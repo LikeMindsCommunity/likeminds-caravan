@@ -1065,17 +1065,24 @@ class ChatroomImpl(ChatroomManager):
                             collabcard_state = chatroom_state_dict.get(community_member)
                             collabcard_state.follow_status = True
                             collabcard_state.updated_at = TimeUtilities.current_time_in_sec()
-                            collabcard_state.is_tagged = False
                             bulk_update_list.append(collabcard_state)
 
                     ModelUtilities.bulk_update_instances(collabcardState, bulk_update_list,
-                                                         ['follow_status', 'is_tagged', 'updated_at'])
+                                                         ['follow_status', 'updated_at'])
 
                     ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list \
                         .delay(chatroom_id, user_list)
 
                     chatroom_instance.auto_follow_done = True
                     chatroom_instance.save()
+
+
+                    #removing tag status for tagged users
+                    ModelUtilities.model_update(collabcardState,
+                                                {'card': chatroom_instance,
+                                                 'is_tagged': True},
+                                                {'is_tagged': False,
+                                                 'updated_at': TimeUtilities.current_time_in_sec()})
 
                     from collabmates_api.conversation.conversation_impl import ConversationHelper
                     ConversationHelper.create_conversation_state(chatroom_instance, user_instance,
