@@ -8331,7 +8331,14 @@ def decode_url(request):
 
     url = request.GET.get('url')
 
-    og_tags = decode_meta_from_url(url)
+    try:
+        og_tags = decode_meta_from_url(url)
+
+    except Exception as e:
+        error_logger.error(e.args)
+
+        return JsonResponse({'error_message': "Incorrect url"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
 
     return JsonResponse({'og_tags': og_tags})
 
