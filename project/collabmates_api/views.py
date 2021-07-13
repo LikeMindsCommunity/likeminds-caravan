@@ -94,7 +94,7 @@ from .sms import *
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
-from cms.models import NewAnswer, userAcquition, appUninstalls
+from cms.models import NewAnswer, userAcquition, appUninstalls, InAppReview
 
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
@@ -1846,6 +1846,7 @@ def edit_user(request):
         userinfo_instance = userinfo_filter[0]
         previous_image_url = userinfo_instance.image_link
         userinfo_instance.image_link = value
+        userinfo_instance.updated_at = TimeUtilities.current_time_in_sec()
         userinfo_instance.save()
 
         update_preview_for_account_image_change.delay({'user_id': user_id,
@@ -8331,7 +8332,14 @@ def decode_url(request):
 
     url = request.GET.get('url')
 
-    og_tags = decode_meta_from_url(url)
+    try:
+        og_tags = decode_meta_from_url(url)
+
+    except Exception as e:
+        error_logger.error(e.args)
+
+        return JsonResponse({'error_message': "Incorrect url"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
 
     return JsonResponse({'og_tags': og_tags})
 
@@ -11164,6 +11172,14 @@ def config(request):
     context['use_segment'] = True
     context['micro_polls_enabled'] = False
     context['enable_gif'] = False
+
+    in_app_review_filter = ModelUtilities.get_model_filter(InAppReview, {'user': user_instance})
+
+    if in_app_review_filter:
+        in_app_review_instance = in_app_review_filter[0]
+
+        if not in_app_review_instance.shown:
+            context['show_in_app_review'] = True
 
     return JsonResponse(context)
 

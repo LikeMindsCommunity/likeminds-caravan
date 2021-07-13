@@ -400,3 +400,43 @@ class LMOptions(models.Model):
             obj.value = value
             obj.save()
 
+
+class InAppReview(models.Model):
+    """table to save the in app review details of user"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    shown = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(in_app_review_info):
+        instance = InAppReview()
+        instance.user = in_app_review_info.get('user_instance')
+        instance.shown = in_app_review_info.get('shown')
+        instance.save()
+
+    @staticmethod
+    def create_instance_for_bulk_create(in_app_review_info):
+        instance = InAppReview()
+        instance.user = in_app_review_info.get('user_instance')
+        instance.shown = in_app_review_info.get('shown')
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if instance.created_at == 0:
+            instance.created_at = current_time_ms
+
+        instance.updated_at = current_time_ms
+
+        return instance
+
+    def save(self, *args, **kwargs):
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_ms
+
+        self.updated_at = current_time_ms
+
+        super(InAppReview, self).save(*args, **kwargs)
+
+

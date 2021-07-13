@@ -30,4 +30,5 @@ urlpatterns = [
     path('automate_message', MessageTemplateForOwner.as_view(), name="automate_message"),
     path('banner/', include('cms.marketing_banner.urls')),
     path('options/', include('cms.lm_options.urls')),
+    path('app_review/', include('cms.in_app_review.urls'))
 ]

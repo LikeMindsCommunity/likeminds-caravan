@@ -1076,6 +1076,14 @@ class ChatroomImpl(ChatroomManager):
                     chatroom_instance.auto_follow_done = True
                     chatroom_instance.save()
 
+
+                    #removing tag status for tagged users
+                    ModelUtilities.model_update(collabcardState,
+                                                {'card': chatroom_instance,
+                                                 'is_tagged': True},
+                                                {'is_tagged': False,
+                                                 'updated_at': TimeUtilities.current_time_in_sec()})
+
                     from collabmates_api.conversation.conversation_impl import ConversationHelper
                     ConversationHelper.create_conversation_state(chatroom_instance, user_instance,
                                                                  conversation_states.CONVERSATION_ADD_ALL_MEMBERS)
