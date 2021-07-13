@@ -158,18 +158,12 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
 
 
 def UserinfoSerializer(user):
-    # function to serialize a userinfo object
-    # if the community is not feedback community
+
     userinfo = {
         'id': user.user_id_id,
-        "name": user.name,
-        # "email": user.email,
-        # "city": user.city,
-        # "headline": user.headline,
-        # "contact_number": user.contact_number,
-        # "about": user.about,
-        # "fb_link": user.fb_link,
-        # "linkedin_link": user.linkedin_link,
+        'name': user.name,
+        'updated_at': user.updated_at
+
     }
 
     if user.image_link:

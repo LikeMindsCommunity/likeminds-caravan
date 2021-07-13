@@ -1846,6 +1846,7 @@ def edit_user(request):
         userinfo_instance = userinfo_filter[0]
         previous_image_url = userinfo_instance.image_link
         userinfo_instance.image_link = value
+        userinfo_instance.updated_at = TimeUtilities.current_time_in_sec()
         userinfo_instance.save()
 
         update_preview_for_account_image_change.delay({'user_id': user_id,
