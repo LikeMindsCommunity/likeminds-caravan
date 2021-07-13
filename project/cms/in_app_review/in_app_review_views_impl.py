@@ -36,7 +36,8 @@ class EnableReviewPopUpView(APIView):
         request_body = RequestUtilities.load_request_body(request)
 
         if not request_body:
-            return JsonResponse({'success': False, 'error_message': "Invalid request body"})
+            response = {'success': False, 'error_message': "Invalid request body"}
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
         user_ids = request_body.get('user_ids')
 
