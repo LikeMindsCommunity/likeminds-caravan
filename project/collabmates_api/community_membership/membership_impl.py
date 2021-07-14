@@ -244,8 +244,6 @@ class MembershipImpl(MembershipManager):
 
         CommunityHelper.update_followed_chatrooms_for_rejoined_member(user_instance, community_instance)
 
-        ElasticSearchSync.update_chatrooms_for_rejoined_member.delay(community_id, user_instance.id)
-
         return {"success": True}
 
 
