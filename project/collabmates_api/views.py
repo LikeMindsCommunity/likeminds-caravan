@@ -10878,7 +10878,7 @@ def save_push_notification_details_for_web(user_id, token):
     if not token:
         return {'success': False, 'error_message': "Invalid fcm token"}
 
-    device_id = "fcm_token_%s" % (str(user_instance.id))
+    device_id = "web_device_%s" % (str(user_instance.id))
 
     device_filter = ModelUtilities.get_model_filter(userDevices, {'user': user_instance,
                                                                   'device_id': device_id})
