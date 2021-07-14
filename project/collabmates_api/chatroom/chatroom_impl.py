@@ -589,7 +589,6 @@ class ChatroomImpl(ChatroomManager):
         chatroom_obj['participant_count'] = self._chatroom_participants_count(card_instance)
         chatroom_obj['conversation_users'] = self._latest_conversations_user_data()
         self._save_external_seen_in_chatroom_state(card_instance, user_instance)
-        self._save_latest_conversation_on_screen(card_instance)
 
         can_access_secret_chatroom = False
 

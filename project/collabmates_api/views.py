@@ -5689,63 +5689,6 @@ def fetch_chatroom(request):
     return JsonResponse(context)
 
 
-def fetch_chatroom_version_1(request):
-    is_ios = is_platform_ios(request)
-    card_id = request.GET.get('chatroom_id', '')
-    community_id = None
-    if not card_id:
-        context = get_error_context(False, "send chat_room_id as a get params")
-        return JsonResponse(context)
-
-    conversation_id = request.GET.get('conversation_id')
-    scroll_direction = request.GET.get('scroll_direction')
-
-    card_filter = Collabcard.objects.filter(id=card_id)
-
-    if card_filter.exists():
-        card_instance = card_filter[0]
-    else:
-        context = {}
-        backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
-
-        if backup_filter.exists():
-            community_id = backup_filter[0].community.id
-        if community_id:
-            context['community_id'] = community_id
-        return JsonResponse(context)
-
-    page = request.GET.get('page', 1)
-    current_user_id = get_member_id_from_headers(request)
-    current_user = None
-
-    context = get_chatroom_internal_version_1(request, card_instance, current_user_id, page, conversation_id,
-                                              scroll_direction, is_ios=is_ios)
-
-    if str(current_user_id) == str(card_instance.user.id):
-        notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity', card=card_instance,
-                                                                  member_id=current_user_id)
-        if notification_flag.exists():
-            flag = notification_flag[0]
-            flag.flag = True
-            flag.save()
-
-    if card_instance.type == card_types.CARD_POLL and card_instance.end_date // 1000 <= time.time():
-        if not card_instance.disable_poll_announcement_mail:
-
-            notification_flag = memberNotificationFlag.objects.filter(code='poll_results_announcement_mail',
-                                                                      card=card_instance, member=current_user_id)
-            if notification_flag.exists():
-                memberNotificationFlag.objects.filter(code='poll_results_announcement_mail',
-                                                      card=card_instance, member=current_user_id).update(flag=True)
-            else:
-                current_user_instance = User.objects.get(pk=current_user_id)
-                memberNotificationFlag(code='poll_results_announcement_mail',
-                                       card=card_instance, member=current_user_instance,
-                                       flag=True).save()
-
-    return JsonResponse(context)
-
-
 def fetch_chatroom_version_2(request):
     is_ios = is_platform_ios(request)
     card_id = request.GET.get('chatroom_id', '')
@@ -5770,7 +5713,7 @@ def fetch_chatroom_version_2(request):
     context = get_chatroom_internal_version_2(request, card_instance, current_user_id, page, conversation_id,
                                               scroll_direction, is_ios=is_ios)
 
-    if str(current_user_id) == str(card_instance.user.id):
+    if str(current_user_id) == str(card_instance.user_id):
         notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity', card=card_instance,
                                                                   member_id=current_user_id)
         if notification_flag.exists():
@@ -5845,9 +5788,6 @@ def conversation_meta(request):
                 conversation.created_at)
             conversation_list.append(conversation_serializer)
 
-    # saving the latest conversation
-    save_the_latest_conversation(card_instance, user_id)
-
     context = {
         'conversations': conversation_list
     }
@@ -5901,7 +5841,6 @@ def conversation_seen(request, req_dict=None):
 def mark_read(request):
     '''api to mark the conversation read'''
     member_id = get_member_id_from_headers(request)
-
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
@@ -6379,7 +6318,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                             request_type=request_type, parent_list=parent_list
                                             )
 
-    latest_conversations = save_the_latest_conversation(card_instance, user_id)
 
     # getting the state of chatroom against the user
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id, remove=None)
@@ -6411,14 +6349,11 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     card['total_response_count'] = total_response_count
 
-    if latest_conversations:
-        last_conversation = latest_conversations['last_conversation']
-
-        if last_conversation:
-            serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id,
+    if latest_conversation:
+        serialized_last = get_answer_data([latest_conversation], card_instance.community.id, current_user_id=user_id,
                                               fetch_reply=fetch_conversation_reply, device_id=device_id)
-            if serialized_last:
-                card['last_conversation'] = serialized_last[0]
+        if serialized_last:
+            card['last_conversation'] = serialized_last[0]
 
     context['chatroom'] = card
     context['conversations'] = conversations
@@ -6463,6 +6398,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                           'expiry_time': get_expiry_time_of_chatroom()})
 
     return context
+
 
 
 def get_chatroom_internal_version_1(request, card_instance, user_id, page, conversation_id, scroll_direction,
@@ -6650,7 +6586,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
     # if the user is seeing this chatroom from external link or notification
-    if not chatroom_state.exists() and \
+    if not chatroom_state and \
             user_instance and \
             is_member_verified(card_instance.community, user_instance) and\
             not card_instance.is_secret:
@@ -6659,7 +6595,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                        external_seen=True, expire_at=expire_at,
                                        function_called="get_chatroom_internal_version_1")
 
-    elif user_instance and chatroom_state.exists():
+    elif user_instance and chatroom_state:
         instance = chatroom_state[0]
 
         if not instance.external_seen:
@@ -6668,7 +6604,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
                                            {'external_seen': True, 'expiry_time': expiry_time})
 
-    if chatroom_state.exists():
+    if chatroom_state:
         state_instance = chatroom_state[0]
     else:
         state_instance = None
@@ -6703,7 +6639,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
     # sending the chatroom actions
     is_card_creator = False
-    if user_id and int(user_id) == card_instance.user.id:
+    if user_id and int(user_id) == card_instance.user_id:
         is_card_creator = True
 
     request_type = ""
@@ -6734,7 +6670,6 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
         if placeholder:
             context['placeholder'] = placeholder
 
-    save_the_latest_conversation(card_instance, user_id)
 
     if card_instance.type == card_types.CARD_MASTER_INTRO and user_instance:
         update_models_for_syncing_apis(SyncTypes.CHATROOM, {
