@@ -81,7 +81,7 @@ class RemoveCommunityMemberShipView(TransactionMixin, APIView):
         return JsonResponse(response)
 
 
-class RenewCommunityMemberShipView(TransactionMixin, APIView):
+class RenewCommunityMemberShipView(APIView):
     """inheriting API view class for using class based views in django"""
 
     def post(self, request):

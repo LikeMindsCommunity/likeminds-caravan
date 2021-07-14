@@ -897,7 +897,7 @@ class CommunityHelper:
     def update_followed_chatrooms_for_rejoined_member(user_instance, community_instance):
 
         followed_filter = collabcardState.objects\
-            .filter(user=user_instance, community=community_instance)\
+            .filter(user=user_instance, community=community_instance, follow_status=True)\
             .select_related('card')
 
         engage_list = []
@@ -921,7 +921,7 @@ class CommunityHelper:
                                     {'rights_list': rights_list})
 
         # update elastic search
-        ElasticSearchSync.update_chatrooms_for_rejoined_member(community_instance.id, user_instance.id)
+        ElasticSearchSync.update_chatrooms_for_rejoined_member.delay(community_instance.id, user_instance.id)
 
     @staticmethod
     def set_follow_status_for_announcement_chatroom_for_community(community_instance, user_instance):
