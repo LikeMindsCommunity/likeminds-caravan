@@ -976,8 +976,8 @@ def get_ios_users_from_user_list(user_list):
     return ios_users_set
 
 
-def get_notification_payload_for_conversation_creation_ios(community_instance, card_instance, userinfo_instance,
-                                                           conversation_instance, message_payload):
+def get_notification_payload_metadata_for_conversation_creation(community_instance, card_instance, userinfo_instance,
+                                                                conversation_instance):
     payload = dict()
 
     payload['community_name'] = community_instance.name
@@ -997,7 +997,7 @@ def get_notification_payload_for_conversation_creation_ios(community_instance, c
     payload['last_conversation_unique_names'] = []
 
     if conversation_instance:
-
+        payload['chatroom_last_conversation_id'] = conversation_instance.id
         payload['chatroom_last_conversation'] = conversation_instance.answer
         payload['chatroom_last_conversation_user_name'] = userinfo_instance.name
         payload['chatroom_last_conversation_user_image'] = ""
@@ -1015,11 +1015,7 @@ def get_notification_payload_for_conversation_creation_ios(community_instance, c
         payload['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s""" % (
             str(card_instance.id), str(conversation_instance.id))
 
-    ios_notification_content = dict()
-    ios_notification_content['payload'] = message_payload.copy()
-    ios_notification_content['payload']['unread_follow_notification'] = payload
-
-    return ios_notification_content
+    return payload
 
 
 def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
@@ -1030,21 +1026,17 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
 
     message = dict()
 
-    follow_notification_content = {
-        "title": userinfo_instance.name + " tagged you!",
-        "sub_title": card_instance.header + ": " + answer_text,
-        "route": "route://collabcard?collabcard_id=" + str(card_instance.id)
+    custom_conversation_notification_payload = \
+        get_notification_payload_metadata_for_conversation_creation(community_instance,
+                                                                    card_instance, userinfo_instance,
+                                                                    conversation_instance)
+    message['payload'] = {
+        'title': card_instance.header,
+        'sub_title': userinfo_instance.name + ": " + answer_text,
+        'route': "route://collabcard?collabcard_id=" + str(card_instance.id),
+        'unread_follow_notification': custom_conversation_notification_payload
     }
 
-    message['payload'] = follow_notification_content
-
-    ios_user_set = get_ios_users_from_user_list(tagged_users_list)
-
-    ios_notification_payload = get_notification_payload_for_conversation_creation_ios(community_instance,
-                                                                                      card_instance,
-                                                                                      userinfo_instance,
-                                                                                      conversation_instance,
-                                                                                      follow_notification_content)
     notification_list = []
 
     for tagged_user in tagged_users_list:
@@ -1056,9 +1048,6 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
         user_context = dict()
 
         user_context['id'] = user_id
-
-        if user_id in ios_user_set:
-            user_context['message'] = ios_notification_payload
 
         notification_list.append(user_context)
 
@@ -1131,21 +1120,16 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     message = dict()
 
-    follow_notification_content = {
-        "title": card_instance.header,
-        "sub_title": userinfo_instance.name + ":" + icon_string + " " + answer_text,
-        "route": "route://collabcard?collabcard_id=" + str(card_id)
+    custom_conversation_notification_payload = \
+        get_notification_payload_metadata_for_conversation_creation(community_instance,
+                                                                    card_instance, userinfo_instance,
+                                                                    conversation_instance)
+    message['payload'] = {
+        'title': card_instance.header,
+        'sub_title': userinfo_instance.name + ":" + icon_string + " " + answer_text,
+        'route': "route://collabcard?collabcard_id=" + str(card_id),
+        'unread_follow_notification': custom_conversation_notification_payload
     }
-
-    message['payload'] = follow_notification_content
-
-    ios_user_set = get_ios_users_from_user_list(chatroom_follower_list)
-
-    ios_notification_payload = get_notification_payload_for_conversation_creation_ios(community_instance,
-                                                                                      card_instance,
-                                                                                      userinfo_instance,
-                                                                                      conversation_instance,
-                                                                                      follow_notification_content)
 
     for user_id in chatroom_follower_list:
 
@@ -1155,9 +1139,6 @@ def send_follow_notification(card_id, user_id, conversation_id):
         user_context = dict()
 
         user_context['id'] = user_id
-
-        if user_id in ios_user_set:
-            user_context['message'] = ios_notification_payload
 
         notification_list.append(user_context)
 
