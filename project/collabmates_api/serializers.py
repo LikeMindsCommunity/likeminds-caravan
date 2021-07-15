@@ -691,17 +691,19 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
                                                 send_profile=send_profile)
     collabcard_serializer['member'] = collabcard_member[0]
 
-    is_removed = removedMembers.objects.filter(community=card_instance.community,
+    remove_filter = removedMembers.objects.filter(community=card_instance.community,
                                                    member_id=collabcard_serializer['member']['id'])
 
-    if collabcard_serializer['member']['state'] == 0 and is_removed.exists():
-        temp = get_removed_member_custom_text(is_removed[0])
+    if remove_filter:
+        temp = get_removed_member_custom_text(remove_filter[0])
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
-        collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
 
-    # get chatroom files
+        if temp.get('removed_user_image_url'):
+            collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
+
+            # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
     collabcard_serializer['images'] = collabcard_files[0]
     collabcard_serializer['pdf'] = collabcard_files[1]
@@ -720,21 +722,29 @@ def get_removed_member_custom_text(instance):
 
     current_date = TimeUtilities.convert_epoch_time_in_date(instance.created_at)
 
+    userinfo_instance = instance.member.userinfo
+
     if remove_state == deleted_members.LEFT:
         temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_LEFT % current_date
-        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_LEFT % (instance.member.userinfo.name, current_date)
+        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_LEFT % (userinfo_instance.name, current_date)
 
     elif remove_state == deleted_members.REMOVED:
         temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_DELETED % current_date
         temp[
-            'custom_click_text'] = CUSTOM_CLICK_TEXT_DELETED % (instance.member.userinfo.name,  current_date)
+            'custom_click_text'] = CUSTOM_CLICK_TEXT_DELETED % (userinfo_instance.name,  current_date)
 
     elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
         temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED
-        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % (instance.member.userinfo.name,  current_date)
+        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % (userinfo_instance.name,  current_date)
 
     temp['remove_state'] = remove_state
-    temp['removed_user_image_url'] = REMOVED_USER_URL
+
+    if remove_state != deleted_members.MEMBERSHIP_EXPIRED:
+        temp['removed_user_image_url'] = REMOVED_USER_URL
+
+    else:
+        temp['removed_user_image_url'] = ""
+
     return temp
 
 
@@ -1703,6 +1713,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
 
     member_profile = get_members_profile([conversation.user.id], conversation.community.id,
                                          current_user_id=current_user_id, send_profile=False, remove=remove)
+
     temp['member'] = member_profile[0]
 
     temp['date'] = TimeUtilities.convert_epoch_time_in_date(conversation.created_at)
@@ -1711,7 +1722,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         temp['member']['is_guest'] = conversation.is_guest
         state_filter = collabcardState.objects.filter(card=conversation.card,
                                                       user=conversation.user, is_guest=True)
-        if state_filter.exists() and state_filter[0].source:
+        if state_filter and state_filter[0].source:
             instance = state_filter[0]
             guest_text = get_guest_custom_text(instance)
             temp['member']['custom_intro_text'] = guest_text['custom_intro_text']
@@ -1724,7 +1735,9 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         temp['member']['custom_intro_text'] = removed_member_text['custom_intro_text']
         temp['member']['custom_click_text'] = removed_member_text['custom_click_text']
         temp['member']['remove_state'] = removed_member_text['remove_state']
-        temp['member']['image_url'] = removed_member_text['removed_user_image_url']
+
+        if removed_member_text.get('removed_user_image_url'):
+            temp['member']['image_url'] = removed_member_text['removed_user_image_url']
 
     if conversation.reply:
         reply_conversation = conversation.reply

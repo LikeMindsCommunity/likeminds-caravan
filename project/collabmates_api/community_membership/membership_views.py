@@ -78,6 +78,9 @@ class RemoveCommunityMemberShipView(TransactionMixin, APIView):
         membership_manager = MembershipImpl(member_id)
         response = membership_manager.remove_community_membership(community_id, member_id)
 
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
         return JsonResponse(response)
 
 
@@ -102,5 +105,8 @@ class RenewCommunityMemberShipView(APIView):
 
         membership_manager = MembershipImpl(member_id)
         response = membership_manager.renew_community_membership(community_id)
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(response)

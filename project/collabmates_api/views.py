@@ -2368,8 +2368,7 @@ def remove_from_member(request):
     if not is_promoter and member_ids is False:
 
         is_member = Members.objects.filter(community_id=community_instance, member_id=current_user_instance).filter(
-            Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER) |
-            Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+            Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER))
 
         if not is_member and community_instance.is_paid:
             is_member = SubscriptionExpiredMembers.objects\
@@ -2481,10 +2480,6 @@ def remove_members(community_instance, user_instance, removed_state, current_use
                                           {"community": community_instance, "user": user_instance}
                                           )
     # removing the filter data
-    ModelUtilities.delete_record_in_model(questionFilters,
-                                          {"community": community_instance, "member": user_instance}
-                                          )
-
     ModelUtilities.delete_record_in_model(questionFilters,
                                           {"community": community_instance, "member": user_instance}
                                           )

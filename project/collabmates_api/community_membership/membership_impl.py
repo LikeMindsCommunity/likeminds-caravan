@@ -41,24 +41,24 @@ class MembershipImpl(MembershipManager):
         return {community['id']: community for community in serialized_communities}
 
     def _fetch_attended_events_count_of_user(self, community_ids):
-        attended_events = collabcardState.objects\
+        attended_events = collabcardState.objects \
             .filter(
-                community_id__in=community_ids,
-                user_id=self.get_member_id(),
-                attending_status=True,
-                is_guest=False)\
-            .values('community_id')\
+            community_id__in=community_ids,
+            user_id=self.get_member_id(),
+            attending_status=True,
+            is_guest=False) \
+            .values('community_id') \
             .annotate(event_count=Count('community_id'))
 
         return {community['community_id']: community['event_count'] for community in attended_events}
 
     def _fetch_participated_chatrooms_count_of_user(self, community_ids):
-        participated_chatrooms = card_answers.objects\
+        participated_chatrooms = card_answers.objects \
             .filter(
-                community_id__in=community_ids,
-                user_id=self.get_member_id(),
-                state=conversation_states.ANSWER)\
-            .only('community_id')\
+            community_id__in=community_ids,
+            user_id=self.get_member_id(),
+            state=conversation_states.ANSWER) \
+            .only('community_id') \
             .distinct('card_id')
 
         card_count_hash = {community_id: 0 for community_id in community_ids}
@@ -73,8 +73,8 @@ class MembershipImpl(MembershipManager):
         state_list = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
 
         community_members = Members.objects.filter(
-            community_id_id__in=community_ids, state__in=state_list)\
-            .values('community_id_id')\
+            community_id_id__in=community_ids, state__in=state_list) \
+            .values('community_id_id') \
             .annotate(members_count=Count('community_id_id'))
 
         return {members['community_id_id']: members['members_count'] for members in community_members}
@@ -82,20 +82,21 @@ class MembershipImpl(MembershipManager):
     def _fetch_owner_mails_for_communities(self, community_ids):
 
         community_owners = Members.objects.filter(
-            community_id_id__in=community_ids, is_owner=True)\
+            community_id_id__in=community_ids, is_owner=True) \
             .values('member_id_id', 'community_id_id')
 
-        member_id_list = [owner['member_id_id']for owner in community_owners]
+        member_id_list = [owner['member_id_id'] for owner in community_owners]
 
-        owner_emails = userEmails.objects\
-            .filter(user_id__in=member_id_list, email_state=email_states.PRIMARY)\
+        owner_emails = userEmails.objects \
+            .filter(user_id__in=member_id_list, email_state=email_states.PRIMARY) \
             .values('user_id', 'email')
 
         email_hash = {email['user_id']: email['email'] for email in owner_emails}
 
         return {owner['community_id_id']: email_hash[owner['member_id_id']] for owner in community_owners}
 
-    def _process_benefits(self, community_ids, community_hash, attended_events, participated_rooms, member_count, owner_mails):
+    def _process_benefits(self, community_ids, community_hash, attended_events, participated_rooms, member_count,
+                          owner_mails):
 
         benefit_data = []
 
@@ -144,35 +145,26 @@ class MembershipImpl(MembershipManager):
     def remove_community_membership(self, community_id, member_id) -> dict:
         remove_state = removed_member_states.MEMBERSHIP_EXPIRED
 
-        user_instance = User.get_user_or_raise_exception(member_id)
-        community_instance = MembershipHelper.fetch_community_instance(community_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': "In-valid community id"}
 
         is_member_removed = ModelUtilities.get_model_filter(removedMembers,
-                                                          {
-                                                              "member": user_instance,
-                                                              "community": community_instance
-                                                          })
+                                                            {
+                                                                'member': user_instance,
+                                                                'community': community_instance
+                                                            })
 
         if not is_member_removed:
-
-            member_queryset = ModelUtilities.get_model_filter(Members,
-                                                              {
-                                                                  "member_id": user_instance,
-                                                                  "community_id": community_instance
-                                                              })
-
-            if member_queryset:
-                member_instance = member_queryset[0]
-                SubscriptionExpiredMembers.create_instance_from_member(member_instance)
-
-                member_queryset.delete()
-
-            else:
-                return {"success": True}
-
-            instance = removedMembers(community=community_instance, member=user_instance,
-                                      removed_state=remove_state, created_at=TimeUtilities.current_time_in_sec())
-            instance.save()
+            instance = removedMembers.create_instance({'community_instance': community_instance,
+                                                       'user_instance': user_instance,
+                                                       'removed_state': remove_state})
 
             ModelUtilities.delete_record_in_model(conversationEngage,
                                                   {
@@ -180,45 +172,38 @@ class MembershipImpl(MembershipManager):
                                                       "user": member_id
                                                   })
 
-            filter_dict = {'community': community_instance, 'user': user_instance}
+            ModelUtilities.model_update(collabcardState,
+                                        {'community': community_instance,
+                                         'user': user_instance},
+                                        {
+                                            'remove': instance,
+                                            'updated_at': TimeUtilities.current_time_in_sec()
+                                        })
 
-            update_dict = {
-                'remove': instance,
-                'updated_at': TimeUtilities.current_time_in_sec()
-            }
+            ModelUtilities.model_update(card_answers,
+                                        {'community': community_instance,
+                                         'user': user_instance},
+                                        {
+                                            'remove': instance,
+                                            'last_updated': TimeUtilities.current_time_in_milliseconds()
+                                        })
 
-            ModelUtilities.model_update(collabcardState, filter_dict, update_dict)
+            ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_instance.id,
+                                                                        user_instance.id)
 
-            update_dict = {
-                'remove': None,
-                'last_updated': TimeUtilities.current_time_in_milliseconds()
-            }
-
-            ModelUtilities.model_update(card_answers, filter_dict, update_dict)
-
-            ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member_id)
-
-        return {"success": True}
+        return {'success': True}
 
     def renew_community_membership(self, community_id) -> dict:
 
-        user_instance = User.get_user_or_raise_exception(self.get_member_id())
-        community_instance = MembershipHelper.fetch_community_instance(community_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
-        expired_member_queryset = ModelUtilities.get_model_filter(SubscriptionExpiredMembers,
-                                                                  {
-                                                                      "member": user_instance,
-                                                                      "community": community_instance
-                                                                  })
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
 
-        if expired_member_queryset:
-            expired_member_instance = expired_member_queryset[0]
-            Members.create_instance_from_expired_member_instace(expired_member_instance)
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
-            expired_member_queryset.delete()
-
-        else:
-            return {"success": True}
+        if not community_instance:
+            return {'success': False, 'error_message': "In-valid community id"}
 
         ModelUtilities.delete_record_in_model(removedMembers,
                                               {
@@ -242,6 +227,10 @@ class MembershipImpl(MembershipManager):
 
         ModelUtilities.model_update(card_answers, filter_dict, update_dict)
 
+        ModelUtilities.model_update(Members, {'community_id': community_instance,
+                                              'member_id': user_instance},
+                                    {'updated_at': TimeUtilities.current_time_in_sec()})
+
         CommunityHelper.update_followed_chatrooms_for_rejoined_member(user_instance, community_instance)
 
         return {"success": True}
@@ -252,7 +241,3 @@ class MembershipHelper:
     @staticmethod
     def fetch_community_instances(community_ids):
         return Community.objects.filter(pk__in=community_ids)
-
-    @staticmethod
-    def fetch_community_instance(community_id):
-        return Community.get_community_or_raise_exception(community_id)

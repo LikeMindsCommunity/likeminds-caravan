@@ -331,6 +331,17 @@ class removedMembers(models.Model):
     removed_state = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0, null=True)
 
+    @staticmethod
+    def create_instance(create_info):
+        instance = removedMembers()
+        instance.community = create_info.get('community_instance')
+        instance.member = create_info.get('user_instance')
+        instance.removed_state = create_info.get('removed_state')
+        instance.created_at = TimeUtilities.current_time_in_sec()
+        instance.save()
+
+        return instance
+
 
 class Userinfo(models.Model):
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)

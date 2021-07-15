@@ -904,7 +904,8 @@ class CommunityHelper:
 
         for instance in followed_filter:
 
-            engage_instance = conversationEngage.create_instance_for_bulk_create(community_instance, instance.card, user_instance,
+            engage_instance = conversationEngage.create_instance_for_bulk_create(community_instance, instance.card,
+                                                                                 user_instance,
                                                                                  created_at=instance.created_at,
                                                                                  updated_at=instance.updated_at)
             engage_list.append(engage_instance)

@@ -33,8 +33,9 @@ from ..serializers import get_user_profile, get_members_profile, get_collabcard_
 from ..static_files import REMOVED_USER_URL
 
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
-    CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage, communityQuestions, Userinfo,
-    CommunityUserDelete, userMobiles, userEmails)
+                            CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage,
+                            communityQuestions, Userinfo,
+                            CommunityUserDelete, userMobiles, userEmails)
 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
@@ -188,7 +189,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if community.rights_list:
             rights_list = json.loads(community.rights_list)
 
-            if is_ios and\
+            if is_ios and \
                     member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM in rights_list:
                 rights_list.remove(member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM)
 
@@ -501,11 +502,30 @@ class MemberCommunityImpl(MemberCommunityManager):
         return member_list
 
     @staticmethod
+    def fetch_members_for_membership_expired(user_list, community_instance):
+
+        membership_expired_dict = {user_id: False for user_id in user_list}
+
+        membership_expired_filter = \
+            ModelUtilities.get_model_filter(removedMembers, {'member__in': user_list,
+                                                             'community': community_instance,
+                                                             'removed_state': deleted_members.MEMBERSHIP_EXPIRED})
+        for instance in membership_expired_filter:
+
+            if membership_expired_dict.get(instance.member_id) is False:
+                membership_expired_dict[instance.member_id] = instance
+
+        return membership_expired_dict
+
+    @staticmethod
     def fetch_members_based_on_user_list(user_list, community_instance, order_by_name=False) -> {}:
 
         member_dict = {}
-        member_list = get_members_based_on_user_list_query(user_list, community_instance.id, order_by_name=order_by_name)
+        member_list = get_members_based_on_user_list_query(user_list, community_instance.id,
+                                                           order_by_name=order_by_name)
         community_name = community_instance.name
+        membership_expired_dict = MemberCommunityImpl.fetch_members_for_membership_expired(user_list,
+                                                                                           community_instance)
 
         for data in member_list:
 
@@ -542,6 +562,15 @@ class MemberCommunityImpl(MemberCommunityManager):
 
                 if data['custom_title'] and not data['custom_title'] == 'Member':
                     member['custom_title'] = data['custom_title']
+
+                if membership_expired_dict.get(data['member_id']):
+                    membership_expired_instance = membership_expired_dict[data['member_id']]
+                    userinfo_instance = membership_expired_instance.member.userinfo
+                    member['custom_intro_text'] = CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED
+                    member['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % \
+                                                  (userinfo_instance.name,
+                                                   TimeUtilities.convert_epoch_time_in_date(
+                                                       membership_expired_instance.created_at))
 
                 member_dict[data['member_id']] = member
 
@@ -639,7 +668,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
             temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED
-            temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED% (userinfo_instance.name, created_time)
+            temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % (userinfo_instance.name, created_time)
 
         temp['remove_state'] = remove_state
         temp['removed_user_image_url'] = REMOVED_USER_URL
@@ -787,9 +816,10 @@ class MemberCommunityImpl(MemberCommunityManager):
             return conversation_count['total_responses_count']
         else:
             conversations_count = card_answers.objects.filter(card=card_instance.id,
-                                                              state=conversation_states.ANSWER).filter(Q(attachment_count=0)
-                                                                                                   | Q(
-                attachments_uploaded=True)).count()
+                                                              state=conversation_states.ANSWER).filter(
+                Q(attachment_count=0)
+                | Q(
+                    attachments_uploaded=True)).count()
             update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance.id,
                                                          'total_responses_count': conversations_count})
 
@@ -912,7 +942,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
                                                      , poll_data, poll_votes)
-            if card_creator_id in member_dict:
+
+            if member_dict.get(card_creator_id):
                 chatroom_context['member'] = member_dict[card_creator_id]
 
             else:
@@ -1186,8 +1217,9 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'error_message': "In-correct user id"}
 
         community_id_list = list(ModelUtilities.get_model_filter(CommunityUserDelete,
-                                                                     {'user': user_instance}).values_list('deleted_community_id',
-                                                                                                          flat=True))
+                                                                 {'user': user_instance}).values_list(
+            'deleted_community_id',
+            flat=True))
         return {'community_ids': community_id_list}
 
     def _add_emails_and_mobiles_to_member_profie_data(self, members_data, user_mobiles, user_emails):
@@ -1499,11 +1531,18 @@ class MemberCommunityHelper:
         return False
 
     @staticmethod
-    def extract_member_tagging_data(member_data) -> []:
+    def extract_member_tagging_data(member_data, community_expired_dict=None) -> []:
+
+        if community_expired_dict is None:
+            community_expired_dict = {}
 
         member_list = []
 
         for key, value in member_data.items():
+
+            if community_expired_dict.get(value['id']):
+                continue
+
             temp = dict()
             temp['id'] = value['id']
             temp['name'] = value['name']
