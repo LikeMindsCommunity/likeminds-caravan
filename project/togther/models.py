@@ -554,6 +554,10 @@ class Collabcard(models.Model):
 
         return community_instance
 
+    @staticmethod
+    def is_chatroom_deleted(is_deleted: bool):
+        return is_deleted
+
 
 class draftChatroom(models.Model):
     title = models.TextField()
