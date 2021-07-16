@@ -2541,22 +2541,40 @@ def fetch_community_profile(request):
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
 
-    try:
-        community_instance = Community.objects.get(id=community_id)
-        user_instance = User.objects.get(id=user_id)
-        current_user_instance = User.objects.get(id= current_member_id)
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
-    except Exception as e:
-        return JsonResponse({'error_message': e.args}, status=status_codes.HTTP_400_BAD_REQUEST)
+    if not community_instance:
+        JsonResponse({'error_message': "Invalid community id"}, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    current_user_member_instance = Members.objects.filter(member_id=current_member_id, community_id=community_id)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+    if not user_instance:
+        JsonResponse({'error_message': "Invalid requested user id"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    current_user_instance = ModelUtilities.get_model_instance_or_none(User, current_member_id)
+
+    if not current_user_instance:
+        return JsonResponse({'error_message': "Invalid member_id "}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    membership_expired_filter = ModelUtilities.get_model_filter(removedMembers, 
+                                                                {'member': user_instance,
+                                                                'community': community_instance,
+                                                                'removed_state': deleted_members.MEMBERSHIP_EXPIRED})
+    if membership_expired_filter:
+        return JsonResponse({'error_message': "Membership Expired for user"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
+
+    member_filter = ModelUtilities.get_model_filter(Members, {'member_id': current_user_instance,
+                                                              'community_id': community_instance})
     is_promoter = False
     is_owner = False
-    if current_user_member_instance.exists():
-        is_promoter = current_user_member_instance[0].state == member_states.ADMIN
-        is_owner = current_user_member_instance[0].is_owner
+
+    if member_filter:
+        is_promoter = member_filter[0].state == member_states.ADMIN
+        is_owner = member_filter[0].is_owner
 
     user_admin_rights = None
+
     if is_owner or is_promoter:
         user_admin_rights = check_all_manager_rights(current_member_id, community_id)
 
