@@ -14771,7 +14771,8 @@ class SyncChatrooms(APIView):
             'images': [],
             'pdf': [],
             'audios': [],
-            'videos': []
+            'videos': [],
+            'voice_notes': []
         }
 
         attachments = []
@@ -14797,18 +14798,72 @@ class SyncChatrooms(APIView):
                         img['thumbnail_url'] = file.thumbnail_url
                         img_attachment['thumbnail_url'] = file.thumbnail_url
 
+                    if file.name:
+                        img['name'] = file.name
+                        img_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = RequestUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            img['meta'] = file_meta
+                            img_attachment['meta'] = file_meta
+
                     files['images'].append(img)
                     attachments.append(img_attachment)
 
                 elif file.type == "pdf":
                     pdf = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
                     pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                    if file.height:
+                        pdf['height'] = file.height
+                        pdf_attachment['height'] = file.height
+
+                    if file.width:
+                        pdf['width'] = file.width
+                        pdf_attachment['width'] = file.width
+
+                    if file.thumbnail_url:
+                        pdf['thumbnail_url'] = file.thumbnail_url
+                        pdf_attachment['thumbnail_url'] = file.thumbnail_url
+
+                    if file.name:
+                        pdf['name'] = file.name
+                        pdf_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = RequestUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            pdf['meta'] = file_meta
+                            pdf_attachment['meta'] = file_meta
+
                     files['pdf'].append(pdf)
                     attachments.append(pdf_attachment)
 
                 elif file.type == "audio":
-                    audio_file = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
-                    files['audios'].append(audio_file)
+                    audio_file_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                    if file.height:
+                        audio_file_attachment['height'] = file.height
+
+                    if file.width:
+                        audio_file_attachment['width'] = file.width
+
+                    if file.name:
+                        audio_file_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = RequestUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            audio_file_attachment['meta'] = file_meta
+
+                    if file.thumbnail_url:
+                        audio_file_attachment['thumbnail_url'] = file.thumbnail_url
+
+                    attachments.append(audio_file_attachment)
 
                 elif file.type == "video":
                     video_file = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
@@ -14826,8 +14881,42 @@ class SyncChatrooms(APIView):
                         video_file['thumbnail_url'] = file.thumbnail_url
                         video_attachment['thumbnail_url'] = file.thumbnail_url
 
+                    if file.name:
+                        video_file['name'] = file.name
+                        video_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = RequestUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            video_file['meta'] = file_meta
+                            video_attachment['meta'] = file_meta
+
                     files['videos'].append(video_file)
                     attachments.append(video_attachment)
+
+                elif file.type == "voice_note":
+                    voice_note_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                    if file.height:
+                        voice_note_attachment['height'] = file.height
+
+                    if file.width:
+                        voice_note_attachment['width'] = file.width
+
+                    if file.thumbnail_url:
+                        voice_note_attachment['thumbnail_url'] = file.thumbnail_url
+
+                    if file.name:
+                        voice_note_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = RequestUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            voice_note_attachment['meta'] = file_meta
+
+                    attachments.append(voice_note_attachment)
 
         files['attachments'] = attachments
 
@@ -15328,6 +15417,7 @@ class SyncConversation(APIView):
             seen_conversation = request.GET.get('seen_conversation')
 
             if seen_conversation:
+
                 conversation_filter = card_answers.objects.filter(card=chatroom_id, id__gt=seen_conversation).order_by(
                     'id')
                 conversation_filter = pagination(conversation_filter, page, paginate_by)
@@ -15433,10 +15523,12 @@ class SyncConversation(APIView):
             conversation_files = conversation_files_dict.get(conversation_context['id'])
 
             if conversation_context['has_files'] and conversation_files:
+
                 conversation_files_response = self.process_conversation_files(conversation_files)
                 conversation_context['images'] = conversation_files_response['images']
                 conversation_context['pdf'] = conversation_files_response['pdf']
                 conversation_context['audios'] = conversation_files_response['audios']
+                conversation_context['videos'] = conversation_files_response['videos']
                 conversation_context['attachments'] = conversation_files_response['attachments']
 
                 if conversation_files_response['location']:
@@ -15550,6 +15642,8 @@ class SyncConversation(APIView):
             'images': [],
             'pdf': [],
             'audios': [],
+            'videos': [],
+            'voice_notes': [],
             'attachments': [],
             'location': {}
         }
@@ -15569,25 +15663,52 @@ class SyncConversation(APIView):
                     img_attachment['width'] = file['width']
                     attachment_image_context['width'] = file['width']
 
+                if file['name']:
+                    img_attachment['name'] = file['name']
+                    attachment_image_context['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = RequestUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        img_attachment['meta'] = file_meta
+                        attachment_image_context['meta'] = file_meta
+
                 conversation_files_response['images'].append(img_attachment)
                 attachment_list.append(attachment_image_context)
 
             elif file['type'] == 'video' and file['file_url']:
                 attachment_video_context = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
+                video_attachment = {'video_url': file['file_url'], 'index': file['index'], 'type': file['type']}
 
                 if file['height']:
                     attachment_video_context['height'] = file['height']
+                    video_attachment['height'] = file['height']
 
                 if file['width']:
                     attachment_video_context['width'] = file['width']
+                    video_attachment['width'] = file['width']
 
                 if file['thumbnail_url']:
                     attachment_video_context['thumbnail_url'] = file['thumbnail_url']
+                    video_attachment['thumbnail_url'] = file['thumbnail_url']
 
+                if file['name']:
+                    attachment_video_context['name'] = file['name']
+                    video_attachment['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = RequestUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        attachment_video_context['meta'] = file_meta
+                        video_attachment['meta'] = file_meta
+
+                conversation_files_response['videos'].append(video_attachment)
                 attachment_list.append(attachment_video_context)
 
             elif file['type'] == "audio" and file['file_url']:
-                audio_attachment = {'audio_url': file['file_url'], 'index': file['index'], 'type': file['type']}
+                audio_attachment = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
 
                 if file['height']:
                     audio_attachment['height'] = file['height']
@@ -15595,7 +15716,16 @@ class SyncConversation(APIView):
                 if file['width']:
                     audio_attachment['width'] = file['width']
 
-                conversation_files_response['audio'].append(audio_attachment)
+                if file['name']:
+                    audio_attachment['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = RequestUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        audio_attachment['meta'] = file_meta
+
+                attachment_list.append(audio_attachment)
 
             elif file['type'] == "pdf" and file['file_url']:
                 pdf_attachment = {'pdf_file': file['file_url'], 'index': file['index'], 'type': file['type']}
@@ -15612,6 +15742,17 @@ class SyncConversation(APIView):
                 if file['thumbnail_url']:
                     attachment_pdf_context['width'] = file['width']
                     attachment_pdf_context['thumbnail_url'] = file['thumbnail_url']
+
+                if file['name']:
+                    pdf_attachment['name'] = file['name']
+                    attachment_pdf_context['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = RequestUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        pdf_attachment['meta'] = file_meta
+                        attachment_pdf_context['meta'] = file_meta
 
                 conversation_files_response['pdf'].append(pdf_attachment)
                 attachment_list.append(attachment_pdf_context)
@@ -15637,7 +15778,37 @@ class SyncConversation(APIView):
                 if file['thumbnail_url']:
                     attachment_gif_context['thumbnail_url'] = file['thumbnail_url']
 
+                if file['name']:
+                    attachment_gif_context['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = RequestUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        attachment_gif_context['meta'] = file_meta
+
                 attachment_list.append(attachment_gif_context)
+
+            elif file['type'] == "voice_note" and file['file_url']:
+                voice_note_attachment = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
+
+                if file['height']:
+                    voice_note_attachment['height'] = file['height']
+
+                if file['width']:
+                    voice_note_attachment['width'] = file['width']
+
+                if file['name']:
+                    voice_note_attachment['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = RequestUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        voice_note_attachment['meta'] = file_meta
+
+                attachment_list.append(voice_note_attachment)
+
 
         conversation_files_response['attachments'] = attachment_list
 

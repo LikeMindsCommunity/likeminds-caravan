@@ -58,12 +58,16 @@ def update_community(member_instance, community):
 
 def save_chatroom_attachments(chatroom_instance, body):
     index = body.get('index', None)
+    json_dump = json.dumps(body.get('meta', None))
+
     attachment_context = {
         'type': body.get('type', None),
         'file_url': body.get('url', None),
         'width': body.get('width', None),
         'height': body.get('height', None),
         'thumbnail_url': body.get('thumbnail_url', None),
+        'meta': json_dump,
+        'name': body.get('name', None)
     }
 
     file, created = Card_Attachment.objects.update_or_create(collabcard=chatroom_instance,
@@ -73,6 +77,7 @@ def save_chatroom_attachments(chatroom_instance, body):
 
 def save_conversation_attachments(body, conversation_instance):
     index = body.get('index', None)
+    json_dump = json.dumps(body.get('meta', None))
 
     attachment_context = {
         'type': body.get('type', None),
@@ -83,6 +88,8 @@ def save_conversation_attachments(body, conversation_instance):
         'width': body.get('width', None),
         'height': body.get('height', None),
         'thumbnail_url': body.get('thumbnail_url', None),
+        'meta': json_dump,
+        'name': body.get('name', None)
     }
 
     file, created = answerAttachment.objects.update_or_create(answer=conversation_instance,

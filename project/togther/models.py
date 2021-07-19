@@ -1022,6 +1022,8 @@ class Card_Attachment(models.Model):
     '''model to save files of collabcard'''
 
     collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200, null=True)
+    meta = models.TextField(null=True)
     attachment = models.FileField(upload_to="media/collabcard_files", default='')
     file_url = models.CharField(max_length=500, null=True)
     thumbnail_url = models.TextField(null=True)
@@ -1057,6 +1059,9 @@ class answerAttachment(models.Model):
     '''model to save files of collabcard'''
 
     answer = models.ForeignKey(card_answers, on_delete=models.CASCADE)
+
+    name = models.CharField(max_length=200, null=True)
+    meta = models.TextField(null=True)
 
     file_url = models.TextField(null=True)
     thumbnail_url = models.TextField(null=True)

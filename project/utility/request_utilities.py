@@ -112,3 +112,13 @@ class RequestUtilities:
     @staticmethod
     def get_page_size(request: object, key: str = "page_size", default: int = 100) -> int:
         return NumberUtilities.get_integer_from_string(request.query_params.get(key, default))
+
+    @staticmethod
+    def load_json_data(json_string):
+        json_data = {}
+        try:
+            json_data = json.loads(json_string)
+        except Exception as e:
+            json_data = {}
+
+        return json_data
