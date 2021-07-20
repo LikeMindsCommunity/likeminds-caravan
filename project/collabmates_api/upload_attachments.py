@@ -1,3 +1,4 @@
+from collabmates_api.utility import dump_json_data
 from utility.firebase import upload_community_thumbnail
 from togther.models import (Collabcard, Community,
                             createCommunityAction, communityUpdate, Card_Attachment,
@@ -58,7 +59,7 @@ def update_community(member_instance, community):
 
 def save_chatroom_attachments(chatroom_instance, body):
     index = body.get('index', None)
-    json_dump = json.dumps(body.get('meta', None))
+    json_dump = dump_json_data(body.get('meta'))
 
     attachment_context = {
         'type': body.get('type', None),
@@ -77,7 +78,7 @@ def save_chatroom_attachments(chatroom_instance, body):
 
 def save_conversation_attachments(body, conversation_instance):
     index = body.get('index', None)
-    json_dump = json.dumps(body.get('meta', None))
+    json_dump = dump_json_data(body.get('meta'))
 
     attachment_context = {
         'type': body.get('type', None),
