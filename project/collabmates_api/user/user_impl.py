@@ -1000,8 +1000,9 @@ class UserHelper:
 
                 instance.community = community_instance
 
-            if 'shared_by' in user_acquired and user_acquired['shared_by']:
-                shared_user_instance = User.objects.get(id=user_acquired['shared_by'])
+            if user_acquired.get('shared_by'):
+                shared_user_instance = ModelUtilities.get_model_instance_or_none(User,
+                                                                                 user_acquired.get('shared_by'))
                 instance.shared = shared_user_instance
 
             if user_acquired.get('chatroom_id'):
