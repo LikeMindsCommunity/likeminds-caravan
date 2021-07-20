@@ -493,7 +493,10 @@ class ChatroomImpl(ChatroomManager):
 
         member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance)
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
-        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+        community_membership_expired = MemberCommunityImpl.fetch_members_for_membership_expired(member_list,
+                                                                                                community_instance)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data,
+                                                                         community_membership_expired)
 
         return tagging_list
 
@@ -556,7 +559,7 @@ class ChatroomImpl(ChatroomManager):
 
     def fetch_chatroom(self) -> dict:
 
-        card_instance = ChatroomHelper.fetch_card_instance(self.get_chatroom_id())
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
         if not card_instance:
             context = {
@@ -564,7 +567,11 @@ class ChatroomImpl(ChatroomManager):
             }
             return context
 
-        user_instance = ChatroomHelper.fetch_user_instance(self.get_member_id())
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "invalid user id"}
+
         chatroom_data = self._fetch_chatroom_dict(card_instance)
 
         if self._is_user_guest(card_instance):
@@ -589,7 +596,6 @@ class ChatroomImpl(ChatroomManager):
         chatroom_obj['participant_count'] = self._chatroom_participants_count(card_instance)
         chatroom_obj['conversation_users'] = self._latest_conversations_user_data()
         self._save_external_seen_in_chatroom_state(card_instance, user_instance)
-        self._save_latest_conversation_on_screen(card_instance)
 
         can_access_secret_chatroom = False
 

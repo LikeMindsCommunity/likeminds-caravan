@@ -8,6 +8,8 @@ import json
 import ast
 import time
 
+from utility.json_utilities import JsonUtilities
+
 
 def save_community_image(body, member_id):
     community_id = body['community_id']
@@ -58,12 +60,16 @@ def update_community(member_instance, community):
 
 def save_chatroom_attachments(chatroom_instance, body):
     index = body.get('index', None)
+    json_dump = JsonUtilities.dump_json_data(body.get('meta'))
+
     attachment_context = {
         'type': body.get('type', None),
         'file_url': body.get('url', None),
         'width': body.get('width', None),
         'height': body.get('height', None),
         'thumbnail_url': body.get('thumbnail_url', None),
+        'meta': json_dump,
+        'name': body.get('name', None)
     }
 
     file, created = Card_Attachment.objects.update_or_create(collabcard=chatroom_instance,
@@ -73,6 +79,7 @@ def save_chatroom_attachments(chatroom_instance, body):
 
 def save_conversation_attachments(body, conversation_instance):
     index = body.get('index', None)
+    json_dump = JsonUtilities.dump_json_data(body.get('meta'))
 
     attachment_context = {
         'type': body.get('type', None),
@@ -83,6 +90,8 @@ def save_conversation_attachments(body, conversation_instance):
         'width': body.get('width', None),
         'height': body.get('height', None),
         'thumbnail_url': body.get('thumbnail_url', None),
+        'meta': json_dump,
+        'name': body.get('name', None)
     }
 
     file, created = answerAttachment.objects.update_or_create(answer=conversation_instance,

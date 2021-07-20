@@ -1,18 +1,11 @@
-from togther.models import Members,collabcardState,Userinfo,Collabcard, blockedMembers
-from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
-    card_types, email_states
-from utility.exception_utilities import (CustomException, InvalidHeaderException,
-                                            InvalidCommunityException, InvalidUserException,
-                                            InvalidChatroomException)
-from django.db.models import Q, Subquery
 from django.db import connection
 from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
 from .rest_api import CommunitySerializerV1
 
-def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
 
+def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
     '''function to give tagging list of members in community'''
 
     if chatroom_id and not community_id:
@@ -32,14 +25,14 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
             return []
 
     member_filter = Members.objects.filter(community_id=community_id).filter(
-                    Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
-                    Q(state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
+        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
+        Q(state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
 
     tagging_list = []
 
     blocked_users_list = list(blockedMembers.objects.filter(community=community_id,
                                                             blocked_by=current_member_id).values_list(
-                                                            "blocked_member__id", flat=True))
+        "blocked_member__id", flat=True))
     for member in member_filter:
 
         user_instance = member.member_id
@@ -88,7 +81,6 @@ def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=
 
 
 def get_tagging_list_internal_v1(community_id, chatroom_id=None, current_member_id=None):
-
     '''function to give tagging list of members in community'''
     card_instance = None
     # check and fetch for community id
@@ -117,18 +109,17 @@ def get_tagging_list_internal_v1(community_id, chatroom_id=None, current_member_
 def get_blocked_members_list(community, user_id):
     blocked_users_list = list(blockedMembers.objects.filter(community=community,
                                                             blocked_by=user_id).values_list(
-                                                            "blocked_member__id", flat=True))
+        "blocked_member__id", flat=True))
     return blocked_users_list
 
 
 def get_secret_chatroom_tagging_list(chatroom_instance, community_instance, blocked_users_list, current_user_id):
-
     participants_list = []
     secret_room_participants = json.loads(chatroom_instance.secret_chatroom_participants)
 
-    secret_room_participants_list = Members.objects\
+    secret_room_participants_list = Members.objects \
         .filter(community_id=community_instance,
-                member_id__id__in=secret_room_participants)\
+                member_id__id__in=secret_room_participants) \
         .select_related('member_id__userinfo')
 
     for participant in secret_room_participants_list:
@@ -165,7 +156,6 @@ def get_secret_chatroom_tagging_list(chatroom_instance, community_instance, bloc
 
 
 def get_chatroom_participants_for_tagging(chatroom_id, blocked_users_list, current_member_id):
-
     participants_list = []
     state_filter = collabcardState.objects.filter(card_id=chatroom_id, remove=None).select_related('user')
 
@@ -185,7 +175,6 @@ def get_chatroom_participants_for_tagging(chatroom_id, blocked_users_list, curre
                        }
 
         if data.follow_status:
-
             participants_dict = member_dict.copy()
             additional_dict = {'follow_status': data.follow_status,
                                'attending_status': data.attending_status,
@@ -205,7 +194,6 @@ def get_chatroom_participants_for_tagging(chatroom_id, blocked_users_list, curre
 
 
 def get_community_members_for_tagging(community, blocked_users_list, current_member_id):
-
     member_filter = Members.objects.filter(community_id=community).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
         Q(state=member_states.PROFILE_UNAVAILABLE)).select_related('member_id')
@@ -239,15 +227,14 @@ def get_community_members_for_tagging(community, blocked_users_list, current_mem
     return response
 
 
-def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
-
+def get_tagging_list_internal_web(chatroom_id, current_user_id=None):
     '''function to return tagging list of members in chatroom'''
     if not chatroom_id:
         return []
 
     tagging_list = []
     try:
-        card_instance = Collabcard.objects.get(id = chatroom_id)
+        card_instance = Collabcard.objects.get(id=chatroom_id)
     except Exception as e:
         return []
 
@@ -258,7 +245,7 @@ def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
         user_id = user_instance.id
         if current_user_id and int(current_user_id) == user_id:
             continue
-        temp = get_user_profile(user_instance,send_profile=False)
+        temp = get_user_profile(user_instance, send_profile=False)
         temp['is_participant'] = True
         tagging_list.append(temp)
         user_set.add(user_id)
@@ -273,7 +260,7 @@ def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
             continue
 
         if user_id not in user_set:
-            temp = get_user_profile(user_instance,send_profile=False)
+            temp = get_user_profile(user_instance, send_profile=False)
             temp['is_participant'] = False
             tagging_list.append(temp)
             user_set.add(user_id)
@@ -282,7 +269,6 @@ def get_tagging_list_internal_web(chatroom_id,current_user_id=None):
 
 
 def get_pending_members_of_community(community_id, requested_member_id):
-
     """ functions to get pending members of the community """
 
     pending_requests = []
@@ -296,7 +282,6 @@ def get_pending_members_of_community(community_id, requested_member_id):
     member_filter = Members.objects.filter(community_id=community_id, state=member_states.PENDING_MEMBER)
 
     for pending_member in member_filter:
-
         user_profile = MembersSerializer(pending_member, community_id, current_user_id=requested_member_id,
                                          send_profile=pending_member.state == member_states.PENDING_MEMBER)
 
@@ -335,9 +320,9 @@ def get_secret_chatroom_participants(chatroom_instance, current_user_id, page=1,
     community_instance = chatroom_instance.community
     community_id = community_instance.id
 
-    chatroom_participants = Members.objects\
+    chatroom_participants = Members.objects \
         .filter(community_id=community_instance,
-                member_id__id__in=paginated_participants_list)\
+                member_id__id__in=paginated_participants_list) \
         .prefetch_related('member_id')
 
     current_user_profile = None
@@ -399,11 +384,12 @@ def get_all_members(request, req_dict=None):
         chatroom_instance = Collabcard.objects.get(pk=collabcard_id)
 
         if is_request_web(request):
-            members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id,page_no=page)
+            members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=page)
             context = {'members': members}
             return context
 
-        context = send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=page)
+        context = send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id,
+                                                page=page)
         return context
 
     promoter_instance = None
@@ -432,10 +418,10 @@ def get_all_members(request, req_dict=None):
 
     else:
         member_list = get_member_query_set(current_user_id, community_id, page=page)
-        members = get_member_instances_without_filter(member_list, current_user_id, community_id,page=page)
+        members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page)
         total_filtered_members = community['members_count']
 
-    context = {'members': members,'community':community}
+    context = {'members': members, 'community': community}
 
     # sending total members and pending members count
     context['total_members'] = community['members_count']
@@ -448,6 +434,37 @@ def get_all_members(request, req_dict=None):
             context['total_pending_members'] = user_engage[0].pending_members
 
     return context
+
+
+def add_expired_members_metadata(members, community_instance):
+    from .member_community.member_community_impl import MemberCommunityImpl
+    if not members:
+        return []
+
+    user_list = [data['id'] for data in members]
+    membership_expired_dict = MemberCommunityImpl.fetch_members_for_membership_expired(user_list, community_instance)
+    processed_member_list = []
+
+    for data in members:
+        member_dict = {}
+        member_id = data['id']
+
+        if membership_expired_dict.get(member_id):
+            member_dict.update(data)
+            membership_expired_instance = membership_expired_dict[member_id]
+            user_name = member_dict['name']
+            member_dict['custom_intro_text'] = CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED
+            member_dict['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % \
+                                               (user_name,
+                                                TimeUtilities.convert_epoch_time_in_date(
+                                                    membership_expired_instance.created_at))
+
+        else:
+            member_dict.update(data)
+
+        processed_member_list.append(member_dict)
+
+    return processed_member_list
 
 
 def get_all_members_version_1(request, req_dict=None):
@@ -515,7 +532,8 @@ def get_all_members_version_1(request, req_dict=None):
     if member_instance and member_instance.state == member_states.ADMIN:
         promoter_instance = current_user_instance
 
-    community = CommunitySerializerV1(community_instance, context={"current_user_id": current_user_id}, many=False).data
+    community = CommunitySerializerV1(community_instance, context={"current_user_id": current_user_id},
+                                      many=False).data
 
     if filter_list:
 
@@ -529,14 +547,14 @@ def get_all_members_version_1(request, req_dict=None):
         members = unfiltered_context['members']
         total_filtered_members = community['members_count']
 
-    context = {'members': members,'community':community}
+    members = add_expired_members_metadata(members, community_instance)
 
-    context['total_members'] = community['members_count']
-    context['total_filtered_members'] = total_filtered_members
+    context = {'members': members, 'community': community, 'total_members': community['members_count'],
+               'total_filtered_members': total_filtered_members}
 
     if NumberUtilities.get_integer_from_string(page) == 1:
-        context['total_only_members'] = Members.objects\
-            .filter(community_id=community_instance, state=member_states.MEMBER)\
+        context['total_only_members'] = Members.objects \
+            .filter(community_id=community_instance, state=member_states.MEMBER) \
             .count()
 
     if promoter_instance:
@@ -549,7 +567,6 @@ def get_all_members_version_1(request, req_dict=None):
 
 
 def pending_members_count_in_community(community_instance, user_instance):
-
     user_engage = Member_Engage.objects.filter(community_id=community_instance,
                                                member_id=user_instance)
     if user_engage.exists():
@@ -557,7 +574,6 @@ def pending_members_count_in_community(community_instance, user_instance):
 
 
 def collabcard_members(chatroom_instance, community_id, current_user_id, page):
-
     members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=page)
     context = {'members': members}
 
@@ -565,14 +581,12 @@ def collabcard_members(chatroom_instance, community_id, current_user_id, page):
 
 
 def chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page):
-
     context = send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=page)
 
     return context
 
 
 def filtered_member_list(current_user_id, community_id, filter_list, page, member_instance):
-
     member_list = get_member_query_set(current_user_id, community_id, send_all=True)
     filter_list = json.loads(filter_list)
     member_set = get_filtered_users(filter_list, member_list)
@@ -588,7 +602,6 @@ def filtered_member_list(current_user_id, community_id, filter_list, page, membe
 
 
 def unfiltered_member_list(current_user_id, community_id, page):
-
     member_list = get_member_query_set(current_user_id, community_id, page=page)
     members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page)
 
@@ -600,7 +613,6 @@ def unfiltered_member_list(current_user_id, community_id, page):
 
 
 def get_community_managers(community_instance):
-
     '''function to get count of community managers'''
 
     manager_filter = Members.objects.filter(community_id=community_instance,
@@ -616,8 +628,7 @@ def get_community_managers(community_instance):
     return temp
 
 
-def get_member_instances_without_filter(member_list, current_user_id, community_id,page=1):
-
+def get_member_instances_without_filter(member_list, current_user_id, community_id, page=1):
     '''function to get members instances from members table'''
 
     members = []
@@ -626,32 +637,28 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
     user_admin_rights = None
     is_promoter = False
 
-    #fetching the user profile to show his name at top
+    # fetching the user profile to show his name at top
 
     current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
 
-    if current_filter.exists():
+    if current_filter:
         current_user_filter = current_filter[0]
         is_owner = current_user_filter.is_owner
         is_promoter = current_user_filter.state == member_states.ADMIN
 
     if int(page) == 1:
 
-        if current_filter.exists():
+        if current_filter:
             current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
                                              send_profile=True,
                                              all_members_api=True, is_promoter=is_promoter,
                                              is_owner=is_owner)
 
-
-    #member_list = pagination(member_list, page, paginate_by=10)
-
-
     if is_owner or is_promoter:
         user_admin_rights = check_all_manager_rights(current_user_id, community_id)
 
     for member in member_list:
-        member_id = member.member_id.id
+        member_id = member.member_id_id
         userinfo_serialized_object = MembersSerializer(member, community_id, current_user_id=current_user_id,
                                                        send_profile=True,
                                                        all_members_api=True, is_promoter=is_promoter,
@@ -662,24 +669,14 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
         else:
             members.append(userinfo_serialized_object)
 
-        # else:
-        #     if member_id in member_set:
-        #         if member_id == int(current_user_id):
-        #             pass
-        #         else:
-        #             members.append(userinfo_serialized_object)
-
-    # for making the logged in user name first
-    #members = sorted(members,key= lambda i:i['name'])
     if current_user:
         members.insert(0, current_user)
+
     return members
 
 
 def get_member_instances_with_filter(member_set, current_user_id, community_id, page=1, member_instance=None):
-
-
-    #sending first user if he is the part of list
+    # sending first user if he is the part of list
     current_user = None
     members = []
 
@@ -738,7 +735,6 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
 
 
 def get_filtered_users(filter_list, member_list):
-
     '''function to get filtered users'''
 
     if not isinstance(member_list, list):
@@ -781,13 +777,12 @@ def get_filtered_users(filter_list, member_list):
 
 
 def get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=1, member_set=None):
-
-    collabcard_state_list = collabcardState.objects\
+    collabcard_state_list = collabcardState.objects \
         .filter(card=chatroom_instance,
                 remove=None,
                 follow_status=True,
-                is_tagged=False)\
-        .select_related('user')\
+                is_tagged=False) \
+        .select_related('user') \
         .order_by('-user_id')
 
     if chatroom_instance.type == card_types.CARD_EVENT:
@@ -827,20 +822,18 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
 
 
 def intersect_sets(set1, set2):
-
     return set1.intersection(set2)
 
 
 def get_member_query_set(current_user_id, community_id, send_all=False, page=1):
-
     if send_all:
         member_list = Members.objects.filter(community_id=community_id).filter(
-        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-            state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
+            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+                state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
         return member_list
 
     state = 0
-    state_filter = Members.objects.filter(member_id=current_user_id,community_id=community_id)
+    state_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
     if state_filter.exists():
         state = state_filter[0].state
     is_promoter = state == member_states.ADMIN
@@ -852,8 +845,7 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1):
     return member_list
 
 
-def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id,page=1):
-
+def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=1):
     member_list = get_member_query_set(current_user_id, community_id, send_all=True)
 
     if filter_list:
@@ -923,5 +915,3 @@ def get_paginated_member_queryset(page, community_id, promoter=False):
     member_ids = Members.objects.filter(pk__in=member_id_list)
 
     return member_ids
-
-

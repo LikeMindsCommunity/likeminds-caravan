@@ -331,6 +331,17 @@ class removedMembers(models.Model):
     removed_state = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0, null=True)
 
+    @staticmethod
+    def create_instance(create_info):
+        instance = removedMembers()
+        instance.community = create_info.get('community_instance')
+        instance.member = create_info.get('user_instance')
+        instance.removed_state = create_info.get('removed_state')
+        instance.created_at = TimeUtilities.current_time_in_sec()
+        instance.save()
+
+        return instance
+
 
 class Userinfo(models.Model):
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -542,6 +553,10 @@ class Collabcard(models.Model):
             community_instance = card_instance.community
 
         return community_instance
+
+    @staticmethod
+    def is_chatroom_deleted(is_deleted: bool):
+        return is_deleted
 
 
 class draftChatroom(models.Model):
@@ -1007,6 +1022,8 @@ class Card_Attachment(models.Model):
     '''model to save files of collabcard'''
 
     collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200, null=True)
+    meta = models.TextField(null=True)
     attachment = models.FileField(upload_to="media/collabcard_files", default='')
     file_url = models.CharField(max_length=500, null=True)
     thumbnail_url = models.TextField(null=True)
@@ -1042,6 +1059,9 @@ class answerAttachment(models.Model):
     '''model to save files of collabcard'''
 
     answer = models.ForeignKey(card_answers, on_delete=models.CASCADE)
+
+    name = models.CharField(max_length=200, null=True)
+    meta = models.TextField(null=True)
 
     file_url = models.TextField(null=True)
     thumbnail_url = models.TextField(null=True)

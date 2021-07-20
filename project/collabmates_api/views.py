@@ -2368,8 +2368,7 @@ def remove_from_member(request):
     if not is_promoter and member_ids is False:
 
         is_member = Members.objects.filter(community_id=community_instance, member_id=current_user_instance).filter(
-            Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER) |
-            Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+            Q(state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.MEMBER))
 
         if not is_member and community_instance.is_paid:
             is_member = SubscriptionExpiredMembers.objects\
@@ -2485,10 +2484,6 @@ def remove_members(community_instance, user_instance, removed_state, current_use
                                           {"community": community_instance, "member": user_instance}
                                           )
 
-    ModelUtilities.delete_record_in_model(questionFilters,
-                                          {"community": community_instance, "member": user_instance}
-                                          )
-
     ModelUtilities.delete_record_in_model(SubscriptionExpiredMembers,
                                           {"community": community_instance, "member": user_instance}
                                           )
@@ -2546,22 +2541,40 @@ def fetch_community_profile(request):
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
 
-    try:
-        community_instance = Community.objects.get(id=community_id)
-        user_instance = User.objects.get(id=user_id)
-        current_user_instance = User.objects.get(id= current_member_id)
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
-    except Exception as e:
-        return JsonResponse({'error_message': e.args}, status=status_codes.HTTP_400_BAD_REQUEST)
+    if not community_instance:
+        JsonResponse({'error_message': "Invalid community id"}, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    current_user_member_instance = Members.objects.filter(member_id=current_member_id, community_id=community_id)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+    if not user_instance:
+        JsonResponse({'error_message': "Invalid requested user id"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    current_user_instance = ModelUtilities.get_model_instance_or_none(User, current_member_id)
+
+    if not current_user_instance:
+        return JsonResponse({'error_message': "Invalid member_id "}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    membership_expired_filter = ModelUtilities.get_model_filter(removedMembers, 
+                                                                {'member': user_instance,
+                                                                'community': community_instance,
+                                                                'removed_state': deleted_members.MEMBERSHIP_EXPIRED})
+    if membership_expired_filter:
+        return JsonResponse({'error_message': "Membership Expired for user"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
+
+    member_filter = ModelUtilities.get_model_filter(Members, {'member_id': current_user_instance,
+                                                              'community_id': community_instance})
     is_promoter = False
     is_owner = False
-    if current_user_member_instance.exists():
-        is_promoter = current_user_member_instance[0].state == member_states.ADMIN
-        is_owner = current_user_member_instance[0].is_owner
+
+    if member_filter:
+        is_promoter = member_filter[0].state == member_states.ADMIN
+        is_owner = member_filter[0].is_owner
 
     user_admin_rights = None
+
     if is_owner or is_promoter:
         user_admin_rights = check_all_manager_rights(current_member_id, community_id)
 
@@ -5689,63 +5702,6 @@ def fetch_chatroom(request):
     return JsonResponse(context)
 
 
-def fetch_chatroom_version_1(request):
-    is_ios = is_platform_ios(request)
-    card_id = request.GET.get('chatroom_id', '')
-    community_id = None
-    if not card_id:
-        context = get_error_context(False, "send chat_room_id as a get params")
-        return JsonResponse(context)
-
-    conversation_id = request.GET.get('conversation_id')
-    scroll_direction = request.GET.get('scroll_direction')
-
-    card_filter = Collabcard.objects.filter(id=card_id)
-
-    if card_filter.exists():
-        card_instance = card_filter[0]
-    else:
-        context = {}
-        backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
-
-        if backup_filter.exists():
-            community_id = backup_filter[0].community.id
-        if community_id:
-            context['community_id'] = community_id
-        return JsonResponse(context)
-
-    page = request.GET.get('page', 1)
-    current_user_id = get_member_id_from_headers(request)
-    current_user = None
-
-    context = get_chatroom_internal_version_1(request, card_instance, current_user_id, page, conversation_id,
-                                              scroll_direction, is_ios=is_ios)
-
-    if str(current_user_id) == str(card_instance.user.id):
-        notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity', card=card_instance,
-                                                                  member_id=current_user_id)
-        if notification_flag.exists():
-            flag = notification_flag[0]
-            flag.flag = True
-            flag.save()
-
-    if card_instance.type == card_types.CARD_POLL and card_instance.end_date // 1000 <= time.time():
-        if not card_instance.disable_poll_announcement_mail:
-
-            notification_flag = memberNotificationFlag.objects.filter(code='poll_results_announcement_mail',
-                                                                      card=card_instance, member=current_user_id)
-            if notification_flag.exists():
-                memberNotificationFlag.objects.filter(code='poll_results_announcement_mail',
-                                                      card=card_instance, member=current_user_id).update(flag=True)
-            else:
-                current_user_instance = User.objects.get(pk=current_user_id)
-                memberNotificationFlag(code='poll_results_announcement_mail',
-                                       card=card_instance, member=current_user_instance,
-                                       flag=True).save()
-
-    return JsonResponse(context)
-
-
 def fetch_chatroom_version_2(request):
     is_ios = is_platform_ios(request)
     card_id = request.GET.get('chatroom_id', '')
@@ -5770,7 +5726,7 @@ def fetch_chatroom_version_2(request):
     context = get_chatroom_internal_version_2(request, card_instance, current_user_id, page, conversation_id,
                                               scroll_direction, is_ios=is_ios)
 
-    if str(current_user_id) == str(card_instance.user.id):
+    if str(current_user_id) == str(card_instance.user_id):
         notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity', card=card_instance,
                                                                   member_id=current_user_id)
         if notification_flag.exists():
@@ -5845,9 +5801,6 @@ def conversation_meta(request):
                 conversation.created_at)
             conversation_list.append(conversation_serializer)
 
-    # saving the latest conversation
-    save_the_latest_conversation(card_instance, user_id)
-
     context = {
         'conversations': conversation_list
     }
@@ -5901,7 +5854,6 @@ def conversation_seen(request, req_dict=None):
 def mark_read(request):
     '''api to mark the conversation read'''
     member_id = get_member_id_from_headers(request)
-
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
@@ -6379,7 +6331,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                             request_type=request_type, parent_list=parent_list
                                             )
 
-    latest_conversations = save_the_latest_conversation(card_instance, user_id)
 
     # getting the state of chatroom against the user
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id, remove=None)
@@ -6411,14 +6362,11 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     card['total_response_count'] = total_response_count
 
-    if latest_conversations:
-        last_conversation = latest_conversations['last_conversation']
-
-        if last_conversation:
-            serialized_last = get_answer_data([last_conversation], card_instance.community.id, current_user_id=user_id,
+    if latest_conversation:
+        serialized_last = get_answer_data([latest_conversation], card_instance.community.id, current_user_id=user_id,
                                               fetch_reply=fetch_conversation_reply, device_id=device_id)
-            if serialized_last:
-                card['last_conversation'] = serialized_last[0]
+        if serialized_last:
+            card['last_conversation'] = serialized_last[0]
 
     context['chatroom'] = card
     context['conversations'] = conversations
@@ -6463,6 +6411,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                           'expiry_time': get_expiry_time_of_chatroom()})
 
     return context
+
 
 
 def get_chatroom_internal_version_1(request, card_instance, user_id, page, conversation_id, scroll_direction,
@@ -6650,7 +6599,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
     # if the user is seeing this chatroom from external link or notification
-    if not chatroom_state.exists() and \
+    if not chatroom_state and \
             user_instance and \
             is_member_verified(card_instance.community, user_instance) and\
             not card_instance.is_secret:
@@ -6659,7 +6608,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                        external_seen=True, expire_at=expire_at,
                                        function_called="get_chatroom_internal_version_1")
 
-    elif user_instance and chatroom_state.exists():
+    elif user_instance and chatroom_state:
         instance = chatroom_state[0]
 
         if not instance.external_seen:
@@ -6668,7 +6617,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
                                            {'external_seen': True, 'expiry_time': expiry_time})
 
-    if chatroom_state.exists():
+    if chatroom_state:
         state_instance = chatroom_state[0]
     else:
         state_instance = None
@@ -6703,7 +6652,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
     # sending the chatroom actions
     is_card_creator = False
-    if user_id and int(user_id) == card_instance.user.id:
+    if user_id and int(user_id) == card_instance.user_id:
         is_card_creator = True
 
     request_type = ""
@@ -6734,7 +6683,6 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
         if placeholder:
             context['placeholder'] = placeholder
 
-    save_the_latest_conversation(card_instance, user_id)
 
     if card_instance.type == card_types.CARD_MASTER_INTRO and user_instance:
         update_models_for_syncing_apis(SyncTypes.CHATROOM, {
@@ -9164,6 +9112,10 @@ def get_community_id_from_v1_upload_files(res):
 def save_attachments(request):
     """ save attachments for cards and conversations """
     member_id = get_member_id_from_headers(request)
+    body = RequestUtilities.load_request_body(request)
+
+    if not body:
+        return {'success': False, 'error_message': "Invalid Request Body"}
 
     if member_id is None:
         return {'success': False, 'error_message': "Send member id in headers"}
@@ -9178,8 +9130,6 @@ def save_attachments(request):
     if is_request_web(request):
         if request.user.is_authenticated:
             member_id = request.user.id
-
-    body = json.loads(request.body)
 
     if 'community_id' in body and body['community_id']:
         context = save_community_image(body, member_id)
@@ -10943,7 +10893,7 @@ def save_push_notification_details_for_web(user_id, token):
     if not token:
         return {'success': False, 'error_message': "Invalid fcm token"}
 
-    device_id = "fcm_token_%s" % (str(user_instance.id))
+    device_id = "web_device_%s" % (str(user_instance.id))
 
     device_filter = ModelUtilities.get_model_filter(userDevices, {'user': user_instance,
                                                                   'device_id': device_id})
@@ -14823,7 +14773,8 @@ class SyncChatrooms(APIView):
             'images': [],
             'pdf': [],
             'audios': [],
-            'videos': []
+            'videos': [],
+            'voice_notes': []
         }
 
         attachments = []
@@ -14849,18 +14800,72 @@ class SyncChatrooms(APIView):
                         img['thumbnail_url'] = file.thumbnail_url
                         img_attachment['thumbnail_url'] = file.thumbnail_url
 
+                    if file.name:
+                        img['name'] = file.name
+                        img_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = JsonUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            img['meta'] = file_meta
+                            img_attachment['meta'] = file_meta
+
                     files['images'].append(img)
                     attachments.append(img_attachment)
 
                 elif file.type == "pdf":
                     pdf = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
                     pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                    if file.height:
+                        pdf['height'] = file.height
+                        pdf_attachment['height'] = file.height
+
+                    if file.width:
+                        pdf['width'] = file.width
+                        pdf_attachment['width'] = file.width
+
+                    if file.thumbnail_url:
+                        pdf['thumbnail_url'] = file.thumbnail_url
+                        pdf_attachment['thumbnail_url'] = file.thumbnail_url
+
+                    if file.name:
+                        pdf['name'] = file.name
+                        pdf_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = JsonUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            pdf['meta'] = file_meta
+                            pdf_attachment['meta'] = file_meta
+
                     files['pdf'].append(pdf)
                     attachments.append(pdf_attachment)
 
                 elif file.type == "audio":
-                    audio_file = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
-                    files['audios'].append(audio_file)
+                    audio_file_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                    if file.height:
+                        audio_file_attachment['height'] = file.height
+
+                    if file.width:
+                        audio_file_attachment['width'] = file.width
+
+                    if file.name:
+                        audio_file_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = JsonUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            audio_file_attachment['meta'] = file_meta
+
+                    if file.thumbnail_url:
+                        audio_file_attachment['thumbnail_url'] = file.thumbnail_url
+
+                    attachments.append(audio_file_attachment)
 
                 elif file.type == "video":
                     video_file = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
@@ -14878,8 +14883,42 @@ class SyncChatrooms(APIView):
                         video_file['thumbnail_url'] = file.thumbnail_url
                         video_attachment['thumbnail_url'] = file.thumbnail_url
 
+                    if file.name:
+                        video_file['name'] = file.name
+                        video_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = JsonUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            video_file['meta'] = file_meta
+                            video_attachment['meta'] = file_meta
+
                     files['videos'].append(video_file)
                     attachments.append(video_attachment)
+
+                elif file.type == "voice_note":
+                    voice_note_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                    if file.height:
+                        voice_note_attachment['height'] = file.height
+
+                    if file.width:
+                        voice_note_attachment['width'] = file.width
+
+                    if file.thumbnail_url:
+                        voice_note_attachment['thumbnail_url'] = file.thumbnail_url
+
+                    if file.name:
+                        voice_note_attachment['name'] = file.name
+
+                    if file.meta:
+                        file_meta = JsonUtilities.load_json_data(file.meta)
+
+                        if file_meta:
+                            voice_note_attachment['meta'] = file_meta
+
+                    attachments.append(voice_note_attachment)
 
         files['attachments'] = attachments
 
@@ -15380,6 +15419,7 @@ class SyncConversation(APIView):
             seen_conversation = request.GET.get('seen_conversation')
 
             if seen_conversation:
+
                 conversation_filter = card_answers.objects.filter(card=chatroom_id, id__gt=seen_conversation).order_by(
                     'id')
                 conversation_filter = pagination(conversation_filter, page, paginate_by)
@@ -15485,10 +15525,12 @@ class SyncConversation(APIView):
             conversation_files = conversation_files_dict.get(conversation_context['id'])
 
             if conversation_context['has_files'] and conversation_files:
+
                 conversation_files_response = self.process_conversation_files(conversation_files)
                 conversation_context['images'] = conversation_files_response['images']
                 conversation_context['pdf'] = conversation_files_response['pdf']
                 conversation_context['audios'] = conversation_files_response['audios']
+                conversation_context['videos'] = conversation_files_response['videos']
                 conversation_context['attachments'] = conversation_files_response['attachments']
 
                 if conversation_files_response['location']:
@@ -15602,6 +15644,8 @@ class SyncConversation(APIView):
             'images': [],
             'pdf': [],
             'audios': [],
+            'videos': [],
+            'voice_notes': [],
             'attachments': [],
             'location': {}
         }
@@ -15621,25 +15665,52 @@ class SyncConversation(APIView):
                     img_attachment['width'] = file['width']
                     attachment_image_context['width'] = file['width']
 
+                if file['name']:
+                    img_attachment['name'] = file['name']
+                    attachment_image_context['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        img_attachment['meta'] = file_meta
+                        attachment_image_context['meta'] = file_meta
+
                 conversation_files_response['images'].append(img_attachment)
                 attachment_list.append(attachment_image_context)
 
             elif file['type'] == 'video' and file['file_url']:
                 attachment_video_context = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
+                video_attachment = {'video_url': file['file_url'], 'index': file['index'], 'type': file['type']}
 
                 if file['height']:
                     attachment_video_context['height'] = file['height']
+                    video_attachment['height'] = file['height']
 
                 if file['width']:
                     attachment_video_context['width'] = file['width']
+                    video_attachment['width'] = file['width']
 
                 if file['thumbnail_url']:
                     attachment_video_context['thumbnail_url'] = file['thumbnail_url']
+                    video_attachment['thumbnail_url'] = file['thumbnail_url']
 
+                if file['name']:
+                    attachment_video_context['name'] = file['name']
+                    video_attachment['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        attachment_video_context['meta'] = file_meta
+                        video_attachment['meta'] = file_meta
+
+                conversation_files_response['videos'].append(video_attachment)
                 attachment_list.append(attachment_video_context)
 
             elif file['type'] == "audio" and file['file_url']:
-                audio_attachment = {'audio_url': file['file_url'], 'index': file['index'], 'type': file['type']}
+                audio_attachment = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
 
                 if file['height']:
                     audio_attachment['height'] = file['height']
@@ -15647,7 +15718,16 @@ class SyncConversation(APIView):
                 if file['width']:
                     audio_attachment['width'] = file['width']
 
-                conversation_files_response['audio'].append(audio_attachment)
+                if file['name']:
+                    audio_attachment['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        audio_attachment['meta'] = file_meta
+
+                attachment_list.append(audio_attachment)
 
             elif file['type'] == "pdf" and file['file_url']:
                 pdf_attachment = {'pdf_file': file['file_url'], 'index': file['index'], 'type': file['type']}
@@ -15664,6 +15744,17 @@ class SyncConversation(APIView):
                 if file['thumbnail_url']:
                     attachment_pdf_context['width'] = file['width']
                     attachment_pdf_context['thumbnail_url'] = file['thumbnail_url']
+
+                if file['name']:
+                    pdf_attachment['name'] = file['name']
+                    attachment_pdf_context['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        pdf_attachment['meta'] = file_meta
+                        attachment_pdf_context['meta'] = file_meta
 
                 conversation_files_response['pdf'].append(pdf_attachment)
                 attachment_list.append(attachment_pdf_context)
@@ -15689,7 +15780,37 @@ class SyncConversation(APIView):
                 if file['thumbnail_url']:
                     attachment_gif_context['thumbnail_url'] = file['thumbnail_url']
 
+                if file['name']:
+                    attachment_gif_context['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        attachment_gif_context['meta'] = file_meta
+
                 attachment_list.append(attachment_gif_context)
+
+            elif file['type'] == "voice_note" and file['file_url']:
+                voice_note_attachment = {'url': file['file_url'], 'index': file['index'], 'type': file['type']}
+
+                if file['height']:
+                    voice_note_attachment['height'] = file['height']
+
+                if file['width']:
+                    voice_note_attachment['width'] = file['width']
+
+                if file['name']:
+                    voice_note_attachment['name'] = file['name']
+
+                if file['meta']:
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
+
+                    if file_meta:
+                        voice_note_attachment['meta'] = file_meta
+
+                attachment_list.append(voice_note_attachment)
+
 
         conversation_files_response['attachments'] = attachment_list
 

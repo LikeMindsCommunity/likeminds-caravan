@@ -1,6 +1,7 @@
 from urllib.parse import parse_qsl, urlsplit
 
 from togther.models import *
+from utility.json_utilities import JsonUtilities
 from utility.utils import (generate_private_link, get_time_text, eligibility_count,
                            get_members_count_in_community, generate_private_link_for_chatroom,
                            get_date_time_from_timestamp, get_community_members_count_for_preview)
@@ -526,6 +527,17 @@ def get_collabcard_files(card_id, draft=False):
                 img['thumbnail_url'] = file.thumbnail_url
                 img_attachment['thumbnail_url'] = file.thumbnail_url
 
+            if file.name:
+                img['name'] = file.name
+                img_attachment['name'] = file.name
+
+            if file.meta:
+                file_meta = JsonUtilities.load_json_data(file.meta)
+
+                if file_meta:
+                    img['meta'] = file_meta
+                    img_attachment['meta'] = file_meta
+
             img_list.append(img)
             attachments.append(img_attachment)
 
@@ -545,15 +557,46 @@ def get_collabcard_files(card_id, draft=False):
                 video_url['thumbnail_url'] = file.thumbnail_url
                 video_attachment['thumbnail_url'] = file.thumbnail_url
 
+            if file.name:
+                video_url['name'] = file.name
+                video_attachment['name'] = file.name
+
+            if file.meta:
+                file_meta = JsonUtilities.load_json_data(file.meta)
+
+                if file_meta:
+                    video_url['meta'] = file_meta
+                    video_attachment['meta'] = file_meta
+
             video_list.append(video_url)
             attachments.append(video_attachment)
 
         elif file.type == 'audio':
             if file.file_url:
-                audio_url = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
+                audio_url = {'url': file.file_url, 'index': file.index, 'type': file.type}
             else:
-                audio_url = {'audio_url': url + file.attachment.url, 'index': file.index}
-            audio_list.append(audio_url)
+                audio_url = {'url': url + file.attachment.url, 'index': file.index}
+
+            if file.height:
+                audio_url['height'] = file.height
+
+            if file.width:
+                audio_url['width'] = file.width
+
+            if file.name:
+                audio_url['name'] = file.name
+
+            if file.thumbnail_url:
+                audio_url['thumbnail_url'] = file.thumbnail_url
+
+            if file.meta:
+                file_meta = JsonUtilities.load_json_data(file.meta)
+
+                if file_meta:
+                    audio_url['meta'] = file_meta
+
+            attachments.append(audio_url)
+
         elif file.type == 'pdf':
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
@@ -562,8 +605,58 @@ def get_collabcard_files(card_id, draft=False):
 
             pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
+            if file.height:
+                pdf_url['height'] = file.height
+                pdf_attachment['height'] = file.height
+
+            if file.width:
+                pdf_url['width'] = file.width
+                pdf_attachment['width'] = file.width
+
+            if file.name:
+                pdf_url['name'] = file.name
+                pdf_attachment['name'] = file.name
+
+            if file.thumbnail_url:
+                pdf_url['thumbnail_url'] = file.thumbnail_url
+                pdf_attachment['thumbnail_url'] = file.thumbnail_url
+
+            if file.meta:
+                file_meta = JsonUtilities.load_json_data(file.meta)
+
+                if file_meta:
+                    pdf_url['meta'] = file_meta
+                    pdf_attachment['meta'] = file_meta
+
             pdf.append(pdf_url)
             attachments.append(pdf_attachment)
+
+        elif file.type == 'voice_note':
+            if file.file_url:
+                voice_note_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+            else:
+                voice_note_attachment = {'url': url + file.attachment.url, 'index': file.index}
+
+            if file.height:
+                voice_note_attachment['height'] = file.height
+
+            if file.width:
+                voice_note_attachment['width'] = file.width
+
+            if file.name:
+                voice_note_attachment['name'] = file.name
+
+            if file.thumbnail_url:
+                voice_note_attachment['thumbnail_url'] = file.thumbnail_url
+
+            if file.meta:
+                file_meta = JsonUtilities.load_json_data(file.meta)
+
+                if file_meta:
+                    voice_note_attachment['meta'] = file_meta
+
+            attachments.append(voice_note_attachment)
+
 
     return img_list, pdf, audio_list, video_list, attachments
 
@@ -691,17 +784,19 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
                                                 send_profile=send_profile)
     collabcard_serializer['member'] = collabcard_member[0]
 
-    is_removed = removedMembers.objects.filter(community=card_instance.community,
+    remove_filter = removedMembers.objects.filter(community=card_instance.community,
                                                    member_id=collabcard_serializer['member']['id'])
 
-    if collabcard_serializer['member']['state'] == 0 and is_removed.exists():
-        temp = get_removed_member_custom_text(is_removed[0])
+    if remove_filter:
+        temp = get_removed_member_custom_text(remove_filter[0])
         collabcard_serializer['member']['custom_intro_text'] = temp['custom_intro_text']
         collabcard_serializer['member']['custom_click_text'] = temp['custom_click_text']
         collabcard_serializer['member']['remove_state'] = temp['remove_state']
-        collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
 
-    # get chatroom files
+        if temp.get('removed_user_image_url'):
+            collabcard_serializer['member']['image_url'] = temp['removed_user_image_url']
+
+            # get chatroom files
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
     collabcard_serializer['images'] = collabcard_files[0]
     collabcard_serializer['pdf'] = collabcard_files[1]
@@ -720,21 +815,29 @@ def get_removed_member_custom_text(instance):
 
     current_date = TimeUtilities.convert_epoch_time_in_date(instance.created_at)
 
+    userinfo_instance = instance.member.userinfo
+
     if remove_state == deleted_members.LEFT:
         temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_LEFT % current_date
-        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_LEFT % (instance.member.userinfo.name, current_date)
+        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_LEFT % (userinfo_instance.name, current_date)
 
     elif remove_state == deleted_members.REMOVED:
         temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_DELETED % current_date
         temp[
-            'custom_click_text'] = CUSTOM_CLICK_TEXT_DELETED % (instance.member.userinfo.name,  current_date)
+            'custom_click_text'] = CUSTOM_CLICK_TEXT_DELETED % (userinfo_instance.name,  current_date)
 
     elif remove_state == deleted_members.MEMBERSHIP_EXPIRED:
         temp['custom_intro_text'] = CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED
-        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % (instance.member.userinfo.name,  current_date)
+        temp['custom_click_text'] = CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED % (userinfo_instance.name,  current_date)
 
     temp['remove_state'] = remove_state
-    temp['removed_user_image_url'] = REMOVED_USER_URL
+
+    if remove_state != deleted_members.MEMBERSHIP_EXPIRED:
+        temp['removed_user_image_url'] = REMOVED_USER_URL
+
+    else:
+        temp['removed_user_image_url'] = ""
+
     return temp
 
 
@@ -1703,6 +1806,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
 
     member_profile = get_members_profile([conversation.user.id], conversation.community.id,
                                          current_user_id=current_user_id, send_profile=False, remove=remove)
+
     temp['member'] = member_profile[0]
 
     temp['date'] = TimeUtilities.convert_epoch_time_in_date(conversation.created_at)
@@ -1711,7 +1815,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         temp['member']['is_guest'] = conversation.is_guest
         state_filter = collabcardState.objects.filter(card=conversation.card,
                                                       user=conversation.user, is_guest=True)
-        if state_filter.exists() and state_filter[0].source:
+        if state_filter and state_filter[0].source:
             instance = state_filter[0]
             guest_text = get_guest_custom_text(instance)
             temp['member']['custom_intro_text'] = guest_text['custom_intro_text']
@@ -1724,7 +1828,9 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         temp['member']['custom_intro_text'] = removed_member_text['custom_intro_text']
         temp['member']['custom_click_text'] = removed_member_text['custom_click_text']
         temp['member']['remove_state'] = removed_member_text['remove_state']
-        temp['member']['image_url'] = removed_member_text['removed_user_image_url']
+
+        if removed_member_text.get('removed_user_image_url'):
+            temp['member']['image_url'] = removed_member_text['removed_user_image_url']
 
     if conversation.reply:
         reply_conversation = conversation.reply
@@ -1759,6 +1865,7 @@ def get_answer_files(answer_id):
     pdf = []
     videos = []
     audios = []
+    voice_notes = []
 
     attachments_list = []
 
@@ -1772,6 +1879,7 @@ def get_answer_files(answer_id):
                 if file.dimensions:
                     img['dimensions'] = json.loads(file.dimensions)
                     img_attachment['dimensions'] = json.loads(file.dimensions)
+
                 if file.height:
                     img['height'] = file.height
                     img_attachment['height'] = file.height
@@ -1783,6 +1891,17 @@ def get_answer_files(answer_id):
                 if file.thumbnail_url:
                     img['thumbnail_url'] = file.thumbnail_url
                     img_attachment['thumbnail_url'] = file.thumbnail_url
+
+                if file.name:
+                    img['name'] = file.name
+                    img_attachment['name'] = file.name
+
+                if file.meta:
+                    file_meta = JsonUtilities.load_json_data(file.meta)
+
+                    if file_meta:
+                        img['meta'] = file_meta
+                        img_attachment['meta'] = file_meta
 
                 img_list.append(img)
                 attachments_list.append(img_attachment)
@@ -1804,18 +1923,38 @@ def get_answer_files(answer_id):
                     video_url['thumbnail_url'] = file.thumbnail_url
                     video_attachment['thumbnail_url'] = file.thumbnail_url
 
+                if file.name:
+                    video_url['name'] = file.name
+                    video_attachment['name'] = file.name
+
+                if file.meta:
+                    file_meta = JsonUtilities.load_json_data(file.meta)
+
+                    if file_meta:
+                        video_url['meta'] = file_meta
+                        video_attachment['meta'] = file_meta
+
                 videos.append(video_url)
                 attachments_list.append(video_attachment)
 
         elif file.type == 'audio':
 
             if file.file_url:
-                audio_url = {'audio_url': file.file_url, 'index': file.index, 'type': file.type}
+                audio_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
                 if file.thumbnail_url:
-                    audio_url['thumbnail_url'] = file.thumbnail_url
+                    audio_attachment['thumbnail_url'] = file.thumbnail_url
 
-                audios.append(audio_url)
+                if file.name:
+                    audio_attachment['name'] = file.name
+
+                if file.meta:
+                    file_meta = JsonUtilities.load_json_data(file.meta)
+
+                    if file_meta:
+                        audio_attachment['meta'] = file_meta
+
+                attachments_list.append(audio_attachment)
 
         elif file.type == 'pdf':
             if file.file_url:
@@ -1825,6 +1964,17 @@ def get_answer_files(answer_id):
                 if file.thumbnail_url:
                     pdf_url['thumbnail_url'] = file.thumbnail_url
                     pdf_attachment['thumbnail_url'] = file.thumbnail_url
+
+                if file.name:
+                    pdf_url['name'] = file.name
+                    pdf_attachment['name'] = file.name
+
+                if file.meta:
+                    file_meta = JsonUtilities.load_json_data(file.meta)
+
+                    if file_meta:
+                        pdf_url['meta'] = file_meta
+                        pdf_attachment['meta'] = file_meta
 
                 pdf.append(pdf_url)
                 attachments_list.append(pdf_attachment)
@@ -1850,7 +2000,40 @@ def get_answer_files(answer_id):
             if file.thumbnail_url:
                 gif_attachment['thumbnail_url'] = file.thumbnail_url
 
+            if file.name:
+                gif_attachment['name'] = file.name
+
+            if file.meta:
+                file_meta = JsonUtilities.load_json_data(file.meta)
+
+                if file_meta:
+                    gif_attachment['meta'] = file_meta
+
             attachments_list.append(gif_attachment)
+
+        elif file.type == "voice_note":
+
+            voice_note_file = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+            if file.height:
+                voice_note_file['height'] = file.height
+
+            if file.width:
+                voice_note_file['width'] = file.width
+
+            if file.thumbnail_url:
+                voice_note_file['thumbnail_url'] = file.thumbnail_url
+
+            if file.name:
+                voice_note_file['name'] = file.name
+
+            if file.meta:
+                file_meta = JsonUtilities.load_json_data(file.meta)
+
+                if file_meta:
+                    voice_note_file['meta'] = file_meta
+
+            attachments_list.append(voice_note_file)
 
     files['image'] = img_list
     files['pdf'] = pdf

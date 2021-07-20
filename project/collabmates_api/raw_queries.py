@@ -1703,7 +1703,9 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
                         index,
                         height,
                         width,
-                        thumbnail_url
+                        thumbnail_url,
+                        name,
+                        meta
                from togther_answerAttachment  where answer_id  in %s order by id 
                """ % (str(conversation_id_tupple))
 
@@ -1725,7 +1727,9 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
                     'index': file[6],
                     'height': file[7],
                     'width': file[8],
-                    'thumbnail_url': file[9]
+                    'thumbnail_url': file[9],
+                    'name': file[10],
+                    'meta': file[11]
                 }
 
                 conversation_files_dict[conversation_id] = [temp]
@@ -1740,7 +1744,9 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
                     'index': file[6],
                     'height': file[7],
                     'width': file[8],
-                    'thumbnail_url': file[9]
+                    'thumbnail_url': file[9],
+                    'name': file[10],
+                    'meta': file[11]
                 }
                 conversation_files_dict[conversation_id].append(temp)
 
