@@ -1,5 +1,4 @@
 #file to use utility functions
-import json
 
 from django.core.paginator import Paginator
 
