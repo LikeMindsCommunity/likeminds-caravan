@@ -9112,6 +9112,10 @@ def get_community_id_from_v1_upload_files(res):
 def save_attachments(request):
     """ save attachments for cards and conversations """
     member_id = get_member_id_from_headers(request)
+    body = RequestUtilities.load_request_body(request)
+
+    if not body:
+        return {'success': False, 'error_message': "Invalid Request Body"}
 
     if member_id is None:
         return {'success': False, 'error_message': "Send member id in headers"}
@@ -9126,8 +9130,6 @@ def save_attachments(request):
     if is_request_web(request):
         if request.user.is_authenticated:
             member_id = request.user.id
-
-    body = json.loads(request.body)
 
     if 'community_id' in body and body['community_id']:
         context = save_community_image(body, member_id)
