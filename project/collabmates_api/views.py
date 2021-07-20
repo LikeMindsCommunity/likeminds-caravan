@@ -14805,7 +14805,7 @@ class SyncChatrooms(APIView):
                         img_attachment['name'] = file.name
 
                     if file.meta:
-                        file_meta = RequestUtilities.load_json_data(file.meta)
+                        file_meta = JsonUtilities.load_json_data(file.meta)
 
                         if file_meta:
                             img['meta'] = file_meta
@@ -14835,7 +14835,7 @@ class SyncChatrooms(APIView):
                         pdf_attachment['name'] = file.name
 
                     if file.meta:
-                        file_meta = RequestUtilities.load_json_data(file.meta)
+                        file_meta = JsonUtilities.load_json_data(file.meta)
 
                         if file_meta:
                             pdf['meta'] = file_meta
@@ -14857,7 +14857,7 @@ class SyncChatrooms(APIView):
                         audio_file_attachment['name'] = file.name
 
                     if file.meta:
-                        file_meta = RequestUtilities.load_json_data(file.meta)
+                        file_meta = JsonUtilities.load_json_data(file.meta)
 
                         if file_meta:
                             audio_file_attachment['meta'] = file_meta
@@ -14888,7 +14888,7 @@ class SyncChatrooms(APIView):
                         video_attachment['name'] = file.name
 
                     if file.meta:
-                        file_meta = RequestUtilities.load_json_data(file.meta)
+                        file_meta = JsonUtilities.load_json_data(file.meta)
 
                         if file_meta:
                             video_file['meta'] = file_meta
@@ -14913,7 +14913,7 @@ class SyncChatrooms(APIView):
                         voice_note_attachment['name'] = file.name
 
                     if file.meta:
-                        file_meta = RequestUtilities.load_json_data(file.meta)
+                        file_meta = JsonUtilities.load_json_data(file.meta)
 
                         if file_meta:
                             voice_note_attachment['meta'] = file_meta
@@ -15670,7 +15670,7 @@ class SyncConversation(APIView):
                     attachment_image_context['name'] = file['name']
 
                 if file['meta']:
-                    file_meta = RequestUtilities.load_json_data(file['meta'])
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
 
                     if file_meta:
                         img_attachment['meta'] = file_meta
@@ -15700,7 +15700,7 @@ class SyncConversation(APIView):
                     video_attachment['name'] = file['name']
 
                 if file['meta']:
-                    file_meta = RequestUtilities.load_json_data(file['meta'])
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
 
                     if file_meta:
                         attachment_video_context['meta'] = file_meta
@@ -15722,7 +15722,7 @@ class SyncConversation(APIView):
                     audio_attachment['name'] = file['name']
 
                 if file['meta']:
-                    file_meta = RequestUtilities.load_json_data(file['meta'])
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
 
                     if file_meta:
                         audio_attachment['meta'] = file_meta
@@ -15750,7 +15750,7 @@ class SyncConversation(APIView):
                     attachment_pdf_context['name'] = file['name']
 
                 if file['meta']:
-                    file_meta = RequestUtilities.load_json_data(file['meta'])
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
 
                     if file_meta:
                         pdf_attachment['meta'] = file_meta
@@ -15784,7 +15784,7 @@ class SyncConversation(APIView):
                     attachment_gif_context['name'] = file['name']
 
                 if file['meta']:
-                    file_meta = RequestUtilities.load_json_data(file['meta'])
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
 
                     if file_meta:
                         attachment_gif_context['meta'] = file_meta
@@ -15804,7 +15804,7 @@ class SyncConversation(APIView):
                     voice_note_attachment['name'] = file['name']
 
                 if file['meta']:
-                    file_meta = RequestUtilities.load_json_data(file['meta'])
+                    file_meta = JsonUtilities.load_json_data(file['meta'])
 
                     if file_meta:
                         voice_note_attachment['meta'] = file_meta

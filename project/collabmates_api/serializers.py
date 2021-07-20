@@ -1,7 +1,7 @@
 from urllib.parse import parse_qsl, urlsplit
 
 from togther.models import *
-from utility.request_utilities import RequestUtilities
+from utility.json_utilities import JsonUtilities
 from utility.utils import (generate_private_link, get_time_text, eligibility_count,
                            get_members_count_in_community, generate_private_link_for_chatroom,
                            get_date_time_from_timestamp, get_community_members_count_for_preview)
@@ -532,7 +532,7 @@ def get_collabcard_files(card_id, draft=False):
                 img_attachment['name'] = file.name
 
             if file.meta:
-                file_meta = RequestUtilities.load_json_data(file.meta)
+                file_meta = JsonUtilities.load_json_data(file.meta)
 
                 if file_meta:
                     img['meta'] = file_meta
@@ -562,7 +562,7 @@ def get_collabcard_files(card_id, draft=False):
                 video_attachment['name'] = file.name
 
             if file.meta:
-                file_meta = RequestUtilities.load_json_data(file.meta)
+                file_meta = JsonUtilities.load_json_data(file.meta)
 
                 if file_meta:
                     video_url['meta'] = file_meta
@@ -590,7 +590,7 @@ def get_collabcard_files(card_id, draft=False):
                 audio_url['thumbnail_url'] = file.thumbnail_url
 
             if file.meta:
-                file_meta = RequestUtilities.load_json_data(file.meta)
+                file_meta = JsonUtilities.load_json_data(file.meta)
 
                 if file_meta:
                     audio_url['meta'] = file_meta
@@ -622,7 +622,7 @@ def get_collabcard_files(card_id, draft=False):
                 pdf_attachment['thumbnail_url'] = file.thumbnail_url
 
             if file.meta:
-                file_meta = RequestUtilities.load_json_data(file.meta)
+                file_meta = JsonUtilities.load_json_data(file.meta)
 
                 if file_meta:
                     pdf_url['meta'] = file_meta
@@ -650,7 +650,7 @@ def get_collabcard_files(card_id, draft=False):
                 voice_note_attachment['thumbnail_url'] = file.thumbnail_url
 
             if file.meta:
-                file_meta = RequestUtilities.load_json_data(file.meta)
+                file_meta = JsonUtilities.load_json_data(file.meta)
 
                 if file_meta:
                     voice_note_attachment['meta'] = file_meta
@@ -1897,7 +1897,7 @@ def get_answer_files(answer_id):
                     img_attachment['name'] = file.name
 
                 if file.meta:
-                    file_meta = RequestUtilities.load_json_data(file.meta)
+                    file_meta = JsonUtilities.load_json_data(file.meta)
 
                     if file_meta:
                         img['meta'] = file_meta
@@ -1928,7 +1928,7 @@ def get_answer_files(answer_id):
                     video_attachment['name'] = file.name
 
                 if file.meta:
-                    file_meta = RequestUtilities.load_json_data(file.meta)
+                    file_meta = JsonUtilities.load_json_data(file.meta)
 
                     if file_meta:
                         video_url['meta'] = file_meta
@@ -1949,7 +1949,7 @@ def get_answer_files(answer_id):
                     audio_attachment['name'] = file.name
 
                 if file.meta:
-                    file_meta = RequestUtilities.load_json_data(file.meta)
+                    file_meta = JsonUtilities.load_json_data(file.meta)
 
                     if file_meta:
                         audio_attachment['meta'] = file_meta
@@ -1970,7 +1970,7 @@ def get_answer_files(answer_id):
                     pdf_attachment['name'] = file.name
 
                 if file.meta:
-                    file_meta = RequestUtilities.load_json_data(file.meta)
+                    file_meta = JsonUtilities.load_json_data(file.meta)
 
                     if file_meta:
                         pdf_url['meta'] = file_meta
@@ -2004,7 +2004,7 @@ def get_answer_files(answer_id):
                 gif_attachment['name'] = file.name
 
             if file.meta:
-                file_meta = RequestUtilities.load_json_data(file.meta)
+                file_meta = JsonUtilities.load_json_data(file.meta)
 
                 if file_meta:
                     gif_attachment['meta'] = file_meta
@@ -2028,7 +2028,7 @@ def get_answer_files(answer_id):
                 voice_note_file['name'] = file.name
 
             if file.meta:
-                file_meta = RequestUtilities.load_json_data(file.meta)
+                file_meta = JsonUtilities.load_json_data(file.meta)
 
                 if file_meta:
                     voice_note_file['meta'] = file_meta

@@ -108,14 +108,3 @@ def paginate_list(queryset, page_number, paginate_by=10):
 
     return [] if (max_page < int(page_number) or not queryset) else paginator.get_page(page_number)
 
-
-def dump_json_data(json_data):
-    json_string = None
-
-    try:
-        json_string = json.dumps(json_data)
-
-    except Exception as e:
-        json_string = None
-
-    return json_string
