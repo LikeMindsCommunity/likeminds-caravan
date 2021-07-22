@@ -205,6 +205,22 @@ class MembershipImpl(MembershipManager):
         if not community_instance:
             return {'success': False, 'error_message': "In-valid community id"}
 
+        expired_member_queryset = ModelUtilities.get_model_filter(SubscriptionExpiredMembers,
+                                                                  {
+                                                                      "member": user_instance,
+                                                                      "community": community_instance
+                                                                  })
+
+        if expired_member_queryset:
+            expired_member_instance = expired_member_queryset[0]
+
+            if not ModelUtilities.is_model_filter_exists(Members, {'member_id': user_instance,
+                                                                   'community_id': community_instance}):
+                Members.create_instance_from_expired_member_instace(expired_member_instance)
+                ModelUtilities.delete_record_in_model(conversationEngage, {'community': community_instance,
+                                                                           'user': user_instance})
+            expired_member_queryset.delete()
+
         ModelUtilities.delete_record_in_model(removedMembers,
                                               {
                                                   "community": community_instance,
