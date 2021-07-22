@@ -11119,6 +11119,9 @@ def config(request):
             and version_code < CURRENT_IOS_VERSION:
         context['updatePriority'] = 1
 
+    if RequestUtilities.is_request_android(request):
+        context['updatePriority'] = 1
+
     context['use_segment'] = True
     context['micro_polls_enabled'] = False
     context['enable_gif'] = False
