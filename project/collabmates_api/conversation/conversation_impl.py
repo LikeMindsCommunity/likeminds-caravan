@@ -23,7 +23,7 @@ from ..sync.model_update import update_models_for_syncing_apis
 from ..tasks import send_tagged_user_mail, send_chatroom_owner_mail
 from ..utility import pagination
 from ..user.user_impl import UserHelper
-from ..views import (adding_guest_in_chatroom, conversation_tagging, collabcard_follow_internal,
+from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
                      save_the_latest_conversation, update_activity_in_chatroom_for_conversation_creation,
                      update_chatroom_for_users_and_send_follow_notification,
                      reverse_conversations_for_upward_pagination, send_sync_notification,

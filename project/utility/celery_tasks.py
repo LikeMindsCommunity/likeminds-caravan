@@ -24,14 +24,6 @@ info_logger = LoggingWrapper.get_instance()
 
 
 @shared_task
-def save_community_purpose_card(community_id, card_id):
-    time.sleep(2)
-    community = Community.objects.get(id=community_id)
-    community.purpose_collabcard = card_id
-    community.save()
-
-
-@shared_task
 def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, **kwargs):
     card_instance = Collabcard.objects.get(id=card_id)
     all_members = Members.objects \
@@ -128,43 +120,6 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
             Member_Engage.objects.filter(community_id=community, member_id=user).update(
                 new_chatroom_users=None,
                 updated_at=time.time())
-
-
-def get_new_chatroom_members(member_id, community_id):
-    """ to get the member objects for new chatrooms created """
-
-    last_instance = collabcardState.objects.filter(user=member_id, community=community_id,
-                                                   card__is_deleted=False,
-                                                   secret_chatroom_left=False).filter(~Q(state=0)).last()
-
-    if last_instance:
-        last_card = last_instance.card
-        unseen_chatrooms = Collabcard.objects.filter(community=community_id, id__gt=last_card.id).distinct('user_id')
-
-    else:
-        unseen_chatrooms = Collabcard.objects.filter(community=community_id).distinct('user_id')
-
-    member_list = []
-    for card in unseen_chatrooms:
-
-        member_filter = Members.objects.filter(member_id=card.user, community_id=community_id)
-        image_url = card.user.userinfo.image_link if card.user.userinfo.image_link else ''
-        exists = member_filter.exists()
-
-        if exists:
-            member_instance = member_filter[0]
-
-            if member_instance.image_url:
-                image_url = member_instance.image_url
-
-        member = get_user_profile(card.user.id, community_id, send_profile=False)
-        member['image_url'] = image_url
-        member_list.append(member)
-
-        if len(member_list) > 3:
-            break
-
-    return member_list
 
 
 def fetch_new_chatroom_creater_images(member_id, community_id):
