@@ -105,10 +105,12 @@ def send_test_notification(request):
 
 
 def send_notification_for_android(token_list, message):
-    '''function to send notification to android'''
-    # print(token_list,message)
+    """function to send notification to android"""
+
+    if not token_list:
+        return
+
     result = ""
-    # print("===== sending for android")
 
     extra_kwargs = {
         "android": {
@@ -124,9 +126,13 @@ def send_notification_for_android(token_list, message):
 
 
 def send_notification_for_ios(token_list, message):
-    '''function to send notification to android'''
+    """function to send notification to android"""
 
     result = ""
+
+    if not token_list:
+        return
+
     push_service = FCMNotification(api_key=server_key)
 
     extra_kwargs = {
@@ -144,7 +150,10 @@ def send_notification_for_ios(token_list, message):
 
 
 def send_notification_for_web(token_list, message):
-    '''function to send notification to web'''
+    """function to send notification to web"""
+
+    if not token_list:
+        return
 
     push_service = FCMNotification(api_key=server_key)
 
@@ -190,38 +199,79 @@ def track_notification(user_id, notification_payload):
                                       properties=notification_payload)
 
 
+def track_notification_with_notification_payload_list(notification_payload_list):
+
+    for notification in notification_payload_list:
+
+        if notification.get('user_id') and notification.get('payload'):
+            MixpanelImpl().track_notification(str(notification['user_id']), properties=notification['payload'])
+
+
+def pre_compute_user_devices_by_user_list(user_list):
+    """function to pre compute users' devices with user list"""
+
+    devices_filter = list(
+        ModelUtilities.get_model_filter(userDevices, {'user_id__in': user_list}).values('id', 'fcm_token', 'mobile_os',
+                                                                                        'user_id'))
+    devices_dict = {user_id: [] for user_id in user_list}
+
+    for device in devices_filter:
+
+        if devices_dict.get(device['user_id']):
+            devices_dict[device['user_id']].append(device)
+
+        else:
+            devices_dict[device['user_id']] = [device]
+
+    return devices_dict
+
+
 def notification_meta(notification_list, message, calling_notification=""):
-    # print(notification_list,message)
-    '''function to process notification to send'''
+    """function to process notification to send"""
+
+    user_id_list = [user_dict['id'] for user_dict in notification_list]
+    user_device_dict = pre_compute_user_devices_by_user_list(user_id_list)
+
+    tokens = {
+        'Android': [],
+        'iOS': [],
+        'web': []
+    }
+
+    notification_payload_list = []
 
     for data in notification_list:
 
         if 'id' in data:
             user_id = data['id']
+
         else:
             continue
 
-        user_devices = get_devices_of_users(user_id)
+        user_devices = user_device_dict[user_id]
 
         payload = {}
 
         for device in user_devices:
 
-            token_list = [device['fcm_token']]
-            payload = data['message'] if data.get('message') else message
+            notification_payload_dict = {}
+            device_token = device['fcm_token']
+            tokens[device['mobile_os']].append(device_token)
+            payload = message
+            payload['fcm_token'] = device_token
 
-            if device['mobile_os'] == "Android":
-                send_notification_for_android(token_list, message)
+            notification_payload_dict['user_id'] = device['user_id']
+            notification_payload_dict['payload'] = payload
 
-            elif device['mobile_os'] == 'iOS':
-                send_notification_for_ios(token_list, payload)
+            notification_payload_list.append(notification_payload_dict)
 
-            elif device['mobile_os'] == 'web':
-                send_notification_for_web(token_list, payload)
+    send_notification_for_android(tokens['Android'], message)
 
-            payload['fcm_token'] = device['fcm_token']
+    send_notification_for_ios(tokens['iOS'], message)
 
-        track_notification(user_id, notification_payload=payload)
+    send_notification_for_web(tokens['web'], message)
+
+    track_notification_with_notification_payload_list(notification_payload_list)
 
 
 def get_connection():
@@ -924,6 +974,7 @@ def online_event_reminder_notification_10_min(card_id, **kwargs):
     except Exception as e:
         error_logger.error(f"online_event_remainder_notification_10_min {e.args}")
 
+
 @app.task
 @shared_task
 def offline_event_remainder_notification_24_hours(card_id, **kwargs):
@@ -1414,7 +1465,6 @@ def send_notification_to_tagged_users(card_id, answerer_name, answer, user_id, u
             # case for send conversation message
             unread_followed_chatroom = get_custom_data_for_new_conversation_created_ios(user_id)
             message['payload']['unread_followed_chatroom'] = unread_followed_chatroom
-            temp['message'] = message
 
         notification_list.append(temp)
 
@@ -3155,7 +3205,7 @@ def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_i
     message = {
         'payload': {
             'title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_TITLE % (
-            userinfo_instance.name, chatroom_instance.title),
+                userinfo_instance.name, chatroom_instance.title),
             'sub_title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE,
             'route': "route://chatroom_detail?chatroom_id=%s" % str(chatroom_id)
         }
@@ -3194,4 +3244,3 @@ def send_notification_on_chatroom_topic_update(chatroom_id):
     }
 
     notification_meta(notification_list, message)
-
