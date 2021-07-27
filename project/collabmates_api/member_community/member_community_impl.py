@@ -21,6 +21,7 @@ from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_me
                            get_community_introductions_based_on_user_list_query,
                            get_chatroom_count_based_on_community_list, get_distinct_chatroom_creator_list,
                            get_count_of_community_members_based_on_community_list)
+from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right
 from ..utility import pagination
@@ -51,12 +52,15 @@ class MemberCommunityImpl(MemberCommunityManager):
     community_id = None
     device_id = None
     platform_code = None
+    version_code = None
 
-    def __init__(self, member_id: str, community_id: str, device_id: str = None, platform_code: str = ""):
+    def __init__(self, member_id: str, community_id: str, device_id: str = None, platform_code: str = "",
+                 version_code: int = 0):
         self.member_id = member_id
         self.community_id = community_id
         self.device_id = device_id
         self.platform_code = platform_code
+        self.version_code = version_code
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -72,6 +76,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def get_platform_code(self) -> str:
         return self.platform_code
+
+    def get_version_code(self) -> int:
+        return self.version_code
 
     def extract_member_communities(self, page: int) -> list:
 
@@ -190,7 +197,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             rights_list = json.loads(community.rights_list)
 
             if is_ios and \
-                    member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM in rights_list:
+                    member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM in rights_list and \
+                    self.get_version_code() <= SECRET_CHATROOM_VERSION_CODE_IOS:
                 rights_list.remove(member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM)
 
         else:

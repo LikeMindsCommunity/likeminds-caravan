@@ -259,6 +259,7 @@ def my_chatrooms_version_1(request):
     page = request.GET.get('page', 1)
 
     is_ios = RequestUtilities.is_request_ios(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     try:
         page = int(page)
@@ -371,7 +372,9 @@ def my_chatrooms_version_1(request):
 
         rights_list = json.loads(instance.rights_list) if instance.rights_list else []
 
-        if is_ios and member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM in rights_list:
+        if is_ios and \
+                member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM in rights_list and \
+                version_code <= SECRET_CHATROOM_VERSION_CODE_IOS:
             rights_list.remove(member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM)
 
         chatroom['member_right_states'] = rights_list
@@ -8040,12 +8043,13 @@ def get_state_of_community(community):
     return 0
 
 
-def compute_moderation_member_rights_list_for_ios(moderated_member_list):
+def compute_moderation_member_rights_list_for_ios(moderated_member_list, version_code):
     member_rights_list = []
 
     for data in moderated_member_list:
 
-        if data.get('state') == member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM:
+        if data.get('state') == member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM \
+                and version_code <= SECRET_CHATROOM_VERSION_CODE_IOS:
             continue
 
         member_rights_list.append(data)
@@ -8081,6 +8085,8 @@ def members_state(request, req_dict=None):
     state = 0
     tool_state = 0
     custom_title = "Member"
+
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_instance = Community.get_community_or_None(community_id)
 
@@ -8175,7 +8181,8 @@ def members_state(request, req_dict=None):
         moderated_member_rights = get_saved_member_rights_list(user_rights)
 
     if RequestUtilities.is_request_ios(request):
-        json_response['member_rights'] = compute_moderation_member_rights_list_for_ios(moderated_member_rights)
+        json_response['member_rights'] = compute_moderation_member_rights_list_for_ios(moderated_member_rights,
+                                                                                       version_code)
 
     else:
         json_response['member_rights'] = moderated_member_rights
