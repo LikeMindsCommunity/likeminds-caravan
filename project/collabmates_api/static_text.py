@@ -429,3 +429,5 @@ PENDING_MEMBER_REQUEST_REJECTED_COMMUNITY_TOAST = "Your request for joining this
 CHATROOM_TOPIC_NOTIFICATION_TITLE = "Topic updated!"
 CHATROOM_TOPIC_NOTIFICATION_SUB_TITLE = "The topic of your followed chat room %s has just been updated."
 CHATROOM_TOPIC_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id=%s"
+
+SECRET_CHATROOM_VERSION_CODE_IOS = 157

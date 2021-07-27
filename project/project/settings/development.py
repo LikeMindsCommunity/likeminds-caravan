@@ -12,10 +12,13 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': os.getenv('DEVELOPMENT_DB_NAME'),
         'USER': os.getenv('DEVELOPMENT_DB_USER'),
-        'PASSWORD':os.getenv('DEVELOPMENT_DB_PASSWORD'),
+        'PASSWORD': os.getenv('DEVELOPMENT_DB_PASSWORD'),
         'HOST': os.getenv('DEVELOPMENT_DB_HOST'),
         'PORT': '5432',
-        'CONN_MAX_AGE': 600
+        'CONN_MAX_AGE': 600,
+        'TEST': {
+            'NAME': "db_test"
+        }
     }
 }
 

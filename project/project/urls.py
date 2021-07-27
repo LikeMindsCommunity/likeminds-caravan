@@ -19,21 +19,13 @@ from django.conf.urls import url, include
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
-from dashboard.views import admin_login
-
 
 urlpatterns = [
-    url(r'^logout/$', auth_views.LogoutView, name='logout'),
     url(r'^collabmates_admin/', admin.site.urls),
-    path('', include('togther.urls'),name= 'togther'),
-    path('api/', include('collabmates_api.urls'),name= 'api'),
-    path('admin_dashboard/',include('dashboard.urls'),name='admin_dashboard'),
+    path('api/', include('collabmates_api.urls'), name='api'),
     path('cms/', include('cms.urls'), name='cms'),
-    path('admin_login', admin_login, name="admin_login"),
 ]
-
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-

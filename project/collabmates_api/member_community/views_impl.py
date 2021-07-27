@@ -113,7 +113,8 @@ class FetchHomeCommunities(APIView):
             return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
 
         member_community_manager = MemberCommunityImpl(member_id, "",
-                                                       platform_code=RequestUtilities.get_platform_code(request))
+                                                       platform_code=RequestUtilities.get_platform_code(request),
+                                                       version_code=RequestUtilities.get_version_code_from_headers(request))
         community_context = member_community_manager.fetch_home_communities(page)
 
         if 'error_message' in community_context:

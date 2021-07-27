@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'django_select2',
     'corsheaders',
     'collabmates_api',
-    'dashboard',
     'crispy_forms',
     'utility',
     'django_celery_beat',
