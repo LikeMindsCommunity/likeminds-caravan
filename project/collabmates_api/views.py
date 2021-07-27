@@ -1066,8 +1066,7 @@ def post_purpose_collabcard_for_community(request, community_instance, member_id
         'title': introduction_answer,
         'type': card_types.CARD_PURPOSE,
     }
-    request.method = "POST"
-    context = create_card(request, req_dict=req_dict)
+    context = create_card_internal(member_id, community_instance.id, req_dict)
 
     return context['card_instance']
 
