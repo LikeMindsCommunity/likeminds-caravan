@@ -1,0 +1,4 @@
+from .LoginFlow.LoginFlowTest import LoginFlowTestCase
+from .CreateCommunityFlow.CreateCommunityFlowTest import CreateCommunityFlowTestCase
+from .CommunityQuestionFlow.CommunityQuestionFlowTest import CommunityQuestionFlow
+from .JoinCommunityFlow.JoinCommunityFlowTest import JoinCommunityFlowTestCase

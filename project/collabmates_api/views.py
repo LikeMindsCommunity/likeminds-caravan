@@ -2183,7 +2183,6 @@ def create_community_version_1(request):
     member_id = get_member_id_from_headers(request)
     user_instance = User.objects.get(pk=member_id)
     res = json.loads(request.body)
-    print(res)
 
     community_name = ""
     purpose = ""
@@ -7460,11 +7459,13 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
             # send verification mail for email
-            verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
+            if email:
+                verification_details = generate_tokens_for_email(user_instance, email,
+                                                                 email_state=email_states.NON_PRIMARY)
 
-            # sending a email from template
-            send_verification_mail_for_email_sync.delay(user_name=user_instance.userinfo.name,
-                                                  verification_link=verification_details['verify_url'], email=email)
+                # sending a email from template
+                send_verification_mail_for_email_sync.delay(user_name=name,
+                                                      verification_link=verification_details['verify_url'], email=email)
 
             return user_instance
         else:
