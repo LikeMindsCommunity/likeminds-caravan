@@ -8626,24 +8626,43 @@ def edit_community_version_1(request):
 
     member_id = RequestUtilities.get_member_id_from_headers(request)
 
-    if not member_id:
-        error_context = get_error_context(False, "Send member id in headers")
-        return JsonResponse(error_context)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
-    try:
-        res = json.loads(request.body)
-        community_id = res['community_id']
+    if not user_instance:
+        error_context = get_error_context(False, "In-valid user id")
 
-    except Exception as e:
-        error_context = get_error_context(False, f"{e.args[0]}")
-        return JsonResponse(error_context)
+        return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    user_instance = User.get_user_or_raise_exception(member_id)
-    community_instance = Community.get_community_or_raise_exception(community_id)
+    res = JsonUtilities.load_json_data(request.body)
+
+    if not res:
+        error_context = get_error_context(False, "In-valid request body")
+
+        return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, res.get('community_id'))
+
+    if not community_instance:
+        error_context = get_error_context(False, "In-valid community id")
+
+        return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_id = community_instance.id
 
     purpose = res.get('purpose', community_instance.purpose)
     name = res.get('community_name', community_instance.name)
     image_link = res.get('image_url', community_instance.image_link)
+
+    edit_field = None
+
+    if community_instance.name != name:
+        edit_field = "name"
+
+    if community_instance.purpose != purpose:
+        edit_field = "purpose"
+
+    if community_instance.image_link != image_link:
+        edit_field = "image_url"
 
     community_instance.purpose = purpose
     community_instance.name = name
@@ -8658,24 +8677,11 @@ def edit_community_version_1(request):
     community_instance.community_category = res.get('community_category', community_instance.community_category)
     community_instance.referral_enabled = res.get('referral_enabled', community_instance.referral_enabled)
 
-    edit_field = None
-
-    # checking name change
-    if community_instance.name != name:
-        edit_field = "name"
-
-    if community_instance.purpose != purpose:
-        edit_field = "purpose"
-
-    if community_instance.image_link != image_link:
-        edit_field = "image_url"
-
     if edit_field:
         edit_community_data(community_instance, user_instance, edit_field=edit_field)
 
     community_instance.save()
 
-    # edit_community_data(community_instance, user_instance, edit_field=purpose)
     send_sync_notification.delay({'community_id': community_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
     update_multiple_previews_in_community.delay({'community_id': community_id})
@@ -8929,14 +8935,16 @@ def edit_questions_version_1(request):
 
 
 def edit_community_data(community_instance, user_instance, edit_field):
-    '''function to update the purpose collabcard of community'''
+    """function to update the purpose collabcard of community"""
 
-    collabcard_filter = Collabcard.objects.filter(community=community_instance, type=card_types.CARD_PURPOSE)
-
-    if collabcard_filter.exists():
-        card_instance = collabcard_filter[0]
+    chatroom_filter = ModelUtilities.get_model_filter(Collabcard,
+                                                      {'community': community_instance,
+                                                       'type': card_types.CARD_PURPOSE})
+    if chatroom_filter:
+        card_instance = chatroom_filter[0]
         user_name = user_instance.userinfo.name
         community_route = "route://community?community_id=" + str(community_instance.id)
+
         if edit_field == "name":
             bubble_text = "<<" + user_name + " changed the name of this community" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
@@ -8948,6 +8956,9 @@ def edit_community_data(community_instance, user_instance, edit_field):
             card_instance.save()
             bubble_text = "<<" + user_name + """ edited "About Community". Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
+            ModelUtilities.model_update(collabcardState,
+                                        {'card': card_instance},
+                                        {'updated_at': TimeUtilities.current_time_in_sec()})
 
         if edit_field == "image_url":
             bubble_text = "<<" + user_name + """ changed the community icon. Tap to view.""" + "|" + community_route + ">>"
