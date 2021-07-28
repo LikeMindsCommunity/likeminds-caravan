@@ -12356,6 +12356,10 @@ class SyncConversation(APIView):
                     img_attachment['width'] = file['width']
                     attachment_image_context['width'] = file['width']
 
+                if file.get('thumbnail_url'):
+                    img_attachment['thumbnail_url'] = file.get('thumbnail_url')
+                    attachment_image_context['thumbnail_url'] = file.get('thumbnail_url')
+
                 if file['name']:
                     img_attachment['name'] = file['name']
                     attachment_image_context['name'] = file['name']
@@ -12411,6 +12415,9 @@ class SyncConversation(APIView):
 
                 if file['name']:
                     audio_attachment['name'] = file['name']
+
+                if file.get('thumbnail_url'):
+                    audio_attachment['thumbnail_url'] = file.get('thumbnail_url')
 
                 if file['meta']:
                     file_meta = JsonUtilities.load_json_data(file['meta'])
@@ -12493,6 +12500,9 @@ class SyncConversation(APIView):
 
                 if file['name']:
                     voice_note_attachment['name'] = file['name']
+
+                if file['thumbnail_url']:
+                    voice_note_attachment['thumbnail_url'] = file['thumbnail_url']
 
                 if file['meta']:
                     file_meta = JsonUtilities.load_json_data(file['meta'])

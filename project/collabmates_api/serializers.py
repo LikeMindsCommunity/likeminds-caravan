@@ -1850,7 +1850,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         reactions = []
 
     temp['reactions'] = reactions
-    
+
     if conversation.reply_chatroom_id:
         temp['reply_chatroom_id'] = conversation.reply_chatroom_id
 
@@ -1941,6 +1941,12 @@ def get_answer_files(answer_id):
 
             if file.file_url:
                 audio_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                if file.height:
+                    audio_attachment['height'] = file.height
+
+                if file.width:
+                    audio_attachment['width'] = file.width
 
                 if file.thumbnail_url:
                     audio_attachment['thumbnail_url'] = file.thumbnail_url
