@@ -10143,6 +10143,8 @@ def update_community_manager_rights(request):
     member_is_owner = Members.objects.filter(member_id=user_instance, community_id=community_instance,
                                              state=member_states.ADMIN,
                                              is_owner=True).exists()  # who's rights are being updated
+    member_title_changed = False
+
     if admin.exists():
         if member_is_owner:
             log = f"UPDATING_CM_RIGHTS_FOR_OWNER - community_id = {community_id}" \
@@ -10150,6 +10152,9 @@ def update_community_manager_rights(request):
             info_logger.info(log)
 
             save_owner_title(custom_title, admin, community_instance, user_instance)
+
+            member_title_changed = True
+
             send_sync_notification.delay({'community_id': community_id,
                                     'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value,
                                     'member_id': current_user_id})
@@ -10210,6 +10215,8 @@ def update_community_manager_rights(request):
                 send_notification_for_new_promoter.delay(promoter_id=current_user_id, member_id=user_id,
                                                          community_id=community_id, custom_title=custom_title)
             elif custom_title_changed:
+                member_title_changed = True
+
                 # updating time for all members of community
                 update_models_for_syncing_apis(SyncTypes.MEMBERS,
                                                {'community_id': community_instance},
@@ -10227,6 +10234,10 @@ def update_community_manager_rights(request):
         send_sync_notification.delay({'community_id': community_id,
                                 'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value,
                                 'member_id': current_user_id})
+
+        if member_title_changed:
+            # Update index of Members
+            ElasticSearchSync.update_member(user_id, community_id)
 
         return JsonResponse({'success': True})
     else:

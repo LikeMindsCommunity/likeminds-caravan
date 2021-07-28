@@ -333,6 +333,7 @@ ELASTICSEARCH_DSL = {
 ELASTICSEARCH_INDEX_NAMES = {
     'collabmates_api.search.chatroom_index': 'chatroom',
     'collabmates_api.search.conversation_index': 'conversation',
+    'collabmates_api.search.member_directory_index': 'member_directory',
 }
 
 SUBSCRIPTION_SERVER_URL = os.getenv('SUBSCRIPTION_SERVER_URL')

@@ -30,3 +30,10 @@ class SearchManager(metaclass=abc.ABCMeta):
         Search followed chatrooms by header for third party content sharing with elastic search
         """
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def search_member_directory(self):
+        """
+        Search in member directory by member name or tag with elastic search
+        """
+        raise NotImplementedError

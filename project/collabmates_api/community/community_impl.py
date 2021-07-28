@@ -546,6 +546,8 @@ class CommunityImpl(CommunityManager):
             CommunityHelper.run_async_for_community_approve(community_instance, user_instance,
                                                                 promoter_userinfo_instance)
 
+            ElasticSearchSync.update_member.delay(self.get_member_id(), self.get_community_id())
+
         else:
             self._decline_community_join_request(community_instance, user_instance)
             members_count = Members.get_members_count_in_community(community_instance)
@@ -553,6 +555,8 @@ class CommunityImpl(CommunityManager):
 
             CommunityHelper.run_async_task_for_community_declined(community_instance, user_instance,
                                                                promoter_userinfo_instance)
+
+            ElasticSearchSync.delete_documents.delay(self.get_member_id(), self.get_community_id())
 
         return {'success': True}
 
@@ -620,7 +624,10 @@ class CommunityImpl(CommunityManager):
 
             return {'success': False, 'error_message': "Invalid member state"}
 
+
         user_has_access = Members.user_has_app_access(user_instance.id)
+
+        ElasticSearchSync.update_member.delay(self.get_member_id(), self.get_community_id())
 
         return {'success': True, 'access': user_has_access}
 

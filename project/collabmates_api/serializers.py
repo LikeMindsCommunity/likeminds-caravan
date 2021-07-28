@@ -1457,7 +1457,6 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
             community_profile['custom_intro_text'] = """Created this community on %s""" % \
                                                      TimeUtilities.convert_epoch_time_in_date(member_instance.created_at)
 
-
     if member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
 
         answer_filter = communityAnswers.objects.filter(community=community_id).filter(
@@ -1467,7 +1466,8 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
             community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
                 TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
             community_profile[
-                'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
+                'custom_click_text'] = """%s joined this community via a private community link on %s and haven’t 
+                created their profile for this community yet""" % (
                 member_instance.member_id.userinfo.name,
                 TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
 

@@ -376,6 +376,7 @@ class SearchIndexes(enum.Enum):
 
     CHATROOM = "chatroom"
     CONVERSATION = "conversation"
+    MEMBER_DIRECTORY = "member_directory"
 
 
 class LoginTypes:
