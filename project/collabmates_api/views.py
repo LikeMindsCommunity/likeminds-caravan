@@ -10164,7 +10164,8 @@ def update_community_manager_rights(request):
 
             save_owner_title(custom_title, admin, community_instance, user_instance)
 
-            member_title_changed = True
+            # Update index of Members
+            ElasticSearchSync.update_member.delay(user_id, community_id)
 
             send_sync_notification.delay({'community_id': community_id,
                                     'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value,
@@ -10248,7 +10249,7 @@ def update_community_manager_rights(request):
 
         if member_title_changed:
             # Update index of Members
-            ElasticSearchSync.update_member(user_id, community_id)
+            ElasticSearchSync.update_member.delay(user_id, community_id)
 
         return JsonResponse({'success': True})
     else:
