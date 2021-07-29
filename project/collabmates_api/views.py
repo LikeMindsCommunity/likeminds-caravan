@@ -10247,9 +10247,9 @@ def update_community_manager_rights(request):
                                 'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value,
                                 'member_id': current_user_id})
 
-        if member_title_changed:
-            # Update index of Members
-            ElasticSearchSync.update_member.delay(user_id, community_id)
+        # Update index of Members
+        ElasticSearchSync.update_member.delay(user_id, community_id)
+
 
         return JsonResponse({'success': True})
     else:
@@ -10331,6 +10331,9 @@ def remove_community_manager(request):
 
         send_sync_notification.delay({'community_id':community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+        # Update Members Index
+        ElasticSearchSync.update_member.delay(user_id, community_id)
 
         return JsonResponse({'success': True})
 
@@ -10623,6 +10626,9 @@ def update_community_member_rights(request):
 
         send_sync_notification.delay({'community_id': community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+        # Update Members Indexing
+        ElasticSearchSync.update_member.delay(user_id, community_id)
 
         return JsonResponse({'success': True})
     else:
