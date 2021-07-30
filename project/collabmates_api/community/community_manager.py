@@ -60,3 +60,13 @@ class CommunityManager(metaclass=abc.ABCMeta):
         """returns list of members to create secret chatrooms"""
 
         raise NotImplementedError
+
+    def fetch_content_download_settings(self):
+        """returns List of Content Download Settings for a community"""
+
+        raise NotImplementedError
+
+    def update_content_download_settings(self, content_download_settings_list):
+        """returns boolean whether the update of settings is a success or a failure"""
+
+        raise NotImplementedError

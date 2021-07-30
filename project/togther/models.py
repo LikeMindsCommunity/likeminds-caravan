@@ -2243,3 +2243,18 @@ class SubscriptionExpiredMembers(models.Model):
         expired_instance.has_onboarded = member_instance.has_onboarded
         expired_instance.save()
 
+
+class ContentDownloadSettings(models.Model):
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    download_setting_type = models.CharField(max_length=100, null=False)
+    download_setting_title = models.CharField(max_length=100, null=False)
+    enabled = models.BooleanField(default=True)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = ContentDownloadSettings()
+        instance.community_id = create_info.get('community_instance')
+        instance.download_setting_type = create_info.get('download_setting_type')
+        instance.download_setting_title = create_info.get('download_setting_title')
+        instance.enabled = create_info.get('enabled')
+        instance.save()

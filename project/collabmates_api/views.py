@@ -2281,6 +2281,16 @@ def create_community_version_1(request):
 
         community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance,
                                                    current_user_id=member_id)
+
+        # Create Content Download Settings
+        for download_setting_type, download_setting_title in DOWNLOAD_SETTING_TYPE_TITLE_MAPPING.items():
+            ContentDownloadSettings.create_instance({
+                'community_instance': community_instance,
+                'download_setting_type': download_setting_type,
+                'download_setting_title': download_setting_title,
+                'enabled': True
+            })
+
         return JsonResponse({'success': True, 'community': community_serializer})
 
     elif page == 2:
@@ -8460,7 +8470,7 @@ def config(request):
 
     context['use_segment'] = True
     context['micro_polls_enabled'] = False
-    context['enable_gif'] = False
+    context['enable_gif'] = True
     context['enable_audio'] = False
 
     in_app_review_filter = ModelUtilities.get_model_filter(InAppReview, {'user': user_instance})
