@@ -730,7 +730,8 @@ class CommunityImpl(CommunityManager):
                                         "download_setting_title": content_download_setting["download_setting_title"]
                                     },
                                     {
-                                        "enabled": content_download_setting["enabled"]
+                                        "enabled": content_download_setting["enabled"],
+                                        "updated_at": TimeUtilities.current_time_in_milliseconds()
                                     })
                     content_setting_status["success"] = True
 
