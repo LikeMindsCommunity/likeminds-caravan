@@ -556,7 +556,7 @@ class CommunityImpl(CommunityManager):
             CommunityHelper.run_async_task_for_community_declined(community_instance, user_instance,
                                                                promoter_userinfo_instance)
 
-            ElasticSearchSync.delete_documents.delay(self.get_member_id(), self.get_community_id())
+            ElasticSearchSync.delete_member_from_community.delay(self.get_member_id(), self.get_community_id())
 
         return {'success': True}
 
