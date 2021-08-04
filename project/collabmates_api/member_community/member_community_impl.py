@@ -739,7 +739,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance)
 
-        chatroom_context_list = self.process_chatroom_list(chatroom_list, community_instance)
+        chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
         return {'chatrooms': chatroom_context_list}
 

@@ -320,7 +320,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
                                                          current_user_id=user)
 
         if card.online_link and not card.is_paid:
-            card['online_link'] = card.online_link
+            collabcard['online_link'] = card.online_link
 
         if card.online_link_id and not card.is_paid:
             collabcard['online_link_id'] = card.online_link_id
