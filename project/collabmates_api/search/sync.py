@@ -337,7 +337,7 @@ class ElasticSearchSync:
         @return: None
         @description: Updates member for a  given community id and member id
         """
-        instances = Members.objects.filter(community_id__id=community_id, member_id__id=member_id)
+        instances = Members.objects.filter(community_id=community_id, member_id=member_id)
 
         ElasticSearchSync.update_document(instances)
 

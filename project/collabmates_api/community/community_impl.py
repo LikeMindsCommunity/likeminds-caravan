@@ -546,8 +546,6 @@ class CommunityImpl(CommunityManager):
             CommunityHelper.run_async_for_community_approve(community_instance, user_instance,
                                                                 promoter_userinfo_instance)
 
-            ElasticSearchSync.update_member.delay(self.get_member_id(), self.get_community_id())
-
         else:
             self._decline_community_join_request(community_instance, user_instance)
             members_count = Members.get_members_count_in_community(community_instance)
@@ -920,6 +918,8 @@ class CommunityHelper:
         send_community_confirmation_email.delay(user_instance.id, community_instance.id)
         MixpanelEvents.member_approved_by_cm.delay(user_instance.id, promoter_userinfo_instance.user_id_id
                                                    , community_instance.id)
+
+        ElasticSearchSync.update_member.delay(user_instance.id, community_instance.id)
 
     @staticmethod
     def run_async_task_for_community_declined(community_instance, user_instance, promoter_userinfo_instance):
