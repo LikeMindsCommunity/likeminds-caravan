@@ -12,7 +12,9 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from external_services.mixpanel.events import MixpanelEvents
-from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW
+from togther.models import *
+from random import randint
+from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM
 from utility.celery_tasks import (
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -23,7 +25,7 @@ from utility.celery_tasks import (
                                   update_chatroom_conversation_count_in_cache,
                                   update_chatroom_conversation_creators_in_cache, get_conversation_poll,
                                   update_multiple_previews_in_community, update_preview_of_community_in_cache,
-                                  )
+                                  update_event_attendees)
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail)
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -33,10 +35,7 @@ from .snackbar.snackbar_impl import SnackbarImpl
 from .members import *
 from .sync.model_update import update_models_for_syncing_apis
 from .utility import *
-from .tasks import (send_email_to_nominated_admin, send_email_for_new_collabcard_posted,
-                    send_verification_mail_for_email_sync,
-                    send_tagged_user_mail, send_chatroom_owner_mail,
-                    send_community_confirmation_email, update_pending_chatrooms_and_report_count,
+from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     )
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -10124,6 +10123,18 @@ def fetch_community_manager_rights(request):
     return JsonResponse({"admin_mobiles": mobile_list, "member": member_profile[0], "rights": rights_context})
 
 
+def update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance):
+
+    ModelUtilities.get_model_filter(collabcardState,
+                                    {'card__is_pending': False,
+                                     'card__is_deleted': False,
+                                     'user': user_instance,
+                                     'community': community_instance,
+                                     'secret_chatroom_left': False,
+                                     'card__date_time__gt': TimeUtilities.current_time_in_milliseconds()}). \
+        filter(Q(card__type=card_types.CARD_EVENT) | Q(card__type=card_types.CARD_PUBLIC_EVENT)).\
+        update(attending_status=True, updated_at=TimeUtilities.current_time_in_sec())
+
 @csrf_exempt
 def update_community_manager_rights(request):
     """ function to remove a communtiy manager as manager """
@@ -10190,7 +10201,7 @@ def update_community_manager_rights(request):
         if int(user_id) != int(current_user_id):
             member = Members.objects.filter(member_id=user_instance,
                                             community_id=community_instance)
-            if member.exists():
+            if member:
                 member_instance = member[0]
             else:
                 context = get_error_context(False, "user is not a member")
@@ -10236,6 +10247,8 @@ def update_community_manager_rights(request):
 
                 send_notification_for_new_promoter.delay(promoter_id=current_user_id, member_id=user_id,
                                                          community_id=community_id, custom_title=custom_title)
+                update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance)
+
             elif custom_title_changed:
                 member_title_changed = True
 
@@ -11303,17 +11316,32 @@ class SyncChatrooms(APIView):
         community_id = query_params.get('community_id', '')
         chatroom_status = query_params.get('chatroom_status', '')
         chatroom_expire_status = query_params.get('chatroom_expire_status', '')
-
+        chatroom_type = query_params.get('type')
         draft = query_params.get('draft', '')
+
+        if not chatroom_type:
+            type_list = [
+                card_types.CARD_POLL,
+                card_types.CARD_PURPOSE,
+                card_types.CARD_EVENT,
+                card_types.CARD_PUBLIC_EVENT,
+                card_types.CARD_MASTER_INTRO,
+                card_types.CARD_NORMAL,
+                card_types.CARD_INTRO
+            ]
+        else:
+
+            type_list = [chatroom_type]
 
         if draft and draft == "true":
             draft_response = self._get_draft_chatrooms(member_id, last_updated, page, paginate_by)
             return JsonResponse(draft_response)
 
         if chatroom_id:
-            state_filter = collabcardState.objects.filter(card=chatroom_id, user=member_id)
 
-            if state_filter.exists():
+            if ModelUtilities.is_model_filter_exists(collabcardState, {'card': chatroom_id,
+                                                                       'user': member_id}):
+
                 chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id,
                                                                           last_updated=last_updated)
             else:
@@ -11327,10 +11355,12 @@ class SyncChatrooms(APIView):
             chatroom_data, chatroom_id_list = fetch_community_chatroom_query(community_id, member_id, page,
                                                                                      paginate_by,
                                                                                      last_updated,
-                                                                             follow_status=follow_status)
+                                                                             follow_status=follow_status,
+                                                                             type_list=type_list)
         else:
             chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated,
-                                                                         chatroom_status, chatroom_expire_status)
+                                                                         chatroom_status, chatroom_expire_status,
+                                                                         type_list)
         poll_data = {}
         poll_votes = {}
 
@@ -11419,21 +11449,8 @@ class SyncChatrooms(APIView):
                 chatroom["expiry_time"] = data[32]
 
             if chatroom['type'] == card_types.CARD_EVENT or chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
-                if data[33]:
-                    chatroom['about'] = data[33]
-                if data[34]:
-                    chatroom['co_hosts_id'] = self._get_co_hosts(data[34])
-                if data[35]:
-                    chatroom['online_link'] = data[35]
-                if data[32] > 0:
-                    chatroom['end_date'] = data[32]
 
-                chatroom['duration'] = data[41]
-
-                if data[42]:
-                    chatroom['location'] = data[42]
-                    chatroom['location_lat'] = data[43]
-                    chatroom['location_long'] = data[44]
+                self._fill_event_related_details(chatroom, data)
 
             if data[36]:
                 chatroom['og_tags'] = json.loads(data[36])
@@ -11734,6 +11751,62 @@ class SyncChatrooms(APIView):
             draft_response = {'chatrooms': chatrooms, 'max_last_updated': max_last_updated}
 
         return draft_response
+
+    def _fill_event_related_details(self, chatroom, data):
+
+        chatroom['is_paid'] = data[58]
+        chatroom['access'] = data[59]
+        chatroom['online_link_enable_before'] = data[55]
+
+        if data[33]:
+            chatroom['about'] = data[33]
+
+        if data[34]:
+            chatroom['co_hosts_id'] = self._get_co_hosts(data[34])
+
+        if data[35] and not chatroom['is_paid']:
+            chatroom['online_link'] = data[35]
+
+        if data[56] and not chatroom['is_paid']:
+            chatroom['online_link_id'] = data[56]
+
+        if data[57] and not chatroom['is_paid']:
+            chatroom['online_link_password'] = data[57]
+
+        if data[32] > 0:
+            chatroom['end_date'] = data[32]
+
+        chatroom['duration'] = data[41]
+
+        if data[42]:
+            chatroom['location'] = data[42]
+            chatroom['location_lat'] = data[43]
+            chatroom['location_long'] = data[44]
+
+        if data[60]:
+            chatroom['event_payment_link'] = data[60]
+
+        self._fill_event_attendees(chatroom)
+
+    def _fill_event_attendees(self, chatroom):
+
+        event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CHATROOM % str(chatroom['id']))
+
+        if event_attendees_dict:
+            event_attendees_list = event_attendees_dict.get('event_attendees_list', [])
+            chatroom['attendees'] = event_attendees_list
+
+            return
+
+        event_attendees_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                                    {'card': chatroom['id'],
+                                                                     'attending_status': True}
+                                                                    ).values_list('user', flat=True).
+                                    order_by('created_at', 'id')[:10])
+
+        update_event_attendees({'chatroom_id': chatroom['id'],
+                                'event_attendees_list': event_attendees_list})
+        chatroom['attendees'] = event_attendees_list
 
 
 class SyncChatroomsDiff(APIView):
@@ -13569,7 +13642,8 @@ def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
     return chatroom_list
 
 
-def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status):
+def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status,
+                               type_list):
 
     """
     This function returns chatrooms based on different conditions
@@ -13583,42 +13657,64 @@ def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatr
 
         if chatroom_status == "followed" and chatroom_expire_status == "active":
             chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
-                                                                                               page, last_updated, follow_status=True, active_status=True)
+                                                                                               page, last_updated,
+                                                                                               follow_status=True,
+                                                                                               active_status=True,
+                                                                                               type_list=type_list)
 
         elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
             chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
-                                                                                               page, last_updated, follow_status=True, active_status=False)
+                                                                                               page, last_updated,
+                                                                                               follow_status=True,
+                                                                                               active_status=False,
+                                                                                               type_list=type_list)
 
         elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
             chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
-                                                                                               page, last_updated, follow_status=False, active_status=True)
+                                                                                               page,
+                                                                                               last_updated,
+                                                                                               follow_status=False,
+                                                                                               active_status=True,
+                                                                                               type_list=type_list)
 
         elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
             chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
-                                                                                               page, last_updated, follow_status=False, active_status=False)
+                                                                                               page, last_updated,
+                                                                                               follow_status=False,
+                                                                                               active_status=False,
+                                                                                               type_list=type_list)
 
     elif chatroom_status:
 
         if chatroom_status == "followed":
             chatroom_data, chatroom_id_list = fetch_chatroom_query_with_follow_status(member_id, paginate_by, page,
-                                                                                      last_updated, follow_status=True)
+                                                                                      last_updated,
+                                                                                      follow_status=True,
+                                                                                      type_list=type_list)
 
         elif chatroom_status == "unfollowed":
             chatroom_data, chatroom_id_list = fetch_chatroom_query_with_follow_status(member_id, paginate_by, page,
-                                                                                      last_updated, follow_status=False)
+                                                                                      last_updated,
+                                                                                      follow_status=False,
+                                                                                      type_list=type_list)
 
     elif chatroom_expire_status:
 
         if chatroom_expire_status == "active":
             chatroom_data, chatroom_id_list = fetch_chatroom_query_with_active_status(member_id, paginate_by, page,
-                                                                                      last_updated, active_status=True)
+                                                                                      last_updated,
+                                                                                      active_status=True,
+                                                                                      type_list=type_list)
 
         elif chatroom_expire_status == "inactive":
             chatroom_data, chatroom_id_list = fetch_chatroom_query_with_active_status(member_id, paginate_by, page,
-                                                                                      last_updated, active_status=False)
+                                                                                      last_updated,
+                                                                                      active_status=False,
+                                                                                      type_list=type_list)
 
     else:
-        chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated)
+        chatroom_data, chatroom_id_list = fetch_chatrooms_query(member_id, paginate_by, page, last_updated,
+                                                                type_list=type_list)
 
     return chatroom_data, chatroom_id_list
 

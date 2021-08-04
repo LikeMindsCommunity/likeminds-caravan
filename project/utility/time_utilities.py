@@ -162,3 +162,17 @@ class TimeUtilities:
             epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
 
         return time.strftime('%d-%m-%Y', time.localtime(epoch_time))
+
+    @staticmethod
+    def get_minutes_in_milliseconds(minutes):
+
+        return minutes * 60 * 1000
+
+    @staticmethod
+    def convert_epoch_time_to_RFC3339(epoch_time):
+
+        epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
+
+        dt = datetime.utcfromtimestamp(epoch_time).isoformat() + 'Z'
+
+        return dt

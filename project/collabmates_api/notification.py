@@ -835,7 +835,7 @@ def get_user_data_for_event_wa_notification(card_instance):
     return data_list
 
 
-def precompute_usernames_for_event_attendies(user_ids):
+def precompute_usernames_for_event_attendees(user_ids):
     userinfo_queryset = ModelUtilities.get_model_filter(Userinfo, {
         'user_id__in': user_ids
     })
@@ -854,7 +854,7 @@ def get_user_details_for_event_attendees(user_ids):
         'state': mobile_states.PRIMARY
     })
 
-    user_names = precompute_usernames_for_event_attendies(user_ids)
+    user_names = precompute_usernames_for_event_attendees(user_ids)
 
     user_data = {}
 
@@ -3244,3 +3244,36 @@ def send_notification_on_chatroom_topic_update(chatroom_id):
     }
 
     notification_meta(notification_list, message)
+
+
+@shared_task
+def send_notification_for_event_update(chatroom_id):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not card_instance:
+        return
+
+    user_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                     {'card': card_instance, 'attending_status': True,
+                                                      'is_tagged': False, 'remove': None}).\
+                     values_list('user_id', flat=True))
+
+    notification_list = []
+
+    for user_id in user_list:
+
+        if user_id == card_instance.user_id:
+            continue
+
+        notification_list.append({'id': user_id})
+
+    message = {
+        'payload': {
+            'title': card_instance.header,
+            'sub_title': "Event details have been updated",
+            'route': CHATROOM_DETAIL_NOTIFICATION_ROUTE % str(card_instance.id)
+        }
+    }
+
+    notification_meta(notification_list, message)
+

@@ -245,7 +245,10 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "date_epoch": card.date_epoch,
         'is_secret': card.is_secret,
         'auto_follow_done': card.auto_follow_done,
-        'is_edited': card.is_edited
+        'is_edited': card.is_edited,
+        'is_paid': card.is_paid,
+        'access': card.access,
+        'online_link_enable_before': card.online_link_enable_before
     }
 
     if card.secret_chatroom_participants:
@@ -316,8 +319,17 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
             collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community_id,
                                                          current_user_id=user)
 
-        if card.online_link:
-            collabcard['online_link'] = card.online_link
+        if card.online_link and not card.is_paid:
+            card['online_link'] = card.online_link
+
+        if card.online_link_id and not card.is_paid:
+            collabcard['online_link_id'] = card.online_link_id
+
+        if card.online_link_password and not card.is_paid:
+            collabcard['online_link_password'] = card.online_link_password
+
+        if card.event_payment_link:
+            collabcard['event_payment_link'] = card.event_payment_link
 
     # for sending header
     if card.header:
@@ -352,13 +364,6 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
-
-    if not preview:
-        share = get_share_url_text(card, user)
-        collabcard['share_url'] = share['share_url']
-        collabcard['creator_share_url'] = share['creator_share_url']
-        collabcard['link_created_at'] = share['link_created_at']
-        collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
 
     if card.has_reactions:
         reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'])
@@ -780,7 +785,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         if not expiry_time or expiry_time >= TimeUtilities.current_time_in_sec():
             collabcard_serializer['active'] = True
 
-    collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id,
+    collabcard_member = get_members_profile([card_instance.user_id], card_instance.community_id,
                                                 send_profile=send_profile)
     collabcard_serializer['member'] = collabcard_member[0]
 

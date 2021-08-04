@@ -373,7 +373,6 @@ conversation_poll_types = ConversationPollTypes()
 
 
 class SearchIndexes(enum.Enum):
-
     CHATROOM = "chatroom"
     CONVERSATION = "conversation"
     MEMBER_DIRECTORY = "member_directory"
@@ -400,3 +399,12 @@ class SubscriptionStatus(enum.Enum):
 
     def fetch_name(self):
         return '%s' % (" ".join([word.lower() for word in self.name.split("_")]))
+
+
+class EventAccess:
+    NON_COMMUNITY_USERS = 0
+    COMMUNITY_MEMBERS = 1
+    NON_COMMUNITY_USERS_AND_MEMBERS = 2
+
+
+event_access = EventAccess()

@@ -11,7 +11,7 @@ from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER,
 
 from .conversation_manager import ConversationManager
 from .reactions import fetch_chatroom_or_conversation_reactions
-from ..chatroom.chatroom_impl import ChatroomHelper
+from ..chatroom import chatroom_impl
 from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list, \
     send_notification_on_chatroom_topic_update
 from ..member_community.member_community_impl import MemberCommunityImpl
@@ -394,7 +394,7 @@ class ConversationImpl(ConversationManager):
 
             chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
-            chatroom_state_instance.expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
+            chatroom_state_instance.expiry_time = chatroom_impl.ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
             chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             chatroom_state_instance.save()
 
@@ -406,7 +406,7 @@ class ConversationImpl(ConversationManager):
             if member_state == member_states.ADMIN or \
                     member_state == member_states.MEMBER or \
                     member_state == member_states.PROFILE_UNAVAILABLE:
-                expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
+                expiry_time = chatroom_impl.ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
                 state_instance = collabcardState.create_chatroom_state_instance(chatroom_instance,
                                                                                 user_instance, state=0,
                                                                                 expire_at=expiry_time)

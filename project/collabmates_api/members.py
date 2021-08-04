@@ -438,6 +438,7 @@ def get_all_members(request, req_dict=None):
 
 def add_expired_members_metadata(members, community_instance):
     from .member_community.member_community_impl import MemberCommunityImpl
+    
     if not members:
         return []
 

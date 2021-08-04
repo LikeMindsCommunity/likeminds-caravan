@@ -77,7 +77,7 @@ class Community(models.Model):
     is_paid = models.BooleanField(default=False)
     website_url = models.TextField(null=True)
     auto_approval = models.BooleanField(default=False)
-    grace_period = models.BigIntegerField(default=86400*4*1000)  # 4 days in ms
+    grace_period = models.BigIntegerField(default=86400 * 4 * 1000)  # 4 days in ms
     is_discoverable = models.BooleanField(default=False)
 
     community_category = models.TextField(null=True)
@@ -128,7 +128,6 @@ class communityToast(models.Model):
 
     @staticmethod
     def update_or_create_toast_message(create_info):
-
         if not create_info.get('message'):
             return
 
@@ -260,7 +259,7 @@ class Members(models.Model):
             | Q(state=member_states.ADMIN)
             | Q(state=member_states.PROFILE_UNAVAILABLE)
         ).count()
-    
+
     @staticmethod
     def get_members_of_community(community_instance):
 
@@ -270,11 +269,10 @@ class Members(models.Model):
             | Q(state=member_states.PROFILE_UNAVAILABLE)
         )
 
-
     @staticmethod
     def get_community_managers(community_id_list: list) -> list:
-        return Members.objects\
-            .filter(community_id__in=community_id_list, state=member_states.ADMIN)\
+        return Members.objects \
+            .filter(community_id__in=community_id_list, state=member_states.ADMIN) \
             .order_by('community_id__id', 'id')
 
     @staticmethod
@@ -292,8 +290,8 @@ class Members(models.Model):
     @staticmethod
     def fetch_community_members(community_id_list):
         member_state_list = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
-        members = Members.objects\
-            .filter(community_id__in=community_id_list, state__in=member_state_list)\
+        members = Members.objects \
+            .filter(community_id__in=community_id_list, state__in=member_state_list) \
             .order_by('community_id', 'id')
 
         return members
@@ -305,7 +303,7 @@ class Members(models.Model):
         member_instance.community_id = expired_instance.community
         member_instance.state = expired_instance.state
         member_instance.created_at = expired_instance.created_at
-        member_instance.updated_at = expired_instance. updated_at
+        member_instance.updated_at = expired_instance.updated_at
         member_instance.tool_state = expired_instance.tool_state
         member_instance.ask_member_id = expired_instance.ask_member_id
         member_instance.approved_member_id = expired_instance.approved_member_id
@@ -442,22 +440,11 @@ class Collabcard(models.Model):
     attachments_uploaded = models.BooleanField(default=False, null=True)
 
     type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
-    date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
     duration = models.BigIntegerField(default=0)  # for saving duration of event
 
     # for polls count
     polls_count = models.IntegerField(default=0)
     attending_count = models.IntegerField(default=0)
-
-    # for event cards
-    location = models.TextField(null=True)
-    location_lat = models.FloatField(null=True)
-    location_long = models.FloatField(null=True)
-    start_date = models.BigIntegerField(default=0, null=True)
-    end_date = models.BigIntegerField(default=0, null=True)
-    about = models.TextField(null=True)
-    co_hosts = models.TextField(null=True)
-    online_link = models.TextField(null=True)
 
     # for purpose card edit
     updated_member = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='purpose_card_updater')
@@ -506,6 +493,28 @@ class Collabcard(models.Model):
     auto_follow_done = models.BooleanField(default=False)
     topic = models.ForeignKey('card_answers', on_delete=models.SET_NULL, null=True)
     is_edited = models.BooleanField(default=False)
+
+    # fields for event
+    online_link = models.TextField(null=True)
+    online_link_enable_before = models.BigIntegerField(
+        default=TimeUtilities.get_minutes_in_milliseconds(15))  # 15 minutes in milliseconds
+    online_link_id = models.TextField(null=True)
+    online_link_password = models.TextField(null=True)
+    event_payment_link = models.TextField(null=True)
+
+    co_hosts = models.TextField(null=True)
+    location = models.TextField(null=True)
+    location_lat = models.FloatField(null=True)
+    location_long = models.FloatField(null=True)
+    start_date = models.BigIntegerField(default=0, null=True)
+    about = models.TextField(null=True)
+    date_time = models.BigIntegerField(default=0)  # for saving event and poll creation epoch
+    end_date = models.BigIntegerField(default=0, null=True)  # for saving end epoch for event and poll
+    is_paid = models.BooleanField(default=False)
+    access = models.IntegerField(default=1)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
@@ -557,6 +566,17 @@ class Collabcard(models.Model):
     @staticmethod
     def is_chatroom_deleted(is_deleted: bool):
         return is_deleted
+
+    def save(self, *args, **kwargs):
+
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_ms
+
+        self.updated_at = current_time_ms
+
+        super(Collabcard, self).save(*args, **kwargs)
 
 
 class draftChatroom(models.Model):
@@ -899,7 +919,7 @@ class collabcardState(models.Model):
 
         if kwargs.get('community_instance'):
             community_instance = kwargs.get('community_instance')
-        
+
         else:
             community_instance = card_instance.community
 
@@ -990,7 +1010,6 @@ class conversationEngage(models.Model):
     def create_instance_for_bulk_create(community_instance, chatroom_instance, user_instance,
                                         unseen_count=0, rights_list=None, last_conversation=None,
                                         created_at=None, updated_at=None):
-
         current_time_in_sec = TimeUtilities.current_time_in_sec()
 
         created_at = created_at if created_at else current_time_in_sec
@@ -1189,11 +1208,10 @@ class Member_Engage(models.Model):
         engage.community_id = create_info.get('community_instance')
         engage.updated_at = TimeUtilities.current_time_in_sec()
         engage.member_state = create_info.get('state')
-        engage.click_state = create_info.get('click_state',0)
+        engage.click_state = create_info.get('click_state', 0)
         engage.save()
 
     def save(self, *args, **kwargs):
-
         current_time = TimeUtilities.current_time_in_milliseconds()
 
         if not self.order_time:
@@ -1425,7 +1443,6 @@ class CollabcardPolls(models.Model):
     image_url = models.TextField(null=True)
 
     def save(self, *args, **kwargs):
-
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
@@ -1451,7 +1468,6 @@ class MemberPollVotes(models.Model):
     updated_at = models.BigIntegerField(default=0, null=True)
 
     def save(self, *args, **kwargs):
-
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
@@ -1574,7 +1590,6 @@ class questionFilters(models.Model):
         instance.save()
 
     def save(self, *args, **kwargs):
-
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
@@ -1665,7 +1680,6 @@ class emailTokens(models.Model):
     email_state = models.IntegerField(default=0)
 
     def save(self, *args, **kwargs):
-
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
@@ -1683,7 +1697,6 @@ class userEmails(models.Model):
     verified = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
-
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
@@ -1748,7 +1761,6 @@ class communityFieldTypes(models.Model):
     created_at = models.BigIntegerField(default=0)
 
     def save(self, *args, **kwargs):
-
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
@@ -1769,7 +1781,6 @@ class communityFieldSubTypes(models.Model):
     rank = models.IntegerField(default=0)
 
     def save(self, *args, **kwargs):
-
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
@@ -1798,7 +1809,6 @@ class communityField(models.Model):
     rank = models.IntegerField(default=0)
 
     def save(self, *args, **kwargs):
-
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
@@ -1821,7 +1831,6 @@ class memberNotificationFlag(models.Model):
     created_at = models.BigIntegerField(default=0, null=True)
 
     def save(self, *args, **kwargs):
-
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
@@ -1881,8 +1890,8 @@ class userAdminRights(models.Model):
 
     @staticmethod
     def fetch_user_admin_rights(user, community):
-        user_rights = userAdminRights.objects\
-            .filter(user=user, community=community)\
+        user_rights = userAdminRights.objects \
+            .filter(user=user, community=community) \
             .values_list('right__state', flat=True)
 
         return list(user_rights)
@@ -1938,8 +1947,8 @@ class userMemberRights(models.Model):
 
     @staticmethod
     def fetch_user_member_rights(user, community):
-        user_rights = userMemberRights.objects\
-            .filter(user=user, community=community)\
+        user_rights = userMemberRights.objects \
+            .filter(user=user, community=community) \
             .values_list('right__state', flat=True)
 
         return list(user_rights)
@@ -1963,7 +1972,6 @@ class moderationHistory(models.Model):
         instance.save()
 
     def save(self, *args, **kwargs):
-
         if self.moderation_time <= 0:
             self.moderation_time = TimeUtilities.current_time_in_sec()
 
@@ -2001,7 +2009,6 @@ class userDevices(models.Model):
 
     @staticmethod
     def create_instance(create_info):
-
         instance = userDevices()
         instance.user = create_info.get('user_instance')
         instance.mobile_os = create_info.get('platform_code')
@@ -2010,7 +2017,6 @@ class userDevices(models.Model):
         instance.save()
 
     def save(self, *args, **kwargs):
-
         current_time = TimeUtilities.current_time_in_sec()
 
         if self.created_at == 0:
@@ -2226,7 +2232,7 @@ class SubscriptionExpiredMembers(models.Model):
         expired_instance.community = member_instance.community_id
         expired_instance.state = member_instance.state
         expired_instance.created_at = member_instance.created_at
-        expired_instance.updated_at = member_instance. updated_at
+        expired_instance.updated_at = member_instance.updated_at
         expired_instance.tool_state = member_instance.tool_state
         expired_instance.ask_member_id = member_instance.ask_member_id
         expired_instance.approved_member_id = member_instance.approved_member_id
@@ -2242,6 +2248,147 @@ class SubscriptionExpiredMembers(models.Model):
         expired_instance.became_member_at = member_instance.became_member_at
         expired_instance.has_onboarded = member_instance.has_onboarded
         expired_instance.save()
+
+
+class EventInstructor(models.Model):
+
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    about = models.TextField(null=True)
+    url = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+
+        instance = EventInstructor()
+        instance.card = create_info.get('card_instance')
+        instance.about = create_info.get('about')
+        instance.url = create_info.get('url')
+        instance.save()
+
+        return instance
+
+    def save(self, *args, **kwargs):
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_ms
+
+        self.updated_at = current_time_ms
+
+        super(EventInstructor, self).save(*args, **kwargs)
+
+
+class EventHighlights(models.Model):
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    highlight = models.TextField(null=True)
+    url = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = EventHighlights()
+        instance.card = create_info.get('card_instance')
+        instance.highlight = create_info.get('highlight')
+        instance.url = create_info.get('url')
+        instance.save()
+
+        return instance
+
+    def save(self, *args, **kwargs):
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_ms
+
+        self.updated_at = current_time_ms
+
+        super(EventHighlights, self).save(*args, **kwargs)
+
+
+class EventMemberTestimonials(models.Model):
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    member_name = models.TextField(null=True)
+    testimonial = models.TextField(null=True)
+    url = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = EventMemberTestimonials()
+        instance.card = create_info.get('card_instance')
+        instance.member_name = create_info.get('member_name')
+        instance.testimonial = create_info.get('testimonial')
+        instance.url = create_info.get('url')
+        instance.save()
+
+        return instance
+
+    def save(self, *args, **kwargs):
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_ms
+
+        self.updated_at = current_time_ms
+
+        super(EventMemberTestimonials, self).save(*args, **kwargs)
+
+
+class EventFAQ(models.Model):
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    question = models.TextField(null=True)
+    answer = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = EventFAQ()
+        instance.card = create_info.get('card_instance')
+        instance.question = create_info.get('question')
+        instance.answer = create_info.get('answer')
+        instance.save()
+
+        return instance
+
+    def save(self, *args, **kwargs):
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_ms
+
+        self.updated_at = current_time_ms
+
+        super(EventFAQ, self).save(*args, **kwargs)
+
+
+class EventNudge(models.Model):
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    seen_event_chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = EventNudge()
+        instance.seen_event_chatroom = create_info.get('card_instance')
+        instance.user = create_info.get('user_instance')
+        instance.save()
+
+    def save(self, *args, **kwargs):
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_ms
+
+        self.updated_at = current_time_ms
+
+        super(EventNudge, self).save(*args, **kwargs)
 
 
 class ContentDownloadSettings(models.Model):
@@ -2267,3 +2414,4 @@ class ContentDownloadSettings(models.Model):
         self.updated_at = current_time
 
         super(ContentDownloadSettings, self).save(*args, **kwargs)
+

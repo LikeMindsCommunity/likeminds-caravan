@@ -98,3 +98,12 @@ CACHE_CREDENTIALS = {
     'host': os.getenv('CACHE_HOST'),
     'port': os.getenv('CACHE_PORT')
 }
+
+CALENDAR_CREDENTIALS = {
+    'service_account_email': os.getenv('SERVICE_ACCOUNT_EMAIL'),
+    'scopes': [
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/calendar.events'
+    ],
+    'delegated_email': os.getenv('DELEGATED_EMAIL')
+}

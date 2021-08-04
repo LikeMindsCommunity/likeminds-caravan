@@ -15,8 +15,7 @@ from utility.string_utilities import StringUtilities
 from .constants import *
 from .member_community_manager import MemberCommunityManager
 
-from utility.cache_keys import CHATROOM_REACTIONS_CACHE_KEY
-from ..conversation.reactions import fetch_chatroom_or_conversation_reactions
+from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query,
                            get_community_introductions_based_on_user_list_query,
                            get_chatroom_count_based_on_community_list, get_distinct_chatroom_creator_list,
@@ -25,18 +24,18 @@ from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right
 from ..utility import pagination
-from ..views import get_home_screen_community_actions, get_active_chatroom_member_images, \
+from ..views import get_home_screen_community_actions,\
     generate_internal_link_preview_for_conversation, get_latest_conversation_members
 from ..rest_api import CommunitySerializerV1
-from ..serializers import get_user_profile, get_members_profile, get_collabcard_files, get_removed_member_custom_text, \
-    CollabcardPollsSerializer, get_preview_for_url, is_draft_conversation, get_chatroom_instance, \
+from ..serializers import get_collabcard_files, \
+    get_preview_for_url, is_draft_conversation, get_chatroom_instance, \
     get_draft_chatroom_instance, conversationSerializer
 from ..static_files import REMOVED_USER_URL
 
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
-                            CollabcardPolls, MemberPollVotes, Collabcard, card_answers, conversationEngage,
-                            communityQuestions, Userinfo,
-                            CommunityUserDelete, userMobiles, userEmails)
+                            MemberPollVotes, Collabcard, card_answers, conversationEngage,
+                            communityQuestions,
+                            CommunityUserDelete)
 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
@@ -308,7 +307,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def fetch_home_communities(self, page) -> {}:
 
-        user_instance = User.get_user_or_none(self.get_member_id())
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
         community_list = []
 
         if not user_instance:
@@ -415,24 +414,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return chatroom_queryset
 
-    def create_chatroom_preview(self, card_instance):
-
-        preview = {}
-
-        if card_instance.internal_link:
-            try:
-                preview = get_preview_for_url(self.get_member_id(), card_instance.internal_link,
-                                              community_instance=card_instance.preview_community,
-                                              chatroom_instance=card_instance.preview_chatroom,
-                                              send_preview_text=False)
-                if preview is None:
-                    return {}
-
-            except Exception as e:
-                error_logger.error(e.args)
-
-        return preview
-
     def last_seen_chatroom_query(self, pin_status) -> []:
 
         if pin_status:
@@ -485,19 +466,6 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_list
 
     @staticmethod
-    def fetch_chatroom_files(card_instance) -> {}:
-
-        chatroom_files = {}
-        collabcard_files = get_collabcard_files(card_instance.id)
-        chatroom_files['images'] = collabcard_files[0]
-        chatroom_files['pdf'] = collabcard_files[1]
-        chatroom_files['audios'] = collabcard_files[2]
-        chatroom_files['videos'] = collabcard_files[3]
-        chatroom_files['attachments'] = collabcard_files[4]
-
-        return chatroom_files
-
-    @staticmethod
     def fetch_list_of_community_members(community_instance):
 
         member_list = \
@@ -526,14 +494,18 @@ class MemberCommunityImpl(MemberCommunityManager):
         return membership_expired_dict
 
     @staticmethod
-    def fetch_members_based_on_user_list(user_list, community_instance, order_by_name=False) -> {}:
+    def fetch_members_based_on_user_list(user_list, community_instance, order_by_name=False,
+                                         send_expired_info=True) -> {}:
 
         member_dict = {}
+        membership_expired_dict ={}
         member_list = get_members_based_on_user_list_query(user_list, community_instance.id,
                                                            order_by_name=order_by_name)
         community_name = community_instance.name
-        membership_expired_dict = MemberCommunityImpl.fetch_members_for_membership_expired(user_list,
-                                                                                           community_instance)
+
+        if send_expired_info:
+            membership_expired_dict = MemberCommunityImpl.fetch_members_for_membership_expired(user_list,
+                                                                                               community_instance)
 
         for data in member_list:
 
@@ -703,27 +675,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return remove_member
 
-    def compute_co_host_of_chatroom_events(self, co_host_list, community_instance) -> []:
-
-        co_hosts = []
-        member_dict = self.fetch_members_based_on_user_list(co_host_list, community_instance)
-
-        for data in co_host_list:
-            user_id = NumberUtilities.get_integer_from_string(data)
-
-            if user_id in member_dict:
-                co_hosts.append(member_dict[user_id])
-            else:
-                user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-                if not user_instance:
-                    continue
-
-                removed_context = self.compute_removed_user_context(user_instance, community_instance)
-                co_hosts.append(removed_context)
-
-        return co_hosts
-
     def fetch_user_onboarding_communities_queryset(self) -> []:
 
         member_queryset = \
@@ -733,239 +684,6 @@ class MemberCommunityImpl(MemberCommunityManager):
                 state=member_states.PROFILE_UNAVAILABLE)).select_related('community_id'
                                                                          ).order_by('created_at')
         return member_queryset
-
-    @staticmethod
-    def fetch_poll_id_list(chatroom_list):
-        poll_list = []
-
-        for data in chatroom_list:
-            card_instance = data.card
-
-            if card_instance.type == card_types.CARD_POLL:
-                poll_list.append(card_instance.id)
-
-        return poll_list
-
-    @staticmethod
-    def process_poll_list(poll_list):
-
-        poll_data = {}
-        poll_votes = {}
-
-        if poll_list:
-            poll_data = fetch_chatroom_polls(poll_list)
-            poll_votes = fetch_member_poll_votes(poll_list)
-
-        return poll_data, poll_votes
-
-    @staticmethod
-    def process_poll(poll_data, chatroom_id, poll_votes, is_multi, member_id):
-
-        chatroom_poll_data = poll_data.get(chatroom_id)
-        chatroom_votes = poll_votes.get(chatroom_id)
-
-        if not chatroom_poll_data:
-            chatroom_poll_data = []
-
-        if not chatroom_votes:
-            chatroom_votes = []
-
-        total_votes = len(chatroom_votes)
-        polls = []
-
-        for data in chatroom_poll_data:
-
-            poll_id = data['id']
-            member_set = set()
-            count = 0
-            total_member_set = set()
-            temp = {}
-            temp['id'] = poll_id
-            temp['text'] = data['text']
-            temp['is_selected'] = False
-            temp['member'] = data['member']
-            if total_votes == 0:
-                temp['no_votes'] = 0
-                temp['percentage'] = 0
-                polls.append(temp)
-                continue
-            for member in chatroom_votes:
-
-                if member['user_id'] not in total_member_set:
-                    total_member_set.add(member['user_id'])
-
-                if member['poll_id'] == poll_id:
-                    count = count + 1
-                    if member['user_id'] not in member_set:
-                        if member['user_id'] == int(member_id):
-                            temp['is_selected'] = True
-                        member_set.add(member['user_id'])
-
-            if is_multi:
-                count = len(member_set)
-                total_votes = len(total_member_set)
-
-            temp['no_votes'] = count
-
-            temp['percentage'] = int((count / total_votes) * 100)
-
-            polls.append(temp)
-
-        return polls
-
-    @staticmethod
-    def compute_total_response_count(card_instance):
-
-        key = CONVERSATIONS_COUNT_CACHE_KEY % str(card_instance.id)
-
-        conversation_count = CacheImpl.get_cache(key)
-
-        if conversation_count:
-            return conversation_count['total_responses_count']
-        else:
-            conversations_count = card_answers.objects.filter(card=card_instance.id,
-                                                              state=conversation_states.ANSWER).filter(
-                Q(attachment_count=0)
-                | Q(
-                    attachments_uploaded=True)).count()
-            update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance.id,
-                                                         'total_responses_count': conversations_count})
-
-            return conversations_count
-
-    def create_last_response_members_images(self, card_instance, community_instance):
-
-        conversation_members = []
-
-        user_list = self.compute_user_id_list_of_conversation_creators(card_instance)
-        member_dict = self.fetch_members_based_on_user_list(user_list, community_instance)
-
-        for user_id in user_list:
-
-            member_data = {}
-
-            member = member_dict.get(user_id)
-
-            if member:
-                member_data = member
-                member_data['chatroom_id'] = card_instance.id
-
-            else:
-                user_instance = User.get_user_or_none(user_id)
-
-                if not user_instance:
-                    continue
-
-                userinfo_instance = user_instance.userinfo
-
-                if user_instance:
-                    member_dict = {
-                        'id': user_instance.id,
-                        'name': userinfo_instance.name,
-                        'image_url': userinfo_instance.image_link
-                    }
-
-            if not member_data:
-                continue
-
-            conversation_members.append(member_data)
-
-        return conversation_members
-
-    def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
-                         poll_votes) -> {}:
-
-        chatroom_context = MemberCommunityHelper.serialize_chatroom(card_instance, return_topic=True)
-
-        if card_instance.has_reactions:
-            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
-        else:
-            reactions = []
-
-        chatroom_context['reactions'] = reactions
-
-        chatroom_context['community_name'] = community_instance.name
-
-        if NumberUtilities.get_integer_from_string(self.get_member_id()) == card_instance.user.id:
-            chatroom_context['has_been_named'] = card_instance.has_been_named
-            chatroom_context['member_id'] = card_instance.user.id
-
-        state_context = MemberCommunityHelper.serialize_chatroom_user_actions(state_instance)
-
-        if card_instance.attachment_count > 0:
-            chatroom_files = self.fetch_chatroom_files(card_instance)
-            chatroom_context.update(chatroom_files)
-
-        if card_instance.type == card_types.CARD_POLL:
-            poll_serializer = MemberCommunityHelper.serialize_poll_chatroom(card_instance, self.get_member_id())
-            polls = self.process_poll(poll_data, card_instance.id, poll_votes,
-                                      poll_serializer.get('multiple_select_no'),
-                                      self.get_member_id())
-
-            if polls:
-                poll_serializer['polls'] = polls
-
-            chatroom_context.update(poll_serializer)
-
-        if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT:
-            co_host_list = chatroom_context.get('co_hosts') if chatroom_context.get('co_hosts') else []
-            co_hosts = self.compute_co_host_of_chatroom_events(co_host_list, community_instance)
-
-            if co_hosts:
-                chatroom_context['co_hosts'] = co_hosts
-
-        chatroom_context.update(state_context)
-
-        preview = self.create_chatroom_preview(card_instance)
-
-        if preview:
-            chatroom_context['preview'] = preview
-
-        chatroom_context['total_response_count'] = self.compute_total_response_count(card_instance)
-
-        if chatroom_context['total_response_count']:
-            chatroom_context['last_response_members'] = self.create_last_response_members_images(card_instance,
-                                                                                                 community_instance)
-
-        return chatroom_context
-
-    def process_chatroom_list(self, chatroom_list, community_instance) -> []:
-
-        chatroom_context_list = []
-        user_list = self.compute_user_id_list_of_chatroom_creators(chatroom_list)
-        member_dict = self.fetch_members_based_on_user_list(user_list, community_instance)
-        poll_list = self.fetch_poll_id_list(chatroom_list)
-        poll_data, poll_votes = self.process_poll_list(poll_list)
-
-        removed_member_dict = {}
-
-        for data in chatroom_list:
-            card_instance = data.card
-            state_instance = data
-            card_creator_id = card_instance.user_id
-
-            current_user_id = NumberUtilities.get_integer_from_string(self.get_member_id())
-            if MemberCommunityHelper.has_attachments_uploaded(card_instance, current_user_id, device_id=self.device_id):
-                continue
-
-            chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
-                                                     , poll_data, poll_votes)
-
-            if member_dict.get(card_creator_id):
-                chatroom_context['member'] = member_dict[card_creator_id]
-
-            else:
-
-                if card_creator_id in removed_member_dict:
-                    chatroom_context['member'] = removed_member_dict.get(card_creator_id)
-                else:
-                    chatroom_context['member'] = self.compute_removed_user_context(card_instance.user,
-                                                                                   community_instance)
-                    removed_member_dict[card_creator_id] = chatroom_context['member']
-
-            chatroom_context_list.append(chatroom_context)
-
-        return chatroom_context_list
 
     def fetch_feed(self, pin_status, chatroom_id=None, scroll_direction=None) -> {}:
 
@@ -998,7 +716,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_list = self.extract_chatrooms_on_scroll(chatroom_id, scroll_direction, chatroom_queryset,
                                                              limit_size=5)
 
-        chatroom_context_list = self.process_chatroom_list(chatroom_list, community_instance)
+        chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
         return {'chatrooms': chatroom_context_list}
 
@@ -1086,7 +805,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not community_instance:
             return {'error_message': "Invalid community id", 'status': 400}
 
-        user_instance = User.get_user_or_none(self.get_member_id())
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
@@ -1111,7 +830,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not chatroom_instance:
             return {'error_message': "Invalid chatroom id", 'status': 400}
 
-        user_instance = User.get_user_or_none(self.get_member_id())
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
@@ -1185,7 +904,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def pending_onboarding_communities(self, page_no, paginate_by) -> {}:
 
-        user_instance = User.get_user_or_none(self.get_member_id())
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'error_message': "In-correct user id"}
@@ -1199,7 +918,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def completed_onboarding_communites(self) -> {}:
 
-        user_instance = User.get_user_or_none(self.get_member_id())
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'error_message': "In-correct user id"}
@@ -1372,171 +1091,6 @@ class MemberCommunityHelper:
                 header = card_instance.title[:27] + "..."
 
         return header
-
-    @staticmethod
-    def compute_card_poll_answer_text(card_instance, current_user_id) -> str:
-
-        current_user_vote_exists = ModelUtilities.is_model_filter_exists(MemberPollVotes, {'card': card_instance,
-                                                                                           'user__id': current_user_id})
-
-        total_users = ModelUtilities.get_model_filter(MemberPollVotes,
-                                                      {'card': card_instance}).values('user').distinct().count()
-
-        poll_text = "Be the first one to vote"
-
-        if current_user_vote_exists:
-
-            if total_users > 1:
-
-                if total_users == 2:
-                    poll_text = f"You and 1 other voted"
-
-                else:
-                    poll_text = f"You and {total_users - 1} others voted"
-
-            elif total_users == 1:
-                poll_text = f"You voted on this poll"
-
-        elif total_users > 0:
-
-            if total_users == 1:
-                poll_text = "1 member voted"
-
-            else:
-                poll_text = f"{total_users} members voted"
-
-        return poll_text
-
-    @staticmethod
-    def serialize_poll_chatroom(card_instance, current_user_id):
-
-        poll_context = {}
-        poll_context["answer_text"] = MemberCommunityHelper.compute_card_poll_answer_text(card_instance,
-                                                                                          current_user_id)
-
-        if card_instance.multiple_select:
-            poll_context['multiple_select'] = card_instance.multiple_select
-
-        if card_instance.multiple_select_no is not None:
-            poll_context['multiple_select_no'] = card_instance.multiple_select_no
-        if card_instance.multiple_select_state is not None:
-            poll_context['multiple_select_state'] = card_instance.multiple_select_state
-
-        poll_context['is_anonymous'] = card_instance.is_poll_anonymous
-        poll_context['allow_add_option'] = card_instance.allow_add_option
-        poll_context['poll_type'] = card_instance.poll_type
-        poll_context[
-            'poll_type_text'] = "Instant poll" if card_instance.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
-        poll_context['submit_type_text'] = "Secret voting" if card_instance.is_poll_anonymous else "Public voting"
-
-        poll_context['expiry_time'] = card_instance.end_date
-
-        return poll_context
-
-    @staticmethod
-    def serialize_chatroom(card_instance, return_topic=False) -> dict:
-
-        chatroom_context = {'id': card_instance.id,
-                            'title': card_instance.title,
-                            'community_id': card_instance.community_id,
-                            'answer_text': card_instance.answer_text,
-                            'share_link': card_instance.share_link,
-                            'image_count': card_instance.image_count,
-                            'pdf_count': card_instance.pdf_count,
-                            'video_count': card_instance.video_count,
-                            'audio_count': card_instance.audio_count,
-                            'attachment_count': card_instance.attachment_count,
-                            'attachments_uploaded': card_instance.attachments_uploaded,
-                            'type': card_instance.type,
-                            'date_time': card_instance.date_time,
-                            'duration': card_instance.duration,
-                            'is_pending': card_instance.is_pending,
-                            'is_secret': card_instance.is_secret,
-                            'answers_count': card_instance.answers_count,
-                            'attending_count': card_instance.attending_count,
-                            'polls_count': card_instance.polls_count,
-                            'date_epoch': card_instance.date_epoch,
-                            'header': MemberCommunityHelper.get_card_header(card_instance),
-                            'date': TimeUtilities.convert_epoch_time_in_date(card_instance.date_epoch),
-                            'created_at': TimeUtilities.convert_epoch_time_in_hh_mm(card_instance.date_epoch),
-                            'card_creation_time': TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(
-                                card_instance.date_epoch),
-                            'auto_follow_done': card_instance.auto_follow_done,
-                            'is_edited': card_instance.is_edited}
-
-        if card_instance.is_secret:
-            chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)
-
-        if card_instance.og_tags:
-            chatroom_context['og_tags'] = json.loads(card_instance.og_tags)
-
-        if card_instance.location:
-            chatroom_context['location'] = card_instance.location
-
-        if card_instance.location_lat:
-            chatroom_context['location_lat'] = card_instance.location_lat
-
-        if card_instance.location_long:
-            chatroom_context['location_long'] = card_instance.location_long
-
-        if card_instance.start_date:
-            chatroom_context['start_date'] = card_instance.start_date
-
-        if card_instance.end_date:
-            chatroom_context['end_date'] = card_instance.end_date
-
-        if card_instance.about:
-            chatroom_context['about'] = card_instance.about
-
-        if card_instance.co_hosts:
-
-            try:
-                co_host_list = json.loads(card_instance.co_hosts)
-            except Exception as e:
-                co_host_list = []
-
-            chatroom_context['co_hosts'] = co_host_list
-
-        if card_instance.online_link:
-            chatroom_context['online_link'] = card_instance.online_link
-
-        if return_topic and card_instance.topic is not None:
-            conversation_serializer = conversationSerializer(card_instance.topic, fetch_reply=False)
-            conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
-                conversation_serializer['created_at'])
-
-            chatroom_context['topic'] = conversation_serializer
-
-        return chatroom_context
-
-    @staticmethod
-    def serialize_chatroom_user_actions(state_instance) -> {}:
-
-        chatroom_user_actions = {}
-
-        chatroom_user_actions['state'] = state_instance.state
-        chatroom_user_actions['mute_status'] = state_instance.mute_status
-        chatroom_user_actions['follow_status'] = state_instance.follow_status
-        chatroom_user_actions['attending_status'] = state_instance.attending_status
-        chatroom_user_actions['is_guest'] = state_instance.is_guest
-        chatroom_user_actions['active'] = False
-        chatroom_user_actions['is_tagged'] = state_instance.is_tagged
-        expiry_time = state_instance.expiry_time
-
-        if not expiry_time or expiry_time >= TimeUtilities.current_time_in_sec():
-            chatroom_user_actions['active'] = True
-
-        return chatroom_user_actions
-
-    @staticmethod
-    def has_attachments_uploaded(chatroom, user_id, device_id=''):
-        if chatroom.attachment_count > 0 and \
-                chatroom.attachments_uploaded is False and \
-                (user_id != chatroom.user_id or
-                 device_id != chatroom.device_id):
-            return True
-
-        return False
 
     @staticmethod
     def extract_member_tagging_data(member_data, community_expired_dict=None) -> []:
