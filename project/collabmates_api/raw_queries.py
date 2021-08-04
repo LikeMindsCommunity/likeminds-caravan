@@ -1213,7 +1213,7 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def fetch_chatroom_with_videos(limit, page, card_list, type_list):
+def fetch_chatroom_with_videos(limit, page, card_list):
     """function to update chatroom data"""
 
     try:
