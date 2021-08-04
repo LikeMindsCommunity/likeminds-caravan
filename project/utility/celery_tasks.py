@@ -5,6 +5,7 @@ from django.conf import settings
 
 from collabmates_api.serializers import get_user_profile, get_preview_for_url, UserinfoSerializer
 from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY
+from  collabmates_api.community.constants import *
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
@@ -18,7 +19,8 @@ from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVER
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
-from utility.states import card_types, conversation_poll_types, conversation_states
+from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
+    level_click_states
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1050,3 +1052,66 @@ def update_event_attendees(attendees_info):
     CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
         'event_attendees_list': event_attendees_list
     })
+
+
+@shared_task
+def set_levels_on_ctc_celery(community_levels_info):
+    '''updating levels based on different call to actions'''
+
+    community_id = community_levels_info.get("community_id")
+    level = community_levels_info.get("level")
+    promoter = community_levels_info.get("promoter")
+
+    if promoter:
+        return
+
+    community_level_filter = communityLevels.objects.filter(community_id=community_id).order_by('id')
+    for instance in community_level_filter:
+
+        if instance.level == level and instance.state == community_level_states.PENDING:
+
+            if instance.joined_members < instance.max_members:
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
+                # instance.update(joined_members=F(instance.joined_members)+1)
+
+            if instance.joined_members >= instance.max_members:
+                instance.state = community_level_states.COMPLETE
+                instance.save()
+
+                community_level_filter.filter(level="Level 3").update(title=LEVEL_3_TITLE,
+                                                                      sub_title=LEVEL_3_SUB_TITLE,
+                                                                      state=community_level_states.PENDING)
+
+        elif instance.level == level and instance.state == community_level_states.PENDING:
+
+            if instance.joined_members < instance.max_members:
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
+
+            if instance.joined_members >= instance.max_members:
+                instance.state = community_level_states.COMPLETE
+                instance.save()
+
+                community_level_filter.filter(level="Level 4").update(title=LEVEL_4_TITLE,
+                                                                      sub_title=LEVEL_4_SUB_TITLE,
+                                                                      state=community_level_states.PENDING)
+
+
+@shared_task
+def set_level_click_state(level_click_state_info):
+
+    community_id = level_click_state_info.get("community_id")
+    is_promoter = level_click_state_info.get("is_promoter")
+
+    # setting the level click state when the promoter set-up directory and update the click state
+
+    if ModelUtilities.is_model_filter_exists(communityLevels,
+                                             {'community_id': community_id,
+                                              'level': "Level 3",
+                                              'level_click_state': level_click_states.DIRECTORY_CREATED}):
+
+        if is_promoter:
+            ModelUtilities.model_update(communityLevels,
+                                        {'community_id': community_id, 'level': "Level 3"},
+                                        {'level_click_state': level_click_states.COMMUNITY_JOINED})

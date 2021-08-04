@@ -25,7 +25,7 @@ from utility.celery_tasks import (
                                   update_chatroom_conversation_count_in_cache,
                                   update_chatroom_conversation_creators_in_cache, get_conversation_poll,
                                   update_multiple_previews_in_community, update_preview_of_community_in_cache,
-                                  update_event_attendees)
+                                  update_event_attendees, set_levels_on_ctc_celery, set_level_click_state)
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail)
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -1506,19 +1506,32 @@ def members(request, community_id):
 def edit_member_profile(request):
     '''api to udate member profile'''
 
-    res = json.loads(request.body)
+    res = RequestUtilities.load_request_body(request)
 
-    community_id = res['community_id']
-    community_instance = Community.objects.get(id=community_id)
+    if not res:
+        return JsonResponse({'error_message': "In-valid request body"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, res.get('community_id'))
+
+    if not community_instance:
+        return JsonResponse({'error_message': "In-valid community id"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_id = community_instance.id
     member_id = get_member_id_from_headers(request)
-    update_preview = False
 
-    if not member_id:
-        member_id = request.GET.get('member_id', None)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+    if not user_instance:
+        return JsonResponse({'error_message': "In-valid user id"},
+                            status=status_codes.HTTP_400_BAD_REQUEST)
+    update_preview = False
 
     state = 0
     member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                               'member_id': member_id})
+
     if member_filter:
         state = member_filter[0].state
 
@@ -1528,89 +1541,55 @@ def edit_member_profile(request):
                           (state == member_states.MEMBER) or
                           (state == member_states.PROFILE_UNAVAILABLE))
 
-    user_instance = User.objects.get(id=member_id)
-
-    answer_filter = communityAnswers.objects.filter(community=community_instance, member=user_instance)
-
     # getting the collabcard Id for introduction card
     collabcard_id = 0
-    intro_card = None
+    intro_card_instance = None
 
-    for answer in answer_filter:
-        if answer.question.question_state == question_states.INTRODUCTION:
+    intro_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
+                                                                'user': user_instance,
+                                                                'is_deleted': False,
+                                                                'type': card_types.CARD_INTRO})
+    if intro_filter:
+        intro_card_instance = intro_filter[0]
 
-            collabcard_filter = Collabcard.objects.filter(community=community_instance,
-                                                          user=user_instance,
-                                                          is_deleted=False,
-                                                          type=card_types.CARD_INTRO)
+    ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
+                                                            'community': community_instance})
+    ModelUtilities.delete_record_in_model(communityAnswers, {'community': community_instance,
+                                                             'member': user_instance})
 
-            if collabcard_filter:
-                collabcard_id = collabcard_filter[0].id
-                intro_card = collabcard_filter[0]
+    from .community.community_impl import CommunityHelper
+    CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
+                                                          res.get('questions', []))
 
-    delete_filters = questionFilters.objects.filter(member=user_instance, community=community_instance).delete()
-    delete_answers = answer_filter.delete()
+    for data in res.get('questions', []):
 
-    info_logger.info(delete_answers)
-    info_logger.info(delete_filters)
-    info_logger.info("\n")
+        if intro_card_instance and data.get("state") == question_states.INTRODUCTION:
+            ModelUtilities.model_update(Collabcard, {'id': intro_card_instance.id},
+                                        {'title': data['value']})
+            ModelUtilities.model_update(collabcardState,
+                                        {'card': intro_card_instance, 'user': user_instance},
+                                        {'updated_at': TimeUtilities.current_time_in_sec()})
 
-    if 'questions' in res:
+            if ModelUtilities.is_model_filter_exists(card_answers,
+                                                     {'preview_chatroom': intro_card_instance,
+                                                      'preview_type': "chatroom"}):
+                update_preview = True
 
-        for question in res['questions']:
-
-            # empty cases handling
-            if 'value' not in question:
-                continue
-            if not question['value']:
-                continue
-
-            question_instance = communityQuestions.objects.get(id=question['id'])
-            answer_instance = communityAnswers()
-            answer_instance.question = question_instance
-            answer_instance.member = user_instance
-            answer_instance.community = community_instance
-            answer_instance.question_answer = question['value']
-            answer_instance.question_title = question_instance.question_title
-            answer_instance.save()
-
-            if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
-                if "$#" in question['value']:
-                    selected_choices = question['value'].split("$#")
-                else:
-                    selected_choices = question['value'].split(",")
-                for choice in selected_choices:
-                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
-                                                      member=user_instance, community=community_instance)
-                    filter_instance.save()
-
-            if collabcard_id and question_instance.question_state == question_states.INTRODUCTION:
-                Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
-                update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                               {'card': collabcard_id, 'user': member_id},
-                                               {})
-
-                if ModelUtilities.is_model_filter_exists(card_answers, {'preview_chatroom': collabcard_id,
-                                                                        'preview_type': "chatroom"}):
-                    update_preview = True
-
-            if question_instance.question_state == question_states.PROFILE_LINK:
-                save_profile_links_from_handles(question_instance, answer_instance)
-
-    update_hidden_fields_in_questions(user_instance, community_instance)
     form_response = FormResponseSerilaizer(community_id, member_id, bl=True, current_user_id=member_id)
 
-    # setting edit status in members table
-    member_filter = Members.objects.filter(community_id=community_instance, member_id=user_instance)
-    member_filter.update(edit_required=False, updated_at=time.time())
+    # # setting edit status in members table
+    ModelUtilities.model_update(Members,
+                                {'community_id': community_instance,
+                                 'member_id': user_instance},
+                                {'edit_required': False, 'updated_at': TimeUtilities.current_time_in_sec()})
 
-    if 'image_url' in res and res['image_url']:
+    if res.get('image_url'):
         member_filter.update(image_url=res['image_url'], updated_at=TimeUtilities.current_time_in_sec())
 
-        if intro_card:
+        if intro_card_instance:
 
             file_filter = ModelUtilities.get_model_filter(Card_Attachment,
-                                                          {'collabcard_id': intro_card})
+                                                          {'collabcard_id': intro_card_instance})
 
             if file_filter:
                 card_file_instance = file_filter[0]
@@ -1618,25 +1597,27 @@ def edit_member_profile(request):
                 card_file_instance.save()
 
             else:
-                save_chatroom_attachments(intro_card, body={
+                save_chatroom_attachments(intro_card_instance, body={
                     'url': res['image_url'],
                     'type': "image",
                     'index': 1
                 })
-                ModelUtilities.model_update(Collabcard, {'id': intro_card.id},
+                ModelUtilities.model_update(Collabcard, {'id': intro_card_instance.id},
                                             {'has_files': True, 'attachment_count': 1,
                                              'attachments_uploaded': True})
 
-            update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': intro_card}, {})
+            update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': intro_card_instance}, {})
         update_preview = True
 
     # posting a introduction collabcard
-    if collabcard_id == 0 and is_verified_member:
+    if not intro_card_instance and is_verified_member:
         post_introduction_card_for_community(community_instance.id, user_instance.id)
         update_preview = False
 
     # update level of community
-    set_levels_on_ctc(community_instance, "Level 3", promoter=is_promoter)
+    set_levels_on_ctc_celery.delay({"community_id": community_instance.id,
+                                    "level": "Level 3",
+                                    "promoter": True if is_promoter else False})
 
     question_answer = ""
 
@@ -1647,13 +1628,8 @@ def edit_member_profile(request):
         update_multiple_previews_in_chatroom.delay({'chatroom_id': collabcard_id})
 
     # setting the level click state when the promoter set-up directory and update the click state
-    present_level = communityLevels.objects.filter(community=community_instance, level="Level 3",
-                                                   level_click_state=level_click_states.DIRECTORY_CREATED)
-    if present_level.exists():
-        is_promoter = is_member_promoter(community_instance.id, member_id)
-        if is_promoter:
-            communityLevels.objects.filter(community=community_instance, level="Level 3").update(
-                level_click_state=level_click_states.COMMUNITY_JOINED)
+
+    set_level_click_state.delay({"community_id": community_instance.id, "is_promoter": True if is_promoter else False})
 
     if question_answer:
         return JsonResponse({'success': True, 'question_answers': question_answer})
