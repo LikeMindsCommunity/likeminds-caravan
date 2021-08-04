@@ -19,7 +19,7 @@ from ..member_community.member_community_impl import MemberCommunityImpl, Member
 from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of_new_event_chatrooms_created_for_user
 from ..rest_api import GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
-                           UserinfoSerializer)
+                           UserinfoSerializer, get_chatroom_instance)
 from ..sync.model_update import update_models_for_syncing_apis
 from ..upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
 from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_time_of_chatroom,
@@ -1340,11 +1340,12 @@ class ChatroomImpl(ChatroomManager):
                 or card_instance.type == card_types.CARD_PUBLIC_EVENT:
 
             card_instance = self.update_event_meta(req_body, user_instance, community_instance, card_instance)
+
             chatroom_context = {
                 'success': True,
                 'chatroom': ChatroomHelper.compute_chatroom_response(card_instance, user_instance, community_instance),
                 'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
-                                                                                               card_instance)
+                                                                                                   card_instance)
             }
 
             return chatroom_context
@@ -2170,7 +2171,10 @@ class ChatroomHelper:
         chatroom_member_instance = ChatroomMemberImpl(member_id=user_instance.id)
         chatroom_list = chatroom_member_instance.process_chatroom_list(chatroom_list, community_instance)
 
-        return chatroom_list[0] if chatroom_list else {}
+        if chatroom_list:
+            return chatroom_list[0]
+
+        return get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
 
     @staticmethod
     def bulk_follow_chatroom_users(card_instance, user_list):
