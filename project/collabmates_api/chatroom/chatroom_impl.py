@@ -1304,6 +1304,7 @@ class ChatroomImpl(ChatroomManager):
                                                                                         user_instance.id,
                                                                                         community_instance.id)
             schedule_chatroom_unpinning_after_event_completion(card_instance)
+            ChatroomHelper.send_event_creation_mail.delay(card_instance.id)
 
             chatroom_context = {
                 'success': True,
@@ -1534,7 +1535,7 @@ class ChatroomImpl(ChatroomManager):
         })
 
         if member_state == member_states.GUEST:
-            ChatroomHelper.send_event_creation_mail(card_instance.id, send_to_members=False,
+            ChatroomHelper.send_event_creation_mail.delay(card_instance.id, send_to_members=False,
                                                     user_list=[user_instance.id])
 
         return {'success': True}
@@ -2252,6 +2253,7 @@ class ChatroomHelper:
         return event_metadata
 
     @staticmethod
+    @shared_task
     def send_event_creation_mail(card_id, send_to_members=True, user_list=None):
 
         if not send_to_members and not user_list:
