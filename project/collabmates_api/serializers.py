@@ -331,6 +331,9 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         if card.event_payment_link:
             collabcard['event_payment_link'] = card.event_payment_link
 
+        if card.event_web_page:
+            collabcard['event_web_page'] = card.event_web_page
+
     # for sending header
     if card.header:
         collabcard['header'] = card.header

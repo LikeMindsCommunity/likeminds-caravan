@@ -654,6 +654,9 @@ class ChatroomMemberHelper:
         if card_instance.event_payment_link:
             chatroom_context['event_payment_link'] = card_instance.event_payment_link
 
+        if card_instance.event_web_page:
+            chatroom_context['event_web_page'] = card_instance.event_web_page
+
         if return_topic and card_instance.topic is not None:
             conversation_serializer = conversationSerializer(card_instance.topic, fetch_reply=False)
             conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(

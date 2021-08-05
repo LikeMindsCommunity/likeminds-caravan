@@ -587,6 +587,7 @@ class ChatroomImpl(ChatroomManager):
         create_context['date_epoch'] = TimeUtilities.current_time_in_sec()
         create_context['member_state'] = member_state
         create_context['event_payment_link'] = req_body.get('event_payment_link')
+        create_context['event_web_page'] = req_body.get('event_web_page')
 
         card_instance = Collabcard(**create_context)
         card_instance.save()
@@ -622,6 +623,7 @@ class ChatroomImpl(ChatroomManager):
                                                                    card_instance.online_link_enable_before)
         update_context['member_state'] = card_instance.member_state
         update_context['event_payment_link'] = req_body.get('event_payment_link')
+        update_context['event_web_page'] = req_body.get('event_web_page')
         update_context['updated_at'] = TimeUtilities.current_time_in_milliseconds()
 
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_context)

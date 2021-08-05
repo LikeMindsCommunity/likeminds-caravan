@@ -279,7 +279,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'poll_type', 'last_seen_conversation', 'is_secret', 'secret_chatroom_participants',
                   'topic_id', 'auto_follow_done', 'is_edited', 'attendees', 'instructors', 'highlights',
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
-                  'online_link', 'online_link_id', 'online_link_password', 'event_payment_link'
+                  'online_link', 'online_link_id', 'online_link_password', 'event_payment_link',
+                  'event_web_page'
                   )
 
     def __init__(self, *args, **kwargs):

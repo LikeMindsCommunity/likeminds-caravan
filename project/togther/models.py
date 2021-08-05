@@ -501,6 +501,7 @@ class Collabcard(models.Model):
     online_link_id = models.TextField(null=True)
     online_link_password = models.TextField(null=True)
     event_payment_link = models.TextField(null=True)
+    event_web_page = models.TextField(null=True)
 
     co_hosts = models.TextField(null=True)
     location = models.TextField(null=True)
