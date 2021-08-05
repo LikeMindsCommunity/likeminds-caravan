@@ -14,18 +14,20 @@ from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from external_services.mixpanel.events import MixpanelEvents
 from togther.models import *
 from random import randint
-from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM
+from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
+    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM
 from utility.celery_tasks import (
-                                  update_last_unseen_in_engage_on_card_creation,
-                                  update_last_unseen_in_engage, update_my_chatrooms_for_users,
-                                  set_chatroom_state_for_all_members_on_card_creation,
-                                  get_chatroom_user_images_for_web, update_preview_of_chatroom_in_cache,
-                                  update_multiple_previews_in_chatroom, update_preview_for_account_image_change,
-                                  schedule_chatroom_unpinning_after_event_completion,
-                                  update_chatroom_conversation_count_in_cache,
-                                  update_chatroom_conversation_creators_in_cache, get_conversation_poll,
-                                  update_multiple_previews_in_community, update_preview_of_community_in_cache,
-                                  update_event_attendees, set_levels_on_ctc_celery, set_level_click_state)
+    update_last_unseen_in_engage_on_card_creation,
+    update_last_unseen_in_engage, update_my_chatrooms_for_users,
+    set_chatroom_state_for_all_members_on_card_creation,
+    get_chatroom_user_images_for_web, update_preview_of_chatroom_in_cache,
+    update_multiple_previews_in_chatroom, update_preview_for_account_image_change,
+    schedule_chatroom_unpinning_after_event_completion,
+    update_chatroom_conversation_count_in_cache,
+    update_chatroom_conversation_creators_in_cache, get_conversation_poll,
+    update_multiple_previews_in_community, update_preview_of_community_in_cache,
+    update_event_attendees, set_levels_on_ctc_celery, set_level_click_state, update_event_instructors_in_cache,
+    update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache)
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail)
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -11762,6 +11764,11 @@ class SyncChatrooms(APIView):
         if data[60]:
             chatroom['event_payment_link'] = data[60]
 
+        chatroom['instructors'] = self.fetch_event_instructors(chatroom['id'])
+        chatroom['highlights'] = self.fetch_event_highlights(chatroom['id'])
+        chatroom['testimonials'] = self.fetch_member_testimonials(chatroom['id'])
+        chatroom['faq'] = self.fetch_event_FAQ(chatroom['id'])
+
         self._fill_event_attendees(chatroom)
 
     def _fill_event_attendees(self, chatroom):
@@ -11783,6 +11790,106 @@ class SyncChatrooms(APIView):
         update_event_attendees({'chatroom_id': chatroom['id'],
                                 'event_attendees_list': event_attendees_list})
         chatroom['attendees'] = event_attendees_list
+
+    def fetch_event_instructors(self, card_id):
+
+        instructors_dict = CacheImpl.get_cache(EVENT_INSTRUCTORS_CHATROOM % str(card_id))
+
+        if instructors_dict:
+
+            instructors_list = instructors_dict.get('instructors_list', [])
+
+        else:
+
+            instructor_filter = ModelUtilities.get_model_filter(EventInstructor,
+                                                                {'card': card_id}).order_by('id')
+            instructors_list = []
+
+            for data in instructor_filter:
+                instructors_list.append({
+                    'chatroom_id': data.card_id,
+                    'about': data.about,
+                    'url': data.url
+                })
+
+            update_event_instructors_in_cache({'chatroom_id': card_id,
+                                              'instructors_list': instructors_list})
+
+        return instructors_list
+
+    def fetch_event_highlights(self, card_id):
+
+        highlights_dict = CacheImpl.get_cache(EVENT_HIGHLIGHTS_CHATROOM % str(card_id))
+
+        if highlights_dict:
+            highlights_list = highlights_dict.get('highlights_list', [])
+
+        else:
+
+            highlights_filter = ModelUtilities.get_model_filter(EventHighlights,
+                                                                {'card': card_id}).order_by('id')
+            highlights_list = []
+
+            for data in highlights_filter:
+                highlights_list.append({
+                    'chatroom_id': data.card_id,
+                    'highlight': data.highlight,
+                    'url': data.url
+                })
+
+            update_event_highlights_in_cache({'chatroom_id': card_id,
+                                              'highlights_list': highlights_list})
+
+        return highlights_list
+
+    def fetch_event_FAQ(self, card_id):
+
+        faq_dict = CacheImpl.get_cache(EVENT_FAQ_CHATROOM % str(card_id))
+
+        if faq_dict:
+            faqs_list = faq_dict.get('faqs_list', [])
+
+        else:
+
+            faq_filter = ModelUtilities.get_model_filter(EventFAQ,
+                                                         {'card': card_id}).order_by('id')
+            faqs_list = []
+
+            for data in faq_filter:
+                faqs_list.append({
+                    'chatroom_id': data.card_id,
+                    'question': data.question,
+                    'answer': data.answer
+                })
+
+            update_event_faq_in_cache({'chatroom_id': card_id, 'faqs_list': faqs_list})
+
+        return faqs_list
+
+    def fetch_member_testimonials(self, card_id):
+
+        testimonial_dict = CacheImpl.get_cache(EVENT_MEMBERTESTIMONIALS_CHATROOM % str(card_id))
+
+        if testimonial_dict:
+            testimonials_list = testimonial_dict.get('testimonials_list', [])
+
+        else:
+            testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
+                                                                 {'card': card_id}).order_by('id')
+            testimonials_list = []
+
+            for data in testimonial_filter:
+                testimonials_list.append({
+                    'chatroom_id': data.card_id,
+                    'member_name': data.member_name,
+                    'testimonial': data.testimonial,
+                    'url': data.url
+                })
+
+            update_event_member_testimonials_in_cache({'chatroom_id': card_id,
+                                                       'testimonials_list': testimonials_list})
+
+        return testimonials_list
 
 
 class SyncChatroomsDiff(APIView):
