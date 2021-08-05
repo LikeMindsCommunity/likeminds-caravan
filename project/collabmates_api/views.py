@@ -8446,7 +8446,7 @@ def config(request):
     context['use_segment'] = True
     context['micro_polls_enabled'] = False
     context['enable_gif'] = True
-    context['enable_audio'] = False
+    context['enable_audio'] = True
 
     in_app_review_filter = ModelUtilities.get_model_filter(InAppReview, {'user': user_instance})
 

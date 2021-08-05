@@ -776,7 +776,7 @@ class ChatroomMemberHelper:
         testimonial_dict = CacheImpl.get_cache(EVENT_MEMBERTESTIMONIALS_CHATROOM % str(card_instance.id))
 
         if testimonial_dict:
-            testimonials_list = testimonial_dict.get('testimonial_dict', [])
+            testimonials_list = testimonial_dict.get('testimonials_list', [])
 
         else:
             testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
