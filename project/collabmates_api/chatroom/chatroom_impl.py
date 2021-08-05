@@ -669,10 +669,10 @@ class ChatroomImpl(ChatroomManager):
             chatroom_context['online_link'] = card_instance.online_link
 
         if card_instance.online_link_id:
-            chatroom_context['online_link'] = card_instance.online_link_id
+            chatroom_context['online_link_id'] = card_instance.online_link_id
 
         if card_instance.online_link_password:
-            chatroom_context['online_link'] = card_instance.online_link_password
+            chatroom_context['online_link_password'] = card_instance.online_link_password
 
     def fetch_chatroom(self) -> dict:
 
