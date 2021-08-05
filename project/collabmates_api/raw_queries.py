@@ -1842,13 +1842,13 @@ def get_last_seen_event_chatroom_id_for_user(user_id):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_count_of_new_event_chatrooms_created_for_user(user_id, card_id):
+def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
 
     try:
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """SELECT card_id
+        sql = """SELECT count(*)
                  FROM togther_collabcardState
                  WHERE card_id IN 
                     (SELECT id
@@ -1857,7 +1857,7 @@ def get_count_of_new_event_chatrooms_created_for_user(user_id, card_id):
                             OR type=6)
                         AND user_id=%s
                         AND state=0
-                 AND card_id > %s 
+                 AND card_id > %s
         """ % (str(user_id), str(card_id))
         curr.execute(sql)
         card_tupple = curr.fetchone()
@@ -1865,6 +1865,8 @@ def get_count_of_new_event_chatrooms_created_for_user(user_id, card_id):
 
         if card_tupple:
             return card_tupple[0]
+
+        return 0
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
