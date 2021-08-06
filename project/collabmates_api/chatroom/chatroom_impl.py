@@ -1353,7 +1353,7 @@ class ChatroomImpl(ChatroomManager):
                                                                                                card_instance)
             }
 
-            if not req_body.get('restrict_event_update'):
+            if not req_body.get('restrict_event_update_notification'):
                 send_notification_for_event_update.delay(card_instance.id)
 
             return chatroom_context
