@@ -32,7 +32,8 @@ from ..notification import (get_tagged_members_list, send_notification_to_event_
                             send_ice_breaker_notification, send_sync_notification,
                             send_pin_chatroom_notification, send_notification_for_new_secret_room_participant,
                             send_notification_for_removed_secret_room_participant,
-                            send_notification_for_auto_follow_chatroom_for_all_members)
+                            send_notification_for_auto_follow_chatroom_for_all_members,
+                            send_notification_for_event_update)
 
 from ..search.sync import ElasticSearchSync
 
@@ -622,8 +623,10 @@ class ChatroomImpl(ChatroomManager):
         update_context['online_link_enable_before'] = req_body.get('online_link_enable_before',
                                                                    card_instance.online_link_enable_before)
         update_context['member_state'] = card_instance.member_state
-        update_context['event_payment_link'] = req_body.get('event_payment_link')
-        update_context['event_web_page'] = req_body.get('event_web_page')
+        update_context['event_payment_link'] = req_body.get('event_payment_link',
+                                                            card_instance.event_payment_link)
+        update_context['event_web_page'] = req_body.get('event_web_page',
+                                                        card_instance.event_web_page)
         update_context['updated_at'] = TimeUtilities.current_time_in_milliseconds()
 
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_context)
@@ -1349,6 +1352,9 @@ class ChatroomImpl(ChatroomManager):
                 'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                                card_instance)
             }
+
+            if not req_body.get('restrict_event_update'):
+                send_notification_for_event_update.delay(card_instance.id)
 
             return chatroom_context
 
