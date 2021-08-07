@@ -341,13 +341,6 @@ SUBSCRIPTION_SERVER_URL = os.getenv('SUBSCRIPTION_SERVER_URL')
 WA_API_KEY = os.getenv('WA_API_KEY')
 
 
-CONFIG_FLAGS = {
-    'SEGMENT': os.getenv('SEGMENT'),
-    'MICRO_POLLS': os.getenv('MICRO_POLLS'),
-    'GIF': os.getenv('GIF'),
-    'AUDIO': os.getenv('AUDIO')
-}
-
 FORCE_UPDATE = {
     'android': os.getenv('ANDROID_FORCE_UPDATE'),
     'ios': os.getenv('IOS_FORCE_UPDATE')
