@@ -8449,14 +8449,11 @@ def config(request):
     except Exception as e:
         error_logger.error(e)
 
-    context['updatePriority'] = 0
-
-    if RequestUtilities.is_request_ios(request) \
-            and version_code < CURRENT_IOS_VERSION:
-        context['updatePriority'] = 1
+    if RequestUtilities.is_request_ios(request):
+        context['updatePriority'] = NumberUtilities.get_integer_from_string(settings.FORCE_UPDATE.get('ios'))
 
     if RequestUtilities.is_request_android(request):
-        context['updatePriority'] = 1
+        context['updatePriority'] = NumberUtilities.get_integer_from_string(settings.FORCE_UPDATE.get('android'))
 
     context['use_segment'] = True
     context['micro_polls_enabled'] = False
