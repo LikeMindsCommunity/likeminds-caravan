@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from external_services.mixpanel.events import MixpanelEvents
+from utility.string_utilities import StringUtilities
 from togther.models import *
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
@@ -8395,7 +8396,6 @@ def config(request):
     """function to update the version number of android for a user profile"""
 
     member_id = get_member_id_from_headers(request)
-
     context = {}
 
     user_instance = User.get_user_or_none(member_id)
@@ -8445,10 +8445,11 @@ def config(request):
     if RequestUtilities.is_request_android(request):
         context['updatePriority'] = 1
 
-    context['use_segment'] = True
-    context['micro_polls_enabled'] = False
-    context['enable_gif'] = True
-    context['enable_audio'] = True
+    context['use_segment'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('SEGMENT'))
+    context['micro_polls_enabled'] = StringUtilities.get_boolean_from_string(
+                settings.CONFIG_FLAGS.get('MICRO_POLLS'))
+    context['enable_gif'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('GIF'))
+    context['enable_audio'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('AUDIO'))
 
     in_app_review_filter = ModelUtilities.get_model_filter(InAppReview, {'user': user_instance})
 
