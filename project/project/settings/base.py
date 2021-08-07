@@ -347,3 +347,8 @@ CONFIG_FLAGS = {
     'GIF': os.getenv('GIF'),
     'AUDIO': os.getenv('AUDIO')
 }
+
+FORCE_UPDATE = {
+    'android': os.getenv('ANDROID_FORCE_UPDATE'),
+    'ios': os.getenv('IOS_FORCE_UPDATE')
+}
