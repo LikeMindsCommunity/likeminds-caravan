@@ -339,3 +339,9 @@ SUBSCRIPTION_SERVER_URL = os.getenv('SUBSCRIPTION_SERVER_URL')
 
 # whatsapp api key to send broadcast messages
 WA_API_KEY = os.getenv('WA_API_KEY')
+
+
+FORCE_UPDATE = {
+    'android': os.getenv('ANDROID_FORCE_UPDATE'),
+    'ios': os.getenv('IOS_FORCE_UPDATE')
+}
