@@ -4067,6 +4067,43 @@ def fetch_chatroom_version_2(request):
     return JsonResponse(context)
 
 
+def add_poll_conversation_data(conversation_instance, current_user_id):
+
+    poll_conversation = {}
+
+    if conversation_instance.state == conversation_states.CONVERSATION_POLL:
+        poll_conversation['state'] = conversation_instance.state
+        poll_conversation['poll_type'] = conversation_instance.poll_type
+
+        if conversation_instance.multiple_select_state:
+            poll_conversation['multiple_select_state'] = conversation_instance.multiple_select_state
+
+        if conversation_instance.multiple_select_no:
+            poll_conversation['multiple_select_no'] = conversation_instance.multiple_select_no
+
+        poll_conversation['is_anonymous'] = conversation_instance.is_anonymous
+        poll_conversation['allow_add_option'] = conversation_instance.allow_add_option
+        poll_conversation['expiry_time'] = conversation_instance.expiry_time
+
+        poll_conversation['polls'] = get_conversation_poll({'conversation_instance': conversation_instance,
+                                                            'member_id': current_user_id,
+                                                            'conversation_id': conversation_instance.id,
+                                                            'poll_type': conversation_instance.poll_type,
+                                                            'multiple_select_no': conversation_instance.multiple_select_no,
+                                                            'expiry_time': conversation_instance.expiry_time,
+                                                            })
+
+        poll_conversation['poll_type_text'] = "Instant poll" \
+            if poll_conversation['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+
+        poll_conversation['submit_type_text'] = "Secret voting" \
+            if poll_conversation['is_anonymous'] else "Public voting"
+
+        poll_conversation['poll_answer_text'] = conversation_instance.poll_answer_text
+
+    return poll_conversation
+
+
 def conversation_meta(request):
     """api to perform firebase operations on conversation for real time messaging"""
 
@@ -4081,10 +4118,12 @@ def conversation_meta(request):
         return JsonResponse(context)
 
     user_id = get_member_id_from_headers(request)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
-    if not user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
+    if not user_instance:
+        context = get_error_context(False, "In-valid user id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
@@ -4115,7 +4154,14 @@ def conversation_meta(request):
 
             conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
                 conversation.created_at)
+
+            poll_conversation = add_poll_conversation_data(conversation, user_instance.id)
+
+            if poll_conversation:
+                conversation_serializer.update(poll_conversation)
+
             conversation_list.append(conversation_serializer)
+
 
     context = {
         'conversations': conversation_list
