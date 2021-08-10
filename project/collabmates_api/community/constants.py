@@ -46,3 +46,11 @@ TWITTER = "Twitter"
 INSTAGRAM_URL = "https://www.instagram.com/"
 TWITTER_URL = "https://twitter.com/"
 
+DOWNLOAD_SETTING_TYPE_TITLE_MAPPING = {
+    "image": "Images",
+    "video": "Videos",
+    "audio": "Audio",
+    "voice_note": "Voice Messages",
+    "pdf": "Documents",
+    "screen_record": "Allow screenshots & screen recording"
+}

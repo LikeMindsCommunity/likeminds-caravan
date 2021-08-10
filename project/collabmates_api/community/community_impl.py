@@ -30,7 +30,7 @@ from django.db.models import Q, F
 from external_services.mixpanel.events import MixpanelEvents
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
-    communityLevels, conversationEngage, userMemberRights, moderationHistory
+    communityLevels, conversationEngage, userMemberRights, moderationHistory, ContentDownloadSettings
 
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -554,6 +554,8 @@ class CommunityImpl(CommunityManager):
             CommunityHelper.run_async_task_for_community_declined(community_instance, user_instance,
                                                                promoter_userinfo_instance)
 
+            ElasticSearchSync.delete_member_from_community.delay(self.get_member_id(), self.get_community_id())
+
         return {'success': True}
 
     def fetch_feed_url(self):
@@ -620,7 +622,10 @@ class CommunityImpl(CommunityManager):
 
             return {'success': False, 'error_message': "Invalid member state"}
 
+
         user_has_access = Members.user_has_app_access(user_instance.id)
+
+        ElasticSearchSync.update_member.delay(self.get_member_id(), self.get_community_id())
 
         return {'success': True, 'access': user_has_access}
 
@@ -639,6 +644,121 @@ class CommunityImpl(CommunityManager):
         members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance)
 
         return {'members': members}
+
+    def fetch_content_download_settings(self, chatroom_id=None):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "Invalid user ID"}
+
+        community_id = self.get_community_id()
+
+        community_instance = None
+
+        if community_id:
+            community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+            if not chatroom_instance:
+                return {"error_message": "Invalid community/chatroom ID."}
+
+            else:
+                community_instance = chatroom_instance.community
+
+        # Now fetch settings from ContentDownloadSettings table
+        content_settings_instance = ModelUtilities.get_model_filter(ContentDownloadSettings,
+                                                                    {"community_id": community_instance})
+
+        content_settings = {
+            "content_download_settings": self.content_download_settings_serializer(content_settings_instance)
+        }
+
+        return content_settings
+
+    def update_content_download_settings(self, content_download_settings_list):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "Invalid user ID"}
+
+        content_setting_status = {
+            "success": False
+        }
+
+        member_community_mapping = {}
+        community_mapping = {}
+
+        if len(content_download_settings_list):
+
+            for content_download_setting in content_download_settings_list:
+
+                if content_download_setting["community_id"] in community_mapping:
+                    community_instance = community_mapping[content_download_setting["community_id"]]
+
+                else:
+                    community_instance = ModelUtilities.get_model_instance_or_none(Community,
+                                                                            content_download_setting["community_id"])
+
+                    if not community_instance:
+                        return {'error_message': "Invalid community ID"}
+
+                    else:
+                        community_mapping[content_download_setting["community_id"]] = community_instance
+
+                if community_instance.id in member_community_mapping:
+                    member_state = member_community_mapping[community_instance.id]
+
+                else:
+                    member_state = Members.get_community_member_state(community_instance, user_instance)
+
+                    if member_state == member_states.GUEST:
+                        return {'error_message': "User is a GUEST."}
+
+                    member_community_mapping[community_instance.id] = member_state
+
+                if member_state == member_states.ADMIN:
+                    ModelUtilities.model_update(ContentDownloadSettings,
+                                    {
+                                        "community_id_id": content_download_setting["community_id"],
+                                        "download_setting_type": content_download_setting["download_setting_type"],
+                                        "download_setting_title": content_download_setting["download_setting_title"]
+                                    },
+                                    {
+                                        "enabled": content_download_setting["enabled"],
+                                        "updated_at": TimeUtilities.current_time_in_milliseconds()
+                                    })
+                    content_setting_status["success"] = True
+
+                else:
+                    content_setting_status["error_message"] = "User doesn’t have ability to update content download " \
+                                                              "settings"
+                    content_setting_status["success"] = False
+                    break
+
+        else:
+            content_setting_status["error_message"] = "Error in fetching content download settings."
+
+        return content_setting_status
+
+    @staticmethod
+    def content_download_settings_serializer(content_settings_filter):
+        content_setting_list = []
+
+        for content_setting in content_settings_filter:
+            content_setting_dict = {
+                "community_id": content_setting.community_id_id,
+                "download_setting_type": content_setting.download_setting_type,
+                "download_setting_title": content_setting.download_setting_title,
+                "enabled": content_setting.enabled
+            }
+
+            content_setting_list.append(content_setting_dict)
+
+        return content_setting_list
 
 
 class CommunityHelper:
@@ -798,6 +918,8 @@ class CommunityHelper:
         send_community_confirmation_email.delay(user_instance.id, community_instance.id)
         MixpanelEvents.member_approved_by_cm.delay(user_instance.id, promoter_userinfo_instance.user_id_id
                                                    , community_instance.id)
+
+        ElasticSearchSync.update_member.delay(user_instance.id, community_instance.id)
 
     @staticmethod
     def run_async_task_for_community_declined(community_instance, user_instance, promoter_userinfo_instance):

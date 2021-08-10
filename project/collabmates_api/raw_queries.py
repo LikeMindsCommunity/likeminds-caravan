@@ -586,6 +586,76 @@ def ranking_all_users_and_communities():
     info_logger.info("Ranking Script Execution Time:", diff)
 
 
+def get_chatroom_query_meta_for_sync():
+
+    meta_query = """ togther_collabcard.id,
+                    togther_collabcard.title,
+                    togther_collabcard.community_id,
+                    togther_collabcard.answer_text,
+                    togther_collabcard.image_count,
+                    togther_collabcard.pdf_count,
+                    togther_collabcard.video_count,
+                    togther_collabcard.audio_count,
+                    togther_collabcard.type,
+                    togther_collabcard.date_time,
+                    togther_collabcard.is_pending,
+                    togther_collabcard.attending_count,
+                    togther_collabcard.polls_count,
+                    togther_collabcard.date_epoch,
+                    togther_collabcard.user_id,
+                    togther_collabcard.has_been_named,
+                    togther_collabcard.header,
+                    togther_collabcardState.state,
+                    togther_collabcardState.mute_status,
+                    togther_collabcardState.follow_status,
+                    togther_collabcardState.is_guest,
+                    togther_collabcardState.is_tagged,
+                    togther_collabcardState.last_seen_conversation_id,
+                    togther_collabcardState.expiry_time,
+                    togther_collabcardState.attending_status,
+                    togther_collabcard.has_files,
+                    togther_collabcard.is_poll_anonymous,
+                    togther_collabcard.allow_add_option,
+                    togther_collabcard.multiple_select_state,
+                    togther_collabcard.multiple_select_no,
+                    togther_collabcard.is_poll_anonymous,
+                    togther_collabcard.poll_type,
+                    togther_collabcard.end_date,
+                    togther_collabcard.about,
+                    togther_collabcard.co_hosts,
+                    togther_collabcard.online_link,
+                    togther_collabcard.og_tags,
+                    togther_collabcard.internal_link,
+                    togther_collabcard.deleted_by_user_id,
+                    togther_collabcardState.updated_at,
+                    togther_community.name,
+                    togther_collabcard.duration,
+                    togther_collabcard.location,
+                    togther_collabcard.location_lat,
+                    togther_collabcard.location_long,
+                    togther_collabcard.attachment_count,
+                    togther_collabcard.attachments_uploaded,
+                    togther_collabcard.is_secret,
+                    togther_collabcard.secret_chatroom_participants,
+                    togther_collabcardState.secret_chatroom_left,
+                    togther_collabcard.has_reactions,
+                    togther_collabcard.device_id,
+                    togther_collabcard.topic_id,
+                    togther_collabcard.auto_follow_done,
+                    togther_collabcard.is_edited,
+                    togther_collabcard.online_link_enable_before,
+                    togther_collabcard.online_link_id,
+                    togther_collabcard.online_link_password,
+                    togther_collabcard.is_paid,
+                    togther_collabcard.access,
+                    togther_collabcard.event_payment_link,
+                    togther_collabcard.event_web_page,
+                    togther_collabcardState.attended
+                """
+
+    return meta_query
+
+
 def fetch_chatroom_polls(chatroom_id_list):
     '''function to update chatroom data'''
 
@@ -715,61 +785,7 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
         curr = conn.cursor()
 
         sql = """
-        SELECT togther_collabcard.id,
-             togther_collabcard.title,
-             togther_collabcard.community_id,
-             togther_collabcard.answer_text,
-             togther_collabcard.image_count,
-             togther_collabcard.pdf_count,
-             togther_collabcard.video_count,
-             togther_collabcard.audio_count,
-             togther_collabcard.type,
-             togther_collabcard.date_time,
-             togther_collabcard.is_pending,
-             togther_collabcard.attending_count,
-             togther_collabcard.polls_count,
-             togther_collabcard.date_epoch,
-             togther_collabcard.user_id,
-             togther_collabcard.has_been_named,
-             togther_collabcard.header,
-             togther_collabcardState.state,
-             togther_collabcardState.mute_status,
-             togther_collabcardState.follow_status,
-             togther_collabcardState.is_guest,
-             togther_collabcardState.is_tagged,
-             togther_collabcardState.last_seen_conversation_id,
-             togther_collabcardState.expiry_time,
-             togther_collabcardState.attending_status,
-             togther_collabcard.has_files,
-             togther_collabcard.is_poll_anonymous,
-             togther_collabcard.allow_add_option,
-             togther_collabcard.multiple_select_state,
-             togther_collabcard.multiple_select_no,
-             togther_collabcard.is_poll_anonymous,
-             togther_collabcard.poll_type,
-             togther_collabcard.end_date,
-             togther_collabcard.about,
-             togther_collabcard.co_hosts,
-             togther_collabcard.online_link,
-             togther_collabcard.og_tags,
-             togther_collabcard.internal_link,
-             togther_collabcard.deleted_by_user_id,
-             togther_collabcardState.updated_at,
-             togther_community.name,
-             togther_collabcard.duration,
-             togther_collabcard.location,
-             togther_collabcard.location_lat,
-             togther_collabcard.location_long,
-             togther_collabcard.attachment_count,
-             togther_collabcard.attachments_uploaded,
-             togther_collabcard.is_secret,
-             togther_collabcard.secret_chatroom_participants,
-             togther_collabcardState.secret_chatroom_left,
-             togther_collabcard.has_reactions,
-             togther_collabcard.device_id,
-             togther_collabcard.topic_id,
-             togther_collabcard.auto_follow_done,
-             togther_collabcard.is_edited
+        SELECT %s
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -780,8 +796,8 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
                 AND togther_collabcardState.remove_id is NULL
                 AND togther_collabcardState.updated_at > %s
         
-        """ % (
-            str(user_id), str(chatroom_id), str(last_updated))
+        """ % (get_chatroom_query_meta_for_sync(),
+               str(user_id), str(chatroom_id), str(last_updated))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -794,68 +810,20 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
         error_logger.error("Error while connecting to PostgreSQL %s", error)
 
 
-def fetch_community_chatroom_query(community_id, user_id, page, limit, last_updated, follow_status):
+def fetch_community_chatroom_query(community_id, user_id, page, limit, last_updated, follow_status, type_list):
     try:
         conn = get_connection()
         curr = conn.cursor()
 
         offset = (int(page) - 1) * int(limit)
+
+        type_tuple = get_tuple_from_array(type_list)
+
+        if not type_tuple:
+            return []
+
         sql = """
-        SELECT togther_collabcard.id,
-             togther_collabcard.title,
-             togther_collabcard.community_id,
-             togther_collabcard.answer_text,
-             togther_collabcard.image_count,
-             togther_collabcard.pdf_count,
-             togther_collabcard.video_count,
-             togther_collabcard.audio_count,
-             togther_collabcard.type,
-             togther_collabcard.date_time,
-             togther_collabcard.is_pending,
-             togther_collabcard.attending_count,
-             togther_collabcard.polls_count,
-             togther_collabcard.date_epoch,
-             togther_collabcard.user_id,
-             togther_collabcard.has_been_named,
-             togther_collabcard.header,
-             togther_collabcardState.state,
-             togther_collabcardState.mute_status,
-             togther_collabcardState.follow_status,
-             togther_collabcardState.is_guest,
-             togther_collabcardState.is_tagged,
-             togther_collabcardState.last_seen_conversation_id,
-             togther_collabcardState.expiry_time,
-             togther_collabcardState.attending_status,
-             togther_collabcard.has_files,
-             togther_collabcard.is_poll_anonymous,
-             togther_collabcard.allow_add_option,
-             togther_collabcard.multiple_select_state,
-             togther_collabcard.multiple_select_no,
-             togther_collabcard.is_poll_anonymous,
-             togther_collabcard.poll_type,
-             togther_collabcard.end_date,
-             togther_collabcard.about,
-             togther_collabcard.co_hosts,
-             togther_collabcard.online_link,
-             togther_collabcard.og_tags,
-             togther_collabcard.internal_link,
-             togther_collabcard.deleted_by_user_id,
-             togther_collabcardState.updated_at,
-             togther_community.name,
-             togther_collabcard.duration,
-             togther_collabcard.location,
-             togther_collabcard.location_lat,
-             togther_collabcard.location_long,
-             togther_collabcard.attachment_count,
-             togther_collabcard.attachments_uploaded,
-             togther_collabcard.is_secret,
-             togther_collabcard.secret_chatroom_participants,
-             togther_collabcardState.secret_chatroom_left,
-             togther_collabcard.has_reactions,
-             togther_collabcard.device_id,
-             togther_collabcard.topic_id,
-             togther_collabcard.auto_follow_done,
-             togther_collabcard.is_edited
+        SELECT %s
     FROM togther_collabcard
     INNER JOIN togther_collabcardState
         ON togther_collabcardState.card_id = togther_collabcard.id
@@ -866,10 +834,11 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
             AND togther_collabcardState.updated_at > %s
             AND togther_collabcardState.remove_id is NULL
             AND togther_collabcardState.follow_status = %s
+            AND togther_collabcard.type in %s
     ORDER BY  togther_collabcardState.updated_at limit %s offset %s
     
-    """ % (
-            str(community_id), str(user_id), str(last_updated), str(follow_status), str(limit), str(offset))
+    """ % (get_chatroom_query_meta_for_sync(),
+            str(community_id), str(user_id), str(last_updated), str(follow_status), str(type_tuple), str(limit), str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -884,7 +853,7 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
         return [], []
 
 
-def fetch_chatrooms_query(user_id, limit, page, last_updated):
+def fetch_chatrooms_query(user_id, limit, page, last_updated, type_list):
     '''function to update chatroom data'''
 
     try:
@@ -893,64 +862,15 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
 
         offset = (int(page) - 1) * int(limit)
 
+        type_tuple = get_tuple_from_array(type_list)
+
+        if not type_tuple:
+            return []
+
         last_updated = int(last_updated)
 
         sql = """
-            SELECT   togther_collabcard.id,
-                     togther_collabcard.title,
-                     togther_collabcard.community_id,
-                     togther_collabcard.answer_text,
-                     togther_collabcard.image_count,
-                     togther_collabcard.pdf_count,
-                     togther_collabcard.video_count,
-                     togther_collabcard.audio_count,
-                     togther_collabcard.type,
-                     togther_collabcard.date_time,
-                     togther_collabcard.is_pending,
-                     togther_collabcard.attending_count,
-                     togther_collabcard.polls_count,
-                     togther_collabcard.date_epoch,
-                     togther_collabcard.user_id,
-                     togther_collabcard.has_been_named,
-                     togther_collabcard.header,
-                     togther_collabcardState.state,
-                     togther_collabcardState.mute_status,
-                     togther_collabcardState.follow_status,
-                     togther_collabcardState.is_guest,
-                     togther_collabcardState.is_tagged,
-                     togther_collabcardState.last_seen_conversation_id,
-                     togther_collabcardState.expiry_time,
-                     togther_collabcardState.attending_status,
-                     togther_collabcard.has_files,
-                     togther_collabcard.is_poll_anonymous,
-                     togther_collabcard.allow_add_option,
-                     togther_collabcard.multiple_select_state,
-                     togther_collabcard.multiple_select_no,
-                     togther_collabcard.is_poll_anonymous,
-                     togther_collabcard.poll_type,
-                     togther_collabcard.end_date,
-                     togther_collabcard.about,
-                     togther_collabcard.co_hosts,
-                     togther_collabcard.online_link,
-                     togther_collabcard.og_tags,
-                     togther_collabcard.internal_link,
-                     togther_collabcard.deleted_by_user_id,
-                     togther_collabcardState.updated_at,
-                     togther_community.name,
-                     togther_collabcard.duration,
-                     togther_collabcard.location,
-                     togther_collabcard.location_lat,
-                     togther_collabcard.location_long,
-                     togther_collabcard.attachment_count,
-                     togther_collabcard.attachments_uploaded,
-                     togther_collabcard.is_secret,
-                     togther_collabcard.secret_chatroom_participants,
-                     togther_collabcardState.secret_chatroom_left,
-                     togther_collabcard.has_reactions,
-                     togther_collabcard.device_id,
-                     togther_collabcard.topic_id,
-                     togther_collabcard.auto_follow_done,
-                     togther_collabcard.is_edited
+            SELECT %s
             FROM togther_collabcard
             INNER JOIN togther_collabcardState
                 ON togther_collabcardState.card_id = togther_collabcard.id
@@ -959,9 +879,10 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated):
             WHERE togther_collabcardState.user_id=%s
                     AND togther_collabcardState.updated_at > %s
                     AND togther_collabcardState.remove_id is NULL
+                    AND togther_collabcard.type in %s
             ORDER BY  togther_collabcardState.updated_at limit %s offset %s
 
-                """ % (str(user_id), str(last_updated), str(limit), str(offset))
+                """ % (get_chatroom_query_meta_for_sync(), str(user_id), str(last_updated), str(type_tuple), str(limit), str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1163,7 +1084,7 @@ def get_dictionary_of_member_responses(res):
     return responses_dict
 
 
-def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, follow_status):
+def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, follow_status, type_list):
     """function to update chatroom data"""
 
     try:
@@ -1172,64 +1093,15 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
 
         offset = (int(page) - 1) * int(limit)
 
+        type_tuple = get_tuple_from_array(type_list)
+
+        if not type_tuple:
+            return []
+
         last_updated = int(last_updated)
 
         sql = """
-        SELECT togther_collabcard.id,
-                 togther_collabcard.title,
-                 togther_collabcard.community_id,
-                 togther_collabcard.answer_text,
-                 togther_collabcard.image_count,
-                 togther_collabcard.pdf_count,
-                 togther_collabcard.video_count,
-                 togther_collabcard.audio_count,
-                 togther_collabcard.type,
-                 togther_collabcard.date_time,
-                 togther_collabcard.is_pending,
-                 togther_collabcard.attending_count,
-                 togther_collabcard.polls_count,
-                 togther_collabcard.date_epoch,
-                 togther_collabcard.user_id,
-                 togther_collabcard.has_been_named,
-                 togther_collabcard.header,
-                 togther_collabcardState.state,
-                 togther_collabcardState.mute_status,
-                 togther_collabcardState.follow_status,
-                 togther_collabcardState.is_guest,
-                 togther_collabcardState.is_tagged,
-                 togther_collabcardState.last_seen_conversation_id,
-                 togther_collabcardState.expiry_time,
-                 togther_collabcardState.attending_status,
-                 togther_collabcard.has_files,
-                 togther_collabcard.is_poll_anonymous,
-                 togther_collabcard.allow_add_option,
-                 togther_collabcard.multiple_select_state,
-                 togther_collabcard.multiple_select_no,
-                 togther_collabcard.is_poll_anonymous,
-                 togther_collabcard.poll_type,
-                 togther_collabcard.end_date,
-                 togther_collabcard.about,
-                 togther_collabcard.co_hosts,
-                 togther_collabcard.online_link,
-                 togther_collabcard.og_tags,
-                 togther_collabcard.internal_link,
-                 togther_collabcard.deleted_by_user_id,
-                 togther_collabcardState.updated_at,
-                 togther_community.name,
-                 togther_collabcard.duration,
-                 togther_collabcard.location,
-                 togther_collabcard.location_lat,
-                 togther_collabcard.location_long,
-                 togther_collabcard.attachment_count,
-                 togther_collabcard.attachments_uploaded,
-                 togther_collabcard.is_secret,
-                 togther_collabcard.secret_chatroom_participants,
-                 togther_collabcardState.secret_chatroom_left,
-                 togther_collabcard.has_reactions,
-                 togther_collabcard.device_id,
-                 togther_collabcard.topic_id,
-                 togther_collabcard.auto_follow_done,
-                 togther_collabcard.is_edited
+        SELECT %s
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1239,10 +1111,11 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
                 AND togther_collabcardState.updated_at > %s
                 AND follow_status = %s
                 AND togther_collabcardState.remove_id is NULL
+                AND togther_collabcard.type in %s
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
         
-            """ % (
-            str(user_id), str(last_updated), follow_status, str(limit), str(offset))
+            """ % (get_chatroom_query_meta_for_sync(),
+                   str(user_id), str(last_updated), follow_status, str(type_tuple), str(limit), str(offset))
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
@@ -1254,7 +1127,7 @@ def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, 
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, active_status):
+def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, active_status, type_list):
     """function to update chatroom data"""
 
     try:
@@ -1262,66 +1135,16 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
         curr = conn.cursor()
 
         offset = (int(page) - 1) * int(limit)
+        type_tuple = get_tuple_from_array(type_list)
+
+        if not type_tuple:
+            return []
 
         last_updated = int(last_updated)
         current_time = int(time.time())
         status_query = get_active_inactive_status_query(active_status, current_time)
 
-        sql = """SELECT  togther_collabcard.id,
-                         togther_collabcard.title,
-                         togther_collabcard.community_id,
-                         togther_collabcard.answer_text,
-                         togther_collabcard.image_count,
-                         togther_collabcard.pdf_count,
-                         togther_collabcard.video_count,
-                         togther_collabcard.audio_count,
-                         togther_collabcard.type,
-                         togther_collabcard.date_time,
-                         togther_collabcard.is_pending,
-                         togther_collabcard.attending_count,
-                         togther_collabcard.polls_count,
-                         togther_collabcard.date_epoch,
-                         togther_collabcard.user_id,
-                         togther_collabcard.has_been_named,
-                         togther_collabcard.header,
-                         togther_collabcardState.state,
-                         togther_collabcardState.mute_status,
-                         togther_collabcardState.follow_status,
-                         togther_collabcardState.is_guest,
-                         togther_collabcardState.is_tagged,
-                         togther_collabcardState.last_seen_conversation_id,
-                         togther_collabcardState.expiry_time,
-                         togther_collabcardState.attending_status,
-                         togther_collabcard.has_files,
-                         togther_collabcard.is_poll_anonymous,
-                         togther_collabcard.allow_add_option,
-                         togther_collabcard.multiple_select_state,
-                         togther_collabcard.multiple_select_no,
-                         togther_collabcard.is_poll_anonymous,
-                         togther_collabcard.poll_type,
-                         togther_collabcard.end_date,
-                         togther_collabcard.about,
-                         togther_collabcard.co_hosts,
-                         togther_collabcard.online_link,
-                         togther_collabcard.og_tags,
-                         togther_collabcard.internal_link,
-                         togther_collabcard.deleted_by_user_id,
-                         togther_collabcardState.updated_at,
-                         togther_community.name,
-                         togther_collabcard.duration,
-                         togther_collabcard.location,
-                         togther_collabcard.location_lat,
-                         togther_collabcard.location_long,
-                         togther_collabcard.attachment_count,
-                         togther_collabcard.attachments_uploaded,
-                         togther_collabcard.is_secret,
-                         togther_collabcard.secret_chatroom_participants,
-                         togther_collabcardState.secret_chatroom_left,
-                         togther_collabcard.has_reactions,
-                         togther_collabcard.device_id,
-                         togther_collabcard.topic_id,
-                         togther_collabcard.auto_follow_done,
-                         togther_collabcard.is_edited
+        sql = """SELECT  %s
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1331,9 +1154,10 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
                 AND %s
                 AND togther_collabcardState.remove_id is NULL
                 AND togther_collabcardState.updated_at > %s
+                AND togther_collabcard.type in %s
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
-              """ % (
-            str(user_id), str(status_query), str(last_updated), str(limit), str(offset))
+              """ % (get_chatroom_query_meta_for_sync(),
+                     str(user_id), str(status_query), str(last_updated), str(type_tuple), str(limit), str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1346,7 +1170,8 @@ def fetch_chatroom_query_with_active_status(user_id, limit, page, last_updated, 
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_updated, follow_status, active_status):
+def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_updated, follow_status,
+                                                     active_status, type_list):
     """function to update chatroom data"""
 
     try:
@@ -1354,66 +1179,16 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
         curr = conn.cursor()
 
         offset = (int(page) - 1) * int(limit)
+        type_tuple = get_tuple_from_array(type_list)
+
+        if not type_tuple:
+            return []
 
         last_updated = int(last_updated)
         current_time = int(time.time())
         status_query = get_active_inactive_status_query(active_status, current_time)
 
-        sql = """SELECT  togther_collabcard.id,
-                         togther_collabcard.title,
-                         togther_collabcard.community_id,
-                         togther_collabcard.answer_text,
-                         togther_collabcard.image_count,
-                         togther_collabcard.pdf_count,
-                         togther_collabcard.video_count,
-                         togther_collabcard.audio_count,
-                         togther_collabcard.type,
-                         togther_collabcard.date_time,
-                         togther_collabcard.is_pending,
-                         togther_collabcard.attending_count,
-                         togther_collabcard.polls_count,
-                         togther_collabcard.date_epoch,
-                         togther_collabcard.user_id,
-                         togther_collabcard.has_been_named,
-                         togther_collabcard.header,
-                         togther_collabcardState.state,
-                         togther_collabcardState.mute_status,
-                         togther_collabcardState.follow_status,
-                         togther_collabcardState.is_guest,
-                         togther_collabcardState.is_tagged,
-                         togther_collabcardState.last_seen_conversation_id,
-                         togther_collabcardState.expiry_time,
-                         togther_collabcardState.attending_status,
-                         togther_collabcard.has_files,
-                         togther_collabcard.is_poll_anonymous,
-                         togther_collabcard.allow_add_option,
-                         togther_collabcard.multiple_select_state,
-                         togther_collabcard.multiple_select_no,
-                         togther_collabcard.is_poll_anonymous,
-                         togther_collabcard.poll_type,
-                         togther_collabcard.end_date,
-                         togther_collabcard.about,
-                         togther_collabcard.co_hosts,
-                         togther_collabcard.online_link,
-                         togther_collabcard.og_tags,
-                         togther_collabcard.internal_link,
-                         togther_collabcard.deleted_by_user_id,
-                         togther_collabcardState.updated_at,
-                         togther_community.name,
-                         togther_collabcard.duration,
-                         togther_collabcard.location,
-                         togther_collabcard.location_lat,
-                         togther_collabcard.location_long,
-                         togther_collabcard.attachment_count,
-                         togther_collabcard.attachments_uploaded,
-                         togther_collabcard.is_secret,
-                         togther_collabcard.secret_chatroom_participants,
-                         togther_collabcardState.secret_chatroom_left,
-                         togther_collabcard.has_reactions,
-                         togther_collabcard.device_id,
-                         togther_collabcard.topic_id,
-                         togther_collabcard.auto_follow_done,
-                         togther_collabcard.is_edited
+        sql = """SELECT  %s
         FROM togther_collabcard
         INNER JOIN togther_collabcardState
             ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1424,9 +1199,10 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                 AND togther_collabcardState.follow_status = %s
                 AND togther_collabcardState.updated_at > %s
                 AND togther_collabcardState.remove_id is NULL
+                AND togther_collabcard.type in %s
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
-              """ % (
-            str(user_id), str(status_query), follow_status, str(last_updated), str(limit), str(offset))
+              """ % (get_chatroom_query_meta_for_sync(),
+                     str(user_id), str(status_query), follow_status, str(last_updated), str(type_tuple), str(limit), str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1454,61 +1230,7 @@ def fetch_chatroom_with_videos(limit, page, card_list):
             card_list = f"({card_list[0]})"
 
         sql = """SELECT distinct on (togther_collabcard.id)
-                    togther_collabcard.id,
-                    togther_collabcard.title,
-                    togther_collabcard.community_id,
-                    togther_collabcard.answer_text,
-                    togther_collabcard.image_count,
-                    togther_collabcard.pdf_count,
-                    togther_collabcard.video_count,
-                    togther_collabcard.audio_count,
-                    togther_collabcard.type,
-                    togther_collabcard.date_time,
-                    togther_collabcard.is_pending,
-                    togther_collabcard.attending_count,
-                    togther_collabcard.polls_count,
-                    togther_collabcard.date_epoch,
-                    togther_collabcard.user_id,
-                    togther_collabcard.has_been_named,
-                    togther_collabcard.header,
-                    togther_collabcardState.state,
-                    togther_collabcardState.mute_status,
-                    togther_collabcardState.follow_status,
-                    togther_collabcardState.is_guest,
-                    togther_collabcardState.is_tagged,
-                    togther_collabcardState.last_seen_conversation_id,
-                    togther_collabcardState.expiry_time,
-                    togther_collabcardState.attending_status,
-                    togther_collabcard.has_files,
-                    togther_collabcard.is_poll_anonymous,
-                    togther_collabcard.allow_add_option,
-                    togther_collabcard.multiple_select_state,
-                    togther_collabcard.multiple_select_no,
-                    togther_collabcard.is_poll_anonymous,
-                    togther_collabcard.poll_type,
-                    togther_collabcard.end_date,
-                    togther_collabcard.about,
-                    togther_collabcard.co_hosts,
-                    togther_collabcard.online_link,
-                    togther_collabcard.og_tags,
-                    togther_collabcard.internal_link,
-                    togther_collabcard.deleted_by_user_id,
-                    togther_collabcardState.updated_at,
-                    togther_community.name,
-                    togther_collabcard.duration,
-                    togther_collabcard.location,
-                    togther_collabcard.location_lat,
-                    togther_collabcard.location_long,
-                    togther_collabcard.attachment_count,
-                    togther_collabcard.attachments_uploaded,
-                    togther_collabcard.is_secret,
-                    togther_collabcard.secret_chatroom_participants,
-                    togther_collabcardState.secret_chatroom_left,
-                    togther_collabcard.has_reactions,
-                    togther_collabcard.device_id,
-                    togther_collabcard.topic_id,
-                    togther_collabcard.auto_follow_done,
-                    togther_collabcard.is_edited
+                    %s
                 FROM togther_collabcard
                 INNER JOIN togther_collabcardState
                     ON togther_collabcardState.card_id = togther_collabcard.id
@@ -1516,6 +1238,7 @@ def fetch_chatroom_with_videos(limit, page, card_list):
                     ON togther_community.id = togther_collabcard.community_id
                 WHERE togther_collabcard.id IN %s
                 ORDER BY  togther_collabcard.id limit %s offset %s """ % (
+            get_chatroom_query_meta_for_sync(),
             str(card_list), str(limit), str(offset))
 
         curr.execute(sql)
@@ -2092,3 +1815,60 @@ def get_n_percentage_member_conversation_chatroom_list(community_id, members_cou
 
         return []
 
+
+def get_last_seen_event_chatroom_id_for_user(user_id):
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """SELECT card_id
+                 FROM togther_collabcardState
+                 WHERE card_id IN 
+                    (SELECT id
+                    FROM togther_collabcard
+                    WHERE type=2
+                            OR type=6)
+                        AND user_id=%s
+                        AND state=0
+                 ORDER BY  created_at, id limit 1 
+        """ % str(user_id)
+        curr.execute(sql)
+        card_tupple = curr.fetchone()
+        curr.close()
+
+        if card_tupple:
+            return card_tupple[0]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """SELECT count(*)
+                 FROM togther_collabcardState
+                 WHERE card_id IN 
+                    (SELECT id
+                    FROM togther_collabcard
+                    WHERE type=2
+                            OR type=6)
+                        AND user_id=%s
+                        AND state=0
+                 AND card_id > %s
+        """ % (str(user_id), str(card_id))
+        curr.execute(sql)
+        card_tupple = curr.fetchone()
+        curr.close()
+
+        if card_tupple:
+            return card_tupple[0]
+
+        return 0
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)

@@ -5,8 +5,9 @@ from utility.time_utilities import TimeUtilities
 
 from .community_onboarding_manager import OnboardingManager
 from django.contrib.auth.models import User
-from togther.models import Collabcard, collabcardState, Userinfo, Community, ModelUtilities
-from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
+from togther.models import collabcardState, Community, ModelUtilities
+from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
+from ..member_community.member_community_impl import MemberCommunityHelper
 from ..raw_queries import get_recent_n_days_conversation_chatroom_list, \
     get_n_percentage_member_conversation_chatroom_list
 from .constants import LAST_N_DAYS_DURATION, CHATROOMS_LIMIT, N_PERCENTAGE
@@ -14,15 +15,20 @@ from .constants import LAST_N_DAYS_DURATION, CHATROOMS_LIMIT, N_PERCENTAGE
 
 class OnboardingImpl(OnboardingManager):
     community_id = None
+    device_id = None
 
-    def __init__(self, community_id: str):
+    def __init__(self, community_id: str, device_id: str = None):
         self.community_id = community_id
+        self.device_id = device_id
 
     def get_community_id(self):
         return self.community_id
 
     def set_community_id(self, community_id):
         self.community_id = community_id
+
+    def get_device_id(self):
+        return self.device_id
 
     def _create_chatroom_list_for_pinned_chatrooms_for_community_onboarding(self, user_instance) -> []:
 
@@ -107,14 +113,13 @@ class OnboardingImpl(OnboardingManager):
         if not community_instance:
             return {'error_message': "In-correct community id"}
 
-        member_community_manager = MemberCommunityImpl(member_id=user_instance.id,
-                                                       community_id=community_instance.id)
-
         chatroom_list = self._create_chatroom_list_for_pinned_chatrooms_for_community_onboarding(
             user_instance)
 
         chatroom_list = ModelUtilities.paginate_queryset(chatroom_list, page_no, paginate_by=page_size)
-        chatroom_context_list = member_community_manager.process_chatroom_list(chatroom_list, community_instance)
+
+        chatroom_member_impl = ChatroomMemberImpl(member_id=user_instance.id, device_id=self.get_device_id())
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
         return {'chatrooms': chatroom_context_list}
 
@@ -129,14 +134,12 @@ class OnboardingImpl(OnboardingManager):
         if not community_instance:
             return {'error_message': "In-correct community id"}
 
-        member_community_manager = MemberCommunityImpl(member_id=user_instance.id,
-                                                       community_id=community_instance.id)
-
         chatroom_list = self._create_chatroom_list_for_poll_chatrooms_for_community_onboarding(
             user_instance)
 
         chatroom_list = ModelUtilities.paginate_queryset(chatroom_list, page_no, paginate_by=page_size)
-        chatroom_context_list = member_community_manager.process_chatroom_list(chatroom_list, community_instance)
+        chatroom_member_impl = ChatroomMemberImpl(member_id=user_instance.id, device_id=self.get_device_id())
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
         return {'chatrooms': chatroom_context_list}
 
@@ -151,14 +154,13 @@ class OnboardingImpl(OnboardingManager):
         if not community_instance:
             return {'error_message': "In-correct community id"}
 
-        member_community_manager = MemberCommunityImpl(member_id=user_instance.id,
-                                                       community_id=community_instance.id)
-
         chatroom_list = self._create_chatroom_list_for_event_chatrooms_for_community_onboarding(
             user_instance)
 
         chatroom_list = ModelUtilities.paginate_queryset(chatroom_list, page_no, paginate_by=page_size)
-        chatroom_context_list = member_community_manager.process_chatroom_list(chatroom_list, community_instance)
+
+        chatroom_member_impl = ChatroomMemberImpl(member_id=user_instance.id, device_id=self.get_device_id())
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
         return {'chatrooms': chatroom_context_list}
 
@@ -173,15 +175,14 @@ class OnboardingImpl(OnboardingManager):
         if not community_instance:
             return {'error_message': "In-correct community id"}
 
-        member_community_manager = MemberCommunityImpl(member_id=user_instance.id,
-                                                       community_id=community_instance.id)
-
         duration = TimeUtilities.current_time_in_milliseconds() - LAST_N_DAYS_DURATION
         card_list = get_recent_n_days_conversation_chatroom_list(community_instance.id,
                                                                  duration, limit=CHATROOMS_LIMIT)
         chatroom_list = self._create_chatroom_list_for_conversation_chatrooms(user_instance, card_list)
         chatroom_list = ModelUtilities.paginate_queryset(chatroom_list, page_no, paginate_by=page_size)
-        chatroom_context_list = member_community_manager.process_chatroom_list(chatroom_list, community_instance)
+
+        chatroom_member_impl = ChatroomMemberImpl(member_id=user_instance.id, device_id=self.get_device_id())
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
         return {'chatrooms': chatroom_context_list}
 
@@ -196,15 +197,14 @@ class OnboardingImpl(OnboardingManager):
         if not community_instance:
             return {'error_message': "In-correct community id"}
 
-        member_community_manager = MemberCommunityImpl(member_id=user_instance.id,
-                                                       community_id=community_instance.id)
-
         percentage_count = self.compute_n_percentage_members_count(community_instance)
 
         card_list = get_n_percentage_member_conversation_chatroom_list(community_instance.id, percentage_count,
                                                                        limit=CHATROOMS_LIMIT)
         chatroom_list = self._create_chatroom_list_for_conversation_chatrooms(user_instance, card_list)
         chatroom_list = ModelUtilities.paginate_queryset(chatroom_list, page_no, paginate_by=page_size)
-        chatroom_context_list = member_community_manager.process_chatroom_list(chatroom_list, community_instance)
+
+        chatroom_member_impl = ChatroomMemberImpl(member_id=user_instance.id, device_id=self.get_device_id())
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
         return {'chatrooms': chatroom_context_list}

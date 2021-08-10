@@ -60,8 +60,8 @@ class FetchCommunityFeed(APIView):
 
         if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
 
-            chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
-                                                            scroll_direction=scroll_direction)
+                chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
+                                                                scroll_direction=scroll_direction)
         elif RequestUtilities.is_request_web(request):
 
             chatroom_context = community_manager.fetch_feed_web(pin_status, chatroom_id, scroll_direction)

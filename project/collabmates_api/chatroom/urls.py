@@ -2,7 +2,11 @@ from django.urls import path
 from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpinChatroomView,
                                  LeaveSecretChatroomView, AddSecretChatroomParticipantView, GetTaggingList,
                                  AutoFollowChatroomForAllMembersView, EditChatroomView,
-                                 FetchParticipantsOfSecretChatroom)
+                                 FetchParticipantsOfSecretChatroom, CreateEventView, EventAddInstructor,
+                                 EventAddHighlight, EventAddMemberTestimonial, EventAddFAQ, UpdateLastSeenEventChatroom,
+                                 FetchUnseenCountInEvent, FetchLinkForEvent, FetchUserAllEvents, AttendEventView,
+                                 UpdateEventView, SetEventAttendedView
+                                 )
 
 urlpatterns = [
     path('fetch', FetchChatroomView.as_view(), name="fetch_chatroom"),
@@ -16,5 +20,19 @@ urlpatterns = [
     path('edit', EditChatroomView.as_view(), name="edit_chatroom"),
     path('secret/fetch_participants_meta', FetchParticipantsOfSecretChatroom.as_view(),
          name="fetch_participants_of_secret_chatroom"),
+
+    path('event/create', CreateEventView.as_view(), name="create_event"),
+    path('event/add_instructor', EventAddInstructor.as_view(), name="add_instructor"),
+    path('event/add_highlights', EventAddHighlight.as_view(), name="add_highlights"),
+    path('event/add_member_testimonials', EventAddMemberTestimonial.as_view(), name="add_member_testimonials"),
+    path('event/add_event_faq', EventAddFAQ.as_view(), name="add_event_faq"),
+    path('event/update_last_seen', UpdateLastSeenEventChatroom.as_view(), name="update_last_seen"),
+    path('event/fetch_unseen_count', FetchUnseenCountInEvent.as_view(), name="fetch_unseen_count_in_event"),
+    path('event/fetch_link', FetchLinkForEvent.as_view(), name="fetch_link_for_event"),
+    path('event/fetch_all', FetchUserAllEvents.as_view(),
+         name="fetch_all_events"),
+    path('event/attend', AttendEventView.as_view(), name="attend_event"),
+    path('event/update', UpdateEventView.as_view(), name="update_event"),
+    path('event/attended', SetEventAttendedView.as_view(), name="set_event_attended"),
 
 ]

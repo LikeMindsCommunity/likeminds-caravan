@@ -19,7 +19,8 @@ class OnboardingFetchPinnedChatrooms(APIView):
 
         community_id = request.GET.get('community_id')
 
-        onboarding_manager = OnboardingImpl(community_id)
+        onboarding_manager = OnboardingImpl(community_id,
+                                            device_id=RequestUtilities.get_device_id_from_headers(request))
 
         context = onboarding_manager.fetch_pinned_chatrooms(member_id, page, paginate_by)
 
@@ -42,7 +43,8 @@ class OnboardingFetchPollChatrooms(APIView):
 
         community_id = request.GET.get('community_id')
 
-        onboarding_manager = OnboardingImpl(community_id)
+        onboarding_manager = OnboardingImpl(community_id,
+                                            device_id=RequestUtilities.get_device_id_from_headers(request))
 
         context = onboarding_manager.fetch_poll_chatrooms(member_id, page, paginate_by)
 
@@ -66,7 +68,8 @@ class OnboardingFetchEventChatrooms(APIView):
 
         community_id = request.GET.get('community_id')
 
-        onboarding_manager = OnboardingImpl(community_id)
+        onboarding_manager = OnboardingImpl(community_id,
+                                            device_id=RequestUtilities.get_device_id_from_headers(request))
 
         context = onboarding_manager.fetch_event_chatrooms(member_id, page, paginate_by)
 
@@ -90,7 +93,8 @@ class RecentNDaysConversationChatrooms(APIView):
 
         community_id = request.GET.get('community_id')
 
-        onboarding_manager = OnboardingImpl(community_id)
+        onboarding_manager = OnboardingImpl(community_id,
+                                            device_id=RequestUtilities.get_device_id_from_headers(request))
 
         context = onboarding_manager.recent_n_days_conversation_chatrooms(member_id, page, paginate_by)
 
@@ -114,7 +118,8 @@ class RecentNPercentageConversationChatrooms(APIView):
 
         community_id = request.GET.get('community_id')
 
-        onboarding_manager = OnboardingImpl(community_id)
+        onboarding_manager = OnboardingImpl(community_id,
+                                            device_id=RequestUtilities.get_device_id_from_headers(request))
 
         context = onboarding_manager.n_percentage_member_conversation_chatrooms(member_id, page, paginate_by)
 

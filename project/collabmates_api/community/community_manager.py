@@ -10,7 +10,9 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'delete_community') and callable(subclass.delete_community)) and
                 (hasattr(subclass, 'fetch_feed_url') and callable(subclass.fetch_feed_url)) and
                 (hasattr(subclass, 'fetch_otl_url') and callable(subclass.fetch_otl_url)) and
-                (hasattr(subclass, 'fetch_discoverable_communities') and callable(subclass.fetch_discoverable_communities)) or
+                (hasattr(subclass, 'fetch_discoverable_communities') and callable(subclass.fetch_discoverable_communities)) and
+                (hasattr(subclass, 'fetch_content_download_settings') and callable(subclass.fetch_content_download_settings)) and
+                (hasattr(subclass, 'update_content_download_settings') and callable(subclass.update_content_download_settings)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -58,5 +60,15 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fetch_members_meta(self, community_id):
         """returns list of members to create secret chatrooms"""
+
+        raise NotImplementedError
+
+    def fetch_content_download_settings(self):
+        """returns List of Content Download Settings for a community"""
+
+        raise NotImplementedError
+
+    def update_content_download_settings(self, content_download_settings_list):
+        """returns boolean whether the update of settings is a success or a failure"""
 
         raise NotImplementedError

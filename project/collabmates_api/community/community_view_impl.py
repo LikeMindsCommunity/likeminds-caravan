@@ -227,6 +227,44 @@ class FetchMembersMeta(APIView):
         return JsonResponse(chatroom_data)
 
 
+class FetchContentDownloadSettings(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        community_id = request.GET.get('community_id')
+        chatroom_id = request.GET.get('chatroom_id')
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+
+        content_settings_data = community_manager.fetch_content_download_settings(chatroom_id)
+
+        if 'error_message' in content_settings_data:
+            return JsonResponse(content_settings_data, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(content_settings_data)
+
+
+class UpdateContentDownloadSettings(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        content_download_settings = req_body.get('content_download_settings', [])
+
+        community_manager = CommunityImpl(member_id=member_id)
+
+        content_setting_status = community_manager.update_content_download_settings(content_download_settings)
+
+        if 'error_message' in content_setting_status:
+            return JsonResponse(content_setting_status, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(content_setting_status)
+
+
 class CommunityViewsHelper:
 
     def request_validator(request, community_id, member_id) -> {}:

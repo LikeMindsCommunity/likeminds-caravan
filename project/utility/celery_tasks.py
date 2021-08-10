@@ -5,6 +5,7 @@ from django.conf import settings
 
 from collabmates_api.serializers import get_user_profile, get_preview_for_url, UserinfoSerializer
 from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY
+from  collabmates_api.community.constants import *
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import *
@@ -13,11 +14,13 @@ from django.db.models import Q
 import json
 
 from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVERSATION_POLL_VOTERS_CONVERSATION_ID, \
-    CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM
+    CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
+    EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
-from utility.states import card_types, conversation_poll_types, conversation_states
+from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
+    level_click_states
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -105,9 +108,9 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
         unseen_count = diff
 
     Member_Engage.objects.filter(community_id=community, member_id=user).update(
-            last_unseen_count=unseen_count,
-            updated_at=TimeUtilities.current_time_in_sec()
-        )
+        last_unseen_count=unseen_count,
+        updated_at=TimeUtilities.current_time_in_sec()
+    )
 
     if unseen_count > 0:
         member_instances = fetch_new_chatroom_creater_images(user, community)
@@ -467,7 +470,7 @@ def update_member_images_for_account(member_filter, image_url):
                                                                     'type': card_types.CARD_INTRO,
                                                                     'user': user_instance})
 
-        if intro_filter.exists():
+        if intro_filter:
             card_instance = intro_filter[0]
             ModelUtilities.model_update(Card_Attachment,
                                         {'collabcard_id': card_instance.id},
@@ -898,3 +901,216 @@ def save_users_with_muted_chatrooms(mute_info):
                                                                                       flat=True))
 
     CacheImpl.set_cache(key, {'mute_list': mute_list})
+
+
+def update_event_instructors_in_cache(instructors_info):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, instructors_info.get('chatroom_id'))
+
+    if not card_instance:
+        return
+
+    instructors_list = instructors_info.get('instructors_list', [])
+
+    if not instructors_list:
+
+        instructor_filter = ModelUtilities.get_model_filter(EventInstructor,
+                                                            {'card': card_instance}).order_by('id')
+        instructors_list = []
+
+        for data in instructor_filter:
+            instructors_list.append({
+                'chatroom_id': data.card_id,
+                'about': data.about,
+                'url': data.url
+            })
+
+    CacheImpl.set_cache(EVENT_INSTRUCTORS_CHATROOM % str(card_instance.id), {
+        'instructors_list': instructors_list
+    })
+
+
+def update_event_highlights_in_cache(highlights_info):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, highlights_info.get('chatroom_id'))
+
+    if not card_instance:
+        return
+
+    highlights_list = highlights_info.get('highlights_list', [])
+
+    if not highlights_list:
+
+        highlights_filter = ModelUtilities.get_model_filter(EventHighlights,
+                                                            {'card': card_instance}).order_by('id')
+        highlights_list = []
+
+        for data in highlights_filter:
+            highlights_list.append({
+                'chatroom_id': data.card_id,
+                'highlight': data.highlight,
+                'url': data.url
+            })
+
+    CacheImpl.set_cache(EVENT_HIGHLIGHTS_CHATROOM % str(card_instance.id), {
+        'highlights_list': highlights_list
+    })
+
+
+def update_event_member_testimonials_in_cache(testimonials_info):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, testimonials_info.get('chatroom_id'))
+
+    if not card_instance:
+        return
+
+    testimonials_list = testimonials_info.get('testimonials_list', [])
+
+    if not testimonials_list:
+
+        testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
+                                                             {'card': card_instance}).order_by('id')
+        testimonials_list = []
+
+        for data in testimonial_filter:
+            testimonials_list.append({
+                'chatroom_id': data.card_id,
+                'member_name': data.member_name,
+                'testimonial': data.testimonial,
+                'url': data.url
+            })
+
+    CacheImpl.set_cache(EVENT_MEMBERTESTIMONIALS_CHATROOM % str(card_instance.id), {
+        'testimonials_list': testimonials_list
+    })
+
+
+def update_event_faq_in_cache(faqs_info):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, faqs_info.get('chatroom_id'))
+
+    if not card_instance:
+        return
+
+    faqs_list = faqs_info.get('faqs_list', [])
+
+    if not faqs_list:
+
+        faq_filter = ModelUtilities.get_model_filter(EventFAQ,
+                                                     {'card': card_instance}).order_by('id')
+        faqs_list = []
+
+        for data in faq_filter:
+            faqs_list.append({
+                'chatroom_id': data.card_id,
+                'question': data.question,
+                'answer': data.answer
+            })
+
+    CacheImpl.set_cache(EVENT_FAQ_CHATROOM % str(card_instance.id), {
+        'faqs_list': faqs_list
+    })
+
+
+def update_event_attendees(attendees_info):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, attendees_info.get('chatroom_id'))
+
+    if not card_instance:
+        return
+
+    user_id = attendees_info.get('user_id')
+    status = attendees_info.get('status')
+
+    event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id))
+
+    if event_attendees_dict and user_id:
+        event_attendees_list = event_attendees_dict.get('event_attendees_list', [])
+
+        is_user_present = user_id in event_attendees_list
+
+        if not status and is_user_present:
+            event_attendees_list.remove(user_id)
+
+        if status and not is_user_present:
+
+            if len(event_attendees_list) == 10:
+                event_attendees_list.pop(0)
+
+            event_attendees_list.append(user_id)
+
+        CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
+                'event_attendees_list': event_attendees_list
+        })
+
+        return
+
+    event_attendees_list = attendees_info.get('event_attendees_list', [])
+
+    if not event_attendees_list:
+        event_attendees_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                               {'card': card_instance,
+                                                                'attending_status': True}
+                                                               ).values_list('user', flat=True).
+                               order_by('created_at', 'id')[:10])
+
+    CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
+        'event_attendees_list': event_attendees_list
+    })
+
+
+@shared_task
+def set_levels_on_ctc_celery(community_levels_info):
+    '''updating levels based on different call to actions'''
+
+    community_id = community_levels_info.get("community_id")
+    level = community_levels_info.get("level")
+    promoter = community_levels_info.get("promoter")
+
+    if promoter:
+        return
+
+    community_level_filter = communityLevels.objects.filter(community_id=community_id).order_by('id')
+    for instance in community_level_filter:
+
+        if instance.level == level and instance.state == community_level_states.PENDING:
+
+            if instance.joined_members < instance.max_members:
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
+
+            if instance.joined_members >= instance.max_members:
+                instance.state = community_level_states.COMPLETE
+                instance.save()
+
+                community_level_filter.filter(level="Level 3").update(title=LEVEL_3_TITLE,
+                                                                      sub_title=LEVEL_3_SUB_TITLE,
+                                                                      state=community_level_states.PENDING)
+
+        elif instance.level == level and instance.state == community_level_states.PENDING:
+
+            if instance.joined_members < instance.max_members:
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
+
+            if instance.joined_members >= instance.max_members:
+                instance.state = community_level_states.COMPLETE
+                instance.save()
+
+                community_level_filter.filter(level="Level 4").update(title=LEVEL_4_TITLE,
+                                                                      sub_title=LEVEL_4_SUB_TITLE,
+                                                                      state=community_level_states.PENDING)
+
+
+@shared_task
+def set_level_click_state(level_click_state_info):
+
+    community_id = level_click_state_info.get("community_id")
+    is_promoter = level_click_state_info.get("is_promoter")
+
+    # setting the level click state when the promoter set-up directory and update the click state
+
+    if ModelUtilities.is_model_filter_exists(communityLevels,
+                                             {'community_id': community_id,
+                                              'level': "Level 3",
+                                              'level_click_state': level_click_states.DIRECTORY_CREATED}):
+
+        if is_promoter:
+            ModelUtilities.model_update(communityLevels,
+                                        {'community_id': community_id, 'level': "Level 3"},
+                                        {'level_click_state': level_click_states.COMMUNITY_JOINED})

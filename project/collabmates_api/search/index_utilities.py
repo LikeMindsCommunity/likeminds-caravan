@@ -11,7 +11,8 @@ class IndexUtilities:
 
         self.instance = instance
 
-        self.serializer = ChatroomAttachmentsSerializer if isinstance(instance, Collabcard) else ConversationAttachmentsSerializer
+        self.serializer = ChatroomAttachmentsSerializer if isinstance(instance, Collabcard) else \
+            ConversationAttachmentsSerializer
 
     def get_attachments(self):
         return self.serializer(self.get_query_set(), many=True).data

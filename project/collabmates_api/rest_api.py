@@ -9,7 +9,9 @@ from collections import OrderedDict
 import json
 import time
 
-from utility.celery_tasks import get_conversation_poll
+from utility.celery_tasks import get_conversation_poll, update_event_instructors_in_cache, \
+    update_event_highlights_in_cache, update_event_member_testimonials_in_cache, update_event_faq_in_cache, \
+    update_event_attendees
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
@@ -22,7 +24,8 @@ from utility.utils import (get_time_text, generate_private_link, eligibility_cou
                            get_members_count_in_community)
 from django.conf import settings
 from .user_moderation_rights import check_member_invite_private_right, check_admin_approve_right
-from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY
+from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
+    EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM
 from .static_files import *
 from django.db.models import F, When, Q
 
@@ -248,6 +251,14 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     is_tagged = serializers.BooleanField(write_only=True)
     chatroom_expiry_time = serializers.CharField(write_only=True)
     last_seen_conversation = serializers.IntegerField(write_only=True)
+    attendees = serializers.SerializerMethodField()
+    instructors = serializers.SerializerMethodField()
+    highlights = serializers.SerializerMethodField()
+    testimonials = serializers.SerializerMethodField()
+    faq = serializers.SerializerMethodField()
+    online_link = serializers.SerializerMethodField()
+    online_link_id = serializers.SerializerMethodField()
+    online_link_password = serializers.SerializerMethodField()
 
     class Meta:
         model = Collabcard
@@ -257,7 +268,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'polls_count', 'card_creation_time', 'community_name', 'has_been_named', 'date_epoch',
                   'user', 'is_poll_anonymous', 'allow_add_option', 'multiple_select_state',
                   'multiple_select_no', 'polls', 'location', 'location_lat', 'location_long',
-                  'start_date', 'end_date', 'about', 'co_hosts', 'online_link', 'updated_member',
+                  'start_date', 'end_date', 'about', 'co_hosts', 'updated_member',
                   'community', 'og_tags', 'created_at', 'is_anonymous',
                   'expiry_time', 'poll_type_text', 'submit_type_text', 'date',
                   'chatroom_category', 'deleted_by', 'member_id', 'created_at',
@@ -266,7 +277,10 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
                   'poll_type', 'last_seen_conversation', 'is_secret', 'secret_chatroom_participants',
-                  'topic_id', 'auto_follow_done', 'is_edited'
+                  'topic_id', 'auto_follow_done', 'is_edited', 'attendees', 'instructors', 'highlights',
+                  'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
+                  'online_link', 'online_link_id', 'online_link_password', 'event_payment_link',
+                  'event_web_page'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -440,6 +454,149 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         return attachments
 
+    def get_attendees(self, card):
+
+        if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
+            event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CHATROOM % str(card.id))
+
+            if event_attendees_dict:
+                event_attendees_list = event_attendees_dict.get('event_attendees_list')
+
+                return event_attendees_list
+
+            event_attendees_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                                        {'card': card,
+                                                                         'attending_status': True}
+                                                                        ).values_list('user', flat=True).
+                                        order_by('created_at', 'id')[:10])
+
+            update_event_attendees({'chatroom_id': card.id,
+                                    'event_attendees_list': event_attendees_list})
+
+            return event_attendees_list
+
+    def get_instructors(self, card):
+
+        if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
+
+            instructors_dict = CacheImpl.get_cache(EVENT_INSTRUCTORS_CHATROOM % str(card.id))
+
+            if instructors_dict:
+
+                instructors_list = instructors_dict.get('instructors_list', [])
+
+            else:
+
+                instructor_filter = ModelUtilities.get_model_filter(EventInstructor,
+                                                                    {'card': card}).order_by('id')
+                instructors_list = []
+
+                for data in instructor_filter:
+                    instructors_list.append({
+                        'chatroom_id': data.card_id,
+                        'about': data.about,
+                        'url': data.url
+                    })
+
+                update_event_instructors_in_cache({'chatroom_id': card.id,
+                                                   'instructors_list': instructors_list})
+
+            return instructors_list
+
+    def get_highlights(self, card):
+
+        if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
+
+            highlights_dict = CacheImpl.get_cache(EVENT_HIGHLIGHTS_CHATROOM % str(card.id))
+
+            if highlights_dict:
+                highlights_list = highlights_dict.get('highlights_list', [])
+
+            else:
+
+                highlights_filter = ModelUtilities.get_model_filter(EventHighlights,
+                                                                    {'card': card}).order_by('id')
+                highlights_list = []
+
+                for data in highlights_filter:
+                    highlights_list.append({
+                        'chatroom_id': data.card_id,
+                        'highlight': data.highlight,
+                        'url': data.url
+                    })
+
+                update_event_highlights_in_cache({'chatroom_id': card.id,
+                                                  'highlights_list': highlights_list})
+
+            return highlights_list
+
+    def get_testimonials(self, card):
+
+        if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
+            testimonial_dict = CacheImpl.get_cache(EVENT_MEMBERTESTIMONIALS_CHATROOM % str(card.id))
+
+            if testimonial_dict:
+                testimonials_list = testimonial_dict.get('testimonials_list', [])
+
+            else:
+                testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
+                                                                     {'card': card}).order_by('id')
+                testimonials_list = []
+
+                for data in testimonial_filter:
+                    testimonials_list.append({
+                        'chatroom_id': data.card_id,
+                        'member_name': data.member_name,
+                        'testimonial': data.testimonial,
+                        'url': data.url
+                    })
+
+                update_event_member_testimonials_in_cache({'chatroom_id': card.id,
+                                                           'testimonials_list': testimonials_list})
+
+            return testimonials_list
+
+    def get_faq(self, card):
+
+        if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
+            faq_dict = CacheImpl.get_cache(EVENT_FAQ_CHATROOM % str(card.id))
+
+            if faq_dict:
+                faqs_list = faq_dict.get('faqs_list', [])
+
+            else:
+
+                faq_filter = ModelUtilities.get_model_filter(EventFAQ,
+                                                             {'card': card}).order_by('id')
+                faqs_list = []
+
+                for data in faq_filter:
+                    faqs_list.append({
+                        'chatroom_id': data.card_id,
+                        'question': data.question,
+                        'answer': data.answer
+                    })
+
+                update_event_faq_in_cache({'chatroom_id': card.id, 'faqs_list': faqs_list})
+
+            return faqs_list
+
+    def get_online_link(self, card):
+
+        if card.online_link and not card.is_paid:
+
+            return card.online_link
+
+    def get_online_link_id(self, card):
+
+        if card.online_link_id and not card.is_paid:
+            return card.online_link_id
+
+    def get_online_link_password(self, card):
+
+        if card.online_link_password and not card.is_paid:
+            return card.online_link_password
+
     def to_representation(self, card):
         data = super(GetChatroomInstanceSerializer, self).to_representation(card)
 
@@ -578,7 +735,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         if self.state_instance is None:
             collabcard_state = collabcardState.objects.filter(card=card, user=self.member_id)
-            if collabcard_state.exists():
+
+            if collabcard_state:
                 self.state_instance = collabcard_state[0]
 
         if self.state_instance is not None:
@@ -595,6 +753,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             data['is_guest'] = status_dict['is_guest']
             data['is_tagged'] = status_dict['is_tagged']
             data['chatroom_expiry_time'] = status_dict['chatroom_expiry_time']
+            data['attended'] = status_dict.get('attended', False)
+
             if status_dict['last_seen_conversation']:
                 data['last_seen_conversation'] = status_dict['last_seen_conversation']
 
@@ -609,7 +769,7 @@ class CardStateSerializer(serializers.ModelSerializer):
     class Meta:
         model = collabcardState
         fields = ('state', 'mute_status', 'follow_status', 'is_guest', 'attending_status',
-                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time', 'last_seen_conversation')
+                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time', 'last_seen_conversation', 'attended')
 
     def get_chatroom_expiry_time(self, obj):
         return obj.expiry_time

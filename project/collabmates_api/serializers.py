@@ -245,7 +245,10 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         "date_epoch": card.date_epoch,
         'is_secret': card.is_secret,
         'auto_follow_done': card.auto_follow_done,
-        'is_edited': card.is_edited
+        'is_edited': card.is_edited,
+        'is_paid': card.is_paid,
+        'access': card.access,
+        'online_link_enable_before': card.online_link_enable_before
     }
 
     if card.secret_chatroom_participants:
@@ -316,8 +319,20 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
             collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community_id,
                                                          current_user_id=user)
 
-        if card.online_link:
+        if card.online_link and not card.is_paid:
             collabcard['online_link'] = card.online_link
+
+        if card.online_link_id and not card.is_paid:
+            collabcard['online_link_id'] = card.online_link_id
+
+        if card.online_link_password and not card.is_paid:
+            collabcard['online_link_password'] = card.online_link_password
+
+        if card.event_payment_link:
+            collabcard['event_payment_link'] = card.event_payment_link
+
+        if card.event_web_page:
+            collabcard['event_web_page'] = card.event_web_page
 
     # for sending header
     if card.header:
@@ -352,13 +367,6 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
-
-    if not preview:
-        share = get_share_url_text(card, user)
-        collabcard['share_url'] = share['share_url']
-        collabcard['creator_share_url'] = share['creator_share_url']
-        collabcard['link_created_at'] = share['link_created_at']
-        collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
 
     if card.has_reactions:
         reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'])
@@ -780,7 +788,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         if not expiry_time or expiry_time >= TimeUtilities.current_time_in_sec():
             collabcard_serializer['active'] = True
 
-    collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id,
+    collabcard_member = get_members_profile([card_instance.user_id], card_instance.community_id,
                                                 send_profile=send_profile)
     collabcard_serializer['member'] = collabcard_member[0]
 
@@ -911,7 +919,8 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
     # member_id = User.objects.get(id=member_id)
     if not state_instance:
         collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
-        if collabcard_state.exists():
+
+        if collabcard_state:
             collabcard_status['state'] = collabcard_state[0].state
             collabcard_status['mute_status'] = collabcard_state[0].mute_status
             collabcard_status['follow_status'] = collabcard_state[0].follow_status
@@ -922,6 +931,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
             collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
             collabcard_status['attending_status'] = collabcard_state[0].attending_status
             collabcard_status['secret_chatroom_left'] = collabcard_state[0].secret_chatroom_left
+            collabcard_status['attended'] = collabcard_state[0].attended
     else:
         collabcard_status['state'] = state_instance.state
         collabcard_status['mute_status'] = state_instance.mute_status
@@ -933,6 +943,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         collabcard_status['is_tagged'] = state_instance.is_tagged
         collabcard_status['attending_status'] = state_instance.attending_status
         collabcard_status['secret_chatroom_left'] = state_instance.secret_chatroom_left
+        collabcard_status['attended'] = state_instance.attended
 
     return collabcard_status
 
@@ -1457,7 +1468,6 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
             community_profile['custom_intro_text'] = """Created this community on %s""" % \
                                                      TimeUtilities.convert_epoch_time_in_date(member_instance.created_at)
 
-
     if member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
 
         answer_filter = communityAnswers.objects.filter(community=community_id).filter(
@@ -1467,7 +1477,8 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
             community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
                 TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
             community_profile[
-                'custom_click_text'] = """%s joined this community via a private community link on %s and hasn’t created their profile for this community yet""" % (
+                'custom_click_text'] = """%s joined this community via a private community link on %s and haven’t 
+                created their profile for this community yet""" % (
                 member_instance.member_id.userinfo.name,
                 TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
 
@@ -1850,7 +1861,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         reactions = []
 
     temp['reactions'] = reactions
-    
+
     if conversation.reply_chatroom_id:
         temp['reply_chatroom_id'] = conversation.reply_chatroom_id
 
@@ -1941,6 +1952,12 @@ def get_answer_files(answer_id):
 
             if file.file_url:
                 audio_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+                if file.height:
+                    audio_attachment['height'] = file.height
+
+                if file.width:
+                    audio_attachment['width'] = file.width
 
                 if file.thumbnail_url:
                     audio_attachment['thumbnail_url'] = file.thumbnail_url

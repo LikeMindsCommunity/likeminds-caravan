@@ -333,12 +333,20 @@ ELASTICSEARCH_DSL = {
 ELASTICSEARCH_INDEX_NAMES = {
     'collabmates_api.search.chatroom_index': 'chatroom',
     'collabmates_api.search.conversation_index': 'conversation',
+    'collabmates_api.search.member_directory_index': 'member_directory',
 }
 
 SUBSCRIPTION_SERVER_URL = os.getenv('SUBSCRIPTION_SERVER_URL')
 
 # whatsapp api key to send broadcast messages
 WA_API_KEY = os.getenv('WA_API_KEY')
+
+CONFIG_FLAGS = {
+    'SEGMENT': os.getenv('SEGMENT'),
+    'MICRO_POLLS': os.getenv('MICRO_POLLS'),
+    'GIF': os.getenv('GIF'),
+    'AUDIO': os.getenv('AUDIO')
+}
 
 
 FORCE_UPDATE = {
