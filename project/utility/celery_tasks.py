@@ -1073,7 +1073,6 @@ def set_levels_on_ctc_celery(community_levels_info):
             if instance.joined_members < instance.max_members:
                 instance.joined_members = instance.joined_members + 1
                 instance.save()
-                # instance.update(joined_members=F(instance.joined_members)+1)
 
             if instance.joined_members >= instance.max_members:
                 instance.state = community_level_states.COMPLETE

@@ -10,7 +10,9 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'delete_community') and callable(subclass.delete_community)) and
                 (hasattr(subclass, 'fetch_feed_url') and callable(subclass.fetch_feed_url)) and
                 (hasattr(subclass, 'fetch_otl_url') and callable(subclass.fetch_otl_url)) and
-                (hasattr(subclass, 'fetch_discoverable_communities') and callable(subclass.fetch_discoverable_communities)) or
+                (hasattr(subclass, 'fetch_discoverable_communities') and callable(subclass.fetch_discoverable_communities)) and
+                (hasattr(subclass, 'fetch_content_download_settings') and callable(subclass.fetch_content_download_settings)) and
+                (hasattr(subclass, 'update_content_download_settings') and callable(subclass.update_content_download_settings)) or
                 NotImplemented)
 
     @abc.abstractmethod
