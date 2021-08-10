@@ -563,7 +563,7 @@ class ChatroomImpl(ChatroomManager):
 
         return placeholder
 
-    def create_event_meta(self, req_body, user_instance, community_instance, member_state):
+    def _create_event_meta(self, req_body, user_instance, community_instance, member_state):
         create_context = dict()
         create_context['header'] = req_body.get('header')
         create_context['title'] = req_body.get('title')
@@ -1302,7 +1302,7 @@ class ChatroomImpl(ChatroomManager):
         if req_body.get('type') == card_types.CARD_EVENT \
                 or req_body.get('type') == card_types.CARD_PUBLIC_EVENT:
 
-            card_instance = self.create_event_meta(req_body, user_instance, community_instance, member_state)
+            card_instance = self._create_event_meta(req_body, user_instance, community_instance, member_state)
             ChatroomHelper.auto_follow_chatroom(card_instance, user_instance, community_instance,
                                                 member_state=member_state, func_dict={'attending_status': True})
             ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(card_instance.id,

@@ -68,19 +68,6 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         return self.member_community_instance
 
     @staticmethod
-    def fetch_chatroom_files(card_instance) -> {}:
-
-        chatroom_files = {}
-        collabcard_files = get_collabcard_files(card_instance.id)
-        chatroom_files['images'] = collabcard_files[0]
-        chatroom_files['pdf'] = collabcard_files[1]
-        chatroom_files['audios'] = collabcard_files[2]
-        chatroom_files['videos'] = collabcard_files[3]
-        chatroom_files['attachments'] = collabcard_files[4]
-
-        return chatroom_files
-
-    @staticmethod
     def fetch_poll_id_list(chatroom_list):
         poll_list = []
 
@@ -391,7 +378,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         state_context = ChatroomMemberHelper.serialize_chatroom_user_actions(state_instance)
 
         if card_instance.attachment_count > 0:
-            chatroom_files = self.fetch_chatroom_files(card_instance)
+            chatroom_files = ChatroomMemberHelper.fetch_chatroom_files(card_instance)
             chatroom_context.update(chatroom_files)
 
         if card_instance.type == card_types.CARD_POLL:
@@ -799,3 +786,16 @@ class ChatroomMemberHelper:
                                                        'testimonials_list': testimonials_list})
 
         return testimonials_list
+
+    @staticmethod
+    def fetch_chatroom_files(card_instance) -> {}:
+
+        chatroom_files = {}
+        collabcard_files = get_collabcard_files(card_instance.id)
+        chatroom_files['images'] = collabcard_files[0]
+        chatroom_files['pdf'] = collabcard_files[1]
+        chatroom_files['audios'] = collabcard_files[2]
+        chatroom_files['videos'] = collabcard_files[3]
+        chatroom_files['attachments'] = collabcard_files[4]
+
+        return chatroom_files
