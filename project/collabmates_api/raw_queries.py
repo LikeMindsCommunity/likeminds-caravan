@@ -649,7 +649,8 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcard.is_paid,
                     togther_collabcard.access,
                     togther_collabcard.event_payment_link,
-                    togther_collabcard.event_web_page
+                    togther_collabcard.event_web_page,
+                    togther_collabcardState.attended
                 """
 
     return meta_query

@@ -860,6 +860,7 @@ class collabcardState(models.Model):
     last_seen_conversation = models.ForeignKey(card_answers, null=True, on_delete=models.SET_NULL)
 
     secret_chatroom_left = models.BooleanField(default=False)
+    attended = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('card', 'user'),)

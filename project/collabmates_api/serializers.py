@@ -919,7 +919,8 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
     # member_id = User.objects.get(id=member_id)
     if not state_instance:
         collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
-        if collabcard_state.exists():
+
+        if collabcard_state:
             collabcard_status['state'] = collabcard_state[0].state
             collabcard_status['mute_status'] = collabcard_state[0].mute_status
             collabcard_status['follow_status'] = collabcard_state[0].follow_status
@@ -930,6 +931,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
             collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
             collabcard_status['attending_status'] = collabcard_state[0].attending_status
             collabcard_status['secret_chatroom_left'] = collabcard_state[0].secret_chatroom_left
+            collabcard_status['attended'] = collabcard_state[0].attended
     else:
         collabcard_status['state'] = state_instance.state
         collabcard_status['mute_status'] = state_instance.mute_status
@@ -941,6 +943,7 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         collabcard_status['is_tagged'] = state_instance.is_tagged
         collabcard_status['attending_status'] = state_instance.attending_status
         collabcard_status['secret_chatroom_left'] = state_instance.secret_chatroom_left
+        collabcard_status['attended'] = state_instance.attended
 
     return collabcard_status
 

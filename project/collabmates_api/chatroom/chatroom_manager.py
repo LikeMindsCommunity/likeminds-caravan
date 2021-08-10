@@ -42,7 +42,9 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_user_all_events') and
                  callable(subclass.fetch_user_all_events)) and
                 (hasattr(subclass, 'attend_event') and
-                 callable(subclass.attend_event))
+                 callable(subclass.attend_event)) and
+                (hasattr(subclass, 'set_event_attended') and
+                 callable(subclass.set_event_attended))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -182,7 +184,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @staticmethod
+    @abc.abstractmethod
     def attend_event(self, status) -> dict:
         """
         function to attend event
@@ -190,10 +192,18 @@ class ChatroomManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    @staticmethod
-    def update_event(self, req_body):
+    @abc.abstractmethod
+    def update_event(self, req_body) -> dict:
         """
         function to update event
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def set_event_attended(self) -> dict:
+        """
+        function to set user attended event
         """
 
         raise NotImplementedError

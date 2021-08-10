@@ -5,7 +5,7 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  FetchParticipantsOfSecretChatroom, CreateEventView, EventAddInstructor,
                                  EventAddHighlight, EventAddMemberTestimonial, EventAddFAQ, UpdateLastSeenEventChatroom,
                                  FetchUnseenCountInEvent, FetchLinkForEvent, FetchUserAllEvents, AttendEventView,
-                                 UpdateEventView
+                                 UpdateEventView, SetEventAttendedView
                                  )
 
 urlpatterns = [
@@ -33,5 +33,6 @@ urlpatterns = [
          name="fetch_all_events"),
     path('event/attend', AttendEventView.as_view(), name="attend_event"),
     path('event/update', UpdateEventView.as_view(), name="update_event"),
+    path('event/attended', SetEventAttendedView.as_view(), name="set_event_attended"),
 
 ]

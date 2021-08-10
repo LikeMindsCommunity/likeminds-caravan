@@ -753,6 +753,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             data['is_guest'] = status_dict['is_guest']
             data['is_tagged'] = status_dict['is_tagged']
             data['chatroom_expiry_time'] = status_dict['chatroom_expiry_time']
+            data['attended'] = status_dict.get('attended', False)
+
             if status_dict['last_seen_conversation']:
                 data['last_seen_conversation'] = status_dict['last_seen_conversation']
 
@@ -761,14 +763,13 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         return data
 
 
-
 class CardStateSerializer(serializers.ModelSerializer):
     chatroom_expiry_time = serializers.SerializerMethodField()
 
     class Meta:
         model = collabcardState
         fields = ('state', 'mute_status', 'follow_status', 'is_guest', 'attending_status',
-                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time', 'last_seen_conversation')
+                  'remove', 'expiry_time', 'is_tagged', 'chatroom_expiry_time', 'last_seen_conversation', 'attended')
 
     def get_chatroom_expiry_time(self, obj):
         return obj.expiry_time

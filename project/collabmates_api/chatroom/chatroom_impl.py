@@ -1550,6 +1550,23 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
+    def set_event_attended(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            return {'success': False, 'error_message': "In-valid chatroom id"}
+
+        ModelUtilities.model_update(collabcardState,
+                                    {'card': card_instance, 'user': user_instance},
+                                    {'attended': True, 'updated_at': TimeUtilities.current_time_in_sec()})
+        return {'success': True}
+
 
 class ChatroomHelper:
 

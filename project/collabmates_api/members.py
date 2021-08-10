@@ -477,10 +477,8 @@ def get_all_members_version_1(request, req_dict=None):
     chatroom_id = request.GET.get('chatroom_id', None)
 
     current_user_id = get_member_id_from_headers(request)
-    try:
-        current_user_instance = User.objects.get(pk=current_user_id)
-    except Exception as e:
-        current_user_instance = None
+
+    current_user_instance = ModelUtilities.get_model_instance_or_none(User, current_user_id)
 
     filter_list = request.GET.get('filter', None)
     # functionality for user filtering based on options
@@ -810,6 +808,7 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
         user_context['collabcard_state'] = instance.state
         user_context['attending_status'] = instance.attending_status
         user_context['is_guest'] = instance.is_guest
+        user_context['attended'] = instance.attended
 
         # if the user is the guest in that chatroom
         if instance.is_guest and instance.source:

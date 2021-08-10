@@ -11811,6 +11811,8 @@ class SyncChatrooms(APIView):
         if data[61]:
             chatroom['event_web_page'] = data[61]
 
+        chatroom['attended'] = data[62]
+
         chatroom['instructors'] = self.fetch_event_instructors(chatroom['id'])
         chatroom['highlights'] = self.fetch_event_highlights(chatroom['id'])
         chatroom['testimonials'] = self.fetch_member_testimonials(chatroom['id'])
