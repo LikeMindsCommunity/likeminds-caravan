@@ -13273,183 +13273,184 @@ def get_source_users_for_guest(source_list):
     return source_data_dict
 
 
-def sync_members(request):
-    '''api to sync members'''
+class SyncMembers(APIView):
 
-    member_id = get_member_id_from_headers(request)
+    def get(self, request, *args, **kwargs):
 
-    members_type = request.GET.get('members_type', "")
+        member_id = get_member_id_from_headers(request)
 
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+        query_params = request.query_params
 
-    page = request.GET.get('page', 1)
-    page = int(page)
-    paginate_by = request.GET.get('page_size', 200)
+        members_type = query_params.get('members_type', "")
 
-    last_updated = request.GET.get('last_updated',0)
-
-    paginate_by = int(paginate_by)
-    member_list = []
-
-    chatroom_id = request.GET.get('chatroom_id', '')
-    community_id = request.GET.get('community_id', None)
-
-    if members_type == "members":
-        if chatroom_id:
-
-            try:
-                card_instance = Collabcard.objects.get(pk=chatroom_id)
-                community_instance = card_instance.community
-            except Exception as e:
-                error_logger.error(e.args)
-                return JsonResponse({'members':[]})
-
-            chatroom_particpants = collabcardState.objects.filter(card=card_instance, is_guest=False,
-                                                                  remove=None).filter(Q(follow_status=True) |
-                                                                                      Q(
-                                                                                          attending_status=True)).order_by(
-                'id')
-            participants_list = list(chatroom_particpants.values_list("user__id", flat=True))
-            max_last_updated = 0
-
-            chatroom_particpants = list_pagination(participants_list, page, paginate_by=paginate_by)
-            if not last_updated:
-                chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
-                                                          community_id=community_instance)
-            else:
-                chatroom_members = Members.objects.filter(member_id__id__in=chatroom_particpants,
-                                                          community_id=community_instance, updated_at__gt=last_updated)
-
-
-            for member_instance in chatroom_members:
-
-                if max_last_updated < member_instance.updated_at:
-                    max_last_updated = member_instance.updated_at
-
-                member_data = get_member_instance_for_db_synching(member_instance, member_instance.community_id.id,
-                                                                  current_user_id=member_id, send_profile=False)
-                member_list.append(member_data)
-
-            if max_last_updated:
-                context = {
-                    'members': member_list,
-                    'max_last_updated': max_last_updated
-                }
-
-            else:
-                context = {'members': []}
-
+        if not member_id:
+            context = get_error_context(False, "send member id in headers")
             return JsonResponse(context)
 
-        elif community_id:
-            if not last_updated:
-                member_filter = Members.objects.filter(community_id=community_id).order_by('id')
-            else:
-                member_filter = Members.objects.filter(community_id=community_id, updated_at__gt=last_updated).order_by(
-                    'id')
-        else:
-            members_response = fetch_all_members_of_user_joined_communities(member_id, page, last_updated, paginate_by)
-            return JsonResponse(members_response)
+        page = query_params.get('page', 1)
+        page = NumberUtilities.get_integer_from_string(page)
+        paginate_by = query_params.get('page_size', 200)
+        last_updated = query_params.get('last_updated', 0)
+        paginate_by = NumberUtilities.get_integer_from_string(paginate_by)
+        chatroom_id = query_params.get('chatroom_id', '')
+        community_id = query_params.get('community_id', None)
 
-        paginated_members = get_paginated_queryset_with_maxpages(member_filter, page, paginate_by=paginate_by)
+        member_data = dict()
 
-        member_filter = paginated_members['page_list']
-        max_last_updated = 0
-        for member_instance in member_filter:
+        if members_type == "members":
 
-            if max_last_updated < member_instance.updated_at:
-                max_last_updated = member_instance.updated_at
+            member_data = self.get_members_data(member_id, chatroom_id, community_id, last_updated,
+                                                page, paginate_by)
 
-            member_data = get_member_instance_for_db_synching(member_instance, member_instance.community_id.id,
-                                                              current_user_id=member_id, send_profile=False)
-            member_list.append(member_data)
+        if members_type == "removed_members":
 
-        context = {
-            'members': member_list
-        }
+            member_data = self.get_removed_members_data(member_id, chatroom_id, community_id, last_updated,
+                                                page, paginate_by)
 
-        if max_last_updated:
-            context['max_last_updated'] = max_last_updated
+        if members_type == "guest":
+
+            member_data = self.get_guest_members_data(member_id, chatroom_id, community_id, last_updated,
+                                                     page, paginate_by)
+
+        context = {'members': member_data.get('members', [])}
+
+        if member_data.get('max_last_updated'):
+            context['max_last_updated'] = member_data.get('max_last_updated')
 
         return JsonResponse(context)
 
-    # getting the removed members data
-
-    if members_type == "removed_members":
+    def get_members_data(self, member_id, chatroom_id, community_id, last_updated, page, paginate_by):
 
         if chatroom_id:
 
-            community_instance = Collabcard.get_community_of_chatroom_or_none(chatroom_id)
-
-            if not community_instance:
-                context = {'members': []}
-
-                return JsonResponse(context)
-
-            max_last_updated = 0
-            member_list = []
-
-            chatroom_removed_members = \
-                set(collabcardState.objects.filter(card=chatroom_id).filter(~Q(remove=None)).values_list('user'
-                                                                                                         , flat=True))
-
-            if not last_updated:
-                remove_member_filter = removedMembers.objects.filter(community=community_instance).order_by('id')
-
-            else:
-                remove_member_filter = removedMembers.objects.filter(community=community_instance,
-                                                                     created_at__gt=last_updated).order_by('id')
-
-            remove_member_filter = pagination(remove_member_filter, page, paginate_by=paginate_by)
-
-            for data in remove_member_filter:
-
-                user_id = data.member_id
-
-                if user_id in chatroom_removed_members:
-
-                    if max_last_updated < data.created_at:
-                        max_last_updated = data.created_at
-
-                    member_data = get_removed_member_instance(data)
-                    member_list.append(member_data)
-
-            context = {
-                'members': member_list,
-            }
-
-            if max_last_updated:
-                context['max_last_updated'] = max_last_updated
-
-            return JsonResponse(context)
+            return self.get_members_data_for_chatroom_id(chatroom_id, last_updated, page, paginate_by)
 
         elif community_id:
 
-            if not last_updated:
-                remove_member_filter = removedMembers.objects.filter(community=community_id).order_by('id')
-
-            else:
-                remove_member_filter = removedMembers.objects.filter(community=community_id, created_at__gt=last_updated).order_by('id')
+            return self.get_members_data_for_community_id(community_id, last_updated, page, paginate_by)
 
         else:
-            community_list = get_community_id_list(member_id)
-            remove_member_filter = removedMembers.objects.filter(created_at__gt=last_updated,
-                                                                 community__in=community_list).order_by('id')
 
-        pagianted_removed_members = get_paginated_queryset_with_maxpages(remove_member_filter, page,
-                                                                         paginate_by=paginate_by)
+            return fetch_all_members_of_user_joined_communities(member_id, page, last_updated, paginate_by)
 
-        remove_member_filter = pagianted_removed_members['page_list']
-        # max_pages_removed_members = pagianted_removed_members['last_page']
+    def get_members_data_for_chatroom_id(self, chatroom_id, last_updated, page, paginate_by):
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return JsonResponse({'members': []})
+
+        participants_list = collabcardState.objects.filter(card=card_instance, is_guest=False,
+                                                              remove=None).\
+            filter(Q(follow_status=True) | Q(attending_status=True)).\
+            values_list("user__id", flat=True).order_by('id')
+
+        community_id = card_instance.community_id
+        participants_list = list_pagination(participants_list, page, paginate_by=paginate_by)
+        responses_data = get_member_responses_for_community([community_id])
+        member_data = get_members_of_community_based_on_user_list_for_sync(participants_list,
+                                                                           community_id,
+                                                                           last_updated, page, paginate_by)
+
+        member_response = compute_response_of_members_data(member_data, responses_data)
+
+        return member_response
+
+    def get_members_data_for_community_id(self, community_id, last_updated, page, paginate_by):
+
+        if not last_updated:
+            member_list = list(Members.objects.filter(community_id=community_id).values_list('member_id', flat=True).order_by('id'))
+        else:
+            member_list = list(Members.objects.filter(community_id=community_id,
+                                                      updated_at__gt=last_updated).values_list('member_id', flat=True).order_by(
+                'id'))
+
+        responses_data = get_member_responses_for_community([community_id])
+        members_data = get_members_of_community_based_on_user_list_for_sync(member_list, community_id,
+                                                                            last_updated, page, paginate_by)
+        member_response = compute_response_of_members_data(members_data, responses_data)
+
+        return member_response
+
+    def get_removed_members_data(self, member_id, chatroom_id, community_id, last_updated, page, paginate_by):
+
+        if chatroom_id:
+
+            return self.get_removed_members_based_on_chatroom_id(chatroom_id, last_updated, page, paginate_by)
+
+        elif community_id:
+
+            return self.get_removed_members_based_on_community_id(community_id, last_updated, page, paginate_by)
+
+        else:
+
+            return self.get_removed_members_of_member_joined_communities(member_id, last_updated, page, paginate_by)
+
+    def get_removed_members_based_on_chatroom_id(self, chatroom_id, last_updated, page, paginate_by):
+
+        community_instance = Collabcard.get_community_of_chatroom_or_none(chatroom_id)
+
+        if not community_instance:
+            context = {'members': []}
+
+            return context
+
+        chatroom_removed_members = \
+            set(collabcardState.objects.filter(card=chatroom_id).filter(~Q(remove=None)).
+                values_list('user', flat=True))
+
+        if not last_updated:
+            remove_member_filter = removedMembers.objects.filter(community=community_instance).order_by('id')
+
+        else:
+            remove_member_filter = removedMembers.objects.filter(community=community_instance,
+                                                                 created_at__gt=last_updated).order_by('id')
+        removed_member_queryset = ModelUtilities.paginate_queryset(remove_member_filter, page, paginate_by)
+
+        return self.process_removed_members(removed_member_queryset,
+                                            removed_member_set=chatroom_removed_members)
+
+    def get_removed_members_based_on_community_id(self, community_id, last_updated, page, paginate_by):
+
+        if not last_updated:
+            remove_member_filter = removedMembers.objects.filter(community=community_id).\
+                select_related('member', 'member__userinfo').order_by('id')
+
+        else:
+            remove_member_filter = removedMembers.objects.filter(community=community_id,
+                                                                 created_at__gt=last_updated).\
+                select_related('member', 'member__userinfo').order_by('id')
+
+        remove_member_queryset = ModelUtilities.paginate_queryset(remove_member_filter, page, paginate_by)
+
+        return self.process_removed_members(remove_member_queryset)
+
+    def get_removed_members_of_member_joined_communities(self, member_id, last_updated, page, paginate_by):
+
+        community_list = get_community_id_list(member_id)
+
+        remove_member_filter = removedMembers.objects.filter(created_at__gt=last_updated,
+                                                             community__in=community_list).order_by('id')
+        remove_member_filter = ModelUtilities.paginate_queryset(remove_member_filter, page, paginate_by)
+
+        return self.process_removed_members(remove_member_filter)
+
+    def process_removed_members(self, removed_member_queryset, removed_member_set=None):
+
         max_last_updated = 0
-        for data in remove_member_filter:
+        member_list = []
+
+        for data in removed_member_queryset:
+
+            if removed_member_set is not None and \
+                    data.member_id not in removed_member_set:
+                continue
 
             if max_last_updated < data.created_at:
                 max_last_updated = data.created_at
 
             member_data = get_removed_member_instance(data)
+
             member_list.append(member_data)
 
         context = {
@@ -13458,67 +13459,90 @@ def sync_members(request):
 
         if max_last_updated:
             context['max_last_updated'] = max_last_updated
-        return JsonResponse(context)
 
-    # getting the guest users
-    if members_type == "guest":
+        return context
+
+    def get_guest_members_data(self, member_id, chatroom_id, community_id, last_updated, page, paginate_by):
 
         if chatroom_id:
 
-            user_card_dict, user_list = get_guest_users_of_chatroom(chatroom_id)
-            user_filter = Userinfo.objects.filter(user_id_id__in=user_list,
-                                                  updated_at__gt=last_updated).only('user_id_id',
-                                                                                    'name',
-                                                                                    'image_link',
-                                                                                    'updated_at').order_by('updated_at',
-                                                                                                           'user_id')
-            user_filter = pagination(user_filter, page, paginate_by=paginate_by)
-
-            user_data_dict, max_last_updated = get_dictionary_of_user_profiles(user_filter)
-
-            guest_list = get_guest_list_of_chatrooms(user_data_dict, user_card_dict)
+            guest_data = self.compute_guest_list_for_chatroom_id(chatroom_id, last_updated, page, paginate_by)
 
         elif community_id:
-            community_list = [community_id]
-            user_card_dict, user_list = get_guest_users_of_member_joined_communities(community_list)
-
-            user_filter = Userinfo.objects.filter(user_id_id__in=user_list,
-                                                  updated_at__gt=last_updated).only('user_id_id',
-                                                                                    'name',
-                                                                                    'image_link',
-                                                                                    'updated_at').order_by('updated_at',
-                                                                                                           'user_id')
-            user_filter = pagination(user_filter, page, paginate_by=paginate_by)
-
-            user_data_dict, max_last_updated = get_dictionary_of_user_profiles(user_filter)
-
-            guest_list = get_guest_list_of_chatrooms(user_data_dict, user_card_dict)
+            guest_data = self.compute_guest_list_for_community_id(community_id,
+                                                                  last_updated, page, paginate_by)
 
         else:
-            community_list = get_community_id_list(member_id)
-            user_card_dict, user_list= get_guest_users_of_member_joined_communities(community_list)
-            user_filter = Userinfo.objects.filter(user_id_id__in=user_list,
-                                                  updated_at__gt=last_updated).only('user_id_id',
-                                                                                    'name',
-                                                                                    'image_link',
-                                                                                    'updated_at').order_by('updated_at',
-                                                                                                           'user_id')
-            user_filter = pagination(user_filter, page, paginate_by=paginate_by)
+            guest_data = self.compute_guest_list_for_members(member_id, last_updated, page, paginate_by)
 
-            user_data_dict, max_last_updated = get_dictionary_of_user_profiles(user_filter)
+        return guest_data
 
-            guest_list = get_guest_list_of_chatrooms(user_data_dict, user_card_dict)
+    def compute_guest_list_for_chatroom_id(self, chatroom_id, last_updated, page, paginate_by):
 
-        context = {
-                'members': guest_list
+        user_card_dict, user_list = get_guest_users_of_chatroom(chatroom_id)
+        user_filter = Userinfo.objects.filter(user_id_id__in=user_list,
+                                              updated_at__gt=last_updated).only('user_id_id',
+                                                                                'name',
+                                                                                'image_link',
+                                                                                'updated_at').order_by(
+            'updated_at',
+            'user_id')
+        user_filter = ModelUtilities.paginate_queryset(user_filter, page, paginate_by)
+
+        user_data_dict, max_last_updated = get_dictionary_of_user_profiles(user_filter)
+
+        guest_list = get_guest_list_of_chatrooms(user_data_dict, user_card_dict)
+
+        return {
+            'members': guest_list,
+            'max_last_updated': max_last_updated
         }
 
-        if max_last_updated:
-            context['max_last_updated'] = max_last_updated
+    def compute_guest_list_for_community_id(self, community_id, last_updated, page, paginate_by):
 
-        return JsonResponse(context)
+        community_list = [community_id]
+        user_card_dict, user_list = get_guest_users_of_member_joined_communities(community_list)
 
-    return JsonResponse({'members': []})
+        user_filter = Userinfo.objects.filter(user_id_id__in=user_list,
+                                              updated_at__gt=last_updated).only('user_id_id',
+                                                                                'name',
+                                                                                'image_link',
+                                                                                'updated_at').order_by(
+            'updated_at',
+            'user_id')
+        user_filter = ModelUtilities.paginate_queryset(user_filter, page, paginate_by)
+
+        user_data_dict, max_last_updated = get_dictionary_of_user_profiles(user_filter)
+
+        guest_list = get_guest_list_of_chatrooms(user_data_dict, user_card_dict)
+
+        return {
+            'members': guest_list,
+            'max_last_updated': max_last_updated
+        }
+
+    def compute_guest_list_for_members(self, member_id, last_updated, page, paginate_by):
+
+        community_list = get_community_id_list(member_id)
+        user_card_dict, user_list = get_guest_users_of_member_joined_communities(community_list)
+        user_filter = Userinfo.objects.filter(user_id_id__in=user_list,
+                                              updated_at__gt=last_updated).only('user_id_id',
+                                                                                'name',
+                                                                                'image_link',
+                                                                                'updated_at').order_by(
+            'updated_at',
+            'user_id')
+
+        user_filter = ModelUtilities.paginate_queryset(user_filter, page, paginate_by)
+
+        user_data_dict, max_last_updated = get_dictionary_of_user_profiles(user_filter)
+
+        guest_list = get_guest_list_of_chatrooms(user_data_dict, user_card_dict)
+
+        return {
+            'members': guest_list,
+            'max_last_updated': max_last_updated
+        }
 
 
 def fill_draft_chatrooms(draft_filter, member_id):
@@ -13537,14 +13561,9 @@ def fill_draft_chatrooms(draft_filter, member_id):
     return max_last_updated, chatrooms
 
 
-def fetch_all_members_of_user_joined_communities(member_id, page, last_updated, limit):
-    """function to get all members of community which is joined by the member"""
-
-    community_id_list = get_community_id_list(member_id)
-    responses_data = get_member_responses_for_community(community_id_list)
-    members_data = get_members_of_community(community_id_list, last_updated, page, limit)
-    members = []
+def compute_response_of_members_data(members_data, responses_data):
     max_last_updated = 0
+    member_list = []
 
     for data in members_data:
         member_context = dict()
@@ -13586,13 +13605,22 @@ def fetch_all_members_of_user_joined_communities(member_id, page, last_updated, 
         if max_last_updated < data['updated_at']:
             max_last_updated = data['updated_at']
 
-        members.append(member_context)
-
+        member_list.append(member_context)
 
     if max_last_updated:
-        return {'members': members, 'max_last_updated': max_last_updated}
+        return {'members': member_list, 'max_last_updated': max_last_updated}
 
-    return {'members': members}
+    return {'members': member_list}
+
+
+def fetch_all_members_of_user_joined_communities(member_id, page, last_updated, limit):
+    """function to get all members of community which is joined by the member"""
+
+    community_id_list = get_community_id_list(member_id)
+    responses_data = get_member_responses_for_community(community_id_list)
+    members_data = get_members_of_community_based_on_community_list_for_sync(community_id_list, last_updated, page, limit)
+
+    return compute_response_of_members_data(members_data, responses_data)
 
 
 class SyncCommunities(APIView):
