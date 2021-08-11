@@ -12,8 +12,8 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from external_services.mixpanel.events import MixpanelEvents
-from utility.string_utilities import StringUtilities
 from togther.models import *
+from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM
@@ -1941,7 +1941,7 @@ def fetch_community_profile(request):
     if not current_user_instance:
         return JsonResponse({'error_message': "Invalid member_id "}, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    membership_expired_filter = ModelUtilities.get_model_filter(removedMembers, 
+    membership_expired_filter = ModelUtilities.get_model_filter(removedMembers,
                                                                 {'member': user_instance,
                                                                 'community': community_instance,
                                                                 'removed_state': deleted_members.MEMBERSHIP_EXPIRED})
@@ -2257,17 +2257,21 @@ def create_community_version_1(request):
         }
         send_created_community_email_to_team.delay(email_context)
 
-        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance,
-                                                   current_user_id=member_id)
+        community_serializer = CommunitySerializerV1(community_instance, context={"current_user_id": member_id},
+                                                                   many=False).data
 
         # Create Content Download Settings
+        content_download_settings_list = []
+
         for download_setting_type, download_setting_title in DOWNLOAD_SETTING_TYPE_TITLE_MAPPING.items():
-            ContentDownloadSettings.create_instance({
-                'community_instance': community_instance,
+            content_download_settings_list.append(ContentDownloadSettings(**{
+                'community_id': community_instance,
                 'download_setting_type': download_setting_type,
                 'download_setting_title': download_setting_title,
                 'enabled': True
-            })
+            }))
+
+        ModelUtilities.bulk_create_instances(ContentDownloadSettings, content_download_settings_list)
 
         return JsonResponse({'success': True, 'community': community_serializer})
 
@@ -2285,11 +2289,13 @@ def create_community_version_1(request):
         post_purpose_collabcard_for_community(request, community_instance, member_id)
         post_master_introductions_for_community(community_id, member_id)
         post_member_directory_link(user_instance, community_instance)
+
         # send mails to ask cm to upgrade level
         send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=1, day=0, counter=0)
 
-        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance,
-                                                   current_user_id=member_id)
+        community_serializer = CommunitySerializerV1(community_instance, context={"current_user_id": member_id},
+                                                     many=False).data
+
         return JsonResponse({'success': True, 'community': community_serializer})
 
     elif page == 3:
@@ -2312,8 +2318,9 @@ def create_community_version_1(request):
             context = get_error_context(False, e)
             return JsonResponse(context)
 
-        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance,
-                                                   current_user_id=member_id)
+        community_serializer = CommunitySerializerV1(community_instance, context={"current_user_id": member_id},
+                                                     many=False).data
+
         return JsonResponse({'success': True, 'community': community_serializer})
 
 
@@ -8442,6 +8449,7 @@ def config(request):
     """function to update the version number of android for a user profile"""
 
     member_id = get_member_id_from_headers(request)
+
     context = {}
 
     user_instance = User.get_user_or_none(member_id)
@@ -8490,7 +8498,7 @@ def config(request):
 
     context['use_segment'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('SEGMENT'))
     context['micro_polls_enabled'] = StringUtilities.get_boolean_from_string(
-                settings.CONFIG_FLAGS.get('MICRO_POLLS'))
+        settings.CONFIG_FLAGS.get('MICRO_POLLS'))
     context['enable_gif'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('GIF'))
     context['enable_audio'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('AUDIO'))
 

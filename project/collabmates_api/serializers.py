@@ -76,6 +76,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     else:
         # only public link
         branch_links = create_community_branch_links(community.id, current_user_id)
+
     if community.about:
         new_dict['about'] = community.about
 
