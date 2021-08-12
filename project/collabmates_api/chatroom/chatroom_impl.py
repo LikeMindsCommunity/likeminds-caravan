@@ -2209,11 +2209,12 @@ class ChatroomHelper:
                                                                                    user_list,
                                                                                    follow_status=False)
         bulk_update_list = []
+        chatroom_member_list = []
 
         for community_member in user_list:
 
             if chatroom_state_dict.get(community_member) is not None:
-                user_list.append(community_member)
+                chatroom_member_list.append(community_member)
                 collabcard_state = chatroom_state_dict.get(community_member)
                 collabcard_state.follow_status = True
                 collabcard_state.updated_at = TimeUtilities.current_time_in_sec()
@@ -2223,7 +2224,7 @@ class ChatroomHelper:
                                              ['follow_status', 'updated_at'])
 
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list \
-            .delay(card_instance.id, user_list)
+            .delay(card_instance.id, chatroom_member_list)
 
     @staticmethod
     def auto_follow_event_co_hosts_and_send_notification(card_instance, userinfo_instance):
