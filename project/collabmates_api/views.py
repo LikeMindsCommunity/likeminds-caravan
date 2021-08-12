@@ -12936,6 +12936,14 @@ class SyncConversationDiff(APIView):
                                     conversations_with_reactions_list |
                                     conversation_with_reply_chatroom_id_list)
 
+            if previous_app_version < MICRO_POLLS_ANDROID_VERSION_CODE <= version_code:
+                conversation_with_micro_polls_list = self._get_conversation_with_micro_polls(card_state_list)
+
+                common_list = tuple(video_conversations_list |
+                                    conversations_with_reactions_list |
+                                    conversation_with_reply_chatroom_id_list |
+                                    conversation_with_micro_polls_list)
+
         if len(common_list) > 0:
 
             conversation_filter = card_answers.objects.filter(pk__in=common_list)\
@@ -12975,6 +12983,14 @@ class SyncConversationDiff(APIView):
 
         ans_list = set(card_answers.objects
                        .filter(card__id__in=card_state_list).filter(~Q(reply_chatroom=None))
+                       .values_list('id', flat=True))
+
+        return ans_list
+
+    def _get_conversation_with_micro_polls(self, card_state_list):
+
+        ans_list = set(card_answers.objects
+                       .filter(card__id__in=card_state_list).filter(state=conversation_states.CONVERSATION_POLL)
                        .values_list('id', flat=True))
 
         return ans_list
