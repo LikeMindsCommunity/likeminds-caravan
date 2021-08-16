@@ -1882,8 +1882,7 @@ def get_last_seen_event_chatroom_id_for_user(user_id):
                     WHERE type=2
                             OR type=6)
                         AND user_id=%s
-                        AND state=0
-                 ORDER BY  created_at, id limit 1 
+                 ORDER BY  created_at desc, id desc limit 1
         """ % str(user_id)
         curr.execute(sql)
         card_tupple = curr.fetchone()
