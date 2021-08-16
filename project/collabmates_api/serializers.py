@@ -1545,11 +1545,11 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
     if current_user_is_owner and item_member_is_owner:
         menu = [edit_title]
     elif current_user_is_owner and item_member_state == member_states.ADMIN:
-        menu = [remove_from_community, edit_CM_rights]
+        menu = [edit_CM_rights, remove_from_community]
 
     elif current_user_is_owner and (item_member_state == member_states.MEMBER or
                                     item_member_state == member_states.PROFILE_UNAVAILABLE):
-        menu = [remove_from_community, edit_permissions, give_CM_rights]
+        menu = [edit_permissions, give_CM_rights, remove_from_community]
 
     elif current_user_is_promoter and item_member_state == member_states.ADMIN:
 
