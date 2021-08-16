@@ -1450,7 +1450,8 @@ class ChatroomImpl(ChatroomManager):
             nudge_instance = event_nudge_filter[0]
 
             if nudge_instance.seen_event_chatroom_id != last_seen_event_chatroom_id:
-                card_instance = ModelUtilities.get_model_filter(Collabcard, last_seen_event_chatroom_id)
+                card_instance = ModelUtilities.get_model_instance_or_none(Collabcard,
+                                                                          last_seen_event_chatroom_id)
                 nudge_instance.seen_event_chatroom = card_instance
                 nudge_instance.save()
 
