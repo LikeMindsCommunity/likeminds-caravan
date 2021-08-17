@@ -1308,6 +1308,9 @@ class ChatroomImpl(ChatroomManager):
             card_instance = self._create_event_meta(req_body, user_instance, community_instance, member_state)
             ChatroomHelper.auto_follow_chatroom(card_instance, user_instance, community_instance,
                                                 member_state=member_state, func_dict={'attending_status': True})
+            conversation_impl.ConversationHelper.create_conversation_state(card_instance, user_instance,
+                                                                           conversation_states.CONVERSATION_HEADER)
+
             ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(card_instance.id,
                                                                                         user_instance.id,
                                                                                         community_instance.id)

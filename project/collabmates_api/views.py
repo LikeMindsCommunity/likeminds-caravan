@@ -3509,7 +3509,8 @@ def get_branch_links_for_community_share(user_instance, community_instance):
     user_has_approve_right = False
     community_id = community_instance.id
     member_id = user_instance.id
-    if member_filter.exists():
+
+    if member_filter:
         member_instance = member_filter[0]
 
         if member_instance.state == member_states.ADMIN:
@@ -3547,6 +3548,92 @@ def get_branch_links_for_community_share(user_instance, community_instance):
     return share_context
 
 
+def fill_share_context_for_paid_community(community_instance, share_context, community_share):
+    branch_links = share_context['branch_links']
+    community_name = community_instance.name
+
+    if len(share_context) <= 0:
+        return
+
+    community_share['public_link'] = branch_links[0]['url']
+
+    community_share['public_link_text'] = SHARE_TEXT_ADMIN_PUBLIC_PAID_COMMUNITY % (
+        community_name,  community_share['public_link'])
+
+    if share_context['user_has_approve_right']:
+        community_share['private_link'] = branch_links[1]['url']
+        community_share['private_link_text'] = SHARE_TEXT_ADMIN_PRIVATE_PAID_COMMUNITY % (
+                community_name, branch_links[1]['url'])
+
+        community_share['private_link_members_directory'] = branch_links[2]['url']
+        private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
+            community_name, branch_links[2]['url'])
+
+        community_share['private_link_text_members_directory'] = private_link_text_members_directory
+
+    elif share_context['user_has_share_permission']:
+
+        community_share['public_link'] = branch_links[0]['url']
+        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
+            community_name,  community_share['public_link'])
+        community_share['private_link_members_directory'] = branch_links[2]['url']
+        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
+            community_name, branch_links[2]['url'])
+
+    else:
+        community_share['public_link'] = branch_links[0]['url']
+        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
+            community_name, community_share['public_link'])
+
+
+def fill_share_context_for_unpaid_community(community_instance, share_context, community_share):
+    branch_links = share_context['branch_links']
+    community_name = community_instance.name
+
+    if len(share_context) <= 0:
+        return
+
+    community_share['public_link'] = branch_links[0]['url']
+
+    community_share['public_link_text'] = SHARE_TEXT_ADMIN % (
+        community_name, community_share['public_link'])
+
+    if share_context['user_has_approve_right']:
+        community_share['private_link'] = branch_links[1]['url']
+        members_count = get_members_count_in_community(community_instance.id)
+
+        if members_count <= 10:
+            community_share['private_link_text'] = PRIVATE_LINK_TEXT_ADMIN_1 % (
+                community_name, branch_links[1]['url'])
+
+        else:
+            community_share['private_link_text'] = PRIVATE_LINK_TEXT_ADMIN_2 % (
+                community_name, branch_links[1]['url'])
+
+        community_share['private_link_members_directory'] = branch_links[2]['url']
+        private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
+            community_name, branch_links[2]['url'])
+
+        community_share['private_link_text_members_directory'] = private_link_text_members_directory
+
+    elif share_context['user_has_share_permission']:
+
+        community_share['private_link'] = branch_links[1]['url']
+        community_share['private_link_text'] = PRIVATE_LINK_FOR_PERMITTED_USER % (
+            community_name, branch_links[1]['url'])
+        community_share['public_link'] = branch_links[0]['url']
+        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
+            community_name, community_share['public_link'])
+        community_share['private_link_members_directory'] = branch_links[2]['url']
+        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
+            community_name, branch_links[2]['url'])
+
+    else:
+        community_share['public_link'] = branch_links[0]['url']
+        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
+            community_name, community_share['public_link'])
+
+
 def fetch_share_url(request):
     '''api to share the url of community and chatroom'''
     member_id = get_member_id_from_headers(request)
@@ -3554,9 +3641,12 @@ def fetch_share_url(request):
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
 
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+    if not user_instance:
+        context = get_error_context(False, "In-valid member id")
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if chatroom_id:
         try:
@@ -3585,90 +3675,29 @@ def fetch_share_url(request):
         return JsonResponse({'chatroom_share': chatroom_share, 'success': True})
 
     if community_id:
-        try:
-            community_instance = Community.objects.get(id=community_id)
-            user_instance = User.objects.get(id=member_id)
 
-        except Exception as e:
-            context = get_error_context(False, e.args[0])
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
-            return JsonResponse(context, status=400)
+        if not community_instance:
+            return JsonResponse({'success': False,
+                                 'error_message': "Invalid community id"}, status=status_codes.HTTP_400_BAD_REQUEST)
 
         share_context = get_branch_links_for_community_share(user_instance, community_instance)
-        branch_links = share_context['branch_links']
         community_share = {}
-        community_name = community_instance.name
 
-        try:
-            if len(branch_links) > 0:
-                community_share['public_link'] = branch_links[0]['url']
+        if community_instance.is_paid:
+            fill_share_context_for_paid_community(community_instance, share_context, community_share)
 
-                community_share['public_link_text'] = SHARE_TEXT_ADMIN % (
-                    community_name, community_instance.purpose, community_share['public_link'])
+        else:
+            fill_share_context_for_unpaid_community(community_instance, share_context, community_share)
 
-                if share_context['user_has_approve_right']:
-                    community_share['private_link'] = branch_links[1]['url']
-                    members_count = get_members_count_in_community(community_id)
-
-                    if members_count <= 10:
-                        community_share['private_link_text'] = PRIVATE_LINK_TEXT_ADMIN_1 % (
-                            community_name, branch_links[1]['url'])
-
-                    else:
-                        community_share['private_link_text'] = PRIVATE_LINK_TEXT_ADMIN_2 % (
-                            community_name, branch_links[1]['url'])
-
-                    community_share['private_link_members_directory'] = branch_links[2]['url']
-
-                    if share_context['is_owner']:
-                        private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
-                            community_name, branch_links[2]['url'])
-                    else:
-                        private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_2 % (
-                            community_name, branch_links[2]['url'])
-
-                    community_share['private_link_text_members_directory'] = private_link_text_members_directory
-
-                elif share_context['user_has_share_permission']:
-
-                    community_share['private_link'] = branch_links[1]['url']
-                    community_share['private_link_text'] = PRIVATE_LINK_FOR_PERMITTED_USER % (
-                        community_name, branch_links[1]['url'])
-                    community_share['public_link'] = branch_links[0]['url']
-                    community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
-                        community_name, community_instance.purpose, community_share['public_link'])
-                    community_share['private_link_members_directory'] = branch_links[2]['url']
-                    community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
-                        community_name, branch_links[2]['url'])
-
-                else:
-                    community_share['public_link'] = branch_links[0]['url']
-                    community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
-                        community_name, community_instance.purpose, community_share['public_link'])
-
-            else:
-                error_message = "branch link not generated for community_id=" + str(community_id)
-                error_logger.error(error_message)
-
-                return JsonResponse({'error_message': error_message, 'success': False})
-
-        except Exception as e:
-            return JsonResponse({'success': False, 'error_message': e.args}, status=500)
+        if not community_share:
+            return JsonResponse({'error_message': "Error in generating link", 'success': False},
+                                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return JsonResponse({'community_share': community_share, 'success': True})
 
     return JsonResponse({'error_message': "Invalid request", 'success': False}, status=400)
-
-
-def generate_links_for_guest_web(community_id, member_id):
-
-    if member_id and community_id:
-        branch_link = create_community_branch_links(community_id, member_id, aj=None)
-        return branch_link
-
-    elif community_id:
-        branch_link = create_community_branch_links(community_id, None, aj=None)
-        return branch_link
 
 @csrf_exempt
 def collabcard_poll_version_1(request):
