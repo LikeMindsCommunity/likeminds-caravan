@@ -70,3 +70,5 @@ INVALID_PLATFORM = 'Invalid request'
 
 CONVERSATIONS_COUNT_CACHE_KEY = "conversations_count_%s"
 CONVERSATIONS_DISTINCT_CREATORS_KEY = "conversations_distinct_creators_%s"
+
+SUBSCRIPTION_FETCH_EVENT_PLAN = "api/subscription/fetch_event_plan"

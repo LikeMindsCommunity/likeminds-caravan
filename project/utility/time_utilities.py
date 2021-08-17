@@ -176,3 +176,11 @@ class TimeUtilities:
         dt = datetime.utcfromtimestamp(epoch_time).isoformat() + 'Z'
 
         return dt
+
+    @staticmethod
+    def get_epoch_from_datetime(epoch_time, hour, minute):
+
+        if TimeUtilities.is_epoch_in_milliseconds(epoch_time):
+            epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
+
+        return datetime.fromtimestamp(epoch_time).replace(hour=hour, minute=minute).timestamp()

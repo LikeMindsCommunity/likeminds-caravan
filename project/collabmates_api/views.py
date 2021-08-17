@@ -13901,5 +13901,3 @@ def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatr
                                                                 type_list=type_list)
 
     return chatroom_data, chatroom_id_list
-
-
