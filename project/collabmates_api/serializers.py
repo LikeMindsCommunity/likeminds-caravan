@@ -135,8 +135,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
 
             # private_link_members_directory = branch_links[1]['url']
             new_dict[
-                'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
-            community.name, branch_links[2]['url'])
+                'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (branch_links[2]['url'])
 
     if community.type:
         new_dict['type'] = community.type
@@ -144,11 +143,11 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         new_dict['sub_type'] = community.sub_type
 
     new_dict[
-        'share_text_admin'] = SHARE_TEXT_ADMIN % (new_dict['name'], new_dict['purpose'], new_dict['share_url'])
+        'share_text_admin'] = SHARE_TEXT_ADMIN % (new_dict['name'], new_dict['share_url'])
 
     new_dict[
-        'share_text_member'] = """I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
-        new_dict['name'], new_dict['purpose'], new_dict['share_url'])
+        'share_text_member'] = """I am part of %s community on LikeMinds. \nApply to join our community. %s\n""" % (
+        new_dict['name'], new_dict['share_url'])
 
     new_dict[
         'share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (

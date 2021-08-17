@@ -3577,8 +3577,8 @@ def fill_share_context_for_paid_community(community_instance, share_context, com
         community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
             community_name,  community_share['public_link'])
         community_share['private_link_members_directory'] = branch_links[2]['url']
-        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
-            community_name, branch_links[2]['url'])
+        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % \
+                                                                 (branch_links[2]['url'])
 
     else:
         community_share['public_link'] = branch_links[0]['url']
@@ -3626,7 +3626,7 @@ def fill_share_context_for_unpaid_community(community_instance, share_context, c
             community_name, community_share['public_link'])
         community_share['private_link_members_directory'] = branch_links[2]['url']
         community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
-            community_name, branch_links[2]['url'])
+            branch_links[2]['url'])
 
     else:
         community_share['public_link'] = branch_links[0]['url']
