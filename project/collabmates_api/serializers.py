@@ -695,7 +695,7 @@ def get_share_url_text(card, user_id):
 
     elif card.type == card_types.CARD_EVENT:
 
-        share['share_url'] = """Join us for this event: %s""" % card_url
+        share['share_url'] = """Check out this event on LikeMinds: %s""" % card_url
         share['creator_share_url'] = """Hosting this event for %s. RSVP on this link to join us: %s""" % (
             card.community.name, card_url)
 
