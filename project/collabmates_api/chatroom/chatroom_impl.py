@@ -50,7 +50,10 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation, get_chatroom_user_images_for_web, \
     schedule_chatroom_unpinning_after_event_completion, update_last_unseen_in_engage, \
     update_preview_of_chatroom_in_cache, update_event_instructors_in_cache, update_event_highlights_in_cache, \
-    update_event_member_testimonials_in_cache, update_event_faq_in_cache, update_event_attendees
+    update_event_member_testimonials_in_cache, update_event_faq_in_cache, update_event_attendees, \
+    send_analytics_on_event_attend_link_click, schedule_event_analytics_on_event_start, \
+    schedule_event_analytics_daily_7AM, \
+    schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
@@ -1305,11 +1308,15 @@ class ChatroomImpl(ChatroomManager):
             card_instance = self._create_event_meta(req_body, user_instance, community_instance, member_state)
             ChatroomHelper.auto_follow_chatroom(card_instance, user_instance, community_instance,
                                                 member_state=member_state, func_dict={'attending_status': True})
+            conversation_impl.ConversationHelper.create_conversation_state(card_instance, user_instance,
+                                                                           conversation_states.CONVERSATION_HEADER)
+
             ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(card_instance.id,
                                                                                         user_instance.id,
                                                                                         community_instance.id)
             schedule_chatroom_unpinning_after_event_completion(card_instance)
             ChatroomHelper.send_event_creation_mail.delay(card_instance.id)
+            ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
 
             chatroom_context = {
                 'success': True,
@@ -1450,7 +1457,8 @@ class ChatroomImpl(ChatroomManager):
             nudge_instance = event_nudge_filter[0]
 
             if nudge_instance.seen_event_chatroom_id != last_seen_event_chatroom_id:
-                card_instance = ModelUtilities.get_model_filter(Collabcard, last_seen_event_chatroom_id)
+                card_instance = ModelUtilities.get_model_instance_or_none(Collabcard,
+                                                                          last_seen_event_chatroom_id)
                 nudge_instance.seen_event_chatroom = card_instance
                 nudge_instance.save()
 
@@ -1548,6 +1556,9 @@ class ChatroomImpl(ChatroomManager):
             ChatroomHelper.send_event_creation_mail.delay(card_instance.id, send_to_members=False,
                                                           user_list=[user_instance.id])
 
+        ChatroomHelper.run_async_task_related_to_event_chatroom_attend_analytics(card_instance,
+                                                                                 user_instance, attending_status)
+
         return {'success': True}
 
     def set_event_attended(self) -> dict:
@@ -1565,6 +1576,9 @@ class ChatroomImpl(ChatroomManager):
         ModelUtilities.model_update(collabcardState,
                                     {'card': card_instance, 'user': user_instance},
                                     {'attended': True, 'updated_at': TimeUtilities.current_time_in_sec()})
+
+        send_analytics_on_event_attend_link_click.delay(card_instance.id, user_instance.id)
+
         return {'success': True}
 
 
@@ -2315,3 +2329,15 @@ class ChatroomHelper:
 
         if event_metadata:
             CalendarImpl().call_calender_api(event_metadata)
+
+    @staticmethod
+    def run_async_tasks_related_to_event_chatroom_analytics(card_instance):
+        schedule_event_analytics_on_event_start(card_instance)
+        schedule_event_analytics_daily_7AM(card_instance, 7, 0)
+        schedule_event_analytics_on_event_before_n_hour(card_instance, 1)
+
+    @staticmethod
+    def run_async_task_related_to_event_chatroom_attend_analytics(card_instance, user_instance,
+                                                                  attending_status=True):
+        send_analytics_on_event_registered_to_attend(card_instance.id, user_instance.id,
+                                                           attending_status)

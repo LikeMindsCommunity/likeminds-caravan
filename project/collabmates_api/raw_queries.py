@@ -961,7 +961,7 @@ def get_community_id_of_guest(member_id):
         error_logger.error("Error while connecting to PostgreSQL %s", error)
 
 
-def get_members_of_community(community_id_list, last_updated, page, limit):
+def get_members_of_community_based_on_community_list_for_sync(community_id_list, last_updated, page, limit):
     """function to get members of the community present in community_id list"""
 
     try:
@@ -991,7 +991,8 @@ def get_members_of_community(community_id_list, last_updated, page, limit):
             INNER JOIN togther_community
                 ON togther_community.id = togther_members.community_id_id
             WHERE togther_members.community_id_id IN %s
-                    AND togther_members.updated_at > %s limit %s offset %s
+                    AND togther_members.updated_at > %s order by 
+                    togther_members.updated_at  limit %s offset %s
             
             """ % (str(community_id_tupple), last_updated, limit, offset)
 
@@ -1007,6 +1008,54 @@ def get_members_of_community(community_id_list, last_updated, page, limit):
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
+def get_members_of_community_based_on_user_list_for_sync(user_id_list, community_id, last_updated, page, limit):
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        user_id_tuple = get_tuple_from_array(user_id_list)
+
+        if not user_id_tuple:
+            return []
+
+        offset = (int(page) - 1) * int(limit)
+
+        sql = """SELECT togther_members.member_id_id,
+                     togther_members.community_id_id,
+                     togther_members.state,
+                     togther_members.created_at,
+                     togther_members.updated_at,
+                     togther_members.is_owner,
+                     togther_members.image_url,
+                     togther_userinfo.image_link,
+                     togther_userinfo.name,
+                     togther_members.custom_title,
+                     togther_community.name
+            FROM togther_members
+            INNER JOIN togther_userinfo
+                ON togther_members.member_id_id = togther_userinfo.user_id_id
+            INNER JOIN togther_community
+                ON togther_community.id = togther_members.community_id_id
+            WHERE togther_members.member_id_id IN %s
+                    AND togther_members.updated_at > %s 
+                    AND togther_members.community_id_id = %s order by updated_at limit %s offset %s
+
+            """ % (str(user_id_tuple), last_updated, str(community_id), limit, offset)
+
+        curr.execute(sql)
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+        member_date = process_member_data(res)
+
+        return member_date
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL  %s", error)
+
+        return {}
+
+
 def get_member_responses_for_community(community_id_list):
     """check if member has responses in the community and returns a dictionary"""
 
@@ -1014,6 +1063,9 @@ def get_member_responses_for_community(community_id_list):
         conn = get_connection()
         curr = conn.cursor()
         community_id_tupple = get_tuple_from_array(community_id_list)
+
+        if not community_id_tupple:
+            return {}
 
         sql = """
             SELECT member_id,
@@ -1830,8 +1882,7 @@ def get_last_seen_event_chatroom_id_for_user(user_id):
                     WHERE type=2
                             OR type=6)
                         AND user_id=%s
-                        AND state=0
-                 ORDER BY  created_at, id limit 1 
+                 ORDER BY  created_at desc, id desc limit 1
         """ % str(user_id)
         curr.execute(sql)
         card_tupple = curr.fetchone()

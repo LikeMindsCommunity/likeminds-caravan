@@ -76,6 +76,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     else:
         # only public link
         branch_links = create_community_branch_links(community.id, current_user_id)
+
     if community.about:
         new_dict['about'] = community.about
 
@@ -134,8 +135,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
 
             # private_link_members_directory = branch_links[1]['url']
             new_dict[
-                'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
-            community.name, branch_links[2]['url'])
+                'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (branch_links[2]['url'])
 
     if community.type:
         new_dict['type'] = community.type
@@ -143,11 +143,11 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         new_dict['sub_type'] = community.sub_type
 
     new_dict[
-        'share_text_admin'] = SHARE_TEXT_ADMIN % (new_dict['name'], new_dict['purpose'], new_dict['share_url'])
+        'share_text_admin'] = SHARE_TEXT_ADMIN % (new_dict['name'], new_dict['share_url'])
 
     new_dict[
-        'share_text_member'] = """I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
-        new_dict['name'], new_dict['purpose'], new_dict['share_url'])
+        'share_text_member'] = """I am part of %s community on LikeMinds. \nApply to join our community. %s\n""" % (
+        new_dict['name'], new_dict['share_url'])
 
     new_dict[
         'share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
@@ -688,39 +688,38 @@ def get_share_url_text(card, user_id):
 
     if card.type == card_types.CARD_PUBLIC_EVENT:
 
-        share['share_url'] = """Check out this interesting event on LikeMinds: %s""" % (card_url)
+        share['share_url'] = """Check out this event on LikeMinds: %s""" % card_url
         share[
             'creator_share_url'] = """Hosting this open event for %s on LikeMinds. RSVP on this link to join us: %s""" % (
             card.community.name, card_url)
 
     elif card.type == card_types.CARD_EVENT:
 
-        share['share_url'] = """Join us for this event: %s""" % (card_url)
+        share['share_url'] = """Check out this event on LikeMinds: %s""" % card_url
         share['creator_share_url'] = """Hosting this event for %s. RSVP on this link to join us: %s""" % (
             card.community.name, card_url)
 
     elif card.type == card_types.CARD_POLL:
 
-        share['share_url'] = """Express your views on this poll. %s""" % (card_url)
+        share['share_url'] = """Express your views on this poll. %s""" % card_url
         share['creator_share_url'] = """Conducting this poll for %s. Please express your views: %s""" % (
             card.community.name, card_url)
 
     elif card.type == card_types.CARD_NORMAL:
 
-        share[
-            'share_url'] = """We are having this conversation on LikeMinds. I have enabled guest access for you for the next 24 hours. Join now with my link %s""" % (
+        share['share_url'] = """We are having this conversation on LikeMinds. Join the chat room with my link %s""" % (
             card_url)
         share[
-            'creator_share_url'] = """Join my chat room on LikeMinds using this exclusive link. I have enabled guest access for you for the next 24 hours. %s""" % (
+            'creator_share_url'] = """We are having this conversation on LikeMinds. Join the chat room with my link %s""" % (
             card_url)
 
     elif card.type == card_types.CARD_INTRO:
 
         share[
-            'share_url'] = """%s joined %s on LikeMinds. Know more about him or join him for a chat on this link: %s""" % (
+            'share_url'] = """%s joined %s on LikeMinds.Join us in welcoming them: %s""" % (
             card.user.userinfo.name, card.community.name, card_url)
         share[
-            'creator_share_url'] = """I have joined %s on LikeMinds. Know more about me or join me for a chat on this link: %s""" % (
+            'creator_share_url'] = """I have joined %s on LikeMinds.Join me for a chat on this link: %s""" % (
             card.community.name, card_url)
 
     return share
@@ -1544,11 +1543,11 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
     if current_user_is_owner and item_member_is_owner:
         menu = [edit_title]
     elif current_user_is_owner and item_member_state == member_states.ADMIN:
-        menu = [remove_from_community, edit_CM_rights]
+        menu = [edit_CM_rights, remove_from_community]
 
     elif current_user_is_owner and (item_member_state == member_states.MEMBER or
                                     item_member_state == member_states.PROFILE_UNAVAILABLE):
-        menu = [remove_from_community, edit_permissions, give_CM_rights]
+        menu = [edit_permissions, give_CM_rights, remove_from_community]
 
     elif current_user_is_promoter and item_member_state == member_states.ADMIN:
 

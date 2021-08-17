@@ -848,10 +848,10 @@ class membersSerializer(serializers.ModelSerializer):
         if current_user_is_owner and item_member_is_owner:
             menu = [edit_title]
         elif current_user_is_owner and item_member_state == member_states.ADMIN:
-            menu = [remove_from_community, edit_CM_rights]
+            menu = [edit_CM_rights, remove_from_community]
 
         elif current_user_is_owner and item_member_state == member_states.MEMBER:
-            menu = [remove_from_community, edit_permissions, give_CM_rights]
+            menu = [edit_permissions, give_CM_rights, remove_from_community]
 
         elif current_user_is_promoter and item_member_state == member_states.ADMIN:
 

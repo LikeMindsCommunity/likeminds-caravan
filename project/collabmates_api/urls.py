@@ -165,7 +165,7 @@ urlpatterns = [
     ############################ synching client db apis ##################################
 
     path('sync_conversation', api_views.SyncConversation.as_view(), name='sync_conversation'),
-    path('sync_members', api_views.sync_members, name='sync_members'),
+    path('sync_members', api_views.SyncMembers.as_view(), name='sync_members'),
 
     path('fetch_user_meta', api_views.fetch_user_meta, name='fetch_user_meta'),
 

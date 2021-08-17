@@ -3,11 +3,14 @@ from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from django.conf import settings
 
+from utility.api_client import ApiClient
 from collabmates_api.serializers import get_user_profile, get_preview_for_url, UserinfoSerializer
 from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY
-from  collabmates_api.community.constants import *
+from collabmates_api.community.constants import *
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
+from external_services.segment.segment_impl import SegmentImpl
+from utility.routes import CHATROOM_LINK
 from togther.models import *
 import time
 from django.db.models import Q
@@ -16,7 +19,8 @@ import json
 from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVERSATION_POLL_VOTERS_CONVERSATION_ID, \
     CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM
-from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
+from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY, \
+    SUBSCRIPTION_FETCH_EVENT_PLAN
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
@@ -1035,7 +1039,7 @@ def update_event_attendees(attendees_info):
             event_attendees_list.append(user_id)
 
         CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
-                'event_attendees_list': event_attendees_list
+            'event_attendees_list': event_attendees_list
         })
 
         return
@@ -1044,10 +1048,10 @@ def update_event_attendees(attendees_info):
 
     if not event_attendees_list:
         event_attendees_list = list(ModelUtilities.get_model_filter(collabcardState,
-                                                               {'card': card_instance,
-                                                                'attending_status': True}
-                                                               ).values_list('user', flat=True).
-                               order_by('created_at', 'id')[:10])
+                                                                    {'card': card_instance,
+                                                                     'attending_status': True}
+                                                                    ).values_list('user', flat=True).
+                                    order_by('created_at', 'id')[:10])
 
     CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
         'event_attendees_list': event_attendees_list
@@ -1099,7 +1103,6 @@ def set_levels_on_ctc_celery(community_levels_info):
 
 @shared_task
 def set_level_click_state(level_click_state_info):
-
     community_id = level_click_state_info.get("community_id")
     is_promoter = level_click_state_info.get("is_promoter")
 
@@ -1114,3 +1117,138 @@ def set_level_click_state(level_click_state_info):
             ModelUtilities.model_update(communityLevels,
                                         {'community_id': community_id, 'level': "Level 3"},
                                         {'level_click_state': level_click_states.COMMUNITY_JOINED})
+
+
+def get_event_pricing(card_id):
+    client = ApiClient(host=settings.SUBSCRIPTION_SERVER_URL,
+                       method='get',
+                       path=SUBSCRIPTION_FETCH_EVENT_PLAN)
+
+    client.add_url_param('chatroom_ids', [card_id])
+    client.request()
+    response = client.fetch_response()
+    cost_list = [data.get('cost') / 100 for data in response.get('event_plans', [])]
+
+    return cost_list
+
+
+def compute_event_metadata_for_analytics(card_instance, community_instance):
+    cost_list = get_event_pricing(card_instance.id)
+
+    if not cost_list:
+        return
+
+    event_metadata = {
+        'event_id': card_instance.id,
+        'community_id': community_instance.id,
+        'community_name': community_instance.name,
+        'event_name': card_instance.header,
+        'event_date': TimeUtilities.convert_epoch_time_to_date_month_year(card_instance.date_time),
+        'event_time': TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(card_instance.date_time),
+        'event_type': "paid" if card_instance.is_paid else "free",
+        'registered': True,
+        'event_link': CHATROOM_LINK % (settings.URL, str(card_instance.id)),
+        'event_cost': cost_list
+    }
+
+    return event_metadata
+
+
+@shared_task
+def send_analytics_on_event_attend_link_click(card_id, user_id):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+    if not card_instance:
+        return
+
+    community_instance = card_instance.community
+
+    event_metadata = compute_event_metadata_for_analytics(card_instance, community_instance)
+
+    if not event_metadata:
+        return
+
+    SegmentImpl.track_event(user_id, "Event attended (Core Service)", event_metadata)
+
+
+@shared_task
+def send_analytics_on_event_registered_to_attend(card_id, user_id, attending_status):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+    if not card_instance:
+        return
+
+    community_instance = card_instance.community
+
+    event_metadata = compute_event_metadata_for_analytics(card_instance, community_instance)
+
+    if not event_metadata:
+        return
+
+    event_metadata['attending'] = "true" if attending_status else "false"
+    SegmentImpl.track_event(user_id, "Event registered(Core Service)", event_metadata)
+
+
+@shared_task
+def send_analytics_on_event_reminders(card_id, event_name):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+    if not card_instance:
+        return
+
+    community_instance = card_instance.community
+
+    event_metadata = compute_event_metadata_for_analytics(card_instance, community_instance)
+
+    if not event_metadata:
+        return
+
+    user_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                     {'card': card_instance,
+                                                      'attending_status': True,
+                                                      'remove': None}).values_list('user_id', flat=True))
+    for user_id in user_list:
+        SegmentImpl.track_event(user_id, event_name, event_metadata)
+
+
+def schedule_event_analytics_on_event_start(card_instance):
+    card_id = card_instance.id
+    args = [card_id, "Event started (Core Service)"]
+
+    task_begin_epoch_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.date_time)
+    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
+
+    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
+    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
+    send_analytics_on_event_reminders.apply_async(args=args, kwargs={},
+                                                  eta=task_begin_date_time,
+                                                  expires=task_expiry_date_time)
+
+
+def schedule_event_analytics_daily_7AM(card_instance, n_hour, n_minute):
+    card_id = card_instance.id
+    args = [card_id, "Event day (Core Service)"]
+
+    task_begin_epoch_time = TimeUtilities.get_epoch_from_datetime(card_instance.date_time,
+                                                                           n_hour, n_minute)
+    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
+
+    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
+    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
+    send_analytics_on_event_reminders.apply_async(args=args, kwargs={},
+                                                  eta=task_begin_date_time,
+                                                  expires=task_expiry_date_time)
+
+
+def schedule_event_analytics_on_event_before_n_hour(card_instance, n):
+    card_id = card_instance.id
+    args = [card_id, "Event starting in %s hr (Core Service)" % str(n)]
+
+    task_begin_epoch_time = TimeUtilities.subtract_hours_from_epoch_time(card_instance.date_time, n)
+    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
+
+    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
+    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
+    send_analytics_on_event_reminders.apply_async(args=args, kwargs={},
+                                                  eta=task_begin_date_time,
+                                                  expires=task_expiry_date_time)

@@ -353,3 +353,5 @@ FORCE_UPDATE = {
     'android': os.getenv('ANDROID_FORCE_UPDATE'),
     'ios': os.getenv('IOS_FORCE_UPDATE')
 }
+
+SEGMENT_KEY = os.getenv('SEGMENT_KEY')
