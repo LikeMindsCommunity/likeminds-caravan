@@ -500,13 +500,108 @@ def draftChatroomSerializer(card, user, community=None):
     return chatroom
 
 
+def draft_chatroom_file_serializer(file, keys_list, file_dict, file_attachment_dict={}):
+
+    for key in keys_list:
+        key_value = getattr(file, key, None)
+
+        if key_value:
+            file_dict[key] = key_value
+            file_attachment_dict[key] = key_value
+
+    return file_dict, file_attachment_dict
+
+
+def get_draft_chatroom_files(card_id):
+
+    files = draftChatroomFiles.objects.filter(draft=card_id)
+    img_list = []
+    pdf = []
+    video_list = []
+    audio_list = []
+
+    attachments = []
+
+    for file in files:
+
+        if file.type == 'image':
+            img = {'image_url': file.file_url}
+            img_attachment = {'url': file.file_url}
+
+            img, img_attachment = draft_chatroom_file_serializer(file,
+                                                                 ['index', 'type', 'dimensions', 'height', 'width',
+                                                                  'thumbnail_url'], img, img_attachment)
+
+            img_list.append(img)
+            attachments.append(img_attachment)
+
+        elif file.type == 'video':
+            video_url = {'video_url': file.file_url}
+            video_attachment = {'url': file.file_url}
+
+            video_url, video_attachment = draft_chatroom_file_serializer(file, ['index', 'type', 'height', 'width',
+                                                                                'thumbnail_url'], video_url,
+                                                                         video_attachment)
+
+            video_list.append(video_url)
+            attachments.append(video_attachment)
+
+        elif file.type == 'audio':
+
+            if file.file_url:
+                audio_url = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+            else:
+                audio_url = {'url': url + file.attachment.url, 'index': file.index}
+
+            audio_url, audio_url_attachment = draft_chatroom_file_serializer(file, ['height', 'width',
+                                                                                    'thumbnail_url'], audio_url)
+
+            attachments.append(audio_url)
+
+        elif file.type == 'pdf':
+
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
+
+            else:
+                pdf_url = {'pdf_file': url + file.attachment.url, 'index': file.index}
+
+            pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+            pdf_url, pdf_attachment = draft_chatroom_file_serializer(file, ['height', 'width', 'thumbnail_url'],
+                                                                     pdf_url, pdf_attachment)
+
+            pdf.append(pdf_url)
+            attachments.append(pdf_attachment)
+
+        elif file.type == 'voice_note':
+
+            if file.file_url:
+                voice_note_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+
+            else:
+                voice_note_attachment = {'url': url + file.attachment.url, 'index': file.index}
+
+            voice_note_attachment, _ = draft_chatroom_file_serializer(file, ['height', 'width', 'thumbnail_url'],
+                                                                      voice_note_attachment)
+
+            attachments.append(voice_note_attachment)
+
+    return img_list, pdf, audio_list, video_list, attachments
+
+
 def get_collabcard_files(card_id, draft=False):
     '''function to return pdf and image files of a collabcard'''
 
     if not draft:
         files = Card_Attachment.objects.filter(collabcard=card_id)
+
     else:
-        files = draftChatroomFiles.objects.filter(draft=card_id)
+        img_list, pdf, audio_list, video_list, attachments = get_draft_chatroom_files(card_id)
+
+        return img_list, pdf, audio_list, video_list, attachments
+
     img_list = []
     pdf = []
     video_list = []
@@ -664,7 +759,6 @@ def get_collabcard_files(card_id, draft=False):
                     voice_note_attachment['meta'] = file_meta
 
             attachments.append(voice_note_attachment)
-
 
     return img_list, pdf, audio_list, video_list, attachments
 

@@ -248,7 +248,6 @@ class SearchImpl(SearchManager):
                             remove=None)
                     .values_list('card_id', flat=True))
 
-    @property
     def _fetch_user_community_id_list_with_respond_right(self):
 
         community_ids = list(userMemberRights.objects.filter(user__id=self.get_member_id(),
