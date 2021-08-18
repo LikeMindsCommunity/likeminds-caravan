@@ -1557,7 +1557,7 @@ class ChatroomImpl(ChatroomManager):
                                                           user_list=[user_instance.id])
 
         ChatroomHelper.run_async_task_related_to_event_chatroom_attend_analytics(card_instance,
-                                                                                 user_instance, attending_status)
+                                                                                 user_instance, status)
 
         return {'success': True}
 
