@@ -22,7 +22,8 @@ from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_me
                            get_count_of_community_members_based_on_community_list)
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS
 from ..user.user_impl import UserImpl
-from ..user_moderation_rights import check_admin_approve_right
+from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
+    check_admin_edit_community_right
 from ..utility import pagination
 from ..views import get_home_screen_community_actions,\
     generate_internal_link_preview_for_conversation, get_latest_conversation_members
@@ -147,21 +148,33 @@ class MemberCommunityImpl(MemberCommunityManager):
         """
         return User.objects.get(id=member_id)
 
+    @staticmethod
+    def has_promoter_management_rights(user_id, community_id):
+
+        return check_admin_delete_right(user=user_id, community=community_id) \
+               or check_admin_approve_right(user=user_id, community=community_id) \
+               or check_admin_edit_community_right(user=user_id,
+                                                   community=community_id)
+
     def _add_community_actions(self, member_community: dict, community: {}) -> None:
         actions = get_home_screen_community_actions(community.community_id)
-        self._add_admin_actions(member_community, actions, community)
+
+        if community.member_state == member_states.ADMIN and \
+                self.has_promoter_management_rights(self.get_member_id(), member_community['id']):
+            self._add_admin_actions(member_community, actions)
+
         member_community['actions'] = actions
 
     @staticmethod
-    def _add_admin_actions(member_community: dict, actions: list, community: {}) -> None:
+    def _add_admin_actions(member_community: dict, actions: list) -> None:
 
-        if community.member_state == member_states.ADMIN:
-            management_tools = {
-                'title': """Management tools""",
-                'route': """route://management_tools?community_id=%s&community_name=%s""" % (
+        management_tools = {
+            'title': """Management tools""",
+            'route': """route://management_tools?community_id=%s&community_name=%s""" % (
                     str(member_community['id']), member_community['name'])
-            }
-            actions.append(management_tools)
+        }
+
+        actions.append(management_tools)
 
     @staticmethod
     def _add_unseen_count_info(member_community: dict, community: {}) -> None:
