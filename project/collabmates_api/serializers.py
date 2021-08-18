@@ -500,6 +500,18 @@ def draftChatroomSerializer(card, user, community=None):
     return chatroom
 
 
+def draft_chatroom_file_serializer(file, keys_list, file_dict, file_attachment_dict={}):
+
+    for key in keys_list:
+        key_value = getattr(file, key, None)
+
+        if key_value:
+            file_dict[key] = key_value
+            file_attachment_dict[key] = key_value
+
+    return file_dict, file_attachment_dict
+
+
 def get_draft_chatroom_files(card_id):
 
     files = draftChatroomFiles.objects.filter(draft=card_id)
@@ -511,104 +523,68 @@ def get_draft_chatroom_files(card_id):
     attachments = []
 
     for file in files:
+
         if file.type == 'image':
-            img = {'image_url': file.file_url, 'index': file.index, 'type': file.type}
-            img_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+            img = {'image_url': file.file_url}
+            img_attachment = {'url': file.file_url}
 
-            if file.dimensions:
-                img['dimensions'] = json.loads(file.dimensions)
-                img_attachment['dimensions'] = json.loads(file.dimensions)
-
-            if file.height:
-                img['height'] = file.height
-                img_attachment['height'] = file.height
-
-            if file.width:
-                img['width'] = file.width
-                img_attachment['width'] = file.width
-
-            if file.thumbnail_url:
-                img['thumbnail_url'] = file.thumbnail_url
-                img_attachment['thumbnail_url'] = file.thumbnail_url
+            img, img_attachment = draft_chatroom_file_serializer(file,
+                                                                 ['index', 'type', 'dimensions', 'height', 'width',
+                                                                  'thumbnail_url'], img, img_attachment)
 
             img_list.append(img)
             attachments.append(img_attachment)
 
         elif file.type == 'video':
-            video_url = {'video_url': file.file_url, 'index': file.index, 'type': file.type}
-            video_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
+            video_url = {'video_url': file.file_url}
+            video_attachment = {'url': file.file_url}
 
-            if file.height:
-                video_url['height'] = file.height
-                video_attachment['height'] = file.height
-
-            if file.width:
-                video_url['width'] = file.width
-                video_attachment['width'] = file.width
-
-            if file.thumbnail_url:
-                video_url['thumbnail_url'] = file.thumbnail_url
-                video_attachment['thumbnail_url'] = file.thumbnail_url
+            video_url, video_attachment = draft_chatroom_file_serializer(file, ['index', 'type', 'height', 'width',
+                                                                                'thumbnail_url'], video_url,
+                                                                         video_attachment)
 
             video_list.append(video_url)
             attachments.append(video_attachment)
 
         elif file.type == 'audio':
+
             if file.file_url:
                 audio_url = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
             else:
                 audio_url = {'url': url + file.attachment.url, 'index': file.index}
 
-            if file.height:
-                audio_url['height'] = file.height
-
-            if file.width:
-                audio_url['width'] = file.width
-
-            if file.thumbnail_url:
-                audio_url['thumbnail_url'] = file.thumbnail_url
+            audio_url, audio_url_attachment = draft_chatroom_file_serializer(file, ['height', 'width',
+                                                                                    'thumbnail_url'], audio_url)
 
             attachments.append(audio_url)
 
         elif file.type == 'pdf':
+
             if file.file_url:
                 pdf_url = {'pdf_file': file.file_url, 'index': file.index, 'type': file.type}
+
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url, 'index': file.index}
 
             pdf_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
-            if file.height:
-                pdf_url['height'] = file.height
-                pdf_attachment['height'] = file.height
-
-            if file.width:
-                pdf_url['width'] = file.width
-                pdf_attachment['width'] = file.width
-
-            if file.thumbnail_url:
-                pdf_url['thumbnail_url'] = file.thumbnail_url
-                pdf_attachment['thumbnail_url'] = file.thumbnail_url
+            pdf_url, pdf_attachment = draft_chatroom_file_serializer(file, ['height', 'width', 'thumbnail_url'],
+                                                                     pdf_url, pdf_attachment)
 
             pdf.append(pdf_url)
             attachments.append(pdf_attachment)
 
         elif file.type == 'voice_note':
+
             if file.file_url:
                 voice_note_attachment = {'url': file.file_url, 'index': file.index, 'type': file.type}
 
             else:
                 voice_note_attachment = {'url': url + file.attachment.url, 'index': file.index}
 
-            if file.height:
-                voice_note_attachment['height'] = file.height
-
-            if file.width:
-                voice_note_attachment['width'] = file.width
-
-            if file.thumbnail_url:
-                voice_note_attachment['thumbnail_url'] = file.thumbnail_url
+            voice_note_attachment, _ = draft_chatroom_file_serializer(file, ['height', 'width', 'thumbnail_url'],
+                                                                      voice_note_attachment)
 
             attachments.append(voice_note_attachment)
 
