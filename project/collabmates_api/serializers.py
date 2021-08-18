@@ -622,7 +622,7 @@ def get_collabcard_files(card_id, draft=False):
         files = Card_Attachment.objects.filter(collabcard=card_id)
 
     else:
-        img_list, pdf, audio_list, video_list, attachments = get_draftchatroom_files(card_id)
+        img_list, pdf, audio_list, video_list, attachments = get_draft_chatroom_files(card_id)
 
         return img_list, pdf, audio_list, video_list, attachments
 
