@@ -1,5 +1,7 @@
 import json
 from rest_framework import serializers
+
+from utility.number_utilities import NumberUtilities
 from ..models import MarketingBanner
 
 
@@ -20,6 +22,10 @@ class BannerSerializer(serializers.ModelSerializer):
             if field.field_name in convert_fields:
                 if data[field.field_name] is not None:
                     data[field.field_name] = json.loads(data[field.field_name])
+
+                    if field.field_name == "community_ids":
+                        data[field.field_name] = [NumberUtilities.get_integer_from_string(value)
+                                                  for value in data[field.field_name]]
 
             if data[field.field_name] is None:
                 del data[field.field_name]
