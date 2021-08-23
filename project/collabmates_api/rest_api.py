@@ -277,7 +277,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
                   'poll_type', 'last_seen_conversation', 'is_secret', 'secret_chatroom_participants',
-                  'topic_id', 'auto_follow_done', 'is_edited', 'attendees', 'instructors', 'highlights',
+                  'topic_id', 'auto_follow_done', 'is_edited', 'attendees_ids', 'instructors', 'highlights',
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link',
                   'event_web_page'
