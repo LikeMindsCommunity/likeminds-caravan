@@ -8688,6 +8688,27 @@ def edit_community(request):
     return JsonResponse({'success': True, 'community': new_dict})
 
 
+def change_community_level_context_for_paid_community(community_instance):
+
+    if not community_instance.is_paid:
+        return
+
+    level_filter = ModelUtilities.get_model_filter(communityLevels,
+                                                   {'level': "Level 4",
+                                                    'community': community_instance})
+
+    if level_filter:
+        level_instance = level_filter[0]
+
+        if level_instance.state == community_level_states.LOCKED:
+            level_instance.title = PAID_COMMUNITY_LEVEL_4_TITLE
+
+        else:
+            level_instance.title = PAID_COMMUNITY_LEVEL_4_SUB_TITLE
+
+        level_instance.save()
+
+
 @csrf_exempt
 def edit_community_version_1(request):
     '''function to edit the community'''
@@ -8749,6 +8770,7 @@ def edit_community_version_1(request):
         edit_community_data(community_instance, user_instance, edit_field=edit_field)
 
     community_instance.save()
+    change_community_level_context_for_paid_community(community_instance)
 
     send_sync_notification.delay({'community_id': community_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})

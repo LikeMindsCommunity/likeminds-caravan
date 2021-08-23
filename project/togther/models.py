@@ -77,7 +77,7 @@ class Community(models.Model):
     is_paid = models.BooleanField(default=False)
     website_url = models.TextField(null=True)
     auto_approval = models.BooleanField(default=False)
-    grace_period = models.BigIntegerField(default=86400 * 4 * 1000)  # 4 days in ms
+    grace_period = models.BigIntegerField(default=0)
     is_discoverable = models.BooleanField(default=False)
 
     community_category = models.TextField(null=True)
