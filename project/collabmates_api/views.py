@@ -11863,7 +11863,7 @@ class SyncChatrooms(APIView):
 
         if event_attendees_dict:
             event_attendees_list = event_attendees_dict.get('event_attendees_list', [])
-            chatroom['attendees'] = event_attendees_list
+            chatroom['attendees_ids'] = event_attendees_list
 
             return
 
@@ -11875,7 +11875,7 @@ class SyncChatrooms(APIView):
 
         update_event_attendees({'chatroom_id': chatroom['id'],
                                 'event_attendees_list': event_attendees_list})
-        chatroom['attendees'] = event_attendees_list
+        chatroom['attendees_ids'] = event_attendees_list
 
     def fetch_event_instructors(self, card_id):
 

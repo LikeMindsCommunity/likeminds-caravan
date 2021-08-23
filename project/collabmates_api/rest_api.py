@@ -251,7 +251,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     is_tagged = serializers.BooleanField(write_only=True)
     chatroom_expiry_time = serializers.CharField(write_only=True)
     last_seen_conversation = serializers.IntegerField(write_only=True)
-    attendees = serializers.SerializerMethodField()
+    attendees_ids = serializers.SerializerMethodField()
     instructors = serializers.SerializerMethodField()
     highlights = serializers.SerializerMethodField()
     testimonials = serializers.SerializerMethodField()
@@ -454,7 +454,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         return attachments
 
-    def get_attendees(self, card):
+    def get_attendees_ids(self, card):
 
         if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
             event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CHATROOM % str(card.id))
