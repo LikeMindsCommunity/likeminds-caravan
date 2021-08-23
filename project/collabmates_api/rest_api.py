@@ -251,7 +251,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     is_tagged = serializers.BooleanField(write_only=True)
     chatroom_expiry_time = serializers.CharField(write_only=True)
     last_seen_conversation = serializers.IntegerField(write_only=True)
-    attendees = serializers.SerializerMethodField()
+    attendees_ids = serializers.SerializerMethodField()
     instructors = serializers.SerializerMethodField()
     highlights = serializers.SerializerMethodField()
     testimonials = serializers.SerializerMethodField()
@@ -277,7 +277,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'share_url', 'creator_share_url', 'link_created_at',
                   'state', 'mute_status', 'follow_status', 'is_guest', 'is_tagged', 'chatroom_expiry_time',
                   'poll_type', 'last_seen_conversation', 'is_secret', 'secret_chatroom_participants',
-                  'topic_id', 'auto_follow_done', 'is_edited', 'attendees', 'instructors', 'highlights',
+                  'topic_id', 'auto_follow_done', 'is_edited', 'attendees_ids', 'instructors', 'highlights',
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link',
                   'event_web_page'
@@ -454,7 +454,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         return attachments
 
-    def get_attendees(self, card):
+    def get_attendees_ids(self, card):
 
         if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
             event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CHATROOM % str(card.id))
