@@ -188,7 +188,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                            order_by('created_at', 'id')[:10])
 
         attendees_list = self.process_event_attendees_list(event_attendees_list, community_instance)
-        update_event_attendees({'chatroom_id': card_instance.id,
+        update_event_attendees.delay({'chatroom_id': card_instance.id,
                                 'event_attendees_list': event_attendees_list})
         return attendees_list
 
@@ -699,14 +699,10 @@ class ChatroomMemberHelper:
             instructors_list = []
 
             for data in instructor_filter:
-                instructors_list.append({
-                    'chatroom_id': data.card_id,
-                    'about': data.about,
-                    'url': data.url
-                })
+                instructors_list.append(ModelUtilities.serialize_instance(data))
 
-            update_event_instructors_in_cache({'chatroom_id': card_instance.id,
-                                              'instructors_list': instructors_list})
+            update_event_instructors_in_cache.delay({'chatroom_id': card_instance.id,
+                                                     'instructors_list': instructors_list})
 
         return instructors_list
 
@@ -725,13 +721,9 @@ class ChatroomMemberHelper:
             highlights_list = []
 
             for data in highlights_filter:
-                highlights_list.append({
-                    'chatroom_id': data.card_id,
-                    'highlight': data.highlight,
-                    'url': data.url
-                })
+                highlights_list.append(ModelUtilities.serialize_instance(data))
 
-            update_event_highlights_in_cache({'chatroom_id': card_instance.id,
+            update_event_highlights_in_cache.delay({'chatroom_id': card_instance.id,
                                               'highlights_list': highlights_list})
 
         return highlights_list
@@ -751,13 +743,9 @@ class ChatroomMemberHelper:
             faqs_list = []
 
             for data in faq_filter:
-                faqs_list.append({
-                    'chatroom_id': data.card_id,
-                    'question': data.question,
-                    'answer': data.answer
-                })
+                faqs_list.append(ModelUtilities.serialize_instance(data))
 
-            update_event_faq_in_cache({'chatroom_id': card_instance.id, 'faqs_list': faqs_list})
+            update_event_faq_in_cache.delay({'chatroom_id': card_instance.id, 'faqs_list': faqs_list})
 
         return faqs_list
 
@@ -775,15 +763,10 @@ class ChatroomMemberHelper:
             testimonials_list = []
 
             for data in testimonial_filter:
-                testimonials_list.append({
-                    'chatroom_id': data.card_id,
-                    'member_name': data.member_name,
-                    'testimonial': data.testimonial,
-                    'url': data.url
-                })
+                testimonials_list.append(ModelUtilities.serialize_instance(data))
 
-            update_event_member_testimonials_in_cache({'chatroom_id': card_instance.id,
-                                                       'testimonials_list': testimonials_list})
+            update_event_member_testimonials_in_cache.delay({'chatroom_id': card_instance.id,
+                                                             'testimonials_list': testimonials_list})
 
         return testimonials_list
 

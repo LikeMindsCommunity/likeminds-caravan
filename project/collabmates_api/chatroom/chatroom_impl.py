@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+
 import time
 from typing import Union
 from rest_framework import status as status_codes
@@ -1369,73 +1369,109 @@ class ChatroomImpl(ChatroomManager):
 
             return {'success': False, 'error_message': "send correct event type"}
 
-    def add_instructor(self, req_body: dict) -> dict:
+    def add_or_update_instructor(self, req_body: dict) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
-        EventInstructor.create_instance({
-            'card_instance': card_instance,
-            'about': req_body.get('about'),
-            'url': req_body.get('url')
+        instructors = req_body.get('instructors', [])
+        ModelUtilities.delete_record_in_model(EventInstructor, {'card': card_instance})
+        instructors_list = []
 
-        })
+        for data in instructors:
 
-        update_event_instructors_in_cache({'chatroom_id': card_instance.id})
+            instance = EventInstructor.create_instance({
+                'card_instance': card_instance,
+                'about': data.get('about'),
+                'url': data.get('url')
+
+            })
+            instructors_list.append(ModelUtilities.serialize_instance(instance))
+
+        update_event_instructors_in_cache.delay({'chatroom_id': card_instance.id,
+                                                 'instructors_list': instructors_list})
 
         return {'success': True}
 
-    def add_highlights(self, req_body: dict) -> dict:
+    def add_or_update_highlights(self, req_body: dict) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
-        EventHighlights.create_instance({
-            'card_instance': card_instance,
-            'highlight': req_body.get('highlight'),
-            'url': req_body.get('url')
+        highlights = req_body.get('highlights', [])
 
-        })
-        update_event_highlights_in_cache({'chatroom_id': card_instance.id})
+        ModelUtilities.delete_record_in_model(EventHighlights, {'card': card_instance})
+        highlights_list = []
+
+        for data in highlights:
+
+            instance = EventHighlights.create_instance({
+                'card_instance': card_instance,
+                'highlight': data.get('highlight'),
+                'url': data.get('url')
+
+            })
+
+            highlights_list.append(ModelUtilities.serialize_instance(instance))
+
+        update_event_highlights_in_cache.delay({'chatroom_id': card_instance.id, 'highlights_list': highlights_list})
 
         return {'success': True}
 
-    def add_member_testimonials(self, req_body: dict) -> dict:
+    def add_or_update_member_testimonials(self, req_body: dict) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
-        EventMemberTestimonials.create_instance({
-            'card_instance': card_instance,
-            'member_name': req_body.get('member_name'),
-            'testimonial': req_body.get('testimonial'),
-            'url': req_body.get('url')
+        testimonials = req_body.get('testimonials', [])
+        testimonials_list = []
 
-        })
-        update_event_member_testimonials_in_cache({'chatroom_id': card_instance.id})
+        ModelUtilities.delete_record_in_model(EventMemberTestimonials, {'card': card_instance})
+
+        for data in testimonials:
+
+            instance = EventMemberTestimonials.create_instance({
+                'card_instance': card_instance,
+                'member_name': data.get('member_name'),
+                'testimonial': data.get('testimonial'),
+                'url': data.get('url')
+
+            })
+            testimonials_list.append(ModelUtilities.serialize_instance(instance))
+
+        update_event_member_testimonials_in_cache.delay({'chatroom_id': card_instance.id,
+                                                         'testimonials_list': testimonials_list})
 
         return {'success': True}
 
-    def add_event_faq(self, req_body: dict) -> dict:
+    def add_or_update_event_faq(self, req_body: dict) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
-        EventFAQ.create_instance({
-            'card_instance': card_instance,
-            'question': req_body.get('question'),
-            'answer': req_body.get('answer')
+        faq = req_body.get('faq', [])
+        faqs_list = []
+        ModelUtilities.delete_record_in_model(EventFAQ, {'card': card_instance})
 
-        })
-        update_event_faq_in_cache({'chatroom_id': card_instance.id})
+        for data in faq:
+
+            instance = EventFAQ.create_instance({
+                'card_instance': card_instance,
+                'question': data.get('question'),
+                'answer': data.get('answer')
+
+            })
+            faqs_list.append(ModelUtilities.serialize_instance(instance))
+
+        update_event_faq_in_cache.delay({'chatroom_id': card_instance.id, 'faqs_list': faqs_list})
 
         return {'success': True}
 
@@ -1546,7 +1582,7 @@ class ChatroomImpl(ChatroomManager):
         ChatroomHelper.auto_follow_chatroom(card_instance, user_instance, community_instance,
                                             func_dict={'attending_status': status}, member_state=member_state)
 
-        update_event_attendees({
+        update_event_attendees.delay({
             'chatroom_id': card_instance.id,
             'user_id': user_instance.id,
             'status': status

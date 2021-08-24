@@ -26,13 +26,13 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                  callable(subclass.fetch_participants_of_secret_chatroom)) and
                 (hasattr(subclass, 'create_event') and callable(subclass.create_event)) and
                 (hasattr(subclass, 'update_event') and callable(subclass.update_event)) and
-                (hasattr(subclass, 'add_instructor') and callable(subclass.add_instructor)) and
-                (hasattr(subclass, 'add_highlights') and
-                 callable(subclass.add_highlights)) and
-                (hasattr(subclass, 'add_member_testimonials') and
-                 callable(subclass.add_member_testimonials)) and
-                (hasattr(subclass, 'add_event_faq') and
-                 callable(subclass.add_event_faq)) and
+                (hasattr(subclass, 'add_or_update_instructor') and callable(subclass.add_or_update_instructor)) and
+                (hasattr(subclass, 'add_or_update_highlights') and
+                 callable(subclass.add_or_update_highlights)) and
+                (hasattr(subclass, 'add_or_update_member_testimonials') and
+                 callable(subclass.add_or_update_member_testimonials)) and
+                (hasattr(subclass, 'add_or_update_event_faq') and
+                 callable(subclass.add_or_update_event_faq)) and
                 (hasattr(subclass, 'update_last_seen_event') and
                  callable(subclass.update_last_seen_event)) and
                 (hasattr(subclass, 'fetch_unseen_count_in_event') and
@@ -132,28 +132,28 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_instructor(self, req_body: dict) -> dict:
+    def add_or_update_instructor(self, req_body: dict) -> dict:
         """
         adding instructor in event
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_highlights(self, req_body: dict) -> dict:
+    def add_or_update_highlights(self, req_body: dict) -> dict:
         """
         adding highlights in event
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_member_testimonials(self, req_body: dict) -> dict:
+    def add_or_update_member_testimonials(self, req_body: dict) -> dict:
         """
         adding member testimonials in event
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_event_faq(self, req_body: dict) -> dict:
+    def add_or_update_event_faq(self, req_body: dict) -> dict:
         """
         adding FAQ in event
         """

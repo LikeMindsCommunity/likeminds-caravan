@@ -12,6 +12,7 @@ from utility.exception_utilities import (InvalidCommunityException, InvalidChatr
 from utility.time_utilities import TimeUtilities
 from typing import Union
 from external_services.logging.logging_wrapper import LoggingWrapper
+from django.core import serializers as core_serializer
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -2150,6 +2151,11 @@ class ModelUtilities:
         for instance_list in bulk_create_list:
             model.objects.bulk_update(instance_list, fields, chunk_size)
 
+    @staticmethod
+    def serialize_instance(instance):
+
+        return core_serializer.serialize('python', [instance], )[0].get('fields')
+
 
 class MessageReactions(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -2416,4 +2422,3 @@ class ContentDownloadSettings(models.Model):
         self.updated_at = current_time
 
         super(ContentDownloadSettings, self).save(*args, **kwargs)
-

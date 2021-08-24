@@ -908,6 +908,7 @@ def save_users_with_muted_chatrooms(mute_info):
     CacheImpl.set_cache(key, {'mute_list': mute_list})
 
 
+@shared_task
 def update_event_instructors_in_cache(instructors_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, instructors_info.get('chatroom_id'))
 
@@ -917,23 +918,14 @@ def update_event_instructors_in_cache(instructors_info):
     instructors_list = instructors_info.get('instructors_list', [])
 
     if not instructors_list:
-
-        instructor_filter = ModelUtilities.get_model_filter(EventInstructor,
-                                                            {'card': card_instance}).order_by('id')
-        instructors_list = []
-
-        for data in instructor_filter:
-            instructors_list.append({
-                'chatroom_id': data.card_id,
-                'about': data.about,
-                'url': data.url
-            })
+        return
 
     CacheImpl.set_cache(EVENT_INSTRUCTORS_CHATROOM % str(card_instance.id), {
         'instructors_list': instructors_list
     })
 
 
+@shared_task
 def update_event_highlights_in_cache(highlights_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, highlights_info.get('chatroom_id'))
 
@@ -943,23 +935,14 @@ def update_event_highlights_in_cache(highlights_info):
     highlights_list = highlights_info.get('highlights_list', [])
 
     if not highlights_list:
-
-        highlights_filter = ModelUtilities.get_model_filter(EventHighlights,
-                                                            {'card': card_instance}).order_by('id')
-        highlights_list = []
-
-        for data in highlights_filter:
-            highlights_list.append({
-                'chatroom_id': data.card_id,
-                'highlight': data.highlight,
-                'url': data.url
-            })
+        return
 
     CacheImpl.set_cache(EVENT_HIGHLIGHTS_CHATROOM % str(card_instance.id), {
         'highlights_list': highlights_list
     })
 
 
+@shared_task
 def update_event_member_testimonials_in_cache(testimonials_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, testimonials_info.get('chatroom_id'))
 
@@ -969,24 +952,14 @@ def update_event_member_testimonials_in_cache(testimonials_info):
     testimonials_list = testimonials_info.get('testimonials_list', [])
 
     if not testimonials_list:
-
-        testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
-                                                             {'card': card_instance}).order_by('id')
-        testimonials_list = []
-
-        for data in testimonial_filter:
-            testimonials_list.append({
-                'chatroom_id': data.card_id,
-                'member_name': data.member_name,
-                'testimonial': data.testimonial,
-                'url': data.url
-            })
+        return
 
     CacheImpl.set_cache(EVENT_MEMBERTESTIMONIALS_CHATROOM % str(card_instance.id), {
         'testimonials_list': testimonials_list
     })
 
 
+@shared_task
 def update_event_faq_in_cache(faqs_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, faqs_info.get('chatroom_id'))
 
@@ -996,23 +969,14 @@ def update_event_faq_in_cache(faqs_info):
     faqs_list = faqs_info.get('faqs_list', [])
 
     if not faqs_list:
-
-        faq_filter = ModelUtilities.get_model_filter(EventFAQ,
-                                                     {'card': card_instance}).order_by('id')
-        faqs_list = []
-
-        for data in faq_filter:
-            faqs_list.append({
-                'chatroom_id': data.card_id,
-                'question': data.question,
-                'answer': data.answer
-            })
+        return
 
     CacheImpl.set_cache(EVENT_FAQ_CHATROOM % str(card_instance.id), {
         'faqs_list': faqs_list
     })
 
 
+@shared_task
 def update_event_attendees(attendees_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, attendees_info.get('chatroom_id'))
 
