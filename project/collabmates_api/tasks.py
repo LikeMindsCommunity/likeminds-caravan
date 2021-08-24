@@ -458,15 +458,19 @@ def send_tagged_user_mail_scheduled(user_id,card_id,tagged_member_list,has_seen)
                 send_email(subject, template, to, categories=categories)
 
 @shared_task
-def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
-    state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
-    
-    if state.exists():
-        last_conversation_id = state.first().conversation_id
-        message_time = state.first().updated_at
-    else:
-        last_conversation_id = -1
-        message_time = 0
+def send_chatroom_owner_mail(user_id, card_id, time_in_hrs):
+    state_filter = ModelUtilities.get_model_filter(collabcardState, {'card_id': card_id, 'user_id': user_id})
+
+    last_conversation_id = -1
+    message_time = 0
+
+    if state_filter:
+        state_instance = state_filter[0]
+        last_conversation = state_instance.last_seen_conversation
+
+        if last_conversation:
+            last_conversation_id = last_conversation.id
+            message_time = last_conversation.created_at
 
     celerybeatask = CeleryBeatTask()
     kwargs = {}
@@ -484,39 +488,47 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
 
 
 @app.task
-def send_chatroom_owner_mail_scheduled(user_id, card_id, last_conversation_id,message_time ):
-    user_instance = User.objects.get(pk=user_id)
-    card_instance = Collabcard.objects.get(id=card_id)
+def send_chatroom_owner_mail_scheduled(user_id, card_id, last_conversation_id, message_time):
+    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
     email = get_user_email(user_id)
 
-    state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
-    if state.exists():
-        new_conversation_id = state.first().conversation_id
-    else:
-        new_conversation_id = -1
+    state_filter = ModelUtilities.get_model_filter(collabcardState, {'card_id': card_id, 'user_id': user_id})
+
+    new_conversation_id = -1
+
+    if state_filter:
+        state_instance = state_filter[0]
+        new_conversation_id = state_instance.last_seen_conversation_id
+
     if new_conversation_id == last_conversation_id:
         notification_list = [
             'mail_send_chatroom_owner_mail'
         ]
-        if check_notification_flag(user_id,notification_list,card_id=None,community_id=None):
-            number_of_messages = card_answers.objects.filter(card__id=card_id,created_at__gte=message_time).count()
+
+        if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
+            number_of_messages = ModelUtilities.get_model_filter(card_answers, {'card__id': card_id,
+                                                                                'created_at__gte': message_time}).count()
+
             if number_of_messages == 1:
                 subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" message is waiting for you!"
+
             else:
                 subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" messages are waiting for you!"
+
             email_context = {
-                    'subject':subject,
-                    'member_name' : user_instance.userinfo.name,
-                    'community_name' : card_instance.community.name,
-                    'card_name' : get_title_from_collabcard(card_instance),
+                    'subject': subject,
+                    'member_name': user_instance.userinfo.name,
+                    'community_name': card_instance.community.name,
+                    'card_name': get_title_from_collabcard(card_instance),
                     'android_app_download_link': android_app_download_link,
                     'ios_app_download_link': ios_app_download_link,
-                    'playstore_image' : GOOGLE_PLAYSTORE,
-                    'applestore_image' : APPLE_APPSTORE,
-                    'app_image' : APP_LOGO,
+                    'playstore_image': GOOGLE_PLAYSTORE,
+                    'applestore_image': APPLE_APPSTORE,
+                    'app_image': APP_LOGO,
                     'cta_url': url + '/collabcard/' + str(card_id),
-                    'number_of_messages':number_of_messages,
-                    'unsubscribe_url':url + '/unsubscribe_from_email?m=' + encrypt(user_id) + '&code=mail_send_chatroom_owner_mail' ,
+                    'number_of_messages': number_of_messages,
+                    'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(user_id) + '&code=mail_send_chatroom_owner_mail' ,
                 }
             template = get_template("mails/owner_inactive_email.html").render(email_context)
 
