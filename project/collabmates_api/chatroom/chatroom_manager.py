@@ -44,7 +44,10 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'attend_event') and
                  callable(subclass.attend_event)) and
                 (hasattr(subclass, 'set_event_attended') and
-                 callable(subclass.set_event_attended))
+                 callable(subclass.set_event_attended)) and
+                (hasattr(subclass, 'update_files') and
+                 callable(subclass.update_files))
+
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -204,6 +207,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def set_event_attended(self) -> dict:
         """
         function to set user attended event
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_files(self, req_body) -> dict:
+        """
+        function to update the files in chatroom
         """
 
         raise NotImplementedError

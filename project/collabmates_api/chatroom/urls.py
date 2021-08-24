@@ -5,7 +5,7 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  FetchParticipantsOfSecretChatroom, CreateEventView, EventAddInstructor,
                                  EventAddHighlight, EventAddMemberTestimonial, EventAddFAQ, UpdateLastSeenEventChatroom,
                                  FetchUnseenCountInEvent, FetchLinkForEvent, FetchUserAllEvents, AttendEventView,
-                                 UpdateEventView, SetEventAttendedView
+                                 UpdateEventView, SetEventAttendedView, ChatroomUpdateFilesView
                                  )
 
 urlpatterns = [
@@ -20,6 +20,7 @@ urlpatterns = [
     path('edit', EditChatroomView.as_view(), name="edit_chatroom"),
     path('secret/fetch_participants_meta', FetchParticipantsOfSecretChatroom.as_view(),
          name="fetch_participants_of_secret_chatroom"),
+    path('update_files', ChatroomUpdateFilesView.as_view(), name="update_files"),
 
     path('event/create', CreateEventView.as_view(), name="create_event"),
     path('event/add_instructor', EventAddInstructor.as_view(), name="add_instructor"),

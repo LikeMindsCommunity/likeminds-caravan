@@ -40,7 +40,7 @@ from ..search.sync import ElasticSearchSync
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
-                            EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails)
+                            EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states
@@ -1580,6 +1580,41 @@ class ChatroomImpl(ChatroomManager):
         send_analytics_on_event_attend_link_click.delay(card_instance.id, user_instance.id)
 
         return {'success': True}
+
+    def update_files(self, req_body):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user-id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
+
+        if not card_instance:
+            return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        if card_instance.user_id != user_instance.id:
+            return {'success': False, 'error_message': "Only chatroom creator can update files"}
+
+        files_list = req_body.get('attachments', [])
+
+        ModelUtilities.delete_record_in_model(Card_Attachment,
+                                              {'collabcard_id': card_instance})
+
+        for file_data in files_list:
+            save_chatroom_attachments(card_instance, file_data)
+
+        files_count = len(files_list)
+        ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
+                                                {'has_files': True, 'attachment_count': files_count,
+                                                 'attachments_uploaded': files_count != 0,
+                                                 'updated_at': TimeUtilities.current_time_in_milliseconds()})
+        ModelUtilities.model_update(collabcardState,
+                                    {'card': card_instance},
+                                    {'updated_at': TimeUtilities.current_time_in_sec()})
+
+        return {'chatroom': ChatroomHelper.compute_chatroom_response(card_instance,
+                user_instance, card_instance.community), 'success': True}
 
 
 class ChatroomHelper:
