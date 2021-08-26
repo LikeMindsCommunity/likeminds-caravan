@@ -1500,10 +1500,14 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
         if TimeUtilities.current_time_in_milliseconds() >= \
-                (card_instance.date_time - card_instance.online_link_enable_before) and \
-                ChatroomHelper.is_online_event_link_verified_for_user(card_instance, user_instance):
+                (card_instance.date_time - card_instance.online_link_enable_before):
             chatroom_context = {'success': True}
-            self._fill_online_link_for_event(chatroom_context, card_instance)
+
+            if not card_instance.is_paid or \
+                    (card_instance.is_paid and ChatroomHelper.is_online_event_link_verified_for_user(card_instance,
+                                                                                                     user_instance)):
+
+                self._fill_online_link_for_event(chatroom_context, card_instance)
 
             return chatroom_context
 
