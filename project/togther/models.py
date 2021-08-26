@@ -515,7 +515,7 @@ class Collabcard(models.Model):
     access = models.IntegerField(default=1)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
-
+    webflow_item_id = models.TextField(null=True)
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
