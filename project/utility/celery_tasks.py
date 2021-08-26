@@ -1281,8 +1281,8 @@ def create_update_request_meta_of_webflow_for_instructors(info_list):
 
     for data in info_list:
         index = StringUtilities.get_string_from_integer(i)
-        fields['instructor-image-' + index] = data.get('url', '')
-        fields['instructor-about-' + index] = data.get('about', '')
+        fields['instructors-image-' + index] = data.get('url', '')
+        fields['instructors-about-' + index] = data.get('about', '')
         i = i+1
 
     return {'fields': fields}

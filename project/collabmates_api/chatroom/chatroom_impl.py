@@ -1774,7 +1774,6 @@ class ChatroomImpl(ChatroomManager):
                 'success': True}
 
 
-
 class ChatroomHelper:
 
     @staticmethod
