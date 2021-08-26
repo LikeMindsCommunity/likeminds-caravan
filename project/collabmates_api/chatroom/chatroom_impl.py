@@ -2220,11 +2220,12 @@ class ChatroomHelper:
             if member_dict.get(user_instance.id) is False:
 
                 attending_status = True if is_event_chatroom and data.state == member_states.ADMIN else False
+                follow_status = True if attending_status else card_instance.auto_follow_done
 
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
                                                                                            user_instance,
                                                                                            state=state,
-                                                                                           follow_status=card_instance.auto_follow_done,
+                                                                                           follow_status=follow_status,
                                                                                            community_instance=community_instance,
                                                                                            attending_status=attending_status)
                 if instance:
