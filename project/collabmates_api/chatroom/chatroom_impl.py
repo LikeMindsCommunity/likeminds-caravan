@@ -20,8 +20,11 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
 from ..rest_api import GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance)
+from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
+    delete_chatroom
 from ..sync.model_update import update_models_for_syncing_apis
 from ..upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
+from ..user_moderation_rights import check_admin_delete_right
 from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_time_of_chatroom,
                      create_chatroom_state_instance, get_icons_states_of_chatroom_version_1,
                      save_the_latest_conversation, collabcard_follow_internal,
@@ -1629,6 +1632,108 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
+    def toggle_member_message_post(self, value) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
+
+        card_filter = ModelUtilities.get_model_filter(Collabcard, {'id': self.get_chatroom_id()})
+
+        if not card_filter:
+            return {'success': False, 'error_message': "In-valid chatroom id"}
+
+        card_instance = card_filter[0]
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User can’t enable/disable member messaging setting option"}
+
+        card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
+
+        return {'success': True}
+
+    def fetch_chatroom_settings(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            return {'success': False, 'error_message': "In-valid chatroom id"}
+
+        community_instance = card_instance.community
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User can’t view settings of this chatroom"}
+
+        if card_instance.type == card_types.CARD_PURPOSE:
+            chatroom_settings = settings_for_purpose_chatroom.copy()
+
+        else:
+            chatroom_settings = settings_for_chatroom.copy()
+            admin_has_delete_right = check_admin_delete_right(user=user_instance,
+                                                              community=community_instance)
+
+            if admin_has_delete_right:
+                chatroom_settings.append(delete_chatroom)
+
+        settings_list = ChatroomHelper.get_settings_for_chatroom(chatroom_settings, card_instance)
+
+        return {'success': True, 'settings': settings_list}
+
+    def add_members_to_chatroom(self, chatroom_participants) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            return {'success': False, 'error_message': "In-valid chatroom id"}
+
+        if not chatroom_participants:
+            return {'success': False, 'error_message': "Invalid Chatroom participants"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User doesn't have the ability to perform this operation"}
+
+        ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
+
+        return {'success': True}
+      
     def update_files(self, req_body):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
@@ -1667,6 +1772,7 @@ class ChatroomImpl(ChatroomManager):
         return {'chatroom': ChatroomHelper.compute_chatroom_response(card_instance,
                                                                      user_instance, card_instance.community),
                 'success': True}
+
 
 
 class ChatroomHelper:
@@ -2416,6 +2522,24 @@ class ChatroomHelper:
 
         if event_metadata:
             CalendarImpl().call_calender_api(event_metadata)
+
+    @staticmethod
+    def get_settings_for_chatroom(chatroom_settings_list, card_instance):
+        chatroom_settings = []
+
+        for settings in chatroom_settings_list:
+
+            settings_dict = {'id': settings['id'], 'title': settings['title'], 'is_selected': False}
+
+            if settings['id'] == member_can_message['id']:
+                settings_dict['is_selected'] = card_instance.member_can_message
+
+            elif settings['id'] == pin_chatroom['id']:
+                settings_dict['is_selected'] = card_instance.is_pinned
+
+            chatroom_settings.append(settings_dict)
+
+        return chatroom_settings
 
     @staticmethod
     def run_async_tasks_related_to_event_chatroom_analytics(card_instance):

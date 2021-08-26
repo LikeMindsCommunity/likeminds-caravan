@@ -190,7 +190,7 @@ urlpatterns = [
     path('search/', include('collabmates_api.search.urls')),
     path('community_onboarding/', include('collabmates_api.community_onboarding.urls'), name='community_onboarding'),
     path('community_membership/', include('collabmates_api.community_membership.urls'), name='community_membership'),
-
+    path('cohort/', include('collabmates_api.cohort.urls'), name='community_cohorts'),
 ]
 
 app_name = 'collabmates_api'

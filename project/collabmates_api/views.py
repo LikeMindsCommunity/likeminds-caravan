@@ -4587,6 +4587,9 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
             actions.append(leave_chatroom)
 
+    if promoter:
+        actions.append(chatroom_settings)
+
 
     return actions
 

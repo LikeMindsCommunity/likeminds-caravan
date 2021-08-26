@@ -492,6 +492,7 @@ class Collabcard(models.Model):
     platform = models.TextField(null=True)
 
     auto_follow_done = models.BooleanField(default=False)
+    member_can_message = models.BooleanField(default=True)
     topic = models.ForeignKey('card_answers', on_delete=models.SET_NULL, null=True)
     is_edited = models.BooleanField(default=False)
 
@@ -2422,3 +2423,112 @@ class ContentDownloadSettings(models.Model):
         self.updated_at = current_time
 
         super(ContentDownloadSettings, self).save(*args, **kwargs)
+
+
+class Cohort(models.Model):
+    name = models.CharField(max_length=200)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at <= 0:
+            self.created_at = current_time_in_ms
+
+        super(Cohort, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(cohort_info):
+        instance = Cohort()
+        instance.name = cohort_info.get('name')
+        instance.community = cohort_info.get('community_instance')
+        instance.save()
+        return instance
+
+
+class CohortMember(models.Model):
+    cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at <= 0:
+            self.created_at = current_time_in_ms
+
+        super(CohortMember, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(cohort_member_info):
+        instance = CohortMember()
+        instance.cohort = cohort_member_info.get('cohort_instance')
+        instance.user = cohort_member_info.get('user_instance')
+        instance.save()
+        return instance
+
+    @staticmethod
+    def create_instance_for_bulk_create(cohort_member_info):
+        instance = CohortMember()
+        instance.cohort = cohort_member_info.get('cohort_instance')
+        instance.user = cohort_member_info.get('user_instance')
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if instance.created_at == 0:
+            instance.created_at = current_time_ms
+
+        instance.updated_at = current_time_ms
+
+        return instance
+
+
+class CohortRights(models.Model):
+    cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
+    member_rights = models.ForeignKey(memberRights, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at <= 0:
+            self.created_at = current_time_in_ms
+
+        super(CohortRights, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(cohort_member_info):
+        instance = CohortRights()
+        instance.cohort = cohort_member_info.get('cohort_instance')
+        instance.member_rights = cohort_member_info.get('right_instance')
+        instance.save()
+        return instance
+
+    @staticmethod
+    def create_instance_for_bulk_create(cohort_member_info):
+        instance = CohortRights()
+        instance.cohort = cohort_member_info.get('cohort_instance')
+        instance.member_rights = cohort_member_info.get('right_instance')
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if instance.created_at == 0:
+            instance.created_at = current_time_ms
+
+        instance.updated_at = current_time_ms
+
+        return instance

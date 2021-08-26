@@ -206,6 +206,16 @@ unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
 leave_chatroom = {'id': 15, 'title': "Leave chatroom"}
 
 add_all_members = {'id': 16, 'title': "Add all members"}
+
+chatroom_settings = {'id': 17, 'title': "Settings"}
+
+member_can_message = {'id': 18, 'title': "Members can send message"}
+
+accessible_without_subscription = {'id': 19, 'title': "Accessible without subscription"}
+
+settings_for_purpose_chatroom = [rename_chatroom, member_can_message]
+
+settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom]
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
 

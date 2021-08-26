@@ -5,6 +5,8 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  FetchParticipantsOfSecretChatroom, CreateEventView, EventAddOrUpdateInstructor,
                                  EventAddOrUpdateHighlight, EventAddOrUpdateMemberTestimonial, EventAddOrUpdateFAQ, UpdateLastSeenEventChatroom,
                                  FetchUnseenCountInEvent, FetchLinkForEvent, FetchUserAllEvents, AttendEventView,
+                                 UpdateEventView, SetEventAttendedView, EnableMemberMessageInChatroomView,
+                                 FetchChatroomSettingsView, AddMembersToChatroomView,
                                  UpdateEventView, SetEventAttendedView, ChatroomUpdateFilesView
                                  )
 
@@ -20,8 +22,12 @@ urlpatterns = [
     path('edit', EditChatroomView.as_view(), name="edit_chatroom"),
     path('secret/fetch_participants_meta', FetchParticipantsOfSecretChatroom.as_view(),
          name="fetch_participants_of_secret_chatroom"),
+    path('enable_member_message', EnableMemberMessageInChatroomView.as_view(),
+         name='enable_member_message_in_chatroom'),
+    path('fetch_settings', FetchChatroomSettingsView.as_view(),
+         name='fetch_settings'),
+    path('add', AddMembersToChatroomView.as_view(), name='add_members_to_chatroom'),
     path('update_files', ChatroomUpdateFilesView.as_view(), name="update_files"),
-
     path('event/create', CreateEventView.as_view(), name="create_event"),
     path('event/add_or_update_instructor', EventAddOrUpdateInstructor.as_view(), name="add_or_update_instructor"),
     path('event/add_or_update_highlights', EventAddOrUpdateHighlight.as_view(), name="add_or_update_highlights"),

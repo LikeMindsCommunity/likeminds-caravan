@@ -45,9 +45,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                  callable(subclass.attend_event)) and
                 (hasattr(subclass, 'set_event_attended') and
                  callable(subclass.set_event_attended)) and
+                (hasattr(subclass, 'toggle_member_message_post') and
+                 callable(subclass.toggle_member_message_post)) and
+                (hasattr(subclass, 'fetch_chatroom_settings') and
+                 callable(subclass.fetch_chatroom_settings)) and
+                (hasattr(subclass, 'add_members_to_chatroom') and
+                 callable(subclass.add_members_to_chatroom)) and
                 (hasattr(subclass, 'update_files') and
                  callable(subclass.update_files))
-
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -209,6 +214,29 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         function to set user attended event
         """
 
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def toggle_member_message_post(self, value) -> dict:
+        """
+        function to allow members to send message in chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_chatroom_settings(self) -> dict:
+        """
+        function to fetch chatroom settings
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def add_members_to_chatroom(self, chatroom_participants) -> dict:
+        """
+        function to add members to the chatroom
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
