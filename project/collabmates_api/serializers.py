@@ -319,14 +319,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
             collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community_id,
                                                          current_user_id=user)
 
-        if card.online_link and not card.is_paid:
-            collabcard['online_link'] = card.online_link
-
-        if card.online_link_id and not card.is_paid:
-            collabcard['online_link_id'] = card.online_link_id
-
-        if card.online_link_password and not card.is_paid:
-            collabcard['online_link_password'] = card.online_link_password
+        if card.webflow_item_id:
+            collabcard['webflow_item_id'] = card.webflow_item_id
 
         if card.event_payment_link:
             collabcard['event_payment_link'] = card.event_payment_link

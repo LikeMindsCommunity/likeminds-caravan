@@ -629,20 +629,14 @@ class ChatroomMemberHelper:
 
             chatroom_context['co_hosts'] = co_host_list
 
-        if card_instance.online_link and not card_instance.is_paid:
-            chatroom_context['online_link'] = card_instance.online_link
-
-        if card_instance.online_link_id and not card_instance.is_paid:
-            chatroom_context['online_link_id'] = card_instance.online_link_id
-
-        if card_instance.online_link_password and not card_instance.is_paid:
-            chatroom_context['online_link_password'] = card_instance.online_link_password
-
         if card_instance.event_payment_link:
             chatroom_context['event_payment_link'] = card_instance.event_payment_link
 
         if card_instance.event_web_page:
             chatroom_context['event_web_page'] = card_instance.event_web_page
+
+        if card_instance.webflow_item_id:
+            chatroom_context['webflow_item_id'] = card_instance.webflow_item_id
 
         if return_topic and card_instance.topic is not None:
             conversation_serializer = conversationSerializer(card_instance.topic, fetch_reply=False)

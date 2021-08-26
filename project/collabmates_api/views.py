@@ -11851,16 +11851,7 @@ class SyncChatrooms(APIView):
         if data[34]:
             chatroom['co_hosts_id'] = self._get_co_hosts(data[34])
 
-        if data[35] and not chatroom['is_paid']:
-            chatroom['online_link'] = data[35]
-
-        if data[56] and not chatroom['is_paid']:
-            chatroom['online_link_id'] = data[56]
-
-        if data[57] and not chatroom['is_paid']:
-            chatroom['online_link_password'] = data[57]
-
-        if data[32] > 0:
+        if data[32]:
             chatroom['end_date'] = data[32]
 
         chatroom['duration'] = data[41]
@@ -11877,6 +11868,7 @@ class SyncChatrooms(APIView):
             chatroom['event_web_page'] = data[61]
 
         chatroom['attended'] = data[62]
+        chatroom['webflow_item_id'] = data[63]
 
         chatroom['instructors'] = self.fetch_event_instructors(chatroom['id'])
         chatroom['highlights'] = self.fetch_event_highlights(chatroom['id'])
