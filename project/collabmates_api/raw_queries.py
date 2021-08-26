@@ -650,7 +650,8 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcard.access,
                     togther_collabcard.event_payment_link,
                     togther_collabcard.event_web_page,
-                    togther_collabcardState.attended
+                    togther_collabcardState.attended,
+                    togther_collabcard.webflow_item_id
                 """
 
     return meta_query

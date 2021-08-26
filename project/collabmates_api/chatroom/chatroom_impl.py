@@ -1500,10 +1500,14 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
         if TimeUtilities.current_time_in_milliseconds() >= \
-                (card_instance.date_time - card_instance.online_link_enable_before) and \
-                ChatroomHelper.is_online_event_link_verified_for_user(card_instance, user_instance):
+                (card_instance.date_time - card_instance.online_link_enable_before):
             chatroom_context = {'success': True}
-            self._fill_online_link_for_event(chatroom_context, card_instance)
+
+            if not card_instance.is_paid or \
+                    (card_instance.is_paid and ChatroomHelper.is_online_event_link_verified_for_user(card_instance,
+                                                                                                     user_instance)):
+
+                self._fill_online_link_for_event(chatroom_context, card_instance)
 
             return chatroom_context
 
@@ -2024,11 +2028,12 @@ class ChatroomHelper:
             if member_dict.get(user_instance.id) is False:
 
                 attending_status = True if is_event_chatroom and data.state == member_states.ADMIN else False
+                follow_status = True if attending_status else card_instance.auto_follow_done
 
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
                                                                                            user_instance,
                                                                                            state=state,
-                                                                                           follow_status=card_instance.auto_follow_done,
+                                                                                           follow_status=follow_status,
                                                                                            community_instance=community_instance,
                                                                                            attending_status=attending_status)
                 if instance:
