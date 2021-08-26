@@ -355,3 +355,8 @@ FORCE_UPDATE = {
 }
 
 SEGMENT_KEY = os.getenv('SEGMENT_KEY')
+
+WEBFLOW_KEYS = {
+    'collection_id': os.getenv('WEBFLOW_COLLECTION_ID'),
+    'api_key': os.getenv('WEBFLOW_API_KEY')
+}

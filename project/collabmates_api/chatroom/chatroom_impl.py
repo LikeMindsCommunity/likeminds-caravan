@@ -43,7 +43,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
-    SyncTypes, member_rights, conversation_states, email_states
+    SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types
 
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -53,7 +53,8 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     update_event_member_testimonials_in_cache, update_event_faq_in_cache, update_event_attendees, \
     send_analytics_on_event_attend_link_click, schedule_event_analytics_on_event_start, \
     schedule_event_analytics_daily_7AM, \
-    schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend
+    schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend, \
+    create_event_in_webflow_service, update_event_in_webflow_service
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
@@ -1315,6 +1316,7 @@ class ChatroomImpl(ChatroomManager):
                                                                                         user_instance.id,
                                                                                         community_instance.id)
             schedule_chatroom_unpinning_after_event_completion(card_instance)
+            create_event_in_webflow_service.delay(card_instance.id)
             ChatroomHelper.send_event_creation_mail.delay(card_instance.id)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
 
@@ -1359,6 +1361,8 @@ class ChatroomImpl(ChatroomManager):
                 'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                                card_instance)
             }
+            update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                                   'update_type': event_webflow_update_types.META})
 
             if not req_body.get('restrict_event_update_notification'):
                 send_notification_for_event_update.delay(card_instance.id)
@@ -1381,7 +1385,6 @@ class ChatroomImpl(ChatroomManager):
         instructors_list = []
 
         for data in instructors:
-
             instance = EventInstructor.create_instance({
                 'card_instance': card_instance,
                 'about': data.get('about'),
@@ -1390,6 +1393,9 @@ class ChatroomImpl(ChatroomManager):
             })
             instructors_list.append(ModelUtilities.serialize_instance(instance))
 
+        update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                               'instructors_list': instructors_list,
+                                               'update_type': event_webflow_update_types.INSTRUCTORS})
         update_event_instructors_in_cache.delay({'chatroom_id': card_instance.id,
                                                  'instructors_list': instructors_list})
 
@@ -1408,7 +1414,6 @@ class ChatroomImpl(ChatroomManager):
         highlights_list = []
 
         for data in highlights:
-
             instance = EventHighlights.create_instance({
                 'card_instance': card_instance,
                 'highlight': data.get('highlight'),
@@ -1418,6 +1423,9 @@ class ChatroomImpl(ChatroomManager):
 
             highlights_list.append(ModelUtilities.serialize_instance(instance))
 
+        update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                               'highlights_list': highlights_list,
+                                               'update_type': event_webflow_update_types.HIGHLIGHTS})
         update_event_highlights_in_cache.delay({'chatroom_id': card_instance.id, 'highlights_list': highlights_list})
 
         return {'success': True}
@@ -1435,7 +1443,6 @@ class ChatroomImpl(ChatroomManager):
         ModelUtilities.delete_record_in_model(EventMemberTestimonials, {'card': card_instance})
 
         for data in testimonials:
-
             instance = EventMemberTestimonials.create_instance({
                 'card_instance': card_instance,
                 'member_name': data.get('member_name'),
@@ -1445,6 +1452,9 @@ class ChatroomImpl(ChatroomManager):
             })
             testimonials_list.append(ModelUtilities.serialize_instance(instance))
 
+        update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                               'testimonials_list': testimonials_list,
+                                               'update_type': event_webflow_update_types.TESTIMONIALS})
         update_event_member_testimonials_in_cache.delay({'chatroom_id': card_instance.id,
                                                          'testimonials_list': testimonials_list})
 
@@ -1462,7 +1472,6 @@ class ChatroomImpl(ChatroomManager):
         ModelUtilities.delete_record_in_model(EventFAQ, {'card': card_instance})
 
         for data in faq:
-
             instance = EventFAQ.create_instance({
                 'card_instance': card_instance,
                 'question': data.get('question'),
@@ -1471,6 +1480,9 @@ class ChatroomImpl(ChatroomManager):
             })
             faqs_list.append(ModelUtilities.serialize_instance(instance))
 
+        update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                               'faqs_list': faqs_list,
+                                               'update_type': event_webflow_update_types.FAQ})
         update_event_faq_in_cache.delay({'chatroom_id': card_instance.id, 'faqs_list': faqs_list})
 
         return {'success': True}
@@ -1642,15 +1654,19 @@ class ChatroomImpl(ChatroomManager):
 
         files_count = len(files_list)
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
-                                                {'has_files': True, 'attachment_count': files_count,
-                                                 'attachments_uploaded': files_count != 0,
-                                                 'updated_at': TimeUtilities.current_time_in_milliseconds()})
+                                    {'has_files': True, 'attachment_count': files_count,
+                                     'attachments_uploaded': files_count != 0,
+                                     'updated_at': TimeUtilities.current_time_in_milliseconds()})
         ModelUtilities.model_update(collabcardState,
                                     {'card': card_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
+        update_event_in_webflow_service.delay({'chatroom_id':card_instance.id,
+                                               'update_type': event_webflow_update_types.FILE})
+
         return {'chatroom': ChatroomHelper.compute_chatroom_response(card_instance,
-                user_instance, card_instance.community), 'success': True}
+                                                                     user_instance, card_instance.community),
+                'success': True}
 
 
 class ChatroomHelper:
@@ -2411,4 +2427,4 @@ class ChatroomHelper:
     def run_async_task_related_to_event_chatroom_attend_analytics(card_instance, user_instance,
                                                                   attending_status=True):
         send_analytics_on_event_registered_to_attend(card_instance.id, user_instance.id,
-                                                           attending_status)
+                                                     attending_status)

@@ -28,7 +28,8 @@ from utility.celery_tasks import (
     update_chatroom_conversation_creators_in_cache, get_conversation_poll,
     update_multiple_previews_in_community, update_preview_of_community_in_cache,
     update_event_attendees, set_levels_on_ctc_celery, set_level_click_state, update_event_instructors_in_cache,
-    update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache)
+    update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
+    update_event_in_webflow_service)
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail)
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -6817,6 +6818,8 @@ def upload_chatroom_attachments(body, member_id, version_code=0, is_android=Fals
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
         send_chatroom_creation_notification(chatroom_instance, user_instance)
+        update_event_in_webflow_service.delay({'chatroom_id': chatroom_instance.id,
+                                               'update_type': event_webflow_update_types.FILE})
 
     member_data = {'member_id': member_id,
                    'current_user_id': member_id,

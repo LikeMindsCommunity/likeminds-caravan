@@ -112,6 +112,14 @@ class ApiClient:
                                          json=self.get_body())
         return self
 
+    def patch(self):
+        url = self.get_request_url()
+
+        self.response = requests.patch(url=url,
+                                       headers=self.get_headers(),
+                                       json=self.get_body())
+        return self
+
     def fetch_response_code(self):
         return self.response.status_code
 

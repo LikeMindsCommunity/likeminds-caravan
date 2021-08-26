@@ -408,3 +408,15 @@ class EventAccess:
 
 
 event_access = EventAccess()
+
+
+class EventWebflowUpdateTypes:
+    FILE = 0
+    INSTRUCTORS = 1
+    HIGHLIGHTS = 2
+    TESTIMONIALS = 3
+    FAQ = 4
+    META = 5
+
+
+event_webflow_update_types = EventWebflowUpdateTypes()
