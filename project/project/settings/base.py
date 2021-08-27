@@ -358,5 +358,6 @@ SEGMENT_KEY = os.getenv('SEGMENT_KEY')
 
 WEBFLOW_KEYS = {
     'collection_id': os.getenv('WEBFLOW_COLLECTION_ID'),
-    'api_key': os.getenv('WEBFLOW_API_KEY')
+    'api_key': os.getenv('WEBFLOW_API_KEY'),
+    'web_url': os.getenv('WEBFLOW_URL')
 }
