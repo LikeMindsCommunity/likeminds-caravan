@@ -1333,10 +1333,12 @@ def create_update_request_meta_of_webflow_for_file(update_info):
 
         if data.type == 'image':
             fields['banner-img'] = data.file_url
+            fields['banner-video'] = ''
             break
 
         if data.type == 'video':
             fields['banner-video'] = data.file_url
+            fields['banner-img'] = ''
             break
 
     return {'fields': fields}
