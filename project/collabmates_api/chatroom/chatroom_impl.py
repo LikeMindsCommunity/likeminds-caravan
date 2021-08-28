@@ -1318,8 +1318,8 @@ class ChatroomImpl(ChatroomManager):
             ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(card_instance.id,
                                                                                         user_instance.id,
                                                                                         community_instance.id)
+            create_event_in_webflow_service(card_instance)
             schedule_chatroom_unpinning_after_event_completion(card_instance)
-            create_event_in_webflow_service.delay(card_instance.id)
             ChatroomHelper.send_event_creation_mail.delay(card_instance.id)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
 

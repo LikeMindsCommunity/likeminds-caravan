@@ -1244,12 +1244,7 @@ def create_event_request_meta_for_webflow_create(card_instance, community_instan
     return event_meta
 
 
-@shared_task
-def create_event_in_webflow_service(card_id):
-    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
-
-    if not card_instance:
-        return
+def create_event_in_webflow_service(card_instance):
 
     if card_instance.type not in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
         return
