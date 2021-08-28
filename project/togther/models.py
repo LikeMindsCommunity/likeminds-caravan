@@ -2416,7 +2416,6 @@ class ContentDownloadSettings(models.Model):
         instance.download_setting_title = create_info.get('download_setting_title')
         instance.enabled = create_info.get('enabled')
         instance.created_at = TimeUtilities.current_time_in_milliseconds()
-        instance.save()
 
     def save(self, *args, **kwargs):
         current_time = TimeUtilities.current_time_in_milliseconds()

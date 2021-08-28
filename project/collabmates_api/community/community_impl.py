@@ -670,7 +670,7 @@ class CommunityImpl(CommunityManager):
 
         # Now fetch settings from ContentDownloadSettings table
         content_settings_instance = ModelUtilities.get_model_filter(ContentDownloadSettings,
-                                                                    {"community_id": community_instance})
+                                                                    {"community_id": community_instance}).order_by("id")
 
         content_settings = {
             "content_download_settings": self.content_download_settings_serializer(content_settings_instance)

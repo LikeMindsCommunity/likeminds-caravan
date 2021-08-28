@@ -2265,8 +2265,8 @@ def create_community_version_1(request):
         content_download_settings_list = []
 
         for download_setting_type, download_setting_title in DOWNLOAD_SETTING_TYPE_TITLE_MAPPING.items():
-            content_download_settings_list.append(ContentDownloadSettings(**{
-                'community_id': community_instance,
+            content_download_settings_list.append(ContentDownloadSettings.create_instance({
+                'community_instance': community_instance,
                 'download_setting_type': download_setting_type,
                 'download_setting_title': download_setting_title,
                 'enabled': True

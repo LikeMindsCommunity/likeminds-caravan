@@ -12,12 +12,14 @@ def create_content_download_settings_for_communities():
 
         if len(get_content_data) == 0:
             for download_setting_type, download_setting_title in DOWNLOAD_SETTING_TYPE_TITLE_MAPPING.items():
-                ContentDownloadSettings.create_instance({
-                    'community_instance': community,
-                    'download_setting_type': download_setting_type,
-                    'download_setting_title': download_setting_title,
-                    'enabled': True
-                })
+                content_download_instance = ContentDownloadSettings.create_instance({
+                                                'community_instance': community,
+                                                'download_setting_type': download_setting_type,
+                                                'download_setting_title': download_setting_title,
+                                                'enabled': True
+                                            })
+
+                content_download_instance.save()
 
 
 create_content_download_settings_for_communities()
