@@ -14,7 +14,7 @@ class WebflowImpl(WebflowManager):
     def create_event_in_webflow(event_meta) -> dict:
         client = ApiClient(host=WEBFLOW_HOST,
                            method='post',
-                           path=WEBFLOW_CREATE_EVENT_PATH % settings.WEBFLOW_KEYS.get('collection_id'))
+                           path=WEBFLOW_CREATE_EVENT_PATH % settings.WEBFLOW_KEYS.get('collection_id') + "?live=true")
 
         client.add_header('Authorization', 'Bearer %s' % settings.WEBFLOW_KEYS.get('api_key'))
         client.add_header('accept-version', '1.0.0')
@@ -30,7 +30,8 @@ class WebflowImpl(WebflowManager):
 
         client = ApiClient(host=WEBFLOW_HOST,
                            method='patch',
-                           path=WEBFLOW_UPDATE_EVENT_PATH % (settings.WEBFLOW_KEYS.get('collection_id'), item_id))
+                           path=WEBFLOW_UPDATE_EVENT_PATH % (
+                           settings.WEBFLOW_KEYS.get('collection_id'), item_id) + "?live=true")
 
         client.add_header('Authorization', 'Bearer %s' % settings.WEBFLOW_KEYS.get('api_key'))
         client.add_header('accept-version', '1.0.0')
@@ -38,4 +39,3 @@ class WebflowImpl(WebflowManager):
         client.patch()
 
         return client.fetch_response()
-
