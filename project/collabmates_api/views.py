@@ -8584,6 +8584,7 @@ def config(request):
         settings.CONFIG_FLAGS.get('MICRO_POLLS'))
     context['enable_gif'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('GIF'))
     context['enable_audio'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('AUDIO'))
+    context['enable_voice_notes'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('VOICE_NOTES'))
 
     in_app_review_filter = ModelUtilities.get_model_filter(InAppReview, {'user': user_instance})
 

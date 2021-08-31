@@ -345,7 +345,8 @@ CONFIG_FLAGS = {
     'SEGMENT': os.getenv('SEGMENT'),
     'MICRO_POLLS': os.getenv('MICRO_POLLS'),
     'GIF': os.getenv('GIF'),
-    'AUDIO': os.getenv('AUDIO')
+    'AUDIO': os.getenv('AUDIO'),
+    'VOICE_NOTES': os.getenv('VOICE_NOTES')
 }
 
 
