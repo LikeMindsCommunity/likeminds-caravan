@@ -79,13 +79,14 @@ class ChatroomImpl(ChatroomManager):
 
     def __init__(self, member_id: str, chatroom_id: str = None,
                  source_id: str = None, aj: str = None,
-                 device_id: str = None, request_platform: str = None):
+                 device_id: str = None, request_platform: str = None, version_code: int = 0):
         self.member_id = member_id
         self.chatroom_id = chatroom_id
         self.source_id = source_id
         self.aj = aj
         self.device_id = device_id
         self.request_platform = request_platform
+        self.version_code = version_code
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -110,6 +111,12 @@ class ChatroomImpl(ChatroomManager):
 
     def set_aj(self, aj):
         self.aj = aj
+
+    def get_version_code(self):
+        return self.version_code
+
+    def get_request_platform(self):
+        return self.request_platform
 
     def _is_user_guest(self, card_instance):
 
@@ -188,7 +195,8 @@ class ChatroomImpl(ChatroomManager):
                                                 promoter=is_promoter,
                                                 current_user_instance=self.get_member_id(),
                                                 community_instance=card_instance.community, is_child=is_child,
-                                                parent_list=parent_list
+                                                parent_list=parent_list, platform_code=self.get_request_platform(),
+                                                version_code=self.get_version_code()
                                                 )
         return chatroom_actions
 
@@ -1776,6 +1784,7 @@ class ChatroomImpl(ChatroomManager):
         return {'chatroom': ChatroomHelper.compute_chatroom_response(card_instance,
                                                                      user_instance, card_instance.community),
                 'success': True}
+
 
 
 class ChatroomHelper:

@@ -4451,7 +4451,8 @@ def get_answer_bubble_context_for_web(ans):
 
 
 def get_chatroom_actions(card_status, creator, card_instance, promoter=False, current_user_instance=None,
-                         community_instance=None, is_child=False, request_type="", parent_list=None):
+                         community_instance=None, is_child=False, request_type="", parent_list=None, version_code=None,
+                         platform_code=None):
     """ function to get chatroom actions """
 
     purpose_card = False
@@ -4465,18 +4466,20 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         promoter_joined_secret_chatroom = True
         creator = True
 
-
     if parent_list is None:
         parent_list = []
 
     if card_status['type'] == card_types.CARD_PURPOSE:
         purpose_card = True
+
     elif card_status['type'] == card_types.CARD_INTRO:
         intro_card = True
+
     elif card_status['type'] == card_types.CARD_MASTER_INTRO:
         master_intro_card = True
 
     final_dict = None
+
     if creator and card_status['mute_status']:
         final_dict = chatroom_actions_creator_mute
 
@@ -4497,21 +4500,28 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     if promoter and not creator:
 
-        if admin_has_delete_right:
-            final.append(delete_chatroom)
+        if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+                or (platform_code == "an" and version_code < CHATROOM_SETTINGS_VERSION_CODE_AN):
+
+            if admin_has_delete_right:
+                final.append(delete_chatroom)
 
     actions = []
 
     for action in final:
+
         if purpose_card or master_intro_card:
-            if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+
+            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or action['id'] == chatroom_actions.ACTION_LEAVE_CHATROOM:
                 continue
 
             if not promoter:
+
                 if action['id'] == chatroom_actions.ACTION_INVITE:
                     continue
 
             if promoter or creator:
+
                 if action['id'] == chatroom_actions.ACTION_RENAME or action['id'] == chatroom_actions.ACTION_DELETE:
                     continue
 
@@ -4519,14 +4529,16 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                 continue
 
         elif intro_card and creator:
-            if action['id'] == chatroom_actions.ACTION_FOLLOW or \
+
+            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or \
                     action['id'] == chatroom_actions.ACTION_MUTE or \
                     action['id'] == chatroom_actions.ACTION_DELETE or \
                     action['id'] == chatroom_actions.ACTION_UNMUTE or \
-                    action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+                    action['id'] == chatroom_actions.ACTION_LEAVE_CHATROOM:
                 continue
 
         elif action['id'] == chatroom_actions.ACTION_DELETE:
+
             if is_child and not creator:
                 continue
 
@@ -4536,6 +4548,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                 continue
 
         elif action['id'] == chatroom_actions.ACTION_REPORT:
+
             if promoter and\
                     not creator and\
                     admin_has_delete_right:
@@ -4543,35 +4556,43 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         elif card_instance.is_secret:
 
-            if action['id'] == chatroom_actions.ACTION_FOLLOW \
-                    or action['id'] == chatroom_actions.ACTION_UNFOLLOW\
+            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM \
+                    or action['id'] == chatroom_actions.ACTION_LEAVE_CHATROOM\
                     or action['id'] == chatroom_actions.ACTION_INVITE:
                 continue
 
         actions.append(action)
 
     if card_status['follow_status']:
+
         if card_status["active"]:
             actions.append(mark_inactive)
+
         else:
             actions.append(mark_active)
 
-    if promoter and\
-            len(actions) and\
-            not card_instance.is_secret:
+    if promoter and len(actions) and card_instance.is_secret:
 
-        if card_instance.is_pinned:
-            actions.insert(1, unpin_chatroom)
+        if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+                or (platform_code == "an" and version_code < CHATROOM_SETTINGS_VERSION_CODE_AN):
+
+            if card_instance.is_pinned:
+                actions.insert(1, unpin_chatroom)
+
+            else:
+                actions.insert(1, pin_chatroom)
+
+            actions.insert(2, add_all_members)
+
         else:
-            actions.insert(1, pin_chatroom)
-
-        actions.insert(2, add_all_members)
+            actions.append(add_all_members)
 
     if card_instance.is_secret and\
             current_user_instance is not None:
 
         if isinstance(current_user_instance, User):
             current_user_id = current_user_instance.id
+
         else:
             current_user_id = NumberUtilities.get_integer_from_string(current_user_instance)
 
@@ -4587,9 +4608,24 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
             actions.append(leave_chatroom)
 
-    if promoter:
+    if promoter and (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN):
         actions.append(chatroom_settings)
 
+    if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN):
+
+        if rename_chatroom in actions:
+            actions.remove(rename_chatroom)
+
+        if pin_chatroom in actions:
+            actions.remove(pin_chatroom)
+
+        if unpin_chatroom in actions:
+            actions.remove(unpin_chatroom)
+
+        if delete_chatroom in actions:
+            actions.remove(delete_chatroom)
 
     return actions
 
@@ -4727,10 +4763,14 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
-                                            current_user_instance=user_id,
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
+                                            promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type, parent_list=parent_list
+                                            request_type=request_type, parent_list=parent_list,
+                                            platform_code=platform_code, version_code=version_code
                                             )
 
 
@@ -4902,10 +4942,14 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
-                                            current_user_instance=user_id,
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
+                                            promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type, parent_list=parent_list
+                                            request_type=request_type, parent_list=parent_list,
+                                            platform_code=platform_code, version_code=version_code
                                             )
 
     # getting the state of chatroom against the user
@@ -5062,10 +5106,14 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
-                                            current_user_instance=user_id,
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
+                                            promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type, parent_list=parent_list
+                                            request_type=request_type, parent_list=parent_list,
+                                            platform_code=platform_code, version_code=version_code
                                             )
 
     context['chatroom_actions'] = chatroom_actions

@@ -102,8 +102,8 @@ collabcard_action_user_follow_unmute = [
     },
 
     {
-        'id': 9,
-        'title': 'Unfollow chatroom'
+        'id': 15,
+        'title': 'Leave chatroom'
     },
 
     {
@@ -136,8 +136,8 @@ collabcard_action_user_follow_mute = [
     },
 
     {
-        'id': 9,
-        'title': 'Unfollow chatroom'
+        'id': 15,
+        'title': 'Leave chatroom'
     },
 
     {
@@ -166,7 +166,7 @@ collabcard_action_user_unfollow = [
 
     {
         'id': 4,
-        'title': 'Follow chatroom'
+        'title': 'Join chatroom'
     },
 
     {
@@ -181,7 +181,7 @@ view_participants = {'id': 2, 'title': 'View participants'}
 
 invite = {'id': 3, 'title': 'Invite'}
 
-follow_chatroom = {'id': 4, 'title': 'Follow chatroom'}
+join_chatroom = {'id': 4, 'title': 'Join chatroom'}
 
 view_community = {'id': 5, 'title': 'View community'}
 
@@ -446,3 +446,7 @@ SECRET_CHATROOM_VERSION_CODE_IOS = 157
 
 PAID_COMMUNITY_LEVEL_4_TITLE = "Monetization"
 PAID_COMMUNITY_LEVEL_4_SUB_TITLE = "Invite members with payment link"
+
+# Need to confirm these codes with clients at the time of release.
+CHATROOM_SETTINGS_VERSION_CODE_AN = 1000
+CHATROOM_SETTINGS_VERSION_CODE_IOS = 1000
