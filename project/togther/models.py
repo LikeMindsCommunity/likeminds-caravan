@@ -2417,6 +2417,8 @@ class ContentDownloadSettings(models.Model):
         instance.enabled = create_info.get('enabled')
         instance.created_at = TimeUtilities.current_time_in_milliseconds()
 
+        return instance
+
     def save(self, *args, **kwargs):
         current_time = TimeUtilities.current_time_in_milliseconds()
         self.updated_at = current_time
