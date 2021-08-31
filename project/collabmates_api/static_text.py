@@ -102,7 +102,7 @@ collabcard_action_user_follow_unmute = [
     },
 
     {
-        'id': 15,
+        'id': 9,
         'title': 'Leave chatroom'
     },
 
@@ -136,7 +136,7 @@ collabcard_action_user_follow_mute = [
     },
 
     {
-        'id': 15,
+        'id': 9,
         'title': 'Leave chatroom'
     },
 
@@ -191,7 +191,7 @@ delete_chatroom = {'id': 7, 'title': 'Delete chatroom'}
 
 unMute_notifications = {'id': 8, 'title': 'UnMute notifications'}
 
-unfollow_chatroom = {'id': 9, 'title': 'Unfollow chatroom'}
+unfollow_chatroom = {'id': 9, 'title': 'Leave chatroom'}
 
 report = {'id': 10, 'title': 'Report Spam/Abuse'}
 

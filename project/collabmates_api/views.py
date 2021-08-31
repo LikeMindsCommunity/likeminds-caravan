@@ -4512,7 +4512,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         if purpose_card or master_intro_card:
 
-            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or action['id'] == chatroom_actions.ACTION_LEAVE_CHATROOM:
+            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
             if not promoter:
@@ -4534,7 +4534,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                     action['id'] == chatroom_actions.ACTION_MUTE or \
                     action['id'] == chatroom_actions.ACTION_DELETE or \
                     action['id'] == chatroom_actions.ACTION_UNMUTE or \
-                    action['id'] == chatroom_actions.ACTION_LEAVE_CHATROOM:
+                    action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
         elif action['id'] == chatroom_actions.ACTION_DELETE:
@@ -4557,7 +4557,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         elif card_instance.is_secret:
 
             if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM \
-                    or action['id'] == chatroom_actions.ACTION_LEAVE_CHATROOM\
+                    or action['id'] == chatroom_actions.ACTION_UNFOLLOW\
                     or action['id'] == chatroom_actions.ACTION_INVITE:
                 continue
 
