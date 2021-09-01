@@ -28,7 +28,8 @@ from utility.celery_tasks import (
     update_chatroom_conversation_creators_in_cache, get_conversation_poll,
     update_multiple_previews_in_community, update_preview_of_community_in_cache,
     update_event_attendees, set_levels_on_ctc_celery, set_level_click_state, update_event_instructors_in_cache,
-    update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache)
+    update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
+    update_event_in_webflow_service)
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail)
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -2264,8 +2265,8 @@ def create_community_version_1(request):
         content_download_settings_list = []
 
         for download_setting_type, download_setting_title in DOWNLOAD_SETTING_TYPE_TITLE_MAPPING.items():
-            content_download_settings_list.append(ContentDownloadSettings(**{
-                'community_id': community_instance,
+            content_download_settings_list.append(ContentDownloadSettings.create_instance({
+                'community_instance': community_instance,
                 'download_setting_type': download_setting_type,
                 'download_setting_title': download_setting_title,
                 'enabled': True
@@ -2988,10 +2989,10 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
                 answer = user_name + " started this chatroom in " + community_name
 
         elif state == conversation_states.CONVERSATION_FOLLOW:
-            answer = user_name + " followed this chatroom"
+            answer = user_name + " joined this chatroom"
 
         elif state == conversation_states.CONVERSATION_UNFOLLOW:
-            answer = user_name + " unfollowed this chatroom"
+            answer = user_name + " left this chatroom"
 
         elif state == conversation_states.CONVERSATION_COMMUNITY_EDIT:
             answer = user_name + " edited community purpose"
@@ -4441,16 +4442,17 @@ def get_answer_bubble_context_for_web(ans):
             answer_bubble = user_list[0] + " joined via a " + user_list[1] + "'s invite"
 
     elif ans.state == conversation_states.CONVERSATION_FOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) + " followed this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) + " joined this chatroom"
 
     elif ans.state == conversation_states.CONVERSATION_UNFOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) + " unfollowed this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) + " left this chatroom"
 
     return answer_bubble
 
 
 def get_chatroom_actions(card_status, creator, card_instance, promoter=False, current_user_instance=None,
-                         community_instance=None, is_child=False, request_type="", parent_list=None):
+                         community_instance=None, is_child=False, request_type="", parent_list=None, version_code=None,
+                         platform_code=None):
     """ function to get chatroom actions """
 
     purpose_card = False
@@ -4464,18 +4466,20 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         promoter_joined_secret_chatroom = True
         creator = True
 
-
     if parent_list is None:
         parent_list = []
 
     if card_status['type'] == card_types.CARD_PURPOSE:
         purpose_card = True
+
     elif card_status['type'] == card_types.CARD_INTRO:
         intro_card = True
+
     elif card_status['type'] == card_types.CARD_MASTER_INTRO:
         master_intro_card = True
 
     final_dict = None
+
     if creator and card_status['mute_status']:
         final_dict = chatroom_actions_creator_mute
 
@@ -4496,21 +4500,28 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     if promoter and not creator:
 
-        if admin_has_delete_right:
-            final.append(delete_chatroom)
+        if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+                or (platform_code == "an" and version_code < CHATROOM_SETTINGS_VERSION_CODE_AN):
+
+            if admin_has_delete_right:
+                final.append(delete_chatroom)
 
     actions = []
 
     for action in final:
+
         if purpose_card or master_intro_card:
-            if action['id'] == chatroom_actions.ACTION_FOLLOW or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
+
+            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or action['id'] == chatroom_actions.ACTION_UNFOLLOW:
                 continue
 
             if not promoter:
+
                 if action['id'] == chatroom_actions.ACTION_INVITE:
                     continue
 
             if promoter or creator:
+
                 if action['id'] == chatroom_actions.ACTION_RENAME or action['id'] == chatroom_actions.ACTION_DELETE:
                     continue
 
@@ -4518,7 +4529,8 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                 continue
 
         elif intro_card and creator:
-            if action['id'] == chatroom_actions.ACTION_FOLLOW or \
+
+            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or \
                     action['id'] == chatroom_actions.ACTION_MUTE or \
                     action['id'] == chatroom_actions.ACTION_DELETE or \
                     action['id'] == chatroom_actions.ACTION_UNMUTE or \
@@ -4526,6 +4538,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                 continue
 
         elif action['id'] == chatroom_actions.ACTION_DELETE:
+
             if is_child and not creator:
                 continue
 
@@ -4535,6 +4548,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                 continue
 
         elif action['id'] == chatroom_actions.ACTION_REPORT:
+
             if promoter and\
                     not creator and\
                     admin_has_delete_right:
@@ -4542,7 +4556,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         elif card_instance.is_secret:
 
-            if action['id'] == chatroom_actions.ACTION_FOLLOW \
+            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM \
                     or action['id'] == chatroom_actions.ACTION_UNFOLLOW\
                     or action['id'] == chatroom_actions.ACTION_INVITE:
                 continue
@@ -4550,27 +4564,35 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         actions.append(action)
 
     if card_status['follow_status']:
+
         if card_status["active"]:
             actions.append(mark_inactive)
+
         else:
             actions.append(mark_active)
 
-    if promoter and\
-            len(actions) and\
-            not card_instance.is_secret:
+    if promoter and len(actions) and card_instance.is_secret:
 
-        if card_instance.is_pinned:
-            actions.insert(1, unpin_chatroom)
+        if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+                or (platform_code == "an" and version_code < CHATROOM_SETTINGS_VERSION_CODE_AN):
+
+            if card_instance.is_pinned:
+                actions.insert(1, unpin_chatroom)
+
+            else:
+                actions.insert(1, pin_chatroom)
+
+            actions.insert(2, add_all_members)
+
         else:
-            actions.insert(1, pin_chatroom)
-
-        actions.insert(2, add_all_members)
+            actions.append(add_all_members)
 
     if card_instance.is_secret and\
             current_user_instance is not None:
 
         if isinstance(current_user_instance, User):
             current_user_id = current_user_instance.id
+
         else:
             current_user_id = NumberUtilities.get_integer_from_string(current_user_instance)
 
@@ -4586,6 +4608,24 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
             actions.append(leave_chatroom)
 
+    if promoter and (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN):
+        actions.append(chatroom_settings)
+
+    if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN):
+
+        if rename_chatroom in actions:
+            actions.remove(rename_chatroom)
+
+        if pin_chatroom in actions:
+            actions.remove(pin_chatroom)
+
+        if unpin_chatroom in actions:
+            actions.remove(unpin_chatroom)
+
+        if delete_chatroom in actions:
+            actions.remove(delete_chatroom)
 
     return actions
 
@@ -4723,10 +4763,14 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
-                                            current_user_instance=user_id,
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
+                                            promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type, parent_list=parent_list
+                                            request_type=request_type, parent_list=parent_list,
+                                            platform_code=platform_code, version_code=version_code
                                             )
 
 
@@ -4898,10 +4942,14 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
-                                            current_user_instance=user_id,
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
+                                            promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type, parent_list=parent_list
+                                            request_type=request_type, parent_list=parent_list,
+                                            platform_code=platform_code, version_code=version_code
                                             )
 
     # getting the state of chatroom against the user
@@ -5058,10 +5106,14 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     if is_ios:
         request_type = "iOS"
 
-    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance, promoter=is_promoter,
-                                            current_user_instance=user_id,
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
+    chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
+                                            promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type, parent_list=parent_list
+                                            request_type=request_type, parent_list=parent_list,
+                                            platform_code=platform_code, version_code=version_code
                                             )
 
     context['chatroom_actions'] = chatroom_actions
@@ -6817,6 +6869,8 @@ def upload_chatroom_attachments(body, member_id, version_code=0, is_android=Fals
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
         send_chatroom_creation_notification(chatroom_instance, user_instance)
+        update_event_in_webflow_service.delay({'chatroom_id': chatroom_instance.id,
+                                               'update_type': event_webflow_update_types.FILE})
 
     member_data = {'member_id': member_id,
                    'current_user_id': member_id,
@@ -8530,6 +8584,7 @@ def config(request):
         settings.CONFIG_FLAGS.get('MICRO_POLLS'))
     context['enable_gif'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('GIF'))
     context['enable_audio'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('AUDIO'))
+    context['enable_voice_notes'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('VOICE_NOTES'))
 
     in_app_review_filter = ModelUtilities.get_model_filter(InAppReview, {'user': user_instance})
 
@@ -8688,6 +8743,27 @@ def edit_community(request):
     return JsonResponse({'success': True, 'community': new_dict})
 
 
+def change_community_level_context_for_paid_community(community_instance):
+
+    if not community_instance.is_paid:
+        return
+
+    level_filter = ModelUtilities.get_model_filter(communityLevels,
+                                                   {'level': "Level 4",
+                                                    'community': community_instance})
+
+    if level_filter:
+        level_instance = level_filter[0]
+
+        if level_instance.state == community_level_states.LOCKED:
+            level_instance.title = PAID_COMMUNITY_LEVEL_4_TITLE
+
+        else:
+            level_instance.title = PAID_COMMUNITY_LEVEL_4_SUB_TITLE
+
+        level_instance.save()
+
+
 @csrf_exempt
 def edit_community_version_1(request):
     '''function to edit the community'''
@@ -8749,6 +8825,7 @@ def edit_community_version_1(request):
         edit_community_data(community_instance, user_instance, edit_field=edit_field)
 
     community_instance.save()
+    change_community_level_context_for_paid_community(community_instance)
 
     send_sync_notification.delay({'community_id': community_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -11865,7 +11942,7 @@ class SyncChatrooms(APIView):
                                                                     ).values_list('user', flat=True).
                                     order_by('created_at', 'id')[:10])
 
-        update_event_attendees({'chatroom_id': chatroom['id'],
+        update_event_attendees.delay({'chatroom_id': chatroom['id'],
                                 'event_attendees_list': event_attendees_list})
         chatroom['attendees_ids'] = event_attendees_list
 
@@ -11884,14 +11961,10 @@ class SyncChatrooms(APIView):
             instructors_list = []
 
             for data in instructor_filter:
-                instructors_list.append({
-                    'chatroom_id': data.card_id,
-                    'about': data.about,
-                    'url': data.url
-                })
+                instructors_list.append(ModelUtilities.serialize_instance(data))
 
-            update_event_instructors_in_cache({'chatroom_id': card_id,
-                                              'instructors_list': instructors_list})
+            update_event_instructors_in_cache.delay({'chatroom_id': card_id,
+                                                     'instructors_list': instructors_list})
 
         return instructors_list
 
@@ -11909,14 +11982,10 @@ class SyncChatrooms(APIView):
             highlights_list = []
 
             for data in highlights_filter:
-                highlights_list.append({
-                    'chatroom_id': data.card_id,
-                    'highlight': data.highlight,
-                    'url': data.url
-                })
+                highlights_list.append(ModelUtilities.serialize_instance(data))
 
-            update_event_highlights_in_cache({'chatroom_id': card_id,
-                                              'highlights_list': highlights_list})
+            update_event_highlights_in_cache.delay({'chatroom_id': card_id,
+                                                    'highlights_list': highlights_list})
 
         return highlights_list
 
@@ -11934,13 +12003,9 @@ class SyncChatrooms(APIView):
             faqs_list = []
 
             for data in faq_filter:
-                faqs_list.append({
-                    'chatroom_id': data.card_id,
-                    'question': data.question,
-                    'answer': data.answer
-                })
+                faqs_list.append(ModelUtilities.serialize_instance(data))
 
-            update_event_faq_in_cache({'chatroom_id': card_id, 'faqs_list': faqs_list})
+            update_event_faq_in_cache.delay({'chatroom_id': card_id, 'faqs_list': faqs_list})
 
         return faqs_list
 
@@ -11957,15 +12022,10 @@ class SyncChatrooms(APIView):
             testimonials_list = []
 
             for data in testimonial_filter:
-                testimonials_list.append({
-                    'chatroom_id': data.card_id,
-                    'member_name': data.member_name,
-                    'testimonial': data.testimonial,
-                    'url': data.url
-                })
+                testimonials_list.append(ModelUtilities.serialize_instance(data))
 
-            update_event_member_testimonials_in_cache({'chatroom_id': card_id,
-                                                       'testimonials_list': testimonials_list})
+            update_event_member_testimonials_in_cache.delay({'chatroom_id': card_id,
+                                                             'testimonials_list': testimonials_list})
 
         return testimonials_list
 

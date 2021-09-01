@@ -108,8 +108,7 @@ class TimeUtilities:
     @staticmethod
     def is_epoch_in_milliseconds(epoch_time) -> bool:
 
-        if math.floor(math.log10(epoch_time)+1) == 13:
-
+        if math.floor(math.log10(epoch_time) + 1) == 13:
             return True
 
         return False
@@ -184,3 +183,14 @@ class TimeUtilities:
             epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
 
         return datetime.fromtimestamp(epoch_time).replace(hour=hour, minute=minute).timestamp()
+
+    @staticmethod
+    def convert_epoch_time_to_webflow_time(epoch_time):
+
+        """webflow time --> dd/mm/yyyyTHH:MM"""
+
+        if TimeUtilities.is_epoch_in_milliseconds(epoch_time):
+            epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
+
+        return time.strftime('%d/%m/%Y', time.localtime(epoch_time)) + "T" + TimeUtilities.convert_epoch_time_in_hh_mm(
+            epoch_time)

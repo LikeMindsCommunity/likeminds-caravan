@@ -12,6 +12,7 @@ from utility.exception_utilities import (InvalidCommunityException, InvalidChatr
 from utility.time_utilities import TimeUtilities
 from typing import Union
 from external_services.logging.logging_wrapper import LoggingWrapper
+from django.core import serializers as core_serializer
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -77,7 +78,7 @@ class Community(models.Model):
     is_paid = models.BooleanField(default=False)
     website_url = models.TextField(null=True)
     auto_approval = models.BooleanField(default=False)
-    grace_period = models.BigIntegerField(default=86400 * 4 * 1000)  # 4 days in ms
+    grace_period = models.BigIntegerField(default=0)
     is_discoverable = models.BooleanField(default=False)
 
     community_category = models.TextField(null=True)
@@ -491,6 +492,7 @@ class Collabcard(models.Model):
     platform = models.TextField(null=True)
 
     auto_follow_done = models.BooleanField(default=False)
+    member_can_message = models.BooleanField(default=True)
     topic = models.ForeignKey('card_answers', on_delete=models.SET_NULL, null=True)
     is_edited = models.BooleanField(default=False)
 
@@ -2150,6 +2152,11 @@ class ModelUtilities:
         for instance_list in bulk_create_list:
             model.objects.bulk_update(instance_list, fields, chunk_size)
 
+    @staticmethod
+    def serialize_instance(instance):
+
+        return core_serializer.serialize('python', [instance], )[0].get('fields')
+
 
 class MessageReactions(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -2409,7 +2416,8 @@ class ContentDownloadSettings(models.Model):
         instance.download_setting_title = create_info.get('download_setting_title')
         instance.enabled = create_info.get('enabled')
         instance.created_at = TimeUtilities.current_time_in_milliseconds()
-        instance.save()
+
+        return instance
 
     def save(self, *args, **kwargs):
         current_time = TimeUtilities.current_time_in_milliseconds()
@@ -2417,3 +2425,111 @@ class ContentDownloadSettings(models.Model):
 
         super(ContentDownloadSettings, self).save(*args, **kwargs)
 
+
+class Cohort(models.Model):
+    name = models.CharField(max_length=200)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at <= 0:
+            self.created_at = current_time_in_ms
+
+        super(Cohort, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(cohort_info):
+        instance = Cohort()
+        instance.name = cohort_info.get('name')
+        instance.community = cohort_info.get('community_instance')
+        instance.save()
+        return instance
+
+
+class CohortMember(models.Model):
+    cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at <= 0:
+            self.created_at = current_time_in_ms
+
+        super(CohortMember, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(cohort_member_info):
+        instance = CohortMember()
+        instance.cohort = cohort_member_info.get('cohort_instance')
+        instance.user = cohort_member_info.get('user_instance')
+        instance.save()
+        return instance
+
+    @staticmethod
+    def create_instance_for_bulk_create(cohort_member_info):
+        instance = CohortMember()
+        instance.cohort = cohort_member_info.get('cohort_instance')
+        instance.user = cohort_member_info.get('user_instance')
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if instance.created_at == 0:
+            instance.created_at = current_time_ms
+
+        instance.updated_at = current_time_ms
+
+        return instance
+
+
+class CohortRights(models.Model):
+    cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
+    member_rights = models.ForeignKey(memberRights, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at <= 0:
+            self.created_at = current_time_in_ms
+
+        super(CohortRights, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(cohort_member_info):
+        instance = CohortRights()
+        instance.cohort = cohort_member_info.get('cohort_instance')
+        instance.member_rights = cohort_member_info.get('right_instance')
+        instance.save()
+        return instance
+
+    @staticmethod
+    def create_instance_for_bulk_create(cohort_member_info):
+        instance = CohortRights()
+        instance.cohort = cohort_member_info.get('cohort_instance')
+        instance.member_rights = cohort_member_info.get('right_instance')
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if instance.created_at == 0:
+            instance.created_at = current_time_ms
+
+        instance.updated_at = current_time_ms
+
+        return instance

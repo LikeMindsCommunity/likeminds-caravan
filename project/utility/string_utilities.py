@@ -16,3 +16,9 @@ class StringUtilities:
 
         return False
 
+    @staticmethod
+    def replace_character_in_string(string, char_to_replace, replacement_char):
+
+        return string.lower().replace(char_to_replace, replacement_char)
+
+

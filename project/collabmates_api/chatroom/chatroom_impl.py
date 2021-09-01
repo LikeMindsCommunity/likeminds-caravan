@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+
 import time
 from typing import Union
 from rest_framework import status as status_codes
@@ -20,8 +20,11 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
 from ..rest_api import GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance)
+from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
+    delete_chatroom
 from ..sync.model_update import update_models_for_syncing_apis
 from ..upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
+from ..user_moderation_rights import check_admin_delete_right
 from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_time_of_chatroom,
                      create_chatroom_state_instance, get_icons_states_of_chatroom_version_1,
                      save_the_latest_conversation, collabcard_follow_internal,
@@ -40,10 +43,10 @@ from ..search.sync import ElasticSearchSync
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
-                            EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails)
+                            EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
-    SyncTypes, member_rights, conversation_states, email_states
+    SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types
 
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -53,7 +56,8 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     update_event_member_testimonials_in_cache, update_event_faq_in_cache, update_event_attendees, \
     send_analytics_on_event_attend_link_click, schedule_event_analytics_on_event_start, \
     schedule_event_analytics_daily_7AM, \
-    schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend
+    schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend, \
+    create_event_in_webflow_service, update_event_in_webflow_service
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
@@ -75,13 +79,14 @@ class ChatroomImpl(ChatroomManager):
 
     def __init__(self, member_id: str, chatroom_id: str = None,
                  source_id: str = None, aj: str = None,
-                 device_id: str = None, request_platform: str = None):
+                 device_id: str = None, request_platform: str = None, version_code: int = 0):
         self.member_id = member_id
         self.chatroom_id = chatroom_id
         self.source_id = source_id
         self.aj = aj
         self.device_id = device_id
         self.request_platform = request_platform
+        self.version_code = version_code
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -106,6 +111,12 @@ class ChatroomImpl(ChatroomManager):
 
     def set_aj(self, aj):
         self.aj = aj
+
+    def get_version_code(self):
+        return self.version_code
+
+    def get_request_platform(self):
+        return self.request_platform
 
     def _is_user_guest(self, card_instance):
 
@@ -184,7 +195,8 @@ class ChatroomImpl(ChatroomManager):
                                                 promoter=is_promoter,
                                                 current_user_instance=self.get_member_id(),
                                                 community_instance=card_instance.community, is_child=is_child,
-                                                parent_list=parent_list
+                                                parent_list=parent_list, platform_code=self.get_request_platform(),
+                                                version_code=self.get_version_code()
                                                 )
         return chatroom_actions
 
@@ -1314,6 +1326,7 @@ class ChatroomImpl(ChatroomManager):
             ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(card_instance.id,
                                                                                         user_instance.id,
                                                                                         community_instance.id)
+            create_event_in_webflow_service(card_instance)
             schedule_chatroom_unpinning_after_event_completion(card_instance)
             ChatroomHelper.send_event_creation_mail.delay(card_instance.id)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
@@ -1359,6 +1372,8 @@ class ChatroomImpl(ChatroomManager):
                 'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                                card_instance)
             }
+            update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                                   'update_type': event_webflow_update_types.META})
 
             if not req_body.get('restrict_event_update_notification'):
                 send_notification_for_event_update.delay(card_instance.id)
@@ -1369,73 +1384,117 @@ class ChatroomImpl(ChatroomManager):
 
             return {'success': False, 'error_message': "send correct event type"}
 
-    def add_instructor(self, req_body: dict) -> dict:
+    def add_or_update_instructor(self, req_body: dict) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
-        EventInstructor.create_instance({
-            'card_instance': card_instance,
-            'about': req_body.get('about'),
-            'url': req_body.get('url')
+        instructors = req_body.get('instructors', [])
+        ModelUtilities.delete_record_in_model(EventInstructor, {'card': card_instance})
+        instructors_list = []
 
-        })
+        for data in instructors:
+            instance = EventInstructor.create_instance({
+                'card_instance': card_instance,
+                'about': data.get('about'),
+                'url': data.get('url')
 
-        update_event_instructors_in_cache({'chatroom_id': card_instance.id})
+            })
+            instructors_list.append(ModelUtilities.serialize_instance(instance))
+
+        update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                               'instructors_list': instructors_list,
+                                               'update_type': event_webflow_update_types.INSTRUCTORS})
+        update_event_instructors_in_cache.delay({'chatroom_id': card_instance.id,
+                                                 'instructors_list': instructors_list})
 
         return {'success': True}
 
-    def add_highlights(self, req_body: dict) -> dict:
+    def add_or_update_highlights(self, req_body: dict) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
-        EventHighlights.create_instance({
-            'card_instance': card_instance,
-            'highlight': req_body.get('highlight'),
-            'url': req_body.get('url')
+        highlights = req_body.get('highlights', [])
 
-        })
-        update_event_highlights_in_cache({'chatroom_id': card_instance.id})
+        ModelUtilities.delete_record_in_model(EventHighlights, {'card': card_instance})
+        highlights_list = []
+
+        for data in highlights:
+            instance = EventHighlights.create_instance({
+                'card_instance': card_instance,
+                'highlight': data.get('highlight'),
+                'url': data.get('url')
+
+            })
+
+            highlights_list.append(ModelUtilities.serialize_instance(instance))
+
+        update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                               'highlights_list': highlights_list,
+                                               'update_type': event_webflow_update_types.HIGHLIGHTS})
+        update_event_highlights_in_cache.delay({'chatroom_id': card_instance.id, 'highlights_list': highlights_list})
 
         return {'success': True}
 
-    def add_member_testimonials(self, req_body: dict) -> dict:
+    def add_or_update_member_testimonials(self, req_body: dict) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
-        EventMemberTestimonials.create_instance({
-            'card_instance': card_instance,
-            'member_name': req_body.get('member_name'),
-            'testimonial': req_body.get('testimonial'),
-            'url': req_body.get('url')
+        testimonials = req_body.get('testimonials', [])
+        testimonials_list = []
 
-        })
-        update_event_member_testimonials_in_cache({'chatroom_id': card_instance.id})
+        ModelUtilities.delete_record_in_model(EventMemberTestimonials, {'card': card_instance})
+
+        for data in testimonials:
+            instance = EventMemberTestimonials.create_instance({
+                'card_instance': card_instance,
+                'member_name': data.get('member_name'),
+                'testimonial': data.get('testimonial'),
+                'url': data.get('url')
+
+            })
+            testimonials_list.append(ModelUtilities.serialize_instance(instance))
+
+        update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                               'testimonials_list': testimonials_list,
+                                               'update_type': event_webflow_update_types.TESTIMONIALS})
+        update_event_member_testimonials_in_cache.delay({'chatroom_id': card_instance.id,
+                                                         'testimonials_list': testimonials_list})
 
         return {'success': True}
 
-    def add_event_faq(self, req_body: dict) -> dict:
+    def add_or_update_event_faq(self, req_body: dict) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
-        EventFAQ.create_instance({
-            'card_instance': card_instance,
-            'question': req_body.get('question'),
-            'answer': req_body.get('answer')
+        faq = req_body.get('faq', [])
+        faqs_list = []
+        ModelUtilities.delete_record_in_model(EventFAQ, {'card': card_instance})
 
-        })
-        update_event_faq_in_cache({'chatroom_id': card_instance.id})
+        for data in faq:
+            instance = EventFAQ.create_instance({
+                'card_instance': card_instance,
+                'question': data.get('question'),
+                'answer': data.get('answer')
+
+            })
+            faqs_list.append(ModelUtilities.serialize_instance(instance))
+
+        update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
+                                               'faqs_list': faqs_list,
+                                               'update_type': event_webflow_update_types.FAQ})
+        update_event_faq_in_cache.delay({'chatroom_id': card_instance.id, 'faqs_list': faqs_list})
 
         return {'success': True}
 
@@ -1550,7 +1609,7 @@ class ChatroomImpl(ChatroomManager):
         ChatroomHelper.auto_follow_chatroom(card_instance, user_instance, community_instance,
                                             func_dict={'attending_status': status}, member_state=member_state)
 
-        update_event_attendees({
+        update_event_attendees.delay({
             'chatroom_id': card_instance.id,
             'user_id': user_instance.id,
             'status': status
@@ -1584,6 +1643,148 @@ class ChatroomImpl(ChatroomManager):
         send_analytics_on_event_attend_link_click.delay(card_instance.id, user_instance.id)
 
         return {'success': True}
+
+    def toggle_member_message_post(self, value) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
+
+        card_filter = ModelUtilities.get_model_filter(Collabcard, {'id': self.get_chatroom_id()})
+
+        if not card_filter:
+            return {'success': False, 'error_message': "In-valid chatroom id"}
+
+        card_instance = card_filter[0]
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User can’t enable/disable member messaging setting option"}
+
+        card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
+
+        return {'success': True}
+
+    def fetch_chatroom_settings(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            return {'success': False, 'error_message': "In-valid chatroom id"}
+
+        community_instance = card_instance.community
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User can’t view settings of this chatroom"}
+
+        if card_instance.type == card_types.CARD_PURPOSE:
+            chatroom_settings = settings_for_purpose_chatroom.copy()
+
+        else:
+            chatroom_settings = settings_for_chatroom.copy()
+            admin_has_delete_right = check_admin_delete_right(user=user_instance,
+                                                              community=community_instance)
+
+            if admin_has_delete_right:
+                chatroom_settings.append(delete_chatroom)
+
+        settings_list = ChatroomHelper.get_settings_for_chatroom(chatroom_settings, card_instance)
+
+        return {'success': True, 'settings': settings_list}
+
+    def add_members_to_chatroom(self, chatroom_participants) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            return {'success': False, 'error_message': "In-valid chatroom id"}
+
+        if not chatroom_participants:
+            return {'success': False, 'error_message': "Invalid Chatroom participants"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User doesn't have the ability to perform this operation"}
+
+        ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
+
+        return {'success': True}
+      
+    def update_files(self, req_body):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user-id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
+
+        if not card_instance:
+            return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        if card_instance.user_id != user_instance.id:
+            return {'success': False, 'error_message': "Only chatroom creator can update files"}
+
+        files_list = req_body.get('attachments', [])
+
+        ModelUtilities.delete_record_in_model(Card_Attachment,
+                                              {'collabcard_id': card_instance})
+
+        for file_data in files_list:
+            save_chatroom_attachments(card_instance, file_data)
+
+        files_count = len(files_list)
+        ModelUtilities.model_update(Collabcard, {'id': card_instance.id},
+                                    {'has_files': True, 'attachment_count': files_count,
+                                     'attachments_uploaded': files_count != 0,
+                                     'updated_at': TimeUtilities.current_time_in_milliseconds()})
+        ModelUtilities.model_update(collabcardState,
+                                    {'card': card_instance},
+                                    {'updated_at': TimeUtilities.current_time_in_sec()})
+
+        update_event_in_webflow_service.delay({'chatroom_id':card_instance.id,
+                                               'update_type': event_webflow_update_types.FILE})
+
+        return {'chatroom': ChatroomHelper.compute_chatroom_response(card_instance,
+                                                                     user_instance, card_instance.community),
+                'success': True}
+
 
 
 class ChatroomHelper:
@@ -2336,6 +2537,24 @@ class ChatroomHelper:
             CalendarImpl().call_calender_api(event_metadata)
 
     @staticmethod
+    def get_settings_for_chatroom(chatroom_settings_list, card_instance):
+        chatroom_settings = []
+
+        for settings in chatroom_settings_list:
+
+            settings_dict = {'id': settings['id'], 'title': settings['title'], 'is_selected': False}
+
+            if settings['id'] == member_can_message['id']:
+                settings_dict['is_selected'] = card_instance.member_can_message
+
+            elif settings['id'] == pin_chatroom['id']:
+                settings_dict['is_selected'] = card_instance.is_pinned
+
+            chatroom_settings.append(settings_dict)
+
+        return chatroom_settings
+
+    @staticmethod
     def run_async_tasks_related_to_event_chatroom_analytics(card_instance):
         schedule_event_analytics_on_event_start(card_instance)
         schedule_event_analytics_daily_7AM(card_instance, 7, 0)
@@ -2345,4 +2564,4 @@ class ChatroomHelper:
     def run_async_task_related_to_event_chatroom_attend_analytics(card_instance, user_instance,
                                                                   attending_status=True):
         send_analytics_on_event_registered_to_attend(card_instance.id, user_instance.id,
-                                                           attending_status)
+                                                     attending_status)

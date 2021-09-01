@@ -26,13 +26,13 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                  callable(subclass.fetch_participants_of_secret_chatroom)) and
                 (hasattr(subclass, 'create_event') and callable(subclass.create_event)) and
                 (hasattr(subclass, 'update_event') and callable(subclass.update_event)) and
-                (hasattr(subclass, 'add_instructor') and callable(subclass.add_instructor)) and
-                (hasattr(subclass, 'add_highlights') and
-                 callable(subclass.add_highlights)) and
-                (hasattr(subclass, 'add_member_testimonials') and
-                 callable(subclass.add_member_testimonials)) and
-                (hasattr(subclass, 'add_event_faq') and
-                 callable(subclass.add_event_faq)) and
+                (hasattr(subclass, 'add_or_update_instructor') and callable(subclass.add_or_update_instructor)) and
+                (hasattr(subclass, 'add_or_update_highlights') and
+                 callable(subclass.add_or_update_highlights)) and
+                (hasattr(subclass, 'add_or_update_member_testimonials') and
+                 callable(subclass.add_or_update_member_testimonials)) and
+                (hasattr(subclass, 'add_or_update_event_faq') and
+                 callable(subclass.add_or_update_event_faq)) and
                 (hasattr(subclass, 'update_last_seen_event') and
                  callable(subclass.update_last_seen_event)) and
                 (hasattr(subclass, 'fetch_unseen_count_in_event') and
@@ -44,7 +44,15 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'attend_event') and
                  callable(subclass.attend_event)) and
                 (hasattr(subclass, 'set_event_attended') and
-                 callable(subclass.set_event_attended))
+                 callable(subclass.set_event_attended)) and
+                (hasattr(subclass, 'toggle_member_message_post') and
+                 callable(subclass.toggle_member_message_post)) and
+                (hasattr(subclass, 'fetch_chatroom_settings') and
+                 callable(subclass.fetch_chatroom_settings)) and
+                (hasattr(subclass, 'add_members_to_chatroom') and
+                 callable(subclass.add_members_to_chatroom)) and
+                (hasattr(subclass, 'update_files') and
+                 callable(subclass.update_files))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -129,28 +137,28 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_instructor(self, req_body: dict) -> dict:
+    def add_or_update_instructor(self, req_body: dict) -> dict:
         """
         adding instructor in event
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_highlights(self, req_body: dict) -> dict:
+    def add_or_update_highlights(self, req_body: dict) -> dict:
         """
         adding highlights in event
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_member_testimonials(self, req_body: dict) -> dict:
+    def add_or_update_member_testimonials(self, req_body: dict) -> dict:
         """
         adding member testimonials in event
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_event_faq(self, req_body: dict) -> dict:
+    def add_or_update_event_faq(self, req_body: dict) -> dict:
         """
         adding FAQ in event
         """
@@ -204,6 +212,37 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def set_event_attended(self) -> dict:
         """
         function to set user attended event
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def toggle_member_message_post(self, value) -> dict:
+        """
+        function to allow members to send message in chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_chatroom_settings(self) -> dict:
+        """
+        function to fetch chatroom settings
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def add_members_to_chatroom(self, chatroom_participants) -> dict:
+        """
+        function to add members to the chatroom
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_files(self, req_body) -> dict:
+        """
+        function to update the files in chatroom
         """
 
         raise NotImplementedError

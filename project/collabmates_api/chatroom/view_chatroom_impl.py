@@ -22,11 +22,15 @@ class FetchChatroomView(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
+        request_platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
         chatroom_id = request.GET.get('chatroom_id')
         source_id = request.GET.get('source_id')
         aj = request.GET.get('aj')
 
-        chatroom_manager = ChatroomImpl(member_id, chatroom_id, source_id, aj, device_id=device_id)
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id, source_id, aj, device_id=device_id,
+                                        request_platform=request_platform, version_code=version_code)
         chatroom_data = chatroom_manager.fetch_chatroom()
 
         return JsonResponse(chatroom_data)
@@ -338,7 +342,7 @@ class UpdateEventView(APIView):
         return JsonResponse(context)
 
 
-class EventAddInstructor(APIView):
+class EventAddOrUpdateInstructor(APIView):
 
     def post(self, request, *args, **kwargs):
 
@@ -350,7 +354,7 @@ class EventAddInstructor(APIView):
             return JsonResponse({'error_message': "Invalid request body"})
 
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.add_instructor(req_body)
+        response_context = chatroom_manager.add_or_update_instructor(req_body)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -358,7 +362,7 @@ class EventAddInstructor(APIView):
         return JsonResponse(response_context)
 
 
-class EventAddHighlight(APIView):
+class EventAddOrUpdateHighlight(APIView):
 
     def post(self, request, *args, **kwargs):
 
@@ -370,7 +374,7 @@ class EventAddHighlight(APIView):
             return JsonResponse({'error_message': "Invalid request body"})
 
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.add_highlights(req_body)
+        response_context = chatroom_manager.add_or_update_highlights(req_body)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -378,7 +382,7 @@ class EventAddHighlight(APIView):
         return JsonResponse(response_context)
 
 
-class EventAddMemberTestimonial(APIView):
+class EventAddOrUpdateMemberTestimonial(APIView):
 
     def post(self, request, *args, **kwargs):
 
@@ -390,7 +394,7 @@ class EventAddMemberTestimonial(APIView):
             return JsonResponse({'error_message': "Invalid request body"})
 
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.add_member_testimonials(req_body)
+        response_context = chatroom_manager.add_or_update_member_testimonials(req_body)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -398,7 +402,7 @@ class EventAddMemberTestimonial(APIView):
         return JsonResponse(response_context)
 
 
-class EventAddFAQ(APIView):
+class EventAddOrUpdateFAQ(APIView):
 
     def post(self, request, *args, **kwargs):
 
@@ -410,7 +414,7 @@ class EventAddFAQ(APIView):
             return JsonResponse({'error_message': "Invalid request body"})
 
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.add_event_faq(req_body)
+        response_context = chatroom_manager.add_or_update_event_faq(req_body)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -508,6 +512,80 @@ class SetEventAttendedView(APIView):
 
         chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
         response_context = chatroom_manager.set_event_attended()
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+
+class EnableMemberMessageInChatroomView(APIView):
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False,
+                                 'error_message': "In-valid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        value = req_body.get('value')
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
+        response_context = chatroom_manager.toggle_member_message_post(value)
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+
+class FetchChatroomSettingsView(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        chatroom_id = request.GET.get('chatroom_id')
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
+        response_context = chatroom_manager.fetch_chatroom_settings()
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+
+class AddMembersToChatroomView(APIView):
+  
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False,
+                                 'error_message': "In-valid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_participants = req_body.get('chatroom_participants')
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
+        response_context = chatroom_manager.add_members_to_chatroom(chatroom_participants)
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+
+class ChatroomUpdateFilesView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False,
+                                 'error_message': "In-valid request body"})
+
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
+        response_context = chatroom_manager.update_files(req_body)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)

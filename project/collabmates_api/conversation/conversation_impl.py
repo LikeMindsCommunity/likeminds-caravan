@@ -1330,13 +1330,14 @@ class ConversationHelper:
                     answer = user_name + " started this chatroom in " + community_name
 
             elif state == conversation_states.CONVERSATION_FOLLOW:
-                answer = user_name + " followed this chatroom"
+                answer = user_name + " joined this chatroom"
 
                 if card_instance.is_secret and member_state == member_states.ADMIN:
                     answer = user_name + " joined this chatroom"
 
             elif state == conversation_states.CONVERSATION_UNFOLLOW:
-                answer = user_name + " unfollowed this chatroom"
+                answer = user_name + " left this chatroom"
+
             elif state == conversation_states.CONVERSATION_COMMUNITY_EDIT:
                 answer = user_name + " edited community purpose"
 

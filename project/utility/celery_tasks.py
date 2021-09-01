@@ -3,6 +3,8 @@ from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from django.conf import settings
 
+from external_services.webflow.webflow_impl import WebflowImpl
+from utility.string_utilities import StringUtilities
 from utility.api_client import ApiClient
 from collabmates_api.serializers import get_user_profile, get_preview_for_url, UserinfoSerializer
 from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY
@@ -20,11 +22,11 @@ from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVER
     CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY, \
-    SUBSCRIPTION_FETCH_EVENT_PLAN
+    SUBSCRIPTION_FETCH_EVENT_PLAN, COMMUNITY_PUBLIC_URL
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
-    level_click_states
+    level_click_states, event_access, event_webflow_update_types
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -908,6 +910,7 @@ def save_users_with_muted_chatrooms(mute_info):
     CacheImpl.set_cache(key, {'mute_list': mute_list})
 
 
+@shared_task
 def update_event_instructors_in_cache(instructors_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, instructors_info.get('chatroom_id'))
 
@@ -917,23 +920,14 @@ def update_event_instructors_in_cache(instructors_info):
     instructors_list = instructors_info.get('instructors_list', [])
 
     if not instructors_list:
-
-        instructor_filter = ModelUtilities.get_model_filter(EventInstructor,
-                                                            {'card': card_instance}).order_by('id')
-        instructors_list = []
-
-        for data in instructor_filter:
-            instructors_list.append({
-                'chatroom_id': data.card_id,
-                'about': data.about,
-                'url': data.url
-            })
+        return
 
     CacheImpl.set_cache(EVENT_INSTRUCTORS_CHATROOM % str(card_instance.id), {
         'instructors_list': instructors_list
     })
 
 
+@shared_task
 def update_event_highlights_in_cache(highlights_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, highlights_info.get('chatroom_id'))
 
@@ -943,23 +937,14 @@ def update_event_highlights_in_cache(highlights_info):
     highlights_list = highlights_info.get('highlights_list', [])
 
     if not highlights_list:
-
-        highlights_filter = ModelUtilities.get_model_filter(EventHighlights,
-                                                            {'card': card_instance}).order_by('id')
-        highlights_list = []
-
-        for data in highlights_filter:
-            highlights_list.append({
-                'chatroom_id': data.card_id,
-                'highlight': data.highlight,
-                'url': data.url
-            })
+        return
 
     CacheImpl.set_cache(EVENT_HIGHLIGHTS_CHATROOM % str(card_instance.id), {
         'highlights_list': highlights_list
     })
 
 
+@shared_task
 def update_event_member_testimonials_in_cache(testimonials_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, testimonials_info.get('chatroom_id'))
 
@@ -969,24 +954,14 @@ def update_event_member_testimonials_in_cache(testimonials_info):
     testimonials_list = testimonials_info.get('testimonials_list', [])
 
     if not testimonials_list:
-
-        testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
-                                                             {'card': card_instance}).order_by('id')
-        testimonials_list = []
-
-        for data in testimonial_filter:
-            testimonials_list.append({
-                'chatroom_id': data.card_id,
-                'member_name': data.member_name,
-                'testimonial': data.testimonial,
-                'url': data.url
-            })
+        return
 
     CacheImpl.set_cache(EVENT_MEMBERTESTIMONIALS_CHATROOM % str(card_instance.id), {
         'testimonials_list': testimonials_list
     })
 
 
+@shared_task
 def update_event_faq_in_cache(faqs_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, faqs_info.get('chatroom_id'))
 
@@ -996,23 +971,14 @@ def update_event_faq_in_cache(faqs_info):
     faqs_list = faqs_info.get('faqs_list', [])
 
     if not faqs_list:
-
-        faq_filter = ModelUtilities.get_model_filter(EventFAQ,
-                                                     {'card': card_instance}).order_by('id')
-        faqs_list = []
-
-        for data in faq_filter:
-            faqs_list.append({
-                'chatroom_id': data.card_id,
-                'question': data.question,
-                'answer': data.answer
-            })
+        return
 
     CacheImpl.set_cache(EVENT_FAQ_CHATROOM % str(card_instance.id), {
         'faqs_list': faqs_list
     })
 
 
+@shared_task
 def update_event_attendees(attendees_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, attendees_info.get('chatroom_id'))
 
@@ -1253,3 +1219,202 @@ def schedule_event_analytics_on_event_before_n_hour(card_instance, n):
     send_analytics_on_event_reminders.apply_async(args=args, kwargs={},
                                                   eta=task_begin_date_time,
                                                   expires=task_expiry_date_time)
+
+
+def create_event_request_meta_for_webflow_create(card_instance, community_instance):
+
+    event_meta = {
+        'fields': {
+            'name': card_instance.header,
+            'title': card_instance.title,
+            'online-link': card_instance.online_link,
+            'location': card_instance.location,
+            'is-paid': card_instance.is_paid,
+            'community-name': community_instance.name,
+            '_draft': False,
+            '_archived': False,
+            'slug': StringUtilities.replace_character_in_string(card_instance.header, " ", "-"),
+            'date-time': TimeUtilities.convert_epoch_time_to_webflow_time(card_instance.date_time),
+            'end-date': TimeUtilities.convert_epoch_time_to_webflow_time(card_instance.end_date),
+            'community-link': COMMUNITY_PUBLIC_URL % (settings.URL,
+                                                      StringUtilities.get_string_from_integer(community_instance.id))
+        }
+    }
+
+    return event_meta
+
+
+def create_event_in_webflow_service(card_instance):
+
+    if card_instance.type not in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+        return
+
+    if card_instance.access == event_access.COMMUNITY_MEMBERS:
+        return
+
+    community_instance = card_instance.community
+    request_meta = create_event_request_meta_for_webflow_create(card_instance, community_instance)
+    event_meta = WebflowImpl.create_event_in_webflow(request_meta)
+
+    if not event_meta:
+        return
+
+    ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, {
+        'updated_at': TimeUtilities.current_time_in_milliseconds(),
+        'event_web_page': settings.WEBFLOW_KEYS.get('web_url') + event_meta.get('slug', ""),
+        'webflow_item_id': event_meta.get('_id')
+    })
+
+    ModelUtilities.model_update(collabcardState, {'card': card_instance},
+                                {'updated_at': TimeUtilities.current_time_in_sec()})
+
+
+def create_update_request_meta_of_webflow_for_instructors(info_list):
+
+    fields = {}
+    i = 1
+
+    for data in info_list:
+        index = StringUtilities.get_string_from_integer(i)
+        fields['instructors-image-' + index] = data.get('url', '')
+        fields['instructors-about-' + index] = data.get('about', '')
+        i = i+1
+
+    return {'fields': fields}
+
+
+def create_update_request_meta_of_webflow_for_highlights(info_list):
+    fields = {}
+    i = 1
+
+    for data in info_list:
+        index = StringUtilities.get_string_from_integer(i)
+        fields['highlight-image-' + index] = data.get('url')
+        fields['highlight-' + index] = data.get('highlight')
+        i = i + 1
+
+    return {'fields': fields}
+
+
+def create_update_request_meta_of_webflow_for_testimonials(info_list):
+    fields = {}
+    i = 1
+
+    for data in info_list:
+        index = StringUtilities.get_string_from_integer(i)
+        fields['testimonial-image-' + index] = data.get('url')
+        fields['testimonial-member-' + index] = data.get('member_name')
+        fields['testimonial-' + index] = data.get('testimonial')
+        i = i + 1
+
+    return {'fields': fields}
+
+
+def create_update_request_meta_of_webflow_for_faq(info_list):
+    fields = {}
+    i = 1
+
+    for data in info_list:
+        index = StringUtilities.get_string_from_integer(i)
+        fields['faq-question-' + index] = data.get('question')
+        fields['faq-answer-' + index] = data.get('answer')
+        i = i + 1
+
+    return {'fields': fields}
+
+
+def create_update_request_meta_of_webflow_for_file(update_info):
+
+    chatroom_id = update_info.get('chatroom_id')
+    fields = {}
+    file_filter = ModelUtilities.get_model_filter(Card_Attachment, {'collabcard': chatroom_id}).order_by('id')
+
+    for data in file_filter:
+
+        if data.type == 'image':
+            fields['banner-img'] = data.file_url
+            fields['banner-video'] = ''
+            break
+
+        if data.type == 'video':
+            fields['banner-video'] = data.file_url
+            fields['banner-img'] = ''
+            break
+
+    return {'fields': fields}
+
+
+def create_update_request_meta_of_webflow_for_event_meta(update_info):
+    card_instance = update_info.get('card_instance')
+
+    event_meta = {
+        'fields': {
+            'name': card_instance.header,
+            'title': card_instance.title,
+            'online-link': card_instance.online_link,
+            'location': card_instance.location,
+            'is-paid': card_instance.is_paid,
+            'slug': StringUtilities.replace_character_in_string(card_instance.header, " ", "-"),
+            'date-time': TimeUtilities.convert_epoch_time_to_webflow_time(card_instance.date_time),
+            'end-date': TimeUtilities.convert_epoch_time_to_webflow_time(card_instance.end_date),
+        }
+    }
+
+    return event_meta
+
+
+def create_event_request_meta_for_webflow_update(update_info):
+    req_meta = dict
+
+    update_type = update_info.get('update_type')
+
+    if update_type == event_webflow_update_types.FILE:
+        req_meta = create_update_request_meta_of_webflow_for_file(update_info)
+
+    elif update_type == event_webflow_update_types.INSTRUCTORS:
+        req_meta = create_update_request_meta_of_webflow_for_instructors(update_info.get('instructors_list', []))
+
+    elif update_type == event_webflow_update_types.HIGHLIGHTS:
+        req_meta = create_update_request_meta_of_webflow_for_highlights(update_info.get('highlights_list', []))
+
+    elif update_type == event_webflow_update_types.TESTIMONIALS:
+        req_meta = create_update_request_meta_of_webflow_for_testimonials(update_info.get('testimonials_list', []))
+
+    elif update_type == event_webflow_update_types.FAQ:
+        req_meta = create_update_request_meta_of_webflow_for_faq(update_info.get('faqs_list', []))
+
+    elif update_type == event_webflow_update_types.META:
+        req_meta = create_update_request_meta_of_webflow_for_event_meta(update_info)
+
+    return req_meta
+
+
+@shared_task
+def update_event_in_webflow_service(update_info):
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, update_info.get('chatroom_id'))
+
+    if not card_instance:
+        return
+
+    if card_instance.type not in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+        return
+
+    if card_instance.access == event_access.COMMUNITY_MEMBERS:
+        return
+
+    update_info['card_instance'] = card_instance
+    request_meta = create_event_request_meta_for_webflow_update(update_info)
+    event_meta = WebflowImpl.update_event_in_webflow(request_meta, card_instance.webflow_item_id)
+
+    if not event_meta.get('fields'):
+        return
+
+    if update_info.get('update_type') == event_webflow_update_types.META:
+        ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, {
+            'updated_at': TimeUtilities.current_time_in_milliseconds(),
+            'event_web_page': settings.WEBFLOW_KEYS.get('web_url') + event_meta.get('slug', ""),
+        })
+
+    ModelUtilities.model_update(collabcardState, {'card': card_instance},
+                                {'updated_at': TimeUtilities.current_time_in_sec()})

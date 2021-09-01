@@ -2,10 +2,12 @@ from django.urls import path
 from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpinChatroomView,
                                  LeaveSecretChatroomView, AddSecretChatroomParticipantView, GetTaggingList,
                                  AutoFollowChatroomForAllMembersView, EditChatroomView,
-                                 FetchParticipantsOfSecretChatroom, CreateEventView, EventAddInstructor,
-                                 EventAddHighlight, EventAddMemberTestimonial, EventAddFAQ, UpdateLastSeenEventChatroom,
+                                 FetchParticipantsOfSecretChatroom, CreateEventView, EventAddOrUpdateInstructor,
+                                 EventAddOrUpdateHighlight, EventAddOrUpdateMemberTestimonial, EventAddOrUpdateFAQ, UpdateLastSeenEventChatroom,
                                  FetchUnseenCountInEvent, FetchLinkForEvent, FetchUserAllEvents, AttendEventView,
-                                 UpdateEventView, SetEventAttendedView
+                                 UpdateEventView, SetEventAttendedView, EnableMemberMessageInChatroomView,
+                                 FetchChatroomSettingsView, AddMembersToChatroomView,
+                                 UpdateEventView, SetEventAttendedView, ChatroomUpdateFilesView
                                  )
 
 urlpatterns = [
@@ -20,12 +22,18 @@ urlpatterns = [
     path('edit', EditChatroomView.as_view(), name="edit_chatroom"),
     path('secret/fetch_participants_meta', FetchParticipantsOfSecretChatroom.as_view(),
          name="fetch_participants_of_secret_chatroom"),
-
+    path('enable_member_message', EnableMemberMessageInChatroomView.as_view(),
+         name='enable_member_message_in_chatroom'),
+    path('fetch_settings', FetchChatroomSettingsView.as_view(),
+         name='fetch_settings'),
+    path('add', AddMembersToChatroomView.as_view(), name='add_members_to_chatroom'),
+    path('update_files', ChatroomUpdateFilesView.as_view(), name="update_files"),
     path('event/create', CreateEventView.as_view(), name="create_event"),
-    path('event/add_instructor', EventAddInstructor.as_view(), name="add_instructor"),
-    path('event/add_highlights', EventAddHighlight.as_view(), name="add_highlights"),
-    path('event/add_member_testimonials', EventAddMemberTestimonial.as_view(), name="add_member_testimonials"),
-    path('event/add_event_faq', EventAddFAQ.as_view(), name="add_event_faq"),
+    path('event/add_or_update_instructor', EventAddOrUpdateInstructor.as_view(), name="add_or_update_instructor"),
+    path('event/add_or_update_highlights', EventAddOrUpdateHighlight.as_view(), name="add_or_update_highlights"),
+    path('event/add_or_update_member_testimonials', EventAddOrUpdateMemberTestimonial.as_view(),
+         name="add_or_update_member_testimonials"),
+    path('event/add_or_update_event_faq', EventAddOrUpdateFAQ.as_view(), name="add_or_update_event_faq"),
     path('event/update_last_seen', UpdateLastSeenEventChatroom.as_view(), name="update_last_seen"),
     path('event/fetch_unseen_count', FetchUnseenCountInEvent.as_view(), name="fetch_unseen_count_in_event"),
     path('event/fetch_link', FetchLinkForEvent.as_view(), name="fetch_link_for_event"),

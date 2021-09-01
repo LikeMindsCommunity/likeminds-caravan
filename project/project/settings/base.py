@@ -345,7 +345,8 @@ CONFIG_FLAGS = {
     'SEGMENT': os.getenv('SEGMENT'),
     'MICRO_POLLS': os.getenv('MICRO_POLLS'),
     'GIF': os.getenv('GIF'),
-    'AUDIO': os.getenv('AUDIO')
+    'AUDIO': os.getenv('AUDIO'),
+    'VOICE_NOTES': os.getenv('VOICE_NOTES')
 }
 
 
@@ -355,3 +356,9 @@ FORCE_UPDATE = {
 }
 
 SEGMENT_KEY = os.getenv('SEGMENT_KEY')
+
+WEBFLOW_KEYS = {
+    'collection_id': os.getenv('WEBFLOW_COLLECTION_ID'),
+    'api_key': os.getenv('WEBFLOW_API_KEY'),
+    'web_url': os.getenv('WEBFLOW_URL')
+}

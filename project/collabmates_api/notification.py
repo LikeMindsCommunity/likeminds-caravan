@@ -1165,6 +1165,15 @@ def get_icon_for_notification(conversation_instance):
     elif 'video' in file_types:
         icon_string = '🎥'
 
+    elif 'gif' in file_types:
+        icon_string = '👾'
+
+    elif 'audio' in file_types:
+        icon_string = '🎧'
+
+    elif 'voice_note' in file_types:
+        icon_string = '🎤'
+
     return icon_string
 
 

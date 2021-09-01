@@ -103,7 +103,7 @@ collabcard_action_user_follow_unmute = [
 
     {
         'id': 9,
-        'title': 'Unfollow chatroom'
+        'title': 'Leave chatroom'
     },
 
     {
@@ -137,7 +137,7 @@ collabcard_action_user_follow_mute = [
 
     {
         'id': 9,
-        'title': 'Unfollow chatroom'
+        'title': 'Leave chatroom'
     },
 
     {
@@ -166,7 +166,7 @@ collabcard_action_user_unfollow = [
 
     {
         'id': 4,
-        'title': 'Follow chatroom'
+        'title': 'Join chatroom'
     },
 
     {
@@ -181,7 +181,7 @@ view_participants = {'id': 2, 'title': 'View participants'}
 
 invite = {'id': 3, 'title': 'Invite'}
 
-follow_chatroom = {'id': 4, 'title': 'Follow chatroom'}
+join_chatroom = {'id': 4, 'title': 'Join chatroom'}
 
 view_community = {'id': 5, 'title': 'View community'}
 
@@ -191,7 +191,7 @@ delete_chatroom = {'id': 7, 'title': 'Delete chatroom'}
 
 unMute_notifications = {'id': 8, 'title': 'UnMute notifications'}
 
-unfollow_chatroom = {'id': 9, 'title': 'Unfollow chatroom'}
+unfollow_chatroom = {'id': 9, 'title': 'Leave chatroom'}
 
 report = {'id': 10, 'title': 'Report Spam/Abuse'}
 
@@ -206,6 +206,16 @@ unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
 leave_chatroom = {'id': 15, 'title': "Leave chatroom"}
 
 add_all_members = {'id': 16, 'title': "Add all members"}
+
+chatroom_settings = {'id': 17, 'title': "Settings"}
+
+member_can_message = {'id': 18, 'title': "Members can send message"}
+
+accessible_without_subscription = {'id': 19, 'title': "Accessible without subscription"}
+
+settings_for_purpose_chatroom = [rename_chatroom, member_can_message]
+
+settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom]
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
 
@@ -433,3 +443,10 @@ CHATROOM_TOPIC_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id=%s"
 
 CHATROOM_DETAIL_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id=%s"
 SECRET_CHATROOM_VERSION_CODE_IOS = 157
+
+PAID_COMMUNITY_LEVEL_4_TITLE = "Monetization"
+PAID_COMMUNITY_LEVEL_4_SUB_TITLE = "Invite members with payment link"
+
+# Need to confirm these codes with clients at the time of release.
+CHATROOM_SETTINGS_VERSION_CODE_AN = 1000
+CHATROOM_SETTINGS_VERSION_CODE_IOS = 1000
