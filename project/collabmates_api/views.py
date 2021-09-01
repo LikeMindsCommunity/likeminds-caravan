@@ -2989,10 +2989,10 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
                 answer = user_name + " started this chatroom in " + community_name
 
         elif state == conversation_states.CONVERSATION_FOLLOW:
-            answer = user_name + " followed this chatroom"
+            answer = user_name + " joined this chatroom"
 
         elif state == conversation_states.CONVERSATION_UNFOLLOW:
-            answer = user_name + " unfollowed this chatroom"
+            answer = user_name + " left this chatroom"
 
         elif state == conversation_states.CONVERSATION_COMMUNITY_EDIT:
             answer = user_name + " edited community purpose"
@@ -4442,10 +4442,10 @@ def get_answer_bubble_context_for_web(ans):
             answer_bubble = user_list[0] + " joined via a " + user_list[1] + "'s invite"
 
     elif ans.state == conversation_states.CONVERSATION_FOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) + " followed this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) + " joined this chatroom"
 
     elif ans.state == conversation_states.CONVERSATION_UNFOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) + " unfollowed this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) + " left this chatroom"
 
     return answer_bubble
 
