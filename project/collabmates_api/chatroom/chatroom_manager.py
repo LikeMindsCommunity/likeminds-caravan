@@ -188,7 +188,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_user_all_events(self, page, attending_status, past_events) -> dict:
+    def fetch_user_all_events(self, page, attending_status, past_events=False, community_id=None) -> dict:
         """
         fetch attending events of user
         """

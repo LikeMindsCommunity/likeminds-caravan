@@ -471,8 +471,10 @@ class FetchUserAllEvents(APIView):
         page = RequestUtilities.get_page_number(request)
         attending_status = StringUtilities.get_boolean_from_string(request.GET.get('attending_status', False))
         past_events = StringUtilities.get_boolean_from_string(request.GET.get('past_events', False))
+        community_id = request.GET.get('community_id')
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.fetch_user_all_events(page, attending_status, past_events=past_events)
+        response_context = chatroom_manager.fetch_user_all_events(page, attending_status,
+                                                                  past_events=past_events, community_id=community_id)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
