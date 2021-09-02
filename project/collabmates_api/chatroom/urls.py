@@ -3,11 +3,13 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  LeaveSecretChatroomView, AddSecretChatroomParticipantView, GetTaggingList,
                                  AutoFollowChatroomForAllMembersView, EditChatroomView,
                                  FetchParticipantsOfSecretChatroom, CreateEventView, EventAddOrUpdateInstructor,
-                                 EventAddOrUpdateHighlight, EventAddOrUpdateMemberTestimonial, EventAddOrUpdateFAQ, UpdateLastSeenEventChatroom,
+                                 EventAddOrUpdateHighlight, EventAddOrUpdateMemberTestimonial, EventAddOrUpdateFAQ,
+                                 UpdateLastSeenEventChatroom,
                                  FetchUnseenCountInEvent, FetchLinkForEvent, FetchUserAllEvents, AttendEventView,
                                  UpdateEventView, SetEventAttendedView, EnableMemberMessageInChatroomView,
                                  FetchChatroomSettingsView, AddMembersToChatroomView,
-                                 UpdateEventView, SetEventAttendedView, ChatroomUpdateFilesView
+                                 UpdateEventView, SetEventAttendedView, ChatroomUpdateFilesView,
+                                 FetchEventLinkForDashboard
                                  )
 
 urlpatterns = [
@@ -42,5 +44,7 @@ urlpatterns = [
     path('event/attend', AttendEventView.as_view(), name="attend_event"),
     path('event/update', UpdateEventView.as_view(), name="update_event"),
     path('event/attended', SetEventAttendedView.as_view(), name="set_event_attended"),
+    path('event/fetch_event_link_for_dashboard', FetchEventLinkForDashboard.as_view(),
+         name="fetch_event_link_for_dashboard"),
 
 ]
