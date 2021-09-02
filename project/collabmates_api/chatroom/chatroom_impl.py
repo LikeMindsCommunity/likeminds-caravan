@@ -900,6 +900,9 @@ class ChatroomImpl(ChatroomManager):
                 chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
             schedule_chatroom_unpinning_after_event_completion(chatroom_instance)
 
+            ModelUtilities.model_update(collabcardState, {'card': chatroom_instance, 'user': user_instance},
+                                        {'attending_status': True, 'updated_at': TimeUtilities.current_time_in_sec()})
+
         context = {
             'success': True,
             'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance),
