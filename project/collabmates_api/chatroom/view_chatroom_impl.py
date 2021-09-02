@@ -591,3 +591,17 @@ class ChatroomUpdateFilesView(APIView):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(response_context)
+
+
+class FetchEventLinkForDashboard(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        chatroom_id = request.GET.get('chatroom_id')
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
+        response_context = chatroom_manager.fetch_event_link_for_dashboard()
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)

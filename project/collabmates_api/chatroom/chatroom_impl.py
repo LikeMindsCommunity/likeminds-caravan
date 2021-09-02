@@ -1558,13 +1558,16 @@ class ChatroomImpl(ChatroomManager):
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
+        member_state = Members.get_community_member_state(card_instance.community, user_instance)
+
         if TimeUtilities.current_time_in_milliseconds() >= \
                 (card_instance.date_time - card_instance.online_link_enable_before):
             chatroom_context = {'success': True}
 
             if not card_instance.is_paid or \
                     (card_instance.is_paid and ChatroomHelper.is_online_event_link_verified_for_user(card_instance,
-                                                                                                     user_instance)):
+                                                                                                     user_instance)) \
+                    or (card_instance.is_paid and member_state == member_states.ADMIN):
 
                 self._fill_online_link_for_event(chatroom_context, card_instance)
 
@@ -1785,6 +1788,25 @@ class ChatroomImpl(ChatroomManager):
                                                                      user_instance, card_instance.community),
                 'success': True}
 
+    def fetch_event_link_for_dashboard(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user-id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        if Members.get_community_member_state(card_instance.community, user_instance) != member_states.ADMIN:
+            return {'success': False, 'error_message': "Only promoter can access this link"}
+
+        chatroom_context = {'success': True}
+        self._fill_online_link_for_event(chatroom_context, card_instance)
+
+        return chatroom_context
 
 
 class ChatroomHelper:
