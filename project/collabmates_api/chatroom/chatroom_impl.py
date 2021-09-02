@@ -1787,7 +1787,7 @@ class ChatroomImpl(ChatroomManager):
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
 
         return {'success': True}
-      
+
     def update_files(self, req_body):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
@@ -2513,6 +2513,11 @@ class ChatroomHelper:
         co_host_list = json.loads(card_instance.co_hosts)
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, co_host_list)
+
+        co_hosts_chatroom_state = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                                    'user_id__in': co_host_list})
+
+        co_hosts_chatroom_state.update(attending_status=True, updated_at=TimeUtilities.current_time_in_sec())
 
         send_notification_to_event_co_hosts.delay(co_host_list, card_instance.id,
                                                   card_instance.header, userinfo_instance.name)
