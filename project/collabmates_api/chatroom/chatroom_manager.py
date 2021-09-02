@@ -52,7 +52,9 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'add_members_to_chatroom') and
                  callable(subclass.add_members_to_chatroom)) and
                 (hasattr(subclass, 'update_files') and
-                 callable(subclass.update_files))
+                 callable(subclass.update_files)) and
+                (hasattr(subclass, 'fetch_event_link_for_dashboard') and
+                 callable(subclass.fetch_event_link_for_dashboard))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -186,7 +188,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_user_all_events(self, page, attending_status, past_events) -> dict:
+    def fetch_user_all_events(self, page, attending_status, past_events=False, community_id=None) -> dict:
         """
         fetch attending events of user
         """
@@ -243,6 +245,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def update_files(self, req_body) -> dict:
         """
         function to update the files in chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_event_link_for_dashboard(self) -> dict:
+        """
+        returns the online links for event dashboard
         """
 
         raise NotImplementedError

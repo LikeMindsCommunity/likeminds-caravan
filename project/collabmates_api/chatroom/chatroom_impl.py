@@ -681,6 +681,37 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_queryset
 
+    @staticmethod
+    def fetch_events_queryset_for_community(user_instance, attending_status, past_events, community_id):
+
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if not past_events:
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState,
+                                                                {'card__is_pending': False,
+                                                                 'card__is_deleted': False,
+                                                                 'user': user_instance,
+                                                                 'secret_chatroom_left': False,
+                                                                 'attending_status': attending_status,
+                                                                 'card__date_time__gte': current_time_ms,
+                                                                 'community': community_id}). \
+                filter(Q(card__type=card_types.CARD_EVENT) | Q(card__type=card_types.CARD_PUBLIC_EVENT)). \
+                select_related('card', 'card__user',
+                               'community').order_by('card__date_time')
+        else:
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState,
+                                                                {'card__is_pending': False,
+                                                                 'card__is_deleted': False,
+                                                                 'user': user_instance,
+                                                                 'secret_chatroom_left': False,
+                                                                 'attending_status': attending_status,
+                                                                 'card__date_time__lt': current_time_ms,
+                                                                 'community': community_id}). \
+                filter(Q(card__type=card_types.CARD_EVENT) | Q(card__type=card_types.CARD_PUBLIC_EVENT)). \
+                select_related('card', 'card__user', 'community').order_by('-card__date_time')
+
+        return chatroom_queryset
+
     def _fill_online_link_for_event(self, chatroom_context, card_instance):
 
         if card_instance.online_link:
@@ -1558,13 +1589,16 @@ class ChatroomImpl(ChatroomManager):
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
+        member_state = Members.get_community_member_state(card_instance.community, user_instance)
+
         if TimeUtilities.current_time_in_milliseconds() >= \
                 (card_instance.date_time - card_instance.online_link_enable_before):
             chatroom_context = {'success': True}
 
             if not card_instance.is_paid or \
                     (card_instance.is_paid and ChatroomHelper.is_online_event_link_verified_for_user(card_instance,
-                                                                                                     user_instance)):
+                                                                                                     user_instance)) \
+                    or (card_instance.is_paid and member_state == member_states.ADMIN):
 
                 self._fill_online_link_for_event(chatroom_context, card_instance)
 
@@ -1572,15 +1606,23 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': False, 'error_message': "Link doesn’t exists"}
 
-    def fetch_user_all_events(self, page, attending_status, past_events=False) -> dict:
+    def fetch_user_all_events(self, page, attending_status, past_events=False, community_id=None) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'error_message': "Invalid user-id"}
 
-        chatroom_queryset = self.fetch_events_queryset(user_instance, attending_status=attending_status,
-                                                       past_events=past_events)
+        if not community_id:
+            chatroom_queryset = self.fetch_events_queryset(user_instance, attending_status=attending_status,
+                                                           past_events=past_events)
+
+        else:
+            chatroom_queryset = self.fetch_events_queryset_for_community(user_instance,
+                                                                         attending_status=attending_status,
+                                                                         past_events=past_events,
+                                                                         community_id=community_id)
+
         chatroom_list = ModelUtilities.paginate_queryset(chatroom_queryset, page, paginate_by=5)
 
         chatroom_member_instance = ChatroomMemberImpl(member_id=user_instance.id)
@@ -1785,6 +1827,25 @@ class ChatroomImpl(ChatroomManager):
                                                                      user_instance, card_instance.community),
                 'success': True}
 
+    def fetch_event_link_for_dashboard(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user-id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        if Members.get_community_member_state(card_instance.community, user_instance) != member_states.ADMIN:
+            return {'success': False, 'error_message': "Only promoter can access this link"}
+
+        chatroom_context = {'success': True}
+        self._fill_online_link_for_event(chatroom_context, card_instance)
+
+        return chatroom_context
 
 
 class ChatroomHelper:
