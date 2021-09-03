@@ -614,7 +614,7 @@ class ConversationImpl(ConversationManager):
                     'card__in': chatroom_list,
                     'id__in': attending_list,
                     'start_time__gt': current_time_ms
-                }).\
+                }). \
                     select_related('community').order_by('start_time')
 
             else:
@@ -632,7 +632,7 @@ class ConversationImpl(ConversationManager):
                     'card__in': chatroom_list,
                     'id__in': attending_list,
                     'start_time__lte': current_time_ms
-                }).\
+                }). \
                     select_related('community').order_by('-start_time')
 
             else:
@@ -640,7 +640,7 @@ class ConversationImpl(ConversationManager):
                     'state': conversation_states.CONVERSATION_EVENT,
                     'card__in': chatroom_list,
                     'start_time__lte': current_time_ms
-                }).\
+                }). \
                     select_related('community').filter(~Q(id__in=attending_list)).order_by('-start_time')
 
         return conversation_queryset
@@ -1279,7 +1279,6 @@ class ConversationImpl(ConversationManager):
         conversation_list = ModelUtilities.paginate_queryset(conversation_queryset, page, paginate_by=5)
         conversations = self._create_conversation_list(conversation_list)
 
-
         return {'events': conversations}
 
 
@@ -1705,7 +1704,7 @@ class ConversationHelper:
                                                          user_dict.get(data), True)
 
         update_event_attendees_for_micro_event.delay({'conversation_instance': conversation_instance,
-                                                'event_attendees_list': attending_list})
+                                                      'event_attendees_list': attending_list})
 
     @staticmethod
     def process_members_data_for_conversation_event(user_list, community_instance):

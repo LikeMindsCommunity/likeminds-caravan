@@ -186,7 +186,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                                                            {'card': card_instance,
                                                                             'attending_status': True}
                                                                            ).values_list('user', flat=True).
-                                           order_by('created_at', 'id')[:10])
+                                           order_by('created_at', 'id'))
 
         attendees_list = self.process_event_attendees_list(event_attendees_list, community_instance)
         update_event_attendees.delay({'chatroom_id': card_instance.id,

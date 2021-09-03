@@ -1004,11 +1004,7 @@ def update_event_attendees(attendees_info):
         if not status and is_user_present:
             event_attendees_list.remove(user_id)
 
-        if status and not is_user_present:
-
-            if len(event_attendees_list) == 10:
-                event_attendees_list.pop(0)
-
+        elif not is_user_present:
             event_attendees_list.append(user_id)
 
         CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
@@ -1024,7 +1020,7 @@ def update_event_attendees(attendees_info):
                                                                     {'card': card_instance,
                                                                      'attending_status': True}
                                                                     ).values_list('user', flat=True).
-                                    order_by('created_at', 'id')[:10])
+                                    order_by('created_at', 'id'))
 
     CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
         'event_attendees_list': event_attendees_list
