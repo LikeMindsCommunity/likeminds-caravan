@@ -1019,7 +1019,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
     def get_attendees_ids(self, obj):
 
-        if obj.state == conversation_states.CARD_EVENT:
+        if obj.state == conversation_states.CONVERSATION_EVENT:
             event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CONVERSATION % str(obj.id))
 
             if event_attendees_dict:
