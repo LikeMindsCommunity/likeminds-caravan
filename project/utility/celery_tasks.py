@@ -1878,7 +1878,7 @@ def fill_chatroom_event_details_data(card_content, req_body):
     card_content['co_hosts'] = json.dumps(req_body['co_hosts']) if ('co_hosts' in req_body) else None
     card_content['online_link'] = req_body.get('online_link', None)
 
-    return req_body
+    return card_content
 
 
 def fill_chatroom_poll_details_data(card_content, req_body):
