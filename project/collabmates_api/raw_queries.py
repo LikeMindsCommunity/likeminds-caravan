@@ -691,7 +691,7 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcard.event_web_page,
                     togther_collabcardState.attended,
                     togther_collabcard.webflow_item_id,
-                    togther_collabcardState.is_private,
+                    togther_collabcard.is_private,
                     togther_collabcard.chatroom_with_user_id
                 """
 

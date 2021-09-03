@@ -11746,8 +11746,10 @@ class SyncChatrooms(APIView):
             chatroom['is_private'] = data[63]
 
             if data[64]:
-                chatroom['chatroom_with_user'] = ModelUtilities.get_model_instance_or_none(Members,
-                                                                                           data[63]).member_id_id
+                member_instance = ModelUtilities.get_model_instance_or_none(Members, data[64])
+
+                if member_instance:
+                    chatroom["chatroom_with_user"] = member_instance.member_id_id
 
             chatrooms.append(chatroom)
 
