@@ -159,6 +159,10 @@ def get_saved_member_rights_list(user_rights, admin_rights=None):
             if admin_rights:
                 right_dict["is_locked"] = not admin_rights["delete_room"]
 
+        elif right.state == show_direct_messages_right['state']:
+            right_dict["is_selected"] = user_rights["show_dm"]
+            right_dict["is_locked"] = False
+
         if right.sub_title is None:
             del right_dict["sub_title"]
 
@@ -268,6 +272,7 @@ def check_all_member_rights(user=None, community=None):
     invite_private = False
     auto_approve = False
     secret_chatroom = False
+    show_direct_messages = False
 
     if user is None and community is not None:
         member_rights = communityRightsSettings.objects.select_related('right').filter(
@@ -296,10 +301,12 @@ def check_all_member_rights(user=None, community=None):
             auto_approve = True
         elif right.state == create_secret_chatroom_right['state']:
             secret_chatroom = True
+        elif right.state == show_direct_messages_right['state']:
+            show_direct_messages = True
 
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
               "respond_in_rooms": respond_in_rooms, "invite_private": invite_private, "auto_approve": auto_approve,
-              "create_secret_chatroom": secret_chatroom}
+              "create_secret_chatroom": secret_chatroom, "show_dm": show_direct_messages}
 
     return rights
 

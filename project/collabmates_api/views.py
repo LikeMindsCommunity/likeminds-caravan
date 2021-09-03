@@ -29,9 +29,11 @@ from utility.celery_tasks import (
     update_multiple_previews_in_community, update_preview_of_community_in_cache,
     update_event_attendees, set_levels_on_ctc_celery, set_level_click_state, update_event_instructors_in_cache,
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
-    update_event_in_webflow_service, update_event_attendees_for_micro_event)
-from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
-                              upload_community_thumbnail)
+    update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
+    cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom)
+
+from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
+
 from utility.internal_link_preview_utilities import PreviewUtilities
 from .notification import *
 from .raw_queries import *
@@ -264,6 +266,37 @@ def my_chatrooms_version_1(request):
     is_ios = RequestUtilities.is_request_ios(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
+    show_dm = request.GET.get('show_dm', False)
+
+    is_dm_message = False
+
+    if show_dm == 'true':
+        show_dm = True
+    else:
+        show_dm = False
+
+    community_instance = None
+
+    if show_dm:
+        # Check for community
+        community_id = request.GET.get('community_id', None)
+
+        if not community_id:
+            return JsonResponse({"success": False, "error_message": "Please provide community ID"})
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return JsonResponse({"success": False, "error_message": "Invalid community ID"})
+
+        dm_right_instance = ModelUtilities.get_model_filter(communityRightsSettings,
+                                                            {"community": community_instance,
+                                                             "right__state":
+                                                                 member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+        if dm_right_instance.exists():
+            is_dm_message = True
+
     try:
         page = int(page)
     except:
@@ -277,16 +310,26 @@ def my_chatrooms_version_1(request):
     if not member_id:
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
+
     else:
+
         try:
             current_user_instance = User.objects.get(pk=member_id)
+
         except User.DoesNotExist:
             context = get_error_context(False, "User does not exist")
             return JsonResponse(context)
 
-    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time)
+    if show_dm and is_dm_message:
+        in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time,
+                                                                         consider_dm_chatrooms=True)
+        active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time,
+                                                              consider_dm_chatrooms=True)
 
-    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time)
+    else:
+        in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time)
+        active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time)
+
     page_count = get_total_pages(active_chatroom_count, limit=10)
     page_count_inactive = get_total_pages(in_active_chatroom_count, limit=10)
 
@@ -315,6 +358,28 @@ def my_chatrooms_version_1(request):
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
+
+    # Segregate DM and Non-DM chatrooms
+    dm_instance_list = []
+    non_dm_instance_list = []
+
+    for instance in instance_list:
+        is_dm_private_instance = instance.card.is_private
+
+        if all([is_dm_message, is_dm_private_instance, instance.card.chatroom_with_user,
+                instance.card.community == community_instance]):
+
+            dm_instance_list.append(instance)
+
+        else:
+            if (not instance.card.chatroom_with_user) and (not is_dm_private_instance):
+                non_dm_instance_list.append(instance)
+
+    if show_dm and is_dm_message:
+        instance_list = dm_instance_list
+
+    else:
+        instance_list = non_dm_instance_list
 
     for instance in instance_list:
 
@@ -397,9 +462,16 @@ def my_chatrooms_version_1(request):
                }
 
     if page == 1:
-        total_unseen_count = conversationEngage.objects \
-            .filter(user=current_user_instance, unseen_count__gt=0) \
-            .aggregate(total=Sum('unseen_count'))
+
+        if show_dm and is_dm_message:
+            total_unseen_count = conversationEngage.objects \
+                .filter(user=current_user_instance, community=community_instance, unseen_count__gt=0) \
+                .aggregate(total=Sum('unseen_count'))
+
+        else:
+            total_unseen_count = conversationEngage.objects \
+                .filter(user=current_user_instance, unseen_count__gt=0, card__is_private=False,
+                        card__chatroom_with_user=None).aggregate(total=Sum('unseen_count'))
 
         if total_unseen_count['total'] is None:
             total_unseen_count['total'] = 0
@@ -1812,7 +1884,7 @@ def remove_members(community_instance, user_instance, removed_state, current_use
     if removed_state == deleted_members.LEFT or removed_state == deleted_members.REMOVED:
         message = MEMBER_LEFT_COMMUNITY_TOAST if deleted_members.LEFT else MEMBER_REMOVED_FROM_COMMUNITY_TOAST
 
-        create_info ={
+        create_info = {
             'user_instance': user_instance,
             'community_instance': community_instance,
             'message': message
@@ -1841,6 +1913,31 @@ def remove_members(community_instance, user_instance, removed_state, current_use
                                 {'community': community_instance, 'user': user_instance},
                                 {'remove': instance, 'last_updated': TimeUtilities.current_time_in_milliseconds()}
                                 )
+
+    # Create Card Answer for all DM Chatroom
+    member_filter = ModelUtilities.get_model_filter(Members,
+                                                    {"community_id": community_instance, "member_id": user_instance})
+
+    if member_filter.exists():
+        member_state = member_filter[0].state
+        dm_chatroom_ids = []
+
+        if member_state == member_states.MEMBER:
+            dm_chatroom_ids = ModelUtilities.get_model_filter(Collabcard,
+                                                              {"chatroom_with_user__member_id": user_instance,
+                                                               "community": community_instance,
+                                                               "is_private": True}).values_list("id", flat=True)
+
+        elif member_state == member_states.ADMIN:
+            dm_chatroom_ids = ModelUtilities.get_model_filter(Collabcard,
+                                                              {"user": user_instance,
+                                                               "community": community_instance,
+                                                               "is_private": True}).exclude(
+                chatroom_with_user=None).values_list("id", flat=True)
+
+        member_left_removed_dm_chatroom.delay(user_instance.id, community_instance.id, instance.id, removed_state,
+                                              list(dm_chatroom_ids))
+
 
     # deleting member record
     ModelUtilities.delete_record_in_model(Members,
@@ -2989,10 +3086,10 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
                 answer = user_name + " started this chatroom in " + community_name
 
         elif state == conversation_states.CONVERSATION_FOLLOW:
-            answer = user_name + " joined this chatroom"
+            answer = user_name + " followed this chatroom"
 
         elif state == conversation_states.CONVERSATION_UNFOLLOW:
-            answer = user_name + " left this chatroom"
+            answer = user_name + " unfollowed this chatroom"
 
         elif state == conversation_states.CONVERSATION_COMMUNITY_EDIT:
             answer = user_name + " edited community purpose"
@@ -4442,10 +4539,10 @@ def get_answer_bubble_context_for_web(ans):
             answer_bubble = user_list[0] + " joined via a " + user_list[1] + "'s invite"
 
     elif ans.state == conversation_states.CONVERSATION_FOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) + " joined this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) + " followed this chatroom"
 
     elif ans.state == conversation_states.CONVERSATION_UNFOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) + " left this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) + " unfollowed this chatroom"
 
     return answer_bubble
 
@@ -4454,6 +4551,9 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                          community_instance=None, is_child=False, request_type="", parent_list=None, version_code=None,
                          platform_code=None):
     """ function to get chatroom actions """
+
+    if card_instance.is_private:
+        return collabcard_action_dm_user
 
     purpose_card = False
     intro_card = False
@@ -10382,6 +10482,9 @@ def update_community_manager_rights(request):
                                                          community_id=community_id, custom_title=custom_title)
                 update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance)
 
+                # DM chatroom add new CM
+                member_becomes_cm_dm_chatroom.delay(user_id, community_id)
+
             elif custom_title_changed:
                 member_title_changed = True
 
@@ -10447,6 +10550,9 @@ def remove_community_manager(request):
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+
+    is_user_cm = False
+
     if admin.exists():
         # deleting all manager rights
         userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
@@ -10459,6 +10565,8 @@ def remove_community_manager(request):
             custom_title = member_instance[0].custom_title
             if custom_title == "Community Manager":
                 custom_title = "Member"
+
+            is_user_cm = member_instance[0].state == member_states.ADMIN
 
         update_models_for_syncing_apis(SyncTypes.MEMBERS,
                                        {'community_id': community_instance, 'member_id': user_instance},
@@ -10487,6 +10595,10 @@ def remove_community_manager(request):
 
         send_sync_notification.delay({'community_id':community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+        # Add Message in DM Chatrooms
+        if is_user_cm:
+            cm_removed_dm_chatroom.delay(user_id, community_id)
 
         # Update Members Index
         ElasticSearchSync.update_member.delay(user_id, community_id)
@@ -11460,7 +11572,8 @@ class SyncChatrooms(APIView):
                 card_types.CARD_PUBLIC_EVENT,
                 card_types.CARD_MASTER_INTRO,
                 card_types.CARD_NORMAL,
-                card_types.CARD_INTRO
+                card_types.CARD_INTRO,
+                card_types.CARD_DIRECT_MESSAGE
             ]
         else:
 
@@ -11629,6 +11742,12 @@ class SyncChatrooms(APIView):
                 chatroom['topic_id'] = data[52]
 
             chatroom['is_edited'] = data[54]
+
+            chatroom['is_private'] = data[63]
+
+            if data[64]:
+                chatroom['chatroom_with_user'] = ModelUtilities.get_model_instance_or_none(Members,
+                                                                                           data[63]).member_id_id
 
             chatrooms.append(chatroom)
 

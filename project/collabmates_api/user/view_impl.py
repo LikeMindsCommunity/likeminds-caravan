@@ -120,3 +120,65 @@ class FetchUserAccess(APIView):
         user_context = user_manager.fetch_app_access()
 
         return JsonResponse(user_context)
+
+
+class FetchDmHome(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        user_manager = UserImpl(user_id=member_id)
+        user_context = user_manager.fetch_dm_home()
+
+        if 'error_message' in user_context:
+            response_context = user_context
+
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(user_context)
+
+
+class UpdateDmTutorial(APIView):
+
+    def post(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'error_message': "Invalid request body"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_manager = UserImpl(user_id=member_id)
+        update_dm_tutorial = user_manager.update_dm_tutorial(req_body)
+
+        if 'error_message' in update_dm_tutorial:
+            response_context = update_dm_tutorial
+
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(update_dm_tutorial)
+
+
+class FetchDmFeed(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        user_manager = UserImpl(user_id=member_id)
+        user_context = user_manager.fetch_dm_feed()
+
+        if 'error_message' in user_context:
+            response_context = user_context
+
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(user_context)

@@ -175,6 +175,21 @@ collabcard_action_user_unfollow = [
     }
 ]
 
+collabcard_action_dm_user = [
+    {
+        'id': 21,
+        'title': 'View profile'
+    },
+    {
+        'id': 5,
+        'title': 'View community'
+    },
+    {
+        'id': 6,
+        'title': 'Mute notifications'
+    }
+]
+
 rename_chatroom = {'id': 1, 'title': 'Rename chatroom'}
 
 view_participants = {'id': 2, 'title': 'View participants'}
@@ -213,9 +228,12 @@ member_can_message = {'id': 18, 'title': "Members can send message"}
 
 accessible_without_subscription = {'id': 19, 'title': "Accessible without subscription"}
 
+view_profile = {'id': 21, 'title': "View profile"}
+
 settings_for_purpose_chatroom = [rename_chatroom, member_can_message]
 
 settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom]
+
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
 
@@ -309,6 +327,8 @@ invite_private_member_right = {'id': 5, 'title': "Invite members via private lin
 auto_approve_member_right = {'id': 6, 'title': "Auto-approve created chat rooms", 'sub_title': None, "state": 5}
 
 create_secret_chatroom_right = {'id': 7, 'title': "create secret room rights", 'sub_title': None, "state": 6}
+
+show_direct_messages_right = {'id': 8, 'title': "direct messages", 'sub_title': None, "state": 7}
 
 member_rights_list = [create_room_member_right, create_poll_member_right,
                       create_event_member_right, respond_in_rooms_member_right,
@@ -450,3 +470,10 @@ PAID_COMMUNITY_LEVEL_4_SUB_TITLE = "Invite members with payment link"
 # Need to confirm these codes with clients at the time of release.
 CHATROOM_SETTINGS_VERSION_CODE_AN = 1000
 CHATROOM_SETTINGS_VERSION_CODE_IOS = 1000
+
+MEMBER_LEFT_DM_CHATROOM_MESSAGE = "{} left {}"
+MEMBER_REMOVED_DM_CHATROOM_MESSAGE = "{} was removed from {}"
+
+CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is no longer a community manager"
+
+MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE = "{} is a community manager now"

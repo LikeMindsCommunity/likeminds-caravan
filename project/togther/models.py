@@ -518,6 +518,9 @@ class Collabcard(models.Model):
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
     webflow_item_id = models.TextField(null=True)
+    is_private = models.BooleanField(default=False)
+    chatroom_with_user = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,
+                                           related_name='chatroom_with_user')
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
@@ -2602,3 +2605,27 @@ class CohortRights(models.Model):
         instance.updated_at = current_time_ms
 
         return instance
+
+
+class DirectMessageTutorial(models.Model):
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    clicked = models.BooleanField(default=False)
+    messaged = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = DirectMessageTutorial()
+        instance.user_id = create_info.get('user_instance')
+        instance.clicked = create_info.get('clicked')
+        instance.messaged = create_info.get('messaged')
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+
+        return instance
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+        self.updated_at = current_time
+
+        super(DirectMessageTutorial, self).save(*args, **kwargs)

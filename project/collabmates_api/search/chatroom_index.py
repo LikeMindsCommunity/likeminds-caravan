@@ -80,6 +80,12 @@ class ChatroomDocument(Document):
             'device_id': TextField(),
             'platform': TextField(),
             'created_at': LongField(attr='date_epoch'),
+            'is_private': BooleanField(),
+            'chatroom_with_user': fields.ObjectField(
+                                    attr='chatroom_with_user',
+                                    properties={
+                                        'id': IntegerField()
+                                    })
         },
     )
 

@@ -52,3 +52,5 @@ MEMBER_SINCE_TEXT = "Member of %s since %s"
 
 PENDING_MEMBER_TEXT = "Verification pending for %s"
 
+CTA_ROUTE_DIRECT_MESSAGES = "route://direct_messages"
+

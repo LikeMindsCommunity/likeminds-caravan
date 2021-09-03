@@ -19,6 +19,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_deleted_communities') and callable(
                     subclass.fetch_deleted_communities)) and
                 (hasattr(subclass, 'fetch_members_detail') and callable(subclass.fetch_members_detail)) or
+                (hasattr(subclass, 'show_dm') and callable(subclass.show_dm)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -90,4 +91,9 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         """
         Get member details of community
         """
+        raise NotImplementedError
+
+    def show_dm(self, req_body) -> {}:
+        """returns whether to show the message icons on client side for CM or Member"""
+
         raise NotImplementedError

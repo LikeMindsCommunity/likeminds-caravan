@@ -5,18 +5,21 @@ from urllib import parse
 from typing import Union
 from rest_framework import status as status_codes
 
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.contrib.auth.models import User
 from django.conf import settings
 
 from cms.models import userAcquition
 from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
-                            Members, userEmails, Userinfo, emailTokens, Collabcard, removedMembers)
+                            Members, userEmails, Userinfo, emailTokens, Collabcard, removedMembers,
+                            DirectMessageTutorial, communityRightsSettings, card_answers, collabcardState,
+                            conversationEngage)
 from collabmates_api.user.user_manager import UserManager
 
 from utility.exception_utilities import InvalidUserException
 from utility.time_utilities import TimeUtilities
-from utility.states import email_states, mobile_states, member_states, login_types, deleted_members
+from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
+    conversation_states, member_rights
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
@@ -560,6 +563,133 @@ class UserImpl(UserManager):
                                                    expired_communities=expired_communities)
 
         return data
+
+    def fetch_dm_home(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        admin = ModelUtilities.get_model_filter(Members, {"member_id": user_instance, "state": member_states.ADMIN})
+
+        # Check whether member_id present in DirectMessageTutorial Table
+        direct_message_tutorial = ModelUtilities.get_model_filter(DirectMessageTutorial, {"user_id": user_instance})
+
+        if direct_message_tutorial.exists():
+            direct_message_tutorial = direct_message_tutorial[0]
+
+        else:
+            direct_message_tutorial = None
+
+        if admin.exists():
+
+            if direct_message_tutorial:
+
+                unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id)
+
+                return {
+                    "success": True,
+                    "clicked": direct_message_tutorial.clicked,
+                    "messaged": direct_message_tutorial.messaged,
+                    "unread_dm_count": unseen_count
+                }
+
+            else:
+                return {"success": True, "clicked": False, "messaged": False}
+
+        else:
+            # Get all communities user is part of
+            communities_list = list(ModelUtilities.get_model_filter(Members, {"member_id": user_instance}).values_list(
+                "community_id_id", flat=True))
+
+            communities = ModelUtilities.get_model_filter(communityRightsSettings,
+                                                          {"community__id__in": communities_list,
+                                                           "right__state":
+                                                               member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+            if communities:
+
+                if direct_message_tutorial:
+
+                    unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, is_cm=False)
+
+                    return {
+                        "success": True,
+                        "clicked": direct_message_tutorial.clicked,
+                        "messaged": direct_message_tutorial.messaged,
+                        "unread_dm_count": unseen_count
+                    }
+
+                else:
+                    return {"success": True, "clicked": False, "messaged": False}
+
+            else:
+                return {"success": True}
+
+    def update_dm_tutorial(self, req_body) -> {}:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        clicked = req_body.get("clicked")
+        messaged = req_body.get("messaged")
+
+        if (clicked is None) and (messaged is None):
+            return {'success': False, 'error_message': "Please send either clicked or messaged."}
+
+        # Get DirectMessageTutorial Instance
+        dm_tutorial_instance = ModelUtilities.get_model_filter(DirectMessageTutorial, {"user_id": user_instance})
+
+        if not dm_tutorial_instance:
+            clicked = clicked if clicked is not None else False
+            messaged = messaged if messaged is not None else False
+
+            dm_tutorial_instance = DirectMessageTutorial.create_instance({"user_instance": user_instance,
+                                                                          "clicked": clicked,
+                                                                          "messaged": messaged})
+            dm_tutorial_instance.save()
+
+        else:
+            dm_tutorial_instance = dm_tutorial_instance[0]
+            dm_tutorial_instance.clicked = clicked if clicked is not None else dm_tutorial_instance.clicked
+            dm_tutorial_instance.messaged = messaged if messaged is not None else dm_tutorial_instance.messaged
+            dm_tutorial_instance.save()
+
+        return {'success': True}
+
+    def fetch_dm_feed(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        # Check whether the member is CM or not
+        member_filter = ModelUtilities.get_model_filter(Members, {"member_id": user_instance})
+
+        if not member_filter.exists():
+            return {"success": False, "error_message": "User not a part of any community."}
+
+        cm_instances = member_filter.filter(state=member_states.ADMIN)
+
+        if cm_instances.exists():
+            cm_instances_count = len(cm_instances)
+
+            if cm_instances_count > 1:
+                cta = "route://community_settings_select"
+
+            else:
+                community_instance = cm_instances[0].community_id
+
+                cta = f"route://community_settings?community_id={community_instance.id}"
+
+            return UserHelper.get_dm_feed_response(cm_instances, cta=cta, is_cm=True)
+
+        else:
+            return UserHelper.get_dm_feed_response(member_filter)
 
 
 class UserHelper:
@@ -1107,3 +1237,50 @@ class UserHelper:
                 community.update(community_member_data.get(community['id']))
 
         return data
+
+    @staticmethod
+    def get_unread_dm_messages_count(user_id, is_cm=True):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return 0
+
+        conversation_engage_filter = ModelUtilities.get_model_filter(conversationEngage,
+                                                                     {"user": user_instance,
+                                                                      "card__is_private": True}).exclude(
+            card__chatroom_with_user=None)
+
+        unseen_count = conversation_engage_filter.aggregate(total_unseen_count=Sum('unseen_count'))
+
+        return unseen_count["total_unseen_count"]
+
+    @staticmethod
+    def get_dm_feed_response(member_instances, cta=None, is_cm=False):
+
+        community_rights = ModelUtilities.get_model_filter(
+            communityRightsSettings, {"community__in": member_instances.values_list("community_id_id", flat=True),
+                                      "right__state": member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+        if is_cm:
+
+            if community_rights.exists():
+                return {"success": True}
+
+            else:
+
+                disclaimer = {
+                    "title": "Feature not enabled yet.",
+                    "subtitle": "To enable direct message with your community members, go to <<community "
+                                f"settings|{cta}>> and enable direct messages in your community.",
+                    "cta": cta
+                }
+
+                return {"success": True, "disclaimer": disclaimer}
+
+        else:
+
+            if community_rights.exists():
+                return {"success": True}
+
+            else:
+                return {"success": False, "error_message": "Direct messages are disabled for this community."}

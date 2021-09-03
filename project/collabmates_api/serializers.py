@@ -248,7 +248,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'is_edited': card.is_edited,
         'is_paid': card.is_paid,
         'access': card.access,
-        'online_link_enable_before': card.online_link_enable_before
+        'online_link_enable_before': card.online_link_enable_before,
+        'is_private': card.is_private,
     }
 
     if card.secret_chatroom_participants:
@@ -374,6 +375,9 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(conversation_serializer['created_at'])
 
         collabcard['topic'] = conversation_serializer
+
+    if card.chatroom_with_user:
+        collabcard['chatroom_with_user'] = MembersSerializer(card.chatroom_with_user, card.community)
 
     return collabcard
 

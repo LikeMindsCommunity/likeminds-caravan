@@ -1396,7 +1396,8 @@ class ConversationHelper:
     @staticmethod
     def compute_member_images_for_homescreen(chatroom_instance, community_instance):
 
-        user_list = get_latest_conversation_creator_users_for_homescreen(chatroom_instance.id, chatroom_instance.id)
+        user_list = get_latest_conversation_creator_users_for_homescreen(chatroom_instance.id,
+                                                                         chatroom_instance.user_id)
 
         member_conversations = []
         user_conversations = []

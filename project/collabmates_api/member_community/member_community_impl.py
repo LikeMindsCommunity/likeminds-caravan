@@ -35,8 +35,7 @@ from ..static_files import REMOVED_USER_URL
 
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
                             MemberPollVotes, Collabcard, card_answers, conversationEngage,
-                            communityQuestions,
-                            CommunityUserDelete)
+                            communityQuestions, CommunityUserDelete, communityRightsSettings)
 
 from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
 from utility.time_utilities import TimeUtilities
@@ -342,17 +341,17 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pinned=pin_status,
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                card_id__pinning_time__lt=card_instance.pinning_time).select_related(
                 'card',
-                'card__user'). \
-                                    exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')[
-                                :limit_size]
+                'card__user').exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')[:limit_size]
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                card_id__lt=card_instance.id).select_related('card',
                                                                                                             'card__user'). \
                                     exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
@@ -368,6 +367,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pinned=pin_status,
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                card__id__gte=last_seen_id).select_related('card',
                                                                                                           'card__user'). \
                                     exclude(card__type=card_types.CARD_INTRO).order_by('card_id')[:limit_size]
@@ -377,6 +377,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_deleted=False,
                                                                user=self.get_member_id(),
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                card__id__gte=last_seen_id).select_related('card',
                                                                                                           'card__user'). \
                                     exclude(card__type=card_types.CARD_INTRO).order_by('card_id')[:limit_size]
@@ -391,6 +392,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
@@ -399,6 +401,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
@@ -413,6 +416,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')
@@ -421,6 +425,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
                 exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
@@ -435,6 +440,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_deleted=False,
                                                                card__is_pinned=pin_status,
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                user=self.get_member_id()).exclude(
                 card__type=card_types.CARD_INTRO).only('card', 'state').order_by('card_id')
         else:
@@ -442,6 +448,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_pending=False,
                                                                card__is_deleted=False,
                                                                secret_chatroom_left=False,
+                                                               card__is_private=False,
                                                                user=self.get_member_id()).exclude(
                 card__type=card_types.CARD_INTRO).only('card', 'state').order_by('card_id')
 
@@ -1009,6 +1016,80 @@ class MemberCommunityImpl(MemberCommunityManager):
         final_data = self._add_emails_and_mobiles_to_member_profie_data(members_data, user_mobiles, user_emails)
 
         return {"success": True, "total_count": total_member_count, "members": final_data}
+
+    def show_dm(self, req_body) -> {}:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {"success": False, "error_message": "Invalid User ID."}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+
+        if not community_instance:
+            return {"success": False, "error_message": "Invalid Community ID."}
+
+        req_from = req_body.get("from")
+
+        if not req_from:
+            return {"success": False, "error_message": "Send the key 'from'."}
+
+        member_id = req_body.get("member_id")
+
+        if user_instance.id == member_id:
+            return {"success": False, "error_message": "You cannot DM yourself."}
+
+        user_admin = ModelUtilities.get_model_filter(Members,
+                                                     {"member_id": user_instance,
+                                                      "community_id": community_instance,
+                                                      "state": member_states.ADMIN})
+
+        dm_right_instance = ModelUtilities.get_model_filter(communityRightsSettings,
+                                                            {"community": community_instance,
+                                                             "right__state":
+                                                                 member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+        if req_from == "member_profile":
+
+            member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+            if not member_instance:
+                return {"success": False, "error_message": "Invalid Member ID."}
+
+            member_admin = ModelUtilities.get_model_filter(Members,
+                                                           {"member_id": member_instance,
+                                                            "community_id": community_instance,
+                                                            "state": member_states.ADMIN})
+
+            if user_admin.exists() and member_admin.exists():
+                return {"success": True, "show_dm": False}
+
+            elif (user_admin.exists() or member_admin.exists()) and dm_right_instance.exists():
+
+                return {
+                    "success": True,
+                    "cta": CTA_ROUTE_DIRECT_MESSAGES,
+                    "show_dm": True
+                }
+
+            else:
+                return {"success": True, "show_dm": False}
+
+        elif req_from == "community_detail":
+
+            if (not user_admin.exists()) and dm_right_instance.exists():
+
+                return {
+                    "success": True,
+                    "cta": CTA_ROUTE_DIRECT_MESSAGES,
+                    "show_dm": True
+                }
+
+            else:
+                return {"success": True, "show_dm": False}
+
+        else:
+            return {"success": False, "error_message": "Invalid value of key 'from'."}
 
 
 class MemberCommunityHelper:

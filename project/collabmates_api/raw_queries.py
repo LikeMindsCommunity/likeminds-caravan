@@ -115,15 +115,34 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_inactive_followed_chatrooms_count(user_id, current_time):
+def get_inactive_followed_chatrooms_count(user_id, current_time, consider_dm_chatrooms=False):
     '''function to get active chatrooms based on community and user'''
 
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select count(*) from togther_collabcardState where  user_id=%s and follow_status=True and remove_id is null 
-        and (expiry_time is not null and expiry_time < %s) and secret_chatroom_left=false""" % (
-            str(user_id), str(current_time))
+
+        if not consider_dm_chatrooms:
+            is_private = "FALSE"
+            chatroom_with_user_id_val = "NULL"
+
+        else:
+            is_private = "TRUE"
+            chatroom_with_user_id_val = "NOT NULL"
+
+        sql = """SELECT Count(*)
+                 FROM   togther_collabcardstate
+                 WHERE  user_id =% s
+                       AND follow_status = TRUE
+                       AND remove_id IS NULL
+                       AND ( expiry_time IS NOT NULL
+                             AND expiry_time < %s )
+                             AND secret_chatroom_left = FALSE
+                             AND card_id IN (SELECT id
+                                             FROM   togther_collabcard
+                                             WHERE  is_private = %s
+                                             AND chatroom_with_user_id IS %s) """ % \
+              (str(user_id), str(current_time), is_private, chatroom_with_user_id_val)
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -135,18 +154,39 @@ def get_inactive_followed_chatrooms_count(user_id, current_time):
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
-def get_active_my_chatrooms_count(user_id, current_time):
+def get_active_my_chatrooms_count(user_id, current_time, consider_dm_chatrooms=False):
     '''function to give the count of active my chatrooms'''
 
     try:
 
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select count(id) from togther_conversationEngage where user_id=%s and card_id  in
-                     (select card_id from togther_collabcardState where user_id = %s and follow_status = True and (remove_id is null)
-                    and (expiry_time is null or expiry_time > %s) and secret_chatroom_left=false
-                   )""" % (
-            str(user_id), str(user_id), str(current_time))
+
+        if not consider_dm_chatrooms:
+            is_private = "FALSE"
+            chatroom_with_user_id_val = "NULL"
+
+        else:
+            is_private = "TRUE"
+            chatroom_with_user_id_val = "NOT NULL"
+
+        sql = """SELECT Count(id)
+                FROM   togther_conversationengage
+                WHERE  user_id =% s
+                       AND card_id IN (SELECT card_id
+                                       FROM   togther_collabcardstate
+                                       WHERE  user_id = %s
+                                              AND follow_status = TRUE
+                                              AND ( remove_id IS NULL )
+                                              AND ( expiry_time IS NULL
+                                                     OR expiry_time > %s )
+                                              AND secret_chatroom_left = FALSE
+                                              AND card_id IN (SELECT id
+                                                              FROM   togther_collabcard
+                                                              WHERE  is_private = %s
+                                                                     AND chatroom_with_user_id
+                                                                         IS %s)
+                  ) """ % (str(user_id), str(user_id), str(current_time), is_private, chatroom_with_user_id_val)
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -650,7 +690,9 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcard.event_payment_link,
                     togther_collabcard.event_web_page,
                     togther_collabcardState.attended,
-                    togther_collabcard.webflow_item_id
+                    togther_collabcard.webflow_item_id,
+                    togther_collabcardState.is_private,
+                    togther_collabcard.chatroom_with_user_id
                 """
 
     return meta_query
