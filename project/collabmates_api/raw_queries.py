@@ -3,7 +3,7 @@ from celery import shared_task
 import time
 import logging
 import psycopg2
-from utility.states import card_types
+from utility.states import card_types, conversation_states
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -587,7 +587,6 @@ def ranking_all_users_and_communities():
 
 
 def get_chatroom_query_meta_for_sync():
-
     meta_query = """ togther_collabcard.id,
                     togther_collabcard.title,
                     togther_collabcard.community_id,
@@ -653,6 +652,51 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcardState.attended,
                     togther_collabcard.webflow_item_id
                 """
+
+    return meta_query
+
+
+def get_conversation_query_meta_for_sync():
+    meta_query = """id,
+                    answer,
+                    created_at,
+                    state,
+                    is_edited,
+                    has_files,
+                    attachment_count,
+                    attachments_uploaded,
+                    card_id,
+                    user_id,
+                    community_id,
+                    og_tags,
+                    deleted_by_user_id,
+                    internal_link,
+                    reply_id,
+                    last_updated,
+                    preview_chatroom_id,
+                    preview_type,
+                    api_version,
+                    temporary_id,
+                    poll_type,
+                    multiple_select_state,
+                    multiple_select_no,
+                    is_anonymous,
+                    allow_add_option,
+                    expiry_time,
+                    preview_community_id,
+                    has_reactions,
+                    device_id,
+                    poll_answer_text,
+                    reply_chatroom_id,
+                    header,
+                    location,
+                    location_lat,
+                    location_long,
+                    start_time,
+                    end_time,
+                    online_link_enable_before,
+                    co_hosts
+                    """
 
     return meta_query
 
@@ -839,7 +883,8 @@ def fetch_community_chatroom_query(community_id, user_id, page, limit, last_upda
     ORDER BY  togther_collabcardState.updated_at limit %s offset %s
     
     """ % (get_chatroom_query_meta_for_sync(),
-            str(community_id), str(user_id), str(last_updated), str(follow_status), str(type_tuple), str(limit), str(offset))
+           str(community_id), str(user_id), str(last_updated), str(follow_status), str(type_tuple), str(limit),
+           str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -883,7 +928,9 @@ def fetch_chatrooms_query(user_id, limit, page, last_updated, type_list):
                     AND togther_collabcard.type in %s
             ORDER BY  togther_collabcardState.updated_at limit %s offset %s
 
-                """ % (get_chatroom_query_meta_for_sync(), str(user_id), str(last_updated), str(type_tuple), str(limit), str(offset))
+                """ % (
+            get_chatroom_query_meta_for_sync(), str(user_id), str(last_updated), str(type_tuple), str(limit),
+            str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1010,7 +1057,6 @@ def get_members_of_community_based_on_community_list_for_sync(community_id_list,
 
 
 def get_members_of_community_based_on_user_list_for_sync(user_id_list, community_id, last_updated, page, limit):
-
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -1255,7 +1301,8 @@ def fetch_chatroom_query_follow_status_active_status(user_id, limit, page, last_
                 AND togther_collabcard.type in %s
         ORDER BY  togther_collabcardState.updated_at limit %s offset %s
               """ % (get_chatroom_query_meta_for_sync(),
-                     str(user_id), str(status_query), follow_status, str(last_updated), str(type_tuple), str(limit), str(offset))
+                     str(user_id), str(status_query), follow_status, str(last_updated), str(type_tuple), str(limit),
+                     str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1317,7 +1364,7 @@ def get_active_inactive_status_query(active_status, current_time):
     return status_query
 
 
-def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, last_updated):
+def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, last_updated, state):
     """
     return the conversations of chatrooms based on chatroom list
     """
@@ -1331,42 +1378,27 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
         if not chatroom_id_tupple:
             return [], []
 
-        sql = """SELECT id,
-                         answer,
-                         created_at,
-                         state,
-                         is_edited,
-                         has_files,
-                         attachment_count,
-                         attachments_uploaded,
-                         card_id,
-                         user_id,
-                         community_id,
-                         og_tags,
-                         deleted_by_user_id,
-                         internal_link,
-                         reply_id,
-                         last_updated,
-                         preview_chatroom_id,
-                         preview_type,
-                         api_version,
-                         temporary_id,
-                         poll_type,
-                         multiple_select_state,
-                         multiple_select_no,
-                         is_anonymous,
-                         allow_add_option,
-                         expiry_time,
-                         preview_community_id,
-                         has_reactions,
-                         device_id,
-                         poll_answer_text,
-                         reply_chatroom_id
-                FROM togther_card_answers
-                WHERE last_updated > %s
-                        AND card_id IN %s
-                ORDER BY  last_updated limit %s offset %s
-               """ % (str(last_updated), str(chatroom_id_tupple), str(limit), str(offset))
+        if state:
+            sql = """SELECT %s
+                    FROM togther_card_answers
+                    WHERE last_updated > %s
+                            AND card_id IN %s
+                            AND state=%s
+                    ORDER BY  last_updated limit %s offset %s
+                   """ % (
+                get_conversation_query_meta_for_sync(), str(last_updated), str(chatroom_id_tupple),
+                str(state), str(limit),
+                str(offset))
+
+        else:
+            sql = """SELECT %s
+                    FROM togther_card_answers
+                    WHERE last_updated > %s
+                            AND card_id IN %s
+                    ORDER BY  last_updated limit %s offset %s
+                   """ % (
+                get_conversation_query_meta_for_sync(), str(last_updated), str(chatroom_id_tupple), str(limit),
+                str(offset))
 
         curr.execute(sql)
         data = curr.fetchall()
@@ -1387,7 +1419,8 @@ def get_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, las
         return [], []
 
 
-def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, last_updated, community_id):
+def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, limit, last_updated, community_id,
+                                                           state):
     """
     return the conversations of chatrooms based on chatroom list
     """
@@ -1401,43 +1434,29 @@ def get_community_conversation_data_based_on_chatroom_list(chatroom_list, page, 
         if not chatroom_id_tupple:
             return [], []
 
-        sql = """SELECT id,
-                         answer,
-                         created_at,
-                         state,
-                         is_edited,
-                         has_files,
-                         attachment_count,
-                         attachments_uploaded,
-                         card_id,
-                         user_id,
-                         community_id,
-                         og_tags,
-                         deleted_by_user_id,
-                         internal_link,
-                         reply_id,
-                         last_updated,
-                         preview_chatroom_id,
-                         preview_type,
-                         api_version,
-                         temporary_id,
-                         poll_type,
-                         multiple_select_state,
-                         multiple_select_no,
-                         is_anonymous,
-                         allow_add_option,
-                         expiry_time,
-                         preview_community_id,
-                         has_reactions,
-                         device_id,
-                         poll_answer_text,
-                         reply_chatroom_id
-                FROM togther_card_answers
-                WHERE last_updated > %s
-                        AND card_id IN %s
-                        AND community_id = %s
-                ORDER BY  last_updated limit %s offset %s
-               """ % (str(last_updated), str(chatroom_id_tupple), str(community_id), str(limit), str(offset))
+        if state:
+            sql = """SELECT %s
+                    FROM togther_card_answers
+                    WHERE last_updated > %s
+                            AND card_id IN %s
+                            AND community_id = %s
+                            AND state=%s
+                    ORDER BY  last_updated limit %s offset %s
+                   """ % (
+                get_conversation_query_meta_for_sync(), str(last_updated), str(chatroom_id_tupple),
+                str(community_id), str(state),
+                str(limit), str(offset))
+
+        else:
+            sql = """SELECT %s
+                              FROM togther_card_answers
+                              WHERE last_updated > %s
+                                      AND card_id IN %s
+                                      AND community_id = %s
+                              ORDER BY  last_updated limit %s offset %s
+                             """ % (
+                get_conversation_query_meta_for_sync(), str(last_updated), str(chatroom_id_tupple), str(community_id),
+                str(limit), str(offset))
         curr.execute(sql)
         data = curr.fetchall()
         curr.close()
@@ -1790,7 +1809,6 @@ def get_distinct_chatroom_creator_list(community_id, member_id) -> []:
 
 
 def get_recent_n_days_conversation_chatroom_list(community_id, duration, limit) -> []:
-
     """returns the recent n days card id list"""
 
     try:
@@ -1830,7 +1848,6 @@ def get_recent_n_days_conversation_chatroom_list(community_id, duration, limit) 
 
 
 def get_n_percentage_member_conversation_chatroom_list(community_id, members_count, limit) -> []:
-
     """returns the recent chatrooms where n percentage of  members have created conversation"""
 
     try:
@@ -1870,7 +1887,6 @@ def get_n_percentage_member_conversation_chatroom_list(community_id, members_cou
 
 
 def get_last_seen_event_chatroom_id_for_user(user_id):
-
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -1897,7 +1913,6 @@ def get_last_seen_event_chatroom_id_for_user(user_id):
 
 
 def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
-
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -1920,6 +1935,60 @@ def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
             return card_tupple[0]
 
         return 0
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_count_of_new_event_conversation_created_for_user(conversation_id, chatroom_list):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        card_tuple = get_tuple_from_array(chatroom_list)
+
+        if not card_tuple:
+            return 0
+
+        sql = """SELECT count(*)
+                 FROM togther_card_answers
+                 WHERE id > %s
+                 AND state = %s AND card_id in %s
+        """ % (str(conversation_id), str(conversation_states.CONVERSATION_EVENT), str(card_tuple))
+        curr.execute(sql)
+        conversation_tuple = curr.fetchone()
+        curr.close()
+
+        if conversation_tuple:
+            return conversation_tuple[0]
+
+        return 0
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_last_seen_event_conversation_id_for_user(chatroom_list):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        card_tuple = get_tuple_from_array(chatroom_list)
+
+        if not card_tuple:
+            return 0
+
+        sql = """SELECT id
+                 FROM togther_card_answers
+                 where state=%s and card_id in %s
+                 ORDER BY id desc limit 1
+        """ % (str(conversation_states.CONVERSATION_EVENT), str(card_tuple))
+        curr.execute(sql)
+        conversation_tuple = curr.fetchone()
+        curr.close()
+
+        if conversation_tuple:
+            return conversation_tuple[0]
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)

@@ -363,6 +363,7 @@ class ConversationStates:
     CONVERSATION_ADD_ALL_MEMBERS = 11
 
     CHATROOM_TOPIC = 12
+    CONVERSATION_EVENT = 13
 
 
 conversation_states = ConversationStates()

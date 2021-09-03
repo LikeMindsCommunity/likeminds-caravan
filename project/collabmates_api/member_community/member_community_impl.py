@@ -1127,3 +1127,15 @@ class MemberCommunityHelper:
             member_list.append(temp)
 
         return member_list
+
+    @staticmethod
+    def pre_compute_users_by_member_id_list(member_ids):
+        user_filter = ModelUtilities.get_model_filter(User, {'id__in': member_ids})
+        user_dict = {member_id: None for member_id in member_ids}
+
+        for data in user_filter:
+
+            if user_dict.get(data.id) is None:
+                user_dict[data.id] = data
+
+        return user_dict

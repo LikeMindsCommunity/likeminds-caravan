@@ -6,6 +6,9 @@ from typing import Union
 from django.db.models import F, Q, Count
 from rest_framework import status as status_codes
 
+from external_services.caching.cache_impl import CacheImpl
+from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION
+from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
     MINUTES_30
 
@@ -14,9 +17,10 @@ from .reactions import fetch_chatroom_or_conversation_reactions
 from ..chatroom import chatroom_impl
 from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list, \
     send_notification_on_chatroom_topic_update
-from ..member_community.member_community_impl import MemberCommunityImpl
+from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import activate_chatroom_on_conversation_creation, \
-    get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms
+    get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms, \
+    get_count_of_new_event_conversation_created_for_user, get_last_seen_event_conversation_id_for_user
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
@@ -34,7 +38,8 @@ from .constants import *
 
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
-                            conversationPollMembers, Userinfo, conversationEngage, answerAttachment)
+                            conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
+                            conversationEventMembers, conversationEventNudge)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
@@ -47,7 +52,8 @@ from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homef
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
                                   update_preview_of_chatroom_in_cache,
                                   get_conversation_poll, save_conversation_poll_options_in_cache,
-                                  save_conversation_poll_voters_in_cache, update_multiple_previews_in_community)
+                                  save_conversation_poll_voters_in_cache, update_multiple_previews_in_community,
+                                  update_event_attendees_for_micro_event)
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -206,6 +212,11 @@ class ConversationImpl(ConversationManager):
         if poll_conversation:
             conversation_serializer.update(poll_conversation)
 
+        event_conversation = self._serialize_event_conversation(conversation_instance)
+
+        if event_conversation:
+            conversation_serializer.update(event_conversation)
+
         return conversation_serializer
 
     def _serialize_poll_conversation(self, conversation_instance):
@@ -237,6 +248,25 @@ class ConversationImpl(ConversationManager):
             poll_conversation['poll_answer_text'] = conversation_instance.poll_answer_text
 
         return poll_conversation
+
+    def _serialize_event_conversation(self, conversation_instance):
+
+        event_conversation = {}
+
+        if conversation_instance.state == conversation_states.CONVERSATION_EVENT:
+            event_conversation['state'] = conversation_instance.state
+            event_conversation['header'] = conversation_instance.header
+            event_conversation['location'] = conversation_instance.location
+            event_conversation['location_lat'] = conversation_instance.location_lat
+            event_conversation['location_long'] = conversation_instance.location_long
+
+            event_conversation['start_time'] = conversation_instance.start_time
+            event_conversation['end_time'] = conversation_instance.end_time
+            event_conversation['online_link_enable_before'] = conversation_instance.online_link_enable_before
+            members_data = ConversationHelper.compute_members_data_for_conversation(conversation_instance)
+            event_conversation.update(members_data)
+
+        return event_conversation
 
     def _create_conversation_list(self, conversations, last_conversation_id=None):
 
@@ -299,6 +329,11 @@ class ConversationImpl(ConversationManager):
         if poll_context:
             conversation_content.update(poll_context)
 
+        event_context = self._fill_event_conversation_context(req_body)
+
+        if event_context:
+            conversation_content.update(event_context)
+
     def _fill_poll_conversation_context(self, req_body):
 
         poll_context = {}
@@ -318,6 +353,27 @@ class ConversationImpl(ConversationManager):
             poll_context['poll_answer_text'] = POLL_ANSWER_TEXT
 
         return poll_context
+
+    def _fill_event_conversation_context(self, req_body):
+
+        event_context = {}
+
+        if req_body.get('state') and req_body['state'] == conversation_states.CONVERSATION_EVENT:
+            event_context['state'] = req_body['state']
+            event_context['header'] = req_body.get('header')
+            event_context['online_link'] = req_body.get('online_link')
+            event_context['online_link_id'] = req_body.get('online_link_id')
+            event_context['online_link_password'] = req_body.get('online_link_password')
+            event_context['location'] = req_body.get('location')
+            event_context['location_lat'] = req_body.get('location_lat')
+            event_context['location_long'] = req_body.get('location_long')
+            event_context['start_time'] = req_body.get('start_time', 0)
+            event_context['end_time'] = req_body.get('end_time', 0)
+            event_context['online_link_enable_before'] = req_body.get('online_link_enable_before',
+                                                                      TimeUtilities.get_minutes_in_milliseconds(15))
+            event_context['co_hosts'] = json.dumps(req_body['co_hosts']) if req_body.get('co_hosts') else None
+
+        return event_context
 
     @staticmethod
     def _fill_poll_options(user_instance, conversation_instance, req_body):
@@ -394,7 +450,8 @@ class ConversationImpl(ConversationManager):
 
             chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
-            chatroom_state_instance.expiry_time = chatroom_impl.ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
+            chatroom_state_instance.expiry_time = chatroom_impl.ChatroomHelper.get_chatroom_expiry_time(
+                chatroom_state_instance)
             chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             chatroom_state_instance.save()
 
@@ -525,6 +582,68 @@ class ConversationImpl(ConversationManager):
             member_list.append(member_data)
 
         return member_list
+
+    def _fill_online_link_for_event(self, conversation_context, conversation_instance):
+
+        if conversation_instance.online_link:
+            conversation_context['online_link'] = conversation_instance.online_link
+
+        if conversation_instance.online_link_id:
+            conversation_context['online_link_id'] = conversation_instance.online_link_id
+
+        if conversation_instance.online_link_password:
+            conversation_context['online_link_password'] = conversation_instance.online_link_password
+
+    @staticmethod
+    def fetch_conversation_events_queryset(user_instance, attending_status, past_events):
+
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+        chatroom_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                             {'user': user_instance, 'remove': None}).
+                             values_list('card_id', flat=True))
+        attending_list = list(ModelUtilities.get_model_filter(conversationEventMembers,
+                                                              {'user': user_instance,
+                                                               'attending_status': True}). \
+                              values_list('conversation_id', flat=True))
+
+        if not past_events:
+
+            if attending_status:
+                conversation_queryset = ModelUtilities.get_model_filter(card_answers, {
+                    'state': conversation_states.CONVERSATION_EVENT,
+                    'card__in': chatroom_list,
+                    'id__in': attending_list,
+                    'start_time__gt': current_time_ms
+                }).\
+                    select_related('community').order_by('start_time')
+
+            else:
+                conversation_queryset = ModelUtilities.get_model_filter(card_answers, {
+                    'state': conversation_states.CONVERSATION_EVENT,
+                    'card__in': chatroom_list,
+                    'start_time__gt': current_time_ms
+                }).filter(~Q(id__in=attending_list)).select_related('community').order_by('start_time')
+
+        else:
+
+            if attending_status:
+                conversation_queryset = ModelUtilities.get_model_filter(card_answers, {
+                    'state': conversation_states.CONVERSATION_EVENT,
+                    'card__in': chatroom_list,
+                    'id__in': attending_list,
+                    'start_time__lte': current_time_ms
+                }).\
+                    select_related('community').order_by('-start_time')
+
+            else:
+                conversation_queryset = ModelUtilities.get_model_filter(card_answers, {
+                    'state': conversation_states.CONVERSATION_EVENT,
+                    'card__in': chatroom_list,
+                    'start_time__lte': current_time_ms
+                }).\
+                    select_related('community').filter(~Q(id__in=attending_list)).order_by('-start_time')
+
+        return conversation_queryset
 
     def fetch_conversation(self, top_navigate=False):
 
@@ -1013,6 +1132,156 @@ class ConversationImpl(ConversationManager):
 
         return {'success': True}
 
+    def attend_event(self, req_body):
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                          req_body.get('conversation_id'))
+
+        if not conversation_instance:
+            return {'success': False,
+                    'error_message': "In-valid conversation id"}
+
+        if conversation_instance.state != conversation_states.CONVERSATION_EVENT:
+            return {'success': False, 'error_message': "Not a event conversation"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "In-valid user id", 'success': False}
+
+        attending_status = req_body.get('attending_status', False)
+
+        ConversationHelper.attend_conversation_event(conversation_instance, user_instance,
+                                                     attending_status)
+
+        update_event_attendees_for_micro_event.delay({'conversation_id': conversation_instance.id,
+                                                      'user_id': user_instance.id,
+                                                      'attending_status': attending_status})
+
+        return {'success': True}
+
+    def set_event_attended(self, req_body):
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                          req_body.get('conversation_id'))
+
+        if not conversation_instance:
+            return {'success': False,
+                    'error_message': "In-valid conversation id"}
+
+        if conversation_instance.state != conversation_states.CONVERSATION_EVENT:
+            return {'success': False, 'error_message': "Not a event conversation"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "In-valid user id", 'success': False}
+
+        ModelUtilities.model_update(conversationEventMembers,
+                                    {'conversation': conversation_instance,
+                                     'user': user_instance},
+                                    {'attended': True,
+                                     'updated_at': TimeUtilities.current_time_in_milliseconds()})
+
+        return {'success': True}
+
+    def update_last_seen_event(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user-id"}
+
+        chatroom_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                             {'user': user_instance, 'remove': None}).
+                             values_list('card_id', flat=True))
+
+        last_seen_event_conversation_id = get_last_seen_event_conversation_id_for_user(chatroom_list)
+
+        if not last_seen_event_conversation_id:
+            return {'success': True}
+
+        event_nudge_filter = ModelUtilities.get_model_filter(conversationEventNudge,
+                                                             {'user': user_instance})
+
+        if event_nudge_filter:
+            nudge_instance = event_nudge_filter[0]
+
+            if nudge_instance.event_id_seen != last_seen_event_conversation_id:
+                conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                                  last_seen_event_conversation_id)
+                nudge_instance.event_id_seen = conversation_instance
+                nudge_instance.save()
+
+        else:
+
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                              last_seen_event_conversation_id)
+            conversationEventNudge.create_instance({'conversation_instance': conversation_instance,
+                                                    'user_instance': user_instance})
+
+        return {'success': True}
+
+    def fetch_unseen_count_in_event(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "Invalid user-id"}
+
+        unseen_count = 0
+
+        nudge_filter = ModelUtilities.get_model_filter(conversationEventNudge, {'user': user_instance})
+
+        if nudge_filter:
+            conversation_instance = nudge_filter[0].event_id_seen
+            chatroom_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                                 {'user': user_instance, 'remove': None}).
+                                 values_list('card_id', flat=True))
+            unseen_count = get_count_of_new_event_conversation_created_for_user(conversation_instance.id, chatroom_list)
+
+        return {'count': unseen_count}
+
+    def fetch_link_for_event(self) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user-id"}
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                          self.get_conversation_id())
+
+        if not conversation_instance:
+            return {'success': False, 'error_message': "Invalid conversation id"}
+
+        if TimeUtilities.current_time_in_milliseconds() >= \
+                (conversation_instance.start_time - conversation_instance.online_link_enable_before):
+            conversation_context = {'success': True}
+
+            self._fill_online_link_for_event(conversation_context, conversation_instance)
+
+            return conversation_context
+
+        return {'success': False, 'error_message': "Link doesn’t exists"}
+
+    def fetch_user_all_events(self, page, attending_status, past_events=False) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'error_message': "Invalid user-id"}
+
+        conversation_queryset = self.fetch_conversation_events_queryset(user_instance,
+                                                                        attending_status=attending_status,
+                                                                        past_events=past_events)
+
+        conversation_list = ModelUtilities.paginate_queryset(conversation_queryset, page, paginate_by=5)
+        conversations = self._create_conversation_list(conversation_list)
+
+
+        return {'events': conversations}
+
 
 class ConversationHelper:
 
@@ -1391,3 +1660,117 @@ class ConversationHelper:
             # runs after 5 minutes, expires after 30 minutes
             check_owner_template_posted.apply_async(args=args, kwargs={},
                                                     countdown=MINUTES_5, expires=MINUTES_30)
+
+    @staticmethod
+    def attend_conversation_event(conversation_instance, user_instance, attending_status):
+        attend_filter = ModelUtilities.get_model_filter(conversationEventMembers,
+                                                        {'conversation': conversation_instance,
+                                                         'user': user_instance})
+
+        if not attend_filter:
+            conversationEventMembers.create_instance({
+                'conversation_instance': conversation_instance,
+                'user_instance': user_instance,
+                'attending_status': attending_status
+            })
+
+        else:
+
+            instance = attend_filter[0]
+            instance.attending_status = attending_status
+            instance.save()
+
+    @staticmethod
+    @shared_task
+    def set_event_conversation_co_hosts_attending_status(conversation_id, conversation_creator_id):
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+        if not conversation_instance:
+            return
+
+        attending_list = JsonUtilities.load_json_data(conversation_instance.co_hosts)
+
+        if not attending_list:
+            attending_list = []
+
+        if conversation_creator_id not in attending_list:
+            attending_list.append(conversation_creator_id)
+
+        user_dict = MemberCommunityHelper.pre_compute_users_by_member_id_list(attending_list)
+
+        for data in attending_list:
+            ConversationHelper.attend_conversation_event(conversation_instance,
+                                                         user_dict.get(data), True)
+
+        update_event_attendees_for_micro_event.delay({'conversation_instance': conversation_instance,
+                                                'event_attendees_list': attending_list})
+
+    @staticmethod
+    def process_members_data_for_conversation_event(user_list, community_instance):
+
+        info_list = []
+        member_dict = MemberCommunityImpl. \
+            fetch_members_based_on_user_list(user_list, community_instance)
+
+        for data in user_list:
+            user_id = NumberUtilities.get_integer_from_string(data)
+
+            if user_id in member_dict:
+                info_list.append(member_dict[user_id])
+
+            else:
+                user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+                if not user_instance:
+                    continue
+
+                removed_context = dict()
+                userinfo_instance = user_instance.userinfo
+                removed_context['id'] = userinfo_instance.user_id_id
+                removed_context['name'] = userinfo_instance.name
+                removed_context['image_url'] = userinfo_instance.image_link if userinfo_instance.image_link else ""
+                info_list.append(removed_context)
+
+        return info_list
+
+    @staticmethod
+    def compute_event_attendees_of_chatroom(conversation_instance, community_instance):
+
+        event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CONVERSATION % str(conversation_instance.id))
+
+        if event_attendees_dict:
+            event_attendees_list = event_attendees_dict.get('event_attendees_list', [])
+            attendees_list = ConversationHelper.process_members_data_for_conversation_event(event_attendees_list,
+                                                                                            community_instance)
+
+            return attendees_list
+
+        event_attendees_list = list(ModelUtilities.get_model_filter(conversationEventMembers,
+                                                                    {'conversation': conversation_instance,
+                                                                     'attending_status': True}
+                                                                    ).values_list('user', flat=True).
+                                    order_by('created_at')[:10])
+
+        attendees_list = ConversationHelper.process_members_data_for_conversation_event(event_attendees_list,
+                                                                                        community_instance)
+        update_event_attendees_for_micro_event.delay({'conversation_id': conversation_instance.id,
+                                                      'event_attendees_list': event_attendees_list})
+        return attendees_list
+
+    @staticmethod
+    def compute_members_data_for_conversation(conversation_instance):
+
+        co_hosts_list = JsonUtilities.load_json_data(conversation_instance.co_hosts)
+        members_data = {}
+        community_instance = conversation_instance.community
+
+        if co_hosts_list:
+            members_data['co_hosts_ids'] = co_hosts_list
+            members_data['co_hosts'] = ConversationHelper. \
+                process_members_data_for_conversation_event(co_hosts_list, community_instance)
+
+        members_data['attendees'] = ConversationHelper. \
+            compute_event_attendees_of_chatroom(conversation_instance, community_instance)
+
+        return members_data

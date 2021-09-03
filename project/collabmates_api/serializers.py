@@ -1902,7 +1902,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
     if conversation.remove:
         remove = True
 
-    member_profile = get_members_profile([conversation.user.id], conversation.community.id,
+    member_profile = get_members_profile([conversation.user_id], conversation.community_id,
                                          current_user_id=current_user_id, send_profile=False, remove=remove)
 
     temp['member'] = member_profile[0]

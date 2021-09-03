@@ -747,6 +747,19 @@ class card_answers(models.Model):
     reply_chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True,
                                        related_name="reply_chatroom_action")
 
+    header = models.TextField(null=True)
+    online_link = models.TextField(null=True)
+    location = models.TextField(null=True)
+    location_lat = models.TextField(null=True)
+    location_long = models.TextField(null=True)
+    start_time = models.BigIntegerField(default=0)
+    end_time = models.BigIntegerField(default=0)
+    online_link_enable_before = models.BigIntegerField(
+        default=TimeUtilities.get_minutes_in_milliseconds(15))
+    co_hosts = models.TextField(null=True)
+    online_link_id = models.TextField(null=True)
+    online_link_password = models.TextField(null=True)
+
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
 
@@ -833,6 +846,62 @@ class conversationPollMembers(models.Model):
         instance.save()
 
         return instance
+
+
+class conversationEventMembers(models.Model):
+    """class to store conversation event members data"""
+
+    conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    attending_status = models.BooleanField(default=False)
+    attended = models.BooleanField(default=False)
+
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = conversationEventMembers()
+        instance.user = create_info['user_instance']
+        instance.conversation = create_info['conversation_instance']
+        instance.attending_status = create_info.get('attending_status', False)
+        instance.save()
+
+        return instance
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(conversationEventMembers, self).save(*args, **kwargs)
+
+
+class conversationEventNudge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    event_id_seen = models.ForeignKey(card_answers, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = conversationEventNudge()
+        instance.event_id_seen = create_info.get('conversation_instance')
+        instance.user = create_info.get('user_instance')
+        instance.save()
+
+    def save(self, *args, **kwargs):
+        current_time_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_ms
+
+        self.updated_at = current_time_ms
+
+        super(conversationEventNudge, self).save(*args, **kwargs)
 
 
 class collabcardState(models.Model):

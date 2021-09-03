@@ -16,7 +16,7 @@ from togther.models import *
 from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
-    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM
+    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -29,7 +29,7 @@ from utility.celery_tasks import (
     update_multiple_previews_in_community, update_preview_of_community_in_cache,
     update_event_attendees, set_levels_on_ctc_celery, set_level_click_state, update_event_instructors_in_cache,
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
-    update_event_in_webflow_service)
+    update_event_in_webflow_service, update_event_attendees_for_micro_event)
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
                               upload_community_thumbnail)
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -12437,6 +12437,7 @@ class SyncConversation(APIView):
         chatroom_expire_status = query_params.get('chatroom_expire_status', '')
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
+        state = query_params.get('state')
 
         if chatroom_id:
             # seen conversation support for old versions of android users to be removed after stable release
@@ -12467,7 +12468,7 @@ class SyncConversation(APIView):
                 chatroom_list = [chatroom_id]
                 conversation_data, files_answer_id = get_conversation_data_based_on_chatroom_list(chatroom_list, page,
                                                                                                   paginate_by,
-                                                                                                  last_updated)
+                                                                                                  last_updated, state)
                 conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
                 conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                        conversation_files_dict,
@@ -12481,7 +12482,8 @@ class SyncConversation(APIView):
                                                                                                         page,
                                                                                                         paginate_by,
                                                                                                         last_updated,
-                                                                                                        community_id)
+                                                                                                        community_id,
+                                                                                                        state)
             conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
             conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                    conversation_files_dict,
@@ -12491,7 +12493,8 @@ class SyncConversation(APIView):
 
             chatroom_list = self.get_user_related_chatroom_list(chatroom_status, chatroom_expire_status, member_id)
             conversation_data, files_answer_id = get_conversation_data_based_on_chatroom_list(chatroom_list, page,
-                                                                                              paginate_by, last_updated)
+                                                                                              paginate_by, last_updated,
+                                                                                              state)
             conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
             conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                    conversation_files_dict,
@@ -12657,6 +12660,9 @@ class SyncConversation(APIView):
 
             if conversation[30]:
                 conversation_context['reply_chatroom_id'] = conversation[30]
+
+            if conversation_context['state'] == ConversationStates.CONVERSATION_EVENT:
+                self.fill_event_conversation_data(conversation_context, conversation)
 
             conversation_list.append(conversation_context)
 
@@ -12845,7 +12851,6 @@ class SyncConversation(APIView):
 
                 attachment_list.append(voice_note_attachment)
 
-
         conversation_files_response['attachments'] = attachment_list
 
         return conversation_files_response
@@ -12963,6 +12968,52 @@ class SyncConversation(APIView):
             return True
 
         return False
+
+    def fill_event_conversation_data(self, conversation_context, conversation_data):
+
+        conversation_context['header'] = conversation_data[31]
+
+        if conversation_data[32]:
+            conversation_context['location'] = conversation_data[32]
+
+        if conversation_data[33]:
+            conversation_context['location_lat'] = conversation_data[33]
+
+        if conversation_data[34]:
+            conversation_context['location_long'] = conversation_data[34]
+
+        conversation_context['start_time'] = conversation_data[35]
+        conversation_context['end_time'] = conversation_data[36]
+        conversation_context['online_link_enable_before'] = conversation_data[37]
+
+        if conversation_data[38]:
+            co_hosts_ids = JsonUtilities.load_json_data(conversation_data[38])
+
+            if co_hosts_ids:
+                conversation_context['co_hosts_ids'] = co_hosts_ids
+
+        self._fill_event_attendees(conversation_context)
+
+    def _fill_event_attendees(self, conversation_context):
+
+        event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CONVERSATION % str(conversation_context['id']))
+
+        if event_attendees_dict:
+            event_attendees_list = event_attendees_dict.get('event_attendees_list', [])
+            conversation_context['attendees_ids'] = event_attendees_list
+
+            return
+
+        event_attendees_list = list(ModelUtilities.get_model_filter(conversationEventMembers,
+                                                                    {'conversation': conversation_context['id'],
+                                                                     'attending_status': True}
+                                                                    ).values_list('user', flat=True).
+                                    order_by('created_at')[:10])
+
+        update_event_attendees_for_micro_event.delay({'conversation_id': conversation_context['id'],
+                                                      'event_attendees_list': event_attendees_list})
+
+        conversation_context['attendees_ids'] = event_attendees_list
 
 
 class SyncConversationDiff(APIView):

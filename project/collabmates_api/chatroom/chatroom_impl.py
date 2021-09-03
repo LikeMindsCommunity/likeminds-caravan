@@ -1850,7 +1850,6 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_context
 
-
 class ChatroomHelper:
 
     @staticmethod

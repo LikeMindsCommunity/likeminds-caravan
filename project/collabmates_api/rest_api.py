@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from rest_framework import serializers, fields
 
 from external_services.caching.cache_impl import CacheImpl
+from utility.json_utilities import JsonUtilities
 from togther.models import *
 from django.contrib.auth.models import User
 from collections import OrderedDict
@@ -11,7 +12,7 @@ import time
 
 from utility.celery_tasks import get_conversation_poll, update_event_instructors_in_cache, \
     update_event_highlights_in_cache, update_event_member_testimonials_in_cache, update_event_faq_in_cache, \
-    update_event_attendees
+    update_event_attendees, update_event_attendees_for_micro_event
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
@@ -25,7 +26,7 @@ from utility.utils import (get_time_text, generate_private_link, eligibility_cou
 from django.conf import settings
 from .user_moderation_rights import check_member_invite_private_right, check_admin_approve_right
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
-    EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM
+    EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from .static_files import *
 from django.db.models import F, When, Q
 
@@ -942,6 +943,8 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     polls = serializers.SerializerMethodField()
     poll_type_text = serializers.SerializerMethodField()
     submit_type_text = serializers.SerializerMethodField()
+    co_hosts_ids = serializers.SerializerMethodField()
+    attendees_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = card_answers
@@ -952,7 +955,9 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'preview', 'member_id', 'created_epoch', 'temporary_id', 'is_anonymous',
                   'allow_add_option', 'poll_type', 'expiry_time', 'multiple_select_state',
                   'multiple_select_no', 'polls', 'reactions', 'poll_type_text', 'submit_type_text',
-                  'poll_answer_text', 'reply_chatroom_id')
+                  'poll_answer_text', 'reply_chatroom_id', 'header', 'location',
+                  'location_lat', 'location_long', 'start_time', 'end_time', 'co_hosts_ids',
+                  'attendees_ids')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)
@@ -1003,6 +1008,35 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             return polls
 
         return None
+
+    def get_co_hosts_ids(self, obj):
+
+        if obj.state == conversation_states.CONVERSATION_EVENT:
+            co_hosts_ids = JsonUtilities.load_json_data(obj.co_hosts)
+
+            if co_hosts_ids:
+                return co_hosts_ids
+
+    def get_attendees_ids(self, obj):
+
+        if obj.state == conversation_states.CARD_EVENT:
+            event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CONVERSATION % str(obj.id))
+
+            if event_attendees_dict:
+                event_attendees_list = event_attendees_dict.get('event_attendees_list')
+
+                return event_attendees_list
+
+            event_attendees_list = list(ModelUtilities.get_model_filter(conversationEventMembers,
+                                                                        {'conversation': obj,
+                                                                         'attending_status': True}
+                                                                        ).values_list('user', flat=True).
+                                        order_by('created_at')[:10])
+
+            update_event_attendees_for_micro_event.delay({'conversation_id': obj.id,
+                                                          'event_attendees_list': event_attendees_list})
+
+            return event_attendees_list
 
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)

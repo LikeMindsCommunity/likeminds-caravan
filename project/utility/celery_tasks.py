@@ -20,7 +20,7 @@ import json
 
 from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVERSATION_POLL_VOTERS_CONVERSATION_ID, \
     CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
-    EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM
+    EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY, \
     SUBSCRIPTION_FETCH_EVENT_PLAN, COMMUNITY_PUBLIC_URL
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
@@ -1418,3 +1418,55 @@ def update_event_in_webflow_service(update_info):
 
     ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                 {'updated_at': TimeUtilities.current_time_in_sec()})
+
+
+@shared_task
+def update_event_attendees_for_micro_event(attendees_info):
+
+    conversation_instance = attendees_info.get('conversation_instance')
+
+    if not conversation_instance:
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                          attendees_info.get('conversation_id'))
+
+        if not conversation_instance:
+            return
+
+    user_id = attendees_info.get('user_id')
+    status = attendees_info.get('attending_status')
+
+    event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CONVERSATION % str(conversation_instance.id))
+
+    if event_attendees_dict and user_id:
+        event_attendees_list = event_attendees_dict.get('event_attendees_list', [])
+
+        is_user_present = user_id in event_attendees_list
+
+        if not status and is_user_present:
+            event_attendees_list.remove(user_id)
+
+        if status and not is_user_present:
+
+            if len(event_attendees_list) == 10:
+                event_attendees_list.pop(0)
+
+            event_attendees_list.append(user_id)
+
+        CacheImpl.set_cache(EVENT_ATTENDEES_CONVERSATION % str(conversation_instance.id), {
+            'event_attendees_list': event_attendees_list
+        })
+
+        return
+
+    event_attendees_list = attendees_info.get('event_attendees_list', [])
+
+    if not event_attendees_list:
+        event_attendees_list = list(ModelUtilities.get_model_filter(conversationEventMembers,
+                                                                    {'conversation': conversation_instance,
+                                                                     'attending_status': True}
+                                                                    ).values_list('user', flat=True).
+                                    order_by('created_at')[:10])
+
+    CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(conversation_instance.id), {
+        'event_attendees_list': event_attendees_list
+    })

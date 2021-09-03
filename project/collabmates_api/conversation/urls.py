@@ -1,7 +1,9 @@
 from django.urls import path
 from .view_conversation_impl import (FetchConversation, CreateConversation, AddConversationPollOptions,
                                      SubmitConversationPoll, FetchConversationPollUsers, AddReaction,
-                                     RemoveReaction, SetChatroomTopic)
+                                     RemoveReaction, SetChatroomTopic, ConversationEventAttendView,
+                                     SetConversationEventAttendedView, FetchUnseenCountInEvent,
+                                     UpdateLastSeenEventChatroom, FetchLinkForEvent, FetchUserAllEvents)
 
 urlpatterns = [
     path('fetch', FetchConversation.as_view(), name="fetch_conversation"),
@@ -11,5 +13,11 @@ urlpatterns = [
     path('add_poll', AddConversationPollOptions.as_view(), name="add_poll"),
     path('submit_poll', SubmitConversationPoll.as_view(), name="submit_poll"),
     path('poll_users', FetchConversationPollUsers.as_view(), name="poll_users"),
-    path('set_topic', SetChatroomTopic.as_view(), name="set_topic")
+    path('set_topic', SetChatroomTopic.as_view(), name="set_topic"),
+    path('event/attend', ConversationEventAttendView.as_view(), name="attend_event"),
+    path('event/attended', SetConversationEventAttendedView.as_view(), name="set_event_attended"),
+    path('event/fetch_unseen_count', FetchUnseenCountInEvent.as_view(), name="fetch_unseen_count"),
+    path('event/update_last_seen_event', UpdateLastSeenEventChatroom.as_view(), name="update_last_seen_event"),
+    path('event/fetch_link', FetchLinkForEvent.as_view(), name="fetch_link_for_event"),
+    path('event/fetch_all', FetchUserAllEvents.as_view(), name="fetch_all_events"),
 ]
