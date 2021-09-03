@@ -8218,14 +8218,13 @@ def members_state(request, req_dict=None):
         response = get_error_context(False, f"community with id {community_id} doesn't exists")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    query_set = Members.objects.filter(member_id=member_id, community_id=community_instance)
+    query_set = ModelUtilities.get_model_filter(Members,
+                                                {"member_id": member_id,
+                                                 "community_id": community_instance})
 
     community_state = get_state_of_community(community_instance)
 
-    is_tool_state = False
-
-    if community_state == community_states.PRIVATE or community_state == community_states.PILOT_ACTIVE or community_state == community_states.WHATSAPP or community_state == community_states.HIDDEN:
-        is_tool_state = True
+    is_tool_state = True
 
     user_email = ""
     ref_members = []
@@ -8246,7 +8245,7 @@ def members_state(request, req_dict=None):
         if data.created_at > 0:
             created_at = time.strftime('%A, %b %d', time.localtime(data.created_at))
 
-        if state == member_states.ADMIN or state == 2 or state == member_states.MEMBER or state == 7:
+        if state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
             is_member = True
 
         if state == member_states.PENDING_MEMBER:
@@ -8277,8 +8276,8 @@ def members_state(request, req_dict=None):
     if state == member_states.PENDING_MEMBER:
         json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
 
-    if state == member_states.ADMIN and (
-            community_state == community_states.PRIVATE or community_state == community_states.WHATSAPP or community_state == community_states.HIDDEN):
+    if state == member_states.ADMIN and (community_state in [community_states.PRIVATE, community_states.WHATSAPP,
+                                                             community_states.HIDDEN]):
         if actions_required:
             promoter_name = query_set[0].member_id.userinfo.name
             json_response['community_levels'] = get_create_community_actions(community_id, promoter_name)
@@ -8294,9 +8293,7 @@ def members_state(request, req_dict=None):
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
         json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
 
-    if state == member_states.ADMIN or \
-            state == member_states.MEMBER or \
-            state == member_states.PROFILE_UNAVAILABLE:
+    if state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
         moderated_member_rights = get_saved_member_rights_list(user_rights)
 
