@@ -75,7 +75,8 @@ GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"
 
 OTP_TEMPLATE_ID = '5fd9f7f1e96b780fae01acff'
 
-ADMINS = [('Deepanshu', 'deepanshu.saxena@likeminds.community')]
+ADMINS = [('Deepanshu', 'deepanshu.saxena@likeminds.community'),
+          ('Ankit', 'ankit.garg@likeminds.community')]
 
 CACHES = {
     'default': {
