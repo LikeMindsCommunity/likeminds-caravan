@@ -17,7 +17,7 @@ import time
 import ast
 from .static_files import *
 from .static_text import months_semi
-from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
+from .user_moderation_rights import check_admin_view_contact_right
 from .branch import create_community_branch_links
 from utility.constants import *
 from utility.number_utilities import NumberUtilities
@@ -62,13 +62,8 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     if not current_user_instance and current_user_id:
         current_user_instance = User.objects.get(pk=current_user_id)
 
-    user_has_share_permission = False
-
-    if current_user_instance:
-        user_has_share_permission = check_member_invite_private_right(current_user_instance, community)
-
     # user is logged in and is a promoter or an owner or has rights.
-    if promoter_id or is_owner or user_has_share_permission:
+    if promoter_id or is_owner:
         # public and private links
         aj = private_link = generate_private_link(community_instance=community, promoter_instance=current_user_instance,
                                                   just_send_aj=True)
@@ -125,17 +120,6 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
 
         new_dict[
             'private_link_text_members_directory'] = private_link_text_members_directory
-
-    elif current_user_instance:
-
-        if user_has_share_permission:
-
-            new_dict[
-                'private_link_text_member'] = PRIVATE_LINK_FOR_PERMITTED_USER % (community.name, branch_links[1]['url'])
-
-            # private_link_members_directory = branch_links[1]['url']
-            new_dict[
-                'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (branch_links[2]['url'])
 
     if community.type:
         new_dict['type'] = community.type

@@ -3603,7 +3603,6 @@ def get_branch_links_for_community_share(user_instance, community_instance):
     is_member = False
     member_filter = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
-    user_has_share_permission = False
     user_has_approve_right = False
     community_id = community_instance.id
     member_id = user_instance.id
@@ -3619,12 +3618,10 @@ def get_branch_links_for_community_share(user_instance, community_instance):
 
         is_owner = member_instance.is_owner
 
-        if is_member:
-            user_has_share_permission = check_member_invite_private_right(user_instance, community_instance)
-        elif is_promoter or is_owner:
+        if is_promoter or is_owner:
             user_has_approve_right = check_admin_approve_right(user_instance, community_instance)
 
-        if user_has_approve_right or user_has_share_permission:
+        if user_has_approve_right:
             aj = generate_private_link(community_instance=community_instance,
                                        promoter_instance=user_instance,
                                        just_send_aj=True)
@@ -3640,7 +3637,6 @@ def get_branch_links_for_community_share(user_instance, community_instance):
         'branch_links': branch_links,
         'is_owner': is_owner,
         'is_promoter': is_promoter,
-        'user_has_share_permission': user_has_share_permission,
         'user_has_approve_right': user_has_approve_right
     }
     return share_context
@@ -3668,15 +3664,6 @@ def fill_share_context_for_paid_community(community_instance, share_context, com
             community_name, branch_links[2]['url'])
 
         community_share['private_link_text_members_directory'] = private_link_text_members_directory
-
-    elif share_context['user_has_share_permission']:
-
-        community_share['public_link'] = branch_links[0]['url']
-        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
-            community_name,  community_share['public_link'])
-        community_share['private_link_members_directory'] = branch_links[2]['url']
-        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % \
-                                                                 (branch_links[2]['url'])
 
     else:
         community_share['public_link'] = branch_links[0]['url']
@@ -3713,18 +3700,6 @@ def fill_share_context_for_unpaid_community(community_instance, share_context, c
             community_name, branch_links[2]['url'])
 
         community_share['private_link_text_members_directory'] = private_link_text_members_directory
-
-    elif share_context['user_has_share_permission']:
-
-        community_share['private_link'] = branch_links[1]['url']
-        community_share['private_link_text'] = PRIVATE_LINK_FOR_PERMITTED_USER % (
-            community_name, branch_links[1]['url'])
-        community_share['public_link'] = branch_links[0]['url']
-        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
-            community_name, community_share['public_link'])
-        community_share['private_link_members_directory'] = branch_links[2]['url']
-        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
-            branch_links[2]['url'])
 
     else:
         community_share['public_link'] = branch_links[0]['url']
