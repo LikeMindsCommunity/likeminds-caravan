@@ -1495,7 +1495,11 @@ def member_left_removed_dm_chatroom(user_id, community_id, removed_members_id, r
     message = MEMBER_LEFT_DM_CHATROOM_MESSAGE if removed_state == deleted_members.LEFT else \
         MEMBER_REMOVED_DM_CHATROOM_MESSAGE
 
-    message = message.format(user_instance.userinfo.name, community_instance.name)
+    user_route = user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(user_instance.id) + ">>"
+    community_route = "<<" + str(community_instance.name) + "|route://community?community_id=" + str(
+        community_instance.id) + ">>"
+
+    message = message.format(user_route, community_route)
 
     conversation_engage_instances = ModelUtilities.get_model_filter(conversationEngage,
                                                                     {"card__in": dm_chatroom_instances})
