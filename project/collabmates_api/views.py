@@ -11718,10 +11718,10 @@ class SyncChatrooms(APIView):
 
             chatroom['is_edited'] = data[54]
 
-            chatroom['is_private'] = data[63]
+            chatroom['is_private'] = data[64]
 
-            if data[64]:
-                member_instance = ModelUtilities.get_model_instance_or_none(Members, data[64])
+            if data[65]:
+                member_instance = ModelUtilities.get_model_instance_or_none(Members, data[65])
 
                 if member_instance:
                     chatroom["chatroom_with_user"] = member_instance.member_id_id
