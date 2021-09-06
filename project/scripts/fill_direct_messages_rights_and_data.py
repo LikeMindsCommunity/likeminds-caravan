@@ -1,4 +1,4 @@
-from togther.models import memberRights, Collabcard, Members, Community, ModelUtilities
+from togther.models import memberRights, Members, Community, ModelUtilities
 import time
 from utility.celery_tasks import create_member_dm_chatroom
 from utility.states import member_states
@@ -39,7 +39,7 @@ def create_dm_chatrooms_for_existing_records():
             continue
 
         for member_instance in members_filter:
-            create_member_dm_chatroom.delay(member_instance.member_id_id, community_instance.id)
+            create_member_dm_chatroom.delay(member_instance.member_id_id, community_instance.id, is_script=True)
 
             # time.sleep(1)
 

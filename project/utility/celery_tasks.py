@@ -1960,7 +1960,7 @@ def fill_chatroom_basic_info(card_content, chatroom_name, chatroom_type, communi
 
 @shared_task
 def create_member_dm_chatroom(member_id, community_id, device_id=None, request_platform=None, req_body={},
-                              is_cm_member=False, cm_list=[]):
+                              is_cm_member=False, cm_list=[], is_script=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
@@ -2013,23 +2013,25 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
 
             if dm_chatroom:
 
-                user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(user_instance.id) + ">>"
+                if not is_script:
 
-                if is_cm_member:
-                    answer = CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE.format(user_route)
+                    user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(user_instance.id) + ">>"
 
-                    conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT
+                    if is_cm_member:
+                        answer = CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE.format(user_route)
 
-                else:
+                        conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT
 
-                    answer = MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE.format(user_route)
+                    else:
 
-                    conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT
+                        answer = MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE.format(user_route)
 
-                # Initial Message
-                initial_message_dm_chatroom(dm_chatroom[0], member_instance, chatroom_user, community_instance,
-                                            user_instances_list, answer, user_member_state, member_state,
-                                            conversation_state=conv_state)
+                        conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT
+
+                    # Initial Message
+                    initial_message_dm_chatroom(dm_chatroom[0], member_instance, chatroom_user, community_instance,
+                                                user_instances_list, answer, user_member_state, member_state,
+                                                conversation_state=conv_state)
 
             else:
                 card_content = {}
