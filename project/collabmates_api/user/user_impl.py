@@ -582,7 +582,11 @@ class UserImpl(UserManager):
         else:
             direct_message_tutorial = None
 
+        is_cm = False
+
         if admin.exists():
+
+            is_cm = True
 
             if direct_message_tutorial:
 
@@ -592,11 +596,12 @@ class UserImpl(UserManager):
                     "success": True,
                     "clicked": direct_message_tutorial.clicked,
                     "messaged": direct_message_tutorial.messaged,
-                    "unread_dm_count": unseen_count
+                    "unread_dm_count": unseen_count,
+                    "is_cm": is_cm
                 }
 
             else:
-                return {"success": True, "clicked": False, "messaged": False}
+                return {"success": True, "clicked": False, "messaged": False, "is_cm": is_cm}
 
         else:
             # Get all communities user is part of
@@ -618,14 +623,15 @@ class UserImpl(UserManager):
                         "success": True,
                         "clicked": direct_message_tutorial.clicked,
                         "messaged": direct_message_tutorial.messaged,
-                        "unread_dm_count": unseen_count
+                        "unread_dm_count": unseen_count,
+                        "is_cm": is_cm
                     }
 
                 else:
-                    return {"success": True, "clicked": False, "messaged": False}
+                    return {"success": True, "clicked": False, "messaged": False, "is_cm": is_cm}
 
             else:
-                return {"success": True}
+                return {"success": True, "is_cm": is_cm}
 
     def update_dm_tutorial(self, req_body) -> {}:
 
