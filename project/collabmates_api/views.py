@@ -277,25 +277,37 @@ def my_chatrooms_version_1(request):
 
     community_instance = None
 
+    dm_instance_community_ids_list = []
+
     if show_dm:
         # Check for community
         community_id = request.GET.get('community_id', None)
 
-        if not community_id:
-            return JsonResponse({"success": False, "error_message": "Please provide community ID"})
-
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
-        if not community_instance:
-            return JsonResponse({"success": False, "error_message": "Invalid community ID"})
+        if community_id and not community_instance:
+            return JsonResponse({"success": False, "error_message": "Invalid community ID."})
 
-        dm_right_instance = ModelUtilities.get_model_filter(communityRightsSettings,
-                                                            {"community": community_instance,
-                                                             "right__state":
-                                                                 member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+        if not community_instance:
+            members_instances = ModelUtilities.get_model_filter(Members, {"member_id_id": member_id})
+
+            user_community_ids = list(members_instances.values_list("community_id_id", flat=True))
+
+            dm_right_instance = ModelUtilities.get_model_filter(communityRightsSettings,
+                                                                {"community_id__in": user_community_ids,
+                                                                 "right__state":
+                                                                     member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+        else:
+            dm_right_instance = ModelUtilities.get_model_filter(communityRightsSettings,
+                                                                {"community": community_instance,
+                                                                 "right__state":
+                                                                     member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
 
         if dm_right_instance.exists():
             is_dm_message = True
+
+            dm_instance_community_ids_list = list(dm_right_instance.values_list("community_id", flat=True))
 
     try:
         page = int(page)
@@ -367,7 +379,7 @@ def my_chatrooms_version_1(request):
         is_dm_private_instance = instance.card.is_private
 
         if all([is_dm_message, is_dm_private_instance, instance.card.chatroom_with_user,
-                instance.card.community == community_instance]):
+                instance.card.community_id in dm_instance_community_ids_list]):
 
             dm_instance_list.append(instance)
 
@@ -465,8 +477,8 @@ def my_chatrooms_version_1(request):
 
         if show_dm and is_dm_message:
             total_unseen_count = conversationEngage.objects \
-                .filter(user=current_user_instance, community=community_instance, unseen_count__gt=0) \
-                .aggregate(total=Sum('unseen_count'))
+                .filter(user=current_user_instance, community_id__in=dm_instance_community_ids_list,
+                        unseen_count__gt=0).aggregate(total=Sum('unseen_count'))
 
         else:
             total_unseen_count = conversationEngage.objects \

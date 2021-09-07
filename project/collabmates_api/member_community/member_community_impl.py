@@ -1066,11 +1066,33 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             elif (user_admin.exists() or member_admin.exists()) and dm_right_instance.exists():
 
-                return {
-                    "success": True,
-                    "cta": CTA_ROUTE_DIRECT_MESSAGES,
-                    "show_dm": True
-                }
+                if user_admin.exists():
+                    dm_chatroom_instance = ModelUtilities.get_model_filter(Collabcard,
+                                                                           {"user": user_instance,
+                                                                            "community_id": community_instance,
+                                                                            "chatroom_with_user__member_id":
+                                                                                member_instance,
+                                                                            "is_private": True})
+
+                else:
+                    dm_chatroom_instance = ModelUtilities.get_model_filter(Collabcard,
+                                                                           {"user": member_instance,
+                                                                            "community_id": community_instance,
+                                                                            "chatroom_with_user__member_id":
+                                                                                user_instance,
+                                                                            "is_private": True})
+
+                if dm_chatroom_instance.exists():
+
+                    return {
+                        "success": True,
+                        "cta": CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(dm_chatroom_instance[0].id,
+                                                                               community_instance.id),
+                        "show_dm": True
+                    }
+
+                else:
+                    return {"success": True, "show_dm": False}
 
             else:
                 return {"success": True, "show_dm": False}

@@ -53,4 +53,5 @@ MEMBER_SINCE_TEXT = "Member of %s since %s"
 PENDING_MEMBER_TEXT = "Verification pending for %s"
 
 CTA_ROUTE_DIRECT_MESSAGES = "route://direct_messages"
+CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE = "route://direct_messages?chatroom_id={}&community_id={}"
 
