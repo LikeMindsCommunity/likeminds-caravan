@@ -11535,6 +11535,13 @@ class SyncChatrooms(APIView):
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        can_add_dm_chatrooms = False
+
+        if RequestUtilities.is_request_android(request) and (version_code >= DM_CHATROOMS_ANDROID_VERSION_CODE):
+            can_add_dm_chatrooms = True
+
         query_params = request.query_params
 
         page = query_params.get('page', 1)
@@ -11737,6 +11744,9 @@ class SyncChatrooms(APIView):
 
                 if member_instance:
                     chatroom["chatroom_with_user"] = member_instance.member_id_id
+
+            if chatroom['is_private'] and not can_add_dm_chatrooms:
+                continue
 
             chatrooms.append(chatroom)
 
