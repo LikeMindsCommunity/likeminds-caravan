@@ -198,20 +198,47 @@ def get_active_my_chatrooms_count(user_id, current_time, consider_dm_chatrooms=F
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_active_followed_chatrooms(user_id, current_time, page, limit=10):
+def get_active_followed_chatrooms(user_id, current_time, page, limit=10, consider_dm_chatrooms=False):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
+        if consider_dm_chatrooms:
+            is_private_val = "TRUE"
+            chatroom_with_user_val = "NOT NULL"
+
+        else:
+            is_private_val = "FALSE"
+            chatroom_with_user_val = "NULL"
+
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select id from togther_conversationEngage where user_id=%s and card_id  in
-                  (select card_id from togther_collabcardState where user_id = %s and follow_status = True and (remove_id is null)
-                 and (expiry_time is null or expiry_time > %s) 
-                 and secret_chatroom_left=false
-                ) order by updated_at desc,id desc limit %s offset %s""" % (
-            str(user_id), str(user_id), str(current_time), str(limit), str(offset))
+        sql = """SELECT   id
+                FROM     togther_conversationengage
+                WHERE    user_id=%s
+                AND      card_id IN
+                         (
+                                SELECT card_id
+                                FROM   togther_collabcardstate
+                                WHERE  user_id = %s
+                                AND    follow_status = true
+                                AND    (
+                                              remove_id IS NULL)
+                                AND    (
+                                              expiry_time IS NULL
+                                       OR     expiry_time > %s)
+                                AND    secret_chatroom_left=false
+                                AND    card_id IN
+                                       (
+                                              SELECT id
+                                              FROM   togther_collabcard
+                                              WHERE  is_private = %s
+                                              AND    chatroom_with_user_id IS %s) )
+                ORDER BY updated_at DESC,
+                         id DESC limit %s offset %s""" % (
+            str(user_id), str(user_id), str(current_time), str(is_private_val), str(chatroom_with_user_val),
+            str(limit), str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()
@@ -228,20 +255,46 @@ def get_active_followed_chatrooms(user_id, current_time, page, limit=10):
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
-def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10):
+def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10, consider_dm_chatrooms=False):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
+        if consider_dm_chatrooms:
+            is_private_val = "TRUE"
+            chatroom_with_user_val = "NOT NULL"
+
+        else:
+            is_private_val = "FALSE"
+            chatroom_with_user_val = "NULL"
+
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select id from togther_conversationEngage where user_id=%s and card_id  in
-                  (select card_id from togther_collabcardState where user_id = %s and follow_status = True and (remove_id is null)
-                  and (expiry_time is not null and expiry_time <= %s)
-                  and secret_chatroom_left=false
-                ) order by updated_at desc,id desc limit %s offset %s""" % (
-            str(user_id), str(user_id), str(current_time), str(limit), str(offset))
+        sql = """SELECT   id
+                FROM     togther_conversationengage
+                WHERE    user_id=%s
+                AND      card_id IN
+                         (
+                                SELECT card_id
+                                FROM   togther_collabcardstate
+                                WHERE  user_id = %s
+                                AND    follow_status = true
+                                AND    (
+                                              remove_id IS NULL)
+                                AND    (
+                                              expiry_time IS NOT NULL
+                                       AND    expiry_time <= %s)
+                                AND    secret_chatroom_left=false
+                                AND    card_id IN
+                                       (
+                                              SELECT id
+                                              FROM   togther_collabcard
+                                              WHERE  is_private = %s
+                                              AND    chatroom_with_user_id IS %s) )
+                ORDER BY updated_at DESC,
+                         id DESC limit %s offset %s""" % (str(user_id), str(user_id),
+               str(current_time), str(is_private_val), str(chatroom_with_user_val), str(limit), str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()

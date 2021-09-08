@@ -279,7 +279,11 @@ def my_chatrooms_version_1(request):
 
     dm_instance_community_ids_list = []
 
+    consider_dm_chatrooms = False
+
     if show_dm:
+        consider_dm_chatrooms = True
+
         # Check for community
         community_id = request.GET.get('community_id', None)
 
@@ -332,15 +336,10 @@ def my_chatrooms_version_1(request):
             context = get_error_context(False, "User does not exist")
             return JsonResponse(context)
 
-    if show_dm and is_dm_message:
-        in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time,
-                                                                         consider_dm_chatrooms=True)
-        active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time,
-                                                              consider_dm_chatrooms=True)
-
-    else:
-        in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time)
-        active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time)
+    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time,
+                                                                     consider_dm_chatrooms=consider_dm_chatrooms)
+    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time,
+                                                          consider_dm_chatrooms=consider_dm_chatrooms)
 
     page_count = get_total_pages(active_chatroom_count, limit=10)
     page_count_inactive = get_total_pages(in_active_chatroom_count, limit=10)
@@ -352,7 +351,8 @@ def my_chatrooms_version_1(request):
         send_active = False
 
     if send_active:
-        engage_list = get_active_followed_chatrooms(member_id, current_time, page, limit=10)
+        engage_list = get_active_followed_chatrooms(member_id, current_time, page, limit=10,
+                                                    consider_dm_chatrooms=consider_dm_chatrooms)
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
@@ -365,7 +365,8 @@ def my_chatrooms_version_1(request):
 
     else:
         page = page - page_count
-        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
+        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10,
+                                                      consider_dm_chatrooms=consider_dm_chatrooms)
 
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
@@ -383,9 +384,8 @@ def my_chatrooms_version_1(request):
 
             dm_instance_list.append(instance)
 
-        else:
-            if (not instance.card.chatroom_with_user) and (not is_dm_private_instance):
-                non_dm_instance_list.append(instance)
+        elif (not instance.card.chatroom_with_user) and (not is_dm_private_instance):
+            non_dm_instance_list.append(instance)
 
     if show_dm and is_dm_message:
         instance_list = dm_instance_list
@@ -480,10 +480,14 @@ def my_chatrooms_version_1(request):
                 .filter(user=current_user_instance, community_id__in=dm_instance_community_ids_list,
                         unseen_count__gt=0).aggregate(total=Sum('unseen_count'))
 
-        else:
+        elif not show_dm:
             total_unseen_count = conversationEngage.objects \
                 .filter(user=current_user_instance, unseen_count__gt=0, card__is_private=False,
                         card__chatroom_with_user=None).aggregate(total=Sum('unseen_count'))
+
+        else:
+            total_unseen_count = {'total': 0}
+            context['inactive_chatroom_count'] = 0
 
         if total_unseen_count['total'] is None:
             total_unseen_count['total'] = 0
