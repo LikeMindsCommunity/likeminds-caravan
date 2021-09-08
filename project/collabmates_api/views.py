@@ -1736,17 +1736,26 @@ def remove_from_member(request):
     member_id = get_member_id_from_headers(request)
 
     if not member_id:
-        return JsonResponse({'success': False, 'error_message': "Send Member Id in header"})
+        return JsonResponse({'success': False, 'error_message': "Invalid member_id"})
 
     community_id = request.POST.get('community_id')
+
+    if not community_id:
+        return JsonResponse({'success': False, 'error_message': "Invalid community_id"})
 
     member_ids = request.POST.get('member_ids', False)
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', '')
 
-    community_instance = Community.get_community_or_raise_exception(community_id)
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
-    current_user_instance = User.get_user_or_raise_exception(member_id)
+    if not community_instance:
+        return JsonResponse(get_error_context(False, "Invalid community_id"))
+
+    current_user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+    if not current_user_instance:
+        return JsonResponse(get_error_context(False, "Invalid member_id"))
 
     is_promoter = Members.objects.filter(state=member_states.ADMIN,
                                          community_id=community_instance,
@@ -13931,6 +13940,11 @@ class SyncCommunities(APIView):
             return JsonResponse(chatroom_context)
 
         elif community_id:
+            community_obj = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+            if not community_obj:
+                return JsonResponse(get_error_context(False, "Invalid community_id"))
+            
             engage_filter = Member_Engage.objects.filter(member_id=member_id, community_id=community_id
                                                          ).select_related('community_id')
 
