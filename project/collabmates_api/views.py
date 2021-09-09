@@ -1748,10 +1748,17 @@ def remove_from_member(request):
     reason = request.POST.get('reason', '')
 
     community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+<<<<<<< HEAD
 
     if not community_instance:
         return JsonResponse(get_error_context(False, "Invalid community_id"))
 
+=======
+
+    if not community_instance:
+        return JsonResponse(get_error_context(False, "Invalid community_id"))
+
+>>>>>>> LM-4498-error-handling-for-sync_community-and-remove_from_member-apis
     current_user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not current_user_instance:
