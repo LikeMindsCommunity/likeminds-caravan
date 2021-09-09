@@ -115,20 +115,33 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_inactive_followed_chatrooms_count(user_id, current_time, consider_dm_chatrooms=False):
+def get_inactive_followed_chatrooms_count(user_id, current_time, consider_dm_chatrooms=False,
+                                          dm_instance_community_ids_list=[]):
     '''function to get active chatrooms based on community and user'''
 
     try:
-        conn = get_connection()
-        curr = conn.cursor()
+
+        is_sql = True
 
         if not consider_dm_chatrooms:
             is_private = "FALSE"
             chatroom_with_user_id_val = "NULL"
+            dm_chatrooms_communities_filter = ""
 
         else:
             is_private = "TRUE"
             chatroom_with_user_id_val = "NOT NULL"
+            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([str(i) for i in
+                                                                                     dm_instance_community_ids_list])
+
+            if len(dm_instance_community_ids_list) == 0:
+                is_sql = False
+
+        if not is_sql:
+            return 0
+
+        conn = get_connection()
+        curr = conn.cursor()
 
         sql = """SELECT Count(*)
                  FROM   togther_collabcardstate
@@ -141,8 +154,8 @@ def get_inactive_followed_chatrooms_count(user_id, current_time, consider_dm_cha
                              AND card_id IN (SELECT id
                                              FROM   togther_collabcard
                                              WHERE  is_private = %s
-                                             AND chatroom_with_user_id IS %s) """ % \
-              (str(user_id), str(current_time), is_private, chatroom_with_user_id_val)
+                                             AND chatroom_with_user_id IS %s %s) """ % \
+              (str(user_id), str(current_time), is_private, chatroom_with_user_id_val, dm_chatrooms_communities_filter)
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -154,21 +167,33 @@ def get_inactive_followed_chatrooms_count(user_id, current_time, consider_dm_cha
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
-def get_active_my_chatrooms_count(user_id, current_time, consider_dm_chatrooms=False):
+def get_active_my_chatrooms_count(user_id, current_time, consider_dm_chatrooms=False,
+                                  dm_instance_community_ids_list=[]):
     '''function to give the count of active my chatrooms'''
 
     try:
 
-        conn = get_connection()
-        curr = conn.cursor()
+        is_sql = True
 
         if not consider_dm_chatrooms:
             is_private = "FALSE"
             chatroom_with_user_id_val = "NULL"
+            dm_chatrooms_communities_filter = ""
 
         else:
             is_private = "TRUE"
             chatroom_with_user_id_val = "NOT NULL"
+            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([str(i) for i in
+                                                                                     dm_instance_community_ids_list])
+
+            if len(dm_instance_community_ids_list) == 0:
+                is_sql = False
+
+        if not is_sql:
+            return 0
+
+        conn = get_connection()
+        curr = conn.cursor()
 
         sql = """SELECT Count(id)
                 FROM   togther_conversationengage
@@ -185,8 +210,9 @@ def get_active_my_chatrooms_count(user_id, current_time, consider_dm_chatrooms=F
                                                               FROM   togther_collabcard
                                                               WHERE  is_private = %s
                                                                      AND chatroom_with_user_id
-                                                                         IS %s)
-                  ) """ % (str(user_id), str(user_id), str(current_time), is_private, chatroom_with_user_id_val)
+                                                                         IS %s %s)
+                  ) """ % (str(user_id), str(user_id), str(current_time), is_private, chatroom_with_user_id_val,
+                           dm_chatrooms_communities_filter)
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -198,22 +224,35 @@ def get_active_my_chatrooms_count(user_id, current_time, consider_dm_chatrooms=F
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_active_followed_chatrooms(user_id, current_time, page, limit=10, consider_dm_chatrooms=False):
+def get_active_followed_chatrooms(user_id, current_time, page, limit=10, consider_dm_chatrooms=False,
+                                  dm_instance_community_ids_list=[]):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
+        is_sql = True
+
         if consider_dm_chatrooms:
             is_private_val = "TRUE"
             chatroom_with_user_val = "NOT NULL"
+            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([str(i) for i in
+                                                                                     dm_instance_community_ids_list])
+
+            if len(dm_instance_community_ids_list) == 0:
+                is_sql = False
 
         else:
             is_private_val = "FALSE"
             chatroom_with_user_val = "NULL"
+            dm_chatrooms_communities_filter = ""
+
+        if not is_sql:
+            return []
 
         conn = get_connection()
         curr = conn.cursor()
+
         sql = """SELECT   id
                 FROM     togther_conversationengage
                 WHERE    user_id=%s
@@ -234,11 +273,11 @@ def get_active_followed_chatrooms(user_id, current_time, page, limit=10, conside
                                               SELECT id
                                               FROM   togther_collabcard
                                               WHERE  is_private = %s
-                                              AND    chatroom_with_user_id IS %s) )
+                                              AND    chatroom_with_user_id IS %s %s) )
                 ORDER BY updated_at DESC,
                          id DESC limit %s offset %s""" % (
             str(user_id), str(user_id), str(current_time), str(is_private_val), str(chatroom_with_user_val),
-            str(limit), str(offset))
+            str(dm_chatrooms_communities_filter), str(limit), str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()
@@ -255,22 +294,35 @@ def get_active_followed_chatrooms(user_id, current_time, page, limit=10, conside
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
-def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10, consider_dm_chatrooms=False):
+def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10, consider_dm_chatrooms=False,
+                                    dm_instance_community_ids_list=[]):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
+        is_sql = True
+
         if consider_dm_chatrooms:
             is_private_val = "TRUE"
             chatroom_with_user_val = "NOT NULL"
+            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([str(i) for i in
+                                                                                     dm_instance_community_ids_list])
+
+            if len(dm_instance_community_ids_list) == 0:
+                is_sql = False
 
         else:
             is_private_val = "FALSE"
             chatroom_with_user_val = "NULL"
+            dm_chatrooms_communities_filter = ""
+
+        if not is_sql:
+            return []
 
         conn = get_connection()
         curr = conn.cursor()
+
         sql = """SELECT   id
                 FROM     togther_conversationengage
                 WHERE    user_id=%s
@@ -291,10 +343,11 @@ def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10, consi
                                               SELECT id
                                               FROM   togther_collabcard
                                               WHERE  is_private = %s
-                                              AND    chatroom_with_user_id IS %s) )
+                                              AND    chatroom_with_user_id IS %s %s) )
                 ORDER BY updated_at DESC,
-                         id DESC limit %s offset %s""" % (str(user_id), str(user_id),
-               str(current_time), str(is_private_val), str(chatroom_with_user_val), str(limit), str(offset))
+                         id DESC limit %s offset %s""" % (str(user_id), str(user_id), str(current_time),
+                                                          str(is_private_val), str(chatroom_with_user_val),
+                                                          str(dm_chatrooms_communities_filter), str(limit), str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()

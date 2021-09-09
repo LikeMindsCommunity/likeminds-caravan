@@ -337,9 +337,11 @@ def my_chatrooms_version_1(request):
             return JsonResponse(context)
 
     in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time,
-                                                                     consider_dm_chatrooms=consider_dm_chatrooms)
+                                                                     consider_dm_chatrooms=consider_dm_chatrooms,
+                                                                     dm_instance_community_ids_list=dm_instance_community_ids_list)
     active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time,
-                                                          consider_dm_chatrooms=consider_dm_chatrooms)
+                                                          consider_dm_chatrooms=consider_dm_chatrooms,
+                                                          dm_instance_community_ids_list=dm_instance_community_ids_list)
 
     page_count = get_total_pages(active_chatroom_count, limit=10)
     page_count_inactive = get_total_pages(in_active_chatroom_count, limit=10)
@@ -352,7 +354,8 @@ def my_chatrooms_version_1(request):
 
     if send_active:
         engage_list = get_active_followed_chatrooms(member_id, current_time, page, limit=10,
-                                                    consider_dm_chatrooms=consider_dm_chatrooms)
+                                                    consider_dm_chatrooms=consider_dm_chatrooms,
+                                                    dm_instance_community_ids_list=dm_instance_community_ids_list)
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
@@ -366,7 +369,8 @@ def my_chatrooms_version_1(request):
     else:
         page = page - page_count
         engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10,
-                                                      consider_dm_chatrooms=consider_dm_chatrooms)
+                                                      consider_dm_chatrooms=consider_dm_chatrooms,
+                                                      dm_instance_community_ids_list=dm_instance_community_ids_list)
 
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)

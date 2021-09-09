@@ -317,7 +317,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return community_id_list
 
-    def fetch_home_communities(self, page) -> {}:
+    def fetch_home_communities(self, page, show_dm=False) -> {}:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
         community_list = []
@@ -326,6 +326,16 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'error_message': "Invalid user id", 'status': 400}
 
         communities = self._find_member_communities(self.get_member_id())
+
+        if show_dm and (show_dm == 'true'):
+            communities_with_dm_rights_list = ModelUtilities.get_model_filter(communityRightsSettings,
+                                              {"community_id__in": list(communities.values_list("community_id_id", flat=True)),
+                                               "right__state": member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+            communities_with_dm_rights_list = communities_with_dm_rights_list.values_list("community_id", flat=True)
+
+            communities = communities.filter(community_id__in=communities_with_dm_rights_list)
+
         community_queryset = self._paged_queryset(communities, page)
         community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
         community_list = self._process_communities(community_queryset, community_id_list, user_instance)
