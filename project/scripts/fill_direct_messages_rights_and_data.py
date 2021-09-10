@@ -2,8 +2,9 @@ from togther.models import memberRights, Members, Community, ModelUtilities
 import time
 from utility.celery_tasks import create_member_dm_chatroom
 from utility.states import member_states
+from collabmates_api.static_text import show_direct_messages_right
 
-show_dm = {'id': 8, 'title': "Direct Messages", 'sub_title': None, "state": 7}
+show_dm = show_direct_messages_right
 
 
 def show_dm_right_records():
