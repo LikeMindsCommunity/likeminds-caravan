@@ -326,21 +326,29 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'error_message': "Invalid user id", 'status': 400}
 
         communities = self._find_member_communities(self.get_member_id())
+        community_ids_list = list(communities.values_list("community_id_id", flat=True))
+
+        total_communities_count = 0
 
         if show_dm and (show_dm == 'true'):
             communities_with_dm_rights_list = ModelUtilities.get_model_filter(communityRightsSettings,
-                                              {"community_id__in": list(communities.values_list("community_id_id", flat=True)),
+                                              {"community_id__in": community_ids_list,
                                                "right__state": member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
 
             communities_with_dm_rights_list = communities_with_dm_rights_list.values_list("community_id", flat=True)
 
             communities = communities.filter(community_id__in=communities_with_dm_rights_list)
 
+            total_communities_count = len(communities_with_dm_rights_list)
+
+        else:
+            total_communities_count = len(community_ids_list)
+
         community_queryset = self._paged_queryset(communities, page)
         community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
         community_list = self._process_communities(community_queryset, community_id_list, user_instance)
 
-        return {'your_communities': community_list}
+        return {'your_communities': community_list, 'total_communities_count': total_communities_count}
 
     def fetch_community_chatrooms_queryset_with_web_scroll(self, pin_status, card_instance, limit_size=5) -> []:
 
@@ -1110,6 +1118,26 @@ class MemberCommunityImpl(MemberCommunityManager):
         elif req_from == "community_detail":
 
             if (not user_admin.exists()) and dm_right_instance.exists():
+
+                # Check if community has only one CM
+                cm_instances = ModelUtilities.get_model_filter(Members,
+                                                               {"community_id": community_instance,
+                                                                "state": member_states.ADMIN})
+
+                if len(cm_instances) == 1:
+                    # Get chatroom of CM and User
+                    chatroom_instance = ModelUtilities.get_model_filter(Collabcard,
+                                                                        {"community": community_instance,
+                                                                         "user": cm_instances[0].member_id,
+                                                                         "chatroom_with_user__member_id": user_instance,
+                                                                         "is_private": True})
+
+                    if chatroom_instance:
+                        return {
+                            "success": True,
+                            "cta": CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_SINGLE_CM.format(chatroom_instance[0].id),
+                            "show_dm": True
+                        }
 
                 return {
                     "success": True,

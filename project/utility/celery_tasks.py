@@ -1915,11 +1915,7 @@ def fill_chatroom_header_data(card_content, chatroom_name, chatroom_type, req_bo
         else:
             card_content['header'] = decoded_title[:27] + "..."
 
-        if card_type == card_types.CARD_PURPOSE:
-            card_content['header'] = chatroom_name
-            card_content['has_been_named'] = True
-
-        elif card_type == card_types.CARD_INTRO:
+        if card_type == card_types.CARD_DIRECT_MESSAGE:
             card_content['header'] = chatroom_name
             card_content['has_been_named'] = True
 
@@ -2077,19 +2073,6 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
 
                 chatroom_instance = Collabcard(**card_content)
                 chatroom_instance.save()
-
-                # Add file for introduction card
-                image_url = get_user_image_based_on_community(member_instance.id, community_instance.id)
-
-                if chatroom_instance and image_url:
-                    save_chatroom_attachments(chatroom_instance, body={
-                        'url': image_url,
-                        'type': "image",
-                        'index': 1
-                    })
-                    ModelUtilities.model_update(Collabcard, {'id': chatroom_instance.id},
-                                                {'has_files': True, 'attachment_count': 1,
-                                                 'attachments_uploaded': True})
 
                 # Update time for community members on card creation
                 Collabcard.update_time_for_community_members(community_instance)

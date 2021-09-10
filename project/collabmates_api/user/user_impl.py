@@ -680,6 +680,7 @@ class UserImpl(UserManager):
             return {"success": False, "error_message": "User not a part of any community."}
 
         cm_instances = member_filter.filter(state=member_states.ADMIN)
+        member_instances = member_filter.filter(state=member_states.MEMBER)
 
         if cm_instances.exists():
             cm_instances_count = len(cm_instances)
@@ -692,10 +693,15 @@ class UserImpl(UserManager):
 
                 cta = f"route://community_settings?community_id={community_instance.id}"
 
-            return UserHelper.get_dm_feed_response(member_filter, cta=cta, is_cm=True)
+            response_context = UserHelper.get_dm_feed_response(member_filter, cta=cta, is_cm=True)
 
         else:
-            return UserHelper.get_dm_feed_response(member_filter)
+            response_context = UserHelper.get_dm_feed_response(member_filter)
+
+        response_context["total_cm_communities_count"] = len(cm_instances)
+        response_context["total_member_communities_count"] = len(member_instances)
+
+        return response_context
 
 
 class UserHelper:
