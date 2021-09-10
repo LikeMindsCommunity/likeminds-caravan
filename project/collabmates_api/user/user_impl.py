@@ -692,7 +692,7 @@ class UserImpl(UserManager):
 
                 cta = f"route://community_settings?community_id={community_instance.id}"
 
-            return UserHelper.get_dm_feed_response(cm_instances, cta=cta, is_cm=True)
+            return UserHelper.get_dm_feed_response(member_filter, cta=cta, is_cm=True)
 
         else:
             return UserHelper.get_dm_feed_response(member_filter)
