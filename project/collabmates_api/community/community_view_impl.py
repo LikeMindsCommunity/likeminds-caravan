@@ -42,6 +42,25 @@ class FetchCommunity(APIView):
                 }, status=community_response['response_code'])
 
 
+class FetchAllCommunities(APIView):
+    '''inheriting API view class for using class based views in django'''
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        page = RequestUtilities.get_page_number(request, default=1)
+
+        community_manager = CommunityImpl(member_id)
+        community_response = community_manager.fetch_all_communities(page=page)
+
+        if 'error_message' in community_response:
+            return JsonResponse({
+                'success': False,
+                'error_message': community_response['error_message']
+            })
+
+        return JsonResponse(community_response)
+
+
 class FetchChatroomFeed(APIView):
 
     def get(self, request):

@@ -77,12 +77,14 @@ class Community(models.Model):
 
     is_paid = models.BooleanField(default=False)
     website_url = models.TextField(null=True)
-    auto_approval = models.BooleanField(default=False)
+    auto_approval = models.BooleanField(default=True)
     grace_period = models.BigIntegerField(default=0)
     is_discoverable = models.BooleanField(default=False)
 
     community_category = models.TextField(null=True)
     referral_enabled = models.BooleanField(default=False)
+
+    dashboard_link = models.TextField(null=True)
 
     def __str__(self):
         return self.name

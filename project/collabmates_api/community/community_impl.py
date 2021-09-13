@@ -235,6 +235,20 @@ class CommunityImpl(CommunityManager):
 
         return response_context
 
+    def fetch_all_communities(self, page) -> {}:
+
+        community_instances = ModelUtilities.get_model_filter(Community, {}).order_by('-created_at')
+        community_instances = ModelUtilities.paginate_queryset(community_instances, page, paginate_by=50)
+
+        community_serialized_instances = CommunitySerializerV1(community_instances, many=True).data
+
+        response_context = {
+            'communities': [dict(i) for i in community_serialized_instances],
+            'success': True
+        }
+
+        return response_context
+
     def fetch_chatroom_feed(self, size) -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())

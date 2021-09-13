@@ -8921,6 +8921,7 @@ def edit_community_version_1(request):
     community_instance.website_url = res.get('website_url', community_instance.website_url)
     community_instance.community_category = res.get('community_category', community_instance.community_category)
     community_instance.referral_enabled = res.get('referral_enabled', community_instance.referral_enabled)
+    community_instance.dashboard_link = res.get('dashboard_link', community_instance.dashboard_link)
 
     if edit_field:
         edit_community_data(community_instance, user_instance, edit_field=edit_field)

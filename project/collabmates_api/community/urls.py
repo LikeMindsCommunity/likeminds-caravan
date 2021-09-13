@@ -3,10 +3,12 @@ from collabmates_api.community.community_view_impl import (FetchCommunity, Fetch
                                                            DeleteCommunityView, FetchCommunityFeedUrl,
                                                            FetchDiscoverableCommunities,
                                                            FetchCommunityOTLUrl, FetchMembersMeta,
-                                                           FetchContentDownloadSettings, UpdateContentDownloadSettings)
+                                                           FetchContentDownloadSettings, UpdateContentDownloadSettings,
+                                                           FetchAllCommunities)
 
 urlpatterns = [
     path('fetch', FetchCommunity.as_view(), name="fetch_community"),
+    path('fetch_all', FetchAllCommunities.as_view(), name="fetch_all_communities"),
     path('fetch_chatroom_feed', FetchChatroomFeed.as_view(), name="fetch_chatroom_feed"),
     path('delete',  DeleteCommunityView.as_view(), name="delete_community"),
     path('fetch_feed_url',  FetchCommunityFeedUrl.as_view(), name="fetch_feed_url"),
