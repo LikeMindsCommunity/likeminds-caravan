@@ -648,9 +648,10 @@ class ChatroomMemberHelper:
             chatroom_context['topic'] = conversation_serializer
 
         if card_instance.chatroom_with_user:
-            chatroom_context['chatroom_with_user'] = get_members_profile([card_instance.chatroom_with_user_id],
-                                                                         card_instance.community_id,
-                                                                         send_profile=False)
+            chatroom_member = get_members_profile([card_instance.chatroom_with_user_id], card_instance.community_id,
+                                                  send_profile=False)
+
+            chatroom_context['chatroom_with_user'] = chatroom_member[0]
 
         return chatroom_context
 
