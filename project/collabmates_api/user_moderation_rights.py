@@ -612,7 +612,7 @@ def get_right_dict(right):
 
 
 def give_all_community_setting_rights(community):
-    member_rights = memberRights.objects.all().exclude(state=4).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7]).order_by("state")
     save_community_setting_rights(community, member_rights)
 
 
