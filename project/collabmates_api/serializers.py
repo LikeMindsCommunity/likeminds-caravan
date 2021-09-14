@@ -361,7 +361,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         collabcard['topic'] = conversation_serializer
 
     if card.chatroom_with_user:
-        collabcard['chatroom_with_user'] = MembersSerializer(card.chatroom_with_user, card.community)
+        collabcard['chatroom_with_user'] = UserinfoSerializer(card.chatroom_with_user.userinfo)
 
     return collabcard
 
@@ -845,6 +845,12 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_serializer = CollabcardSerializer(card_instance, member_id,
                                                  current_user_id=member_id, preview=preview,
                                                  return_topic=return_topic)
+
+    if card_instance.is_private and card_instance.chatroom_with_user:
+        collabcard_user = get_members_profile([card_instance.chatroom_with_user_id], card_instance.community_id,
+                                              send_profile=send_profile)
+
+        collabcard_serializer['chatroom_with_user'] = collabcard_user[0]
 
     # get chatroom status
     if not preview:

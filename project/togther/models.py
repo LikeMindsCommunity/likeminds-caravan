@@ -521,7 +521,7 @@ class Collabcard(models.Model):
     updated_at = models.BigIntegerField(default=0)
     webflow_item_id = models.TextField(null=True)
     is_private = models.BooleanField(default=False)
-    chatroom_with_user = models.ForeignKey(Members, on_delete=models.SET_NULL, null=True,
+    chatroom_with_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
                                            related_name='chatroom_with_user')
 
     @staticmethod

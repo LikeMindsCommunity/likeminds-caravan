@@ -8,7 +8,8 @@ from utility.string_utilities import StringUtilities
 from utility.api_client import ApiClient
 from collabmates_api.serializers import get_user_profile, get_preview_for_url, UserinfoSerializer
 from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY, MEMBER_LEFT_DM_CHATROOM_MESSAGE, \
-    MEMBER_REMOVED_DM_CHATROOM_MESSAGE, CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE, MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE
+    MEMBER_REMOVED_DM_CHATROOM_MESSAGE, CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE, \
+    MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE, MEMBER_JOINING_COMMUNITY_DM_CHATROOM_MESSAGE
 from collabmates_api.community.constants import *
 from collabmates_api.chatroom.constants import *
 from collabmates_api.upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
@@ -1532,12 +1533,28 @@ def cm_removed_dm_chatroom(user_id, community_id):
     if not community_instance:
         return
 
+    member_ids_list = ModelUtilities.get_model_filter(Members,
+                                                      {"community_id": community_instance,
+                                                       "state": member_states.MEMBER}).exclude(
+        member_id=user_instance).values_list("member_id_id", flat=True)
+
     # Create Card Answer for all DM Chatroom
-    dm_chatroom_instances = ModelUtilities.get_model_filter(Collabcard,
-                                                            {"user": user_instance,
-                                                             "community": community_instance,
-                                                             "is_private": True}).\
-        exclude(chatroom_with_user=None)
+    dm_chatroom_instances_ids_as_creator = ModelUtilities.get_model_filter(Collabcard,
+                                                                       {"user": user_instance,
+                                                                        "chatroom_with_user_id__in": member_ids_list,
+                                                                        "community": community_instance,
+                                                                        "is_private": True}).\
+        exclude(chatroom_with_user=None).values_list("id", flat=True)
+
+    dm_chatroom_instances_ids_as_user = ModelUtilities.get_model_filter(Collabcard,
+                                                                        {"chatroom_with_user": user_instance,
+                                                                         "user_id__in": member_ids_list,
+                                                                         "community": community_instance,
+                                                                         "is_private": True}). \
+        exclude(chatroom_with_user=None).values_list("id", flat=True)
+
+    dm_chatroom_instances = list(dm_chatroom_instances_ids_as_creator) + list(dm_chatroom_instances_ids_as_user)
+    dm_chatroom_instances = ModelUtilities.get_model_filter(Collabcard, {"id__in": dm_chatroom_instances})
 
     # Create Card Answer Instances
     user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(user_instance.id) + ">>"
@@ -1592,11 +1609,27 @@ def member_becomes_cm_dm_chatroom(user_id, community_id):
     is_promoter = member_instance.state == member_states.ADMIN
 
     if is_promoter:
+        cms_user_ids_list = list(ModelUtilities.get_model_filter(Members,
+                                                                 {"state": member_states.ADMIN,
+                                                                  "community_id": community_instance}).exclude(
+            id=member_instance.id).values_list("member_id_id", flat=True))
+
         # Create Card Answer for all DM Chatroom
-        dm_chatroom_instances = ModelUtilities.get_model_filter(Collabcard,
-                                                                {"chatroom_with_user__member_id": user_instance,
-                                                                 "community_id": community_id,
-                                                                 "is_private": True})
+        dm_chatroom_instances_with_user = ModelUtilities.get_model_filter(Collabcard,
+                                                                          {"chatroom_with_user": user_instance,
+                                                                           "user_id__in": cms_user_ids_list,
+                                                                           "community_id": community_id,
+                                                                           "is_private": True}).values_list("id",
+                                                                                                            flat=True)
+
+        dm_chatroom_instances_with_user_as_creator = ModelUtilities.get_model_filter(Collabcard,
+                                                                      {"chatroom_with_user_id__in": cms_user_ids_list,
+                                                                       "user": user_instance,
+                                                                       "community_id": community_id,
+                                                                       "is_private": True}).values_list("id", flat=True)
+
+        dm_chatroom_instances = list(dm_chatroom_instances_with_user) + list(dm_chatroom_instances_with_user_as_creator)
+        dm_chatroom_instances = ModelUtilities.get_model_filter(Collabcard, {"id__in": dm_chatroom_instances})
 
         # Create Card Answer Instances
         user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(user_instance.id) + ">>"
@@ -1691,7 +1724,7 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
     status = True
 
     if not member_state:
-        member_state = Members.get_community_member_state(community_instance, chatroom_user.member_id)
+        member_state = Members.get_community_member_state(community_instance, chatroom_user)
 
         if not member_state:
             return
@@ -1700,7 +1733,7 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
     if not answer:
         answer = f"This is the very beginning of your direct message with " \
                  f"<<{member_instance.userinfo.name}|route://member/{member_instance.id}>>" \
-                 f" <<{chatroom_user.member_id.userinfo.name}|route://member/{chatroom_user.member_id_id}>>"
+                 f" <<{chatroom_user.userinfo.name}|route://member/{chatroom_user.id}>>"
 
     if not conversation_state:
         dm_card_answer = card_answers(answer=answer, card=chatroom_instance, user=member_instance,
@@ -1788,7 +1821,6 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
 
         conversation_filter = card_answers.objects.filter(card=chatroom_instance).filter(
             Q(state=conversation_states.ANSWER) |
-            Q(state=conversation_states.CONVERSATION_HEADER) |
             Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT) |
             Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED) |
             Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT) |
@@ -1804,11 +1836,7 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
             unseen_count = conversation_filter.count()
 
         else:
-            unseen_count = card_answers.objects.filter(
-                card_id=chatroom_instance, id__gt=last_seen_conversation
-            ).filter(Q(state=conversation_states.ANSWER) |
-                     Q(state=conversation_states.CONVERSATION_POLL)
-                     ).count()
+            unseen_count = conversation_filter.filter(id__gt=last_seen_conversation).count()
 
         if user_instance:
             conversationEngage.objects.filter(card=chatroom_instance,
@@ -1960,7 +1988,7 @@ def fill_chatroom_basic_info(card_content, chatroom_name, chatroom_type, communi
 
 @shared_task
 def create_member_dm_chatroom(member_id, community_id, device_id=None, request_platform=None, req_body={},
-                              is_cm_member=False, cm_list=[], is_script=False):
+                              is_cm_member=False, cm_list=[], is_script=False, is_joining=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
@@ -1973,14 +2001,7 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
 
     member_state = Members.get_community_member_state(community_instance, user_instance)
 
-    chatroom_user = ModelUtilities.get_model_filter(Members,
-                                                    {"community_id": community_instance, "member_id": user_instance})
-
-    if not chatroom_user:
-        return
-
-    else:
-        chatroom_user = chatroom_user[0]
+    chatroom_user = user_instance
 
     user_member_state = member_states.ADMIN
 
@@ -1996,9 +2017,11 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
 
         cm_user_ids = list(list_cms.values_list("member_id_id", flat=True))
 
+        dm_chatrooms_filter = cm_user_ids + [user_instance.id]
+
         dm_chatroom_instances = ModelUtilities.get_model_filter(Collabcard,
-                                                                {"user_id__in": cm_user_ids,
-                                                                 "chatroom_with_user__member_id": user_instance,
+                                                                {"user_id__in": dm_chatrooms_filter,
+                                                                 "chatroom_with_user_id__in": dm_chatrooms_filter,
                                                                  "community": community_instance,
                                                                  "is_private": True})
 
@@ -2006,10 +2029,11 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
             member_instance = community_manager.member_id
 
             # Auto Follow DM Chatroom
-            user_instances_list = [member_instance, chatroom_user.member_id]
+            user_instances_list = [member_instance, chatroom_user]
 
             # Check whether DM Chatroom already exists
-            dm_chatroom = dm_chatroom_instances.filter(user=member_instance)
+            dm_chatroom = dm_chatroom_instances.filter(user__in=user_instances_list,
+                                                       chatroom_with_user__in=user_instances_list)
 
             if dm_chatroom:
 
@@ -2017,7 +2041,12 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
 
                     user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(user_instance.id) + ">>"
 
-                    if is_cm_member:
+                    if is_joining:
+                        answer = MEMBER_JOINING_COMMUNITY_DM_CHATROOM_MESSAGE.format(user_route)
+
+                        conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT
+
+                    elif is_cm_member:
                         answer = CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE.format(user_route)
 
                         conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT

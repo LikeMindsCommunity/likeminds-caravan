@@ -584,13 +584,33 @@ class UserImpl(UserManager):
 
         is_cm = False
 
+        # Get all communities user is part of
+        communities_list = list(ModelUtilities.get_model_filter(Members, {"member_id": user_instance}).values_list(
+            "community_id_id", flat=True))
+
+        communities = ModelUtilities.get_model_filter(communityRightsSettings,
+                                                      {"community__id__in": communities_list,
+                                                       "right__state":
+                                                           member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+        community_ids_list = list(communities.values_list("community_id", flat=True))
+
         if admin.exists():
 
             is_cm = True
 
             if direct_message_tutorial:
 
-                unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id)
+                if all([direct_message_tutorial.clicked, not direct_message_tutorial.messaged, not communities,
+                        TimeUtilities.current_time_in_sec() >= TimeUtilities.add_hours_to_epoch_time(
+                            direct_message_tutorial.updated_at, 168)]):
+
+                    return {
+                        "success": True,
+                        "is_cm": True
+                    }
+
+                unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, community_ids_list)
 
                 return {
                     "success": True,
@@ -604,20 +624,13 @@ class UserImpl(UserManager):
                 return {"success": True, "clicked": False, "messaged": False, "is_cm": is_cm}
 
         else:
-            # Get all communities user is part of
-            communities_list = list(ModelUtilities.get_model_filter(Members, {"member_id": user_instance}).values_list(
-                "community_id_id", flat=True))
-
-            communities = ModelUtilities.get_model_filter(communityRightsSettings,
-                                                          {"community__id__in": communities_list,
-                                                           "right__state":
-                                                               member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
 
             if communities:
 
                 if direct_message_tutorial:
 
-                    unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, is_cm=False)
+                    unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, community_ids_list,
+                                                                           is_cm=False)
 
                     return {
                         "success": True,
@@ -685,13 +698,12 @@ class UserImpl(UserManager):
         if cm_instances.exists():
             cm_instances_count = len(cm_instances)
 
-            if cm_instances_count > 1:
-                cta = "route://community_settings_select"
+            cta = "route://community_settings_select"
 
-            else:
+            if cm_instances_count == 1:
                 community_instance = cm_instances[0].community_id
 
-                cta = f"route://community_settings?community_id={community_instance.id}"
+                cta += f"?community_id={community_instance.id}&community_name='{community_instance.name}'"
 
             response_context = UserHelper.get_dm_feed_response(member_filter, cta=cta, is_cm=True)
 
@@ -1251,7 +1263,7 @@ class UserHelper:
         return data
 
     @staticmethod
-    def get_unread_dm_messages_count(user_id, is_cm=True):
+    def get_unread_dm_messages_count(user_id, community_ids, is_cm=True):
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
@@ -1259,12 +1271,13 @@ class UserHelper:
 
         conversation_engage_filter = ModelUtilities.get_model_filter(conversationEngage,
                                                                      {"user": user_instance,
+                                                                      "community_id__in": community_ids,
                                                                       "card__is_private": True}).exclude(
             card__chatroom_with_user=None)
 
         unseen_count = conversation_engage_filter.aggregate(total_unseen_count=Sum('unseen_count'))
 
-        return unseen_count["total_unseen_count"]
+        return unseen_count["total_unseen_count"] if unseen_count["total_unseen_count"] else 0
 
     @staticmethod
     def get_dm_feed_response(member_instances, cta=None, is_cm=False):

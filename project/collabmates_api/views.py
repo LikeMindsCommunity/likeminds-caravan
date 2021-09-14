@@ -1948,25 +1948,22 @@ def remove_members(community_instance, user_instance, removed_state, current_use
                                                     {"community_id": community_instance, "member_id": user_instance})
 
     if member_filter.exists():
-        member_state = member_filter[0].state
-        dm_chatroom_ids = []
 
-        if member_state == member_states.MEMBER:
-            dm_chatroom_ids = ModelUtilities.get_model_filter(Collabcard,
-                                                              {"chatroom_with_user__member_id": user_instance,
-                                                               "community": community_instance,
-                                                               "is_private": True}).values_list("id", flat=True)
+        dm_chatroom_ids_as_cm = ModelUtilities.get_model_filter(Collabcard,
+                                                                {"user": user_instance,
+                                                                 "community": community_instance,
+                                                                 "is_private": True}).values_list("id", flat=True)
 
-        elif member_state == member_states.ADMIN:
-            dm_chatroom_ids = ModelUtilities.get_model_filter(Collabcard,
-                                                              {"user": user_instance,
-                                                               "community": community_instance,
-                                                               "is_private": True}).exclude(
+        dm_chatroom_ids_as_member = ModelUtilities.get_model_filter(Collabcard,
+                                                                    {"chatroom_with_user": user_instance,
+                                                                     "community": community_instance,
+                                                                     "is_private": True}).exclude(
                 chatroom_with_user=None).values_list("id", flat=True)
+
+        dm_chatroom_ids = set(list(dm_chatroom_ids_as_cm) + list(dm_chatroom_ids_as_member))
 
         member_left_removed_dm_chatroom.delay(user_instance.id, community_instance.id, instance.id, removed_state,
                                               list(dm_chatroom_ids))
-
 
     # deleting member record
     ModelUtilities.delete_record_in_model(Members,
@@ -4557,7 +4554,12 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     """ function to get chatroom actions """
 
     if card_instance.is_private:
-        return collabcard_action_dm_user
+
+        if card_status.get('mute_status'):
+            return collabcard_action_dm_user_mute
+
+        else:
+            return collabcard_action_dm_user_unmute
 
     purpose_card = False
     intro_card = False
@@ -11758,10 +11760,7 @@ class SyncChatrooms(APIView):
             chatroom['is_private'] = data[64]
 
             if data[65]:
-                member_instance = ModelUtilities.get_model_instance_or_none(Members, data[65])
-
-                if member_instance:
-                    chatroom["chatroom_with_user"] = member_instance.member_id_id
+                chatroom["chatroom_with_user"] = data[65]
 
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue

@@ -1,4 +1,5 @@
-from togther.models import memberRights, Members, Community, ModelUtilities
+from togther.models import memberRights, Members, Community, ModelUtilities, Collabcard, conversationEngage, \
+    card_answers, collabcardState
 import time
 from utility.celery_tasks import create_member_dm_chatroom
 from utility.states import member_states
@@ -16,6 +17,23 @@ def show_dm_right_records():
                  title=show_dm["title"],
                  sub_title=show_dm["sub_title"],
                  state=show_dm["state"]).save()
+
+
+def delete_dm_chatrooms_if_exists():
+    # Filter all DM chatrooms
+    dm_chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {"is_private": True})
+
+    # Delete from ConversationEngage
+    ModelUtilities.delete_record_in_model(conversationEngage, {"card__in": dm_chatrooms_filter})
+
+    # Delete from card answers
+    ModelUtilities.delete_record_in_model(card_answers, {"card__in": dm_chatrooms_filter})
+
+    # Delete from card answers
+    ModelUtilities.delete_record_in_model(collabcardState, {"card__in": dm_chatrooms_filter})
+
+    # Delete from card answers
+    ModelUtilities.delete_record_in_model(Collabcard, {"id__in": dm_chatrooms_filter})
 
 
 def create_dm_chatrooms_for_existing_records():
@@ -55,6 +73,9 @@ start_time = time.time()
 print(">>>>>> started >>>>>>>>   ", start_time)
 
 show_dm_right_records()
+
+print("Deleting existing records")
+delete_dm_chatrooms_if_exists()
 
 print("Creating DM chatrooms")
 create_dm_chatrooms_for_existing_records()

@@ -133,6 +133,7 @@ class CommunityImpl(CommunityManager):
         return Collabcard.objects.filter(community=self.get_community_id(),
                                          is_pending=False,
                                          is_deleted=False,
+                                         is_private=False,
                                          is_secret=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
 
     def _compute_chatroom_creator_list(self, queryset):
@@ -480,7 +481,7 @@ class CommunityImpl(CommunityManager):
         update_member_rights_in_conversation_engage.delay(community_instance.id, user_instance.id)
 
         # Add DM Chatrooms
-        create_member_dm_chatroom.delay(user_instance.id, community_instance.id)
+        create_member_dm_chatroom.delay(user_instance.id, community_instance.id, is_joining=True)
 
     def make_requesting_user_as_member_of_community_automatically(self, user_instance, community_instance,
                                                                   auto_join_code, shared_by_user, req_body):
@@ -533,7 +534,7 @@ class CommunityImpl(CommunityManager):
         platform = self.get_request_platform()
 
         create_member_dm_chatroom.delay(self.get_member_id(), self.get_community_id(), device_id=device_id,
-                                        request_platform=platform, req_body=req_body)
+                                        request_platform=platform, req_body=req_body, is_joining=True)
 
     def approve_or_decline_community(self, req_body) -> {}:
 
@@ -954,7 +955,7 @@ class CommunityHelper:
         ElasticSearchSync.update_member.delay(user_instance.id, community_instance.id)
 
         # Create DM chatrooms
-        create_member_dm_chatroom.delay(user_instance.id, community_instance.id)
+        create_member_dm_chatroom.delay(user_instance.id, community_instance.id, is_joining=True)
 
     @staticmethod
     def run_async_task_for_community_declined(community_instance, user_instance, promoter_userinfo_instance):

@@ -175,7 +175,7 @@ collabcard_action_user_unfollow = [
     }
 ]
 
-collabcard_action_dm_user = [
+collabcard_action_dm_user_unmute = [
     {
         'id': 21,
         'title': 'View profile'
@@ -187,6 +187,21 @@ collabcard_action_dm_user = [
     {
         'id': 6,
         'title': 'Mute notifications'
+    }
+]
+
+collabcard_action_dm_user_mute = [
+    {
+        'id': 21,
+        'title': 'View profile'
+    },
+    {
+        'id': 5,
+        'title': 'View community'
+    },
+    {
+        'id': 8,
+        'title': 'UnMute notifications'
     }
 ]
 
@@ -478,5 +493,6 @@ MEMBER_LEFT_DM_CHATROOM_MESSAGE = "{} left {}"
 MEMBER_REMOVED_DM_CHATROOM_MESSAGE = "{} was removed from {}"
 
 CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is no longer a community manager"
+MEMBER_JOINING_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is a member now"
 
 MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE = "{} is a community manager now"

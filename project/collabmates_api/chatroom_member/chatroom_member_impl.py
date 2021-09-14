@@ -15,7 +15,7 @@ from collabmates_api.member_community import member_community_impl
 from collabmates_api.raw_queries import get_chatroom_count_based_on_community_list, \
     get_count_of_community_members_based_on_community_list, fetch_chatroom_polls, fetch_member_poll_votes
 from collabmates_api.serializers import conversationSerializer, get_collabcard_files, get_preview_for_url, \
-    MembersSerializer
+    get_members_profile
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -648,8 +648,9 @@ class ChatroomMemberHelper:
             chatroom_context['topic'] = conversation_serializer
 
         if card_instance.chatroom_with_user:
-            chatroom_context['chatroom_with_user'] = MembersSerializer(card_instance.chatroom_with_user,
-                                                                       card_instance.community)
+            chatroom_context['chatroom_with_user'] = get_members_profile([card_instance.chatroom_with_user_id],
+                                                                         card_instance.community_id,
+                                                                         send_profile=False)
 
         return chatroom_context
 

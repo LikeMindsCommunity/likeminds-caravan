@@ -317,10 +317,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return community_id_list
 
-    def fetch_home_communities(self, page, show_dm=False) -> {}:
+    def fetch_home_communities(self, page, show_dm=False, is_cm=False) -> {}:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-        community_list = []
 
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
@@ -328,7 +327,16 @@ class MemberCommunityImpl(MemberCommunityManager):
         communities = self._find_member_communities(self.get_member_id())
         community_ids_list = list(communities.values_list("community_id_id", flat=True))
 
-        total_communities_count = 0
+        if is_cm and (is_cm == 'true'):
+            cm_communities_filter = ModelUtilities.get_model_filter(Members,
+                                                                    {"community_id__in": community_ids_list,
+                                                                     "state": member_states.ADMIN})
+
+            community_ids_list = list(cm_communities_filter.values_list("community_id_id", flat=True))
+
+            communities = communities.filter(community_id__in=community_ids_list)
+
+        total_communities_count = len(community_ids_list)
 
         if show_dm and (show_dm == 'true'):
             communities_with_dm_rights_list = ModelUtilities.get_model_filter(communityRightsSettings,
@@ -1084,21 +1092,11 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             elif (user_admin.exists() or member_admin.exists()) and dm_right_instance.exists():
 
-                if user_admin.exists():
-                    dm_chatroom_instance = ModelUtilities.get_model_filter(Collabcard,
-                                                                           {"user": user_instance,
-                                                                            "community_id": community_instance,
-                                                                            "chatroom_with_user__member_id":
-                                                                                member_instance,
-                                                                            "is_private": True})
-
-                else:
-                    dm_chatroom_instance = ModelUtilities.get_model_filter(Collabcard,
-                                                                           {"user": member_instance,
-                                                                            "community_id": community_instance,
-                                                                            "chatroom_with_user__member_id":
-                                                                                user_instance,
-                                                                            "is_private": True})
+                dm_chatroom_instance = ModelUtilities.get_model_filter(Collabcard,
+                                                       {"user__in": [user_instance, member_instance],
+                                                        "community_id": community_instance,
+                                                        "chatroom_with_user__in": [user_instance, member_instance],
+                                                        "is_private": True})
 
                 if dm_chatroom_instance.exists():
 
@@ -1127,10 +1125,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                 if len(cm_instances) == 1:
                     # Get chatroom of CM and User
                     chatroom_instance = ModelUtilities.get_model_filter(Collabcard,
-                                                                        {"community": community_instance,
-                                                                         "user": cm_instances[0].member_id,
-                                                                         "chatroom_with_user__member_id": user_instance,
-                                                                         "is_private": True})
+                                            {"community": community_instance,
+                                             "user__in": [cm_instances[0].member_id, user_instance],
+                                             "chatroom_with_user__in": [cm_instances[0].member_id, user_instance],
+                                             "is_private": True})
 
                     if chatroom_instance:
                         return {
