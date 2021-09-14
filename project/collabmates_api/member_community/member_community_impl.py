@@ -329,14 +329,15 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         if is_cm and (is_cm == 'true'):
             cm_communities_filter = ModelUtilities.get_model_filter(Members,
-                                                                    {"community_id__in": community_ids_list,
+                                                                    {"member_id": user_instance,
+                                                                     "community_id__in": community_ids_list,
                                                                      "state": member_states.ADMIN})
 
             community_ids_list = list(cm_communities_filter.values_list("community_id_id", flat=True))
 
             communities = communities.filter(community_id__in=community_ids_list)
 
-        total_communities_count = len(community_ids_list)
+            total_communities_count = len(community_ids_list)
 
         if show_dm and (show_dm == 'true'):
             communities_with_dm_rights_list = ModelUtilities.get_model_filter(communityRightsSettings,
