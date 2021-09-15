@@ -116,11 +116,15 @@ def save_member_right(user, community, right):
         error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
 
 
-def get_saved_member_rights_list(user_rights, admin_rights=None):
+def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False):
     """ function to return the selected and disabled rights of a member or community settings """
     all_member_rights = memberRights.objects.all().exclude(state=4).order_by("state")
     rights_list = []
     for right in all_member_rights:
+
+        if (right.state == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES) and (not show_dm_right):
+            continue
+
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title, "state": right.state,
                       "is_selected": False, "is_locked": False}
 
@@ -160,8 +164,10 @@ def get_saved_member_rights_list(user_rights, admin_rights=None):
                 right_dict["is_locked"] = not admin_rights["delete_room"]
 
         elif right.state == show_direct_messages_right['state']:
-            right_dict["is_selected"] = user_rights["show_dm"]
-            right_dict["is_locked"] = False
+
+            if show_dm_right:
+                right_dict["is_selected"] = user_rights["show_dm"]
+                right_dict["is_locked"] = False
 
         if right.sub_title is None:
             del right_dict["sub_title"]
@@ -278,7 +284,7 @@ def check_all_member_rights(user=None, community=None):
                         community=community).order_by("right__state")
 
     elif user is not None and community is not None:
-        member_rights = userMemberRights.objects.exclude(right__state=4).select_related(
+        member_rights = userMemberRights.objects.exclude(right__state__in=[4, 7]).select_related(
             'right').filter(user=user,community=community).order_by("right__state")
 
     else:
@@ -612,7 +618,7 @@ def get_right_dict(right):
 
 
 def give_all_community_setting_rights(community):
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7]).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state=4).order_by("state")
     save_community_setting_rights(community, member_rights)
 
 

@@ -11454,7 +11454,7 @@ def fetch_community_setting_rights(request):
     if admin.exists():
         user_rights = check_all_member_rights(community=community_instance)
         # fetching all the rights of the community
-        rights_context = get_saved_member_rights_list(user_rights)
+        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=True)
         return JsonResponse({"rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")
