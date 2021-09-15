@@ -2123,7 +2123,7 @@ def fetch_user_chatrooms(request):
 
         chatroom_filter = Collabcard.objects.filter(user_id=user_id, community_id=community_id,
                                                     is_pending=False, is_deleted=False,
-                                                    is_secret=False).order_by('-id')
+                                                    is_secret=False, is_private=False).order_by('-id')
         created_chatroom_count = chatroom_filter.count()
         chatroom_filter = pagination(chatroom_filter, page, paginate_by=10)
 
@@ -2143,10 +2143,13 @@ def fetch_user_chatrooms(request):
     elif int(state) == 1:
 
         chatroom_list = list(Collabcard.objects.filter(user_id=user_id, community_id=community_id,
-                                                       is_pending=False, is_deleted=False).values_list('id', flat=True))
+                                                       is_pending=False, is_deleted=False,
+                                                       is_private=False).values_list('id', flat=True))
 
         state_filter = collabcardState.objects.filter(user_id=user_id, community_id=community_id,
-                                                      follow_status=True, card__is_secret=False).exclude(
+                                                      follow_status=True,
+                                                      card__is_secret=False,
+                                                      card__is_private=False).exclude(
             card__in=chatroom_list).order_by('-updated_at', '-id')
 
         followed_chatroom_count = len(state_filter)
