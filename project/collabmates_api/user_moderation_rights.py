@@ -22,7 +22,7 @@ def give_all_member_rights(user, community):
     """function to give a member all the rights """
     userMemberRights.objects.filter(user=user, community=community).delete()
 
-    member_rights = memberRights.objects.all().exclude(state=4).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7]).order_by("state")
     fill_member_rights(user, community, member_rights)
 
 
