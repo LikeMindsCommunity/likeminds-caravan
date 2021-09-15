@@ -7207,7 +7207,7 @@ def create_user(user_name, email, id, apple_id=False):
     if not user.exists():
 
         user = User()
-        user.username = user_name
+        user.username = user_name.title()
         if email is not None:
             user.email = email
         user.save()
@@ -7229,7 +7229,7 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
         userinfo.user_id = user
         if email is not None:
             user.email = email
-        userinfo.name = user_name
+        userinfo.name = user_name.title()
         if profile_picture is not None:
             userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
         userinfo.login_type = login_type
@@ -7668,13 +7668,13 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
         has_user = User.objects.filter(username=user_name)
         if not has_user.exists():
             user_instance = User()
-            user_instance.username = user_name
+            user_instance.username = user_name.title()
             user_instance.save()
 
             # creating userinfo instance
 
             userinfo_instance = Userinfo()
-            userinfo_instance.name = name
+            userinfo_instance.name = name.title()
             userinfo_instance.email = email
             userinfo_instance.image_link = image_url
             userinfo_instance.login_type = login_type
