@@ -76,6 +76,7 @@ class ConversationManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def attend_event(self, req_body):
+        """set member as event attendee"""
 
         raise NotImplementedError
 
