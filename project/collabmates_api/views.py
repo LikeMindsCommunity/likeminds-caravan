@@ -9566,7 +9566,11 @@ def push_report_v1(request):
     if request.method == 'POST':
 
         member_id = get_member_id_from_headers(request)
-        user_instance = User.objects.get(id=member_id)
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not user_instance:
+            return JsonResponse(get_error_context(False, "invalid member_id"))
 
         request_body = json.loads(request.body)
         collabcard_id = request_body['collabcard_id'] if 'collabcard_id' in request_body else None
@@ -9600,7 +9604,11 @@ def push_report_v1(request):
             if is_promoter and has_right_0:
                 return JsonResponse({'success': False, "error_message": "you have no right to report chatroom"})
 
-            collabcard_instance = Collabcard.objects.get(id=collabcard_id)
+            collabcard_instance = ModelUtilities.get_model_instance_or_none(Collabcard, collabcard_id)
+            
+            if not collabcard_instance:
+                return JsonResponse(get_error_context(False, "invalid collabcard_id"))
+
             report_type = report_Types.REPORT_CHATROOM
             if not reported_member_id:
                 reported_member_instance = collabcard_instance.user
@@ -9613,7 +9621,11 @@ def push_report_v1(request):
             if is_promoter and has_right_0:
                 return JsonResponse({'success': False, "error_message": "you have no right to report convesations"})
 
-            conversation_instance = card_answers.objects.get(id=conversation_id)
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+            if not conversation_instance:
+                return JsonResponse(get_error_context(False, "invalid conversation_id"))
+
             report_type = report_Types.REPORT_CONVERSATION
 
             if collabcard_instance is None:
@@ -9634,10 +9646,14 @@ def push_report_v1(request):
                 return JsonResponse({'success': False, "error_message": "send community_id in body"})
 
             report_type = report_Types.REPORT_MEMBER
-            reported_member_instance = User.objects.get(pk=reported_member_id)
 
-        report_tag_instance = Report_Tags.objects.get(tag_id=tag_id) if tag_id else None
-        community_instance = Community.objects.get(id=community_id)
+            reported_member_instance = ModelUtilities.get_model_instance_or_none(User, reported_member_id)
+
+            if not reported_member_instance:
+                return JsonResponse(get_error_context(False, "invalid reported_member_id"))
+
+        report_tag_instance = ModelUtilities.get_model_instance_or_none(Report_Tags, tag_id)
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         report_instance = Report()
         report_instance.tag = report_tag_instance
