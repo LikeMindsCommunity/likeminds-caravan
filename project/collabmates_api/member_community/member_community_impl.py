@@ -317,7 +317,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return community_id_list
 
-    def fetch_home_communities(self, page, show_dm=False, is_cm=False) -> {}:
+    def fetch_home_communities(self, page, show_dm=False, is_cm=False, is_paid=False) -> {}:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
@@ -336,6 +336,13 @@ class MemberCommunityImpl(MemberCommunityManager):
             community_ids_list = list(cm_communities_filter.values_list("community_id_id", flat=True))
 
             communities = communities.filter(community_id__in=community_ids_list)
+
+            total_communities_count = len(community_ids_list)
+
+        if is_paid and (is_paid == 'true'):
+            communities = communities.filter(community_id__is_paid=True)
+
+            community_ids_list = list(communities.values_list("community_id_id", flat=True))
 
             total_communities_count = len(community_ids_list)
 

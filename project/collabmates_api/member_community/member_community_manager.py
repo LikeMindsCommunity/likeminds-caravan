@@ -43,7 +43,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def fetch_home_communities(self, page, show_dm=False, is_cm=False) -> {}:
+    def fetch_home_communities(self, page, show_dm=False, is_cm=False, is_paid=False) -> {}:
         """
         fetches the home communities of member
         """
