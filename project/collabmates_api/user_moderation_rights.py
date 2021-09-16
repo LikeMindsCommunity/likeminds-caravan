@@ -22,7 +22,7 @@ def give_all_member_rights(user, community):
     """function to give a member all the rights """
     userMemberRights.objects.filter(user=user, community=community).delete()
 
-    member_rights = memberRights.objects.all().order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7]).order_by("state")
     fill_member_rights(user, community, member_rights)
 
 
@@ -37,16 +37,16 @@ def give_default_member_rights(user, community):
 
     userMemberRights.objects.filter(user=user, community=community).delete()
 
-    member_rights_list = memberRights.objects.all().order_by("state")
+    member_rights_list = memberRights.objects.all().exclude(state=4).order_by("state")
 
-    community_settings = list(communityRightsSettings.objects.filter(community=community).values_list("right__state",
-                                                                                                      flat=True))
+    community_settings = list(communityRightsSettings.objects.filter(community=community).exclude(right__state=4)
+                              .values_list("right__state", flat=True))
+
     rights_added = []
     rights_removed = []
     for right in member_rights_list:
 
-        if right.state == member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK \
-                or right.state == member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM:
+        if right.state == member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM:
             rights_removed.append(right.id)
             continue
 
@@ -116,11 +116,18 @@ def save_member_right(user, community, right):
         error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
 
 
-def get_saved_member_rights_list(user_rights, admin_rights=None):
+def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False, version_code=0):
     """ function to return the selected and disabled rights of a member or community settings """
-    all_member_rights = memberRights.objects.all().order_by("state")
+    all_member_rights = memberRights.objects.all().exclude(state=4).order_by("state")
     rights_list = []
     for right in all_member_rights:
+
+        if (right.state == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES) and (version_code < DM_CHATROOMS_VERSION_CODE):
+            continue
+
+        if (right.state == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES) and (not show_dm_right):
+            continue
+
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title, "state": right.state,
                       "is_selected": False, "is_locked": False}
 
@@ -158,6 +165,12 @@ def get_saved_member_rights_list(user_rights, admin_rights=None):
 
             if admin_rights:
                 right_dict["is_locked"] = not admin_rights["delete_room"]
+
+        elif right.state == show_direct_messages_right['state']:
+
+            if show_dm_right:
+                right_dict["is_selected"] = user_rights["show_dm"]
+                right_dict["is_locked"] = False
 
         if right.sub_title is None:
             del right_dict["sub_title"]
@@ -265,16 +278,18 @@ def check_all_member_rights(user=None, community=None):
     create_poll = False
     create_event = False
     respond_in_rooms = False
-    invite_private = False
     auto_approve = False
     secret_chatroom = False
+    show_direct_messages = False
 
     if user is None and community is not None:
-        member_rights = communityRightsSettings.objects.select_related('right').filter(
+        member_rights = communityRightsSettings.objects.select_related('right').exclude(right__state=4).filter(
                         community=community).order_by("right__state")
+
     elif user is not None and community is not None:
-        member_rights = userMemberRights.objects.select_related(
+        member_rights = userMemberRights.objects.exclude(right__state__in=[4, 7]).select_related(
             'right').filter(user=user,community=community).order_by("right__state")
+
     else:
         member_rights = []
         respond_in_rooms = True
@@ -290,16 +305,16 @@ def check_all_member_rights(user=None, community=None):
             create_event = True
         elif right.state == respond_in_rooms_member_right['state']:
             respond_in_rooms = True
-        elif right.state == invite_private_member_right['state']:
-            invite_private = True
         elif right.state == auto_approve_member_right['state']:
             auto_approve = True
         elif right.state == create_secret_chatroom_right['state']:
             secret_chatroom = True
+        elif right.state == show_direct_messages_right['state']:
+            show_direct_messages = True
 
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
-              "respond_in_rooms": respond_in_rooms, "invite_private": invite_private, "auto_approve": auto_approve,
-              "create_secret_chatroom": secret_chatroom}
+              "respond_in_rooms": respond_in_rooms, "auto_approve": auto_approve,
+              "create_secret_chatroom": secret_chatroom, "show_dm": show_direct_messages}
 
     return rights
 
@@ -423,15 +438,6 @@ def check_user_rejoin(user, community):
 def save_moderation_history(user, community, moderation_by, type):
     """ function to save moderation history """
     moderationHistory(user=user, community=community, moderation_by=moderation_by, type=type).save()
-
-
-def check_member_invite_private_right(user, community):
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK)
-
-    if user_rights.exists():
-        return True
-    return False
 
 
 def check_member_respond_right(user, community):
@@ -615,7 +621,7 @@ def get_right_dict(right):
 
 
 def give_all_community_setting_rights(community):
-    member_rights = memberRights.objects.all().order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7]).order_by("state")
     save_community_setting_rights(community, member_rights)
 
 
@@ -754,7 +760,7 @@ def create_member_rights_history(right, user, community, enabled_by_cm=False, up
 def restore_member_rights_from_history(user, community):
     userMemberRights.objects.filter(user=user, community=community).delete()
 
-    member_rights = memberRights.objects.all()
+    member_rights = memberRights.objects.all().exclude(state=4)
 
     rights_list = []
     for right in member_rights:
@@ -812,7 +818,7 @@ def delete_manager_right(right_id, user_instance, community_instance):
 def save_added_removed_rights_for_member(community_instance, user_instance, selected_rights):
     # had to get added and removed rights for many other purposes ex: notifications
     existing_rights = set(userMemberRights.objects.filter(community=community_instance,
-                                                          user=user_instance).values_list("right__id", flat=True))
+                                                          user=user_instance).exclude(right__state=4).values_list("right__id", flat=True))
     rights_added, rights_removed = get_added_and_removed_rights(selected_rights=selected_rights,
                                                                 existing_rights=existing_rights)
     update_member_rights(rights_added, rights_removed, community_instance, user_instance)
@@ -956,8 +962,8 @@ def update_member_rights_in_member_engage(community_id, user_id):
     else:
         user = User.objects.get(pk=user_id)
 
-    rights_list = list(userMemberRights.objects.filter(user=user,
-                                                       community=community).values_list("right__state", flat=True))
+    rights_list = list(userMemberRights.objects.filter(user=user, community=community).exclude(right__state=4)
+                       .values_list("right__state", flat=True))
 
     rights_list = json.dumps(rights_list)
 
@@ -979,8 +985,9 @@ def update_member_rights_in_conversation_engage(community_id, user_id):
     else:
         user = User.objects.get(pk=user_id)
 
-    rights_list = list(userMemberRights.objects.filter(user=user,
-                                                       community=community).values_list("right__state", flat=True))
+    rights_list = list(userMemberRights.objects.filter(user=user, community=community).exclude(right__state=4)
+                       .values_list("right__state", flat=True))
+
     rights_list = json.dumps(rights_list)
     conversationEngage.objects.filter(user=user,
                                       community_id=community).update(rights_list=rights_list)

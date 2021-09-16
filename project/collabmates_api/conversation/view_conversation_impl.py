@@ -233,6 +233,113 @@ class SetChatroomTopic(APIView):
         return JsonResponse(response)
 
 
+class ConversationEventAttendView(APIView):
+
+    def post(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "In-valid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        conversation_manager = ConversationImpl(member_id=member_id)
+        response = conversation_manager.attend_event(req_body)
+
+        if response.get('error_message'):
+
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
+
+
+class SetConversationEventAttendedView(APIView):
+
+    def post(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "In-valid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        conversation_manager = ConversationImpl(member_id=member_id)
+        response = conversation_manager.set_event_attended(req_body)
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
+
+
+class FetchUnseenCountInEvent(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        conversation_manager = ConversationImpl(member_id=member_id)
+        response_context = conversation_manager.fetch_unseen_count_in_event()
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+
+class UpdateLastSeenEventChatroom(APIView):
+
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        conversation_manager = ConversationImpl(member_id=member_id)
+        response_context = conversation_manager.update_last_seen_event()
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+
+class FetchLinkForEvent(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        conversation_id = request.GET.get('conversation_id')
+        conversation_manager = ConversationImpl(member_id=member_id, conversation_id=conversation_id)
+        response_context = conversation_manager.fetch_link_for_event()
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+
+class FetchUserAllEvents(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        page = RequestUtilities.get_page_number(request)
+        attending_status = StringUtilities.get_boolean_from_string(request.GET.get('attending_status', False))
+        past_events = StringUtilities.get_boolean_from_string(request.GET.get('past_events', False))
+        conversation_manager = ConversationImpl(member_id=member_id)
+        response_context = conversation_manager.fetch_user_all_events(page, attending_status, past_events=past_events)
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+
 class ConversationViewsHelper:
 
     @staticmethod

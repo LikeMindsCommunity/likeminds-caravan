@@ -13,3 +13,5 @@ EVENT_MEMBERTESTIMONIALS_CHATROOM = "event_membertestimonials_%s"
 EVENT_FAQ_CHATROOM = "event_faq_%s"
 EVENT_ATTENDEES_CHATROOM = "event_attendees_%s"
 
+EVENT_ATTENDEES_CONVERSATION = "event_attendees_%s"
+

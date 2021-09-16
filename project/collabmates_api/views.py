@@ -16,7 +16,7 @@ from togther.models import *
 from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
-    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM
+    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -29,9 +29,11 @@ from utility.celery_tasks import (
     update_multiple_previews_in_community, update_preview_of_community_in_cache,
     update_event_attendees, set_levels_on_ctc_celery, set_level_click_state, update_event_instructors_in_cache,
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
-    update_event_in_webflow_service)
-from utility.firebase import (update_last_answer_id, upload_image_to_firebase,
-                              upload_community_thumbnail)
+    update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
+    cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom)
+
+from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
+
 from utility.internal_link_preview_utilities import PreviewUtilities
 from .notification import *
 from .raw_queries import *
@@ -264,6 +266,53 @@ def my_chatrooms_version_1(request):
     is_ios = RequestUtilities.is_request_ios(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
+    show_dm = request.GET.get('show_dm', False)
+
+    is_dm_message = False
+
+    if show_dm == 'true':
+        show_dm = True
+    else:
+        show_dm = False
+
+    community_instance = None
+
+    dm_instance_community_ids_list = []
+
+    consider_dm_chatrooms = False
+
+    if show_dm:
+        consider_dm_chatrooms = True
+
+        # Check for community
+        community_id = request.GET.get('community_id', None)
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if community_id and not community_instance:
+            return JsonResponse({"success": False, "error_message": "Invalid community ID."})
+
+        if not community_instance:
+            members_instances = ModelUtilities.get_model_filter(Members, {"member_id_id": member_id})
+
+            user_community_ids = list(members_instances.values_list("community_id_id", flat=True))
+
+            dm_right_instance = ModelUtilities.get_model_filter(communityRightsSettings,
+                                                                {"community_id__in": user_community_ids,
+                                                                 "right__state":
+                                                                     member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+        else:
+            dm_right_instance = ModelUtilities.get_model_filter(communityRightsSettings,
+                                                                {"community": community_instance,
+                                                                 "right__state":
+                                                                     member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+        if dm_right_instance.exists():
+            is_dm_message = True
+
+            dm_instance_community_ids_list = list(dm_right_instance.values_list("community_id", flat=True))
+
     try:
         page = int(page)
     except:
@@ -277,16 +326,23 @@ def my_chatrooms_version_1(request):
     if not member_id:
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
+
     else:
+
         try:
             current_user_instance = User.objects.get(pk=member_id)
+
         except User.DoesNotExist:
             context = get_error_context(False, "User does not exist")
             return JsonResponse(context)
 
-    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time)
+    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time,
+                                                                     consider_dm_chatrooms=consider_dm_chatrooms,
+                                                                     dm_instance_community_ids_list=dm_instance_community_ids_list)
+    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time,
+                                                          consider_dm_chatrooms=consider_dm_chatrooms,
+                                                          dm_instance_community_ids_list=dm_instance_community_ids_list)
 
-    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time)
     page_count = get_total_pages(active_chatroom_count, limit=10)
     page_count_inactive = get_total_pages(in_active_chatroom_count, limit=10)
 
@@ -297,7 +353,9 @@ def my_chatrooms_version_1(request):
         send_active = False
 
     if send_active:
-        engage_list = get_active_followed_chatrooms(member_id, current_time, page, limit=10)
+        engage_list = get_active_followed_chatrooms(member_id, current_time, page, limit=10,
+                                                    consider_dm_chatrooms=consider_dm_chatrooms,
+                                                    dm_instance_community_ids_list=dm_instance_community_ids_list)
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
@@ -310,11 +368,34 @@ def my_chatrooms_version_1(request):
 
     else:
         page = page - page_count
-        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10)
+        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10,
+                                                      consider_dm_chatrooms=consider_dm_chatrooms,
+                                                      dm_instance_community_ids_list=dm_instance_community_ids_list)
 
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
+
+    # Segregate DM and Non-DM chatrooms
+    dm_instance_list = []
+    non_dm_instance_list = []
+
+    for instance in instance_list:
+        is_dm_private_instance = instance.card.is_private
+
+        if all([is_dm_message, is_dm_private_instance, instance.card.chatroom_with_user,
+                instance.card.community_id in dm_instance_community_ids_list]):
+
+            dm_instance_list.append(instance)
+
+        elif (not instance.card.chatroom_with_user) and (not is_dm_private_instance):
+            non_dm_instance_list.append(instance)
+
+    if show_dm and is_dm_message:
+        instance_list = dm_instance_list
+
+    else:
+        instance_list = non_dm_instance_list
 
     for instance in instance_list:
 
@@ -397,9 +478,20 @@ def my_chatrooms_version_1(request):
                }
 
     if page == 1:
-        total_unseen_count = conversationEngage.objects \
-            .filter(user=current_user_instance, unseen_count__gt=0) \
-            .aggregate(total=Sum('unseen_count'))
+
+        if show_dm and is_dm_message:
+            total_unseen_count = conversationEngage.objects \
+                .filter(user=current_user_instance, community_id__in=dm_instance_community_ids_list,
+                        unseen_count__gt=0).aggregate(total=Sum('unseen_count'))
+
+        elif not show_dm:
+            total_unseen_count = conversationEngage.objects \
+                .filter(user=current_user_instance, unseen_count__gt=0, card__is_private=False,
+                        card__chatroom_with_user=None).aggregate(total=Sum('unseen_count'))
+
+        else:
+            total_unseen_count = {'total': 0}
+            context['inactive_chatroom_count'] = 0
 
         if total_unseen_count['total'] is None:
             total_unseen_count['total'] = 0
@@ -1648,17 +1740,26 @@ def remove_from_member(request):
     member_id = get_member_id_from_headers(request)
 
     if not member_id:
-        return JsonResponse({'success': False, 'error_message': "Send Member Id in header"})
+        return JsonResponse({'success': False, 'error_message': "Invalid member_id"})
 
     community_id = request.POST.get('community_id')
+
+    if not community_id:
+        return JsonResponse({'success': False, 'error_message': "Invalid community_id"})
 
     member_ids = request.POST.get('member_ids', False)
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', '')
 
-    community_instance = Community.get_community_or_raise_exception(community_id)
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
-    current_user_instance = User.get_user_or_raise_exception(member_id)
+    if not community_instance:
+        return JsonResponse(get_error_context(False, "Invalid community_id"))
+
+    current_user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+    if not current_user_instance:
+        return JsonResponse(get_error_context(False, "Invalid member_id"))
 
     is_promoter = Members.objects.filter(state=member_states.ADMIN,
                                          community_id=community_instance,
@@ -1812,7 +1913,7 @@ def remove_members(community_instance, user_instance, removed_state, current_use
     if removed_state == deleted_members.LEFT or removed_state == deleted_members.REMOVED:
         message = MEMBER_LEFT_COMMUNITY_TOAST if deleted_members.LEFT else MEMBER_REMOVED_FROM_COMMUNITY_TOAST
 
-        create_info ={
+        create_info = {
             'user_instance': user_instance,
             'community_instance': community_instance,
             'message': message
@@ -1841,6 +1942,28 @@ def remove_members(community_instance, user_instance, removed_state, current_use
                                 {'community': community_instance, 'user': user_instance},
                                 {'remove': instance, 'last_updated': TimeUtilities.current_time_in_milliseconds()}
                                 )
+
+    # Create Card Answer for all DM Chatroom
+    member_filter = ModelUtilities.get_model_filter(Members,
+                                                    {"community_id": community_instance, "member_id": user_instance})
+
+    if member_filter.exists():
+
+        dm_chatroom_ids_as_cm = ModelUtilities.get_model_filter(Collabcard,
+                                                                {"user": user_instance,
+                                                                 "community": community_instance,
+                                                                 "is_private": True}).values_list("id", flat=True)
+
+        dm_chatroom_ids_as_member = ModelUtilities.get_model_filter(Collabcard,
+                                                                    {"chatroom_with_user": user_instance,
+                                                                     "community": community_instance,
+                                                                     "is_private": True}).exclude(
+                chatroom_with_user=None).values_list("id", flat=True)
+
+        dm_chatroom_ids = set(list(dm_chatroom_ids_as_cm) + list(dm_chatroom_ids_as_member))
+
+        member_left_removed_dm_chatroom.delay(user_instance.id, community_instance.id, instance.id, removed_state,
+                                              list(dm_chatroom_ids))
 
     # deleting member record
     ModelUtilities.delete_record_in_model(Members,
@@ -2000,7 +2123,7 @@ def fetch_user_chatrooms(request):
 
         chatroom_filter = Collabcard.objects.filter(user_id=user_id, community_id=community_id,
                                                     is_pending=False, is_deleted=False,
-                                                    is_secret=False).order_by('-id')
+                                                    is_secret=False, is_private=False).order_by('-id')
         created_chatroom_count = chatroom_filter.count()
         chatroom_filter = pagination(chatroom_filter, page, paginate_by=10)
 
@@ -2020,10 +2143,13 @@ def fetch_user_chatrooms(request):
     elif int(state) == 1:
 
         chatroom_list = list(Collabcard.objects.filter(user_id=user_id, community_id=community_id,
-                                                       is_pending=False, is_deleted=False).values_list('id', flat=True))
+                                                       is_pending=False, is_deleted=False,
+                                                       is_private=False).values_list('id', flat=True))
 
         state_filter = collabcardState.objects.filter(user_id=user_id, community_id=community_id,
-                                                      follow_status=True, card__is_secret=False).exclude(
+                                                      follow_status=True,
+                                                      card__is_secret=False,
+                                                      card__is_private=False).exclude(
             card__in=chatroom_list).order_by('-updated_at', '-id')
 
         followed_chatroom_count = len(state_filter)
@@ -2989,10 +3115,10 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
                 answer = user_name + " started this chatroom in " + community_name
 
         elif state == conversation_states.CONVERSATION_FOLLOW:
-            answer = user_name + " joined this chatroom"
+            answer = user_name + " followed this chatroom"
 
         elif state == conversation_states.CONVERSATION_UNFOLLOW:
-            answer = user_name + " left this chatroom"
+            answer = user_name + " unfollowed this chatroom"
 
         elif state == conversation_states.CONVERSATION_COMMUNITY_EDIT:
             answer = user_name + " edited community purpose"
@@ -3506,7 +3632,6 @@ def get_branch_links_for_community_share(user_instance, community_instance):
     is_member = False
     member_filter = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
-    user_has_share_permission = False
     user_has_approve_right = False
     community_id = community_instance.id
     member_id = user_instance.id
@@ -3522,12 +3647,10 @@ def get_branch_links_for_community_share(user_instance, community_instance):
 
         is_owner = member_instance.is_owner
 
-        if is_member:
-            user_has_share_permission = check_member_invite_private_right(user_instance, community_instance)
-        elif is_promoter or is_owner:
+        if is_promoter or is_owner:
             user_has_approve_right = check_admin_approve_right(user_instance, community_instance)
 
-        if user_has_approve_right or user_has_share_permission:
+        if user_has_approve_right:
             aj = generate_private_link(community_instance=community_instance,
                                        promoter_instance=user_instance,
                                        just_send_aj=True)
@@ -3543,7 +3666,6 @@ def get_branch_links_for_community_share(user_instance, community_instance):
         'branch_links': branch_links,
         'is_owner': is_owner,
         'is_promoter': is_promoter,
-        'user_has_share_permission': user_has_share_permission,
         'user_has_approve_right': user_has_approve_right
     }
     return share_context
@@ -3571,15 +3693,6 @@ def fill_share_context_for_paid_community(community_instance, share_context, com
             community_name, branch_links[2]['url'])
 
         community_share['private_link_text_members_directory'] = private_link_text_members_directory
-
-    elif share_context['user_has_share_permission']:
-
-        community_share['public_link'] = branch_links[0]['url']
-        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
-            community_name,  community_share['public_link'])
-        community_share['private_link_members_directory'] = branch_links[2]['url']
-        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % \
-                                                                 (branch_links[2]['url'])
 
     else:
         community_share['public_link'] = branch_links[0]['url']
@@ -3616,18 +3729,6 @@ def fill_share_context_for_unpaid_community(community_instance, share_context, c
             community_name, branch_links[2]['url'])
 
         community_share['private_link_text_members_directory'] = private_link_text_members_directory
-
-    elif share_context['user_has_share_permission']:
-
-        community_share['private_link'] = branch_links[1]['url']
-        community_share['private_link_text'] = PRIVATE_LINK_FOR_PERMITTED_USER % (
-            community_name, branch_links[1]['url'])
-        community_share['public_link'] = branch_links[0]['url']
-        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
-            community_name, community_share['public_link'])
-        community_share['private_link_members_directory'] = branch_links[2]['url']
-        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
-            branch_links[2]['url'])
 
     else:
         community_share['public_link'] = branch_links[0]['url']
@@ -4442,10 +4543,10 @@ def get_answer_bubble_context_for_web(ans):
             answer_bubble = user_list[0] + " joined via a " + user_list[1] + "'s invite"
 
     elif ans.state == conversation_states.CONVERSATION_FOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) + " joined this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) + " followed this chatroom"
 
     elif ans.state == conversation_states.CONVERSATION_UNFOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) + " left this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) + " unfollowed this chatroom"
 
     return answer_bubble
 
@@ -4454,6 +4555,14 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                          community_instance=None, is_child=False, request_type="", parent_list=None, version_code=None,
                          platform_code=None):
     """ function to get chatroom actions """
+
+    if card_instance.is_private:
+
+        if card_status.get('mute_status'):
+            return collabcard_action_dm_user_mute
+
+        else:
+            return collabcard_action_dm_user_unmute
 
     purpose_card = False
     intro_card = False
@@ -5203,7 +5312,13 @@ def save_the_latest_conversation(card_instance, user_id):
         return {'last_conversation': None}
 
     last_conversation = card_answers.objects.filter(card=card_instance).\
-        filter(Q(state=conversation_states.CONVERSATION_POLL) | Q(state=conversation_states.ANSWER)).last()
+        filter(Q(state=conversation_states.CONVERSATION_POLL) |
+               Q(state=conversation_states.ANSWER) |
+               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT) |
+               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED) |
+               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT) |
+               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT) |
+               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT)).last()
 
     if last_conversation:
         user_instance = User.get_user_or_raise_exception(user_id)
@@ -6278,7 +6393,7 @@ def fetch_chatroom_feed(request):
         return JsonResponse(context)
 
     chatroom_filter = Collabcard.objects.filter(community=community_id,
-                                                is_pending=False, is_deleted=False).order_by('id')
+                                                is_pending=False, is_deleted=False, is_private=False).order_by('id')
 
     chatrooms = []
     context = {}
@@ -6365,6 +6480,7 @@ def fetch_chatroom_feed_version_1(request):
     state_filter = collabcardState.objects.filter(community=community_id,
                                                   card__is_pending=False,
                                                   card__is_deleted=False,
+                                                  card__is_private=False,
                                                   user=member_id,
                                                   secret_chatroom_left=False)\
         .exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
@@ -7101,7 +7217,7 @@ def create_user(user_name, email, id, apple_id=False):
     if not user.exists():
 
         user = User()
-        user.username = user_name
+        user.username = user_name.title()
         if email is not None:
             user.email = email
         user.save()
@@ -7123,7 +7239,7 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
         userinfo.user_id = user
         if email is not None:
             user.email = email
-        userinfo.name = user_name
+        userinfo.name = user_name.title()
         if profile_picture is not None:
             userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
         userinfo.login_type = login_type
@@ -7562,13 +7678,13 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
         has_user = User.objects.filter(username=user_name)
         if not has_user.exists():
             user_instance = User()
-            user_instance.username = user_name
+            user_instance.username = user_name.title()
             user_instance.save()
 
             # creating userinfo instance
 
             userinfo_instance = Userinfo()
-            userinfo_instance.name = name
+            userinfo_instance.name = name.title()
             userinfo_instance.email = email
             userinfo_instance.image_link = image_url
             userinfo_instance.login_type = login_type
@@ -8218,14 +8334,13 @@ def members_state(request, req_dict=None):
         response = get_error_context(False, f"community with id {community_id} doesn't exists")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    query_set = Members.objects.filter(member_id=member_id, community_id=community_instance)
+    query_set = ModelUtilities.get_model_filter(Members,
+                                                {"member_id": member_id,
+                                                 "community_id": community_instance})
 
     community_state = get_state_of_community(community_instance)
 
-    is_tool_state = False
-
-    if community_state == community_states.PRIVATE or community_state == community_states.PILOT_ACTIVE or community_state == community_states.WHATSAPP or community_state == community_states.HIDDEN:
-        is_tool_state = True
+    is_tool_state = True
 
     user_email = ""
     ref_members = []
@@ -8246,7 +8361,7 @@ def members_state(request, req_dict=None):
         if data.created_at > 0:
             created_at = time.strftime('%A, %b %d', time.localtime(data.created_at))
 
-        if state == member_states.ADMIN or state == 2 or state == member_states.MEMBER or state == 7:
+        if state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
             is_member = True
 
         if state == member_states.PENDING_MEMBER:
@@ -8277,8 +8392,8 @@ def members_state(request, req_dict=None):
     if state == member_states.PENDING_MEMBER:
         json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
 
-    if state == member_states.ADMIN and (
-            community_state == community_states.PRIVATE or community_state == community_states.WHATSAPP or community_state == community_states.HIDDEN):
+    if state == member_states.ADMIN and (community_state in [community_states.PRIVATE, community_states.WHATSAPP,
+                                                             community_states.HIDDEN]):
         if actions_required:
             promoter_name = query_set[0].member_id.userinfo.name
             json_response['community_levels'] = get_create_community_actions(community_id, promoter_name)
@@ -8294,9 +8409,7 @@ def members_state(request, req_dict=None):
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
         json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
 
-    if state == member_states.ADMIN or \
-            state == member_states.MEMBER or \
-            state == member_states.PROFILE_UNAVAILABLE:
+    if state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
         moderated_member_rights = get_saved_member_rights_list(user_rights)
 
@@ -8820,6 +8933,7 @@ def edit_community_version_1(request):
     community_instance.website_url = res.get('website_url', community_instance.website_url)
     community_instance.community_category = res.get('community_category', community_instance.community_category)
     community_instance.referral_enabled = res.get('referral_enabled', community_instance.referral_enabled)
+    community_instance.dashboard_link = res.get('dashboard_link', community_instance.dashboard_link)
 
     if edit_field:
         edit_community_data(community_instance, user_instance, edit_field=edit_field)
@@ -9456,7 +9570,11 @@ def push_report_v1(request):
     if request.method == 'POST':
 
         member_id = get_member_id_from_headers(request)
-        user_instance = User.objects.get(id=member_id)
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not user_instance:
+            return JsonResponse(get_error_context(False, "invalid member_id"))
 
         request_body = json.loads(request.body)
         collabcard_id = request_body['collabcard_id'] if 'collabcard_id' in request_body else None
@@ -9490,7 +9608,11 @@ def push_report_v1(request):
             if is_promoter and has_right_0:
                 return JsonResponse({'success': False, "error_message": "you have no right to report chatroom"})
 
-            collabcard_instance = Collabcard.objects.get(id=collabcard_id)
+            collabcard_instance = ModelUtilities.get_model_instance_or_none(Collabcard, collabcard_id)
+            
+            if not collabcard_instance:
+                return JsonResponse(get_error_context(False, "invalid collabcard_id"))
+
             report_type = report_Types.REPORT_CHATROOM
             if not reported_member_id:
                 reported_member_instance = collabcard_instance.user
@@ -9503,7 +9625,11 @@ def push_report_v1(request):
             if is_promoter and has_right_0:
                 return JsonResponse({'success': False, "error_message": "you have no right to report convesations"})
 
-            conversation_instance = card_answers.objects.get(id=conversation_id)
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+            if not conversation_instance:
+                return JsonResponse(get_error_context(False, "invalid conversation_id"))
+
             report_type = report_Types.REPORT_CONVERSATION
 
             if collabcard_instance is None:
@@ -9524,10 +9650,14 @@ def push_report_v1(request):
                 return JsonResponse({'success': False, "error_message": "send community_id in body"})
 
             report_type = report_Types.REPORT_MEMBER
-            reported_member_instance = User.objects.get(pk=reported_member_id)
 
-        report_tag_instance = Report_Tags.objects.get(tag_id=tag_id) if tag_id else None
-        community_instance = Community.objects.get(id=community_id)
+            reported_member_instance = ModelUtilities.get_model_instance_or_none(User, reported_member_id)
+
+            if not reported_member_instance:
+                return JsonResponse(get_error_context(False, "invalid reported_member_id"))
+
+        report_tag_instance = ModelUtilities.get_model_instance_or_none(Report_Tags, tag_id)
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         report_instance = Report()
         report_instance.tag = report_tag_instance
@@ -10385,6 +10515,9 @@ def update_community_manager_rights(request):
                                                          community_id=community_id, custom_title=custom_title)
                 update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance)
 
+                # DM chatroom add new CM
+                member_becomes_cm_dm_chatroom.delay(user_id, community_id)
+
             elif custom_title_changed:
                 member_title_changed = True
 
@@ -10450,6 +10583,9 @@ def remove_community_manager(request):
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+
+    is_user_cm = False
+
     if admin.exists():
         # deleting all manager rights
         userAdminRights.objects.filter(community=community_instance, user=user_instance).delete()
@@ -10462,6 +10598,8 @@ def remove_community_manager(request):
             custom_title = member_instance[0].custom_title
             if custom_title == "Community Manager":
                 custom_title = "Member"
+
+            is_user_cm = member_instance[0].state == member_states.ADMIN
 
         update_models_for_syncing_apis(SyncTypes.MEMBERS,
                                        {'community_id': community_instance, 'member_id': user_instance},
@@ -10490,6 +10628,10 @@ def remove_community_manager(request):
 
         send_sync_notification.delay({'community_id':community_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+        # Add Message in DM Chatrooms
+        if is_user_cm:
+            cm_removed_dm_chatroom.delay(user_id, community_id)
 
         # Update Members Index
         ElasticSearchSync.update_member.delay(user_id, community_id)
@@ -11292,6 +11434,7 @@ def fetch_community_setting_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
@@ -11316,7 +11459,7 @@ def fetch_community_setting_rights(request):
     if admin.exists():
         user_rights = check_all_member_rights(community=community_instance)
         # fetching all the rights of the community
-        rights_context = get_saved_member_rights_list(user_rights)
+        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=True, version_code=version_code)
         return JsonResponse({"rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")
@@ -11439,6 +11582,13 @@ class SyncChatrooms(APIView):
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        can_add_dm_chatrooms = False
+
+        if RequestUtilities.is_request_android(request) and (version_code >= DM_CHATROOMS_VERSION_CODE):
+            can_add_dm_chatrooms = True
+
         query_params = request.query_params
 
         page = query_params.get('page', 1)
@@ -11463,7 +11613,8 @@ class SyncChatrooms(APIView):
                 card_types.CARD_PUBLIC_EVENT,
                 card_types.CARD_MASTER_INTRO,
                 card_types.CARD_NORMAL,
-                card_types.CARD_INTRO
+                card_types.CARD_INTRO,
+                card_types.CARD_DIRECT_MESSAGE
             ]
         else:
 
@@ -11632,6 +11783,14 @@ class SyncChatrooms(APIView):
                 chatroom['topic_id'] = data[52]
 
             chatroom['is_edited'] = data[54]
+
+            chatroom['is_private'] = data[64]
+
+            if data[65]:
+                chatroom["chatroom_with_user_id"] = data[65]
+
+            if chatroom['is_private'] and not can_add_dm_chatrooms:
+                continue
 
             chatrooms.append(chatroom)
 
@@ -11940,7 +12099,7 @@ class SyncChatrooms(APIView):
                                                                     {'card': chatroom['id'],
                                                                      'attending_status': True}
                                                                     ).values_list('user', flat=True).
-                                    order_by('created_at', 'id')[:10])
+                                    order_by('created_at', 'id'))
 
         update_event_attendees.delay({'chatroom_id': chatroom['id'],
                                 'event_attendees_list': event_attendees_list})
@@ -12437,6 +12596,7 @@ class SyncConversation(APIView):
         chatroom_expire_status = query_params.get('chatroom_expire_status', '')
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
+        state = query_params.get('state')
 
         if chatroom_id:
             # seen conversation support for old versions of android users to be removed after stable release
@@ -12467,7 +12627,7 @@ class SyncConversation(APIView):
                 chatroom_list = [chatroom_id]
                 conversation_data, files_answer_id = get_conversation_data_based_on_chatroom_list(chatroom_list, page,
                                                                                                   paginate_by,
-                                                                                                  last_updated)
+                                                                                                  last_updated, state)
                 conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
                 conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                        conversation_files_dict,
@@ -12481,7 +12641,8 @@ class SyncConversation(APIView):
                                                                                                         page,
                                                                                                         paginate_by,
                                                                                                         last_updated,
-                                                                                                        community_id)
+                                                                                                        community_id,
+                                                                                                        state)
             conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
             conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                    conversation_files_dict,
@@ -12491,7 +12652,8 @@ class SyncConversation(APIView):
 
             chatroom_list = self.get_user_related_chatroom_list(chatroom_status, chatroom_expire_status, member_id)
             conversation_data, files_answer_id = get_conversation_data_based_on_chatroom_list(chatroom_list, page,
-                                                                                              paginate_by, last_updated)
+                                                                                              paginate_by, last_updated,
+                                                                                              state)
             conversation_files_dict = get_conversation_files_based_on_conversation_list(files_answer_id)
             conversations, max_last_updated = self.get_processed_conversation_data(conversation_data,
                                                                                    conversation_files_dict,
@@ -12657,6 +12819,9 @@ class SyncConversation(APIView):
 
             if conversation[30]:
                 conversation_context['reply_chatroom_id'] = conversation[30]
+
+            if conversation_context['state'] == ConversationStates.CONVERSATION_EVENT:
+                self.fill_event_conversation_data(conversation_context, conversation)
 
             conversation_list.append(conversation_context)
 
@@ -12845,7 +13010,6 @@ class SyncConversation(APIView):
 
                 attachment_list.append(voice_note_attachment)
 
-
         conversation_files_response['attachments'] = attachment_list
 
         return conversation_files_response
@@ -12963,6 +13127,52 @@ class SyncConversation(APIView):
             return True
 
         return False
+
+    def fill_event_conversation_data(self, conversation_context, conversation_data):
+
+        conversation_context['header'] = conversation_data[31]
+
+        if conversation_data[32]:
+            conversation_context['location'] = conversation_data[32]
+
+        if conversation_data[33]:
+            conversation_context['location_lat'] = conversation_data[33]
+
+        if conversation_data[34]:
+            conversation_context['location_long'] = conversation_data[34]
+
+        conversation_context['start_time'] = conversation_data[35]
+        conversation_context['end_time'] = conversation_data[36]
+        conversation_context['online_link_enable_before'] = conversation_data[37]
+
+        if conversation_data[38]:
+            co_hosts_ids = JsonUtilities.load_json_data(conversation_data[38])
+
+            if co_hosts_ids:
+                conversation_context['co_hosts_ids'] = co_hosts_ids
+
+        self._fill_event_attendees(conversation_context)
+
+    def _fill_event_attendees(self, conversation_context):
+
+        event_attendees_dict = CacheImpl.get_cache(EVENT_ATTENDEES_CONVERSATION % str(conversation_context['id']))
+
+        if event_attendees_dict:
+            event_attendees_list = event_attendees_dict.get('event_attendees_list', [])
+            conversation_context['attendees_ids'] = event_attendees_list
+
+            return
+
+        event_attendees_list = list(ModelUtilities.get_model_filter(conversationEventMembers,
+                                                                    {'conversation': conversation_context['id'],
+                                                                     'attending_status': True}
+                                                                    ).values_list('user', flat=True).
+                                    order_by('created_at')[:10])
+
+        update_event_attendees_for_micro_event.delay({'conversation_id': conversation_context['id'],
+                                                      'event_attendees_list': event_attendees_list})
+
+        conversation_context['attendees_ids'] = event_attendees_list
 
 
 class SyncConversationDiff(APIView):
@@ -13761,6 +13971,11 @@ class SyncCommunities(APIView):
             return JsonResponse(chatroom_context)
 
         elif community_id:
+            community_obj = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+            if not community_obj:
+                return JsonResponse(get_error_context(False, "Invalid community_id"))
+            
             engage_filter = Member_Engage.objects.filter(member_id=member_id, community_id=community_id
                                                          ).select_related('community_id')
 

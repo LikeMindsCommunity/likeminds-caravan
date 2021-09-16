@@ -438,7 +438,7 @@ def get_all_members(request, req_dict=None):
 
 def add_expired_members_metadata(members, community_instance):
     from .member_community.member_community_impl import MemberCommunityImpl
-    
+
     if not members:
         return []
 
@@ -475,12 +475,15 @@ def get_all_members_version_1(request, req_dict=None):
 
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id', None)
-
     current_user_id = get_member_id_from_headers(request)
-
     current_user_instance = ModelUtilities.get_model_instance_or_none(User, current_user_id)
-
     filter_list = request.GET.get('filter', None)
+    conversation_id = request.GET.get('conversation_id')
+
+    if conversation_id:
+        return send_participants_of_conversation(conversation_id, filter_list, current_user_id,
+                                                 page=NumberUtilities.get_integer_from_string(page))
+
     # functionality for user filtering based on options
 
     context = {}
@@ -915,3 +918,54 @@ def get_paginated_member_queryset(page, community_id, promoter=False):
     member_ids = Members.objects.filter(pk__in=member_id_list)
 
     return member_ids
+
+
+def send_participants_of_conversation(conversation_id, filter_list, current_user_id, page=1):
+    conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+    context = {'members': []}
+
+    if not conversation_instance:
+        return context
+
+    community_instance = conversation_instance.community
+    user_list = list(ModelUtilities.get_model_filter(conversationEventMembers,
+                                                     {'conversation': conversation_instance,
+                                                      'attending_status': True}).values_list('user', flat=True))
+    member_list = ModelUtilities.get_model_filter(Members,
+                                                  {'community_id': community_instance,
+                                                   'member_id__in': user_list})
+
+    community_data = CommunitySerializerV1(community_instance, context={"current_user_id": current_user_id},
+                                           many=False).data
+    if filter_list:
+        filter_list = json.loads(filter_list)
+        member_set = get_filtered_users(filter_list, member_list)
+        total_filtered_members = len(member_set)
+        member_instance = ModelUtilities.get_model_instance_or_none(User, current_user_id)
+
+        if not member_instance:
+            return context
+
+        members = get_member_instances_with_filter(member_set, current_user_id, community_instance.id, page=page,
+                                                   member_instance=member_instance)
+        context = {
+            'members': members,
+            'total_filtered_members': total_filtered_members,
+            'total_members': len(user_list),
+            'community': community_data
+
+        }
+
+    else:
+        total_members = len(user_list)
+        member_list = ModelUtilities.paginate_queryset(member_list, page, paginate_by=10)
+        members = get_member_instances_without_filter(member_list, current_user_id, community_instance.id,
+                                                      page=page)
+        context = {
+            'members': members,
+            'total_members': total_members,
+            'total_filtered_members': total_members,
+            'community': community_data
+        }
+
+    return context

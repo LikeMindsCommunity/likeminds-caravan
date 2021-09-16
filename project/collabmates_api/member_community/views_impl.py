@@ -108,6 +108,9 @@ class FetchHomeCommunities(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         page = request.GET.get('page', 1)
+        show_dm = request.GET.get('show_dm', False)
+        is_cm = request.GET.get('is_cm', False)
+        is_paid = request.GET.get('is_paid', False)
 
         if not member_id:
             return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
@@ -115,7 +118,8 @@ class FetchHomeCommunities(APIView):
         member_community_manager = MemberCommunityImpl(member_id, "",
                                                        platform_code=RequestUtilities.get_platform_code(request),
                                                        version_code=RequestUtilities.get_version_code_from_headers(request))
-        community_context = member_community_manager.fetch_home_communities(page)
+        community_context = member_community_manager.fetch_home_communities(page, show_dm=show_dm, is_cm=is_cm,
+                                                                            is_paid=is_paid)
 
         if 'error_message' in community_context:
             response_context = {'error_message': community_context['error_message']}
@@ -237,5 +241,30 @@ class FetchMemberDetails(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id=member_id, community_id=community_id)
         community_context = member_community_manager.fetch_members_detail(page, page_size)
+
+        return JsonResponse(community_context)
+
+
+class ShowDmMessageIcon(APIView):
+
+    def post(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_id = req_body.get('community_id')
+
+        member_community_manager = MemberCommunityImpl(member_id, community_id)
+        community_context = member_community_manager.show_dm(req_body)
+
+        if 'error_message' in community_context:
+            response_context = community_context
+
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(community_context)

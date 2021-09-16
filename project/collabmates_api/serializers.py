@@ -17,7 +17,7 @@ import time
 import ast
 from .static_files import *
 from .static_text import months_semi
-from .user_moderation_rights import check_member_invite_private_right, check_admin_view_contact_right
+from .user_moderation_rights import check_admin_view_contact_right
 from .branch import create_community_branch_links
 from utility.constants import *
 from utility.number_utilities import NumberUtilities
@@ -62,13 +62,8 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     if not current_user_instance and current_user_id:
         current_user_instance = User.objects.get(pk=current_user_id)
 
-    user_has_share_permission = False
-
-    if current_user_instance:
-        user_has_share_permission = check_member_invite_private_right(current_user_instance, community)
-
     # user is logged in and is a promoter or an owner or has rights.
-    if promoter_id or is_owner or user_has_share_permission:
+    if promoter_id or is_owner:
         # public and private links
         aj = private_link = generate_private_link(community_instance=community, promoter_instance=current_user_instance,
                                                   just_send_aj=True)
@@ -125,17 +120,6 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
 
         new_dict[
             'private_link_text_members_directory'] = private_link_text_members_directory
-
-    elif current_user_instance:
-
-        if user_has_share_permission:
-
-            new_dict[
-                'private_link_text_member'] = PRIVATE_LINK_FOR_PERMITTED_USER % (community.name, branch_links[1]['url'])
-
-            # private_link_members_directory = branch_links[1]['url']
-            new_dict[
-                'members_directory_link_for_members'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (branch_links[2]['url'])
 
     if community.type:
         new_dict['type'] = community.type
@@ -248,7 +232,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'is_edited': card.is_edited,
         'is_paid': card.is_paid,
         'access': card.access,
-        'online_link_enable_before': card.online_link_enable_before
+        'online_link_enable_before': card.online_link_enable_before,
+        'is_private': card.is_private,
     }
 
     if card.secret_chatroom_participants:
@@ -374,6 +359,9 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(conversation_serializer['created_at'])
 
         collabcard['topic'] = conversation_serializer
+
+    if card.chatroom_with_user:
+        collabcard['chatroom_with_user'] = UserinfoSerializer(card.chatroom_with_user.userinfo)
 
     return collabcard
 
@@ -857,6 +845,12 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
     collabcard_serializer = CollabcardSerializer(card_instance, member_id,
                                                  current_user_id=member_id, preview=preview,
                                                  return_topic=return_topic)
+
+    if card_instance.is_private and card_instance.chatroom_with_user:
+        collabcard_user = get_members_profile([card_instance.chatroom_with_user_id], card_instance.community_id,
+                                              send_profile=send_profile)
+
+        collabcard_serializer['chatroom_with_user'] = collabcard_user[0]
 
     # get chatroom status
     if not preview:
@@ -1902,7 +1896,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
     if conversation.remove:
         remove = True
 
-    member_profile = get_members_profile([conversation.user.id], conversation.community.id,
+    member_profile = get_members_profile([conversation.user_id], conversation.community_id,
                                          current_user_id=current_user_id, send_profile=False, remove=remove)
 
     temp['member'] = member_profile[0]

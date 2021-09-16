@@ -6,6 +6,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @classmethod
     def __subclasshook__(cls, subclass):
         return ((hasattr(subclass, 'fetch_community') and callable(subclass.fetch_community)) and
+                (hasattr(subclass, 'fetch_all_communities') and callable(subclass.fetch_all_communities)) and
                 (hasattr(subclass, 'fetch_chatroom_feed') and callable(subclass.fetch_chatroom_feed)) and
                 (hasattr(subclass, 'delete_community') and callable(subclass.delete_community)) and
                 (hasattr(subclass, 'fetch_feed_url') and callable(subclass.fetch_feed_url)) and
@@ -19,6 +20,12 @@ class CommunityManager(metaclass=abc.ABCMeta):
     def fetch_community(self, client_type):
         """
         fetches the community from the database
+        """
+        raise NotImplementedError
+
+    def fetch_all_communities(self, page):
+        """
+        Fetches all the communities from the database order by latest
         """
         raise NotImplementedError
 

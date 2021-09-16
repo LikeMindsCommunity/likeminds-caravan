@@ -40,6 +40,7 @@ from utility.states import member_states, card_types, click_states, member_right
 from utility.utils import check_notification_flag, get_first_name_from_name, decode_option
 from utility.time_utilities import TimeUtilities
 from utility.utils import check_notification_flag, get_first_name_from_name
+from utility.celery_tasks import create_member_dm_chatroom
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..mails import send_8am_level_mails_to_admin_scheduler
 from ..search.sync import ElasticSearchSync
@@ -55,10 +56,12 @@ class CommunityImpl(CommunityManager):
     member_id = None
     community_id = None
 
-    def __init__(self, member_id: str, community_id: str = None):
+    def __init__(self, member_id: str, community_id: str = None, device_id: str = None, request_platform: str = None):
 
         self.member_id = member_id
         self.community_id = community_id
+        self.device_id = device_id
+        self.request_platform = request_platform
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -68,6 +71,12 @@ class CommunityImpl(CommunityManager):
 
     def get_community_id(self) -> str:
         return self.community_id
+
+    def get_device_id(self) -> str:
+        return self.device_id
+
+    def get_request_platform(self):
+        return self.request_platform
 
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
@@ -124,6 +133,7 @@ class CommunityImpl(CommunityManager):
         return Collabcard.objects.filter(community=self.get_community_id(),
                                          is_pending=False,
                                          is_deleted=False,
+                                         is_private=False,
                                          is_secret=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
 
     def _compute_chatroom_creator_list(self, queryset):
@@ -223,6 +233,20 @@ class CommunityImpl(CommunityManager):
         response_context['community_context'] = community_context
         response_context['response_code'] = 200
         response_context['status'] = True
+
+        return response_context
+
+    def fetch_all_communities(self, page) -> {}:
+
+        community_instances = ModelUtilities.get_model_filter(Community, {}).order_by('-created_at')
+        community_instances = ModelUtilities.paginate_queryset(community_instances, page, paginate_by=50)
+
+        community_serialized_instances = CommunitySerializerV1(community_instances, many=True).data
+
+        response_context = {
+            'communities': [dict(i) for i in community_serialized_instances],
+            'success': True
+        }
 
         return response_context
 
@@ -456,6 +480,9 @@ class CommunityImpl(CommunityManager):
         update_member_rights_in_member_engage.delay(community_instance.id, user_instance.id)
         update_member_rights_in_conversation_engage.delay(community_instance.id, user_instance.id)
 
+        # Add DM Chatrooms
+        create_member_dm_chatroom.delay(user_instance.id, community_instance.id, is_joining=True)
+
     def make_requesting_user_as_member_of_community_automatically(self, user_instance, community_instance,
                                                                   auto_join_code, shared_by_user, req_body):
 
@@ -501,6 +528,13 @@ class CommunityImpl(CommunityManager):
         if action_required_by_promoter:
             CommunityHelper.update_community_level_actions(community_instance,
                                                            action_required_by_promoter, members_count)
+
+        # Create DM chatrooms
+        device_id = self.get_device_id()
+        platform = self.get_request_platform()
+
+        create_member_dm_chatroom.delay(self.get_member_id(), self.get_community_id(), device_id=device_id,
+                                        request_platform=platform, req_body=req_body, is_joining=True)
 
     def approve_or_decline_community(self, req_body) -> {}:
 
@@ -621,7 +655,6 @@ class CommunityImpl(CommunityManager):
         else:
 
             return {'success': False, 'error_message': "Invalid member state"}
-
 
         user_has_access = Members.user_has_app_access(user_instance.id)
 
@@ -920,6 +953,9 @@ class CommunityHelper:
                                                    , community_instance.id)
 
         ElasticSearchSync.update_member.delay(user_instance.id, community_instance.id)
+
+        # Create DM chatrooms
+        create_member_dm_chatroom.delay(user_instance.id, community_instance.id, is_joining=True)
 
     @staticmethod
     def run_async_task_for_community_declined(community_instance, user_instance, promoter_userinfo_instance):

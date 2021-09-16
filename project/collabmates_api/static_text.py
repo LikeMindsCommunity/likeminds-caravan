@@ -175,6 +175,36 @@ collabcard_action_user_unfollow = [
     }
 ]
 
+collabcard_action_dm_user_unmute = [
+    {
+        'id': 21,
+        'title': 'View profile'
+    },
+    {
+        'id': 5,
+        'title': 'View community'
+    },
+    {
+        'id': 6,
+        'title': 'Mute notifications'
+    }
+]
+
+collabcard_action_dm_user_mute = [
+    {
+        'id': 21,
+        'title': 'View profile'
+    },
+    {
+        'id': 5,
+        'title': 'View community'
+    },
+    {
+        'id': 8,
+        'title': 'UnMute notifications'
+    }
+]
+
 rename_chatroom = {'id': 1, 'title': 'Rename chatroom'}
 
 view_participants = {'id': 2, 'title': 'View participants'}
@@ -213,9 +243,12 @@ member_can_message = {'id': 18, 'title': "Members can send message"}
 
 accessible_without_subscription = {'id': 19, 'title': "Accessible without subscription"}
 
+view_profile = {'id': 21, 'title': "View profile"}
+
 settings_for_purpose_chatroom = [rename_chatroom, member_can_message]
 
 settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom]
+
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
 
@@ -310,6 +343,10 @@ auto_approve_member_right = {'id': 6, 'title': "Auto-approve created chat rooms"
 
 create_secret_chatroom_right = {'id': 7, 'title': "create secret room rights", 'sub_title': None, "state": 6}
 
+show_direct_messages_right = {'id': 8, 'title': "Direct messages",
+                              'sub_title': 'Direct messaging can happen only between a community manager and a community member (not among 2 members).',
+                              "state": 7}
+
 member_rights_list = [create_room_member_right, create_poll_member_right,
                       create_event_member_right, respond_in_rooms_member_right,
                       invite_private_member_right, auto_approve_member_right]
@@ -374,6 +411,12 @@ REACTIONS_SYNC_TRIGGER_VERSION_CODE_AN = 112
 TOPIC_SYNC_TRIGGER_VERSION_CODE_AN = 133
 CHATROOM_FIRST_MESSAGE_ACTION_VERSION_CODE_ANDROID = 131
 MICRO_POLLS_ANDROID_VERSION_CODE = 139
+
+if not settings.IS_BETA:
+    DM_CHATROOMS_VERSION_CODE = 773
+
+else:
+    DM_CHATROOMS_VERSION_CODE = 146
 
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
 EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%S added you as a host for %s in %s"
@@ -450,3 +493,11 @@ PAID_COMMUNITY_LEVEL_4_SUB_TITLE = "Invite members with payment link"
 # Need to confirm these codes with clients at the time of release.
 CHATROOM_SETTINGS_VERSION_CODE_AN = 1000
 CHATROOM_SETTINGS_VERSION_CODE_IOS = 1000
+
+MEMBER_LEFT_DM_CHATROOM_MESSAGE = "{} left {}"
+MEMBER_REMOVED_DM_CHATROOM_MESSAGE = "{} was removed from {}"
+
+CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is no longer a community manager"
+MEMBER_JOINING_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is a member now"
+
+MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE = "{} is a community manager now"

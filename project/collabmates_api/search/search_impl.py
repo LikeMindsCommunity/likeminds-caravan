@@ -121,6 +121,11 @@ class SearchImpl(SearchManager):
                                 ]
                             }
                         }
+                    ],
+                    "must_not": [
+                        {
+                            "term": {"chatroom.type": card_types.CARD_DIRECT_MESSAGE}
+                        }
                     ]
                 }
             }
@@ -243,6 +248,7 @@ class SearchImpl(SearchManager):
         return list(collabcardState.objects
                     .filter(user__id=self.get_member_id(),
                             card__is_deleted=False,
+                            card__is_private=False,
                             secret_chatroom_left=False,
                             follow_status=self.get_follow_status(),
                             remove=None)

@@ -42,6 +42,25 @@ class FetchCommunity(APIView):
                 }, status=community_response['response_code'])
 
 
+class FetchAllCommunities(APIView):
+    '''inheriting API view class for using class based views in django'''
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        page = RequestUtilities.get_page_number(request, default=1)
+
+        community_manager = CommunityImpl(member_id)
+        community_response = community_manager.fetch_all_communities(page=page)
+
+        if 'error_message' in community_response:
+            return JsonResponse({
+                'success': False,
+                'error_message': community_response['error_message']
+            })
+
+        return JsonResponse(community_response)
+
+
 class FetchChatroomFeed(APIView):
 
     def get(self, request):
@@ -98,11 +117,15 @@ class ApproveOrDeclineCommunity(APIView):
 
         req_body = RequestUtilities.load_request_body(request)
 
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        request_platform = RequestUtilities.get_platform_code(request)
+
         if not req_body:
             return JsonResponse({'success': False, 'error_message': "Invalid community"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
-        community_manager = CommunityImpl(member_id, req_body.get('community_id'))
+        community_manager = CommunityImpl(member_id, req_body.get('community_id'), device_id=device_id,
+                                          request_platform=request_platform)
         community_context = community_manager.approve_or_decline_community(req_body)
 
         if 'error_message' in community_context:
@@ -188,11 +211,15 @@ class CommunityJoinView(APIView):
 
         req_body = RequestUtilities.load_request_body(request)
 
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        request_platform = RequestUtilities.get_platform_code(request)
+
         if not req_body:
             return JsonResponse({'success': False, 'error_message': "Invalid Json Body"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
-        community_manager = CommunityImpl(member_id, req_body.get('community_id'))
+        community_manager = CommunityImpl(member_id, req_body.get('community_id'), device_id=device_id,
+                                          request_platform=request_platform)
         community_context = community_manager.join_community(req_body)
 
         if 'error_message' in community_context:

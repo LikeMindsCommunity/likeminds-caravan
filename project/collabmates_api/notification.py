@@ -1203,7 +1203,6 @@ def send_follow_notification(card_id, user_id, conversation_id):
         return
 
     answer = conversation_instance.answer
-    print(answer)
 
     community_instance = card_instance.community
 

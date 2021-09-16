@@ -14,7 +14,8 @@ from collabmates_api.conversation.reactions import fetch_chatroom_or_conversatio
 from collabmates_api.member_community import member_community_impl
 from collabmates_api.raw_queries import get_chatroom_count_based_on_community_list, \
     get_count_of_community_members_based_on_community_list, fetch_chatroom_polls, fetch_member_poll_votes
-from collabmates_api.serializers import conversationSerializer, get_collabcard_files, get_preview_for_url
+from collabmates_api.serializers import conversationSerializer, get_collabcard_files, get_preview_for_url, \
+    get_members_profile
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -185,7 +186,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                                                            {'card': card_instance,
                                                                             'attending_status': True}
                                                                            ).values_list('user', flat=True).
-                                           order_by('created_at', 'id')[:10])
+                                           order_by('created_at', 'id'))
 
         attendees_list = self.process_event_attendees_list(event_attendees_list, community_instance)
         update_event_attendees.delay({'chatroom_id': card_instance.id,
@@ -594,7 +595,8 @@ class ChatroomMemberHelper:
                             'is_edited': card_instance.is_edited,
                             'is_paid': card_instance.is_paid,
                             'access': card_instance.access,
-                            'online_link_enable_before': card_instance.online_link_enable_before}
+                            'online_link_enable_before': card_instance.online_link_enable_before,
+                            'is_private': card_instance.is_private}
 
         if card_instance.is_secret:
             chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)
@@ -644,6 +646,12 @@ class ChatroomMemberHelper:
                 conversation_serializer['created_at'])
 
             chatroom_context['topic'] = conversation_serializer
+
+        if card_instance.chatroom_with_user:
+            chatroom_member = get_members_profile([card_instance.chatroom_with_user_id], card_instance.community_id,
+                                                  send_profile=False)
+
+            chatroom_context['chatroom_with_user'] = chatroom_member[0]
 
         return chatroom_context
 

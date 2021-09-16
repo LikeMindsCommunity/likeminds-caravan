@@ -12,7 +12,13 @@ class ConversationManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'poll_users') and callable(subclass.poll_users)) and
                 (hasattr(subclass, 'add_reaction') and callable(subclass.add_reaction)) and
                 (hasattr(subclass, 'remove_reaction') and callable(subclass.remove_reaction)) and
-                (hasattr(subclass, 'set_chatroom_topic') and callable(subclass.set_chatroom_topic)) or
+                (hasattr(subclass, 'set_chatroom_topic') and callable(subclass.set_chatroom_topic)) and
+                (hasattr(subclass, 'attend_event') and callable(subclass.attend_event)) and
+                (hasattr(subclass, 'set_event_attended') and callable(subclass.set_event_attended)) and
+                (hasattr(subclass, 'update_last_seen_event') and callable(subclass.update_last_seen_event)) and
+                (hasattr(subclass, 'fetch_unseen_count_in_event') and callable(subclass.fetch_unseen_count_in_event)) and
+                (hasattr(subclass, 'fetch_link_for_event') and callable(subclass.fetch_link_for_event)) and
+                (hasattr(subclass, 'fetch_user_all_events') and callable(subclass.fetch_user_all_events)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -66,4 +72,45 @@ class ConversationManager(metaclass=abc.ABCMeta):
     def set_chatroom_topic(self) -> dict:
         """sets a conversation as chatroom topic"""
 
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def attend_event(self, req_body):
+        """set member as event attendee"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def set_event_attended(self, req_body):
+
+        """set the micro event attended by user"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_last_seen_event(self) -> dict:
+        """
+        adding last seen event on platform
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_unseen_count_in_event(self) -> dict:
+        """
+        fetch unseen count in event
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_link_for_event(self) -> dict:
+        """
+        fetch online link for event
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_user_all_events(self, page, attending_status, past_events) -> dict:
+        """
+        fetch attending events of user
+        """
         raise NotImplementedError

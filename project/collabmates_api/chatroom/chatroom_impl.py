@@ -900,6 +900,9 @@ class ChatroomImpl(ChatroomManager):
                 chatroom_instance.type == card_types.CARD_PUBLIC_EVENT:
             schedule_chatroom_unpinning_after_event_completion(chatroom_instance)
 
+            ModelUtilities.model_update(collabcardState, {'card': chatroom_instance, 'user': user_instance},
+                                        {'attending_status': True, 'updated_at': TimeUtilities.current_time_in_sec()})
+
         context = {
             'success': True,
             'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance),
@@ -2513,6 +2516,11 @@ class ChatroomHelper:
         co_host_list = json.loads(card_instance.co_hosts)
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, co_host_list)
+
+        co_hosts_chatroom_state = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                                    'user_id__in': co_host_list})
+
+        co_hosts_chatroom_state.update(attending_status=True, updated_at=TimeUtilities.current_time_in_sec())
 
         send_notification_to_event_co_hosts.delay(co_host_list, card_instance.id,
                                                   card_instance.header, userinfo_instance.name)
