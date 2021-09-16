@@ -1975,6 +1975,7 @@ def get_recent_n_days_conversation_chatroom_list(community_id, duration, limit) 
                 FROM togther_collabcard
                 WHERE (type!=%s
                         AND type!=%s
+                        AND type!=%s
                         AND type!=%s))
             AND (state=0 or state=10)
             GROUP BY  card_id
@@ -1982,7 +1983,7 @@ def get_recent_n_days_conversation_chatroom_list(community_id, duration, limit) 
             ORDER BY  MAX(created_at) DESC limit %s 
         """ % (
             str(community_id), str(card_types.CARD_PURPOSE), str(card_types.CARD_INTRO),
-            str(card_types.CARD_MASTER_INTRO),
+            str(card_types.CARD_MASTER_INTRO), str(card_types.CARD_DIRECT_MESSAGE),
             str(duration), str(limit))
 
         curr.execute(sql)
@@ -2014,6 +2015,7 @@ def get_n_percentage_member_conversation_chatroom_list(community_id, members_cou
             FROM togther_collabcard
             WHERE type!=%s
                     AND type!=%s
+                    AND type!=%s
                     AND type!=%s)
             AND (state=0 or state=10)
         GROUP BY  card_id
@@ -2021,7 +2023,7 @@ def get_n_percentage_member_conversation_chatroom_list(community_id, members_cou
         ORDER BY  max(created_at) DESC limit %s
         """ % (
             str(community_id), str(card_types.CARD_PURPOSE), str(card_types.CARD_INTRO),
-            str(card_types.CARD_MASTER_INTRO),
+            str(card_types.CARD_MASTER_INTRO), str(card_types.CARD_DIRECT_MESSAGE),
             str(members_count), str(limit))
 
         curr.execute(sql)

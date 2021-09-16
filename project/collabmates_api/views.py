@@ -6393,7 +6393,7 @@ def fetch_chatroom_feed(request):
         return JsonResponse(context)
 
     chatroom_filter = Collabcard.objects.filter(community=community_id,
-                                                is_pending=False, is_deleted=False).order_by('id')
+                                                is_pending=False, is_deleted=False, is_private=False).order_by('id')
 
     chatrooms = []
     context = {}
@@ -6480,6 +6480,7 @@ def fetch_chatroom_feed_version_1(request):
     state_filter = collabcardState.objects.filter(community=community_id,
                                                   card__is_pending=False,
                                                   card__is_deleted=False,
+                                                  card__is_private=False,
                                                   user=member_id,
                                                   secret_chatroom_left=False)\
         .exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
