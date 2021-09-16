@@ -2107,8 +2107,8 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
                 initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_user, community_instance,
                                             user_instances_list)
 
+                # # Update All community chatrooms for user
+                # ElasticSearchSync.update_chatroom.delay(chatroom_instance.id)
+
         # Update time for community members on card creation
         Collabcard.update_time_for_community_members(community_instance)
-
-        # Update All community chatrooms for user
-        ElasticSearchSync.update_all_community_chatrooms_for_user.delay(community_instance.id, user_instance.id)
