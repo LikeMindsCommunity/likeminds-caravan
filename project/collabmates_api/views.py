@@ -11434,6 +11434,7 @@ def fetch_community_setting_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
@@ -11458,7 +11459,7 @@ def fetch_community_setting_rights(request):
     if admin.exists():
         user_rights = check_all_member_rights(community=community_instance)
         # fetching all the rights of the community
-        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=True)
+        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=True, version_code=version_code)
         return JsonResponse({"rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")
@@ -11585,7 +11586,7 @@ class SyncChatrooms(APIView):
 
         can_add_dm_chatrooms = False
 
-        if RequestUtilities.is_request_android(request) and (version_code >= DM_CHATROOMS_ANDROID_VERSION_CODE):
+        if RequestUtilities.is_request_android(request) and (version_code >= DM_CHATROOMS_VERSION_CODE):
             can_add_dm_chatrooms = True
 
         query_params = request.query_params

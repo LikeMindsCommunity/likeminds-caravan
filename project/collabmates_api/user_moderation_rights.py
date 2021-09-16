@@ -116,11 +116,14 @@ def save_member_right(user, community, right):
         error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
 
 
-def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False):
+def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False, version_code=0):
     """ function to return the selected and disabled rights of a member or community settings """
     all_member_rights = memberRights.objects.all().exclude(state=4).order_by("state")
     rights_list = []
     for right in all_member_rights:
+
+        if (right.state == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES) and (version_code < DM_CHATROOMS_VERSION_CODE):
+            continue
 
         if (right.state == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES) and (not show_dm_right):
             continue
