@@ -1783,13 +1783,22 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
                                                             {'card': chatroom_instance,
                                                              'user': user_instance})
 
-            rights_list = None
+            # Update rights list in conversation engage
+            rights_list = list(userMemberRights.objects.filter(user=user_instance,
+                                                               community=community_instance).values_list(
+                "right__state",
+                flat=True))
 
-            if user_member_state == member_states.ADMIN:
-                rights_list = json.dumps(member_rights.ALL_MEMBER_RIGHTS)
+            if not rights_list:
 
-            elif user_member_state == member_states.MEMBER or member_state == member_states.PROFILE_UNAVAILABLE:
-                rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
+                if user_member_state == member_states.ADMIN:
+                    rights_list = json.dumps(member_rights.ALL_MEMBER_RIGHTS)
+
+                elif user_member_state == member_states.MEMBER or member_state == member_states.PROFILE_UNAVAILABLE:
+                    rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
+
+            else:
+                rights_list = json.dumps(rights_list)
 
             if not instance_list:
                 conversationEngage.create_instance({'card_instance': chatroom_instance,
@@ -1802,17 +1811,6 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
                 ModelUtilities.model_update(conversationEngage, {'id': instance.id},
                                             {'last_conversation': None,
                                              'updated_at': TimeUtilities.current_time_in_sec()})
-
-            # Update rights list in conversation engage
-            rights_list = list(userMemberRights.objects.filter(user=user_instance,
-                                                               community=community_instance).values_list(
-                "right__state",
-                flat=True))
-            rights_list = json.dumps(rights_list)
-
-            ModelUtilities.model_update(conversationEngage, {'user': user_instance,
-                                                             'community': community_instance},
-                                        {'rights_list': rights_list})
 
         # Update Home screen meta on chatroom follow
         last_conversation_member, second_last_conversation_member, last_conversation_user, \
@@ -1854,123 +1852,6 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
             card_state_instance.expiry_time = None
             card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             card_state_instance.save()
-
-
-def fill_chatroom_attachment_count_data(card_content, req_body):
-    card_content['image_count'] = req_body.get('image_count', 0)
-    card_content['pdf_count'] = req_body.get('pdf_count', 0)
-    card_content['video_count'] = req_body.get('video_count', 0)
-    card_content['audio_count'] = req_body.get('audio_count', 0)
-    card_content['has_files'] = req_body.get('has_files', False)
-
-    card_content['attachment_count'] = req_body.get('attachment_count', 0)
-    card_content['attachments_uploaded'] = False
-
-    if card_content['attachment_count'] == 0 and card_content['pdf_count'] > 0:
-        card_content['attachment_count'] = card_content['pdf_count']
-
-    if card_content['attachment_count'] > 0 or card_content['pdf_count'] > 0:
-        card_content['has_files'] = True
-        req_body['has_files'] = True
-
-    return card_content
-
-
-def fill_chatroom_epoch_time_data(card_content, req_body):
-    card_content['date_time'] = req_body.get('date_time', 0)
-    card_content['duration'] = req_body.get('duration', 0)
-    card_content['start_date'] = req_body.get('start_date', 0)
-
-    if card_content['type'] == card_types.CARD_POLL:
-        # for saving poll expiry time
-        expiry_time = req_body.get('expiry_time', 0)
-
-        if expiry_time > 0:
-            # rounding off epoch time into exact minute
-            # removing any extra seconds
-            expiry_time = expiry_time // 1000
-            expiry_time = expiry_time - (expiry_time % 60)
-
-        card_content['end_date'] = expiry_time * 1000
-
-    else:
-        card_content['end_date'] = req_body.get('end_date', 0)
-
-    card_content['date_epoch'] = TimeUtilities.current_time_in_sec()
-
-    return card_content
-
-
-def fill_chatroom_event_details_data(card_content, req_body):
-    card_content['location'] = req_body.get('location', None)
-    card_content['location_lat'] = req_body.get('location_lat', None)
-    card_content['location_long'] = req_body.get('location_long', None)
-
-    card_content['about'] = req_body.get('about', None)
-    card_content['co_hosts'] = json.dumps(req_body['co_hosts']) if ('co_hosts' in req_body) else None
-    card_content['online_link'] = req_body.get('online_link', None)
-
-    return card_content
-
-
-def fill_chatroom_poll_details_data(card_content, req_body):
-    card_content['poll_type'] = req_body.get('poll_type', None)
-    card_content['is_poll_anonymous'] = req_body.get('is_anonymous', None)
-    card_content['allow_add_option'] = req_body.get('allow_add_option', None)
-    card_content['multiple_select'] = req_body.get('multiple_select', False)
-    card_content['multiple_select_no'] = req_body.get('multiple_select_no', None)
-    card_content['multiple_select_state'] = req_body.get('multiple_select_state', None)
-
-    return card_content
-
-
-def fill_chatroom_header_data(card_content, chatroom_name, chatroom_type, req_body):
-    card_type = chatroom_type
-    has_been_named = False
-
-    if 'header' in req_body:
-        card_content['header'] = req_body['header']
-        has_been_named = True
-        card_content['has_been_named'] = has_been_named
-
-    else:
-
-        decoded_title = ""
-
-        if len(decoded_title) <= 30:
-            card_content['header'] = decoded_title[:30]
-
-        else:
-            card_content['header'] = decoded_title[:27] + "..."
-
-        if card_type == card_types.CARD_DIRECT_MESSAGE:
-            card_content['header'] = chatroom_name
-            card_content['has_been_named'] = True
-
-        else:
-            card_content['has_been_named'] = has_been_named
-
-    return card_content
-
-
-def fill_secret_chatroom_details_data(card_content, user_instance, req_body):
-    card_content['is_secret'] = req_body.get("is_secret", False)
-
-    if card_content['is_secret'] and \
-            req_body.get("secret_chatroom_participants", None):
-        card_content['is_secret'] = True
-
-        secret_chatroom_participants = req_body.get("secret_chatroom_participants", None)
-
-        if secret_chatroom_participants:
-            member_id = NumberUtilities.get_integer_from_string(user_instance.id)
-
-            if member_id not in secret_chatroom_participants:
-                secret_chatroom_participants.append(member_id)
-
-            card_content['secret_chatroom_participants'] = json.dumps(secret_chatroom_participants)
-
-    return card_content
 
 
 def fill_chatroom_basic_info(card_content, chatroom_name, chatroom_type, community_instance, member_instance,
@@ -2074,29 +1955,12 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
                 card_content = fill_chatroom_basic_info(card_content, chatroom_name, chatroom_type, community_instance,
                                                         member_instance, device_id, request_platform)
 
-                # Fill chatroom attachment count
-                card_content = fill_chatroom_attachment_count_data(card_content, req_body)
-
                 # Fill chatroom epoch time
-                card_content = fill_chatroom_epoch_time_data(card_content, req_body)
-
-                # Fill chatroom event details
-                card_content = fill_chatroom_event_details_data(card_content, req_body)
-
-                # Fill chatroom poll details
-                card_content = fill_chatroom_poll_details_data(card_content, req_body)
+                card_content['date_epoch'] = TimeUtilities.current_time_in_sec()
 
                 # Fill chatroom header
-                card_content = fill_chatroom_header_data(card_content, chatroom_name, chatroom_type, req_body)
-
-                # Fill add_og_tags
-                if 'share_link' in req_body:
-                    card_content['share_link'] = req_body['share_link']
-                    og_tags = decode_meta_from_url(req_body['share_link'])
-                    card_content['og_tags'] = json.dumps(og_tags)
-
-                # Fill secret chatroom details
-                card_content = fill_secret_chatroom_details_data(card_content, user_instance, req_body)
+                card_content['header'] = chatroom_name
+                card_content['has_been_named'] = True
 
                 card_content['member_state'] = user_member_state
 
