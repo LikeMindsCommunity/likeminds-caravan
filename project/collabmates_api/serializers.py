@@ -1557,9 +1557,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         if not answer_filter.exists():
             community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
                 TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
-            community_profile[
-                'custom_click_text'] = """%s joined this community via a private community link on %s and haven’t 
-                created their profile for this community yet""" % (
+            community_profile['custom_click_text'] = CUSTOM_CLICK_TEXT % (
                 member_instance.member_id.userinfo.name,
                 TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
 
