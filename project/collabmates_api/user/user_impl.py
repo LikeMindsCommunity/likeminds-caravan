@@ -23,12 +23,14 @@ from utility.states import email_states, mobile_states, member_states, login_typ
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
+from utility.request_utilities import RequestUtilities
 
 from .constants import *
 from ..raw_queries import get_community_id_list
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
 from ..tasks import send_verification_mail_for_email_sync
 from ..rest_api import CommunitySerializerV1
+from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -43,9 +45,11 @@ class UserImpl(UserManager):
     user_id = None
     mobile_no = None
 
-    def __init__(self, user_id: str, mobile_no: str = None):
+    def __init__(self, user_id: str, mobile_no: str = None, platform_code: str = None, version_code: int = 0):
         self.user_id = user_id
         self.mobile_no = mobile_no
+        self.platform_code = platform_code
+        self.version_code = version_code
 
     def get_user_id(self):
         return self.user_id
@@ -55,6 +59,12 @@ class UserImpl(UserManager):
 
     def get_mobile_no(self):
         return self.mobile_no
+
+    def get_platform_code(self):
+        return self.platform_code
+
+    def get_version_code(self):
+        return self.version_code
 
     def set_mobile_no(self, mobile_no):
         self.mobile_no = mobile_no
@@ -565,6 +575,16 @@ class UserImpl(UserManager):
         return data
 
     def fetch_dm_home(self) -> dict:
+
+        if RequestUtilities.is_request_android(self.get_platform_code()) and (
+                self.get_version_code() < DM_CHATROOMS_VERSION_CODE_ANDROID):
+
+            return {'success': True}
+
+        elif RequestUtilities.is_request_ios(self.get_platform_code()) and (
+                self.get_version_code() < DM_CHATROOMS_VERSION_CODE_IOS):
+
+            return {'success': True}
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
 
