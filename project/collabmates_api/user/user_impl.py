@@ -576,14 +576,10 @@ class UserImpl(UserManager):
 
     def fetch_dm_home(self) -> dict:
 
-        if RequestUtilities.is_request_android(self.get_platform_code()) and (
-                self.get_version_code() < DM_CHATROOMS_VERSION_CODE_ANDROID):
-
+        if (self.get_platform_code() == "an") and (self.get_version_code() < DM_CHATROOMS_VERSION_CODE_ANDROID):
             return {'success': True}
 
-        elif RequestUtilities.is_request_ios(self.get_platform_code()) and (
-                self.get_version_code() < DM_CHATROOMS_VERSION_CODE_IOS):
-
+        elif (self.get_platform_code() == "ios") and (self.get_version_code() < DM_CHATROOMS_VERSION_CODE_IOS):
             return {'success': True}
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
