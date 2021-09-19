@@ -127,11 +127,13 @@ class FetchDmHome(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
 
-        user_manager = UserImpl(user_id=member_id)
+        user_manager = UserImpl(user_id=member_id, platform_code=platform_code, version_code=version_code)
         user_context = user_manager.fetch_dm_home()
 
         if 'error_message' in user_context:
