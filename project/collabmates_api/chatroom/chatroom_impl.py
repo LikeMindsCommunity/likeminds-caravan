@@ -2304,6 +2304,12 @@ class ChatroomHelper:
                 if instance:
                     bulk_create_list.append(instance)
 
+                update_event_attendees.delay({
+                    "chatroom_id": card_instance.id,
+                    "user_id": user_instance.id,
+                    "status": attending_status
+                })
+
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
 
     @staticmethod
@@ -2521,6 +2527,14 @@ class ChatroomHelper:
                                                                                     'user_id__in': co_host_list})
 
         co_hosts_chatroom_state.update(attending_status=True, updated_at=TimeUtilities.current_time_in_sec())
+
+        if co_host_list:
+            # Update Cache with Event Chatroom Attendees
+            update_event_attendees.delay({
+                "chatroom_id": card_instance.id,
+                "status": True,
+                "user_id": co_host_list
+            })
 
         send_notification_to_event_co_hosts.delay(co_host_list, card_instance.id,
                                                   card_instance.header, userinfo_instance.name)

@@ -716,7 +716,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         remove_member = {}
 
         userinfo_instance = user_instance.userinfo
-        remove_member['id'] = userinfo_instance.id
+        remove_member['id'] = userinfo_instance.user_id_id
         remove_member['name'] = userinfo_instance.name
         remove_member['image_url'] = userinfo_instance.image_link if userinfo_instance.image_link else ""
 

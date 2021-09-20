@@ -423,7 +423,7 @@ else:
     DM_CHATROOMS_VERSION_CODE_ANDROID = 146
 
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
-EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%S added you as a host for %s in %s"
+EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%s added you as a host for %s in %s"
 EVENT_CO_HOST_NOTIFICATION_ROUTE = 'route://chatroom_detail?chatroom_id=%s'
 EVENT_NOTIFICATIONS_TITLE = "Event Reminder!"
 CREATE_CONVERSATION_API_END_POINT = f"{settings.URL}/api/conversation/create"

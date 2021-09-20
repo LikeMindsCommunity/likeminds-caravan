@@ -985,6 +985,18 @@ def update_event_faq_in_cache(faqs_info):
     })
 
 
+def status_based_add_or_remove_user_id_from_attendees_list(user_id, status, event_attendees_list):
+    is_user_present = user_id in event_attendees_list
+
+    if not status and is_user_present:
+        event_attendees_list.remove(user_id)
+
+    elif status and not is_user_present:
+        event_attendees_list.append(user_id)
+
+    return event_attendees_list
+
+
 @shared_task
 def update_event_attendees(attendees_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, attendees_info.get('chatroom_id'))
@@ -1000,13 +1012,17 @@ def update_event_attendees(attendees_info):
     if event_attendees_dict and user_id:
         event_attendees_list = event_attendees_dict.get('event_attendees_list', [])
 
-        is_user_present = user_id in event_attendees_list
+        if isinstance(user_id, list):
 
-        if not status and is_user_present:
-            event_attendees_list.remove(user_id)
+            user_ids_list = user_id
 
-        elif not is_user_present:
-            event_attendees_list.append(user_id)
+            for user_id in user_ids_list:
+                event_attendees_list = status_based_add_or_remove_user_id_from_attendees_list(user_id, status,
+                                                                                              event_attendees_list)
+
+        else:
+            event_attendees_list = status_based_add_or_remove_user_id_from_attendees_list(user_id, status,
+                                                                                          event_attendees_list)
 
         CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
             'event_attendees_list': event_attendees_list
