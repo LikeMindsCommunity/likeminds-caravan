@@ -1789,6 +1789,10 @@ class ChatroomImpl(ChatroomManager):
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
 
+        conversation_impl.ConversationHelper.create_conversation_state(card_instance, user_instance,
+                                                                       conversation_states.CONVERSATION_ADD_ALL_MEMBERS,
+                                                                       added_member_count=len(chatroom_participants))
+
         return {'success': True}
       
     def update_files(self, req_body):
