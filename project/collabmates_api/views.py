@@ -3267,11 +3267,10 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
             else:
                 expire_at = card_instance.date_epoch + HOURS_24
 
-            follow_status = False
-
             if card_instance.auto_follow_done:
-                follow_status = True
                 chatroom_ids.append(card_instance.id)
+
+            follow_status = card_instance.include_members_later and card_instance.auto_follow_done
 
             create_chatroom_state_instance(card_instance, user_instance, expire_at=expire_at,
                                            follow_status=follow_status,

@@ -1201,7 +1201,9 @@ class ChatroomImpl(ChatroomManager):
                                         {'has_files': True, 'attachment_count': 1,
                                          'attachments_uploaded': True})
 
-    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, chatroom_id) -> dict:
+    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, chatroom_id,
+                                                                   include_members_later) -> dict:
+
         chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
         if not chatroom_instance:
@@ -1220,50 +1222,55 @@ class ChatroomImpl(ChatroomManager):
         user_list = []
         bulk_update_list = []
 
-        if member_filter:
-            member_instance = member_filter[0]
-            is_cm = member_instance.state == member_states.ADMIN
+        if not member_filter:
+            response = {
+                'success': False,
+                'error_message': 'You are not a part of this community.'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
-            if is_cm:
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
 
-                if not chatroom_instance.auto_follow_done:
-                    community_members = list(Members.get_members_of_community(community_id).values_list('member_id',
-                                                                                                        flat=True))
+        if not is_cm:
+            response = {
+                'success': False,
+                'error_message': 'You need to be Owner/CM of the community to enable auto follow'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
-                    ChatroomHelper.bulk_follow_chatroom_users(chatroom_instance, community_members)
+        if not chatroom_instance.auto_follow_done:
+            community_members = list(Members.get_members_of_community(community_id).values_list('member_id',
+                                                                                                flat=True))
 
-                    chatroom_instance.auto_follow_done = True
-                    chatroom_instance.save()
+            ChatroomHelper.bulk_follow_chatroom_users(chatroom_instance, community_members)
 
-                    # removing tag status for tagged users
-                    ModelUtilities.model_update(collabcardState,
-                                                {'card': chatroom_instance,
-                                                 'is_tagged': True},
-                                                {'is_tagged': False,
-                                                 'updated_at': TimeUtilities.current_time_in_sec()})
+            chatroom_instance.auto_follow_done = True
+            chatroom_instance.include_members_later = include_members_later
+            chatroom_instance.save()
 
-                    conversation_impl.ConversationHelper.create_conversation_state(chatroom_instance, user_instance,
-                                                                                   conversation_states.CONVERSATION_ADD_ALL_MEMBERS)
+            # removing tag status for tagged users
+            ModelUtilities.model_update(collabcardState,
+                                        {'card': chatroom_instance,
+                                         'is_tagged': True},
+                                        {'is_tagged': False,
+                                         'updated_at': TimeUtilities.current_time_in_sec()})
 
-                    if len(user_list) > 0:
-                        send_notification_for_auto_follow_chatroom_for_all_members.delay(chatroom_id, user_instance.id,
-                                                                                         user_list)
+            conversation_impl.ConversationHelper.create_conversation_state(chatroom_instance, user_instance,
+                                                                           conversation_states.CONVERSATION_ADD_ALL_MEMBERS)
 
-                    return {'success': True}
+            if len(user_list) > 0:
+                send_notification_for_auto_follow_chatroom_for_all_members.delay(chatroom_id, user_instance.id,
+                                                                                 user_list)
 
-                else:
-                    response = {
-                        'success': False,
-                        'error_message': 'All members of this community are already added to this chat room'
-                    }
-                    raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+            return {'success': True}
 
-            else:
-                response = {
-                    'success': False,
-                    'error_message': 'You need to be Owner/CM of the community to enable auto follow'
-                }
-                raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+        else:
+            response = {
+                'success': False,
+                'error_message': 'All members of this community are already added to this chat room'
+            }
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def edit_chatroom(self, req_body) -> dict:
 
@@ -1794,7 +1801,7 @@ class ChatroomImpl(ChatroomManager):
                                                                        added_member_count=len(chatroom_participants))
 
         return {'success': True}
-      
+
     def update_files(self, req_body):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
@@ -1827,7 +1834,7 @@ class ChatroomImpl(ChatroomManager):
                                     {'card': card_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
-        update_event_in_webflow_service.delay({'chatroom_id':card_instance.id,
+        update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
                                                'update_type': event_webflow_update_types.FILE})
 
         return {'chatroom': ChatroomHelper.compute_chatroom_response(card_instance,
@@ -2251,9 +2258,11 @@ class ChatroomHelper:
                 if card_instance.auto_follow_done:
                     auto_follow_chatroom_list.append(card_instance.id)
 
+                follow_status = card_instance.auto_follow_done and card_instance.include_members_later
+
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
                                                                                            user_instance,
-                                                                                           follow_status=card_instance.auto_follow_done,
+                                                                                           follow_status=follow_status,
                                                                                            expire_at=expire_at,
                                                                                            community_instance=community_instance)
                 if instance:
