@@ -103,14 +103,18 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
                                                      user=user, card__is_deleted=False, card__is_pending=False,
                                                      secret_chatroom_left=False).filter(Q(card__attachment_count=0)
                                                                                         | Q(
-        card__attachments_uploaded=True)).exclude(card__type=1).distinct('card_id').count()
+        card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
+                                                                  card_types.CARD_EVENT,
+                                                                  card_types.CARD_PUBLIC_EVENT]).distinct('card_id').count()
 
     seen_chatrooms = collabcardState.objects.filter(community=community,
                                                     user=user, external_seen=True, card__is_deleted=False,
                                                     card__is_pending=False,
                                                     secret_chatroom_left=False).filter(Q(card__attachment_count=0)
                                                                                        | Q(
-        card__attachments_uploaded=True)).exclude(card__type=1).distinct('card').count()
+        card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
+                                                                  card_types.CARD_EVENT,
+                                                                  card_types.CARD_PUBLIC_EVENT]).distinct('card').count()
 
     diff = total_chatrooms - seen_chatrooms
 

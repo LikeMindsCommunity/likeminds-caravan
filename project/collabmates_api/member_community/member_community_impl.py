@@ -377,8 +377,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                secret_chatroom_left=False,
                                                                card__is_private=False,
                                                                card_id__pinning_time__lt=card_instance.pinning_time).select_related(
-                'card',
-                'card__user').exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')[:limit_size]
+            'card', 'card__user').exclude(card__type__in=[card_types.CARD_INTRO,
+                                                          card_types.CARD_EVENT,
+                                                          card_types.CARD_PUBLIC_EVENT]).order_by('-card__pinning_time')[:limit_size]
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
@@ -388,7 +389,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_private=False,
                                                                card_id__lt=card_instance.id).select_related('card',
                                                                                                             'card__user'). \
-                                    exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')[:limit_size]
+        exclude(card__type__in=[card_types.CARD_INTRO,
+                                card_types.CARD_EVENT,
+                                card_types.CARD_PUBLIC_EVENT]).order_by('-card_id')[:limit_size]
 
         return chatroom_queryset
 
@@ -403,8 +406,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                secret_chatroom_left=False,
                                                                card__is_private=False,
                                                                card__id__gte=last_seen_id).select_related('card',
-                                                                                                          'card__user'). \
-                                    exclude(card__type=card_types.CARD_INTRO).order_by('card_id')[:limit_size]
+                                                                                                          'card__user').\
+            exclude(card__type__in=[card_types.CARD_INTRO,
+                                    card_types.CARD_EVENT,
+                                    card_types.CARD_PUBLIC_EVENT]).order_by('card_id')[:limit_size]
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
@@ -413,8 +418,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                secret_chatroom_left=False,
                                                                card__is_private=False,
                                                                card__id__gte=last_seen_id).select_related('card',
-                                                                                                          'card__user'). \
-                                    exclude(card__type=card_types.CARD_INTRO).order_by('card_id')[:limit_size]
+                                                                                                          'card__user').\
+            exclude(card__type__in=[card_types.CARD_INTRO,
+                                    card_types.CARD_EVENT,
+                                    card_types.CARD_PUBLIC_EVENT]).order_by('card_id')[:limit_size]
 
         return chatroom_queryset
 
@@ -429,7 +436,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_private=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
+        exclude(card__type__in=[card_types.CARD_INTRO,
+                                card_types.CARD_EVENT,
+                                card_types.CARD_PUBLIC_EVENT]).order_by('card_id')
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
@@ -438,7 +447,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_private=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('card_id')
+        exclude(card__type__in=[card_types.CARD_INTRO,
+                                card_types.CARD_EVENT,
+                                card_types.CARD_PUBLIC_EVENT]).order_by('card_id')
 
         return chatroom_queryset
 
@@ -453,7 +464,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_private=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('-card__pinning_time')
+        exclude(card__type__in=[card_types.CARD_INTRO,
+                                card_types.CARD_EVENT,
+                                card_types.CARD_PUBLIC_EVENT]).order_by('-card__pinning_time')
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
@@ -462,7 +475,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                card__is_private=False,
                                                                user=self.get_member_id()).select_related('card',
                                                                                                          'card__user'). \
-                exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
+        exclude(card__type__in=[card_types.CARD_INTRO,
+                                card_types.CARD_EVENT,
+                                card_types.CARD_PUBLIC_EVENT]).order_by('-card_id')
 
         return chatroom_queryset
 
@@ -476,7 +491,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                secret_chatroom_left=False,
                                                                card__is_private=False,
                                                                user=self.get_member_id()).exclude(
-                card__type=card_types.CARD_INTRO).only('card', 'state').order_by('card_id')
+                card__type__in=[card_types.CARD_INTRO,
+                                card_types.CARD_EVENT,
+                                card_types.CARD_PUBLIC_EVENT]).only('card','state').order_by('card_id')
         else:
             chatroom_queryset = collabcardState.objects.filter(community=self.get_community_id(),
                                                                card__is_pending=False,
@@ -484,7 +501,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                secret_chatroom_left=False,
                                                                card__is_private=False,
                                                                user=self.get_member_id()).exclude(
-                card__type=card_types.CARD_INTRO).only('card', 'state').order_by('card_id')
+                card__type__in=[card_types.CARD_INTRO,
+                                card_types.CARD_EVENT,
+                                card_types.CARD_PUBLIC_EVENT]).only('card', 'state').order_by('card_id')
 
         last_seen_chatroom = None
 
