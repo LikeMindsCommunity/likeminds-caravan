@@ -1362,7 +1362,7 @@ class ChatroomImpl(ChatroomManager):
                                                                                         community_instance.id)
             create_event_in_webflow_service(card_instance)
             schedule_chatroom_unpinning_after_event_completion(card_instance)
-            ChatroomHelper.send_event_creation_mail.delay(card_instance.id)
+            # ChatroomHelper.send_event_creation_mail.delay(card_instance.id)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
 
             chatroom_context = {
@@ -1660,9 +1660,9 @@ class ChatroomImpl(ChatroomManager):
             'status': status
         })
 
-        if member_state == member_states.GUEST:
-            ChatroomHelper.send_event_creation_mail.delay(card_instance.id, send_to_members=False,
-                                                          user_list=[user_instance.id])
+        # if member_state == member_states.GUEST:
+        #     ChatroomHelper.send_event_creation_mail.delay(card_instance.id, send_to_members=False,
+        #                                                   user_list=[user_instance.id])
 
         ChatroomHelper.run_async_task_related_to_event_chatroom_attend_analytics(card_instance,
                                                                                  user_instance, status)
