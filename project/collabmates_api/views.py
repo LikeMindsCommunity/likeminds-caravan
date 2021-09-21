@@ -4717,8 +4717,8 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
             actions.append(leave_chatroom)
 
-    if promoter and (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
-            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN):
+    if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
+            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)):
         actions.append(chatroom_settings)
 
     if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
