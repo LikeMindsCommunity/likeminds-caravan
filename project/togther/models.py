@@ -2232,6 +2232,10 @@ class ModelUtilities:
 
         return core_serializer.serialize('python', [instance], )[0].get('fields')
 
+    @staticmethod
+    def create_blank_queryset(model):
+        return model.objects.none()
+
 
 class MessageReactions(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

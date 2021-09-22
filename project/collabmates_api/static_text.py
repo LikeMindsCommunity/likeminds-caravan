@@ -504,3 +504,6 @@ CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is no longer a community manager"
 MEMBER_JOINING_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is a member now"
 
 MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE = "{} is a community manager now"
+
+ATTENDEES_FILTER_NAME = "attendees"
+CO_HOSTS_FILTER_NAME = "co_hosts"

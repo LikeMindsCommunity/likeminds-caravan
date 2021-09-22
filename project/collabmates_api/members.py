@@ -479,6 +479,7 @@ def get_all_members_version_1(request, req_dict=None):
     current_user_instance = ModelUtilities.get_model_instance_or_none(User, current_user_id)
     filter_list = request.GET.get('filter', None)
     conversation_id = request.GET.get('conversation_id')
+    user_type = request.GET.get('type', None)
 
     if conversation_id:
         return send_participants_of_conversation(conversation_id, filter_list, current_user_id,
@@ -490,7 +491,7 @@ def get_all_members_version_1(request, req_dict=None):
     # flow for sending members of chatroom
 
     if chatroom_id:
-        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
         if not chatroom_instance:
             response = {
@@ -500,10 +501,44 @@ def get_all_members_version_1(request, req_dict=None):
 
             raise InvalidChatroomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
+        if str(user_type) == ATTENDEES_FILTER_NAME:
+            # Filter only attendees of this chatroom
+            total_participants_list = ModelUtilities.get_model_filter(collabcardState,
+                                                                      {"card": chatroom_instance,
+                                                                       "attending_status": True})
+
+            context = collabcard_members_for_given_list(chatroom_instance, community_id, current_user_id, page,
+                                                        total_participants_list)
+
+            context['total_members'] = total_participants_list.count()
+
+            return context
+
+        elif str(user_type) == CO_HOSTS_FILTER_NAME:
+
+            # Filter only co-hosts of this chatroom
+            if chatroom_instance.co_hosts:
+                co_hosts_ids_list = json.loads(chatroom_instance.co_hosts)
+
+                total_participants_list = ModelUtilities.get_model_filter(collabcardState,
+                                                                          {"card": chatroom_instance,
+                                                                           "user_id__in": co_hosts_ids_list})
+
+            else:
+                total_participants_list = ModelUtilities.create_blank_queryset(collabcardState)
+
+            context = collabcard_members_for_given_list(chatroom_instance, community_id, current_user_id, page,
+                                                        total_participants_list)
+
+            context['total_members'] = total_participants_list.count()
+
+            return context
+
         total_participants_list = collabcardState.objects.filter(card=chatroom_instance,
                                                                  follow_status=True,
                                                                  is_tagged=False,
                                                                  remove=None)
+
         if chatroom_instance.type == card_types.CARD_EVENT:
             total_participants_list = total_participants_list.filter(attending_status=True)
 
@@ -580,6 +615,18 @@ def collabcard_members(chatroom_instance, community_id, current_user_id, page):
     context = {'members': members}
 
     return context
+
+
+def collabcard_members_for_given_list(chatroom_instance, community_id, current_user_id, page,
+                                      total_participants_list=[]):
+    members_serialized_object = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page,
+                                                                collabcard_state_list=total_participants_list)
+
+    community_instance = CommunitySerializerV1(chatroom_instance.community,
+                                               context={"current_user_id": current_user_id},
+                                               many=False).data
+
+    return {"members": members_serialized_object, "community": community_instance}
 
 
 def chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page):
@@ -778,17 +825,20 @@ def get_filtered_users(filter_list, member_list):
     return member_set
 
 
-def get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=1, member_set=None):
-    collabcard_state_list = collabcardState.objects \
-        .filter(card=chatroom_instance,
-                remove=None,
-                follow_status=True,
-                is_tagged=False) \
-        .select_related('user') \
-        .order_by('-user_id')
+def get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=1, member_set=None,
+                                    collabcard_state_list=[]):
 
-    if chatroom_instance.type == card_types.CARD_EVENT:
-        collabcard_state_list = collabcard_state_list.filter(attending_status=True)
+    if not collabcard_state_list:
+        collabcard_state_list = collabcardState.objects \
+            .filter(card=chatroom_instance,
+                    remove=None,
+                    follow_status=True,
+                    is_tagged=False) \
+            .select_related('user') \
+            .order_by('-user_id')
+
+        if chatroom_instance.type == card_types.CARD_EVENT:
+            collabcard_state_list = collabcard_state_list.filter(attending_status=True)
 
     show_removed = False
     paginated_data = get_paginated_queryset_with_maxpages(collabcard_state_list, page_no, paginate_by=10)
