@@ -523,6 +523,7 @@ class Collabcard(models.Model):
     is_private = models.BooleanField(default=False)
     chatroom_with_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
                                            related_name='chatroom_with_user')
+    include_members_later = models.BooleanField(default=False)
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:

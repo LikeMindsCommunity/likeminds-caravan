@@ -423,7 +423,7 @@ else:
     DM_CHATROOMS_VERSION_CODE_ANDROID = 146
 
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
-EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%S added you as a host for %s in %s"
+EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%s added you as a host for %s in %s"
 EVENT_CO_HOST_NOTIFICATION_ROUTE = 'route://chatroom_detail?chatroom_id=%s'
 EVENT_NOTIFICATIONS_TITLE = "Event Reminder!"
 CREATE_CONVERSATION_API_END_POINT = f"{settings.URL}/api/conversation/create"
@@ -494,8 +494,7 @@ SECRET_CHATROOM_VERSION_CODE_IOS = 157
 PAID_COMMUNITY_LEVEL_4_TITLE = "Monetization"
 PAID_COMMUNITY_LEVEL_4_SUB_TITLE = "Invite members with payment link"
 
-# Need to confirm these codes with clients at the time of release.
-CHATROOM_SETTINGS_VERSION_CODE_AN = 1000
+CHATROOM_SETTINGS_VERSION_CODE_AN = 146
 CHATROOM_SETTINGS_VERSION_CODE_IOS = 1000
 
 MEMBER_LEFT_DM_CHATROOM_MESSAGE = "{} left {}"
@@ -505,3 +504,6 @@ CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is no longer a community manager"
 MEMBER_JOINING_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is a member now"
 
 MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE = "{} is a community manager now"
+
+ATTENDEES_FILTER_NAME = "attendees"
+CO_HOSTS_FILTER_NAME = "co_hosts"

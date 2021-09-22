@@ -1563,7 +1563,7 @@ class ConversationHelper:
 
     @staticmethod
     def create_conversation_state(card_instance, user_instance, state, current_user_id=None, answer="",
-                                  topic_text=None, member_state=0, community_instance=None):
+                                  topic_text=None, member_state=0, community_instance=None, added_member_count=0):
 
         if not community_instance:
             community_instance = card_instance.community
@@ -1638,7 +1638,15 @@ class ConversationHelper:
                     answer = f"{user_name} {topic_text}"
 
             elif state == conversation_states.CONVERSATION_ADD_ALL_MEMBERS:
-                answer = user_name + " added all members"
+
+                if added_member_count > 1:
+                    answer = user_name + " added " + str(added_member_count) + " members"
+
+                elif added_member_count == 1:
+                    answer = user_name + " added " + str(added_member_count) + " member"
+
+                else:
+                    answer = user_name + " added all members"
 
         if answer:
             instance = card_answers()
