@@ -13945,28 +13945,36 @@ class SyncCommunities(APIView):
         if not member_id:
             context = get_error_context(False, "send member id in headers")
             return JsonResponse(context)
+        
         query_params = request.query_params
-
+        
         page = query_params.get('page', 1)
-        page = int(page)
-
         paginate_by = query_params.get('page_size', 200)
-
         last_updated = query_params.get('last_updated', 0)
-
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
         guest = query_params.get('guest', '')
+
+        member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not member_instance:
+            return JsonResponse(get_error_context(False, "Invalid member_id"))
+
+        try:
+            page = int(page)
+        
+        except:
+            context = get_error_context(False, "invalid page value")
+            return JsonResponse(context)
+
         context = {"current_user_id": member_id}
 
         if guest == "true":
             community_context = fetch_guest_communities(member_id, last_updated=last_updated)
-
             return JsonResponse(community_context)
 
         if chatroom_id:
             chatroom_context = fetch_community_of_chatroom(chatroom_id, member_id, last_updated=last_updated)
-
             return JsonResponse(chatroom_context)
 
         elif community_id:
@@ -13980,14 +13988,13 @@ class SyncCommunities(APIView):
 
             if not engage_filter.exists():
                 community_context = create_community_context(community_id, member_id)
-
                 return JsonResponse(community_context)
 
         else:
-
             if last_updated:
                 engage_filter = Member_Engage.objects.filter(member_id=member_id, updated_at__gt=last_updated
                                                              ).select_related('community_id').order_by('updated_at')
+            
             else:
                 engage_filter = Member_Engage.objects.filter(member_id=member_id
                                                              ).select_related('community_id').order_by('updated_at')
@@ -14005,7 +14012,6 @@ class SyncCommunities(APIView):
 
         if max_last_updated:
             context = {'communities': temp.data, 'max_last_updated': max_last_updated}
-
             return JsonResponse(context)
 
         return JsonResponse({'communities': []})
