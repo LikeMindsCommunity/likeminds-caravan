@@ -524,13 +524,21 @@ def get_all_members_version_1(request, req_dict=None):
                                                                           {"card": chatroom_instance,
                                                                            "user_id__in": co_hosts_ids_list})
 
+                total_count = total_participants_list.count()
+
+                context = collabcard_members_for_given_list(chatroom_instance, community_id, current_user_id, page,
+                                                            total_participants_list)
+
             else:
-                total_participants_list = ModelUtilities.create_blank_queryset(collabcardState)
+                total_count = 0
+                context = {
+                    "members": [],
+                    "community": CommunitySerializerV1(chatroom_instance.community,
+                                                       context={"current_user_id": current_user_id},
+                                                       many=False).data
+                }
 
-            context = collabcard_members_for_given_list(chatroom_instance, community_id, current_user_id, page,
-                                                        total_participants_list)
-
-            context['total_members'] = total_participants_list.count()
+            context['total_members'] = total_count
 
             return context
 
