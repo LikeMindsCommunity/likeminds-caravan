@@ -2558,7 +2558,7 @@ def send_notification_for_pending_chatroom_approved_or_rejected(card_id, is_appr
 
     if is_approved:
         sub_title = f"Hurray! {card_creator_first_name}, your chat room ‘{chatroom_title}’ has been approved."
-        route = f" route://chatroom_detail?chatroom_id=={card_id}"
+        route = f"route://chatroom_detail?chatroom_id={card_id}"
     else:
         sub_title = f"{card_creator_first_name}, we are sorry to inform you that your chat room ‘{chatroom_title}’ was not approved."
         route = "route://main"
