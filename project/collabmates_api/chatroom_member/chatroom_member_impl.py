@@ -22,9 +22,8 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
-from utility.utils import get_time_text_for_my_chatrooms
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
-    EventHighlights, EventMemberTestimonials, EventFAQ, conversationEngage
+    EventHighlights, EventMemberTestimonials, EventFAQ
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -474,20 +473,6 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                                      , {}, {})
             member_dict = self.get_member_community_impl_instance(community_instance).fetch_members_based_on_user_list(
                 [card_creator_id], community_instance)
-
-            # Get Last conversation
-            conversation_engage_filter = ModelUtilities.get_model_filter(conversationEngage,
-                                                                         {"card": card_instance})
-
-            if conversation_engage_filter:
-                conversation_engage_instance = conversation_engage_filter[0]
-
-                if conversation_engage_instance.last_conversation:
-                    chatroom_context['last_conversation'] = conversationSerializer(
-                        conversation_engage_instance.last_conversation)
-
-                    chatroom_context['last_conversation_time'] = get_time_text_for_my_chatrooms(
-                        conversation_engage_instance.updated_at)
 
             if member_dict.get(card_creator_id):
                 chatroom_context['member'] = member_dict[card_creator_id]
