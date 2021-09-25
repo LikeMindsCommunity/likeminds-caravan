@@ -182,8 +182,8 @@ class CohortImpl(CohortManager):
             return {'success': False, 'error_message': "User doesn’t have the ability to fetch cohort"}
 
         cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort__community_id': community_id})
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name')).order_by()
-                           .values('name', 'total_members'))
+                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'))
+                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members'))
 
         return {'success': True, 'cohorts': cohort_list}
 
