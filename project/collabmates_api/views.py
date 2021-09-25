@@ -11788,6 +11788,8 @@ class SyncChatrooms(APIView):
             if data[65]:
                 chatroom["chatroom_with_user_id"] = data[65]
 
+            chatroom["member_can_message"] = data[66]
+
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue
 
