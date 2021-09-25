@@ -877,6 +877,11 @@ def get_members_data_for_collabcard(chatroom_instance, community_id, current_use
             user_context['custom_intro_text'] = guest_text['custom_intro_text']
             user_context['custom_click_text'] = guest_text['custom_click_text']
 
+        if instance.remove:
+            removed_user_text = get_removed_member_custom_text(instance.remove)
+            user_context['custom_intro_text'] = removed_user_text['custom_intro_text']
+            user_context['custom_click_text'] = removed_user_text['custom_click_text']
+
         members.append(user_context)
 
     return members
