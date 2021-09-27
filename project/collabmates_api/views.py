@@ -864,25 +864,32 @@ def questions(request):
 
     member_id = get_member_id_from_headers(request)
 
-    user_instance = get_user_or_none(member_id)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
-        context = get_error_context(False,"Invalid member id")
+        context = get_error_context(False, "Invalid member id")
 
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_id = request.GET.get('community_id')
+
     if not community_id:
         context = get_error_context(False, "send community id in get params")
         return JsonResponse(context)
 
-    data = communityQuestions.objects.filter(community=community_id).order_by('-rank', 'id')
-    community_instance = Community.objects.get(id=community_id)
-    community = CommunitySerializer(community_instance, current_user_id=member_id)
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+    if not community_instance:
+        context = get_error_context(False, "Invalid community id")
+        return JsonResponse(context)
+
+    data = ModelUtilities.get_model_filter(communityQuestions, {"community": community_id}).order_by('-rank', 'id')
+
+    community_serialized_object = CommunitySerializerV1(community_instance, many=False).data
 
     created_by = get_community_creator(community_instance)
 
-    community['created_by'] = created_by
+    community_serialized_object['created_by'] = created_by
 
     managers = get_community_managers(community_instance)
 
@@ -891,7 +898,7 @@ def questions(request):
     else:
         managed_by = managers['manager_name']
 
-    community['managed_by'] = managed_by
+    community_serialized_object['managed_by'] = managed_by
 
     # private link share flow
     aj = request.GET.get('aj', None)
@@ -900,13 +907,13 @@ def questions(request):
 
     is_valid_private_link = False
     auto_join = {}
-    title = f"You are joining {community['name']}"
+    title = f"You are joining {community_serialized_object['name']}"
     shared_by_user = None
 
     try:
         shared_by_user = User.objects.get(pk=shared_by)
         shared_by_user_name = shared_by_user.userinfo.name
-        title = f"{shared_by_user_name} invited you to join {community['name']}"
+        title = f"{shared_by_user_name} invited you to join {community_serialized_object['name']}"
     except:
         error_logger.error(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
 
@@ -943,7 +950,7 @@ def questions(request):
     # questions = sorted(questions, key=lambda i: i['rank'])
 
     context = {'header': "Join community", 'title': title,
-               'questions': questions, 'community': community}
+               'questions': questions, 'community': community_serialized_object}
     if is_valid_private_link:
         context.update(auto_join)
     return JsonResponse(context)
@@ -8213,7 +8220,9 @@ If you are a community builder and you wish to receive an invite, do fill out th
 
 def get_community_creator(community_instance):
     '''function to get the creator of community'''
-    member_filter = Members.objects.filter(community_id=community_instance, state=member_states.ADMIN).order_by('id')
+    member_filter = ModelUtilities.get_model_filter(Members,
+                                                    {"community_id": community_instance,
+                                                     "state": member_states.ADMIN}).order_by('id')
     created_by = ""
     if member_filter.exists():
         promoter_instance = member_filter[0].member_id
