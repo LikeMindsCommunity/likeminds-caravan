@@ -23,7 +23,7 @@ from utility.number_utilities import NumberUtilities
 from utility.states import card_types, poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
-    EventHighlights, EventMemberTestimonials, EventFAQ
+    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -358,6 +358,24 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         if event_attendees:
             chatroom_context['attendees'] = event_attendees
 
+    def fill_cohort_meta_for_response(self, chatroom_context):
+        cohort_ids = chatroom_context.get('cohort_ids') if chatroom_context.get('cohort_ids') else []
+        filter_dict = {
+            'id__in': cohort_ids
+        }
+        cohort_list = ModelUtilities.get_model_filter(Cohort, filter_dict)
+        cohorts = []
+
+        for cohort in cohort_list:
+            cohort_context = {
+                'id': cohort.id,
+                'name': cohort.name,
+                'community': cohort.community_id
+            }
+            cohorts.append(cohort_context)
+
+        chatroom_context['cohorts'] = cohorts
+
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes) -> {}:
 
@@ -397,6 +415,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             self.fill_event_context_for_response(chatroom_context, card_instance, community_instance)
 
         chatroom_context.update(state_context)
+
+        self.fill_cohort_meta_for_response(chatroom_context)
 
         preview = self.create_chatroom_preview(card_instance)
 
@@ -664,6 +684,15 @@ class ChatroomMemberHelper:
                                                   send_profile=False)
 
             chatroom_context['chatroom_with_user'] = chatroom_member[0]
+
+        if card_instance.cohort_ids:
+
+            try:
+                cohort_ids = json.loads(card_instance.cohort_ids)
+            except Exception as e:
+                cohort_ids = []
+
+            chatroom_context['cohort_ids'] = cohort_ids
 
         return chatroom_context
 

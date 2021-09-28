@@ -529,6 +529,7 @@ class Collabcard(models.Model):
     about_recording = models.TextField(null=True)
     recording_url = models.TextField(null=True)
     has_event_recording = models.BooleanField(default=False)
+    cohort_ids = models.TextField(null=True)
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:

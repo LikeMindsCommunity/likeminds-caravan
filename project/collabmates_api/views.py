@@ -2660,6 +2660,9 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.user = user_instance
     card.type = card_type
 
+    if card_type == card_types.CARD_PURPOSE:
+        card.member_can_message = False
+    
     card.image_count = res.get('image_count', 0)
     card.pdf_count = res.get('pdf_count', 0)
 
@@ -4724,7 +4727,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             actions.append(leave_chatroom)
 
     if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
-            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)):
+            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)) and not master_intro_card:
         actions.append(chatroom_settings)
 
     if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \

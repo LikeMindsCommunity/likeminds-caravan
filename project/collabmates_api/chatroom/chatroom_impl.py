@@ -335,6 +335,9 @@ class ChatroomImpl(ChatroomManager):
         card_content['multiple_select_no'] = req_body.get('multiple_select_no', None)
         card_content['multiple_select_state'] = req_body.get('multiple_select_state', None)
 
+    def _fill_cohort_ids(self, card_content, req_body):
+        card_content['cohort_ids'] = json.dumps(req_body['cohort_ids']) if ('cohort_ids' in req_body) else None
+
     def _fill_chatroom_header(self, card_content, req_body, chatroom_type, chatroom_name, decoded_chatroom_title=""):
 
         card_type = chatroom_type
@@ -855,6 +858,7 @@ class ChatroomImpl(ChatroomManager):
         self._add_og_tags(req_body=req_body, card_content=card_content)
         self._check_and_set_chatroom_pending_status(card_content, is_intro_card, user_has_auto_approve_right)
         self.fill_pinned_information(card_content)
+        self._fill_cohort_ids(card_content, req_body)
 
         self._fill_secret_room_details(card_content, req_body, community_instance)
 
@@ -1767,6 +1771,9 @@ class ChatroomImpl(ChatroomManager):
             chatroom_settings = settings_for_chatroom.copy()
             admin_has_delete_right = check_admin_delete_right(user=user_instance,
                                                               community=community_instance)
+
+            if card_instance.is_secret:
+                chatroom_settings.remove(pin_chatroom)
 
             if admin_has_delete_right:
                 chatroom_settings.append(delete_chatroom)
