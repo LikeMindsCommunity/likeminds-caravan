@@ -11588,6 +11588,8 @@ class SyncChatrooms(APIView):
             context = get_error_context(False, "send member id in headers")
             return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
         version_code = RequestUtilities.get_version_code_from_headers(request)
@@ -11801,6 +11803,17 @@ class SyncChatrooms(APIView):
 
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue
+
+            # For Event Recordings and Attachments data
+            from .chatroom.chatroom_impl import ChatroomHelper
+
+            card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, data[0])
+            event_recordings_data = ChatroomHelper.display_event_recordings_and_attachments(
+                user_instance=user_instance,
+                card_instance=card_instance
+            )
+
+            chatroom.update(event_recordings_data)
 
             chatrooms.append(chatroom)
 

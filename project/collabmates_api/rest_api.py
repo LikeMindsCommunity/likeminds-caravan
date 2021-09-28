@@ -1164,3 +1164,9 @@ class ConversationAttachmentsSerializer(serializers.ModelSerializer):
                 del data[field.field_name]
 
         return data
+
+
+class EventRecordingsAttachmentsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventRecordingsAttachments
+        fields = '__all__'

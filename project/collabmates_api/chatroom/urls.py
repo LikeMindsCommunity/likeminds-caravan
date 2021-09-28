@@ -9,7 +9,8 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  UpdateEventView, SetEventAttendedView, EnableMemberMessageInChatroomView,
                                  FetchChatroomSettingsView, AddMembersToChatroomView,
                                  UpdateEventView, SetEventAttendedView, ChatroomUpdateFilesView,
-                                 FetchEventLinkForDashboard
+                                 FetchEventLinkForDashboard, AddEventRecordingAttachment, AddEventRecordingAttachmentMeta,
+                                 DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta
                                  )
 
 urlpatterns = [
@@ -47,4 +48,8 @@ urlpatterns = [
     path('event/fetch_event_link_for_dashboard', FetchEventLinkForDashboard.as_view(),
          name="fetch_event_link_for_dashboard"),
 
+     path('event/upload_recordings_meta', AddEventRecordingAttachmentMeta.as_view(), name='upload_recordings_meta'),
+     path('event/upload_recordings', AddEventRecordingAttachment.as_view(), name='upload_recordings'),
+     path('event/delete_recordings_meta', DeleteEventRecordingAttachmentMeta.as_view(), name='delete_recordings_meta'),
+     path('event/delete_recordings', DeleteEventRecordingAttachment.as_view(), name='delete_recordings'),
 ]

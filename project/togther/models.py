@@ -13,6 +13,7 @@ from utility.time_utilities import TimeUtilities
 from typing import Union
 from external_services.logging.logging_wrapper import LoggingWrapper
 from django.core import serializers as core_serializer
+from django.utils.translation import gettext_lazy as _
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -525,6 +526,10 @@ class Collabcard(models.Model):
                                            related_name='chatroom_with_user')
     include_members_later = models.BooleanField(default=False)
 
+    about_recording = models.TextField(null=True)
+    recording_url = models.TextField(null=True)
+    has_event_recording = models.BooleanField(default=False)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = TimeUtilities.current_time_in_milliseconds()
@@ -765,6 +770,10 @@ class card_answers(models.Model):
     co_hosts = models.TextField(null=True)
     online_link_id = models.TextField(null=True)
     online_link_password = models.TextField(null=True)
+
+    about_recording = models.TextField(null=True)
+    recording_url = models.TextField(null=True)
+    has_event_recording = models.BooleanField(default=False)
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):
@@ -2632,3 +2641,113 @@ class DirectMessageTutorial(models.Model):
         self.updated_at = current_time
 
         super(DirectMessageTutorial, self).save(*args, **kwargs)
+
+
+class EventRecordingsAttachments(models.Model):
+    """ table to store recording and attachment of event """
+
+    TYPE_CHOICES = (
+        ('image','image'),
+        ('video','video'),
+        ('pdf','pdf'),
+        ('gif','gif'),
+        ('audio','audio'),
+        ('voice_note','voice_note'),
+    )
+    
+    url = models.TextField(
+        help_text=_(
+            'download url of multimedia'
+        )
+    )
+    chatroom_id = models.ForeignKey(
+        Collabcard, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+            help_text=_(
+                'id of chatroom'
+            )
+    )
+    conversation_id = models.ForeignKey(
+        card_answers, 
+        on_delete=models.CASCADE, 
+        null=True,
+        blank=True,
+        help_text=_(
+            'id of conversation'
+        )
+    )
+    type = models.CharField(
+        max_length=50, 
+        choices=TYPE_CHOICES,
+        help_text=_(
+            'type of attachment'
+        )
+    )
+    index = models.IntegerField(
+        help_text=_(
+            'multimedia position'
+        )
+    )
+    width = models.FloatField(
+        null=True,
+        help_text=_(
+            'width of multimedia'
+        )
+    )
+    height = models.FloatField(
+        null=True, 
+        blank=True,
+        help_text=_(
+            'height of multimedia'
+        )
+    )
+    thumbnail_url = models.TextField(
+        null=True, 
+        blank=True,
+        help_text=_(
+            'thumbnail in case of video'
+        )
+    )
+    name = models.CharField(
+        max_length=250, 
+        null=True, 
+        blank=True,
+        help_text=_(
+            'file name'
+        )
+    )
+    meta = models.TextField(
+        null=True, 
+        blank=True,
+        help_text=_(
+            'meta data of multimedia'
+        )
+    )
+    created_at = models.BigIntegerField(
+        default=0,
+        help_text=_(
+            'instance created time'
+        )
+    )
+    updated_at = models.BigIntegerField(
+        default=0,
+        help_text=_(
+            'instance updated time'
+        )
+    )
+
+    class Meta:
+            verbose_name = 'event recording attachment'
+            verbose_name_plural = 'event recording attachments'
+            db_table = 'togther_event_recording_attachment'
+
+    def save(self, *args, **kwargs):
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+        self.updated_at = current_time_in_ms
+
+        if self.created_at <= 0:
+            self.created_at = current_time_in_ms
+
+        super(EventRecordingsAttachments, self).save(*args, **kwargs)

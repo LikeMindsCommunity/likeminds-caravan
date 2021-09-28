@@ -1,3 +1,4 @@
+import json
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status as status_codes
@@ -7,7 +8,7 @@ from utility.request_utilities import RequestUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from ..rest_api import GetChatroomInstanceSerializer
+from ..rest_api import get_error_context
 from ..chatroom.chatroom_impl import ChatroomImpl
 from ..mixins import TransactionMixin
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -610,3 +611,177 @@ class FetchEventLinkForDashboard(APIView):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(response_context)
+
+
+class AddEventRecordingAttachmentMeta(APIView):
+
+    def _validate_request(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        res = {}
+
+        if not member_id:
+            res = get_error_context(False, "Invalid member_id")
+
+        elif not req_body:
+            res = get_error_context(False, "Invalid request body")
+
+        elif not req_body.get('about_recording') and not req_body.get('recording_url'):
+            res = get_error_context(False, "Both about_recording and recording_url cannot be empty")
+
+        elif not req_body.get('chatroom_id') and not req_body.get('conversation_id'):
+            res = get_error_context(False, "Both chatroom_id and conversation_id cannot be empty")
+
+        return res, req_body
+
+    def post(self, request):
+        try:
+            request_validation_errors, req_body = self._validate_request(request)
+
+            if request_validation_errors:
+                return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            res = ChatroomImpl.update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body)
+
+            if res.get('success'):
+                return JsonResponse(res, status=status_codes.HTTP_200_OK)
+            
+            else:
+                return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(res, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AddEventRecordingAttachment(APIView):
+    
+    def _validate_request(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        res = {}
+
+        if not member_id:
+            res = get_error_context(False, "Invalid member_id")
+
+        elif not req_body:
+            res = get_error_context(False, "Invalid request body")
+
+        elif not req_body.get('chatroom_id') and not req_body.get('conversation_id'):
+            res = get_error_context(False, "Both chatroom_id and conversation_id cannot be empty")
+
+        return res, req_body
+
+    def post(self, request):
+        try:
+            request_validation_errors, req_body = self._validate_request(request)
+
+            if request_validation_errors:
+                return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            res, is_attachment_instance_created = ChatroomImpl.add_event_attachments(req_body)
+
+            if is_attachment_instance_created:
+                return JsonResponse(res, status=status_codes.HTTP_201_CREATED)
+
+            return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(res, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DeleteEventRecordingAttachmentMeta(APIView):
+
+    def _validate_request(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        res = {}
+
+        if not member_id:
+            res = get_error_context(False, "Invalid member_id")
+
+        elif not req_body:
+            res = get_error_context(False, "Invalid request body")
+
+        elif not req_body.get('chatroom_id') and not req_body.get('conversation_id'):
+            res = get_error_context(False, "Both chatroom_id and conversation_id cannot be empty")
+
+        return res, req_body
+
+    def post(self, request):
+        try:
+            request_validation_errors, req_body = self._validate_request(request)
+
+            if request_validation_errors:
+                return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            res = ChatroomImpl.delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body)
+
+            if res.get('success'):
+                return JsonResponse(res, status=status_codes.HTTP_200_OK)
+            
+            else:
+                return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(res, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DeleteEventRecordingAttachment(APIView):
+
+    def _validate_request(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        res = {}
+
+        if not member_id:
+            res = get_error_context(False, "Invalid member_id")
+
+        elif not req_body:
+            res = get_error_context(False, "Invalid request body")
+
+        elif not req_body.get('id'):
+            res = get_error_context(False, "id cannot be empty")
+
+        return res, req_body
+
+    def post(self, request):
+        try:
+            request_validation_errors, req_body = self._validate_request(request)
+
+            if request_validation_errors:
+                return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            res = ChatroomImpl.delete_event_attachments(req_body.get('id'))
+
+            if res.get('success'):
+                return JsonResponse(res, status=status_codes.HTTP_200_OK)
+            
+            else:
+                return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(res, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -458,6 +458,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         chatroom_context_list = []
 
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
         for data in chatroom_list:
             card_instance = data.card
             state_instance = data
@@ -481,6 +483,16 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                 chatroom_context['member'] = self.get_member_community_impl_instance(
                     community_instance).compute_removed_user_context(card_instance.user,
                                                                      community_instance)
+
+            # For Event Recordings and Attachments data 
+            from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+
+            event_recordings_data = ChatroomHelper.display_event_recordings_and_attachments(
+                user_instance=user_instance,
+                card_instance=card_instance
+            )
+
+            chatroom_context.update(event_recordings_data)
 
             chatroom_context_list.append(chatroom_context)
 
