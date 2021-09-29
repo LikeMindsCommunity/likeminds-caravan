@@ -847,7 +847,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         pinned_top_bar = {}
 
         pinned_chatrooms = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
-                                                                        'is_pinned': True, 'is_deleted': False}). \
+                                                                        'is_pinned': True, 'is_deleted': False}).\
+            exclude(type__in=[card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]).\
             only('header').order_by('-pinning_time')
 
         if pinned_chatrooms:
