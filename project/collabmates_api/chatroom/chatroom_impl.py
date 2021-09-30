@@ -1772,7 +1772,7 @@ class ChatroomImpl(ChatroomManager):
             admin_has_delete_right = check_admin_delete_right(user=user_instance,
                                                               community=community_instance)
 
-            if card_instance.is_secret:
+            if card_instance.is_secret or (card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]):
                 chatroom_settings.remove(pin_chatroom)
 
             if admin_has_delete_right:

@@ -4577,6 +4577,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     intro_card = False
     master_intro_card = False
     promoter_joined_secret_chatroom = False
+    event_card = False
 
     if card_instance.is_secret \
             and promoter \
@@ -4595,6 +4596,9 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     elif card_status['type'] == card_types.CARD_MASTER_INTRO:
         master_intro_card = True
+
+    elif card_status['type'] in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+        event_card = True
 
     final_dict = None
 
@@ -4744,6 +4748,14 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         if delete_chatroom in actions:
             actions.remove(delete_chatroom)
+
+    if event_card:
+
+        if pin_chatroom in actions:
+            actions.remove(pin_chatroom)
+
+        if unpin_chatroom in actions:
+            actions.remove(unpin_chatroom)
 
     return actions
 
