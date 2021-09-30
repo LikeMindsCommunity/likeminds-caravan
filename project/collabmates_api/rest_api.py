@@ -279,7 +279,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'topic_id', 'auto_follow_done', 'is_edited', 'attendees_ids', 'instructors', 'highlights',
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
-                  'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohort_ids'
+                  'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohort_ids',
+                  'has_event_recording', 'about_recording', 'recording_url_og_tags'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -981,7 +982,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'multiple_select_no', 'polls', 'reactions', 'poll_type_text', 'submit_type_text',
                   'poll_answer_text', 'reply_chatroom_id', 'header', 'location',
                   'location_lat', 'location_long', 'start_time', 'end_time', 'co_hosts_ids',
-                  'attendees_ids')
+                  'attendees_ids', 'has_event_recording', 'about_recording', 'recording_url_og_tags')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)

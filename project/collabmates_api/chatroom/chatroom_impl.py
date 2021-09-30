@@ -17,9 +17,10 @@ from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of_new_event_chatrooms_created_for_user
-from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context
+from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
+                        CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
-                           UserinfoSerializer, get_chatroom_instance)
+                           UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
     delete_chatroom
 from ..sync.model_update import update_models_for_syncing_apis
@@ -1879,7 +1880,7 @@ class ChatroomImpl(ChatroomManager):
         return chatroom_context
 
     @staticmethod
-    def update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body):
+    def update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id):
         
         if req_body.get('chatroom_id'):
             chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
@@ -1888,13 +1889,21 @@ class ChatroomImpl(ChatroomManager):
                 res = get_error_context(False, "Invalid chatroom_id")
                 return res
 
+            recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url'))
+
             chatroom_instance.about_recording = req_body.get('about_recording')
-            chatroom_instance.recording_url = req_body.get('recording_url')
+            chatroom_instance.recording_url_og_tags = json.dumps(recording_url_og_tags)
             chatroom_instance.has_event_recording = True
             chatroom_instance.save()
 
+            event_serializer_local = GetChatroomInstanceSerializer(chatroom_instance)
+
+            event_serializer = CollabcardSerializer(card=chatroom_instance, user=member_id)
+
             res = {
                 "success": True,
+                "chatroom": event_serializer,
+                "chatroom_local": event_serializer_local.data
             }
             return res
 
@@ -1906,12 +1915,15 @@ class ChatroomImpl(ChatroomManager):
                 return res
 
             conversation_instance.about_recording = req_body.get('about_recording')
-            conversation_instance.recording_url = req_body.get('recording_url')
+            conversation_instance.recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url'))
             conversation_instance.has_event_recording = True
             conversation_instance.save()
 
+            event_serializer = CardAnswersDBSyncSerializer(conversation_instance)
+
             res = {
                 "success": True,
+                "conversation": event_serializer.data
             }
             return res
         
@@ -1921,33 +1933,56 @@ class ChatroomImpl(ChatroomManager):
         return res
 
     @staticmethod
-    def add_event_attachments(req_body):
+    def add_event_attachments(req_body, member_id):
         serializer = EventRecordingsAttachmentsSerializer(data=req_body)
 
         if serializer.is_valid():
             serializer.save()
 
             if req_body.get('chatroom_id'):
-                ModelUtilities.get_model_filter(
+                event_obj = ModelUtilities.get_model_filter(
                     Collabcard,
                     {
                         'id': req_body.get('chatroom_id')
                     }
-                ).update(has_event_recording=True)
+                )
+
+                event_obj.update(has_event_recording=True)
+                
+                event_serializer_local = GetChatroomInstanceSerializer(event_obj)
+                event_serializer = CollabcardSerializer(card=event_obj, user=member_id)
+
+                res = {
+                    'success': True,
+                    'event_attachment': serializer.data,
+                    'chatroom': event_serializer,
+                    'chatroom_local': event_serializer_local.data
+                }
 
             elif req_body.get('conversation_id'):
-                ModelUtilities.get_model_filter(
+                event_obj = ModelUtilities.get_model_filter(
                     card_answers,
                     {
                         'id': req_body.get('conversation_id')
                     }
-                ).update(has_event_recording=True)
-            
-            return serializer.data, True
+                )
+
+                event_obj.update(has_event_recording=True)
+
+                event_serializer = CardAnswersDBSyncSerializer(event_obj)
+
+                res = {
+                    "success": True,
+                    'event_attachment': serializer.data,
+                    "conversation": event_serializer.data
+                }
+
+            return res, True
+
         return serializer.errors, False
 
     @staticmethod
-    def delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body):
+    def delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body, member_id):
         
         if req_body.get('chatroom_id'):
             chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
@@ -1976,17 +2011,29 @@ class ChatroomImpl(ChatroomManager):
             event_obj.has_event_recording = False
             
         event_obj.about_recording = None
-        event_obj.recording_url = None            
+        event_obj.recording_url_og_tags = None            
         event_obj.save()
 
         res = {
             "success": True,
         }
 
+        if req_body.get('chatroom_id'):
+            event_serializer_local = GetChatroomInstanceSerializer(event_obj)
+            event_serializer = CollabcardSerializer(card=event_obj, user=member_id)
+
+            res['chatroom'] = event_serializer
+            res['chatroom_local'] = event_serializer_local.data
+
+        elif req_body.get('conversation_id'):
+            event_serializer = CardAnswersDBSyncSerializer(event_obj)
+
+            res['conversation'] = event_serializer.data
+
         return res
 
     @staticmethod
-    def delete_event_attachments(event_attachment_id):
+    def delete_event_attachments(event_attachment_id, member_id):
         event_attachment_obj = ModelUtilities.get_model_instance_or_none(EventRecordingsAttachments, event_attachment_id)
 
         if not event_attachment_obj:
@@ -2003,7 +2050,7 @@ class ChatroomImpl(ChatroomManager):
 
         if event_attachment_count > 1 \
                 or event_obj.about_recording \
-                or event_obj.recording_url:
+                or event_obj.recording_url_og_tags:
             event_obj.has_event_recording = True
         
         else:
@@ -2014,6 +2061,18 @@ class ChatroomImpl(ChatroomManager):
         res = {
             'success': True
         }
+
+        if event_attachment_obj.chatroom_id:
+            event_serializer_local = GetChatroomInstanceSerializer(event_obj)
+            event_serializer = CollabcardSerializer(card=event_obj, user=member_id)
+
+            res['chatroom'] = event_serializer
+            res['chatroom_local'] = event_serializer_local.data
+        
+        elif event_attachment_obj.conversation_id:
+            event_serializer = CardAnswersDBSyncSerializer(event_obj)
+
+            res['conversation'] = event_serializer.data
 
         return res
 
@@ -2845,7 +2904,7 @@ class ChatroomHelper:
 
             event_dict['recordings_attachments_view'] = has_event_recording
             event_dict['about_recording'] = event_obj.about_recording
-            event_dict['recording_url'] = event_obj.recording_url
+            event_dict['recording_url_og_tags'] = event_obj.recording_url_og_tags
 
             event_recording_instances = EventRecordingsAttachments.objects.filter(chatroom_id=card_instance) \
                                         if card_instance else \

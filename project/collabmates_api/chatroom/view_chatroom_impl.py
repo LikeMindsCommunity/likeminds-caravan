@@ -615,10 +615,7 @@ class FetchEventLinkForDashboard(APIView):
 
 class AddEventRecordingAttachmentMeta(APIView):
 
-    def _validate_request(self, request):
-        member_id = RequestUtilities.get_member_id_from_headers(request)
-        req_body = RequestUtilities.load_request_body(request)
-
+    def _validate_request(self, member_id, req_body):
         res = {}
 
         if not member_id:
@@ -633,16 +630,19 @@ class AddEventRecordingAttachmentMeta(APIView):
         elif not req_body.get('chatroom_id') and not req_body.get('conversation_id'):
             res = get_error_context(False, "Both chatroom_id and conversation_id cannot be empty")
 
-        return res, req_body
+        return res
 
     def post(self, request):
         try:
-            request_validation_errors, req_body = self._validate_request(request)
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            req_body = RequestUtilities.load_request_body(request)
+
+            request_validation_errors = self._validate_request(member_id, req_body)
 
             if request_validation_errors:
                 return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            res = ChatroomImpl.update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body)
+            res = ChatroomImpl.update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id)
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
@@ -661,10 +661,7 @@ class AddEventRecordingAttachmentMeta(APIView):
 
 class AddEventRecordingAttachment(APIView):
     
-    def _validate_request(self, request):
-        member_id = RequestUtilities.get_member_id_from_headers(request)
-        req_body = RequestUtilities.load_request_body(request)
-
+    def _validate_request(self, member_id, req_body):
         res = {}
 
         if not member_id:
@@ -676,16 +673,19 @@ class AddEventRecordingAttachment(APIView):
         elif not req_body.get('chatroom_id') and not req_body.get('conversation_id'):
             res = get_error_context(False, "Both chatroom_id and conversation_id cannot be empty")
 
-        return res, req_body
+        return res
 
     def post(self, request):
         try:
-            request_validation_errors, req_body = self._validate_request(request)
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            req_body = RequestUtilities.load_request_body(request)
+
+            request_validation_errors = self._validate_request(member_id, req_body)
 
             if request_validation_errors:
                 return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            res, is_attachment_instance_created = ChatroomImpl.add_event_attachments(req_body)
+            res, is_attachment_instance_created = ChatroomImpl.add_event_attachments(req_body, member_id)
 
             if is_attachment_instance_created:
                 return JsonResponse(res, status=status_codes.HTTP_201_CREATED)
@@ -703,10 +703,7 @@ class AddEventRecordingAttachment(APIView):
 
 class DeleteEventRecordingAttachmentMeta(APIView):
 
-    def _validate_request(self, request):
-        member_id = RequestUtilities.get_member_id_from_headers(request)
-        req_body = RequestUtilities.load_request_body(request)
-
+    def _validate_request(self, member_id, req_body):
         res = {}
 
         if not member_id:
@@ -718,16 +715,19 @@ class DeleteEventRecordingAttachmentMeta(APIView):
         elif not req_body.get('chatroom_id') and not req_body.get('conversation_id'):
             res = get_error_context(False, "Both chatroom_id and conversation_id cannot be empty")
 
-        return res, req_body
+        return res
 
     def post(self, request):
         try:
-            request_validation_errors, req_body = self._validate_request(request)
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            req_body = RequestUtilities.load_request_body(request)
+
+            request_validation_errors = self._validate_request(member_id, req_body)
 
             if request_validation_errors:
                 return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            res = ChatroomImpl.delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body)
+            res = ChatroomImpl.delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body, member_id)
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
@@ -746,9 +746,8 @@ class DeleteEventRecordingAttachmentMeta(APIView):
 
 class DeleteEventRecordingAttachment(APIView):
 
-    def _validate_request(self, request):
-        member_id = RequestUtilities.get_member_id_from_headers(request)
-        req_body = RequestUtilities.load_request_body(request)
+    def _validate_request(self, member_id, req_body):
+        
 
         res = {}
 
@@ -761,16 +760,19 @@ class DeleteEventRecordingAttachment(APIView):
         elif not req_body.get('id'):
             res = get_error_context(False, "id cannot be empty")
 
-        return res, req_body
+        return res
 
     def post(self, request):
         try:
-            request_validation_errors, req_body = self._validate_request(request)
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            req_body = RequestUtilities.load_request_body(request)
+
+            request_validation_errors = self._validate_request(member_id, req_body)
 
             if request_validation_errors:
                 return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            res = ChatroomImpl.delete_event_attachments(req_body.get('id'))
+            res = ChatroomImpl.delete_event_attachments(req_body.get('id'), member_id)
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)

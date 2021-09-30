@@ -527,7 +527,7 @@ class Collabcard(models.Model):
     include_members_later = models.BooleanField(default=False)
 
     about_recording = models.TextField(null=True)
-    recording_url = models.TextField(null=True)
+    recording_url_og_tags = models.TextField(null=True)
     has_event_recording = models.BooleanField(default=False)
     cohort_ids = models.TextField(null=True)
 
@@ -773,7 +773,7 @@ class card_answers(models.Model):
     online_link_password = models.TextField(null=True)
 
     about_recording = models.TextField(null=True)
-    recording_url = models.TextField(null=True)
+    recording_url_og_tags = models.TextField(null=True)
     has_event_recording = models.BooleanField(default=False)
 
     # saving the last updated in milliseconds
