@@ -428,7 +428,7 @@ EVENT_CO_HOST_NOTIFICATION_ROUTE = 'route://chatroom_detail?chatroom_id=%s'
 EVENT_NOTIFICATIONS_TITLE = "Event Reminder!"
 CREATE_CONVERSATION_API_END_POINT = f"{settings.URL}/api/conversation/create"
 UPLOAD_FILES_V1_API_END_POINT = f"{settings.URL}/api/v1/upload_files"
-ONLINE_EVENT_NOTIFICATION_SUB_TITLE = 'is going to start soon. Please join it online now.'
+ONLINE_EVENT_NOTIFICATION_SUB_TITLE = ' is going to start soon. Please join it online now.'
 ONLINE_EVENT_NOTIFICATION_ROUTE = 'route://browser?link=%s'
 OFFLINE_EVENT_NOTIFICATION_24_H_SUB_TITLE = 'is taking place tomorrow. Please make arrangements to reach there on time.'
 OFFLINE_EVENT_NOTIFICATION_24_H_ROUTE = 'route://chatroom_detail?chatroom_id=%s'

@@ -29,7 +29,8 @@ from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_
                      create_chatroom_state_instance, get_icons_states_of_chatroom_version_1,
                      save_the_latest_conversation, collabcard_follow_internal,
                      send_chatroom_creation_notifications_and_mails, update_seen_status_for_new_user_in_chatroom,
-                     create_chatroom, get_latest_conversation_members, event_access, CommunitySerializerV1, )
+                     create_chatroom, get_latest_conversation_members, event_access, CommunitySerializerV1,
+                     send_chatroom_creation_notification)
 from ..tasks import update_pending_chatroom_count_for_promoters
 from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts,
                             send_ice_breaker_notification, send_sync_notification,
@@ -1370,6 +1371,7 @@ class ChatroomImpl(ChatroomManager):
             create_event_in_webflow_service(card_instance)
             schedule_chatroom_unpinning_after_event_completion(card_instance)
             # ChatroomHelper.send_event_creation_mail.delay(card_instance.id)
+            send_chatroom_creation_notification(card_instance, user_instance)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
 
             chatroom_context = {
