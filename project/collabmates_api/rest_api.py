@@ -733,6 +733,12 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 'secret_chatroom_participants'] is not None:
                 data['secret_chatroom_participants'] = json.loads(data['secret_chatroom_participants'])
 
+            elif field.field_name == 'recording_url_og_tags' and data['recording_url_og_tags'] is not None:
+                try:
+                    data['recording_url_og_tags'] = json.loads(data['recording_url_og_tags'])
+                except:
+                    data['recording_url_og_tags'] = None
+
             elif data[field.field_name] is None:
                 del data[field.field_name]
 
@@ -1116,6 +1122,12 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 except:
                     data['preview'] = None
                 del data['internal_link']
+
+            elif field.field_name == 'recording_url_og_tags' and data['recording_url_og_tags'] is not None:
+                try:
+                    data['recording_url_og_tags'] = json.loads(data['recording_url_og_tags'])
+                except:
+                    data['recording_url_og_tags'] = None
 
             elif data[field.field_name] is None:
                 del data[field.field_name]

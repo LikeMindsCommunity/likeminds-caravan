@@ -234,6 +234,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'access': card.access,
         'online_link_enable_before': card.online_link_enable_before,
         'is_private': card.is_private,
+        'about_recording': card.about_recording,
+        'has_event_recording': card.has_event_recording,
     }
 
     if card.secret_chatroom_participants:
@@ -362,6 +364,12 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
 
     if card.chatroom_with_user:
         collabcard['chatroom_with_user'] = UserinfoSerializer(card.chatroom_with_user.userinfo)
+
+    if card.recording_url_og_tags:
+        try:
+            collabcard['recording_url_og_tags'] = json.loads(card.recording_url_og_tags)
+        except:
+            collabcard['recording_url_og_tags'] = {}
 
     return collabcard
 
