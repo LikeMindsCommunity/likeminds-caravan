@@ -239,13 +239,16 @@ class CommunityImpl(CommunityManager):
     def fetch_all_communities(self, page) -> {}:
 
         community_instances = ModelUtilities.get_model_filter(Community, {}).order_by('-created_at')
+        total_communities_count = len(community_instances)
+
         community_instances = ModelUtilities.paginate_queryset(community_instances, page, paginate_by=50)
 
         community_serialized_instances = CommunitySerializerV1(community_instances, many=True).data
 
         response_context = {
             'communities': [dict(i) for i in community_serialized_instances],
-            'success': True
+            'success': True,
+            'total_communities_count': total_communities_count
         }
 
         return response_context
