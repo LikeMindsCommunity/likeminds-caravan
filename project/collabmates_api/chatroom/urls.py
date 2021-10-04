@@ -9,8 +9,10 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  UpdateEventView, SetEventAttendedView, EnableMemberMessageInChatroomView,
                                  FetchChatroomSettingsView, AddMembersToChatroomView,
                                  UpdateEventView, SetEventAttendedView, ChatroomUpdateFilesView,
-                                 FetchEventLinkForDashboard, AddEventRecordingAttachment, AddEventRecordingAttachmentMeta,
-                                 DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta
+                                 FetchEventLinkForDashboard, AddEventRecordingAttachment,
+                                 AddEventRecordingAttachmentMeta,
+                                 DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta,
+                                 RemoveCohortFromChatroomView, AddCohortToChatroomView
                                  )
 
 urlpatterns = [
@@ -30,6 +32,8 @@ urlpatterns = [
     path('fetch_settings', FetchChatroomSettingsView.as_view(),
          name='fetch_settings'),
     path('add', AddMembersToChatroomView.as_view(), name='add_members_to_chatroom'),
+    path('remove_cohort', RemoveCohortFromChatroomView.as_view(), name="remove_cohort_from_chatroom"),
+    path('add_cohorts', AddCohortToChatroomView.as_view(), name="add_cohorts_to_chatroom"),
     path('update_files', ChatroomUpdateFilesView.as_view(), name="update_files"),
     path('event/create', CreateEventView.as_view(), name="create_event"),
     path('event/add_or_update_instructor', EventAddOrUpdateInstructor.as_view(), name="add_or_update_instructor"),

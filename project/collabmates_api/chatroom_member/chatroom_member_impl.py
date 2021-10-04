@@ -1,6 +1,6 @@
 import json
 
-from django.db.models import Q
+from django.db.models import Q, Count, F
 from django.contrib.auth.models import User
 
 from collabmates_api.chatroom_member.chatroom_member_manager import ChatroomMemberManager
@@ -23,7 +23,7 @@ from utility.number_utilities import NumberUtilities
 from utility.states import card_types, poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
-    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort
+    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -358,23 +358,24 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         if event_attendees:
             chatroom_context['attendees'] = event_attendees
 
-    def fill_cohort_meta_for_response(self, chatroom_context):
-        cohort_ids = chatroom_context.get('cohort_ids') if chatroom_context.get('cohort_ids') else []
+    def fill_cohort_meta_for_response(self, card_instance, chatroom_context):
         filter_dict = {
-            'id__in': cohort_ids
+            'chatroom_id': card_instance.id
         }
-        cohort_list = ModelUtilities.get_model_filter(Cohort, filter_dict)
-        cohorts = []
 
-        for cohort in cohort_list:
-            cohort_context = {
-                'id': cohort.id,
-                'name': cohort.name,
-                'community': cohort.community_id
-            }
-            cohorts.append(cohort_context)
+        related_cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
+                                                                                                      flat=True)
 
-        chatroom_context['cohorts'] = cohorts
+        filter_dict = {
+            'cohort__id__in': related_cohort_ids
+        }
+
+        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, filter_dict)
+                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
+                                                      community_id=F('cohort__community_id'))
+                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
+
+        chatroom_context['cohorts'] = cohort_list
 
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes) -> {}:
@@ -416,7 +417,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         chatroom_context.update(state_context)
 
-        self.fill_cohort_meta_for_response(chatroom_context)
+        self.fill_cohort_meta_for_response(card_instance, chatroom_context)
 
         preview = self.create_chatroom_preview(card_instance)
 
@@ -684,15 +685,6 @@ class ChatroomMemberHelper:
                                                   send_profile=False)
 
             chatroom_context['chatroom_with_user'] = chatroom_member[0]
-
-        if card_instance.cohort_ids:
-
-            try:
-                cohort_ids = json.loads(card_instance.cohort_ids)
-            except Exception as e:
-                cohort_ids = []
-
-            chatroom_context['cohort_ids'] = cohort_ids
 
         return chatroom_context
 

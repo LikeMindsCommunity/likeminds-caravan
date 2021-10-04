@@ -787,3 +787,43 @@ class DeleteEventRecordingAttachment(APIView):
             }
             error_logger.error(e.args)
             return JsonResponse(res, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RemoveCohortFromChatroomView(APIView):
+
+    def post(self, request):
+        request_body = RequestUtilities.load_request_body(request)
+        header_member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not request_body:
+            response = {'success': False, 'error_message': "Invalid request body"}
+
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_manager = ChatroomImpl(member_id=header_member_id)
+        response_context = chatroom_manager.remove_cohort_from_chatroom(request_body=request_body)
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
+
+
+class AddCohortToChatroomView(APIView):
+
+    def post(self, request):
+        request_body = RequestUtilities.load_request_body(request)
+        header_member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not request_body:
+            response = {'success': False, 'error_message': "Invalid request body"}
+
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_manager = ChatroomImpl(member_id=header_member_id)
+        response_context = chatroom_manager.add_cohort_to_chatroom(request_body=request_body)
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context, status=status_codes.HTTP_200_OK)

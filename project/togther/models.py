@@ -529,7 +529,6 @@ class Collabcard(models.Model):
     about_recording = models.TextField(null=True)
     recording_url_og_tags = models.TextField(null=True)
     has_event_recording = models.BooleanField(default=False)
-    cohort_ids = models.TextField(null=True)
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
@@ -2752,3 +2751,30 @@ class EventRecordingsAttachments(models.Model):
             self.created_at = current_time_in_ms
 
         super(EventRecordingsAttachments, self).save(*args, **kwargs)
+
+
+class ChatroomCohort(models.Model):
+    cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
+    chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        super(ChatroomCohort, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(chatroom_cohort_info):
+        instance = ChatroomCohort()
+        instance.cohort = chatroom_cohort_info.get('cohort_instance')
+        instance.chatroom = chatroom_cohort_info.get('chatroom_instance')
+        instance.save()
+        return instance

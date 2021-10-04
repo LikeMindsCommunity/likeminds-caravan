@@ -3,7 +3,7 @@ from celery import shared_task
 from urllib.parse import unquote, quote
 import googlemaps
 from django.contrib.auth import login
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
@@ -11818,6 +11818,20 @@ class SyncChatrooms(APIView):
 
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue
+
+            filter_dict = {
+                'chatroom_id': chatroom['id']
+            }
+
+            cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
+                                                                                                  flat=True)
+
+            cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids})
+                               .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
+                                                          community_id=F('cohort__community_id'))
+                               .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
+
+            chatroom['cohorts'] = cohort_list
 
             # For Event Recordings and Attachments data
             from .chatroom.chatroom_impl import ChatroomHelper

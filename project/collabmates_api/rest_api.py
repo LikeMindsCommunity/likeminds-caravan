@@ -28,7 +28,7 @@ from .user_moderation_rights import check_admin_approve_right
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from .static_files import *
-from django.db.models import F, When, Q
+from django.db.models import F, When, Q, Count
 
 url = settings.URL
 
@@ -258,6 +258,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     highlights = serializers.SerializerMethodField()
     testimonials = serializers.SerializerMethodField()
     faq = serializers.SerializerMethodField()
+    cohorts = serializers.SerializerMethodField()
 
     class Meta:
         model = Collabcard
@@ -279,7 +280,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'topic_id', 'auto_follow_done', 'is_edited', 'attendees_ids', 'instructors', 'highlights',
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
-                  'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohort_ids',
+                  'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohorts',
                   'has_event_recording', 'about_recording', 'recording_url_og_tags'
                   )
 
@@ -351,22 +352,20 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         return co_host_list
 
-    def get_related_cohorts(self, cohort_ids):
+    def get_cohorts(self, card):
+
         filter_dict = {
-            'id__in': cohort_ids
+            'chatroom_id': card.id
         }
-        cohort_list = ModelUtilities.get_model_filter(Cohort, filter_dict)
-        cohorts = []
 
-        for cohort in cohort_list:
-            cohort_context = {
-                'id': cohort.id,
-                'name': cohort.name,
-                'community': cohort.community_id
-            }
-            cohorts.append(cohort_context)
+        cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id', flat=True)
 
-        return cohorts
+        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids})
+                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
+                                                      community_id=F('cohort__community_id'))
+                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
+
+        return cohort_list
 
     def get_images(self, card):
 
@@ -717,11 +716,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     co_host_list = json.loads(data['co_hosts'])
                     data['co_hosts_id'] = self.get_co_hosts(co_host_list)
                     del data['co_hosts']
-
-            elif field.field_name == 'cohort_ids' and data['cohort_ids'] is not None:
-                cohort_ids = json.loads(data['cohort_ids'])
-                data['cohorts'] = self.get_related_cohorts(cohort_ids)
-                del data['cohort_ids']
 
             elif field.field_name == "answer_text":
                 if data['type'] == card_types.CARD_POLL:

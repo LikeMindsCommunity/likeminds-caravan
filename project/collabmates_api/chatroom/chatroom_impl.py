@@ -45,7 +45,8 @@ from ..search.sync import ElasticSearchSync
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
-                            EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment, EventRecordingsAttachments)
+                            EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
+                            EventRecordingsAttachments, ChatroomCohort, Cohort)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types
@@ -59,7 +60,8 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     send_analytics_on_event_attend_link_click, schedule_event_analytics_on_event_start, \
     schedule_event_analytics_daily_7AM, \
     schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend, \
-    create_event_in_webflow_service, update_event_in_webflow_service
+    create_event_in_webflow_service, update_event_in_webflow_service, create_chatroom_cohort_instances, \
+    leave_participants_in_cohort_removal
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
@@ -336,9 +338,6 @@ class ChatroomImpl(ChatroomManager):
         card_content['multiple_select'] = req_body.get('multiple_select', False)
         card_content['multiple_select_no'] = req_body.get('multiple_select_no', None)
         card_content['multiple_select_state'] = req_body.get('multiple_select_state', None)
-
-    def _fill_cohort_ids(self, card_content, req_body):
-        card_content['cohort_ids'] = json.dumps(req_body['cohort_ids']) if ('cohort_ids' in req_body) else None
 
     def _fill_chatroom_header(self, card_content, req_body, chatroom_type, chatroom_name, decoded_chatroom_title=""):
 
@@ -860,7 +859,6 @@ class ChatroomImpl(ChatroomManager):
         self._add_og_tags(req_body=req_body, card_content=card_content)
         self._check_and_set_chatroom_pending_status(card_content, is_intro_card, user_has_auto_approve_right)
         self.fill_pinned_information(card_content)
-        self._fill_cohort_ids(card_content, req_body)
 
         self._fill_secret_room_details(card_content, req_body, community_instance)
 
@@ -884,6 +882,11 @@ class ChatroomImpl(ChatroomManager):
         self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
                                                    chatroom_instance, card_content, user_has_auto_approve_right,
                                                    chatroom_type, is_intro_card)
+
+        cohort_ids = req_body['cohort_ids'] if ('cohort_ids' in req_body) else None
+
+        if cohort_ids:
+            create_chatroom_cohort_instances(self.get_chatroom_id(), cohort_ids)
 
         if user_has_auto_approve_right or is_intro_card:
             self._send_follow_notifications_to_tagged_members(tagged_members_list=tagged_members[0])
@@ -1878,6 +1881,105 @@ class ChatroomImpl(ChatroomManager):
         self._fill_online_link_for_event(chatroom_context, card_instance)
 
         return chatroom_context
+
+    def remove_cohort_from_chatroom(self, request_body) -> dict:
+        cohort_id = request_body.get('cohort_id')
+        chatroom_id = request_body.get('chatroom_id')
+
+        if not cohort_id or not chatroom_id:
+            return {'success': False, 'error_message': "Send Cohort id and Chatroom id"}
+
+        self.set_chatroom_id(chatroom_id)
+
+        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+
+        if not cohort_instance:
+            return {'success': False, 'error_message': "Invalid Cohort id"}
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not chatroom_instance:
+            return {'success': False, 'error_message': "Invalid Chatroom id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid User id"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
+                                                                  'member_id': user_instance})
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User doesn’t have the ability to remove a cohort from chatroom"}
+
+        filter_dict = {
+            'cohort_id': cohort_id,
+            'chatroom_id': self.get_chatroom_id()
+        }
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict)
+
+        if not chatroom_cohort_filter:
+            return {'success': False, 'error_message': "Cohort is not a part of this chatroom"}
+
+        removed_participant_count = leave_participants_in_cohort_removal.delay(cohort_id, self.get_member_id(),
+                                                                               self.get_chatroom_id())
+        chatroom_cohort_filter.delete()
+
+        return {'success': True, 'removed_participant_count': removed_participant_count}
+
+    def add_cohort_to_chatroom(self, request_body) -> dict:
+        cohort_ids = request_body.get('cohort_ids')
+        chatroom_id = request_body.get('chatroom_id')
+
+        if not cohort_ids or not chatroom_id:
+            return {'success': False, 'error_message': "Send Cohort ids and Chatroom id"}
+
+        if not isinstance(cohort_ids, list):
+            return {'success': False, 'error_message': "Invalid Cohort id List"}
+
+        self.set_chatroom_id(chatroom_id)
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not chatroom_instance:
+            return {'success': False, 'error_message': "Invalid Chatroom id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid User id"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community_id,
+                                                                  'member_id': user_instance})
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User doesn’t have the ability to remove a cohort from chatroom"}
+
+        for cohort_id in cohort_ids:
+            cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+
+            if not cohort_instance:
+                # Log this
+                continue
+
+            chatroom_cohort_dict = {
+                'chatroom_instance': chatroom_instance,
+                'cohort_instance': cohort_instance
+            }
+            ChatroomCohort.create_instance(chatroom_cohort_dict)
+
+        return {'success': True}
 
     @staticmethod
     def update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id):
