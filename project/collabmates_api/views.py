@@ -7839,29 +7839,39 @@ def verify_otp(request):
     info_logger.info("otp")
     info_logger.info(otp)
 
-    if mobile_no == "9458668721":
+    lm_mobile_no_list = ["9458668721", "9467796637"]
+
+    if mobile_no in lm_mobile_no_list:
+
         if otp == "0000":
             context = {}
             context['success'] = True
             mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
             context['profile_exists'] = mobile_filter.exists()
+
             if mobile_filter.exists():
                 context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
                 context['access'] = is_user_community_part(context['user']['id'])
+
             return JsonResponse(context)
+
         else:
             return JsonResponse({'success': False, 'error_message': "Wrong otp"})
 
     if settings.IS_BETA:
+
         if otp == "9999":
             context = {}
             context['success'] = True
             mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
             context['profile_exists'] = mobile_filter.exists()
+
             if mobile_filter.exists():
                 context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
                 context['access'] = is_user_community_part(context['user']['id'])
+
                 return JsonResponse(context)
+
             else:
                 return JsonResponse({'success': False, 'error_message': "Wrong otp"})
 
@@ -7879,15 +7889,18 @@ def verify_otp(request):
         except:
             context = get_error_context(False, "special characters error")
             info_logger.info(context)
+
             return JsonResponse(context)
 
         international = False
+
         if country_code != '91':
             international = True
 
         verified = verify_otp_on_mobile(phone_no, otp, international=international)
         verified_msg = verify_retry_otp(phone_no, otp)
         context['success'] = False
+
         if verified['success'] or verified_msg['success']:
             context['success'] = True
 
@@ -7906,6 +7919,7 @@ def verify_otp(request):
 
         mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
         context['profile_exists'] = mobile_filter.exists()
+
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
@@ -7918,12 +7932,12 @@ def verify_otp(request):
     # when the user wants to merge account
     if user_id:
         mobile_filter = userMobiles.objects.filter(user_id=user_id)
-
         context = {'success': False}
+
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
-
             international = False
+
             if str(instance.country_code) != '91':
                 international = True
 
@@ -7935,6 +7949,7 @@ def verify_otp(request):
                 break
 
         context['profile_exists'] = mobile_filter.exists()
+
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
@@ -7942,6 +7957,7 @@ def verify_otp(request):
         if not context['success']:
             # verifying otp from email
             email_filter = userEmails.objects.filter(user_id=user_id)
+
             for instance in email_filter:
                 email = instance.email
                 context = verify_otp_on_email(email, otp)
