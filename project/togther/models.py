@@ -2690,13 +2690,13 @@ class EventRecordingsAttachments(models.Model):
             'multimedia position'
         )
     )
-    width = models.FloatField(
+    width = models.IntegerField(
         null=True,
         help_text=_(
             'width of multimedia'
         )
     )
-    height = models.FloatField(
+    height = models.IntegerField(
         null=True, 
         blank=True,
         help_text=_(

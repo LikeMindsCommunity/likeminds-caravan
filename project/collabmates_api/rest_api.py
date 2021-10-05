@@ -596,6 +596,16 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         if card.online_link_password and not card.is_paid:
             return card.online_link_password
 
+    def get_event_attachment_details(self, card, member_id):
+        from .chatroom.chatroom_impl import ChatroomHelper
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        return ChatroomHelper.display_event_recordings_and_attachments(
+            user_instance=user_instance,
+            card_instance=card
+        )
+
     def to_representation(self, card):
         data = super(GetChatroomInstanceSerializer, self).to_representation(card)
 
@@ -732,6 +742,12 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     data['recording_url_og_tags'] = json.loads(data['recording_url_og_tags'])
                 except:
                     data['recording_url_og_tags'] = None
+         
+            elif field.field_name == 'has_event_recording' and data['has_event_recording']:
+                event_dict = self.get_event_attachment_details(card, self.member_id)
+                
+                data['recordings_attachments'] = event_dict.get('recordings_attachments')
+                data['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
@@ -1063,6 +1079,16 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
             return event_attendees_list
 
+    def get_event_attachment_details(self, conversation_instance, member_id):
+        from .chatroom.chatroom_impl import ChatroomHelper
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        return ChatroomHelper.display_event_recordings_and_attachments(
+            user_instance=user_instance,
+            conversation_instance=conversation_instance
+        )
+
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)
 
@@ -1122,6 +1148,12 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                     data['recording_url_og_tags'] = json.loads(data['recording_url_og_tags'])
                 except:
                     data['recording_url_og_tags'] = None
+
+            elif field.field_name == 'has_event_recording' and data['has_event_recording']:
+                event_dict = self.get_event_attachment_details(obj, self.current_user_id)
+                
+                data['recordings_attachments'] = event_dict.get('recordings_attachments')
+                data['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
 
             elif data[field.field_name] is None:
                 del data[field.field_name]

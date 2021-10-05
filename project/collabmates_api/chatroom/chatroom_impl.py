@@ -1998,6 +1998,11 @@ class ChatroomImpl(ChatroomManager):
             chatroom_instance.has_event_recording = True
             chatroom_instance.save()
 
+            update_models_for_syncing_apis(
+                SyncTypes.CHATROOM,
+                {'card': chatroom_instance},
+                {}
+            )
 
             member_data = {
                 'member_id': member_id,
@@ -2032,6 +2037,12 @@ class ChatroomImpl(ChatroomManager):
             conversation_instance.has_event_recording = True
             conversation_instance.save()
 
+            update_models_for_syncing_apis(
+                SyncTypes.CONVERSATION,
+                {'id': conversation_instance.id},
+                {}
+            )
+
             conversation_context = {
                 "current_user_id": member_id, 
                 "fetch_reply": True
@@ -2059,14 +2070,19 @@ class ChatroomImpl(ChatroomManager):
             serializer.save()
 
             if req_body.get('chatroom_id'):
-                event_obj = ModelUtilities.get_model_filter(
+                event_obj = ModelUtilities.get_model_instance_or_none(
                     Collabcard,
-                    {
-                        'id': req_body.get('chatroom_id')
-                    }
+                    req_body.get('chatroom_id')
                 )
 
-                event_obj.update(has_event_recording=True)
+                event_obj.has_event_recording=True
+                event_obj.save()
+
+                update_models_for_syncing_apis(
+                    SyncTypes.CHATROOM,
+                    {'card': event_obj},
+                    {}
+                )
 
                 member_data = {
                     'member_id': member_id,
@@ -2074,29 +2090,31 @@ class ChatroomImpl(ChatroomManager):
                     'state_instance': None
                 }
 
-                event_serializer_local = GetChatroomInstanceSerializer(event_obj, context=member_data, many=True)
-                event_serializers = []
+                event_serializer_local = GetChatroomInstanceSerializer(event_obj, context=member_data, many=False)
 
-                for obj in event_obj:    
-                    event_serializer = CollabcardSerializer(card=obj, user=member_id)
-                    event_serializers.append(event_serializer)
+                event_serializer = CollabcardSerializer(card=event_obj, user=member_id)
 
                 res = {
                     'success': True,
                     'event_attachment': serializer.data,
-                    'chatroom': event_serializers,
+                    'chatroom': event_serializer,
                     'chatroom_local': event_serializer_local.data
                 }
 
             elif req_body.get('conversation_id'):
-                event_obj = ModelUtilities.get_model_filter(
+                event_obj = ModelUtilities.get_model_instance_or_none(
                     card_answers,
-                    {
-                        'id': req_body.get('conversation_id')
-                    }
+                    req_body.get('conversation_id')
                 )
 
-                event_obj.update(has_event_recording=True)
+                event_obj.has_event_recording=True
+                event_obj.save()
+
+                update_models_for_syncing_apis(
+                    SyncTypes.CONVERSATION,
+                    {'id': event_obj.id},
+                    {}
+                )
 
                 conversation_context = {
                     "current_user_id": member_id, 
@@ -2153,6 +2171,13 @@ class ChatroomImpl(ChatroomManager):
         }
 
         if req_body.get('chatroom_id'):
+
+            update_models_for_syncing_apis(
+                SyncTypes.CHATROOM,
+                {'card': event_obj},
+                {}
+            )
+
             member_data = {
                     'member_id': member_id,
                     'current_user_id': member_id,
@@ -2168,6 +2193,13 @@ class ChatroomImpl(ChatroomManager):
             res['chatroom_local'] = event_serializer_local.data
 
         elif req_body.get('conversation_id'):
+
+            update_models_for_syncing_apis(
+                SyncTypes.CONVERSATION,
+                {'id': event_obj.id},
+                {}
+            )
+
             conversation_context = {
                 "current_user_id": member_id, 
                 "fetch_reply": True
@@ -2175,7 +2207,6 @@ class ChatroomImpl(ChatroomManager):
 
             event_serializer = CardAnswersDBSyncSerializer(event_obj, \
                 context=conversation_context, many=False)
-
 
             res['conversation'] = event_serializer.data
 
@@ -2205,6 +2236,7 @@ class ChatroomImpl(ChatroomManager):
         else:
             event_obj.has_event_recording = False
 
+        event_obj.save()
         event_attachment_obj.delete()
 
         res = {
@@ -2212,6 +2244,13 @@ class ChatroomImpl(ChatroomManager):
         }
 
         if event_attachment_obj.chatroom_id:
+
+            update_models_for_syncing_apis(
+                SyncTypes.CHATROOM,
+                {'card': event_obj},
+                {}
+            )
+            
             member_data = {
                     'member_id': member_id,
                     'current_user_id': member_id,
@@ -2227,6 +2266,13 @@ class ChatroomImpl(ChatroomManager):
             res['chatroom_local'] = event_serializer_local.data
 
         elif event_attachment_obj.conversation_id:
+
+            update_models_for_syncing_apis(
+                SyncTypes.CONVERSATION,
+                {'id': event_obj.id},
+                {}
+            )
+
             conversation_context = {
                 "current_user_id": member_id, 
                 "fetch_reply": True

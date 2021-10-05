@@ -371,6 +371,19 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         except:
             collabcard['recording_url_og_tags'] = {}
 
+    if card.has_event_recording:
+        from .chatroom.chatroom_impl import ChatroomHelper
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user)
+
+        event_dict = ChatroomHelper.display_event_recordings_and_attachments(
+            user_instance=user_instance,
+            card_instance=card
+        )
+
+        collabcard['recordings_attachments'] = event_dict.get('recordings_attachments')
+        collabcard['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
+
     return collabcard
 
 
