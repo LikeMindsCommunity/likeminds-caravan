@@ -2038,38 +2038,3 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
 
         chatroom_manager.add_secret_chatroom_participant(req_body)
 
-
-@shared_task
-def leave_participants_in_cohort_removal(cohort_id, member_id, chatroom_id):
-    filter_dict = {
-        'chatroom_id': chatroom_id,
-        'chatroom__is_secret': True
-    }
-
-    removed_member_count = 0
-
-    related_cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
-                                                                                                  flat=True)
-
-    other_cohort_participants = ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': related_cohort_ids})\
-        .exclude(cohort_id=cohort_id).values_list('user_id', flat=True)
-
-    cohort_member_ids = ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_id}).values_list('user_id',
-                                                                                                            flat=True)
-
-    for cohort_member_id in cohort_member_ids:
-
-        if cohort_member_id not in other_cohort_participants:
-
-            # importing locally to resolve circular import issue.
-            from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
-
-            try:
-                chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
-                chatroom_manager.leave_secret_chatroom(cohort_member_id)
-                removed_member_count += 1
-
-            except Exception as e:
-                print(e.args)
-
-    return removed_member_count

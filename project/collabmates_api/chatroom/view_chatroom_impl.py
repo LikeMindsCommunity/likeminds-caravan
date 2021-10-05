@@ -827,3 +827,34 @@ class AddCohortToChatroomView(APIView):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
+
+
+class FetchChatroomParticipantsView(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        chatroom_id = request.GET.get('chatroom_id')
+
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id)
+
+        try:
+            chatroom_data = chatroom_manager.fetch_chatroom_participants()
+
+        except Exception as e:
+
+            error_logger.error(e.args)
+
+            response = {
+                'success': False,
+                'error_message': "Internal Server Error"
+            }
+
+            return JsonResponse(response, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if chatroom_data.get('error_message'):
+            return JsonResponse(chatroom_data, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(chatroom_data, status=status_codes.HTTP_200_OK)
+

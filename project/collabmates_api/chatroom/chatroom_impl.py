@@ -46,7 +46,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
-                            EventRecordingsAttachments, ChatroomCohort, Cohort)
+                            EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types
@@ -60,8 +60,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     send_analytics_on_event_attend_link_click, schedule_event_analytics_on_event_start, \
     schedule_event_analytics_daily_7AM, \
     schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend, \
-    create_event_in_webflow_service, update_event_in_webflow_service, create_chatroom_cohort_instances, \
-    leave_participants_in_cohort_removal
+    create_event_in_webflow_service, update_event_in_webflow_service, create_chatroom_cohort_instances
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
@@ -1917,21 +1916,47 @@ class ChatroomImpl(ChatroomManager):
         if not is_cm:
             return {'success': False, 'error_message': "User doesn’t have the ability to remove a cohort from chatroom"}
 
-        filter_dict = {
+        chatroom_cohort_filter_dict = {
             'cohort_id': cohort_id,
             'chatroom_id': self.get_chatroom_id()
         }
 
-        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict)
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, chatroom_cohort_filter_dict)
 
         if not chatroom_cohort_filter:
             return {'success': False, 'error_message': "Cohort is not a part of this chatroom"}
 
-        removed_participant_count = leave_participants_in_cohort_removal.delay(cohort_id, self.get_member_id(),
-                                                                               self.get_chatroom_id())
+        filter_dict = {
+            'chatroom_id': chatroom_id,
+            'chatroom__is_secret': True
+        }
+
+        removed_member_count = 0
+
+        related_cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
+                                                                                                      flat=True)
+
+        other_cohort_participants = ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': related_cohort_ids}) \
+            .exclude(cohort_id=cohort_id).values_list('user_id', flat=True)
+
+        cohort_member_ids = ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_id}) \
+            .values_list('user_id', flat=True)
+
+        for cohort_member_id in cohort_member_ids:
+
+            if cohort_member_id not in other_cohort_participants:
+
+                try:
+                    chatroom_manager = ChatroomImpl(self.get_member_id(), chatroom_id=chatroom_id)
+                    chatroom_manager.leave_secret_chatroom(cohort_member_id)
+                    removed_member_count += 1
+
+                except Exception as e:
+                    error_logger.error(e.args)
+
         chatroom_cohort_filter.delete()
 
-        return {'success': True, 'removed_participant_count': removed_participant_count}
+        return {'success': True, 'removed_participant_count': removed_member_count}
 
     def add_cohort_to_chatroom(self, request_body) -> dict:
         cohort_ids = request_body.get('cohort_ids')
@@ -1980,6 +2005,61 @@ class ChatroomImpl(ChatroomManager):
             ChatroomCohort.create_instance(chatroom_cohort_dict)
 
         return {'success': True}
+
+    def fetch_chatroom_participants(self):
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            context = get_error_context(False, "Invalid Chatroom ID")
+
+            return context
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            context = get_error_context(False, "Invalid User ID")
+
+            return context
+
+        community_instance = card_instance.community
+        can_edit_participant = False
+
+        member_filter = ModelUtilities.get_model_filter(Members,
+                                                        {'community_id': community_instance,
+                                                         'member_id': user_instance})
+        if not member_filter:
+            context = get_error_context(False, "User is not a part of this community.")
+
+            return context
+        
+        member_instance = member_filter[0]
+
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if is_cm:
+            can_edit_participant = True
+
+        filter_dict = {
+            'card': card_instance,
+            'follow_status': True,
+            'is_tagged': False,
+            'remove': None
+        }
+
+        total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
+                                                                                                            flat=True)
+
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance)
+        participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+
+        response = {
+            'success': True,
+            'participants': participant_list,
+            'can_edit_participant': can_edit_participant
+        }
+
+        return response
 
     @staticmethod
     def update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id):

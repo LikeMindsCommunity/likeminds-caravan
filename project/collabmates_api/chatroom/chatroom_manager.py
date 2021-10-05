@@ -58,7 +58,9 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'remove_cohort_from_chatroom') and
                  callable(subclass.remove_cohort_from_chatroom)) and
                 (hasattr(subclass, 'add_cohort_to_chatroom') and
-                 callable(subclass.add_cohort_to_chatroom))
+                 callable(subclass.add_cohort_to_chatroom)) and
+                (hasattr(subclass, 'fetch_chatroom_participants') and
+                 callable(subclass.fetch_chatroom_participants))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -276,4 +278,11 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         function to add cohorts to the chatroom
         """
 
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_chatroom_participants(self):
+        """
+        function to fetch chatroom participants meta data
+        """
         raise NotImplementedError

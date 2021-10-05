@@ -12,7 +12,7 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  FetchEventLinkForDashboard, AddEventRecordingAttachment,
                                  AddEventRecordingAttachmentMeta,
                                  DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta,
-                                 RemoveCohortFromChatroomView, AddCohortToChatroomView
+                                 RemoveCohortFromChatroomView, AddCohortToChatroomView, FetchChatroomParticipantsView
                                  )
 
 urlpatterns = [
@@ -25,6 +25,8 @@ urlpatterns = [
     path('auto_follow_for_all_members', AutoFollowChatroomForAllMembersView.as_view(),
          name="auto_follow_for_all_members"),
     path('edit', EditChatroomView.as_view(), name="edit_chatroom"),
+    path('fetch_participants_meta', FetchChatroomParticipantsView.as_view(),
+         name="fetch_participants_meta"),
     path('secret/fetch_participants_meta', FetchParticipantsOfSecretChatroom.as_view(),
          name="fetch_participants_of_secret_chatroom"),
     path('enable_member_message', EnableMemberMessageInChatroomView.as_view(),
