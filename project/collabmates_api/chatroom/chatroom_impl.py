@@ -1991,7 +1991,9 @@ class ChatroomImpl(ChatroomManager):
                 res = get_error_context(False, "Invalid chatroom_id")
                 return res
 
-            recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url'))
+            recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url')) \
+                if req_body.get('recording_url') \
+                else {}
 
             chatroom_instance.about_recording = req_body.get('about_recording')
             chatroom_instance.recording_url_og_tags = json.dumps(recording_url_og_tags)

@@ -597,6 +597,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             return card.online_link_password
 
     def get_event_attachment_details(self, card, member_id):
+        
         from .chatroom.chatroom_impl import ChatroomHelper
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
@@ -1080,6 +1081,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             return event_attendees_list
 
     def get_event_attachment_details(self, conversation_instance, member_id):
+
         from .chatroom.chatroom_impl import ChatroomHelper
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)

@@ -269,37 +269,44 @@ def decode_meta_from_url(url):
 
     '''function to take meta tags from url'''
 
-
-    is_valid_https=url.find("https://")
-
-    if is_valid_https == -1:
-        url="https://"+url
-
-
-
-    r = requests.get(url)
-
-    soup = BeautifulSoup(r.text,'html.parser')
-    title = soup.find("meta", property="og:title")
-    image=soup.find("meta",property="og:image")
-    description=soup.find("meta",property="og:description")
-    og_tags={}
-
     try:
-        og_tags['title']=title['content']
-    except:
-        pass
+        is_valid_https=url.find("https://")
 
-    try:
-        og_tags['image'] = image['content']
-    except:
-        pass
+        if is_valid_https == -1:
+            url="https://"+url
 
-    try:
-        og_tags['description'] = description['content']
+        r = requests.get(url)
+
+        soup = BeautifulSoup(r.text,'html.parser')
+        title = soup.find("meta", property="og:title")
+        image=soup.find("meta",property="og:image")
+        description=soup.find("meta",property="og:description")
+        og_tags={}
+
+        try:
+            og_tags['title']=title['content']
+        
+        except:
+            pass
+
+        try:
+            og_tags['image'] = image['content']
+        
+        except:
+            pass
+
+        try:
+            og_tags['description'] = description['content']
+        
+        except:
+            pass
+        og_tags['url']=url
+
     except:
-        pass
-    og_tags['url']=url
+        og_tags = {
+            'url': url
+        }
+
     return og_tags
 
 
