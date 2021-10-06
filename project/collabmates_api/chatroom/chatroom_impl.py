@@ -585,6 +585,7 @@ class ChatroomImpl(ChatroomManager):
         create_context = dict()
         create_context['header'] = req_body.get('header')
         create_context['title'] = req_body.get('title')
+        create_context['about'] = req_body.get('about')
         create_context['community'] = community_instance
         create_context['user'] = user_instance
         create_context['online_link'] = req_body.get('online_link')
