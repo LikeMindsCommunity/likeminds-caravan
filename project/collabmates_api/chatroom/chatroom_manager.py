@@ -285,4 +285,5 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         """
         function to fetch chatroom participants meta data
         """
+
         raise NotImplementedError
