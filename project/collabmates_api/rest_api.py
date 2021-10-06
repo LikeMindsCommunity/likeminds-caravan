@@ -28,7 +28,7 @@ from .user_moderation_rights import check_admin_approve_right
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from .static_files import *
-from django.db.models import F, When, Q
+from django.db.models import F, When, Q, Count
 
 url = settings.URL
 
@@ -258,6 +258,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     highlights = serializers.SerializerMethodField()
     testimonials = serializers.SerializerMethodField()
     faq = serializers.SerializerMethodField()
+    cohorts = serializers.SerializerMethodField()
 
     class Meta:
         model = Collabcard
@@ -279,7 +280,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'topic_id', 'auto_follow_done', 'is_edited', 'attendees_ids', 'instructors', 'highlights',
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
-                  'webflow_item_id', 'is_private', 'chatroom_with_user_id'
+                  'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohorts',
+                  'has_event_recording', 'about_recording', 'recording_url_og_tags'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -349,6 +351,21 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             co_host_list.append(temp)
 
         return co_host_list
+
+    def get_cohorts(self, card):
+
+        filter_dict = {
+            'chatroom_id': card.id
+        }
+
+        cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id', flat=True)
+
+        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids})
+                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
+                                                      community_id=F('cohort__community_id'))
+                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
+
+        return cohort_list
 
     def get_images(self, card):
 
@@ -579,6 +596,17 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         if card.online_link_password and not card.is_paid:
             return card.online_link_password
 
+    def get_event_attachment_details(self, card, member_id):
+        
+        from .chatroom.chatroom_impl import ChatroomHelper
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        return ChatroomHelper.display_event_recordings_and_attachments(
+            user_instance=user_instance,
+            card_instance=card
+        )
+
     def to_representation(self, card):
         data = super(GetChatroomInstanceSerializer, self).to_representation(card)
 
@@ -709,6 +737,18 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             elif field.field_name == "secret_chatroom_participants" and data[
                 'secret_chatroom_participants'] is not None:
                 data['secret_chatroom_participants'] = json.loads(data['secret_chatroom_participants'])
+
+            elif field.field_name == 'recording_url_og_tags' and data['recording_url_og_tags'] is not None:
+                try:
+                    data['recording_url_og_tags'] = json.loads(data['recording_url_og_tags'])
+                except:
+                    data['recording_url_og_tags'] = None
+         
+            elif field.field_name == 'has_event_recording' and data['has_event_recording']:
+                event_dict = self.get_event_attachment_details(card, self.member_id)
+                
+                data['recordings_attachments'] = event_dict.get('recordings_attachments')
+                data['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
@@ -959,7 +999,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'multiple_select_no', 'polls', 'reactions', 'poll_type_text', 'submit_type_text',
                   'poll_answer_text', 'reply_chatroom_id', 'header', 'location',
                   'location_lat', 'location_long', 'start_time', 'end_time', 'co_hosts_ids',
-                  'attendees_ids')
+                  'attendees_ids', 'has_event_recording', 'about_recording', 'recording_url_og_tags')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)
@@ -1040,6 +1080,17 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
             return event_attendees_list
 
+    def get_event_attachment_details(self, conversation_instance, member_id):
+
+        from .chatroom.chatroom_impl import ChatroomHelper
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        return ChatroomHelper.display_event_recordings_and_attachments(
+            user_instance=user_instance,
+            conversation_instance=conversation_instance
+        )
+
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)
 
@@ -1093,6 +1144,18 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 except:
                     data['preview'] = None
                 del data['internal_link']
+
+            elif field.field_name == 'recording_url_og_tags' and data['recording_url_og_tags'] is not None:
+                try:
+                    data['recording_url_og_tags'] = json.loads(data['recording_url_og_tags'])
+                except:
+                    data['recording_url_og_tags'] = None
+
+            elif field.field_name == 'has_event_recording' and data['has_event_recording']:
+                event_dict = self.get_event_attachment_details(obj, self.current_user_id)
+                
+                data['recordings_attachments'] = event_dict.get('recordings_attachments')
+                data['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
@@ -1164,3 +1227,9 @@ class ConversationAttachmentsSerializer(serializers.ModelSerializer):
                 del data[field.field_name]
 
         return data
+
+
+class EventRecordingsAttachmentsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventRecordingsAttachments
+        fields = '__all__'

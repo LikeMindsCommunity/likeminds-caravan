@@ -9,7 +9,10 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  UpdateEventView, SetEventAttendedView, EnableMemberMessageInChatroomView,
                                  FetchChatroomSettingsView, AddMembersToChatroomView,
                                  UpdateEventView, SetEventAttendedView, ChatroomUpdateFilesView,
-                                 FetchEventLinkForDashboard
+                                 FetchEventLinkForDashboard, AddEventRecordingAttachment,
+                                 AddEventRecordingAttachmentMeta,
+                                 DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta,
+                                 RemoveCohortFromChatroomView, AddCohortToChatroomView, FetchChatroomParticipantsView
                                  )
 
 urlpatterns = [
@@ -22,6 +25,8 @@ urlpatterns = [
     path('auto_follow_for_all_members', AutoFollowChatroomForAllMembersView.as_view(),
          name="auto_follow_for_all_members"),
     path('edit', EditChatroomView.as_view(), name="edit_chatroom"),
+    path('fetch_participants_meta', FetchChatroomParticipantsView.as_view(),
+         name="fetch_participants_meta"),
     path('secret/fetch_participants_meta', FetchParticipantsOfSecretChatroom.as_view(),
          name="fetch_participants_of_secret_chatroom"),
     path('enable_member_message', EnableMemberMessageInChatroomView.as_view(),
@@ -29,6 +34,8 @@ urlpatterns = [
     path('fetch_settings', FetchChatroomSettingsView.as_view(),
          name='fetch_settings'),
     path('add', AddMembersToChatroomView.as_view(), name='add_members_to_chatroom'),
+    path('remove_cohort', RemoveCohortFromChatroomView.as_view(), name="remove_cohort_from_chatroom"),
+    path('add_cohorts', AddCohortToChatroomView.as_view(), name="add_cohorts_to_chatroom"),
     path('update_files', ChatroomUpdateFilesView.as_view(), name="update_files"),
     path('event/create', CreateEventView.as_view(), name="create_event"),
     path('event/add_or_update_instructor', EventAddOrUpdateInstructor.as_view(), name="add_or_update_instructor"),
@@ -47,4 +54,8 @@ urlpatterns = [
     path('event/fetch_event_link_for_dashboard', FetchEventLinkForDashboard.as_view(),
          name="fetch_event_link_for_dashboard"),
 
+     path('event/upload_recordings_meta', AddEventRecordingAttachmentMeta.as_view(), name='upload_recordings_meta'),
+     path('event/upload_recordings', AddEventRecordingAttachment.as_view(), name='upload_recordings'),
+     path('event/delete_recordings_meta', DeleteEventRecordingAttachmentMeta.as_view(), name='delete_recordings_meta'),
+     path('event/delete_recordings', DeleteEventRecordingAttachment.as_view(), name='delete_recordings'),
 ]

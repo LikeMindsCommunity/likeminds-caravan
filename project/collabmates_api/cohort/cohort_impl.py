@@ -3,6 +3,7 @@ from django.db.models import Count, F
 
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
+from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights
@@ -182,8 +183,8 @@ class CohortImpl(CohortManager):
             return {'success': False, 'error_message': "User doesn’t have the ability to fetch cohort"}
 
         cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort__community_id': community_id})
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name')).order_by()
-                           .values('name', 'total_members'))
+                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'))
+                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members'))
 
         return {'success': True, 'cohorts': cohort_list}
 
@@ -302,10 +303,13 @@ class CohortImpl(CohortManager):
     def _update_members_for_cohort(self, cohort_instance, member_ids):
         # Doesn't remove any existing member
         existing_cohort_members = set(
-            ModelUtilities.get_model_filter(CohortMember, {'user_id__in': member_ids}).values_list('user_id',
-                                                                                                   flat=True))
+            ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_instance.id}).values_list('user_id',
+                                                                                                         flat=True))
         members_to_add = list(set(member_ids) - existing_cohort_members)
         CohortHelper.create_cohort_member_instance(cohort_instance=cohort_instance, member_ids=members_to_add)
+
+        if members_to_add:
+            add_new_participants_to_cohorts_secret_chatroom.delay(cohort_instance.id, self.get_member_id(), member_ids)
 
 
 class CohortHelper:

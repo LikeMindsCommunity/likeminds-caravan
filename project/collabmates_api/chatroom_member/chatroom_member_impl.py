@@ -1,6 +1,6 @@
 import json
 
-from django.db.models import Q
+from django.db.models import Q, Count, F
 from django.contrib.auth.models import User
 
 from collabmates_api.chatroom_member.chatroom_member_manager import ChatroomMemberManager
@@ -23,7 +23,7 @@ from utility.number_utilities import NumberUtilities
 from utility.states import card_types, poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
-    EventHighlights, EventMemberTestimonials, EventFAQ
+    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -358,6 +358,25 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         if event_attendees:
             chatroom_context['attendees'] = event_attendees
 
+    def fill_cohort_meta_for_response(self, card_instance, chatroom_context):
+        filter_dict = {
+            'chatroom_id': card_instance.id
+        }
+
+        related_cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
+                                                                                                      flat=True)
+
+        filter_dict = {
+            'cohort__id__in': related_cohort_ids
+        }
+
+        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, filter_dict)
+                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
+                                                      community_id=F('cohort__community_id'))
+                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
+
+        chatroom_context['cohorts'] = cohort_list
+
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes) -> {}:
 
@@ -397,6 +416,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             self.fill_event_context_for_response(chatroom_context, card_instance, community_instance)
 
         chatroom_context.update(state_context)
+
+        self.fill_cohort_meta_for_response(card_instance, chatroom_context)
 
         preview = self.create_chatroom_preview(card_instance)
 
@@ -458,6 +479,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         chatroom_context_list = []
 
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
         for data in chatroom_list:
             card_instance = data.card
             state_instance = data
@@ -481,6 +504,16 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                 chatroom_context['member'] = self.get_member_community_impl_instance(
                     community_instance).compute_removed_user_context(card_instance.user,
                                                                      community_instance)
+
+            # For Event Recordings and Attachments data 
+            from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+
+            event_recordings_data = ChatroomHelper.display_event_recordings_and_attachments(
+                user_instance=user_instance,
+                card_instance=card_instance
+            )
+
+            chatroom_context.update(event_recordings_data)
 
             chatroom_context_list.append(chatroom_context)
 

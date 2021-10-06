@@ -54,7 +54,13 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'update_files') and
                  callable(subclass.update_files)) and
                 (hasattr(subclass, 'fetch_event_link_for_dashboard') and
-                 callable(subclass.fetch_event_link_for_dashboard))
+                 callable(subclass.fetch_event_link_for_dashboard)) and
+                (hasattr(subclass, 'remove_cohort_from_chatroom') and
+                 callable(subclass.remove_cohort_from_chatroom)) and
+                (hasattr(subclass, 'add_cohort_to_chatroom') and
+                 callable(subclass.add_cohort_to_chatroom)) and
+                (hasattr(subclass, 'fetch_chatroom_participants') and
+                 callable(subclass.fetch_chatroom_participants))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -254,6 +260,30 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def fetch_event_link_for_dashboard(self) -> dict:
         """
         returns the online links for event dashboard
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def remove_cohort_from_chatroom(self, request_body) -> dict:
+        """
+        function to remove cohort from the chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def add_cohort_to_chatroom(self, request_body) -> dict:
+        """
+        function to add cohorts to the chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_chatroom_participants(self):
+        """
+        function to fetch chatroom participants meta data
         """
 
         raise NotImplementedError

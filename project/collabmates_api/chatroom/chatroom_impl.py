@@ -17,9 +17,10 @@ from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of_new_event_chatrooms_created_for_user
-from ..rest_api import GetChatroomInstanceSerializer
+from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
+                        CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
-                           UserinfoSerializer, get_chatroom_instance)
+                           UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
     delete_chatroom
 from ..sync.model_update import update_models_for_syncing_apis
@@ -44,7 +45,8 @@ from ..search.sync import ElasticSearchSync
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
-                            EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment)
+                            EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
+                            EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types
@@ -58,7 +60,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     send_analytics_on_event_attend_link_click, schedule_event_analytics_on_event_start, \
     schedule_event_analytics_daily_7AM, \
     schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend, \
-    create_event_in_webflow_service, update_event_in_webflow_service
+    create_event_in_webflow_service, update_event_in_webflow_service, create_chatroom_cohort_instances
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
@@ -583,6 +585,7 @@ class ChatroomImpl(ChatroomManager):
         create_context = dict()
         create_context['header'] = req_body.get('header')
         create_context['title'] = req_body.get('title')
+        create_context['about'] = req_body.get('about')
         create_context['community'] = community_instance
         create_context['user'] = user_instance
         create_context['online_link'] = req_body.get('online_link')
@@ -803,6 +806,14 @@ class ChatroomImpl(ChatroomManager):
         if placeholder:
             chatroom_obj['placeholder'] = placeholder
 
+        # For Event Recordings and Attachments data
+        event_recordings_data = ChatroomHelper.display_event_recordings_and_attachments(
+            user_instance=user_instance,
+            card_instance=card_instance
+        )
+
+        chatroom_obj.update(event_recordings_data)
+
         return chatroom_obj
 
     def create_chatroom(self, req_body: dict) -> dict:
@@ -871,6 +882,11 @@ class ChatroomImpl(ChatroomManager):
         self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
                                                    chatroom_instance, card_content, user_has_auto_approve_right,
                                                    chatroom_type, is_intro_card)
+
+        cohort_ids = req_body['cohort_ids'] if ('cohort_ids' in req_body) else None
+
+        if cohort_ids:
+            create_chatroom_cohort_instances(self.get_chatroom_id(), cohort_ids)
 
         if user_has_auto_approve_right or is_intro_card:
             self._send_follow_notifications_to_tagged_members(tagged_members_list=tagged_members[0])
@@ -1762,6 +1778,9 @@ class ChatroomImpl(ChatroomManager):
             admin_has_delete_right = check_admin_delete_right(user=user_instance,
                                                               community=community_instance)
 
+            if card_instance.is_secret or (card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]):
+                chatroom_settings.remove(pin_chatroom)
+
             if admin_has_delete_right:
                 chatroom_settings.append(delete_chatroom)
 
@@ -1862,6 +1881,492 @@ class ChatroomImpl(ChatroomManager):
         self._fill_online_link_for_event(chatroom_context, card_instance)
 
         return chatroom_context
+
+    def remove_cohort_from_chatroom(self, request_body) -> dict:
+        cohort_id = request_body.get('cohort_id')
+        chatroom_id = request_body.get('chatroom_id')
+
+        if not cohort_id or not chatroom_id:
+            return {'success': False, 'error_message': "Send Cohort id and Chatroom id"}
+
+        self.set_chatroom_id(chatroom_id)
+
+        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+
+        if not cohort_instance:
+            return {'success': False, 'error_message': "Invalid Cohort id"}
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not chatroom_instance:
+            return {'success': False, 'error_message': "Invalid Chatroom id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid User id"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
+                                                                  'member_id': user_instance})
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User doesn’t have the ability to remove a cohort from chatroom"}
+
+        chatroom_cohort_filter_dict = {
+            'cohort_id': cohort_id,
+            'chatroom_id': self.get_chatroom_id()
+        }
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, chatroom_cohort_filter_dict)
+
+        if not chatroom_cohort_filter:
+            return {'success': False, 'error_message': "Cohort is not a part of this chatroom"}
+
+        filter_dict = {
+            'chatroom_id': chatroom_id,
+            'chatroom__is_secret': True
+        }
+
+        removed_member_count = 0
+
+        related_cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
+                                                                                                      flat=True)
+
+        other_cohort_participants = ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': related_cohort_ids}) \
+            .exclude(cohort_id=cohort_id).values_list('user_id', flat=True)
+
+        cohort_member_ids = ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_id}) \
+            .values_list('user_id', flat=True)
+
+        for cohort_member_id in cohort_member_ids:
+
+            if cohort_member_id not in other_cohort_participants:
+
+                try:
+                    chatroom_manager = ChatroomImpl(self.get_member_id(), chatroom_id=chatroom_id)
+                    chatroom_manager.leave_secret_chatroom(cohort_member_id)
+                    removed_member_count += 1
+
+                except Exception as e:
+                    error_logger.error(e.args)
+
+        chatroom_cohort_filter.delete()
+
+        return {'success': True, 'removed_participant_count': removed_member_count}
+
+    def add_cohort_to_chatroom(self, request_body) -> dict:
+        cohort_ids = request_body.get('cohort_ids')
+        chatroom_id = request_body.get('chatroom_id')
+
+        if not cohort_ids or not chatroom_id:
+            return {'success': False, 'error_message': "Send Cohort ids and Chatroom id"}
+
+        if not isinstance(cohort_ids, list):
+            return {'success': False, 'error_message': "Invalid Cohort id List"}
+
+        self.set_chatroom_id(chatroom_id)
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not chatroom_instance:
+            return {'success': False, 'error_message': "Invalid Chatroom id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid User id"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community_id,
+                                                                  'member_id': user_instance})
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User doesn’t have the ability to remove a cohort from chatroom"}
+
+        for cohort_id in cohort_ids:
+            cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+
+            if not cohort_instance:
+                # Log this
+                continue
+
+            chatroom_cohort_dict = {
+                'chatroom_instance': chatroom_instance,
+                'cohort_instance': cohort_instance
+            }
+            ChatroomCohort.create_instance(chatroom_cohort_dict)
+
+        return {'success': True}
+
+    def fetch_chatroom_participants(self):
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            context = get_error_context(False, "Invalid Chatroom ID")
+
+            return context
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            context = get_error_context(False, "Invalid User ID")
+
+            return context
+
+        community_instance = card_instance.community
+        can_edit_participant = False
+
+        member_filter = ModelUtilities.get_model_filter(Members,
+                                                        {'community_id': community_instance,
+                                                         'member_id': user_instance})
+        if not member_filter:
+            context = get_error_context(False, "User is not a part of this community.")
+
+            return context
+        
+        member_instance = member_filter[0]
+
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if is_cm:
+            can_edit_participant = True
+
+        filter_dict = {
+            'card': card_instance,
+            'follow_status': True,
+            'is_tagged': False,
+            'remove': None
+        }
+
+        total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
+                                                                                                            flat=True)
+
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance)
+        participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+
+        response = {
+            'success': True,
+            'participants': participant_list,
+            'can_edit_participant': can_edit_participant
+        }
+
+        return response
+
+    @staticmethod
+    def update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id):
+        
+        if req_body.get('chatroom_id'):
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
+
+            if not chatroom_instance:
+                res = get_error_context(False, "Invalid chatroom_id")
+                return res
+
+            recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url')) \
+                if req_body.get('recording_url') \
+                else {}
+
+            chatroom_instance.about_recording = req_body.get('about_recording')
+            chatroom_instance.recording_url_og_tags = json.dumps(recording_url_og_tags)
+            chatroom_instance.has_event_recording = True
+            chatroom_instance.save()
+
+            update_models_for_syncing_apis(
+                SyncTypes.CHATROOM,
+                {'card': chatroom_instance},
+                {}
+            )
+
+            member_data = {
+                'member_id': member_id,
+                'current_user_id': member_id,
+                'state_instance': None
+            }
+
+            chatroom_serializer_local = GetChatroomInstanceSerializer(chatroom_instance, \
+                context=member_data, many=False)
+
+            chatroom_serializer = CollabcardSerializer(card=chatroom_instance, user=member_id)
+
+            res = {
+                'success': True,
+                'chatroom': chatroom_serializer,
+                'chatroom_local': chatroom_serializer_local.data
+
+            }
+            return res
+
+        elif req_body.get('conversation_id'):
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, req_body.get('conversation_id'))
+
+            if not conversation_instance:
+                res = get_error_context(False, "Invalid conversation_id")
+                return res
+
+            recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url'))
+
+            conversation_instance.about_recording = req_body.get('about_recording')
+            conversation_instance.recording_url_og_tags = json.dumps(recording_url_og_tags)
+            conversation_instance.has_event_recording = True
+            conversation_instance.save()
+
+            update_models_for_syncing_apis(
+                SyncTypes.CONVERSATION,
+                {'id': conversation_instance.id},
+                {}
+            )
+
+            conversation_context = {
+                "current_user_id": member_id, 
+                "fetch_reply": True
+            }
+
+            conversation_serializer = CardAnswersDBSyncSerializer(conversation_instance, \
+                context=conversation_context, many=False)
+
+            res = {
+                "success": True,
+                "conversation": conversation_serializer.data
+            }
+            return res
+        
+        res = {
+            "success": False
+        }
+        return res
+
+    @staticmethod
+    def add_event_attachments(req_body, member_id):
+        serializer = EventRecordingsAttachmentsSerializer(data=req_body)
+
+        if serializer.is_valid():
+            serializer.save()
+
+            if req_body.get('chatroom_id'):
+                event_obj = ModelUtilities.get_model_instance_or_none(
+                    Collabcard,
+                    req_body.get('chatroom_id')
+                )
+
+                event_obj.has_event_recording=True
+                event_obj.save()
+
+                update_models_for_syncing_apis(
+                    SyncTypes.CHATROOM,
+                    {'card': event_obj},
+                    {}
+                )
+
+                member_data = {
+                    'member_id': member_id,
+                    'current_user_id': member_id,
+                    'state_instance': None
+                }
+
+                event_serializer_local = GetChatroomInstanceSerializer(event_obj, context=member_data, many=False)
+
+                event_serializer = CollabcardSerializer(card=event_obj, user=member_id)
+
+                res = {
+                    'success': True,
+                    'event_attachment': serializer.data,
+                    'chatroom': event_serializer,
+                    'chatroom_local': event_serializer_local.data
+                }
+
+            elif req_body.get('conversation_id'):
+                event_obj = ModelUtilities.get_model_instance_or_none(
+                    card_answers,
+                    req_body.get('conversation_id')
+                )
+
+                event_obj.has_event_recording=True
+                event_obj.save()
+
+                update_models_for_syncing_apis(
+                    SyncTypes.CONVERSATION,
+                    {'id': event_obj.id},
+                    {}
+                )
+
+                conversation_context = {
+                    "current_user_id": member_id, 
+                    "fetch_reply": True
+                }
+
+                event_serializer = CardAnswersDBSyncSerializer(event_obj, context=conversation_context, many=True)
+
+                res = {
+                    "success": True,
+                    'event_attachment': serializer.data,
+                    "conversation": event_serializer.data
+                }
+
+            return res, True
+
+        return serializer.errors, False
+
+    @staticmethod
+    def delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body, member_id):
+        
+        if req_body.get('chatroom_id'):
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
+
+            if not chatroom_instance:
+                res = get_error_context(False, "Invalid chatroom_id")
+                return res
+            
+            event_obj = chatroom_instance
+            event_attachment_count = ChatroomHelper.get_attachments_count_for_event_obj(chatroom_instance=event_obj)
+
+        elif req_body.get('conversation_id'):
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, req_body.get('conversation_id'))
+
+            if not conversation_instance:
+                res = get_error_context(False, "Invalid conversation_id")
+                return res
+
+            event_obj = conversation_instance
+            event_attachment_count = ChatroomHelper.get_attachments_count_for_event_obj(conversation_instance=event_obj)
+        
+        if event_attachment_count > 0:
+            event_obj.has_event_recording = True
+        
+        else:
+            event_obj.has_event_recording = False
+            
+        event_obj.about_recording = None
+        event_obj.recording_url_og_tags = None            
+        event_obj.save()
+
+        res = {
+            "success": True,
+        }
+
+        if req_body.get('chatroom_id'):
+
+            update_models_for_syncing_apis(
+                SyncTypes.CHATROOM,
+                {'card': event_obj},
+                {}
+            )
+
+            member_data = {
+                    'member_id': member_id,
+                    'current_user_id': member_id,
+                    'state_instance': None
+                }
+
+            event_serializer_local = GetChatroomInstanceSerializer(event_obj, \
+                context=member_data, many=False)
+
+            event_serializer = CollabcardSerializer(card=event_obj, user=member_id)
+
+            res['chatroom'] = event_serializer
+            res['chatroom_local'] = event_serializer_local.data
+
+        elif req_body.get('conversation_id'):
+
+            update_models_for_syncing_apis(
+                SyncTypes.CONVERSATION,
+                {'id': event_obj.id},
+                {}
+            )
+
+            conversation_context = {
+                "current_user_id": member_id, 
+                "fetch_reply": True
+            }
+
+            event_serializer = CardAnswersDBSyncSerializer(event_obj, \
+                context=conversation_context, many=False)
+
+            res['conversation'] = event_serializer.data
+
+        return res
+
+    @staticmethod
+    def delete_event_attachments(event_attachment_id, member_id):
+        event_attachment_obj = ModelUtilities.get_model_instance_or_none(EventRecordingsAttachments, event_attachment_id)
+
+        if not event_attachment_obj:
+            res = get_error_context(False, "Invalid id")
+            return res
+
+        if event_attachment_obj.chatroom_id:
+            event_obj = event_attachment_obj.chatroom_id
+            event_attachment_count = ChatroomHelper.get_attachments_count_for_event_obj(chatroom_instance=event_obj)
+        
+        elif event_attachment_obj.conversation_id:
+            event_obj = event_attachment_obj.conversation_id
+            event_attachment_count = ChatroomHelper.get_attachments_count_for_event_obj(conversation_instance=event_obj)
+
+        if event_attachment_count > 1 \
+                or event_obj.about_recording \
+                or event_obj.recording_url_og_tags:
+            event_obj.has_event_recording = True
+        
+        else:
+            event_obj.has_event_recording = False
+
+        event_obj.save()
+        event_attachment_obj.delete()
+
+        res = {
+            'success': True
+        }
+
+        if event_attachment_obj.chatroom_id:
+
+            update_models_for_syncing_apis(
+                SyncTypes.CHATROOM,
+                {'card': event_obj},
+                {}
+            )
+            
+            member_data = {
+                    'member_id': member_id,
+                    'current_user_id': member_id,
+                    'state_instance': None
+                }
+
+            event_serializer_local = GetChatroomInstanceSerializer(event_obj, \
+                context=member_data, many=False)
+
+            event_serializer = CollabcardSerializer(card=event_obj, user=member_id)
+
+            res['chatroom'] = event_serializer
+            res['chatroom_local'] = event_serializer_local.data
+
+        elif event_attachment_obj.conversation_id:
+
+            update_models_for_syncing_apis(
+                SyncTypes.CONVERSATION,
+                {'id': event_obj.id},
+                {}
+            )
+
+            conversation_context = {
+                "current_user_id": member_id, 
+                "fetch_reply": True
+            }
+
+            event_serializer = CardAnswersDBSyncSerializer(event_obj, \
+                context=conversation_context, many=False)
+
+            res['conversation'] = event_serializer.data
+
+        return res
 
 
 class ChatroomHelper:
@@ -2663,3 +3168,62 @@ class ChatroomHelper:
                                                                   attending_status=True):
         send_analytics_on_event_registered_to_attend(card_instance.id, user_instance.id,
                                                      attending_status)
+
+    @staticmethod
+    def display_event_recordings_and_attachments(user_instance, card_instance=None, conversation_instance=None):
+        event_dict = {}
+
+        try:
+            event_obj = card_instance if card_instance else conversation_instance
+            
+            if event_obj.has_event_recording == False:
+                
+                if Members.is_member_community_promoter(event_obj.community, user_instance) \
+                        or user_instance == event_obj.user:
+                    has_event_recording = 0
+                
+                else:
+                    has_event_recording = 1
+            
+            else:
+
+                if Members.is_member_community_promoter(event_obj.community, user_instance) \
+                        or user_instance == event_obj.user:
+                    has_event_recording = 2
+                
+                else:
+                    has_event_recording = 3
+
+            event_dict['recordings_attachments_view'] = has_event_recording
+            event_dict['about_recording'] = event_obj.about_recording
+
+            if event_obj.recording_url_og_tags:
+                event_dict['recording_url_og_tags'] = json.loads(event_obj.recording_url_og_tags)
+
+            else:
+                event_dict['recording_url_og_tags'] = event_obj.recording_url_og_tags
+
+            event_recording_instances = EventRecordingsAttachments.objects.filter(chatroom_id=card_instance) \
+                                        if card_instance else \
+                                        EventRecordingsAttachments.objects.filter(conversation_id=conversation_instance)
+
+            serializer = EventRecordingsAttachmentsSerializer(event_recording_instances, many=True)
+
+            event_dict['recordings_attachments'] = json.loads(json.dumps(serializer.data))
+        
+        except Exception as e:
+            error_logger.error(e.args)
+
+        return event_dict   
+
+    @staticmethod
+    def get_attachments_count_for_event_obj(chatroom_instance=None, conversation_instance=None):
+
+        filter_dict = {
+            "chatroom_id":chatroom_instance,
+            "conversation_id":conversation_instance
+        }
+
+        attachment_count = ModelUtilities.get_model_filter(EventRecordingsAttachments, filter_dict).count()
+
+        return attachment_count

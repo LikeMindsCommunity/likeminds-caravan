@@ -3,7 +3,7 @@ from celery import shared_task
 from urllib.parse import unquote, quote
 import googlemaps
 from django.contrib.auth import login
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
@@ -864,25 +864,32 @@ def questions(request):
 
     member_id = get_member_id_from_headers(request)
 
-    user_instance = get_user_or_none(member_id)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
-        context = get_error_context(False,"Invalid member id")
+        context = get_error_context(False, "Invalid member id")
 
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_id = request.GET.get('community_id')
+
     if not community_id:
         context = get_error_context(False, "send community id in get params")
         return JsonResponse(context)
 
-    data = communityQuestions.objects.filter(community=community_id).order_by('-rank', 'id')
-    community_instance = Community.objects.get(id=community_id)
-    community = CommunitySerializer(community_instance, current_user_id=member_id)
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+    if not community_instance:
+        context = get_error_context(False, "Invalid community id")
+        return JsonResponse(context)
+
+    data = ModelUtilities.get_model_filter(communityQuestions, {"community": community_id}).order_by('-rank', 'id')
+
+    community_serialized_object = CommunitySerializerV1(community_instance, many=False).data
 
     created_by = get_community_creator(community_instance)
 
-    community['created_by'] = created_by
+    community_serialized_object['created_by'] = created_by
 
     managers = get_community_managers(community_instance)
 
@@ -891,7 +898,7 @@ def questions(request):
     else:
         managed_by = managers['manager_name']
 
-    community['managed_by'] = managed_by
+    community_serialized_object['managed_by'] = managed_by
 
     # private link share flow
     aj = request.GET.get('aj', None)
@@ -900,13 +907,13 @@ def questions(request):
 
     is_valid_private_link = False
     auto_join = {}
-    title = f"You are joining {community['name']}"
+    title = f"You are joining {community_serialized_object['name']}"
     shared_by_user = None
 
     try:
         shared_by_user = User.objects.get(pk=shared_by)
         shared_by_user_name = shared_by_user.userinfo.name
-        title = f"{shared_by_user_name} invited you to join {community['name']}"
+        title = f"{shared_by_user_name} invited you to join {community_serialized_object['name']}"
     except:
         error_logger.error(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
 
@@ -943,7 +950,7 @@ def questions(request):
     # questions = sorted(questions, key=lambda i: i['rank'])
 
     context = {'header': "Join community", 'title': title,
-               'questions': questions, 'community': community}
+               'questions': questions, 'community': community_serialized_object}
     if is_valid_private_link:
         context.update(auto_join)
     return JsonResponse(context)
@@ -2653,6 +2660,9 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     card.user = user_instance
     card.type = card_type
 
+    if card_type == card_types.CARD_PURPOSE:
+        card.member_can_message = False
+    
     card.image_count = res.get('image_count', 0)
     card.pdf_count = res.get('pdf_count', 0)
 
@@ -4567,6 +4577,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     intro_card = False
     master_intro_card = False
     promoter_joined_secret_chatroom = False
+    event_card = False
 
     if card_instance.is_secret \
             and promoter \
@@ -4585,6 +4596,9 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     elif card_status['type'] == card_types.CARD_MASTER_INTRO:
         master_intro_card = True
+
+    elif card_status['type'] in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+        event_card = True
 
     final_dict = None
 
@@ -4717,7 +4731,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             actions.append(leave_chatroom)
 
     if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
-            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)):
+            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)) and not master_intro_card:
         actions.append(chatroom_settings)
 
     if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
@@ -4734,6 +4748,14 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         if delete_chatroom in actions:
             actions.remove(delete_chatroom)
+
+    if event_card:
+
+        if pin_chatroom in actions:
+            actions.remove(pin_chatroom)
+
+        if unpin_chatroom in actions:
+            actions.remove(unpin_chatroom)
 
     return actions
 
@@ -8229,7 +8251,9 @@ If you are a community builder and you wish to receive an invite, do fill out th
 
 def get_community_creator(community_instance):
     '''function to get the creator of community'''
-    member_filter = Members.objects.filter(community_id=community_instance, state=member_states.ADMIN).order_by('id')
+    member_filter = ModelUtilities.get_model_filter(Members,
+                                                    {"community_id": community_instance,
+                                                     "state": member_states.ADMIN}).order_by('id')
     created_by = ""
     if member_filter.exists():
         promoter_instance = member_filter[0].member_id
@@ -11595,6 +11619,8 @@ class SyncChatrooms(APIView):
             context = get_error_context(False, "send member id in headers")
             return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
         version_code = RequestUtilities.get_version_code_from_headers(request)
@@ -11804,8 +11830,35 @@ class SyncChatrooms(APIView):
             if data[65]:
                 chatroom["chatroom_with_user_id"] = data[65]
 
+            chatroom["member_can_message"] = data[66]
+
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue
+
+            filter_dict = {
+                'chatroom_id': chatroom['id']
+            }
+
+            cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
+                                                                                                  flat=True)
+
+            cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids})
+                               .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
+                                                          community_id=F('cohort__community_id'))
+                               .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
+
+            chatroom['cohorts'] = cohort_list
+
+            # For Event Recordings and Attachments data
+            from .chatroom.chatroom_impl import ChatroomHelper
+
+            card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, data[0])
+            event_recordings_data = ChatroomHelper.display_event_recordings_and_attachments(
+                user_instance=user_instance,
+                card_instance=card_instance
+            )
+
+            chatroom.update(event_recordings_data)
 
             chatrooms.append(chatroom)
 
