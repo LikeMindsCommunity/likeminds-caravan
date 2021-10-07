@@ -70,7 +70,9 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
         is_mail_sent = MailWrapper.send_email.delay(subject=req_body.get('subject'), template=req_body.get('mail_body'),
                                                     to_mails_list=req_body.get('mail_recipient_list'),
-                                                    from_email=req_body.get('from_email'))
+                                                    from_email=req_body.get('from_email'),
+                                                    categories=req_body.get('categories'),
+                                                    reply_to=req_body.get('reply_to'))
 
         if not is_mail_sent:
             return {'success': False, 'error_message': 'Error in sending mail.'}

@@ -11,6 +11,9 @@ class MailWrapper(MailManager):
     @shared_task
     def send_email(subject, template, to_mails_list, from_email=None, categories=None, reply_to=None):
 
+        if not reply_to:
+            reply_to = from_email
+
         fail_silently = False
         email = EmailMultiAlternatives(
             subject,
