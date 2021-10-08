@@ -8976,7 +8976,9 @@ def edit_community_version_1(request):
         user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
 
         if not CMSAuthUtilities.validate_user(user_name, password):
-            CMSAuthUtilities.raise_authentication_error()
+            error_context = get_error_context(False, "In-valid username and password")
+
+            return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         members_filter = ModelUtilities.get_model_filter(Members,
                                                          {"community_id": community_instance,
