@@ -1998,7 +1998,7 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
                     ElasticSearchSync.update_chatroom.delay(chatroom_instance.id)
 
 
-# @shared_task
+@shared_task
 def update_unread_message_count_in_cache(chatroom_id):
     """ function to update the unread message count for chatroom """
 
@@ -2042,6 +2042,7 @@ def update_unread_message_count_in_cache(chatroom_id):
                                    {'card__id': chatroom_id,
                                     'user_id__in': followed_members},
                                    update_dict={})
+
 
 @shared_task
 def reset_unread_message_count_in_cache(chatroom_id, user_id):
