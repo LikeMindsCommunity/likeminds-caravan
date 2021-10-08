@@ -52,6 +52,8 @@ from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_part
 
 from cms.models import NewAnswer, userAcquition, appUninstalls, InAppReview
 
+from cms.cms_auth_utilities import CMSAuthUtilities
+
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
                        YourCommunitySerializer)
@@ -8920,15 +8922,6 @@ def change_community_level_context_for_paid_community(community_instance):
 def edit_community_version_1(request):
     '''function to edit the community'''
 
-    member_id = RequestUtilities.get_member_id_from_headers(request)
-
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-
-    if not user_instance:
-        error_context = get_error_context(False, "In-valid user id")
-
-        return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
-
     res = JsonUtilities.load_json_data(request.body)
 
     if not res:
@@ -8942,6 +8935,35 @@ def edit_community_version_1(request):
         error_context = get_error_context(False, "In-valid community id")
 
         return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    member_id = RequestUtilities.get_member_id_from_headers(request)
+
+    if member_id:
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not user_instance:
+            error_context = get_error_context(False, "In-valid member id")
+
+            return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    else:
+        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
+
+        if not CMSAuthUtilities.validate_user(user_name, password):
+            error_context = get_error_context(False, "In-valid username and password")
+
+            return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        members_filter = ModelUtilities.get_model_filter(Members,
+                                                         {"community_id": community_instance,
+                                                          "is_owner": True})
+
+        if not members_filter:
+            error_context = get_error_context(False, "Unable to find owner")
+
+            return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = members_filter[0].member_id
 
     community_id = community_instance.id
 
