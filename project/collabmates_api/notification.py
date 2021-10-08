@@ -724,7 +724,8 @@ def schedule_online_event_future_notification(card_instance):
                                                           expires=task_expiry_date_time)
 
     # Do not send wa notifications in beta
-    if not settings.IS_BETA:
+    # if not settings.IS_BETA:
+    if True:
         task_begin_epoch_time = TimeUtilities.subtract_minutes_from_epoch_time(card_end_time, minutes=10)
         task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=15)
 
@@ -810,8 +811,8 @@ def get_user_data_for_event_wa_notification(card_instance):
 
     for user_id in user_ids:
         data_item = {
-            "phone": user_data[user_id]['phone'],
-            "parameters": [
+            "whatsappNumber": user_data[user_id]['phone'],
+            "customParams": [
                 {
                     "name": "name",
                     "value": user_data[user_id]['name'].strip(),
@@ -969,7 +970,7 @@ def online_event_reminder_notification_10_min(card_id, **kwargs):
         user_data_for_wa_notification = get_user_data_for_event_wa_notification(card_instance)
         template_name = WATI_NOTIFICATION_CONST['TEMPLATE_NAMES']['EVENT_REMINDER']
         broadcast_name = WATI_NOTIFICATION_CONST['BROADCAST_NAMES']['EVENT_REMINDER']
-        NotificationImpl.send_wa_notifications(user_data_for_wa_notification, template_name, broadcast_name)
+        NotificationImpl.send_wa_bulk_notitfications(user_data_for_wa_notification, template_name, broadcast_name)
 
     except Exception as e:
         error_logger.error(f"online_event_remainder_notification_10_min {e.args}")

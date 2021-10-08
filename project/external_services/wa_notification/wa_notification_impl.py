@@ -21,3 +21,7 @@ class NotificationImpl(NotificationManager):
     def send_wa_notifications(self, user_data_for_wa_notification, template_name, broadcast_name) -> None:
         for user_data in user_data_for_wa_notification:
             self._send_single_wa_notification(self, user_data, template_name, broadcast_name)
+
+    @classmethod
+    def send_wa_bulk_notitfications(self, user_data_for_wa_notification, template_name, broadcast_name) -> None:
+        NotificationImpl.send_bulk_wa_notification(user_data_for_wa_notification, template_name, broadcast_name)
