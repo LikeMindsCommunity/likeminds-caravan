@@ -434,3 +434,10 @@ class EventWebflowUpdateTypes:
 
 
 event_webflow_update_types = EventWebflowUpdateTypes()
+
+
+class CommunitySettingTypes:
+    INTRO_ROOM = "intro_room"
+
+
+community_setting_types = CommunitySettingTypes()

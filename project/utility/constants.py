@@ -75,3 +75,5 @@ CONVERSATIONS_DISTINCT_CREATORS_KEY = "conversations_distinct_creators_%s"
 
 SUBSCRIPTION_FETCH_EVENT_PLAN = "api/subscription/fetch_event_plan"
 COMMUNITY_PUBLIC_URL = "%s/community/%s"
+
+CONVERSATIONS_UNREAD_USER_CHATROOM_KEY = "conversations_unread_%s_%s"

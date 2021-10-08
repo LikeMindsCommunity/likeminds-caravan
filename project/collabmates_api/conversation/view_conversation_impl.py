@@ -340,6 +340,37 @@ class FetchUserAllEvents(APIView):
         return JsonResponse(response_context)
 
 
+class FetchUnreadPreview(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        page = RequestUtilities.get_page_number(request)
+        chatroom_id = request.GET.get('chatroom_id', None)
+        paginate_by = request.GET.get('paginate_by', 20)
+        conversation_manager = ConversationImpl(member_id=member_id, chatroom_id=chatroom_id, page=page,
+                                                paginate_by=paginate_by)
+        response = conversation_manager.fetch_unread_previews()
+
+        if isinstance(response, dict) and response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse({'success': True, 'conversations': response})
+
+
+class FetchPreviewUnreadMessageCount(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        chatroom_id = request.GET.get('chatroom_id', None)
+        conversation_manager = ConversationImpl(member_id=member_id, chatroom_id=chatroom_id)
+        response = conversation_manager.fetch_preview_unread_message_count()
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
+
+
 class ConversationViewsHelper:
 
     @staticmethod

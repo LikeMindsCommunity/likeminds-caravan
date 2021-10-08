@@ -1233,3 +1233,28 @@ class EventRecordingsAttachmentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventRecordingsAttachments
         fields = '__all__'
+
+
+class CommunitySettingsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CommunitySettings
+        fields = ('setting_type', 'setting_title', 'setting_sub_title', 'enabled', 'enabled_by')
+
+    def to_representation(self, obj):
+        data = super(CommunitySettingsSerializer, self).to_representation(obj)
+
+        field_list = self._readable_fields
+
+        for field in field_list:
+            if data[field.field_name] is None:
+                del data[field.field_name]
+
+        return data
+
+
+class CommunityToastV1Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommunityToastV1
+        fields = ['id', 'text']
+
