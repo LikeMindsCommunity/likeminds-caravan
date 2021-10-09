@@ -382,7 +382,8 @@ class JoinEmailAddView(APIView):
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
-            return JsonResponse({'success': False, 'error_message': "Invalid body sent"})
+            return JsonResponse({'success': False, 'error_message': "Invalid body sent"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id, req_body.get('community_id'))
         community_context = community_manager.add_join_email(req_body)
@@ -399,7 +400,8 @@ class JoinEmailFetchView(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
         if not member_id:
-            return JsonResponse({'success': False, 'error_message': "Member Id not sent in headers"})
+            return JsonResponse({'success': False, 'error_message': "Member Id not sent in headers"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_id = request.GET.get('community_id', None)
 

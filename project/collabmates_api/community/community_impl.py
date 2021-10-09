@@ -997,9 +997,9 @@ class CommunityImpl(CommunityManager):
         if user_instance is None:
             return {'success': False, 'error_message': "Invalid User ID"}
 
-        owner_instance = Members.is_member_community_owner(community_instance, user_instance)
+        is_promoter = Members.is_member_community_promoter(community_instance, user_instance)
 
-        if not owner_instance:
+        if not is_promoter:
             return {'success': False, 'error_message': "You are not the owner/cm of community."}
 
         join_email_instance = self._create_join_email_instance(req_body)
@@ -1077,9 +1077,9 @@ class CommunityImpl(CommunityManager):
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user id"}
 
-        owner_instance = Members.is_member_community_owner(community_instance, user_instance)
+        is_promoter = Members.is_member_community_promoter(community_instance, user_instance)
 
-        if not owner_instance:
+        if not is_promoter:
             return {'success': False, 'error_message': "You are not the owner/cm of community."}
 
         join_email_data = self._fetch_join_email_data(self.get_community_id(), community_instance)
