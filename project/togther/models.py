@@ -524,7 +524,7 @@ class Collabcard(models.Model):
     is_private = models.BooleanField(default=False)
     chatroom_with_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
                                            related_name='chatroom_with_user')
-    include_members_later = models.BooleanField(default=True)
+    include_members_later = models.BooleanField(default=False)
 
     about_recording = models.TextField(null=True)
     recording_url_og_tags = models.TextField(null=True)
@@ -2643,6 +2643,63 @@ class DirectMessageTutorial(models.Model):
         super(DirectMessageTutorial, self).save(*args, **kwargs)
 
 
+class CommunitySettings(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    setting_type = models.CharField(max_length=100, null=False)
+    setting_title = models.CharField(max_length=100, null=False)
+    setting_sub_title = models.CharField(max_length=255, null=False)
+    enabled = models.BooleanField(default=False)
+    enabled_by = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = CommunitySettings()
+        instance.community = create_info.get('community_instance')
+        instance.setting_type = create_info.get('setting_type')
+        instance.setting_title = create_info.get('setting_title')
+        instance.setting_sub_title = create_info.get('setting_sub_title')
+        instance.enabled = create_info.get('enabled')
+        instance.enabled_by = create_info.get('enabled_by', None)
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+
+        return instance
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+        self.updated_at = current_time
+
+        super(CommunitySettings, self).save(*args, **kwargs)
+
+
+class CommunityToastV1(models.Model):
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
+    text = models.TextField(null=True)
+    is_shown = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    @staticmethod
+    def create_instance(create_info):
+        instance = CommunityToastV1()
+        instance.user = create_info.get('user_instance')
+        instance.community = create_info.get('community_instance')
+        instance.text = create_info.get('text')
+        instance.is_shown = create_info.get('is_shown')
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+
+        return instance
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+        self.updated_at = current_time
+
+        super(CommunityToastV1, self).save(*args, **kwargs)
+
+
 class EventRecordingsAttachments(models.Model):
     """ table to store recording and attachment of event """
 
@@ -2776,5 +2833,61 @@ class ChatroomCohort(models.Model):
         instance = ChatroomCohort()
         instance.cohort = chatroom_cohort_info.get('cohort_instance')
         instance.chatroom = chatroom_cohort_info.get('chatroom_instance')
+        instance.save()
+        return instance
+
+
+class CommunityJoinDefaultEmail(models.Model):
+    body = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        super(CommunityJoinDefaultEmail, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(community_join_default_email_body):
+        instance = CommunityJoinDefaultEmail()
+        instance.body = community_join_default_email_body.get('body')
+        instance.save()
+        return instance
+
+
+class CommunityJoinEmail(models.Model):
+    reply_to = models.TextField(null=True)
+    subject = models.TextField(null=True)
+    body = models.TextField(null=True)
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        super(CommunityJoinEmail, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(community_join_email_info):
+        instance = CommunityJoinDefaultEmail()
+        instance.reply_to = community_join_email_info.get('reply_to')
+        instance.subject = community_join_email_info.get('subject')
+        instance.body = community_join_email_info.get('body')
+        instance.community_id = community_join_email_info.get('community_instance')
         instance.save()
         return instance

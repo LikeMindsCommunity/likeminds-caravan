@@ -5,20 +5,19 @@ from django.contrib.auth.models import User
 
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
-from collabmates_api.branch import create_community_feed_url
-from collabmates_api.rest_api import CommunitySerializerV1
+from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right, \
     update_member_rights_in_member_engage
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage
-from django.db.models import Q, F
 
 from utility.number_utilities import NumberUtilities
-from external_services.mixpanel.events import MixpanelEvents
+from external_services.email.email_wrapper import MailWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
-    communityExpiryCodes
+    communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
+    userEmails, ContentDownloadSettings
 
 from collabmates_api.branch import create_community_feed_url, create_community_otl_url
 from collabmates_api.rest_api import CommunitySerializerV1
@@ -28,19 +27,16 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
 from django.db.models import Q, F
 
 from external_services.mixpanel.events import MixpanelEvents
-from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
-    card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
-    communityLevels, conversationEngage, userMemberRights, moderationHistory, ContentDownloadSettings
 
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
-    community_level_states, moderation_history_types, question_states, level_click_states
+    community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types
 from utility.utils import check_notification_flag, get_first_name_from_name, decode_option
 from utility.time_utilities import TimeUtilities
 from utility.utils import check_notification_flag, get_first_name_from_name
-from utility.celery_tasks import create_member_dm_chatroom
+from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..mails import send_8am_level_mails_to_admin_scheduler
 from ..search.sync import ElasticSearchSync
@@ -128,13 +124,23 @@ class CommunityImpl(CommunityManager):
     def _fetch_serialize_community(self, community_instance) -> []:
         return CommunitySerializerV1(community_instance).data
 
-    def _fetch_queryset_of_community_chatrooms(self):
+    def _fetch_queryset_of_community_chatrooms(self, intro_room_settings_enabled):
 
-        return Collabcard.objects.filter(community=self.get_community_id(),
-                                         is_pending=False,
-                                         is_deleted=False,
-                                         is_private=False,
-                                         is_secret=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
+        if not intro_room_settings_enabled:
+            return Collabcard.objects.filter(community=self.get_community_id(),
+                                             is_pending=False,
+                                             is_deleted=False,
+                                             is_private=False,
+                                             is_secret=False).filter(
+                ~Q(type__in=[card_types.CARD_INTRO, card_types.CARD_MASTER_INTRO])).order_by('-id')
+
+        else:
+            return Collabcard.objects.filter(community=self.get_community_id(),
+                                             is_pending=False,
+                                             is_deleted=False,
+                                             is_private=False,
+                                             is_secret=False).filter(
+                ~Q(~Q(user_id=self.get_member_id()) & Q(type=card_types.CARD_INTRO))).order_by('-id')
 
     def _compute_chatroom_creator_list(self, queryset):
 
@@ -265,7 +271,20 @@ class CommunityImpl(CommunityManager):
         if not userinfo_instance:
             return {'error_message': "In-correct user id"}
 
-        community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms()
+        filter_dict = {
+            'community_id': self.get_community_id(),
+            'setting_type': community_setting_types.INTRO_ROOM,
+            'enabled': True
+        }
+
+        intro_room_setting_enabled = False
+
+        intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+        if intro_room_setting_filter:
+            intro_room_setting_enabled = True
+
+        community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms(intro_room_setting_enabled)
 
         response_context = dict()
         response_context['total_chatrooms'] = community_chatroom_queryset.count()
@@ -539,6 +558,8 @@ class CommunityImpl(CommunityManager):
         create_member_dm_chatroom.delay(self.get_member_id(), self.get_community_id(), device_id=device_id,
                                         request_platform=platform, req_body=req_body, is_joining=True)
 
+        self._send_join_email_to_member(user_instance.id, community_instance.id)
+
     def approve_or_decline_community(self, req_body) -> {}:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
@@ -582,6 +603,8 @@ class CommunityImpl(CommunityManager):
 
             CommunityHelper.run_async_for_community_approve(community_instance, user_instance,
                                                                 promoter_userinfo_instance)
+
+            self._send_join_email_to_member(user_instance.id, community_instance.id)
 
         else:
             self._decline_community_join_request(community_instance, user_instance)
@@ -795,6 +818,273 @@ class CommunityImpl(CommunityManager):
             content_setting_list.append(content_setting_dict)
 
         return content_setting_list
+
+    def fetch_community_settings(self):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user ID"}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community ID"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': self.get_community_id(),
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of this community"}
+
+        community_settings_list = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                  {"community_id": community_instance.id})
+
+        community_settings_serializer = CommunitySettingsSerializer(community_settings_list, many=True)
+
+        response = {
+            'success': True,
+            'community_settings': json.loads(json.dumps(community_settings_serializer.data))
+        }
+
+        return response
+
+    def update_community_settings(self, community_settings_list):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid User ID"}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid Community ID"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': self.get_community_id(),
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of this community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False, 'error_message': "User doesn’t have ability to update community settings"}
+
+        disabled_community_settings_context_list = []
+
+        for community_setting in community_settings_list:
+
+            filter_dict = {
+                "community_id": self.get_community_id(),
+                "setting_type": community_setting["setting_type"],
+                "setting_title": community_setting["setting_title"]
+            }
+
+            update_dict = {
+                'enabled': community_setting['enabled'],
+                'updated_at': TimeUtilities.current_time_in_milliseconds(),
+                'enabled_by': user_instance if community_setting['enabled'] else None
+            }
+
+            if community_setting['enabled']:
+                disabled_community_setting_context = {
+                    'community_id': self.get_community_id(),
+                    'setting_type': community_setting['setting_type']
+                }
+                disabled_community_settings_context_list.append(disabled_community_setting_context)
+
+            ModelUtilities.model_update(CommunitySettings, filter_dict, update_dict)
+
+        create_intro_room_disabled_text_for_community_members.delay(disabled_community_settings_context_list)
+        return {'success': True}
+
+    def fetch_community_toasts_v1(self):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid User ID"}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid Community ID"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': self.get_community_id(),
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of this community"}
+
+        filter_dict = {
+            'community_id': self.get_community_id(),
+            'user_id': self.get_member_id(),
+            'is_shown': False
+        }
+
+        unseen_app_toast_filter = ModelUtilities.get_model_filter(CommunityToastV1, filter_dict).order_by('-updated_at')
+        app_toast_serializer = CommunityToastV1Serializer(unseen_app_toast_filter, many=True)
+
+        response = {
+            'success': True,
+            'community_toasts': json.loads(json.dumps(app_toast_serializer.data))
+        }
+
+        return response
+
+    def update_community_toast_v1(self, toast_id) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "In-valid user id"}
+
+        toast_filter = ModelUtilities.get_model_filter(CommunityToastV1, {'id': toast_id})
+
+        if not toast_filter:
+            return {'success': False, 'error_message': "In-valid toast id"}
+
+        toast_instance = toast_filter[0]
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': toast_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        toast_filter.update(is_shown=True, updated_at=TimeUtilities.current_time_in_sec())
+
+        return {'success': True}
+
+    @staticmethod
+    def _create_join_email_instance(req_body):
+
+        if 'reply_to' not in req_body:
+            return {'success': False, 'error_message': 'send reply_to in request body'}
+
+        if 'subject' not in req_body:
+            return {'success': False, 'error_message': 'send subject in request body'}
+
+        if 'body' not in req_body:
+            return {'success': False, 'error_message': 'send body in request body'}
+
+        join_email_instances = ModelUtilities.get_model_filter(CommunityJoinEmail,
+                                                               {'community_id': req_body['community_id']})
+
+        if len(join_email_instances) == 0:
+            CommunityJoinEmail.create_instance(req_body)
+
+        else:
+            join_email_instance = join_email_instances[0]
+            join_email_instance.reply_to = req_body['reply_to']
+            join_email_instance.subject = req_body['subject']
+            join_email_instance.body = req_body['body']
+            join_email_instance.save()
+        return {'success': True}
+
+    def add_join_email(self, req_body) -> {}:
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+
+        if community_instance is None:
+            return {'success': False, 'error_message': "Invalid community id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if user_instance is None:
+            return {'success': False, 'error_message': "Invalid User ID"}
+
+        owner_instance = Members.is_member_community_owner(community_instance, user_instance)
+
+        if not owner_instance:
+            return {'success': False, 'error_message': "You are not the owner/cm of community."}
+
+        join_email_instance = self._create_join_email_instance(req_body)
+
+        if not join_email_instance['success']:
+            return {'success': False, 'error_message': join_email_instance['error_message']}
+
+        return {'success': True}
+
+    @staticmethod
+    def _send_join_email_to_member(member_id, community_id):
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community id"}
+
+        mail_to = []
+
+        user_emails = ModelUtilities.get_model_filter(userEmails, {'user': member_id})
+
+        if len(user_emails) > 0:
+            mail_to.append(user_emails[0].email)
+
+        mail_data = CommunityImpl._fetch_join_email_data(community_id, community_instance)
+
+        MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, reply_to=mail_data["reply_to"])
+
+    @staticmethod
+    def _fetch_join_email_data(community_id, community_instance) -> {}:
+
+        data = {
+            "reply_to": None,
+            "subject": None,
+            "body": None
+        }
+
+        join_email_instances = ModelUtilities.get_model_filter(CommunityJoinEmail, {'community_id': community_id})
+
+        if len(join_email_instances) == 0:
+            member_instances = ModelUtilities.get_model_filter(
+                Members, {'community_id': community_id, 'is_owner': True})
+
+            member_id = None
+
+            if len(member_instances) != 0:
+                member_id = member_instances[0].member_id
+
+            user_emails = ModelUtilities.get_model_filter(userEmails, {'user': member_id})
+
+            if len(user_emails) > 0:
+                data["reply_to"] = user_emails[0].email
+
+            data["subject"] = community_instance.name
+            default_body = ModelUtilities.get_model_filter(CommunityJoinDefaultEmail, {})
+            data["body"] = default_body[0].body
+
+        else:
+            join_email_instance = join_email_instances[0]
+            data["reply_to"] = join_email_instance.reply_to
+            data["subject"] = join_email_instance.subject
+            data["body"] = join_email_instance.body
+
+        return data
+
+    def fetch_join_email(self) -> {}:
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community id"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        owner_instance = Members.is_member_community_owner(community_instance, user_instance)
+
+        if not owner_instance:
+            return {'success': False, 'error_message': "You are not the owner/cm of community."}
+
+        join_email_data = self._fetch_join_email_data(self.get_community_id(), community_instance)
+
+        return {"success": True, "join_email": join_email_data}
 
 
 class CommunityHelper:
@@ -1319,4 +1609,3 @@ class CommunityHelper:
                 join_link_valid = (timestamp - expiry_time) <= expiry_instance.expire_duration
 
         return join_link_valid
-

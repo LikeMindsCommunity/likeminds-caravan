@@ -11,9 +11,22 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'delete_community') and callable(subclass.delete_community)) and
                 (hasattr(subclass, 'fetch_feed_url') and callable(subclass.fetch_feed_url)) and
                 (hasattr(subclass, 'fetch_otl_url') and callable(subclass.fetch_otl_url)) and
-                (hasattr(subclass, 'fetch_discoverable_communities') and callable(subclass.fetch_discoverable_communities)) and
-                (hasattr(subclass, 'fetch_content_download_settings') and callable(subclass.fetch_content_download_settings)) and
-                (hasattr(subclass, 'update_content_download_settings') and callable(subclass.update_content_download_settings)) or
+                (hasattr(subclass, 'fetch_discoverable_communities') and
+                 callable(subclass.fetch_discoverable_communities)) and
+                (hasattr(subclass, 'fetch_content_download_settings') and
+                 callable(subclass.fetch_content_download_settings)) and
+                (hasattr(subclass, 'update_content_download_settings') and
+                 callable(subclass.update_content_download_settings)) and
+                (hasattr(subclass, 'fetch_community_settings') and
+                 callable(subclass.fetch_community_settings)) and
+                (hasattr(subclass, 'update_community_settings') and
+                 callable(subclass.update_community_settings)) and
+                (hasattr(subclass, 'fetch_community_toasts_v1') and
+                 callable(subclass.fetch_community_toasts_v1)) and
+                (hasattr(subclass, 'update_community_toast_v1') and
+                 callable(subclass.update_community_toast_v1)) and
+                (hasattr(subclass, 'add_join_email') and callable(subclass.add_join_email)) and
+                (hasattr(subclass, 'fetch_join_email') and callable(subclass.fetch_join_email)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -77,5 +90,39 @@ class CommunityManager(metaclass=abc.ABCMeta):
 
     def update_content_download_settings(self, content_download_settings_list):
         """returns boolean whether the update of settings is a success or a failure"""
+
+        raise NotImplementedError
+
+    def fetch_community_settings(self):
+        """returns list of settings for a community"""
+
+        raise NotImplementedError
+
+    def update_community_settings(self, community_settings_list):
+        """updates list of settings for a community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_community_toasts_v1(self):
+        """fetches community toasts against user for community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_community_toast_v1(self, toast_id):
+        """updates community toasts against user for community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def add_join_email(self, req_body):
+        """ add join email for a community """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_join_email(self):
+        """ fetches join email for a community"""
 
         raise NotImplementedError
