@@ -1208,7 +1208,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
                 return {
                     "success": True,
-                    "cta": CTA_ROUTE_DIRECT_MESSAGES,
+                    "cta": CTA_ROUTE_DIRECT_MESSAGES + f"?community_id={community_instance.id}",
                     "show_dm": True
                 }
 

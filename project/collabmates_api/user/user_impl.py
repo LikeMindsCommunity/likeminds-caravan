@@ -25,6 +25,8 @@ from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
 from utility.request_utilities import RequestUtilities
 
+from utility.url_utilities import UrlUtilities
+
 from .constants import *
 from ..raw_queries import get_community_id_list
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
@@ -719,7 +721,12 @@ class UserImpl(UserManager):
             if cm_instances_count == 1:
                 community_instance = cm_instances[0].community_id
 
-                cta += f"?community_id={community_instance.id}&community_name='{community_instance.name}'"
+                query_params = {
+                    "community_id": community_instance.id,
+                    "community_name": community_instance.name
+                }
+
+                cta += f"?" + UrlUtilities.encode_query_url(query_params)
 
             response_context = UserHelper.get_dm_feed_response(member_filter, cta=cta, is_cm=True)
 
