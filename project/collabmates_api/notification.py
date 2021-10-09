@@ -724,8 +724,7 @@ def schedule_online_event_future_notification(card_instance):
                                                           expires=task_expiry_date_time)
 
     # Do not send wa notifications in beta
-    # if not settings.IS_BETA:
-    if True:
+    if not settings.IS_BETA:
         task_begin_epoch_time = TimeUtilities.subtract_minutes_from_epoch_time(card_end_time, minutes=10)
         task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=15)
 
