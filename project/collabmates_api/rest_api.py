@@ -12,7 +12,7 @@ import time
 
 from utility.celery_tasks import get_conversation_poll, update_event_instructors_in_cache, \
     update_event_highlights_in_cache, update_event_member_testimonials_in_cache, update_event_faq_in_cache, \
-    update_event_attendees, update_event_attendees_for_micro_event
+    update_event_attendees, update_event_attendees_for_micro_event, fetch_conversations_unread
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
@@ -259,6 +259,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     testimonials = serializers.SerializerMethodField()
     faq = serializers.SerializerMethodField()
     cohorts = serializers.SerializerMethodField()
+    unread_messages = serializers.SerializerMethodField()
 
     class Meta:
         model = Collabcard
@@ -281,7 +282,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
                   'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohorts',
-                  'has_event_recording', 'about_recording', 'recording_url_og_tags'
+                  'has_event_recording', 'about_recording', 'recording_url_og_tags', 'unread_messages'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -366,6 +367,10 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                            .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
 
         return cohort_list
+
+    def get_unread_messages(self, card):
+
+        return fetch_conversations_unread(card.id, self.member_id)
 
     def get_images(self, card):
 

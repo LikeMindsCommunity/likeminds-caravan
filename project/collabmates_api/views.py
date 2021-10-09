@@ -12859,7 +12859,7 @@ class SyncConversation(APIView):
                     else:
 
                         try:
-                            preview = get_preview_for_url(preview_url=conversation[13])
+                            preview = get_preview_for_url(preview_url=conversation[13], member_id=member_id)
 
                             if preview:
                                 conversation_context['preview'] = preview
