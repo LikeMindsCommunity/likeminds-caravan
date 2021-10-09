@@ -24,7 +24,9 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_community_toasts_v1') and
                  callable(subclass.fetch_community_toasts_v1)) and
                 (hasattr(subclass, 'update_community_toast_v1') and
-                 callable(subclass.update_community_toast_v1)) or
+                 callable(subclass.update_community_toast_v1)) and
+                (hasattr(subclass, 'add_join_email') and callable(subclass.add_join_email)) and
+                (hasattr(subclass, 'fetch_join_email') and callable(subclass.fetch_join_email)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -110,5 +112,17 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def update_community_toast_v1(self, toast_id):
         """updates community toasts against user for community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def add_join_email(self, req_body):
+        """ add join email for a community """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_join_email(self):
+        """ fetches join email for a community"""
 
         raise NotImplementedError

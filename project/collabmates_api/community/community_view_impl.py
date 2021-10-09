@@ -312,10 +312,8 @@ class FetchCommunitySettings(APIView):
 
 
 class UpdateCommunitySettings(APIView):
-
     def post(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
         if not member_id:
             raise InvalidHeaderException()
 
@@ -369,6 +367,44 @@ class UpdateCommunityToastV1View(APIView):
         community_manager = CommunityImpl(member_id=member_id)
 
         response = community_manager.update_community_toast_v1(toast_id)
+
+        if 'error_message' in response:
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
+
+
+class JoinEmailAddView(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid body sent"})
+
+        community_manager = CommunityImpl(member_id, req_body.get('community_id'))
+        community_context = community_manager.add_join_email(req_body)
+
+        if 'error_message' in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
+
+
+class JoinEmailFetchView(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            return JsonResponse({'success': False, 'error_message': "Member Id not sent in headers"})
+
+        community_id = request.GET.get('community_id', None)
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+        response = community_manager.fetch_join_email()
 
         if 'error_message' in response:
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
