@@ -2884,7 +2884,7 @@ class CommunityJoinEmail(models.Model):
 
     @staticmethod
     def create_instance(community_join_email_info):
-        instance = CommunityJoinEmail()
+        instance = CommunityJoinDefaultEmail()
         instance.reply_to = community_join_email_info.get('reply_to')
         instance.subject = community_join_email_info.get('subject')
         instance.body = community_join_email_info.get('body')
