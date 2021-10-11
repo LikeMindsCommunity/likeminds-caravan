@@ -12322,6 +12322,12 @@ class SyncChatroomsDiff(APIView):
             if not user_instance:
                 return JsonResponse({'chatrooms': []})
 
+            if previous_app_version < EVENT_ATTACHMENT_VERSION_CODE_AN <= version_code:
+                attachment_chatroom_list = self._get_event_recordings_of_user(user_instance)
+            
+            else:
+                attachment_chatroom_list = set()
+
             if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
 
@@ -12339,7 +12345,7 @@ class SyncChatroomsDiff(APIView):
 
         common_list = tuple(secret_chatroom_list | video_chatroom_list |
                             chatrooms_with_reactions_list | chatrooms_with_topics_list |
-                            chatrooms_with_edited_list)
+                            chatrooms_with_edited_list | attachment_chatroom_list)
 
         if len(common_list) > 0:
 
@@ -12442,6 +12448,18 @@ class SyncChatroomsDiff(APIView):
 
             chatroom['auto_follow_done'] = data[53]
             chatroom['is_edited'] = data[54]
+
+            # For Event Recordings and Attachments data
+            if attachment_chatroom_list:
+                from .chatroom.chatroom_impl import ChatroomHelper
+
+                card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, data[0])
+                event_recordings_data = ChatroomHelper.display_event_recordings_and_attachments(
+                    user_instance=user_instance,
+                    card_instance=card_instance
+                )
+
+                chatroom.update(event_recordings_data)
 
             chatrooms.append(chatroom)
 
@@ -12623,6 +12641,19 @@ class SyncChatroomsDiff(APIView):
             draft_response = {'chatrooms': chatrooms, 'max_last_updated': max_last_updated}
 
         return draft_response
+
+    def _get_event_recordings_of_user(self, user_instance):
+        attachment_chatroom_list = set(ModelUtilities.get_model_filter(
+            collabcardState,
+            {
+                'user': user_instance
+            }
+        ).values_list(
+            'card',
+            flat=True
+        ))
+
+        return attachment_chatroom_list
 
     def _get_video_chatrooms_of_user(self, user_instance):
         card_list = set(Card_Attachment.objects.filter(type='video').values_list('collabcard', flat=True))
