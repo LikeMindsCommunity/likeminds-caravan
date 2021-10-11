@@ -789,6 +789,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_list = self.extract_chatrooms_on_scroll(chatroom_id, scroll_direction, chatroom_queryset,
                                                              limit_size=5)
 
+        from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
+
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
@@ -810,7 +812,9 @@ class MemberCommunityImpl(MemberCommunityManager):
             if not chatroom_instance:
                 return {'error_message': "Invalid chatroom id", 'status': 400}
 
-            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance)
+            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance,
+                                                                                    intro_room_setting_enabled)
+        from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
