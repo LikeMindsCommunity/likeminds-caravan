@@ -27,7 +27,7 @@ def create_community_settings_for_communities():
                 bulk_create_list.append(community_settings_instance)
                 print("Community settings for community with id: ", community.id)
 
-    ModelUtilities.bulk_create_instances(bulk_create_list)
+    ModelUtilities.bulk_create_instances(CommunitySettings, bulk_create_list)
 
 
 create_community_settings_for_communities()

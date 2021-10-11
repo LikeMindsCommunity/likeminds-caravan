@@ -524,7 +524,7 @@ class Collabcard(models.Model):
     is_private = models.BooleanField(default=False)
     chatroom_with_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
                                            related_name='chatroom_with_user')
-    include_members_later = models.BooleanField(default=False)
+    include_members_later = models.BooleanField(default=True)
 
     about_recording = models.TextField(null=True)
     recording_url_og_tags = models.TextField(null=True)
