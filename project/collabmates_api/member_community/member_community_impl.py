@@ -887,10 +887,22 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         pinned_top_bar = {}
 
+        excluded_card_types = [card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]
+
+        filter_dict = {
+            'community_id': community_instance.id,
+            'setting_type': community_setting_types.INTRO_ROOM,
+            'enabled': True
+        }
+
+        intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+        if not intro_room_setting_filter:
+            excluded_card_types.append(card_types.CARD_MASTER_INTRO)
+
         pinned_chatrooms = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
                                                                         'is_pinned': True, 'is_deleted': False}).\
-            exclude(type__in=[card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]).\
-            only('header').order_by('-pinning_time')
+            exclude(type__in=excluded_card_types).only('header').order_by('-pinning_time')
 
         if pinned_chatrooms:
 
