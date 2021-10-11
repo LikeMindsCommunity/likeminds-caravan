@@ -1002,6 +1002,8 @@ class CommunityImpl(CommunityManager):
         if not is_promoter:
             return {'success': False, 'error_message': "You are not the owner/cm of community."}
 
+        req_body['community_instance'] = community_instance
+
         join_email_instance = self._create_join_email_instance(req_body)
 
         if not join_email_instance['success']:
