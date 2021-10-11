@@ -2888,6 +2888,6 @@ class CommunityJoinEmail(models.Model):
         instance.reply_to = community_join_email_info.get('reply_to')
         instance.subject = community_join_email_info.get('subject')
         instance.body = community_join_email_info.get('body')
-        instance.community_id = community_join_email_info.get('community_id')
+        instance.community_id = community_join_email_info.get('community_instance')
         instance.save()
         return instance
