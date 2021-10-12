@@ -4,7 +4,7 @@ from collabmates_api.community.community_view_impl import (FetchCommunity, Fetch
                                                            FetchDiscoverableCommunities,
                                                            FetchCommunityOTLUrl, FetchMembersMeta,
                                                            FetchContentDownloadSettings, UpdateContentDownloadSettings,
-                                                           FetchAllCommunities, FetchCommunitySettings,
+                                                           FetchAllCommunities, FetchCommunityMeta, FetchCommunitySettings,
                                                            UpdateCommunitySettings, FetchCommunityToastsV1View,
                                                            UpdateCommunityToastV1View, JoinEmailAddView,
                                                            JoinEmailFetchView)
@@ -21,6 +21,8 @@ urlpatterns = [
     path('fetch_members_meta', FetchMembersMeta.as_view(), name="fetch_members"),
     path('fetch_content_download_settings', FetchContentDownloadSettings.as_view(), name="fetch_settings"),
     path('update_content_download_settings', UpdateContentDownloadSettings.as_view(), name="update_settings"),
+    path('fetch_community_meta', FetchCommunityMeta.as_view(), name="fetch_community_meta"),
+
     path('fetch_community_settings', FetchCommunitySettings.as_view(), name="fetch_community_settings"),
     path('update_community_settings', UpdateCommunitySettings.as_view(), name="update_community_settings"),
     path('toast/fetch', FetchCommunityToastsV1View.as_view(), name="fetch_community_toasts"),

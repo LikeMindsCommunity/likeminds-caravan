@@ -29,7 +29,7 @@ TITLE_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES = TITLE_ACCESS_MORE_EXPIRED_C
 
 SECOND_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'Are you a community builder and wish to build you own community?'
 
-SUB_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'If yes, click on the invitation link you have received.\n\n In case you purchased a membership plan, you would have received an invitation link via email/WhatsApp. Use this link to join your community and get started. Or, <<enter Payment ID here|route://payment_dialog>>.'
+SUB_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'If yes, click on the invitation link you have received.\n\n In case you purchased a membership plan, you would have received an invitation link via email/WhatsApp. Use this link to join your community and get started.'
 SUB_TITLE_ACCESS_ONE_PENDING_COMMUNITY = 'Your application to join this community has been submitted. You will have access to community events, chat rooms and member profiles as soon as you are approved.'
 SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY = 'Your subscription to %s community has expired. <<Buy a membership plan|route://renew_membership?community_id=%s>> of your choice to regain access to community events, chat rooms and member profiles. Want to leave? do it <<here|route://leave_community?community_id=%s>>.'
 SUB_TITLE_ACCESS_MORE_PENDING_COMMUNITIES = 'Your applications to join the following communities have been submitted. You will have access to community events, chat rooms and member profiles as soon as you are approved.'
@@ -40,7 +40,7 @@ SUB_TITLE_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES = 'Your membership plans 
 SUB_TITLE_2_ACCESS_NOT_PART_OF_COMMUNITIES = 'To get onboarded on this platform to build and grow your community, fill out <<this form|route://browser?link=https://collabmates.app.link/e/3WjswrRfhdb>>'
 SUB_TITLE_2_ACCESS_COMMON = '**Usually It takes upto 48 hours to get approved. If you have paid for the membership and in case you are not approved, your payment would be refunded.'
 
-ACCESS_FOOTER = 'Need help? <<Get in touch|route://mail?to=hello@likeminds.community>>'
+ACCESS_FOOTER = 'Need help? <<Get in touch|route://browser?url=https%3A//wa.me/%2B919971769713%3Ftext%3DI%20need%20help%20in%20joining%20a%20community>>'
 
 CTA_ACCESS_ONE_EXPIRED_COMMUNITY = f'<<CHOOSE MEMBERSHIP PLAN|route://browser?link={web_url}/renewal/%s?renew=true&user_id=%s>>'
 
