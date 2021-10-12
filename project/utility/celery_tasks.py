@@ -1435,11 +1435,10 @@ def update_event_in_webflow_service(update_info):
     if not event_meta.get('fields'):
         return
 
-    if update_info.get('update_type') == event_webflow_update_types.META:
-        ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, {
-            'updated_at': TimeUtilities.current_time_in_milliseconds(),
-            'event_web_page': settings.WEBFLOW_KEYS.get('web_url') + event_meta.get('slug', ""),
-        })
+    ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, {
+        'updated_at': TimeUtilities.current_time_in_milliseconds(),
+        'event_web_page': settings.WEBFLOW_KEYS.get('web_url') + event_meta.get('slug', ""),
+    })
 
     ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                 {'updated_at': TimeUtilities.current_time_in_sec()})
