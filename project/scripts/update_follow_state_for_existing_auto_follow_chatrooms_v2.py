@@ -43,11 +43,7 @@ def update_follow_state_for_existing_auto_follow_chatrooms_v2():
         print("Chatroom ID: {} | User ID: {}".format(state.card_id, state.user_id))
         info_logger.info("Chatroom ID: {} | User ID: {}".format(state.card_id, state.user_id))
 
-        try:
-            chatroom_follow(state)
-
-        except Exception as e:
-            print(str(e))
+        chatroom_follow(state)
 
 
 def chatroom_follow(card_state_instance):
