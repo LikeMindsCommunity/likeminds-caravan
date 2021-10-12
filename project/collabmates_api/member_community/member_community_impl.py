@@ -15,7 +15,6 @@ from utility.string_utilities import StringUtilities
 from .constants import *
 from .member_community_manager import MemberCommunityManager
 
-from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query,
                            get_community_introductions_based_on_user_list_query,
                            get_chatroom_count_based_on_community_list, get_distinct_chatroom_creator_list,
@@ -789,6 +788,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_list = self.extract_chatrooms_on_scroll(chatroom_id, scroll_direction, chatroom_queryset,
                                                              limit_size=5)
 
+        from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
+
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
@@ -811,6 +812,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                 return {'error_message': "Invalid chatroom id", 'status': 400}
 
             chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance)
+
+        from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
