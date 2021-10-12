@@ -58,7 +58,7 @@ def update_follow_state_for_existing_auto_follow_chatrooms():
 
 
 def chatroom_follow(card_instance, user_instance):
-    print("Card: ", card_instance.id, "User: ", user_instance.id, )
+    print("Card: ", card_instance.id, "User: ", user_instance.id)
     status = True
 
     if not card_instance:
