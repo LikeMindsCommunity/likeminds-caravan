@@ -53,6 +53,8 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         'referral_enabled': community.referral_enabled,
     }
 
+    aj = community.id
+
     if community.website_url:
         new_dict['website_url'] = community.website_url
 
@@ -103,16 +105,16 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         new_dict['private_link'] = branch_links[1]['url']
         if new_dict['members_count'] <= 10:
             new_dict[
-                'private_link_text_admin'] = PRIVATE_LINK_TEXT_ADMIN_1 % (community.name, branch_links[1]['url'])
+                'private_link_text_admin'] = PRIVATE_LINK_TEXT_ADMIN_1 % (community.name, branch_links[1]['url'], aj)
         else:
             new_dict[
-                'private_link_text_admin'] = PRIVATE_LINK_TEXT_ADMIN_2 % (community.name, branch_links[1]['url'])
+                'private_link_text_admin'] = PRIVATE_LINK_TEXT_ADMIN_2 % (community.name, branch_links[1]['url'], aj)
 
         new_dict['private_link_members_directory'] = branch_links[2]['url']
 
         if is_owner:
             private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
-            community.name, branch_links[2]['url'])
+            community.name, branch_links[2]['url'], aj)
 
         else:
             private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_2 % (
@@ -127,7 +129,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         new_dict['sub_type'] = community.sub_type
 
     new_dict[
-        'share_text_admin'] = SHARE_TEXT_ADMIN % (new_dict['name'], new_dict['share_url'])
+        'share_text_admin'] = SHARE_TEXT_ADMIN % (new_dict['name'], new_dict['share_url'], aj)
 
     new_dict[
         'share_text_member'] = """I am part of %s community on LikeMinds. \nApply to join our community. %s\n""" % (
