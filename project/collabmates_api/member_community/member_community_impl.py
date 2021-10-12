@@ -15,7 +15,6 @@ from utility.string_utilities import StringUtilities
 from .constants import *
 from .member_community_manager import MemberCommunityManager
 
-from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query,
                            get_community_introductions_based_on_user_list_query,
                            get_chatroom_count_based_on_community_list, get_distinct_chatroom_creator_list,
