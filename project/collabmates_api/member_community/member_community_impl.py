@@ -812,8 +812,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             if not chatroom_instance:
                 return {'error_message': "Invalid chatroom id", 'status': 400}
 
-            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance,
-                                                                                    intro_room_setting_enabled)
+            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance)
+
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
