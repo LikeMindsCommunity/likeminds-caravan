@@ -1375,7 +1375,7 @@ def create_update_request_meta_of_webflow_for_event_meta(update_info):
     event_meta = {
         'fields': {
             'name': card_instance.header,
-            'title': card_instance.title,
+            'title': card_instance.about,
             'online-link': card_instance.online_link,
             'location': card_instance.location,
             'is-paid': card_instance.is_paid,
