@@ -12343,6 +12343,7 @@ class SyncChatroomsDiff(APIView):
         poll_data = {}
         poll_votes = {}
 
+        attachment_chatroom_list = set()
         video_chatroom_list = set()
         secret_chatroom_list = set()
         chatrooms_with_reactions_list = set()
@@ -12359,9 +12360,6 @@ class SyncChatroomsDiff(APIView):
             if previous_app_version < EVENT_ATTACHMENT_VERSION_CODE_AN <= version_code:
                 attachment_chatroom_list = self._get_event_recordings_of_user(user_instance)
             
-            else:
-                attachment_chatroom_list = set()
-
             if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
 
