@@ -855,6 +855,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                     intro_room_setting_enabled)
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
+        from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
+
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
