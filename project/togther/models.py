@@ -524,7 +524,7 @@ class Collabcard(models.Model):
     is_private = models.BooleanField(default=False)
     chatroom_with_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
                                            related_name='chatroom_with_user')
-    include_members_later = models.BooleanField(default=False)
+    include_members_later = models.BooleanField(default=True)
 
     about_recording = models.TextField(null=True)
     recording_url_og_tags = models.TextField(null=True)
@@ -2641,63 +2641,6 @@ class DirectMessageTutorial(models.Model):
         self.updated_at = current_time
 
         super(DirectMessageTutorial, self).save(*args, **kwargs)
-
-
-class CommunitySettings(models.Model):
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
-    setting_type = models.CharField(max_length=100, null=False)
-    setting_title = models.CharField(max_length=100, null=False)
-    setting_sub_title = models.CharField(max_length=255, null=False)
-    enabled = models.BooleanField(default=False)
-    enabled_by = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
-    created_at = models.BigIntegerField(default=0)
-    updated_at = models.BigIntegerField(default=0)
-
-    @staticmethod
-    def create_instance(create_info):
-        instance = CommunitySettings()
-        instance.community = create_info.get('community_instance')
-        instance.setting_type = create_info.get('setting_type')
-        instance.setting_title = create_info.get('setting_title')
-        instance.setting_sub_title = create_info.get('setting_sub_title')
-        instance.enabled = create_info.get('enabled')
-        instance.enabled_by = create_info.get('enabled_by', None)
-        instance.created_at = TimeUtilities.current_time_in_milliseconds()
-
-        return instance
-
-    def save(self, *args, **kwargs):
-        current_time = TimeUtilities.current_time_in_milliseconds()
-        self.updated_at = current_time
-
-        super(CommunitySettings, self).save(*args, **kwargs)
-
-
-class CommunityToastV1(models.Model):
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
-    community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
-    text = models.TextField(null=True)
-    is_shown = models.BooleanField(default=False)
-    created_at = models.BigIntegerField(default=0)
-    updated_at = models.BigIntegerField(default=0)
-
-    @staticmethod
-    def create_instance(create_info):
-        instance = CommunityToastV1()
-        instance.user = create_info.get('user_instance')
-        instance.community = create_info.get('community_instance')
-        instance.text = create_info.get('text')
-        instance.is_shown = create_info.get('is_shown')
-        instance.created_at = TimeUtilities.current_time_in_milliseconds()
-
-        return instance
-
-    def save(self, *args, **kwargs):
-        current_time = TimeUtilities.current_time_in_milliseconds()
-        self.updated_at = current_time
-
-        super(CommunityToastV1, self).save(*args, **kwargs)
 
 
 class EventRecordingsAttachments(models.Model):
