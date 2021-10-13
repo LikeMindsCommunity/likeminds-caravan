@@ -624,6 +624,7 @@ class ChatroomImpl(ChatroomManager):
         update_context['community'] = community_instance
         update_context['user'] = user_instance
         update_context['online_link'] = req_body.get('online_link', card_instance.online_link)
+        update_context['about'] = req_body.get('about', card_instance.about)
         update_context['online_link_id'] = req_body.get('online_link_id', card_instance.online_link_id)
         update_context['online_link_password'] = req_body.get('online_link_password',
                                                               card_instance.online_link_password)
