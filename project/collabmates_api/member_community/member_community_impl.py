@@ -1,46 +1,39 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.db.models.functions import Lower
-
-from rest_framework.utils import json
 from rest_framework import status as status_codes
+from rest_framework.utils import json
 
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.celery_tasks import update_chatroom_conversation_count_in_cache, \
-    update_chatroom_conversation_creators_in_cache
-from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
-from utility.number_utilities import NumberUtilities
+from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
+                            Collabcard, card_answers, conversationEngage,
+                            communityQuestions, CommunityUserDelete, communityRightsSettings, CommunitySettings)
+from utility.celery_tasks import update_chatroom_conversation_creators_in_cache
+from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY
+from utility.exception_utilities import CustomException
+from utility.states import member_states, card_types, deleted_members, question_states, \
+    conversation_states, member_rights, community_setting_types
 from utility.string_utilities import StringUtilities
+from utility.time_utilities import TimeUtilities
+from utility.utils import get_time_text_for_my_chatrooms
 from .constants import *
 from .member_community_manager import MemberCommunityManager
-
-from ..raw_queries import (fetch_chatroom_polls, fetch_member_poll_votes, get_members_based_on_user_list_query,
+from ..raw_queries import (get_members_based_on_user_list_query,
                            get_community_introductions_based_on_user_list_query,
                            get_chatroom_count_based_on_community_list, get_distinct_chatroom_creator_list,
                            get_count_of_community_members_based_on_community_list)
+from ..rest_api import CommunitySerializerV1
+from ..serializers import is_draft_conversation, get_chatroom_instance, \
+    get_draft_chatroom_instance, conversationSerializer
+from ..static_files import REMOVED_USER_URL
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right
 from ..utility import pagination
-from ..views import get_home_screen_community_actions,\
+from ..views import get_home_screen_community_actions, \
     generate_internal_link_preview_for_conversation, get_latest_conversation_members
-from ..rest_api import CommunitySerializerV1
-from ..serializers import get_collabcard_files, \
-    get_preview_for_url, is_draft_conversation, get_chatroom_instance, \
-    get_draft_chatroom_instance, conversationSerializer
-from ..static_files import REMOVED_USER_URL
-
-from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
-                            MemberPollVotes, Collabcard, card_answers, conversationEngage,
-                            communityQuestions, CommunityUserDelete, communityRightsSettings, CommunitySettings)
-
-from utility.utils import create_notification_flag, get_time_text_for_my_chatrooms
-from utility.time_utilities import TimeUtilities
-from utility.states import member_states, card_types, poll_types, deleted_members, question_states, \
-    conversation_states, member_rights, community_setting_types
-from utility.exception_utilities import CustomException
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -853,7 +846,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance,
                                                                                     intro_room_setting_enabled)
-        from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
