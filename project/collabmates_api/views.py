@@ -12678,7 +12678,8 @@ class SyncChatroomsDiff(APIView):
         attachment_chatroom_list = set(ModelUtilities.get_model_filter(
             collabcardState,
             {
-                'user': user_instance
+                'user': user_instance,
+                'card__has_event_recording': True
             }
         ).values_list(
             'card',
