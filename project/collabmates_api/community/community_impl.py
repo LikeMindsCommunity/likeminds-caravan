@@ -1054,7 +1054,7 @@ class CommunityImpl(CommunityManager):
             user_emails = ModelUtilities.get_model_filter(userEmails, {'user': member_id})
 
             if len(user_emails) > 0:
-                data["reply_to"] = user_emails[0].email
+                data["reply_to"] = [user_emails[0].email]
 
             data["subject"] = community_instance.name
             default_body = ModelUtilities.get_model_filter(CommunityJoinDefaultEmail, {})
@@ -1062,7 +1062,7 @@ class CommunityImpl(CommunityManager):
 
         else:
             join_email_instance = join_email_instances[0]
-            data["reply_to"] = join_email_instance.reply_to
+            data["reply_to"] = [join_email_instance.reply_to]
             data["subject"] = join_email_instance.subject
             data["body"] = join_email_instance.body
 
