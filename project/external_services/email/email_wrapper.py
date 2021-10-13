@@ -11,14 +11,17 @@ class MailWrapper(MailManager):
     @shared_task
     def send_email(subject, template, to_mails_list, from_email=None, categories=None, reply_to=None):
 
+        if not from_email:
+            from_email = MailWrapper.from_email
+
         if not reply_to:
-            reply_to = from_email
+            reply_to = [from_email]
 
         fail_silently = False
         email = EmailMultiAlternatives(
             subject,
             template,
-            MailWrapper.from_email if not from_email else from_email,
+            from_email,
             to_mails_list,
             reply_to=reply_to
         )
