@@ -2778,3 +2778,59 @@ class ChatroomCohort(models.Model):
         instance.chatroom = chatroom_cohort_info.get('chatroom_instance')
         instance.save()
         return instance
+
+
+class CommunityJoinDefaultEmail(models.Model):
+    body = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        super(CommunityJoinDefaultEmail, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(community_join_default_email_body):
+        instance = CommunityJoinDefaultEmail()
+        instance.body = community_join_default_email_body.get('body')
+        instance.save()
+        return instance
+
+
+class CommunityJoinEmail(models.Model):
+    reply_to = models.TextField(null=True)
+    subject = models.TextField(null=True)
+    body = models.TextField(null=True)
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.updated_at == 0:
+            self.updated_at = current_time_in_ms
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        super(CommunityJoinEmail, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(community_join_email_info):
+        instance = CommunityJoinDefaultEmail()
+        instance.reply_to = community_join_email_info.get('reply_to')
+        instance.subject = community_join_email_info.get('subject')
+        instance.body = community_join_email_info.get('body')
+        instance.community_id = community_join_email_info.get('community_instance')
+        instance.save()
+        return instance

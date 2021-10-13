@@ -14,25 +14,7 @@ info_logger = LoggingWrapper.get_instance()
 
 
 def update_follow_state_for_existing_auto_follow_chatrooms_v2():
-    chatroom_ids = [
-        23660, 23663, 23488, 22846, 23675, 23676, 23647, 23914, 23346, 23717, 23726, 23771, 23811, 23816, 23818,
-        23814, 23473, 23837, 23859, 23864, 20542, 14779, 21768, 21935, 22374, 22526, 22795, 22957, 23078, 22985,
-        23050, 23140, 23146, 23159, 23061, 23090, 23202, 15512, 23122, 22829, 23240, 23252, 21261, 23288, 21673,
-        23043, 22987, 23188, 23335, 23334, 23317, 23321, 23322, 23323, 23325, 23347, 23353, 23292, 23351, 23363,
-        23365, 23374, 23434, 23475, 23466, 23457, 23455, 23504, 23567, 14535, 23465, 23580, 23119, 23560, 23508,
-        22563, 23590, 23622, 23587, 23623, 23643, 23651, 23656, 12291, 18776, 14678, 15135, 15245, 15500, 15797,
-        16290, 16437, 16918, 16913, 17643, 17798, 15929, 17700, 19544, 19813, 19915, 19913, 20032, 20123, 20426,
-        20465, 20504, 20562, 20560, 20047, 20661, 20655, 20662, 20671, 20766, 20897, 20976, 21126, 21157, 17944,
-        21152, 19927, 21341, 21294, 16067, 21475, 21229, 21161, 21553, 21309, 21195, 19378, 16481, 21384, 21386,
-        18053, 16329, 17295, 21394, 17570, 21401, 15105, 15890, 21451, 16641, 21312, 21558, 21118, 8382, 21452,
-        21648, 21642, 21851, 21836, 21740, 21678, 16223, 21699, 21713, 21701, 21753, 21762, 21732, 15842, 15846,
-        21757, 21916, 21874, 14689, 21939, 21944, 21938, 21943, 21952, 21738, 22053, 22051, 16908, 22147, 22175,
-        22208, 22213, 18775, 22593, 16331, 22333, 22327, 22377, 22393, 22651, 22469, 22488, 22468, 22685, 22532,
-        22739, 22849, 23039, 22805, 22845, 22869, 22905, 22928, 22649, 22955, 22853, 22998, 7648, 23019, 23141,
-        21602, 23973, 22746, 24029, 24041, 24071, 24074, 24064, 24115, 24123, 9692, 24192, 24203, 24211, 24230,
-        6244, 24298, 24295, 24314, 15341, 15272, 24482, 23066, 24438, 23531, 23145, 22804, 22714, 23491, 24484,
-        22813, 31937, 5710, 31934, 66769, 66746, 66978, 23530, 24443, 20541, 24281, 24437, 24419, 7899, 8490, 14531,
-        14562, 14566, 15933, 19084, 22240, 22502]
+    chatroom_ids = ModelUtilities.get_model_filter(Collabcard, {'auto_follow_done': True})
 
     filter_dict = {'follow_status': False,
                    'card_id__in': chatroom_ids}
@@ -64,12 +46,14 @@ def chatroom_follow(card_state_instance):
 
     expiry_time = get_expiry_time_of_chatroom(card_state_instance)
 
-    card_state_filter = ModelUtilities.get_model_filter(collabcardState, {'id': card_state_instance.id})
+    card_state_instance.follow_status = status
+    card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+    card_state_instance.expiry_time = expiry_time
+    card_state_instance.external_seen = True
+    card_state_instance.external_follow = status
+    card_state_instance.save()
 
-    card_state_filter.update(follow_status=status, updated_at=TimeUtilities.current_time_in_sec(),
-                             expiry_time=expiry_time,
-                             external_seen=True, external_follow=status)
-
+    print("Follow status now:", card_state_instance.follow_status)
     create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                member_state=member_state)
 
