@@ -1251,7 +1251,7 @@ def create_event_request_meta_for_webflow_create(card_instance, community_instan
     event_meta = {
         'fields': {
             'name': card_instance.header,
-            'title': card_instance.title,
+            'title': card_instance.about,
             'online-link': card_instance.online_link,
             'location': card_instance.location,
             'is-paid': card_instance.is_paid,
