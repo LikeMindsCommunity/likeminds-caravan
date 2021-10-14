@@ -24,7 +24,7 @@ from utility.states import (card_types, question_states, member_states, poll_typ
 from utility.utils import (get_time_text, generate_private_link, eligibility_count,
                            get_members_count_in_community)
 from django.conf import settings
-from .user_moderation_rights import check_admin_approve_right
+from .user_moderation_rights import check_admin_approve_right, get_saved_member_rights_list, check_all_member_rights
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from .static_files import *
@@ -66,13 +66,14 @@ class YourCommunitySerializer(serializers.ModelSerializer):
     pending_chatroom_count = serializers.IntegerField(write_only=True)
     pending_members_count = serializers.IntegerField(write_only=True)
     collabcard_unseen = serializers.IntegerField(write_only=True)
+    community_setting_rights = serializers.ListField(write_only=True)
 
     class Meta:
         model = Member_Engage
         fields = ('id', 'open_reports_count', 'member_state',
                   'click_state', 'collabcard_unseen', 'actions', 'name', 'purpose', 'about',
-                  'member_right_states', 'pending_chatroom_count', 'image_url', 'members_count',
-                  'type', 'sub_type', 'pending_members_count', 'order_time')
+                  'member_right_states', 'community_setting_rights', 'pending_chatroom_count', 'image_url',
+                  'members_count', 'type', 'sub_type', 'pending_members_count', 'order_time')
 
     def __init__(self, *args, **kwargs):
         super(YourCommunitySerializer, self).__init__(*args, **kwargs)
@@ -141,6 +142,9 @@ class YourCommunitySerializer(serializers.ModelSerializer):
         data.update(**community_data)
 
         data['member_right_states'] = json.loads(community_engage.rights_list) if community_engage.rights_list else []
+
+        data['community_setting_rights'] = get_saved_member_rights_list(
+            check_all_member_rights(community=community_engage.community_id), show_dm_right=True, version_code=773)
 
         actions = self.get_home_screen_community_actions(community_engage.community_id)
 
