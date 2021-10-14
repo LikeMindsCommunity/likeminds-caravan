@@ -3646,6 +3646,7 @@ def get_branch_links_for_community_share(user_instance, community_instance):
     user_has_approve_right = False
     community_id = community_instance.id
     member_id = user_instance.id
+    aj = community_id
 
     if member_filter:
         member_instance = member_filter[0]
@@ -3677,13 +3678,15 @@ def get_branch_links_for_community_share(user_instance, community_instance):
         'branch_links': branch_links,
         'is_owner': is_owner,
         'is_promoter': is_promoter,
-        'user_has_approve_right': user_has_approve_right
+        'user_has_approve_right': user_has_approve_right,
+        'aj': aj
     }
     return share_context
 
 
 def fill_share_context_for_paid_community(community_instance, share_context, community_share):
     branch_links = share_context['branch_links']
+    aj = share_context['aj']
     community_name = community_instance.name
 
     if len(share_context) <= 0:
@@ -3692,27 +3695,28 @@ def fill_share_context_for_paid_community(community_instance, share_context, com
     community_share['public_link'] = branch_links[0]['url']
 
     community_share['public_link_text'] = SHARE_TEXT_ADMIN_PUBLIC_PAID_COMMUNITY % (
-        community_name,  community_share['public_link'])
+        community_name,  community_share['public_link'], aj)
 
     if share_context['user_has_approve_right']:
         community_share['private_link'] = branch_links[1]['url']
         community_share['private_link_text'] = SHARE_TEXT_ADMIN_PRIVATE_PAID_COMMUNITY % (
-                community_name, branch_links[1]['url'])
+                community_name, branch_links[1]['url'], aj)
 
         community_share['private_link_members_directory'] = branch_links[2]['url']
         private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
-            community_name, branch_links[2]['url'])
+            community_name, branch_links[2]['url'], aj)
 
         community_share['private_link_text_members_directory'] = private_link_text_members_directory
 
     else:
         community_share['public_link'] = branch_links[0]['url']
         community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
-            community_name, community_share['public_link'])
+            community_name, community_share['public_link'], aj)
 
 
 def fill_share_context_for_unpaid_community(community_instance, share_context, community_share):
     branch_links = share_context['branch_links']
+    aj = share_context['aj']
     community_name = community_instance.name
 
     if len(share_context) <= 0:
@@ -3721,7 +3725,7 @@ def fill_share_context_for_unpaid_community(community_instance, share_context, c
     community_share['public_link'] = branch_links[0]['url']
 
     community_share['public_link_text'] = SHARE_TEXT_ADMIN % (
-        community_name, community_share['public_link'])
+        community_name, community_share['public_link'], aj)
 
     if share_context['user_has_approve_right']:
         community_share['private_link'] = branch_links[1]['url']
@@ -3729,22 +3733,22 @@ def fill_share_context_for_unpaid_community(community_instance, share_context, c
 
         if members_count <= 10:
             community_share['private_link_text'] = PRIVATE_LINK_TEXT_ADMIN_1 % (
-                community_name, branch_links[1]['url'])
+                community_name, branch_links[1]['url'], aj)
 
         else:
             community_share['private_link_text'] = PRIVATE_LINK_TEXT_ADMIN_2 % (
-                community_name, branch_links[1]['url'])
+                community_name, branch_links[1]['url'], aj)
 
         community_share['private_link_members_directory'] = branch_links[2]['url']
         private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
-            community_name, branch_links[2]['url'])
+            community_name, branch_links[2]['url'], aj)
 
         community_share['private_link_text_members_directory'] = private_link_text_members_directory
 
     else:
         community_share['public_link'] = branch_links[0]['url']
         community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
-            community_name, community_share['public_link'])
+            community_name, community_share['public_link'], aj)
 
 
 def fetch_share_url(request):

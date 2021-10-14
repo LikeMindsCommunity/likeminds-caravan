@@ -2,6 +2,7 @@ import json
 
 from celery import shared_task
 from django.contrib.auth.models import User
+from django.db.models.base import Model
 
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
@@ -1447,3 +1448,37 @@ class CommunityHelper:
                 join_link_valid = (timestamp - expiry_time) <= expiry_instance.expire_duration
 
         return join_link_valid
+
+    @staticmethod
+    def fetch_community_for_aj(aj):
+        res = {
+            'success': False
+        }
+
+        is_aj_present = ModelUtilities.get_model_filter(
+            communityExpiryCodes,
+            {
+                'unique_code': aj
+            }
+        )
+
+        if is_aj_present:
+            aj_instance = is_aj_present[0]
+            is_aj_valid = CommunityHelper.is_aj_valid(aj_instance)
+
+            if is_aj_valid:
+                res['success'] = True
+                res['community_id'] = aj_instance.community.id
+                return res
+
+        res['error_message'] = 'Invalid aj'
+        return res
+
+    @staticmethod
+    def is_aj_valid(aj_instance):
+        current_time = TimeUtilities.current_time_in_sec()
+
+        expiry_time = aj_instance.created_at
+        is_aj_valid = (current_time - expiry_time) <= aj_instance.expire_duration
+
+        return is_aj_valid

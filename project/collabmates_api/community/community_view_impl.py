@@ -8,6 +8,8 @@ from utility.exception_utilities import InvalidHeaderException, CustomException
 from utility.number_utilities import NumberUtilities
 from rest_framework import status as status_codes
 
+from ..rest_api import get_error_context
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -349,3 +351,46 @@ class CommunityViewsHelper:
             request_status['status'] = False
 
         return request_status
+
+
+class FetchCommunityMeta(APIView):
+
+    def _validate_request(self, member_id, aj):
+        res = {}
+
+        if not member_id:
+            res = get_error_context(False, "Invalid member_id")
+
+        elif not aj:
+            res = get_error_context(False, "Invalid aj")
+
+        return res
+
+    def post(self, request):
+        try:
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            aj = request.query_params.get('aj')
+
+            request_validation_errors = self._validate_request(member_id, aj)
+
+            if request_validation_errors:
+                return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            from .community_impl import CommunityHelper
+
+            res = CommunityHelper.fetch_community_for_aj(aj)
+
+            if res.get('success'):
+                return JsonResponse(res, status=status_codes.HTTP_200_OK)
+            
+            else:
+                return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            res = { 
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            
+            return JsonResponse(res, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
