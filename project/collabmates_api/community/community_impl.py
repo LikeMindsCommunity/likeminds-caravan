@@ -890,7 +890,7 @@ class CommunityImpl(CommunityManager):
                 'enabled_by': user_instance if community_setting['enabled'] else None
             }
 
-            if community_setting['enabled']:
+            if not community_setting['enabled']:
                 disabled_community_setting_context = {
                     'community_id': self.get_community_id(),
                     'setting_type': community_setting['setting_type']
