@@ -2167,6 +2167,7 @@ def create_intro_room_disabled_text_for_community_members(disabled_community_set
         community_members = ModelUtilities.get_model_filter(Members, filter_dict)
 
         bulk_create_list = []
+        bulk_update_list = []
 
         # Creating intro room settings text.
         for member in community_members:
@@ -2174,6 +2175,13 @@ def create_intro_room_disabled_text_for_community_members(disabled_community_set
                                                                               'user': member.member_id,
                                                                               'text': INTRO_ROOM_SETTING_DISABLED_TOAST})
             if toast_filter:
+                toast_instance = toast_filter[0]
+
+                if toast_instance.is_shown:
+                    toast_instance.is_shown = False
+                    toast_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+                    bulk_update_list.append(toast_instance)
+
                 continue
 
             community_toast_v1_dict = {
@@ -2186,4 +2194,5 @@ def create_intro_room_disabled_text_for_community_members(disabled_community_set
             bulk_create_list.append(CommunityToastV1.create_instance(community_toast_v1_dict))
 
         ModelUtilities.bulk_create_instances(CommunityToastV1, bulk_create_list)
+        ModelUtilities.bulk_update_instances(CommunityToastV1, bulk_update_list, ['is_shown', 'updated_at'])
 
