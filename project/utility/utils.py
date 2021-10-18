@@ -3,7 +3,9 @@ from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from bs4 import BeautifulSoup
 import requests
-from collabmates_api.static_text import CHATROOM_SETTINGS_VERSION_CODE_DICT
+
+from collabmates_api.static_text import INTRO_ROOM_V2_VERSION_CODE_DICT
+
 from togther.models import *
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
@@ -1241,9 +1243,10 @@ def is_version_code_supported_for_intro_room(version_code, platform_code):
     except:
         return False
     
-    if platform_code in CHATROOM_SETTINGS_VERSION_CODE_DICT.keys():
+    if platform_code in INTRO_ROOM_V2_VERSION_CODE_DICT.keys():
         
-        if version_code >= CHATROOM_SETTINGS_VERSION_CODE_DICT[platform_code]:
+        if version_code >= INTRO_ROOM_V2_VERSION_CODE_DICT[platform_code]:
+
             return True
     
     return False

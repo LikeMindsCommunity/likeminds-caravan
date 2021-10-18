@@ -496,7 +496,10 @@ PAID_COMMUNITY_LEVEL_4_TITLE = "Monetization"
 PAID_COMMUNITY_LEVEL_4_SUB_TITLE = "Invite members with payment link"
 
 # These are only for beta, don't send them in upcoming release.
-CHATROOM_SETTINGS_VERSION_CODE_DICT = {
+CHATROOM_SETTINGS_VERSION_CODE_AN = 155
+CHATROOM_SETTINGS_VERSION_CODE_IOS = 232
+
+INTRO_ROOM_V2_VERSION_CODE_DICT = {
     "an": 1001,
     "ios": 235,
     "web": 1001
