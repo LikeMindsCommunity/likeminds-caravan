@@ -4,6 +4,7 @@ import time
 import logging
 import psycopg2
 from utility.states import card_types, conversation_states
+from utility.utils import is_version_code_supported_for_intro_room
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -115,7 +116,7 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_inactive_followed_chatrooms_count(user_id, current_time, consider_dm_chatrooms=False,
+def get_inactive_followed_chatrooms_count(user_id, current_time, version_code, platform_code, consider_dm_chatrooms=False,
                                           dm_instance_community_ids_list=[], intro_room_community_list=[]):
     '''function to get active chatrooms based on community and user'''
 
@@ -137,16 +138,21 @@ def get_inactive_followed_chatrooms_count(user_id, current_time, consider_dm_cha
             if len(dm_instance_community_ids_list) == 0:
                 is_sql = False
 
-        if intro_room_community_list:
-            intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
-            filter_intro_rooms_query = """
-            CASE WHEN community_id IN ( %s ) THEN user_id != %s
-                                             AND type = 1
-            ELSE type IN ( 1, 9 ) END
-            """ % (intro_filter_list_str, user_id)
+        if is_version_code_supported_for_intro_room(version_code, platform_code):
 
+            if intro_room_community_list:
+                intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
+                filter_intro_rooms_query = """
+                CASE WHEN community_id IN ( %s ) THEN user_id != %s
+                                                AND type = 1
+                ELSE type IN ( 1, 9 ) END
+                """ % (intro_filter_list_str, user_id)
+
+            else:
+                filter_intro_rooms_query = """type IN ( 1, 9 )"""
+        
         else:
-            filter_intro_rooms_query = """type IN ( 1, 9 )"""
+            filter_intro_rooms_query = """type = -1"""
 
         if not is_sql:
             return 0
@@ -180,7 +186,7 @@ def get_inactive_followed_chatrooms_count(user_id, current_time, consider_dm_cha
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
-def get_active_my_chatrooms_count(user_id, current_time, consider_dm_chatrooms=False,
+def get_active_my_chatrooms_count(user_id, current_time, version_code, platform_code, consider_dm_chatrooms=False,
                                   dm_instance_community_ids_list=[], intro_room_community_list=[]):
     '''function to give the count of active my chatrooms'''
 
@@ -202,16 +208,21 @@ def get_active_my_chatrooms_count(user_id, current_time, consider_dm_chatrooms=F
             if len(dm_instance_community_ids_list) == 0:
                 is_sql = False
 
-        if intro_room_community_list:
-            intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
-            filter_intro_rooms_query = """
-            CASE WHEN community_id IN ( %s ) THEN user_id != %s
-                                             AND type = 1
-            ELSE type IN ( 1, 9 ) END
-            """ % (intro_filter_list_str, user_id)
+        if is_version_code_supported_for_intro_room(version_code, platform_code):
+
+            if intro_room_community_list:
+                intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
+                filter_intro_rooms_query = """
+                CASE WHEN community_id IN ( %s ) THEN user_id != %s
+                                                AND type = 1
+                ELSE type IN ( 1, 9 ) END
+                """ % (intro_filter_list_str, user_id)
+
+            else:
+                filter_intro_rooms_query = """type IN ( 1, 9 )"""
 
         else:
-            filter_intro_rooms_query = """type IN ( 1, 9 )"""
+            filter_intro_rooms_query = """type = -1"""
 
         if not is_sql:
             return 0
@@ -249,8 +260,8 @@ def get_active_my_chatrooms_count(user_id, current_time, consider_dm_chatrooms=F
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_active_followed_chatrooms(user_id, current_time, page, limit=10, consider_dm_chatrooms=False,
-                                  dm_instance_community_ids_list=[], intro_room_community_list=[]):
+def get_active_followed_chatrooms(user_id, current_time, page, version_code, platform_code, limit=10, 
+                                consider_dm_chatrooms=False, dm_instance_community_ids_list=[], intro_room_community_list=[]):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
@@ -272,16 +283,21 @@ def get_active_followed_chatrooms(user_id, current_time, page, limit=10, conside
             chatroom_with_user_val = "NULL"
             dm_chatrooms_communities_filter = ""
 
-        if intro_room_community_list:
-            intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
-            filter_intro_rooms_query = """
-            CASE WHEN community_id IN ( %s ) THEN user_id != %s
-                                             AND type = 1
-            ELSE type IN ( 1, 9 ) END
-            """ % (intro_filter_list_str, user_id)
+        if is_version_code_supported_for_intro_room(version_code, platform_code):
+        
+            if intro_room_community_list:
+                intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
+                filter_intro_rooms_query = """
+                CASE WHEN community_id IN ( %s ) THEN user_id != %s
+                                                AND type = 1
+                ELSE type IN ( 1, 9 ) END
+                """ % (intro_filter_list_str, user_id)
+
+            else:
+                filter_intro_rooms_query = """type IN ( 1, 9 )"""
 
         else:
-            filter_intro_rooms_query = """type IN ( 1, 9 )"""
+            filter_intro_rooms_query = """type = -1"""
 
         if not is_sql:
             return []
@@ -331,8 +347,9 @@ def get_active_followed_chatrooms(user_id, current_time, page, limit=10, conside
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
-def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10, consider_dm_chatrooms=False,
-                                    dm_instance_community_ids_list=[], intro_room_community_list=[]):
+def get_inactive_followed_chatrooms(user_id, current_time, page, version_code, platform_code, limit=10, 
+                                    consider_dm_chatrooms=False, dm_instance_community_ids_list=[], 
+                                    intro_room_community_list=[]):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
@@ -354,16 +371,21 @@ def get_inactive_followed_chatrooms(user_id, current_time, page, limit=10, consi
             chatroom_with_user_val = "NULL"
             dm_chatrooms_communities_filter = ""
 
-        if intro_room_community_list:
-            intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
-            filter_intro_rooms_query = """
-            CASE WHEN community_id IN ( %s ) THEN user_id != %s
-                                             AND type = 1
-            ELSE type IN ( 1, 9 ) END
-            """ % (intro_filter_list_str, user_id)
+        if is_version_code_supported_for_intro_room(version_code, platform_code):
+        
+            if intro_room_community_list:
+                intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
+                filter_intro_rooms_query = """
+                CASE WHEN community_id IN ( %s ) THEN user_id != %s
+                                                AND type = 1
+                ELSE type IN ( 1, 9 ) END
+                """ % (intro_filter_list_str, user_id)
+
+            else:
+                filter_intro_rooms_query = """type IN ( 1, 9 )"""
 
         else:
-            filter_intro_rooms_query = """type IN ( 1, 9 )"""
+            filter_intro_rooms_query = """type = -1"""
 
         if not is_sql:
             return []

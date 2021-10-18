@@ -1,3 +1,4 @@
+from sys import platform, version
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status as status_codes
@@ -37,6 +38,8 @@ class FetchCommunityFeed(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code(request)
 
         if not member_id:
             context = get_error_context(False, "member id missing in request")
@@ -48,7 +51,8 @@ class FetchCommunityFeed(APIView):
         pin_status = request.GET.get('pinned', False)
         pin_status = StringUtilities.get_boolean_from_string(pin_status)
 
-        community_manager = MemberCommunityImpl(member_id, community_id, device_id=device_id)
+        community_manager = MemberCommunityImpl(member_id, community_id, device_id=device_id, version_code=version_code,
+                                                platform_code=platform_code)
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
 
@@ -84,12 +88,16 @@ class FetchFeedMeta(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code(request)
+
         community_id = request.GET.get('community_id', "")
 
         if not member_id or not community_id:
             return JsonResponse({'error_message': 'Invalid parameters'}, status=400)
 
-        member_community_manager = MemberCommunityImpl(member_id, community_id)
+        member_community_manager = MemberCommunityImpl(member_id, community_id, version_code=version_code,
+                                                    platform_code=platform_code)
 
         feed_context = member_community_manager.fetch_feed_meta()
 

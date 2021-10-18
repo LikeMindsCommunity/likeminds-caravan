@@ -47,14 +47,14 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types
-from utility.utils import decode_meta_from_url, check_notification_flag
+from utility.utils import decode_meta_from_url, check_notification_flag, is_version_code_supported_for_intro_room
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
                                   update_preview_of_chatroom_in_cache,
                                   get_conversation_poll, save_conversation_poll_options_in_cache,
                                   save_conversation_poll_voters_in_cache, update_multiple_previews_in_community,
                                   update_event_attendees_for_micro_event, update_unread_message_count_in_cache,
-                                  fetch_conversations_unread)
+                                  fetch_conversations_unread, reset_unread_message_count_in_cache)
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -74,10 +74,12 @@ class ConversationImpl(ConversationManager):
     paginate_by = None
     device_id = None
     platform_code = None
+    version_code = None
 
     def __init__(self, member_id: str, chatroom_id: str = None, scroll_direction: str = None,
                  conversation_id: str = None, page: str = None, paginate_by: str = None,
-                 device_id: str = None, platform_code: str = None, include_conversation_id: bool = False):
+                 device_id: str = None, platform_code: str = None, include_conversation_id: bool = False,
+                 version_code: str = None):
 
         self.member_id = member_id
         self.chatroom_id = chatroom_id
@@ -88,9 +90,16 @@ class ConversationImpl(ConversationManager):
         self.device_id = device_id
         self.platform_code = platform_code
         self.include_conversation_id = include_conversation_id
+        self.version_code = version_code
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
+
+    def get_version_code(self) -> Union[str, int]:
+        return self.version_code
+
+    def get_platform_code(self) -> Union[str, int]:
+        return self.platform_code
 
     def set_member_id(self, member_id: Union[str, int]) -> None:
         self.member_id = member_id
@@ -129,8 +138,10 @@ class ConversationImpl(ConversationManager):
         conversations = card_answers.objects.select_related('reply', 'preview_community',
                                                             'preview_chatroom').filter(card=self.get_chatroom_id()
                                                                                        ).order_by('created_at')
-        excluded_ids = self.chatroom_previews_with_non_zero_conversation_unread(conversations)
-        conversations = conversations.exclude(id__in=excluded_ids)
+
+        if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
+            excluded_ids = self.chatroom_previews_with_non_zero_conversation_unread(conversations)
+            conversations = conversations.exclude(id__in=excluded_ids)
 
         return conversations
 
@@ -147,8 +158,10 @@ class ConversationImpl(ConversationManager):
         conversations = card_answers.objects \
             .select_related('reply', 'preview_community', 'preview_chatroom') \
             .filter(card=self.get_chatroom_id())
-        excluded_ids = self.chatroom_previews_with_non_zero_conversation_unread(conversations)
-        conversations = conversations.exclude(id__in=excluded_ids)
+        
+        if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
+            excluded_ids = self.chatroom_previews_with_non_zero_conversation_unread(conversations)
+            conversations = conversations.exclude(id__in=excluded_ids)
 
         return conversations
 
@@ -831,6 +844,8 @@ class ConversationImpl(ConversationManager):
         self._send_conversation_creation_notifications(chatroom_instance, conversation_instance, has_files)
 
         update_unread_message_count_in_cache.delay(chatroom_id)
+
+        reset_unread_message_count_in_cache.delay(chatroom_id, self.get_member_id())
 
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data

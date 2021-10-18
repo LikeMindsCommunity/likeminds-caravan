@@ -268,6 +268,7 @@ def my_chatrooms_version_1(request):
 
     is_ios = RequestUtilities.is_request_ios(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
 
     show_dm = request.GET.get('show_dm', False)
 
@@ -354,12 +355,12 @@ def my_chatrooms_version_1(request):
             context = get_error_context(False, "User does not exist")
             return JsonResponse(context)
 
-    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time,
+    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time, version_code, platform_code,
                                                                      consider_dm_chatrooms=consider_dm_chatrooms,
                                                                      dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                                      intro_room_community_list=intro_room_community_list)
 
-    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time,
+    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time, version_code, platform_code, 
                                                           consider_dm_chatrooms=consider_dm_chatrooms,
                                                           dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                           intro_room_community_list=intro_room_community_list)
@@ -374,7 +375,7 @@ def my_chatrooms_version_1(request):
         send_active = False
 
     if send_active:
-        engage_list = get_active_followed_chatrooms(member_id, current_time, page, limit=10,
+        engage_list = get_active_followed_chatrooms(member_id, current_time, page, version_code, platform_code, limit=10,
                                                     consider_dm_chatrooms=consider_dm_chatrooms,
                                                     dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                     intro_room_community_list=intro_room_community_list)
@@ -390,7 +391,7 @@ def my_chatrooms_version_1(request):
 
     else:
         page = page - page_count
-        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10,
+        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, version_code, platform_code, limit=10,
                                                       consider_dm_chatrooms=consider_dm_chatrooms,
                                                       dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                       intro_room_community_list=intro_room_community_list)

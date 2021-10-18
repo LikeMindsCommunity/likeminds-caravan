@@ -1,3 +1,4 @@
+from sys import platform
 from django.http import JsonResponse
 from collabmates_api.community.community_impl import CommunityImpl
 from utility.request_utilities import RequestUtilities
@@ -68,6 +69,8 @@ class FetchChatroomFeed(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code(request)
 
         if not member_id:
             raise InvalidHeaderException()
@@ -78,7 +81,8 @@ class FetchChatroomFeed(APIView):
         size = NumberUtilities.get_integer_from_string(size)
 
         try:
-            community_manager = CommunityImpl(member_id, community_id)
+            community_manager = CommunityImpl(member_id, community_id, version_code=version_code,
+                                            request_platform=platform_code)
             response_context = community_manager.fetch_chatroom_feed(size)
 
         except Exception as e:

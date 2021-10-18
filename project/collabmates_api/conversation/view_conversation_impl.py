@@ -1,3 +1,4 @@
+from sys import platform
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -24,6 +25,8 @@ class FetchConversation(APIView):
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code(request)
 
         query_params = request.query_params
 
@@ -38,7 +41,8 @@ class FetchConversation(APIView):
 
         conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page,
                                                 paginate_by, device_id=device_id,
-                                                include_conversation_id=include_conversation_id)
+                                                include_conversation_id=include_conversation_id,
+                                                version_code=version_code, platform_code=platform_code)
 
         conversations = conversation_manager.fetch_conversation(top_navigate)
 

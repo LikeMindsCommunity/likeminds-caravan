@@ -16,7 +16,7 @@ from utility.states import member_states, card_types, deleted_members, question_
     conversation_states, member_rights, community_setting_types
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
-from utility.utils import get_time_text_for_my_chatrooms
+from utility.utils import get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room
 from .constants import *
 from .member_community_manager import MemberCommunityManager
 from ..raw_queries import (get_members_based_on_user_list_query,
@@ -776,11 +776,15 @@ class MemberCommunityImpl(MemberCommunityManager):
             'enabled': True
         }
 
-        intro_room_setting_enabled = False
+        if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
+            intro_room_setting_enabled = False
 
-        intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+            intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
 
-        if intro_room_setting_filter:
+            if intro_room_setting_filter:
+                intro_room_setting_enabled = True
+
+        else:
             intro_room_setting_enabled = True
 
         if not chatroom_id and not scroll_direction:
@@ -828,11 +832,15 @@ class MemberCommunityImpl(MemberCommunityManager):
             'enabled': True
         }
 
-        intro_room_setting_enabled = False
+        if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
+            intro_room_setting_enabled = False
 
-        intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+            intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
 
-        if intro_room_setting_filter:
+            if intro_room_setting_filter:
+                intro_room_setting_enabled = True
+
+        else:
             intro_room_setting_enabled = True
 
         if not chatroom_id and not scroll_direction:
@@ -879,7 +887,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         return actions
 
     @staticmethod
-    def create_pinned_chatrooms_header(community_instance) -> {}:
+    def create_pinned_chatrooms_header(community_instance, version_code, platform_code) -> {}:
 
         pinned_top_bar = {}
 
@@ -893,7 +901,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
 
-        if not intro_room_setting_filter:
+        if not intro_room_setting_filter and is_version_code_supported_for_intro_room(version_code, platform_code):
             excluded_card_types.append(card_types.CARD_MASTER_INTRO)
 
         pinned_chatrooms = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
@@ -935,7 +943,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'error_message': "Invalid user id", 'status': 400}
 
         feed_context = dict()
-        pinned_top_bar = self.create_pinned_chatrooms_header(community_instance)
+        pinned_top_bar = self.create_pinned_chatrooms_header(community_instance, self.get_version_code(), 
+                                                            self.get_version_code())
 
         if pinned_top_bar:
             feed_context['pinned_top_bar'] = pinned_top_bar

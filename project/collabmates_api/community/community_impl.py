@@ -36,7 +36,7 @@ from utility.states import member_states, card_types, click_states, member_right
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types
 from utility.utils import check_notification_flag, get_first_name_from_name, decode_option
 from utility.time_utilities import TimeUtilities
-from utility.utils import check_notification_flag, get_first_name_from_name
+from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room
 from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..mails import send_8am_level_mails_to_admin_scheduler
@@ -52,11 +52,14 @@ info_logger = LoggingWrapper.get_instance()
 class CommunityImpl(CommunityManager):
     member_id = None
     community_id = None
+    version_code = None
 
-    def __init__(self, member_id: str, community_id: str = None, device_id: str = None, request_platform: str = None):
+    def __init__(self, member_id: str, community_id: str = None, version_code: str = None,
+                 device_id: str = None, request_platform: str = None):
 
         self.member_id = member_id
         self.community_id = community_id
+        self.version_code = version_code
         self.device_id = device_id
         self.request_platform = request_platform
 
@@ -74,6 +77,9 @@ class CommunityImpl(CommunityManager):
 
     def get_request_platform(self):
         return self.request_platform
+
+    def get_version_code(self):
+        return self.version_code
 
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
@@ -125,23 +131,32 @@ class CommunityImpl(CommunityManager):
     def _fetch_serialize_community(self, community_instance) -> []:
         return CommunitySerializerV1(community_instance).data
 
-    def _fetch_queryset_of_community_chatrooms(self, intro_room_settings_enabled):
+    def _fetch_queryset_of_community_chatrooms(self, intro_room_settings_enabled, version_code, platform_code):
 
-        if not intro_room_settings_enabled:
-            return Collabcard.objects.filter(community=self.get_community_id(),
-                                             is_pending=False,
-                                             is_deleted=False,
-                                             is_private=False,
-                                             is_secret=False).filter(
-                ~Q(type__in=[card_types.CARD_INTRO, card_types.CARD_MASTER_INTRO])).order_by('-id')
+        if is_version_code_supported_for_intro_room(version_code, platform_code):
+            
+            if not intro_room_settings_enabled:
+                return Collabcard.objects.filter(community=self.get_community_id(),
+                                                is_pending=False,
+                                                is_deleted=False,
+                                                is_private=False,
+                                                is_secret=False).filter(
+                    ~Q(type__in=[card_types.CARD_INTRO, card_types.CARD_MASTER_INTRO])).order_by('-id')
+
+            else:
+                return Collabcard.objects.filter(community=self.get_community_id(),
+                                                is_pending=False,
+                                                is_deleted=False,
+                                                is_private=False,
+                                                is_secret=False).filter(
+                    ~Q(~Q(user_id=self.get_member_id()) & Q(type=card_types.CARD_INTRO))).order_by('-id')
 
         else:
             return Collabcard.objects.filter(community=self.get_community_id(),
-                                             is_pending=False,
-                                             is_deleted=False,
-                                             is_private=False,
-                                             is_secret=False).filter(
-                ~Q(~Q(user_id=self.get_member_id()) & Q(type=card_types.CARD_INTRO))).order_by('-id')
+                                            is_pending=False,
+                                            is_deleted=False,
+                                            is_private=False,
+                                            is_secret=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
 
     def _compute_chatroom_creator_list(self, queryset):
 
@@ -285,7 +300,9 @@ class CommunityImpl(CommunityManager):
         if intro_room_setting_filter:
             intro_room_setting_enabled = True
 
-        community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms(intro_room_setting_enabled)
+        community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms(intro_room_setting_enabled, 
+                                                                                self.get_version_code(), 
+                                                                                self.get_request_platform())
 
         response_context = dict()
         response_context['total_chatrooms'] = community_chatroom_queryset.count()
