@@ -29,7 +29,7 @@ TITLE_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES = TITLE_ACCESS_MORE_EXPIRED_C
 
 SECOND_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'Are you a community builder and wish to build you own community?'
 
-SUB_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'If yes, click on the invitation link you have received.\n\n In case you purchased a membership plan, you would have received an invitation link via email/WhatsApp. Use this link to join your community and get started.'
+SUB_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'If yes, click on the invitation link you have received.\nOr enter the invite code here.'
 SUB_TITLE_ACCESS_ONE_PENDING_COMMUNITY = 'Your application to join this community has been submitted. You will have access to community events, chat rooms and member profiles as soon as you are approved.'
 SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY = 'Your subscription to %s community has expired. <<Buy a membership plan|route://renew_membership?community_id=%s>> of your choice to regain access to community events, chat rooms and member profiles. Want to leave? do it <<here|route://leave_community?community_id=%s>>.'
 SUB_TITLE_ACCESS_MORE_PENDING_COMMUNITIES = 'Your applications to join the following communities have been submitted. You will have access to community events, chat rooms and member profiles as soon as you are approved.'
