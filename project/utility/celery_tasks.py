@@ -1126,7 +1126,7 @@ def compute_event_metadata_for_analytics(card_instance, community_instance):
     cost_list = get_event_pricing(card_instance.id)
 
     if not cost_list:
-        return
+        cost_list = [0]
 
     event_metadata = {
         'event_id': card_instance.id,
@@ -1176,7 +1176,34 @@ def send_analytics_on_event_registered_to_attend(card_id, user_id, attending_sta
         return
 
     event_metadata['attending'] = "true" if attending_status else "false"
-    SegmentImpl.track_event(user_id, "Event registered(Core Service)", event_metadata)
+    del event_metadata['registered']
+    SegmentImpl.track_event(user_id, "Event registered (Subscription Service + Core Service)", event_metadata)
+
+
+@shared_task
+def send_event_analytics_on_event_creation(card_id, user_id):
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+    if not card_instance:
+        return
+
+    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+    if not user_instance:
+        return
+
+    event_name = "Event added (Core Service)"
+    community_instance = card_instance.community
+
+    event_metadata = compute_event_metadata_for_analytics(card_instance, community_instance)
+
+    if not event_metadata:
+        return
+
+    del event_metadata['registered']
+
+    SegmentImpl.track_event(user_instance.id, event_name, event_metadata)
 
 
 @shared_task
@@ -1207,6 +1234,10 @@ def schedule_event_analytics_on_event_start(card_instance):
 
     task_begin_epoch_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.date_time)
     task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
+    current_time = TimeUtilities.current_time_in_sec()
+
+    if task_expiry_epoch_time <= current_time:
+        return
 
     task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
     task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
@@ -1222,6 +1253,10 @@ def schedule_event_analytics_daily_7AM(card_instance, n_hour, n_minute):
     task_begin_epoch_time = TimeUtilities.get_epoch_from_datetime(card_instance.date_time,
                                                                            n_hour, n_minute)
     task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
+    current_time = TimeUtilities.current_time_in_sec()
+
+    if task_expiry_epoch_time <= current_time:
+        return
 
     task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
     task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
@@ -1236,6 +1271,10 @@ def schedule_event_analytics_on_event_before_n_hour(card_instance, n):
 
     task_begin_epoch_time = TimeUtilities.subtract_hours_from_epoch_time(card_instance.date_time, n)
     task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
+    current_time = TimeUtilities.current_time_in_sec()
+
+    if task_expiry_epoch_time <= current_time:
+        return
 
     task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
     task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
