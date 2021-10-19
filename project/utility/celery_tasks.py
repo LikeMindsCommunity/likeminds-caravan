@@ -2066,18 +2066,18 @@ def fetch_conversations_unread(chatroom_id, user_id):
 
     if not chatroom_id or not user_id:
         info_logger.info("Chatroom ID: {} - User ID: {}", chatroom_id, user_id)
-        return
+        return 0
 
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
     user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
     if not card_instance:
         info_logger.info("Chatroom ID: {} - Card does not exist", chatroom_id)
-        return
+        return 0
 
     if not user_instance:
         info_logger.info("User ID: {} - User does not exist", user_id)
-        return
+        return 0
 
     key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
     previous_count = CacheImpl.get_cache(key)

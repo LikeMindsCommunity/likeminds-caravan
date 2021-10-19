@@ -2485,10 +2485,6 @@ def get_chatroom_preview(card_instance, member_id, active=None):
                                                                Q(attachments_uploaded=True))
     chatroom_instance['total_response_count'] = conversation_filter.count()
 
-    from utility.celery_tasks import fetch_conversations_unread
-
-    chatroom_instance['conversations_unread'] = fetch_conversations_unread(card_instance.id, member_id)
-
     last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
     chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 

@@ -135,6 +135,9 @@ def generate_internal_link_preview_for_conversation(conversation, current_user_i
                                                                    'preview_object': preview_dict,
                                                                    'conversation_id': conversation.id})
 
+                preview_dict['chatroom']['conversations_unread'] = fetch_conversations_unread(
+                    conversation.preview_chatroom.id, current_user_id)
+
             elif conversation.preview_community and \
                     (conversation.preview_type == "community" or conversation.preview_type == "directory"):
 
