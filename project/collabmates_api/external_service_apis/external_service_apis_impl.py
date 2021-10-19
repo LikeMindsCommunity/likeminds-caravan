@@ -2,6 +2,8 @@ from ..external_service_apis.external_service_apis_manager import ExternalServic
 from external_services.email.email_wrapper import MailWrapper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
+from ..notification import notification_meta, get_token_for_fcm
+
 
 class ExternalServiceApisImpl(ExternalServiceApisManager):
 
@@ -61,6 +63,19 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
         return req_body
 
+    def _validate_notifications_body_params(self, req_body):
+
+        if not req_body.get('member_ids'):
+            return {'error_message': 'send member_ids'}
+
+        if not isinstance(req_body.get('member_ids'), list):
+            return {'error_message': 'send member_ids in list'}
+
+        if not req_body.get('message_payload'):
+            return {'error_message': 'send payload'}
+
+        return req_body
+
     def send_email(self, req_body) -> dict:
 
         validated_mail_req = self._validate_email_body_params(req_body)
@@ -89,5 +104,30 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         NotificationImpl.send_bulk_wa_notification.delay(receivers_list=req_body.get('receivers_list'),
                                                          template_name=req_body.get('template_name'),
                                                          broadcast_name=req_body.get('broadcast_name'))
+
+        return {'success': True}
+
+    def send_notifications(self, req_body) -> dict:
+
+        validated_notifcation_req_body = self._validate_notifications_body_params(req_body)
+
+        if validated_notifcation_req_body.get('error_message'):
+            return {'success': False, 'error_message': validated_notifcation_req_body.get('error_message')}
+
+        member_ids_list = req_body.get('member_ids')
+        message_payload = req_body.get('message_payload')
+
+        notification_details_list = []
+
+        for member_id in member_ids_list:
+            notification_details = get_token_for_fcm(member_id, True)
+
+            notification_details_list.append({
+                'id': member_id,
+                'fcm_token': notification_details[0],
+                'mobile_os': notification_details[1]
+            })
+
+        notification_meta(notification_details_list, {"payload": message_payload})
 
         return {'success': True}
