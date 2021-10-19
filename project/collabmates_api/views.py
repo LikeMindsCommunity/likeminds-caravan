@@ -45,6 +45,7 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     )
+from .static_text import ALL_MEMBER_COHORT_TEXT
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
@@ -2452,6 +2453,22 @@ def create_community_version_1(request):
         post_purpose_collabcard_for_community(request, community_instance, member_id)
         post_master_introductions_for_community(community_id, member_id)
         post_member_directory_link(user_instance, community_instance)
+
+        cohort_body = {
+            'name': ALL_MEMBER_COHORT_TEXT,
+            'member_ids': [member_id],
+            'community_id': community_instance.id,
+            'type': cohort_types.ALL_MEMBER,
+        }
+
+        from collabmates_api.cohort.cohort_impl import CohortImpl
+
+        cohort_manager = CohortImpl(member_id)
+
+        cohort_response = cohort_manager.create_cohort(cohort_body)
+
+        if cohort_response.get('error_message'):
+            error_logger.error(cohort_response)
 
         # send mails to ask cm to upgrade level
         send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=1, day=0, counter=0)

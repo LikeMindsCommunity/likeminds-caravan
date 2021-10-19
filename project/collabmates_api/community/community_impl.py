@@ -31,6 +31,7 @@ from external_services.mixpanel.events import MixpanelEvents
 
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.cohort.cohort_impl import CohortHelper
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types
@@ -523,6 +524,8 @@ class CommunityImpl(CommunityManager):
         # Add DM Chatrooms
         create_member_dm_chatroom.delay(user_instance.id, community_instance.id, is_joining=True)
 
+        CohortHelper.add_all_member_to_cohort(community_instance.id, [user_instance.id])
+
     def make_requesting_user_as_member_of_community_automatically(self, user_instance, community_instance,
                                                                   auto_join_code, shared_by_user, req_body):
 
@@ -576,6 +579,8 @@ class CommunityImpl(CommunityManager):
         create_member_dm_chatroom.delay(self.get_member_id(), self.get_community_id(), device_id=device_id,
                                         request_platform=platform, req_body=req_body, is_joining=True)
 
+        CohortHelper.add_all_member_to_cohort(self.get_community_id(), [self.get_member_id()])
+
         self._send_join_email_to_member(user_instance.id, community_instance.id)
 
     def approve_or_decline_community(self, req_body) -> {}:
@@ -620,7 +625,9 @@ class CommunityImpl(CommunityManager):
                                                                                    member_states.MEMBER)
 
             CommunityHelper.run_async_for_community_approve(community_instance, user_instance,
-                                                                promoter_userinfo_instance)
+                                                            promoter_userinfo_instance)
+
+            CohortHelper.add_all_member_to_cohort(community_instance.id, [user_instance.id])
 
             self._send_join_email_to_member(user_instance.id, community_instance.id)
 
@@ -1256,14 +1263,14 @@ class CommunityHelper:
     @staticmethod
     def run_async_for_community_approve(community_instance, user_instance, promoter_userinfo_instance):
         CommunityHelper.set_moderation_rights_and_delete_user_previous_metadata.delay(user_instance.id,
-                                                                                          community_instance.id,
-                                                                                          promoter_userinfo_instance.user_id_id)
+                                                                                      community_instance.id,
+                                                                                      promoter_userinfo_instance.user_id_id)
         CommunityHelper.send_sms_to_the_approved_member_of_community.delay(user_instance.id, community_instance.id)
         send_notification_for_join_requests.delay(community_instance.id, True, user_instance.id,
                                                   promoter_userinfo_instance.name)
         send_community_confirmation_email.delay(user_instance.id, community_instance.id)
-        MixpanelEvents.member_approved_by_cm.delay(user_instance.id, promoter_userinfo_instance.user_id_id
-                                                   , community_instance.id)
+        MixpanelEvents.member_approved_by_cm.delay(user_instance.id, promoter_userinfo_instance.user_id_id,
+                                                   community_instance.id)
 
         ElasticSearchSync.update_member.delay(user_instance.id, community_instance.id)
 

@@ -2515,6 +2515,8 @@ class Cohort(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
+    type = models.IntegerField(default=0)
+    type_id = models.CharField(max_length=64, null=True)
 
     def save(self, *args, **kwargs):
 
@@ -2533,6 +2535,8 @@ class Cohort(models.Model):
         instance = Cohort()
         instance.name = cohort_info.get('name')
         instance.community = cohort_info.get('community_instance')
+        instance.type = cohort_info.get('type')
+        instance.type_id = cohort_info.get('type_id')
         instance.save()
         return instance
 
