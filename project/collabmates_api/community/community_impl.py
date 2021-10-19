@@ -1636,12 +1636,7 @@ class CommunityHelper:
             'success': False
         }
 
-        is_aj_present = ModelUtilities.get_model_filter(
-            communityExpiryCodes,
-            {
-                'unique_code': aj
-            }
-        )
+        is_aj_present = ModelUtilities.get_model_filter(communityExpiryCodes, {'unique_code': aj})
 
         if is_aj_present:
             aj_instance = is_aj_present[0]
@@ -1650,6 +1645,7 @@ class CommunityHelper:
             if is_aj_valid:
                 res['success'] = True
                 res['community_id'] = aj_instance.community.id
+                res['shared_by'] = aj_instance.promoter.id
                 return res
 
         res['error_message'] = 'Invalid aj'
