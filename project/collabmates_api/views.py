@@ -3754,7 +3754,7 @@ def fill_share_context_for_paid_community(community_instance, share_context, com
 
     else:
         community_share['public_link'] = branch_links[0]['url']
-        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
+        community_share['public_link_text'] = SHARE_TEXT_MEMBER_PUBLIC % (
             community_name, community_share['public_link'])
 
 

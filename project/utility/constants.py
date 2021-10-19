@@ -19,7 +19,9 @@ MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER = 'Here’s the link to the Directory o
 SHARE_TEXT_ADMIN = 'I am building %s community on LikeMinds.\nApply to join our community using this link: %s or this invite code: %s'
 SHARE_TEXT_ADMIN_PUBLIC_PAID_COMMUNITY = "I am building %s community on LikeMinds.\n Know more about the community and apply to join using this link: %s"
 SHARE_TEXT_ADMIN_PRIVATE_PAID_COMMUNITY = "I am building %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link: %s or this invite code: %s.\nAuto-verification is enabled for 24 hours"
-SHARE_TEXT_MEMBER = 'I am part of %s community on LikeMinds and I think you will find it interesting too.\n Know more about the community and apply to join using this link %s'
+SHARE_TEXT_MEMBER = 'I am part of %s community on LikeMinds and I think you will find it interesting too.\n Know more about the community and apply to join using this link %s or the invite code: %s'
+SHARE_TEXT_MEMBER_PUBLIC = 'I am part of %s community on LikeMinds and I think you will find it interesting too.\n ' \
+                           'Know more about the community and apply to join using this link %s'
 SHARE_TEXT_ANONYMOUS = 'I recently discovered %s community on LikeMinds. You can join this community using this link.'
 CUSTOM_CLICK_TEXT = '%s joined this community via a private community link on %s and hasn’t created their profile for this community yet'
 INSTAGRAM_LINK = "https://www.instagram.com/"
