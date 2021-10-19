@@ -58,7 +58,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     update_preview_of_chatroom_in_cache, update_event_instructors_in_cache, update_event_highlights_in_cache, \
     update_event_member_testimonials_in_cache, update_event_faq_in_cache, update_event_attendees, \
     send_analytics_on_event_attend_link_click, schedule_event_analytics_on_event_start, \
-    schedule_event_analytics_daily_7AM, \
+    schedule_event_analytics_daily_7AM, send_event_analytics_on_event_creation, \
     schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend, \
     create_event_in_webflow_service, update_event_in_webflow_service, reset_unread_message_count_in_cache, \
     fetch_conversations_unread, create_chatroom_cohort_instances
@@ -1392,6 +1392,7 @@ class ChatroomImpl(ChatroomManager):
             schedule_chatroom_unpinning_after_event_completion(card_instance)
             # ChatroomHelper.send_event_creation_mail.delay(card_instance.id)
             send_chatroom_creation_notification(card_instance, user_instance)
+            send_event_analytics_on_event_creation.delay(card_instance.id, user_instance.id)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
 
             chatroom_context = {
