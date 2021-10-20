@@ -12,7 +12,7 @@ import time
 
 from utility.celery_tasks import get_conversation_poll, update_event_instructors_in_cache, \
     update_event_highlights_in_cache, update_event_member_testimonials_in_cache, update_event_faq_in_cache, \
-    update_event_attendees, update_event_attendees_for_micro_event
+    update_event_attendees, update_event_attendees_for_micro_event, fetch_conversations_unread
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
@@ -24,7 +24,7 @@ from utility.states import (card_types, question_states, member_states, poll_typ
 from utility.utils import (get_time_text, generate_private_link, eligibility_count,
                            get_members_count_in_community)
 from django.conf import settings
-from .user_moderation_rights import check_admin_approve_right
+from .user_moderation_rights import check_admin_approve_right, get_saved_member_rights_list, check_all_member_rights
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from .static_files import *
@@ -66,13 +66,14 @@ class YourCommunitySerializer(serializers.ModelSerializer):
     pending_chatroom_count = serializers.IntegerField(write_only=True)
     pending_members_count = serializers.IntegerField(write_only=True)
     collabcard_unseen = serializers.IntegerField(write_only=True)
+    community_setting_rights = serializers.ListField(write_only=True)
 
     class Meta:
         model = Member_Engage
         fields = ('id', 'open_reports_count', 'member_state',
                   'click_state', 'collabcard_unseen', 'actions', 'name', 'purpose', 'about',
-                  'member_right_states', 'pending_chatroom_count', 'image_url', 'members_count',
-                  'type', 'sub_type', 'pending_members_count', 'order_time')
+                  'member_right_states', 'community_setting_rights', 'pending_chatroom_count', 'image_url',
+                  'members_count', 'type', 'sub_type', 'pending_members_count', 'order_time')
 
     def __init__(self, *args, **kwargs):
         super(YourCommunitySerializer, self).__init__(*args, **kwargs)
@@ -142,6 +143,9 @@ class YourCommunitySerializer(serializers.ModelSerializer):
 
         data['member_right_states'] = json.loads(community_engage.rights_list) if community_engage.rights_list else []
 
+        data['community_setting_rights'] = get_saved_member_rights_list(
+            check_all_member_rights(community=community_engage.community_id), show_dm_right=True, version_code=773)
+
         actions = self.get_home_screen_community_actions(community_engage.community_id)
 
         if community_engage.member_state == member_states.ADMIN:
@@ -201,6 +205,9 @@ class CommunitySerializerV1(serializers.ModelSerializer):
 
         for field in fields:
 
+            data['community_setting_rights'] = get_saved_member_rights_list(
+                check_all_member_rights(community=community.id), show_dm_right=True, version_code=773)
+
             if field.field_name == "image_url":
                 if community.image_link:
                     data['image_url'] = community.image_link
@@ -259,6 +266,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     testimonials = serializers.SerializerMethodField()
     faq = serializers.SerializerMethodField()
     cohorts = serializers.SerializerMethodField()
+    unread_messages = serializers.SerializerMethodField()
 
     class Meta:
         model = Collabcard
@@ -281,7 +289,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
                   'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohorts',
-                  'has_event_recording', 'about_recording', 'recording_url_og_tags'
+                  'has_event_recording', 'about_recording', 'recording_url_og_tags', 'unread_messages'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -366,6 +374,10 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                            .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
 
         return cohort_list
+
+    def get_unread_messages(self, card):
+
+        return fetch_conversations_unread(card.id, self.member_id)
 
     def get_images(self, card):
 
@@ -1233,3 +1245,28 @@ class EventRecordingsAttachmentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventRecordingsAttachments
         fields = '__all__'
+
+
+class CommunitySettingsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CommunitySettings
+        fields = ('setting_type', 'setting_title', 'setting_sub_title', 'enabled', 'enabled_by')
+
+    def to_representation(self, obj):
+        data = super(CommunitySettingsSerializer, self).to_representation(obj)
+
+        field_list = self._readable_fields
+
+        for field in field_list:
+            if data[field.field_name] is None:
+                del data[field.field_name]
+
+        return data
+
+
+class CommunityToastV1Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommunityToastV1
+        fields = ['id', 'text']
+

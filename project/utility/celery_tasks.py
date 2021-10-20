@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from django.conf import settings
 
+from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from external_services.webflow.webflow_impl import WebflowImpl
 from utility.string_utilities import StringUtilities
 from utility.api_client import ApiClient
@@ -26,11 +27,12 @@ from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVER
     CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY, \
-    SUBSCRIPTION_FETCH_EVENT_PLAN, COMMUNITY_PUBLIC_URL
+    SUBSCRIPTION_FETCH_EVENT_PLAN, COMMUNITY_PUBLIC_URL, CONVERSATIONS_UNREAD_USER_CHATROOM_KEY
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
-    level_click_states, event_access, event_webflow_update_types, deleted_members, collabcard_states
+    level_click_states, event_access, event_webflow_update_types, deleted_members, collabcard_states, SyncTypes, \
+    community_setting_types
 from utility.utils import decode_meta_from_url
 
 from collabmates_api.search.sync import ElasticSearchSync
@@ -1288,7 +1290,7 @@ def create_event_request_meta_for_webflow_create(card_instance, community_instan
     event_meta = {
         'fields': {
             'name': card_instance.header,
-            'title': card_instance.title,
+            'title': card_instance.about,
             'online-link': card_instance.online_link,
             'location': card_instance.location,
             'is-paid': card_instance.is_paid,
@@ -1412,7 +1414,7 @@ def create_update_request_meta_of_webflow_for_event_meta(update_info):
     event_meta = {
         'fields': {
             'name': card_instance.header,
-            'title': card_instance.title,
+            'title': card_instance.about,
             'online-link': card_instance.online_link,
             'location': card_instance.location,
             'is-paid': card_instance.is_paid,
@@ -1469,14 +1471,10 @@ def update_event_in_webflow_service(update_info):
     request_meta = create_event_request_meta_for_webflow_update(update_info)
     event_meta = WebflowImpl.update_event_in_webflow(request_meta, card_instance.webflow_item_id)
 
-    if not event_meta.get('fields'):
-        return
-
-    if update_info.get('update_type') == event_webflow_update_types.META:
-        ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, {
-            'updated_at': TimeUtilities.current_time_in_milliseconds(),
-            'event_web_page': settings.WEBFLOW_KEYS.get('web_url') + event_meta.get('slug', ""),
-        })
+    ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, {
+        'updated_at': TimeUtilities.current_time_in_milliseconds(),
+        'event_web_page': settings.WEBFLOW_KEYS.get('web_url') + event_meta.get('slug', ""),
+    })
 
     ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                 {'updated_at': TimeUtilities.current_time_in_sec()})
@@ -2036,6 +2034,111 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
 
 
 @shared_task
+def update_unread_message_count_in_cache(chatroom_id):
+    """ function to update the unread message count for chatroom """
+
+    if not chatroom_id:
+        return
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not card_instance:
+        return
+
+    followed_members = collabcardState.objects.filter(card=card_instance, follow_status=True,
+                                                      is_tagged=False,
+                                                      remove=None).values_list('user', flat=True)
+
+    for user_id in followed_members:
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            continue
+
+        key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
+        previous_count = CacheImpl.get_cache(key)
+
+        if previous_count:
+            unseen_count = previous_count.get('unseen_count', 0) + 1
+            previous_count['unseen_count'] = unseen_count
+
+        else:
+            previous_count = {}
+            engage_filter = conversationEngage.objects.filter(card=card_instance, user=user_instance)
+            unread_count_for_user = 1
+
+            if engage_filter.exists():
+                unread_count_for_user = engage_filter[0].unseen_count
+            previous_count['unseen_count'] = unread_count_for_user
+
+        CacheImpl.set_cache(key, previous_count)
+
+    update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                   {'card__id': chatroom_id,
+                                    'user_id__in': followed_members},
+                                   update_dict={})
+
+
+@shared_task
+def reset_unread_message_count_in_cache(chatroom_id, user_id):
+    """ function to update the unread message count for chatroom """
+
+    if not chatroom_id or not user_id:
+        return
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+    if not card_instance or not user_instance:
+        return
+
+    key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
+
+    reset_count = {
+        'unseen_count': 0
+    }
+
+    CacheImpl.set_cache(key, reset_count)
+
+
+def fetch_conversations_unread(chatroom_id, user_id):
+
+    if not chatroom_id or not user_id:
+        info_logger.info("Chatroom ID: {} - User ID: {}", chatroom_id, user_id)
+        return 0
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+    if not card_instance:
+        info_logger.info("Chatroom ID: {} - Card does not exist", chatroom_id)
+        return 0
+
+    if not user_instance:
+        info_logger.info("User ID: {} - User does not exist", user_id)
+        return 0
+
+    key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
+    previous_count = CacheImpl.get_cache(key)
+
+    if previous_count:
+        unseen_count = previous_count['unseen_count']
+
+    else:
+        engage_filter = conversationEngage.objects.filter(card=card_instance, user=user_instance)
+        unseen_count = 1
+
+        if engage_filter.exists():
+            unseen_count = engage_filter[0].unseen_count
+
+        unseen_count_dict = dict()
+        unseen_count_dict['unseen_count'] = unseen_count
+        CacheImpl.set_cache(key, unseen_count_dict)
+
+    return unseen_count
+
+
+@shared_task
 def create_chatroom_cohort_instances(chatroom_id, cohort_ids):
 
     chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
@@ -2076,4 +2179,59 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
         }
 
         chatroom_manager.add_secret_chatroom_participant(req_body)
+
+
+@shared_task
+def create_intro_room_disabled_text_for_community_members(disabled_community_settings_context_list):
+
+    for disabled_community_settings_context in disabled_community_settings_context_list:
+        community_id = disabled_community_settings_context.get('community_id')
+        setting_type = disabled_community_settings_context.get('setting_type')
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            continue
+
+        if setting_type != community_setting_types.INTRO_ROOM:
+            continue
+
+        member_states_list = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
+
+        filter_dict = {
+            'community_id': community_instance,
+            'state__in': member_states_list,
+        }
+
+        community_members = ModelUtilities.get_model_filter(Members, filter_dict)
+
+        bulk_create_list = []
+        bulk_update_list = []
+
+        # Creating intro room settings text.
+        for member in community_members:
+            toast_filter = ModelUtilities.get_model_filter(CommunityToastV1, {'community': community_instance,
+                                                                              'user': member.member_id,
+                                                                              'text': INTRO_ROOM_SETTING_DISABLED_TOAST})
+            if toast_filter:
+                toast_instance = toast_filter[0]
+
+                if toast_instance.is_shown:
+                    toast_instance.is_shown = False
+                    toast_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+                    bulk_update_list.append(toast_instance)
+
+                continue
+
+            community_toast_v1_dict = {
+                'community_instance': community_instance,
+                'user_instance': member.member_id,
+                'text': INTRO_ROOM_SETTING_DISABLED_TOAST,
+                'is_shown': False
+            }
+
+            bulk_create_list.append(CommunityToastV1.create_instance(community_toast_v1_dict))
+
+        ModelUtilities.bulk_create_instances(CommunityToastV1, bulk_create_list)
+        ModelUtilities.bulk_update_instances(CommunityToastV1, bulk_update_list, ['is_shown', 'updated_at'])
 

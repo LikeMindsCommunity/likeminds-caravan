@@ -495,8 +495,15 @@ SECRET_CHATROOM_VERSION_CODE_IOS = 157
 PAID_COMMUNITY_LEVEL_4_TITLE = "Monetization"
 PAID_COMMUNITY_LEVEL_4_SUB_TITLE = "Invite members with payment link"
 
+# These are only for beta, don't send them in upcoming release.
 CHATROOM_SETTINGS_VERSION_CODE_AN = 155
-CHATROOM_SETTINGS_VERSION_CODE_IOS = 1000
+CHATROOM_SETTINGS_VERSION_CODE_IOS = 232
+
+INTRO_ROOM_V2_VERSION_CODE_DICT = {
+    "an": 1001,
+    "ios": 235,
+    "web": 1001
+}
 
 MEMBER_LEFT_DM_CHATROOM_MESSAGE = "{} left {}"
 MEMBER_REMOVED_DM_CHATROOM_MESSAGE = "{} was removed from {}"
@@ -508,3 +515,5 @@ MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE = "{} is a community manager now"
 
 ATTENDEES_FILTER_NAME = "attendees"
 CO_HOSTS_FILTER_NAME = "co_hosts"
+
+ALL_MEMBER_COHORT_TEXT = "All member group"

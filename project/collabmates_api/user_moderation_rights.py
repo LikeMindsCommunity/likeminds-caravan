@@ -1006,3 +1006,6 @@ def update_member_rights_list_for_community_members(community_id):
 
         update_member_rights_in_member_engage(community, user)
         update_member_rights_in_conversation_engage(community, user)
+
+    # Updating updated_at timestamp for all users in community
+    Member_Engage.objects.filter(community_id=community).update(updated_at=TimeUtilities.current_time_in_sec())

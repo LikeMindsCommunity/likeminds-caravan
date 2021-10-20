@@ -60,7 +60,8 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     send_analytics_on_event_attend_link_click, schedule_event_analytics_on_event_start, \
     schedule_event_analytics_daily_7AM, send_event_analytics_on_event_creation, \
     schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend, \
-    create_event_in_webflow_service, update_event_in_webflow_service, create_chatroom_cohort_instances
+    create_event_in_webflow_service, update_event_in_webflow_service, reset_unread_message_count_in_cache, \
+    fetch_conversations_unread, create_chatroom_cohort_instances
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
@@ -623,6 +624,7 @@ class ChatroomImpl(ChatroomManager):
         update_context['community'] = community_instance
         update_context['user'] = user_instance
         update_context['online_link'] = req_body.get('online_link', card_instance.online_link)
+        update_context['about'] = req_body.get('about', card_instance.about)
         update_context['online_link_id'] = req_body.get('online_link_id', card_instance.online_link_id)
         update_context['online_link_password'] = req_body.get('online_link_password',
                                                               card_instance.online_link_password)
@@ -750,6 +752,8 @@ class ChatroomImpl(ChatroomManager):
         if not chatroom_data:
             return {'error_message': "user is not associated with chatroom"}
 
+        reset_unread_message_count_in_cache.delay(self.get_chatroom_id(), self.get_member_id())
+
         if self._is_user_guest(card_instance):
             guest_context = self._make_user_chatroom_guest(card_instance)
             chatroom_data.update(guest_context)
@@ -763,7 +767,7 @@ class ChatroomImpl(ChatroomManager):
         chatroom_obj['community'] = CommunitySerializerV1(community_instance,
                                                           context={"current_user_id": user_instance.id},
                                                           many=False).data
-        chatroom_obj['unread_messages'] = self._fetch_number_of_unread_messages(card_instance, user_instance)
+        chatroom_obj['unread_messages'] = fetch_conversations_unread(self.get_chatroom_id(), self.get_member_id())
         chatroom_obj['participant_count'] = self._chatroom_participants_count(card_instance)
         chatroom_obj['conversation_users'] = self._latest_conversations_user_data()
         self._save_external_seen_in_chatroom_state(card_instance, user_instance)

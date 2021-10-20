@@ -1,3 +1,4 @@
+from sys import platform
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -24,6 +25,8 @@ class FetchConversation(APIView):
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code(request)
 
         query_params = request.query_params
 
@@ -38,7 +41,8 @@ class FetchConversation(APIView):
 
         conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page,
                                                 paginate_by, device_id=device_id,
-                                                include_conversation_id=include_conversation_id)
+                                                include_conversation_id=include_conversation_id,
+                                                version_code=version_code, platform_code=platform_code)
 
         conversations = conversation_manager.fetch_conversation(top_navigate)
 
@@ -338,6 +342,37 @@ class FetchUserAllEvents(APIView):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(response_context)
+
+
+class FetchUnreadPreview(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        page = RequestUtilities.get_page_number(request)
+        chatroom_id = request.GET.get('chatroom_id', None)
+        paginate_by = request.GET.get('paginate_by', 20)
+        conversation_manager = ConversationImpl(member_id=member_id, chatroom_id=chatroom_id, page=page,
+                                                paginate_by=paginate_by)
+        response = conversation_manager.fetch_unread_previews()
+
+        if isinstance(response, dict) and response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse({'success': True, 'conversations': response})
+
+
+class FetchPreviewUnreadMessageCount(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        chatroom_id = request.GET.get('chatroom_id', None)
+        conversation_manager = ConversationImpl(member_id=member_id, chatroom_id=chatroom_id)
+        response = conversation_manager.fetch_preview_unread_message_count()
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
 
 
 class ConversationViewsHelper:

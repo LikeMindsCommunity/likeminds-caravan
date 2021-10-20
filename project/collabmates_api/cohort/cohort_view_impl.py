@@ -23,7 +23,7 @@ class CreateCohortView(APIView):
         if response.get('error_message'):
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(response, status=status_codes.HTTP_201_CREATED)
+        return JsonResponse(response, status=status_codes.HTTP_200_OK)
 
 
 class DeleteCohortView(APIView):

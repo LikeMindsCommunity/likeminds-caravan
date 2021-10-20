@@ -3,7 +3,8 @@ from .view_conversation_impl import (FetchConversation, CreateConversation, AddC
                                      SubmitConversationPoll, FetchConversationPollUsers, AddReaction,
                                      RemoveReaction, SetChatroomTopic, ConversationEventAttendView,
                                      SetConversationEventAttendedView, FetchUnseenCountInEvent,
-                                     UpdateLastSeenEventChatroom, FetchLinkForEvent, FetchUserAllEvents)
+                                     UpdateLastSeenEventChatroom, FetchLinkForEvent, FetchUserAllEvents,
+                                     FetchUnreadPreview, FetchPreviewUnreadMessageCount)
 
 urlpatterns = [
     path('fetch', FetchConversation.as_view(), name="fetch_conversation"),
@@ -20,4 +21,7 @@ urlpatterns = [
     path('event/update_last_seen_event', UpdateLastSeenEventChatroom.as_view(), name="update_last_seen_event"),
     path('event/fetch_link', FetchLinkForEvent.as_view(), name="fetch_link_for_event"),
     path('event/fetch_all', FetchUserAllEvents.as_view(), name="fetch_all_events"),
+    path('fetch_unread_previews', FetchUnreadPreview.as_view(), name="fetch_unread_previews"),
+    path('fetch_preview_unread_messages_count', FetchPreviewUnreadMessageCount.as_view(),
+         name="fetch_preview_unread_messages_count")
 ]

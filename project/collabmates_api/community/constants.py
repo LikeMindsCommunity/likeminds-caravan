@@ -36,7 +36,6 @@ LEVEL_3_SUB_TITLE = "Help members know each other. Give 10 members a community-s
 LEVEL_4_TITLE = "Invite members with payment link"
 LEVEL_4_SUB_TITLE = "Monetize your community. Start social sharing and onboard 10 new members."
 
-
 COMMUNITY_PENDING_MEMBER_TOAST = "Your request for joining this community is pending"
 PAID_COMMUNITY_PENDING_MEMBER_TOAST = "Your request for joining this community is pending. Usually it takes upto 48 hours to get approved. In case you are not approved, your payment would be refunded."
 
@@ -54,3 +53,14 @@ DOWNLOAD_SETTING_TYPE_TITLE_MAPPING = {
     "pdf": "Documents",
     "screen_record": "Allow screenshots & screen recording"
 }
+
+COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
+    "intro_room": "Introductions Room"
+}
+
+COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
+    "intro_room": "Introduction rooms are used to welcome new members in your communities. If the feature is turned off, Introduction rooms and intro rooms would be hidden."
+}
+
+INTRO_ROOM_SETTING_DISABLED_TOAST = "Introduction Room has been turned off by the community manager."
+

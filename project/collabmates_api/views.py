@@ -30,7 +30,8 @@ from utility.celery_tasks import (
     update_event_attendees, set_levels_on_ctc_celery, set_level_click_state, update_event_instructors_in_cache,
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
-    cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom)
+    cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom, reset_unread_message_count_in_cache,
+    fetch_conversations_unread)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -44,6 +45,7 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     )
+from .static_text import ALL_MEMBER_COHORT_TEXT
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
@@ -133,6 +135,9 @@ def generate_internal_link_preview_for_conversation(conversation, current_user_i
                         update_preview_of_chatroom_in_cache.delay({'chatroom_id': conversation.preview_chatroom.id,
                                                                    'preview_object': preview_dict,
                                                                    'conversation_id': conversation.id})
+
+                preview_dict['chatroom']['conversations_unread'] = fetch_conversations_unread(
+                    conversation.preview_chatroom.id, current_user_id)
 
             elif conversation.preview_community and \
                     (conversation.preview_type == "community" or conversation.preview_type == "directory"):
@@ -267,6 +272,7 @@ def my_chatrooms_version_1(request):
 
     is_ios = RequestUtilities.is_request_ios(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
 
     show_dm = request.GET.get('show_dm', False)
 
@@ -276,6 +282,21 @@ def my_chatrooms_version_1(request):
         show_dm = True
     else:
         show_dm = False
+
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+    if not user_instance:
+        context = get_error_context(False, "Invalid user ID")
+        return JsonResponse(context)
+
+    member_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance})
+
+    user_community_ids = list(member_filter.values_list("community_id_id", flat=True))
+
+    intro_room_community_list = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                {'community_id__in': user_community_ids,
+                                                                 'enabled': True,
+                                                                 'setting_type': "intro_room"}).values_list("community_id", flat=True)
 
     community_instance = None
 
@@ -338,12 +359,15 @@ def my_chatrooms_version_1(request):
             context = get_error_context(False, "User does not exist")
             return JsonResponse(context)
 
-    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time,
+    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id, current_time, version_code, platform_code,
                                                                      consider_dm_chatrooms=consider_dm_chatrooms,
-                                                                     dm_instance_community_ids_list=dm_instance_community_ids_list)
-    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time,
+                                                                     dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                                                     intro_room_community_list=intro_room_community_list)
+
+    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time, version_code, platform_code, 
                                                           consider_dm_chatrooms=consider_dm_chatrooms,
-                                                          dm_instance_community_ids_list=dm_instance_community_ids_list)
+                                                          dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                                          intro_room_community_list=intro_room_community_list)
 
     page_count = get_total_pages(active_chatroom_count, limit=10)
     page_count_inactive = get_total_pages(in_active_chatroom_count, limit=10)
@@ -355,9 +379,10 @@ def my_chatrooms_version_1(request):
         send_active = False
 
     if send_active:
-        engage_list = get_active_followed_chatrooms(member_id, current_time, page, limit=10,
+        engage_list = get_active_followed_chatrooms(member_id, current_time, page, version_code, platform_code, limit=10,
                                                     consider_dm_chatrooms=consider_dm_chatrooms,
-                                                    dm_instance_community_ids_list=dm_instance_community_ids_list)
+                                                    dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                                    intro_room_community_list=intro_room_community_list)
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
@@ -370,9 +395,10 @@ def my_chatrooms_version_1(request):
 
     else:
         page = page - page_count
-        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, limit=10,
+        engage_list = get_inactive_followed_chatrooms(member_id, current_time, page, version_code, platform_code, limit=10,
                                                       consider_dm_chatrooms=consider_dm_chatrooms,
-                                                      dm_instance_community_ids_list=dm_instance_community_ids_list)
+                                                      dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                                      intro_room_community_list=intro_room_community_list)
 
         for id in engage_list:
             instance = conversationEngage.objects.get(pk=id)
@@ -2409,6 +2435,8 @@ def create_community_version_1(request):
 
         ModelUtilities.bulk_create_instances(ContentDownloadSettings, content_download_settings_list)
 
+        add_community_settings_for_community(community_instance, user_instance)
+
         return JsonResponse({'success': True, 'community': community_serializer})
 
     elif page == 2:
@@ -2425,6 +2453,22 @@ def create_community_version_1(request):
         post_purpose_collabcard_for_community(request, community_instance, member_id)
         post_master_introductions_for_community(community_id, member_id)
         post_member_directory_link(user_instance, community_instance)
+
+        cohort_body = {
+            'name': ALL_MEMBER_COHORT_TEXT,
+            'member_ids': [member_id],
+            'community_id': community_instance.id,
+            'type': cohort_types.ALL_MEMBER,
+        }
+
+        from collabmates_api.cohort.cohort_impl import CohortImpl
+
+        cohort_manager = CohortImpl(member_id)
+
+        cohort_response = cohort_manager.create_cohort(cohort_body)
+
+        if cohort_response.get('error_message'):
+            error_logger.error(cohort_response)
 
         # send mails to ask cm to upgrade level
         send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=1, day=0, counter=0)
@@ -3695,7 +3739,7 @@ def fill_share_context_for_paid_community(community_instance, share_context, com
     community_share['public_link'] = branch_links[0]['url']
 
     community_share['public_link_text'] = SHARE_TEXT_ADMIN_PUBLIC_PAID_COMMUNITY % (
-        community_name,  community_share['public_link'], aj)
+        community_name,  community_share['public_link'])
 
     if share_context['user_has_approve_right']:
         community_share['private_link'] = branch_links[1]['url']
@@ -3710,8 +3754,8 @@ def fill_share_context_for_paid_community(community_instance, share_context, com
 
     else:
         community_share['public_link'] = branch_links[0]['url']
-        community_share['public_link_text'] = SHARE_TEXT_MEMBER % (
-            community_name, community_share['public_link'], aj)
+        community_share['public_link_text'] = SHARE_TEXT_MEMBER_PUBLIC % (
+            community_name, community_share['public_link'])
 
 
 def fill_share_context_for_unpaid_community(community_instance, share_context, community_share):
@@ -4194,6 +4238,9 @@ def fetch_chatroom_version_2(request):
 
     context = get_chatroom_internal_version_2(request, card_instance, current_user_id, page, conversation_id,
                                               scroll_direction, is_ios=is_ios)
+
+    # Reset Unseen message count cache key with 0
+    reset_unread_message_count_in_cache.delay(card_id, current_user_id)
 
     if str(current_user_id) == str(card_instance.user_id):
         notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity', card=card_instance,
@@ -11861,6 +11908,9 @@ class SyncChatrooms(APIView):
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue
 
+
+            chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
+
             filter_dict = {
                 'chatroom_id': chatroom['id']
             }
@@ -11885,6 +11935,7 @@ class SyncChatrooms(APIView):
             )
 
             chatroom.update(event_recordings_data)
+
 
             chatrooms.append(chatroom)
 
@@ -12863,7 +12914,7 @@ class SyncConversation(APIView):
                     else:
 
                         try:
-                            preview = get_preview_for_url(preview_url=conversation[13])
+                            preview = get_preview_for_url(preview_url=conversation[13], member_id=member_id)
 
                             if preview:
                                 conversation_context['preview'] = preview
@@ -14327,3 +14378,22 @@ def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatr
                                                                 type_list=type_list)
 
     return chatroom_data, chatroom_id_list
+
+
+def add_community_settings_for_community(community_instance, user_instance):
+
+    community_settings_list = []
+
+    for setting_type, setting_title in COMMUNITY_SETTING_TYPE_TITLE_MAPPING.items():
+        community_settings_data = {
+            'community_instance': community_instance,
+            'setting_type': setting_type,
+            'setting_title': setting_title,
+            'setting_sub_title': COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING.get(setting_type),
+            'enabled': True,
+            'enabled_by': user_instance,
+        }
+        community_settings_instance = CommunitySettings.create_instance(community_settings_data)
+        community_settings_list.append(community_settings_instance)
+
+    ModelUtilities.bulk_create_instances(CommunitySettings, community_settings_list)

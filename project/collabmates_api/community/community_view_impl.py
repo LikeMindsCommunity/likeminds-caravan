@@ -1,3 +1,4 @@
+from sys import platform
 from django.http import JsonResponse
 from collabmates_api.community.community_impl import CommunityImpl
 from utility.request_utilities import RequestUtilities
@@ -68,6 +69,8 @@ class FetchChatroomFeed(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code(request)
 
         if not member_id:
             raise InvalidHeaderException()
@@ -78,7 +81,8 @@ class FetchChatroomFeed(APIView):
         size = NumberUtilities.get_integer_from_string(size)
 
         try:
-            community_manager = CommunityImpl(member_id, community_id)
+            community_manager = CommunityImpl(member_id, community_id, version_code=version_code,
+                                            request_platform=platform_code)
             response_context = community_manager.fetch_chatroom_feed(size)
 
         except Exception as e:
@@ -291,6 +295,89 @@ class UpdateContentDownloadSettings(APIView):
             return JsonResponse(content_setting_status, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(content_setting_status)
+
+
+class FetchCommunitySettings(APIView):
+
+    def get(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        community_id = request.GET.get('community_id', None)
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+
+        response = community_manager.fetch_community_settings()
+
+        if 'error_message' in response:
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
+
+
+class UpdateCommunitySettings(APIView):
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        community_settings = req_body.get('community_settings', [])
+        community_id = req_body.get('community_id', None)
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+
+        response = community_manager.update_community_settings(community_settings)
+
+        if 'error_message' in response:
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
+
+
+class FetchCommunityToastsV1View(APIView):
+
+    def get(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        community_id = request.GET.get('community_id', None)
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+
+        response = community_manager.fetch_community_toasts_v1()
+
+        if 'error_message' in response:
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
+
+
+class UpdateCommunityToastV1View(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        toast_id = req_body.get('toast_id', None)
+
+        community_manager = CommunityImpl(member_id=member_id)
+
+        response = community_manager.update_community_toast_v1(toast_id)
+
+        if 'error_message' in response:
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response)
 
 
 class JoinEmailAddView(APIView):
