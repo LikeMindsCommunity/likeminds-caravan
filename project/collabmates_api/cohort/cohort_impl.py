@@ -48,7 +48,7 @@ class CohortImpl(CohortManager):
         if not name:
             return {'success': False, 'error_message': "Invalid Cohort Name"}
 
-        if not member_ids or not isinstance(member_ids, list):
+        if not isinstance(member_ids, list):
             return {'success': False, 'error_message': "Invalid Member id List"}
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
@@ -162,7 +162,9 @@ class CohortImpl(CohortManager):
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
                                                                   'member_id': user_instance})
         if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
+            CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
+            self._update_members_for_cohort(cohort_instance, member_ids)
+            return {'success': True}
 
         member_instance = member_filter[0]
         is_cm = member_instance.state == member_states.ADMIN
