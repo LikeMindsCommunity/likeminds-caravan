@@ -1647,13 +1647,11 @@ class CommunityHelper:
 
         if is_aj_present:
             aj_instance = is_aj_present[0]
-            is_aj_valid = CommunityHelper.is_aj_valid(aj_instance)
 
-            if is_aj_valid:
-                res['success'] = True
-                res['community_id'] = aj_instance.community.id
-                res['shared_by'] = aj_instance.promoter.id
-                return res
+            res['success'] = True
+            res['community_id'] = aj_instance.community.id
+            res['shared_by'] = aj_instance.promoter.id
+            return res
 
         res['error_message'] = 'Invalid aj'
         return res
