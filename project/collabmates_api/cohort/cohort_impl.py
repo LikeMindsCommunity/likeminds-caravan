@@ -234,6 +234,7 @@ class CohortImpl(CohortManager):
             cohort_context = {
                 'cohort_id': cohort.id,
                 'name': cohort.name,
+                'type': cohort.type,
                 'total_members': ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()
             }
             cohort_context_list.append(cohort_context)
