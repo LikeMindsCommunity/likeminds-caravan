@@ -698,13 +698,9 @@ class ChatroomMemberHelper:
         chatroom_user_actions['follow_status'] = state_instance.follow_status
         chatroom_user_actions['attending_status'] = state_instance.attending_status
         chatroom_user_actions['is_guest'] = state_instance.is_guest
-        chatroom_user_actions['active'] = False
         chatroom_user_actions['is_tagged'] = state_instance.is_tagged
         chatroom_user_actions['attended'] = state_instance.attended
         expiry_time = state_instance.expiry_time
-
-        if not expiry_time or expiry_time >= TimeUtilities.current_time_in_sec():
-            chatroom_user_actions['active'] = True
 
         return chatroom_user_actions
 
