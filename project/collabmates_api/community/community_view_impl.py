@@ -432,15 +432,23 @@ class CommunityViewsHelper:
             request_status['error_message'] = "invalid community_id"
             request_status['status'] = False
 
+        elif not member_id and (
+                RequestUtilities.is_request_ios(request) or RequestUtilities.is_request_android(request)):
+            request_status['error_message'] = "invalid user_id"
+            request_status['status'] = False
+
         return request_status
 
 
 class FetchCommunityMeta(APIView):
 
-    def _validate_request(self, aj):
+    def _validate_request(self, member_id, aj):
         res = {}
 
-        if not aj:
+        if not member_id:
+            res = get_error_context(False, "Invalid member_id")
+
+        elif not aj:
             res = get_error_context(False, "Invalid aj")
 
         return res
@@ -450,7 +458,7 @@ class FetchCommunityMeta(APIView):
             member_id = RequestUtilities.get_member_id_from_headers(request)
             aj = request.query_params.get('aj')
 
-            request_validation_errors = self._validate_request(aj)
+            request_validation_errors = self._validate_request(member_id, aj)
 
             if request_validation_errors:
                 return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
