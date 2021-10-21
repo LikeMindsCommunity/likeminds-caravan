@@ -328,6 +328,7 @@ class CohortImpl(CohortManager):
 
         cohorts = {'name': cohort_instance.name,
                    'type': cohort_instance.type,
+                   'type_id': cohort_instance.type_id if not cohort_instance.type_id else None,
                    'members': members,
                    'member_count': len(members),
                    'rights': rights_list}
