@@ -5294,6 +5294,11 @@ def save_the_latest_conversation(card_instance, user_id):
         if state_filter:
 
             collabcard_state_instance = state_filter[0]
+            expiry_time = get_expiry_time_of_chatroom(collabcard_state_instance)
+
+            if collabcard_state_instance.manual_set_active and \
+                    collabcard_state_instance.manual_set_active > expiry_time:
+                expiry_time = collabcard_state_instance.manual_set_active
 
             last_seen_conversation = collabcard_state_instance.last_seen_conversation
 
@@ -5302,11 +5307,13 @@ def save_the_latest_conversation(card_instance, user_id):
                 if last_seen_conversation.id != last_conversation.id:
 
                     collabcard_state_instance.last_seen_conversation = last_conversation
+                    collabcard_state_instance.expiry_time = expiry_time
                     collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
                     collabcard_state_instance.save()
 
             else:
                 collabcard_state_instance.last_seen_conversation = last_conversation
+                collabcard_state_instance.expiry_time = expiry_time
                 collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
                 collabcard_state_instance.save()
 
