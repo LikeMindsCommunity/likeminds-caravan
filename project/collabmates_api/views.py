@@ -501,7 +501,6 @@ def my_chatrooms_version_1(request):
         my_chatrooms.append(chatroom)
 
     context = {'my_chatrooms': my_chatrooms,
-               'inactive_chatroom_count': in_active_chatroom_count,
                'total_pages': total_pages
                }
 
@@ -519,7 +518,6 @@ def my_chatrooms_version_1(request):
 
         else:
             total_unseen_count = {'total': 0}
-            context['inactive_chatroom_count'] = 0
 
         if total_unseen_count['total'] is None:
             total_unseen_count['total'] = 0
@@ -577,45 +575,7 @@ def get_latest_conversation_members(last_conversation_member, second_last_conver
 def fetch_chatroom_inactive(request):
     '''api to return the in-active chatrooms snack-bar'''
 
-    member_id = get_member_id_from_headers(request)
     context = {}
-
-    if not member_id:
-        context = get_error_context(False, "send x-member-id in headers")
-        return JsonResponse(context)
-
-    user_instance = User.get_user_or_none(member_id)
-
-    if user_instance is None:
-        context = get_error_context(False, "Invalid member id")
-
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    current_time = time.time()
-
-    in_active_filter = inActiveChatroomsCount.objects.filter(user=member_id)
-
-    if in_active_filter.exists():
-        last_session = in_active_filter[0].updated_at
-
-        inactive_chatrooms = collabcardState.objects.filter(user=member_id, follow_status=True,
-                                                            remove=None).filter(~Q(expiry_time=None) & Q(
-            expiry_time__lt=current_time) & Q(expiry_time__gt=last_session)).order_by('-expiry_time')
-
-        inactive_chatroom_count = inactive_chatrooms.count()
-        if inactive_chatroom_count:
-            context['title'] = """%s chatrooms moved to inactive""" % (str(inactive_chatroom_count))
-            in_active_filter.update(updated_at=current_time)
-
-    else:
-        inactive_chatrooms = collabcardState.objects.filter(user=member_id, follow_status=True,
-                                                            remove=None).filter(
-            ~Q(expiry_time=None) & Q(expiry_time__lt=current_time)).order_by('-expiry_time')
-
-        inactive_count = inactive_chatrooms.count()
-        create_or_update_inActiveChatroomsCount_instance(user_instance, inactive_count)
-        if inactive_count:
-            context['title'] = """%s chatrooms moved to inactive""" % (str(inactive_count))
 
     return JsonResponse(context)
 
@@ -3244,7 +3204,6 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.external_seen = external_seen
-        collabcard_state_instance.expiry_time = expire_at
         collabcard_state_instance.attending_status = attending_status
         collabcard_state_instance.follow_status = follow_status
         collabcard_state_instance.mute_status = mute_status
@@ -3619,11 +3578,7 @@ def update_activity_in_chatroom(card_instance, user_instance):
 
 def get_expiry_time_of_chatroom(card_state_instance=None):
     '''function to get expiry time of chatroom'''
-    expiry_time = time.time() + HOURS_24
-
-    if card_state_instance:
-        if card_state_instance.expiry_time and card_state_instance.expiry_time > expiry_time:
-            expiry_time = card_state_instance.expiry_time
+    expiry_time = None
 
     return expiry_time
 
@@ -3631,52 +3586,6 @@ def get_expiry_time_of_chatroom(card_state_instance=None):
 @csrf_exempt
 def set_chatroom_active(request):
     '''api to make chatroom active'''
-    try:
-        res = json.loads(request.body)
-    except:
-        context = get_error_context(False, "Json decode error")
-        return JsonResponse(context)
-
-    member_id = get_member_id_from_headers(request)
-
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    chatroom_id = res['chatroom_id']
-    duration = res['duration'] if 'duration' in res else HOURS_24
-    status = res['value']
-
-    # card_instance = Collabcard.objects.get(id=chatroom_id)
-    info_logger.info(res)
-
-    current_time = time.time()
-
-    if status:
-        updated_time = current_time + int(duration)
-
-    else:
-        updated_time = current_time - HOURS_24
-
-    state_filter = collabcardState.objects.filter(card=chatroom_id, user=member_id)
-
-    if state_filter.exists():
-        info_logger.info("state of data exists")
-
-        update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                       {'card': chatroom_id, 'user': member_id},
-                                       {'expiry_time': updated_time, 'manual_set_active': updated_time})
-    else:
-        info_logger.info("data does not exists")
-        error = "Error is comming when you making it active" + str(chatroom_id) + str(member_id)
-
-        context = get_error_context(False, error)
-
-        return JsonResponse(context)
-
-    send_sync_notification.delay({'chatroom_id': chatroom_id,
-                                  'member_id': member_id,
-                                  'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
     return JsonResponse({"success": True})
 
@@ -4738,14 +4647,6 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         actions.append(action)
 
-    if card_status['follow_status']:
-
-        if card_status["active"]:
-            actions.append(mark_inactive)
-
-        else:
-            actions.append(mark_active)
-
     if promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
@@ -4921,7 +4822,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'is_guest': card['is_guest'],
         'type': card['type'],
         'is_tagged': card['is_tagged'],
-        'active': card['active']
     }
 
     is_promoter = False
@@ -4983,7 +4883,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                                conversations)
     card['show_follow_telescope'] = icon_states['show_follow_telescope']
     card['show_follow_auto_tag'] = icon_states['show_follow_auto_tag']
-    card['show_active'] = icon_states['show_active']
 
     card['total_response_count'] = total_response_count
 
@@ -5101,7 +5000,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         'is_guest': card['is_guest'],
         'type': card['type'],
         'is_tagged': card['is_tagged'],
-        'active': card['active']
     }
 
     is_promoter = False
@@ -5161,7 +5059,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
                                                          )
     card['show_follow_telescope'] = icon_states['show_follow_telescope']
     card['show_follow_auto_tag'] = icon_states['show_follow_auto_tag']
-    card['show_active'] = icon_states['show_active']
 
     card['total_response_count'] = total_response_count
 
@@ -5258,14 +5155,10 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     card_status['follow_status'] = status['follow_status']
     card_status['attending_status'] = status['attending_status']
     card_status['is_guest'] = status['is_guest']
-    card_status['active'] = False
     card_status['is_tagged'] = status['is_tagged']
     card_status['type'] = card_instance.type
 
     expiry_time = status['expiry_time']
-
-    if not expiry_time or expiry_time >= int(time.time()):
-        card_status['active'] = True
 
     is_promoter = False
     is_child = False
@@ -5401,11 +5294,6 @@ def save_the_latest_conversation(card_instance, user_id):
         if state_filter:
 
             collabcard_state_instance = state_filter[0]
-            expiry_time = get_expiry_time_of_chatroom(collabcard_state_instance)
-
-            if collabcard_state_instance.manual_set_active and \
-                    collabcard_state_instance.manual_set_active > expiry_time:
-                expiry_time = collabcard_state_instance.manual_set_active
 
             last_seen_conversation = collabcard_state_instance.last_seen_conversation
 
@@ -5414,13 +5302,11 @@ def save_the_latest_conversation(card_instance, user_id):
                 if last_seen_conversation.id != last_conversation.id:
 
                     collabcard_state_instance.last_seen_conversation = last_conversation
-                    collabcard_state_instance.expiry_time = expiry_time
                     collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
                     collabcard_state_instance.save()
 
             else:
                 collabcard_state_instance.last_seen_conversation = last_conversation
-                collabcard_state_instance.expiry_time = expiry_time
                 collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
                 collabcard_state_instance.save()
 
@@ -5561,8 +5447,7 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
 
     temp = {
         'show_follow_telescope': False,
-        'show_follow_auto_tag': False,
-        'show_active': False
+        'show_follow_auto_tag': False
     }
 
     if not card_status['follow_status']:
@@ -5573,15 +5458,13 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
         temp['show_follow_telescope'] = False
         show = True
 
-    if card_status['active'] and card_status['is_tagged']:
+    if card_status['is_tagged']:
         temp['show_follow_telescope'] = False
-        temp['show_active'] = False
         temp['show_follow_auto_tag'] = True
         show = True
 
-    if card_status['active'] == False and card_status["follow_status"] == True:
+    if card_status["follow_status"] == True:
         temp['show_follow_telescope'] = False
-        temp['show_active'] = True
         temp['show_follow_auto_tag'] = False
         show = True
 
@@ -5601,7 +5484,7 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
 
     if show:
         return temp
-    return {'show_follow_telescope': False, 'show_follow_auto_tag': False, 'show_active': False}
+    return {'show_follow_telescope': False, 'show_follow_auto_tag': False}
 
 
 def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id):
@@ -5612,7 +5495,6 @@ def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id):
     temp = {
         'show_follow_telescope': False,
         'show_follow_auto_tag': False,
-        'show_active': False
     }
 
     if not card_status['follow_status']:
@@ -5623,21 +5505,19 @@ def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id):
         temp['show_follow_telescope'] = False
         show = True
 
-    if card_status['active'] and card_status['is_tagged']:
+    if card_status['is_tagged']:
         temp['show_follow_telescope'] = False
-        temp['show_active'] = False
         temp['show_follow_auto_tag'] = True
         show = True
 
-    if card_status['active'] == False and card_status["follow_status"] == True:
+    if card_status["follow_status"] == True:
         temp['show_follow_telescope'] = False
-        temp['show_active'] = True
         temp['show_follow_auto_tag'] = False
         show = True
 
     if show:
         return temp
-    return {'show_follow_telescope': False, 'show_follow_auto_tag': False, 'show_active': False}
+    return {'show_follow_telescope': False, 'show_follow_auto_tag': False}
 
 
 def create_introduction_card_placeholder(card_instance, user_id):
@@ -6133,7 +6013,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if not is_present.exists():
-        create_chatroom_state_instance(card_instance, user_instance, expire_at=time.time(),
+        create_chatroom_state_instance(card_instance, user_instance,
                                        function_called="collabcards_seen_internal")
         update_last_unseen_in_engage(user=user_instance, community=community)
 
@@ -6323,14 +6203,7 @@ def get_chatrooms(chatroom_list, member_id, active=None, device_id=''):
         chatroom_instance['members_images'] = last_response_members['members_images']
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
-        if active is True and chatroom_instance['active']:
-            chatrooms.append(chatroom_instance)
-
-        if active is False and not chatroom_instance['active']:
-            chatrooms.append(chatroom_instance)
-
-        if active is None:
-            chatrooms.append(chatroom_instance)
+        chatrooms.append(chatroom_instance)
 
     return chatrooms
 
@@ -6380,18 +6253,6 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, device_id='')
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
         chatrooms.append(chatroom_instance)
-
-        # chatroom_instance = {
-        #     'id' : chatroom_instance['id'],
-        #     'active': chatroom_instance['active']
-        # }
-        # if active is True and chatroom_instance['active']:
-        #     chatrooms.append(chatroom_instance)
-        # if active is False and not chatroom_instance['active']:
-        #     chatrooms.append(chatroom_instance)
-        #
-        # if active == None:
-        # #chatroom_instance = {'id':card_instance.id}
 
     return chatrooms
 
@@ -6450,16 +6311,7 @@ def fetch_chatroom_feed(request):
         context = get_error_context(False, "send chatroom id with scroll direction")
         return JsonResponse(context)
 
-    active = request.GET.get('active', None)
-
-    if active == "true":
-        active = True
-
-    elif active == "false":
-        active = False
-
-    else:
-        active = None
+    active = None
 
     member_id = get_member_id_from_headers(request)
     if member_id is None:
@@ -6511,10 +6363,6 @@ def fetch_chatroom_feed(request):
 
     context['chatrooms'] = chatrooms
 
-    current_time = time.time()
-    context['active_chatroom_count'] = get_active_chatrooms_count_in_community(community_id, member_id, current_time)
-    context['inactive_chatroom_count'] = get_inactive_chatrooms_count_in_community(community_id, member_id,
-                                                                                   current_time)
     return JsonResponse(context)
 
 
@@ -6536,15 +6384,9 @@ def fetch_chatroom_feed_version_1(request):
         context = get_error_context(False, "send chatroom id with scroll direction")
         return JsonResponse(context)
 
-    active = request.GET.get('active', None)
+    active = None
 
     current_time = time.time()
-    if active == "true":
-        active = True
-    elif active == "false":
-        active = False
-    else:
-        active = None
 
     member_id = get_member_id_from_headers(request)
     if member_id is None:
@@ -6626,10 +6468,6 @@ def fetch_chatroom_feed_version_1(request):
 
     context['chatrooms'] = chatrooms
 
-    current_time = time.time()
-    context['active_chatroom_count'] = get_active_chatrooms_count_in_community(community_id, member_id, current_time)
-    context['inactive_chatroom_count'] = get_inactive_chatrooms_count_in_community(community_id, member_id,
-                                                                                   current_time)
     return JsonResponse(context)
 
 

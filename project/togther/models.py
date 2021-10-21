@@ -980,7 +980,6 @@ class collabcardState(models.Model):
             collabcard_state_instance.created_at = TimeUtilities.current_time_in_sec()
             collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             collabcard_state_instance.external_seen = external_seen
-            collabcard_state_instance.expiry_time = expire_at
             collabcard_state_instance.attending_status = attending_status
             collabcard_state_instance.follow_status = follow_status
             collabcard_state_instance.mute_status = mute_status
@@ -1020,7 +1019,6 @@ class collabcardState(models.Model):
             collabcard_state_instance.created_at = TimeUtilities.current_time_in_sec()
             collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             collabcard_state_instance.external_seen = external_seen
-            collabcard_state_instance.expiry_time = expire_at
             collabcard_state_instance.attending_status = attending_status
             collabcard_state_instance.follow_status = follow_status
             collabcard_state_instance.mute_status = mute_status

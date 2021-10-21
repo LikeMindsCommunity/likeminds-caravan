@@ -225,11 +225,21 @@ class CohortImpl(CohortManager):
         if not is_cm:
             return {'success': False, 'error_message': "User doesn’t have the ability to fetch cohort"}
 
-        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort__community_id': community_id})
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'))
-                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members'))
+        cohort_context_list = []
 
-        return {'success': True, 'cohorts': cohort_list}
+        cohort_list = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
+
+        for cohort in cohort_list:
+
+            cohort_context = {
+                'cohort_id': cohort.id,
+                'name': cohort.name,
+                'type': cohort.type,
+                'total_members': ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()
+            }
+            cohort_context_list.append(cohort_context)
+
+        return {'success': True, 'cohorts': cohort_context_list}
 
     def remove_member_from_cohort(self, request_body):
         user_id = request_body.get('user_id', "")
@@ -322,7 +332,7 @@ class CohortImpl(CohortManager):
                    'member_count': len(members),
                    'rights': rights_list}
 
-        if cohorts.get('type_id'):
+        if cohorts.get('type') in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
             cohorts['type_id'] = cohort_instance.type_id
 
         return {'success': True, 'cohorts': cohorts}

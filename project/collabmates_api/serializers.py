@@ -884,14 +884,8 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['follow_status'] = status['follow_status']
         collabcard_serializer['attending_status'] = status['attending_status']
         collabcard_serializer['is_guest'] = status['is_guest']
-        collabcard_serializer['active'] = False
         collabcard_serializer['is_tagged'] = status['is_tagged']
         collabcard_serializer['secret_chatroom_left'] = status['secret_chatroom_left']
-
-        expiry_time = status['expiry_time']
-
-        if not expiry_time or expiry_time >= TimeUtilities.current_time_in_sec():
-            collabcard_serializer['active'] = True
 
     collabcard_member = get_members_profile([card_instance.user_id], card_instance.community_id,
                                                 send_profile=send_profile)

@@ -227,15 +227,6 @@ class CommunityImpl(CommunityManager):
 
             return response_context
 
-        user_instance = CommunityHelper.fetch_user_instance(self.get_member_id())
-
-        if (client_type == "an" or client_type == "ios") and not user_instance:
-            response_context['error_message'] = "Invalid user_id"
-            response_context['response_code'] = 400
-            response_context['status'] = False
-
-            return response_context
-
         community_member = MemberCommunityImpl(self.get_member_id(), self.get_community_id())
         state = community_member.community_member_state()
         community_instance = CommunityHelper.fetch_community_instance(self.get_community_id())
@@ -1647,13 +1638,11 @@ class CommunityHelper:
 
         if is_aj_present:
             aj_instance = is_aj_present[0]
-            is_aj_valid = CommunityHelper.is_aj_valid(aj_instance)
 
-            if is_aj_valid:
-                res['success'] = True
-                res['community_id'] = aj_instance.community.id
-                res['shared_by'] = aj_instance.promoter.id
-                return res
+            res['success'] = True
+            res['community_id'] = aj_instance.community.id
+            res['shared_by'] = aj_instance.promoter.id
+            return res
 
         res['error_message'] = 'Invalid aj'
         return res
