@@ -186,6 +186,12 @@ class MemberCommunityImpl(MemberCommunityManager):
             active_chatroom = MemberCommunityHelper.get_active_chatroom_member_images(
                 community_instance=community.community_id, member_id=member_id)
 
+            active_chatroom_count = active_chatroom['count']
+            member_community['active_chatroom_count'] = active_chatroom_count
+            active_chatroom_users = active_chatroom['member_list']
+            if active_chatroom_users:
+                member_community['active_chatroom_users'] = active_chatroom_users
+
     def _add_member_rights_info(self, member_community: dict, community: {}) -> None:
 
         is_ios = self.get_platform_code() == "ios"

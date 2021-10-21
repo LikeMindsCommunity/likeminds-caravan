@@ -775,6 +775,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         if self.state_instance is not None:
             status_dict = CardStateSerializer(self.state_instance).data
+            expiry_time = status_dict['expiry_time']
+            status_dict['chatroom_expiry_time'] = expiry_time
+            status_dict['active'] = False
+            if not expiry_time or expiry_time >= int(time.time()):
+                status_dict['active'] = True
 
             data['state'] = status_dict['state']
             data['mute_status'] = status_dict['mute_status']
