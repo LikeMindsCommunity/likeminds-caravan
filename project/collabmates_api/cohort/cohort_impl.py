@@ -93,8 +93,8 @@ class CohortImpl(CohortManager):
 
         if 'rights' in cohort_instance_object:
             admin_rights = check_all_manager_rights(user_instance, community_instance)
-            cohort_rights_filter = list(ModelUtilities.get_model_filter(CohortRights, {'id__in': cohort_instance_object})
-                                        .prefetch_related('member_rights'))
+            cohort_rights_filter = list(ModelUtilities.get_model_filter(
+                CohortRights, {'id__in': cohort_instance_object['rights']}).prefetch_related('member_rights'))
             cohort_rights = CohortHelper.get_all_the_cohort_rights(cohort_rights_filter)
             rights_list = get_saved_member_rights_list(cohort_rights, admin_rights)
 
