@@ -88,7 +88,9 @@ class CohortImpl(CohortManager):
         CohortHelper.create_cohort_rights_instance(cohort_instance=cohort_instance,
                                                    community_instance=community_instance)
 
-        return {'success': True}
+        cohort_instance_object = CohortHelper.cohort_serializer(cohort_instance)
+
+        return {'success': True, 'cohort_data': cohort_instance_object}
 
     def delete_cohort(self, cohort_id):
 
@@ -529,3 +531,16 @@ class CohortHelper:
 
         members_to_add = list(set(member_ids) - existing_cohort_members)
         CohortHelper.create_cohort_member_instance(cohort_instance=cohort_instance, member_ids=members_to_add)
+
+
+    @staticmethod
+    def cohort_serializer(cohort_instance):
+
+        cohort_object = {
+            'cohort_id': cohort_instance.id,
+            'name': cohort_instance.name,
+            'community_id': cohort_instance.community_id,
+            'type': cohort_instance.type
+        }
+
+        return cohort_object
