@@ -99,6 +99,8 @@ class CohortImpl(CohortManager):
             rights_list = get_saved_member_rights_list(cohort_rights, admin_rights)
 
             cohort_instance_object['rights'] = rights_list
+            cohort_instance_object['cohort_id'] = cohort_instance_object['id']
+            del cohort_instance_object['id']
 
         return {'success': True, 'cohort_data': cohort_instance_object}
 
