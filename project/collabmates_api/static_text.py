@@ -225,10 +225,6 @@ unfollow_chatroom = {'id': 9, 'title': 'Leave chatroom'}
 
 report = {'id': 10, 'title': 'Report Spam/Abuse'}
 
-mark_active = {'id': 11, 'title': 'Mark active'}
-
-mark_inactive = {'id': 12, 'title': 'Mark inactive'}
-
 pin_chatroom = {'id': 13, 'title': "Pin chat room"}
 
 unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
