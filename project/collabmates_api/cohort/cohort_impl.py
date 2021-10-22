@@ -91,6 +91,13 @@ class CohortImpl(CohortManager):
 
         cohort_instance_object = CohortSerializer(cohort_instance, many=False).data
 
+        if 'rights' in cohort_instance_object:
+            admin_rights = check_all_manager_rights(user_instance, community_instance)
+            cohort_rights = CohortHelper.get_all_the_cohort_rights(cohort_instance_object['rights'])
+            rights_list = get_saved_member_rights_list(cohort_rights, admin_rights)
+
+            cohort_instance_object['rights'] = rights_list
+
         return {'success': True, 'cohort_data': cohort_instance_object}
 
     def delete_cohort(self, cohort_id):

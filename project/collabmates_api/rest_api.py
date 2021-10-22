@@ -1287,6 +1287,9 @@ class CohortSerializer(serializers.ModelSerializer):
         data['member_ids'] = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).values_list(
             'user_id', flat=True))
 
+        data['rights'] = list(ModelUtilities.get_model_filter(CohortRights, {'cohort_id': cohort.id}).values_list(
+            'member_rights_id', flat=True))
+
         fields = self._readable_fields
 
         for field in fields:
