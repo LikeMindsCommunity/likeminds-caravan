@@ -476,7 +476,7 @@ class CohortHelper:
                 rights['auto_approve'] = True
 
             elif right.state == create_secret_chatroom_right['state']:
-                rights['secret_chatroom'] = True
+                rights['create_secret_chatroom'] = True
 
         return rights
 
