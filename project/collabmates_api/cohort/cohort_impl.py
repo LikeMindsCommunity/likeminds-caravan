@@ -9,6 +9,7 @@ from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
+from ..rest_api import CohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
@@ -88,7 +89,7 @@ class CohortImpl(CohortManager):
         CohortHelper.create_cohort_rights_instance(cohort_instance=cohort_instance,
                                                    community_instance=community_instance)
 
-        cohort_instance_object = CohortHelper.cohort_serializer(cohort_instance)
+        cohort_instance_object = CohortSerializer(cohort_instance, many=False).data
 
         return {'success': True, 'cohort_data': cohort_instance_object}
 
@@ -531,16 +532,3 @@ class CohortHelper:
 
         members_to_add = list(set(member_ids) - existing_cohort_members)
         CohortHelper.create_cohort_member_instance(cohort_instance=cohort_instance, member_ids=members_to_add)
-
-
-    @staticmethod
-    def cohort_serializer(cohort_instance):
-
-        cohort_object = {
-            'cohort_id': cohort_instance.id,
-            'name': cohort_instance.name,
-            'community_id': cohort_instance.community_id,
-            'type': cohort_instance.type
-        }
-
-        return cohort_object
