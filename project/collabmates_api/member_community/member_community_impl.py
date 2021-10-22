@@ -944,7 +944,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         feed_context = dict()
         pinned_top_bar = self.create_pinned_chatrooms_header(community_instance, self.get_version_code(), 
-                                                            self.get_version_code())
+                                                            self.get_platform_code())
 
         if pinned_top_bar:
             feed_context['pinned_top_bar'] = pinned_top_bar

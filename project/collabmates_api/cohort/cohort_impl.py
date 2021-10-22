@@ -9,6 +9,7 @@ from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
+from ..rest_api import CohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
@@ -88,7 +89,20 @@ class CohortImpl(CohortManager):
         CohortHelper.create_cohort_rights_instance(cohort_instance=cohort_instance,
                                                    community_instance=community_instance)
 
-        return {'success': True}
+        cohort_instance_object = CohortSerializer(cohort_instance, many=False).data
+
+        if 'rights' in cohort_instance_object:
+            admin_rights = check_all_manager_rights(user_instance, community_instance)
+            cohort_rights_filter = list(ModelUtilities.get_model_filter(
+                CohortRights, {'id__in': cohort_instance_object['rights']}).prefetch_related('member_rights'))
+            cohort_rights = CohortHelper.get_all_the_cohort_rights(cohort_rights_filter)
+            rights_list = get_saved_member_rights_list(cohort_rights, admin_rights)
+
+            cohort_instance_object['rights'] = rights_list
+            cohort_instance_object['cohort_id'] = cohort_instance_object['id']
+            del cohort_instance_object['id']
+
+        return {'success': True, 'cohort_data': cohort_instance_object}
 
     def delete_cohort(self, cohort_id):
 
@@ -225,11 +239,21 @@ class CohortImpl(CohortManager):
         if not is_cm:
             return {'success': False, 'error_message': "User doesn’t have the ability to fetch cohort"}
 
-        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort__community_id': community_id})
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'))
-                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members'))
+        cohort_context_list = []
 
-        return {'success': True, 'cohorts': cohort_list}
+        cohort_list = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
+
+        for cohort in cohort_list:
+
+            cohort_context = {
+                'cohort_id': cohort.id,
+                'name': cohort.name,
+                'type': cohort.type,
+                'total_members': ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()
+            }
+            cohort_context_list.append(cohort_context)
+
+        return {'success': True, 'cohorts': cohort_context_list}
 
     def remove_member_from_cohort(self, request_body):
         user_id = request_body.get('user_id', "")
@@ -322,7 +346,7 @@ class CohortImpl(CohortManager):
                    'member_count': len(members),
                    'rights': rights_list}
 
-        if cohorts.get('type_id'):
+        if cohorts.get('type') in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
             cohorts['type_id'] = cohort_instance.type_id
 
         return {'success': True, 'cohorts': cohorts}
@@ -454,7 +478,7 @@ class CohortHelper:
                 rights['auto_approve'] = True
 
             elif right.state == create_secret_chatroom_right['state']:
-                rights['secret_chatroom'] = True
+                rights['create_secret_chatroom'] = True
 
         return rights
 

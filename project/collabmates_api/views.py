@@ -4738,14 +4738,6 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         actions.append(action)
 
-    if card_status['follow_status']:
-
-        if card_status["active"]:
-            actions.append(mark_inactive)
-
-        else:
-            actions.append(mark_active)
-
     if promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
