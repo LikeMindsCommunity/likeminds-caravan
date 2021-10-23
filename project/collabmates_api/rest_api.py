@@ -1152,8 +1152,17 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                     preview = get_preview_for_url(member_id=self.current_user_id,
                                                   preview_url=data['internal_link'],
                                                   )
+
+                    chatroom_preview = preview['chatroom']
+
+                    if chatroom_preview.get('id'):
+                        chatroom_preview['conversations_unread'] = fetch_conversations_unread(chatroom_preview['id'],
+                                                                                              self.current_user_id)
+                    preview['chatroom'] = chatroom_preview
+
                     if preview:
                         data['preview'] = preview
+
                 except:
                     data['preview'] = None
                 del data['internal_link']

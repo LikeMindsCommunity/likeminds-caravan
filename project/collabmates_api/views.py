@@ -364,7 +364,7 @@ def my_chatrooms_version_1(request):
                                                                      dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                                      intro_room_community_list=intro_room_community_list)
 
-    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time, version_code, platform_code, 
+    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time, version_code, platform_code,
                                                           consider_dm_chatrooms=consider_dm_chatrooms,
                                                           dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                           intro_room_community_list=intro_room_community_list)
@@ -2708,7 +2708,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     if card_type == card_types.CARD_PURPOSE:
         card.member_can_message = False
-    
+
     card.image_count = res.get('image_count', 0)
     card.pdf_count = res.get('pdf_count', 0)
 
@@ -9713,7 +9713,7 @@ def push_report_v1(request):
                 return JsonResponse({'success': False, "error_message": "you have no right to report chatroom"})
 
             collabcard_instance = ModelUtilities.get_model_instance_or_none(Collabcard, collabcard_id)
-            
+
             if not collabcard_instance:
                 return JsonResponse(get_error_context(False, "invalid collabcard_id"))
 
@@ -12372,7 +12372,7 @@ class SyncChatroomsDiff(APIView):
 
             if previous_app_version < EVENT_ATTACHMENT_VERSION_CODE_AN <= version_code:
                 attachment_chatroom_list = self._get_event_recordings_of_user(user_instance)
-            
+
             if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
 
@@ -12919,6 +12919,10 @@ class SyncConversation(APIView):
                                                                    'preview_url': conversation[13],
                                                                    'preview_object': conversation_context['preview'],
                                                                    'conversation_id': conversation_context['id']})
+
+                    conversation_context['preview']['chatroom']['conversations_unread'] = fetch_conversations_unread(
+                        preview_chatroom_id, member_id)
+
                 elif conversation[26] and \
                         (conversation[17] == "community" or conversation[17] == "directory"):
 
@@ -14113,9 +14117,9 @@ class SyncCommunities(APIView):
         if not member_id:
             context = get_error_context(False, "send member id in headers")
             return JsonResponse(context)
-        
+
         query_params = request.query_params
-        
+
         page = query_params.get('page', 1)
         paginate_by = query_params.get('page_size', 200)
         last_updated = query_params.get('last_updated', 0)
@@ -14130,7 +14134,7 @@ class SyncCommunities(APIView):
 
         try:
             page = int(page)
-        
+
         except:
             context = get_error_context(False, "invalid page value")
             return JsonResponse(context)
@@ -14150,7 +14154,7 @@ class SyncCommunities(APIView):
 
             if not community_obj:
                 return JsonResponse(get_error_context(False, "Invalid community_id"))
-            
+
             engage_filter = Member_Engage.objects.filter(member_id=member_id, community_id=community_id
                                                          ).select_related('community_id')
 
@@ -14162,7 +14166,7 @@ class SyncCommunities(APIView):
             if last_updated:
                 engage_filter = Member_Engage.objects.filter(member_id=member_id, updated_at__gt=last_updated
                                                              ).select_related('community_id').order_by('updated_at')
-            
+
             else:
                 engage_filter = Member_Engage.objects.filter(member_id=member_id
                                                              ).select_related('community_id').order_by('updated_at')
