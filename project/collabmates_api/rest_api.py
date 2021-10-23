@@ -145,7 +145,7 @@ class YourCommunitySerializer(serializers.ModelSerializer):
         data['member_right_states'] = json.loads(community_engage.rights_list) if community_engage.rights_list else []
 
         data['community_setting_rights'] = get_saved_member_rights_list(
-            check_all_member_rights(community=community_engage.community_id), show_dm_right=True, version_code=773)
+            check_all_member_rights(community=community_engage.community_id), show_dm_right=True)
 
         actions = self.get_home_screen_community_actions(community_engage.community_id)
 
@@ -207,7 +207,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         for field in fields:
 
             data['community_setting_rights'] = get_saved_member_rights_list(
-                check_all_member_rights(community=community.id), show_dm_right=True, version_code=773)
+                check_all_member_rights(community=community.id), show_dm_right=True)
 
             if field.field_name == "image_url":
                 if community.image_link:
