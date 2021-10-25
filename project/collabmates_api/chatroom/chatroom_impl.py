@@ -518,10 +518,7 @@ class ChatroomImpl(ChatroomManager):
 
         member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance)
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
-        community_membership_expired = MemberCommunityImpl.fetch_members_for_membership_expired(member_list,
-                                                                                                community_instance)
-        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data,
-                                                                         community_membership_expired)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
         return tagging_list
 

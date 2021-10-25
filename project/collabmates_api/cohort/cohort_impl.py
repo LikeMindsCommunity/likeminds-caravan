@@ -195,24 +195,26 @@ class CohortImpl(CohortManager):
 
         ModelUtilities.model_update(Cohort, {'id': cohort_id}, update_dict)
 
-        existing_rights = set(
-            ModelUtilities.get_model_filter(CohortRights, {'cohort': cohort_instance}).values_list(
-                "member_rights__id", flat=True))
+        if rights:
+            existing_rights = set(
+                ModelUtilities.get_model_filter(CohortRights, {'cohort': cohort_instance}).values_list(
+                    "member_rights__id", flat=True))
 
-        rights_to_add, rights_to_remove = get_added_and_removed_rights(selected_rights=rights,
-                                                                       existing_rights=existing_rights)
+            rights_to_add, rights_to_remove = get_added_and_removed_rights(selected_rights=rights,
+                                                                           existing_rights=existing_rights)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-        admin_rights = check_all_manager_rights(user_instance, cohort_instance.community)
-        can_add_rights = CohortHelper.check_addition_of_rights(rights_to_add, admin_rights)
+            user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+            admin_rights = check_all_manager_rights(user_instance, cohort_instance.community)
+            can_add_rights = CohortHelper.check_addition_of_rights(rights_to_add, admin_rights)
 
-        self._remove_rights_from_cohort(rights_to_remove, cohort_instance)
+            self._remove_rights_from_cohort(rights_to_remove, cohort_instance)
 
-        if not can_add_rights:
-            return {'success': False,
-                    'error_message': 'CM doesn’t have the ability to update the following set of rights'}
+            if not can_add_rights:
+                return {'success': False,
+                        'error_message': 'CM doesn’t have the ability to update the following set of rights'}
 
-        self._add_rights_to_cohort(rights_to_add, cohort_instance)
+            self._add_rights_to_cohort(rights_to_add, cohort_instance)
+
         self._update_members_for_cohort(cohort_instance, member_ids)
 
         return {'success': True}
