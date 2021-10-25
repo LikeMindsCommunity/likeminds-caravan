@@ -11548,8 +11548,6 @@ def fetch_community_setting_rights(request):
     if RequestUtilities.is_request_ios(request) and version_code >= DM_CHATROOMS_VERSION_CODE_IOS:
         can_show = True
 
-    show_dm_right = True & can_show
-
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context)
@@ -11573,7 +11571,7 @@ def fetch_community_setting_rights(request):
     if admin.exists():
         user_rights = check_all_member_rights(community=community_instance)
         # fetching all the rights of the community
-        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=show_dm_right)
+        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=can_show)
         return JsonResponse({"rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")
