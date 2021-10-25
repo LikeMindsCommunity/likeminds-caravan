@@ -1332,17 +1332,11 @@ class MemberCommunityHelper:
         return header
 
     @staticmethod
-    def extract_member_tagging_data(member_data, community_expired_dict=None) -> []:
-
-        if community_expired_dict is None:
-            community_expired_dict = {}
+    def extract_member_tagging_data(member_data) -> []:
 
         member_list = []
 
         for key, value in member_data.items():
-
-            if community_expired_dict.get(value['id']):
-                continue
 
             temp = dict()
             temp['id'] = value['id']
