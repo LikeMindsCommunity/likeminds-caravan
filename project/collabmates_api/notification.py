@@ -3168,6 +3168,15 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
     member_filter = Members.objects.filter(community_id=community_instance).filter(
         Q(state=member_states.MEMBER) | Q(state=member_states.ADMIN) | Q(state=member_states.PROFILE_UNAVAILABLE))
 
+    if card_instance.is_secret:
+        collabcardstate_user_ids = list(ModelUtilities.get_model_filter(collabcardState,
+                                                                        {"card": card_instance,
+                                                                         "remove": None,
+                                                                         "follow_status": True,
+                                                                         "mute_status": False}).values_list("user_id", flat=True))
+
+        member_filter = member_filter.filter(member_id_id__in=collabcardstate_user_ids)
+
     notification_list = []
 
     message = {'payload': {
