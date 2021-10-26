@@ -14205,16 +14205,18 @@ def fetch_community_of_chatroom(chatroom_id, member_id, last_updated=0):
     if not community_instance:
         return {'communities': []}
 
+    context = {"current_user_id": member_id}
+
     engage_filter = ModelUtilities.get_model_filter(Member_Engage, {'community_id': community_instance,
                                                                     'member_id': member_id})
     if engage_filter.exists():
         last_updated_filter = engage_filter.filter(updated_at__gt=last_updated)
 
+        temp = YourCommunitySerializer(engage_filter, context=context, many=True)
+
         if last_updated_filter:
-            temp = CommunitySerializerV1([last_updated_filter[0].community_id], context={"current_user_id": member_id},
-                                         many=True)
             community_context = temp.data
-            chatroom_context = {'communities': community_context, 'last_updated':last_updated_filter[0].updated_at}
+            chatroom_context = {'communities': community_context, 'last_updated': last_updated_filter[0].updated_at}
 
             return chatroom_context
 
@@ -14224,10 +14226,20 @@ def fetch_community_of_chatroom(chatroom_id, member_id, last_updated=0):
         state_filter = Collabcard.objects.filter(id=chatroom_id).select_related('community')
 
         if state_filter.exists():
-            temp = CommunitySerializerV1([state_filter[0].community], context={"current_user_id": member_id},
-                                         many=True)
+            temp = CommunitySerializerV1([state_filter[0].community], context=context, many=True)
+            community_context = []
 
-            chatroom_context = {'communities': temp.data}
+            member_state_filter = ModelUtilities.get_model_filter(Members,
+                                                                  {"community_id": state_filter[0].community,
+                                                                   "member_id": member_id})
+
+            if member_state_filter:
+
+                for community_ctx in temp.data:
+                    community_ctx['member_state'] = member_state_filter[0].state
+                    community_context.append(community_ctx)
+
+            chatroom_context = {'communities': community_context}
 
         else:
             chatroom_context = {'communities': []}
