@@ -813,7 +813,7 @@ class ChatroomImpl(ChatroomManager):
             card_instance=card_instance
         )
 
-        chatroom_obj.update(event_recordings_data)
+        chatroom_obj.get('chatroom').update(event_recordings_data)
 
         return chatroom_obj
 
