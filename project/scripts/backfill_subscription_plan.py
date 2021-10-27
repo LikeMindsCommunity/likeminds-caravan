@@ -39,13 +39,14 @@ def backfill_subscription_plan():
     invalid_user = 0
     invalid_community = 0
     invalid_cohort = 0
+    processed_for_count = 0
 
     for subscription in subscription_list:
         user_instance = ModelUtilities.get_model_instance_or_none(User, subscription.get('user_id'))
         community_instance = ModelUtilities.get_model_instance_or_none(Community, subscription.get('community_id'))
 
         if not user_instance:
-            print("Invalid User")
+            print("Invalid User: ", subscription.get('user_id'))
             invalid_user += 1
             continue
 
@@ -78,6 +79,7 @@ def backfill_subscription_plan():
                     'member_ids': [subscription.get('user_id')]
                 }
                 cohort_manager.update_cohort(cohort_info)
+                processed_for_count += 1
 
         else:
 
@@ -102,10 +104,12 @@ def backfill_subscription_plan():
                     'member_ids': [subscription.get('user_id')]
                 }
                 cohort_manager.update_cohort(cohort_info)
+                processed_for_count += 1
 
-    print("Invalid User : ", invalid_user)
+    print("Invalid Users : ", invalid_user)
     print("Invalid Community : ", invalid_community)
     print("Invalid Cohort : ", invalid_cohort)
+    print("Processed for Cohort : ", processed_for_count)
 
 
 start_time = time.time()
