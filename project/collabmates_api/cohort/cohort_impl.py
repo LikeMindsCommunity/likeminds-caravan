@@ -568,10 +568,7 @@ class CohortHelper:
 
             try:
                 user = cohort_member.user
-
-                if not check_history_exists(user, community_instance, right, enabled_by_cm=False) or \
-                        not check_rights_history_existence(user=user, community=community_instance, right=right):
-                    save_member_right(user=user, community=community_instance, right=right)
+                save_member_right(user=user, community=community_instance, right=right)
 
             except:
                 error_logger.error(
@@ -593,12 +590,10 @@ class CohortHelper:
             try:
                 user = cohort_member.user
 
-                if check_history_exists(user, community_instance, right, enabled_by_cm=False) or \
-                        not check_rights_history_existence(user=user, community=community_instance, right=right):
-                    userMemberRights.objects.filter(user=user, community=community_instance, right=right).delete()
+                userMemberRights.objects.filter(user=user, community=community_instance, right=right).delete()
 
-                    update_member_rights_in_member_engage(community_instance.id, user.id)
-                    update_member_rights_in_conversation_engage(community_instance.id, user.id)
+                update_member_rights_in_member_engage.delay(community_instance.id, user.id)
+                update_member_rights_in_conversation_engage.delay(community_instance.id, user.id)
 
             except:
                 error_logger.error(
@@ -616,10 +611,7 @@ class CohortHelper:
             right = memberRights.objects.get(id=right_id)
 
             try:
-
-                if not check_history_exists(user_instance, community_instance, right, enabled_by_cm=False) or \
-                        not check_rights_history_existence(user=user_instance, community=community_instance, right=right):
-                    save_member_right(user=user_instance, community=community_instance, right=right)
+                save_member_right(user=user_instance, community=community_instance, right=right)
 
             except:
                 error_logger.error(
