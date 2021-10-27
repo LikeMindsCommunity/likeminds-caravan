@@ -506,3 +506,43 @@ ATTENDEES_FILTER_NAME = "attendees"
 CO_HOSTS_FILTER_NAME = "co_hosts"
 
 ALL_MEMBER_COHORT_TEXT = "All member group"
+SUBSCRIPTION_COHORT_NAME = 'Subscription Plan - {}'
+SUBSCRIPTION_EXPIRED_COHORT_NAME = 'Subscription Expired Plan - {}'
+
+SUBSCRIPTION_PLAN_NAMES = {
+    "days": {
+        "unique": False,
+        "title": "Day/s",
+        "subtitle": "day/s"
+    },
+    "weekly": {
+        "unique": False,
+        "title": "Week/s",
+        "subtitle": "week/s"
+    },
+    "monthly": {
+        "unique": False,
+        "title": "Month/s",
+        "subtitle": "month/s"
+    },
+    "quarterly": {
+        "unique": True,
+        "title": "Quarterly",
+        "subtitle": "month/s"
+    },
+    "half_yearly": {
+        "unique": True,
+        "title": "Half Yearly",
+        "subtitle": "month/s"
+    },
+    "yearly": {
+        "unique": True,
+        "title": "Yearly",
+        "subtitle": "month/s"
+    },
+    "lifetime": {
+        "unique": True,
+        "title": "Lifetime",
+        "subtitle": "lifetime"
+    }
+}
