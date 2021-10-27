@@ -5296,7 +5296,8 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     if card_instance.type != card_types.CARD_MASTER_INTRO:
         if card_instance.is_secret:
             secret_room_participants = json.loads(card_instance.secret_chatroom_participants)
-            context['participant_count'] = len(secret_room_participants)
+            context['participant_count'] = len(get_members_based_on_user_list_query(secret_room_participants,
+                                                                                    card_instance.community_id))
         else:
             context['participant_count'] = collabcardState.objects.filter(follow_status=True,
                                                                           card=card_instance, remove=None,
