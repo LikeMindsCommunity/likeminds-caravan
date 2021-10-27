@@ -409,8 +409,8 @@ CHATROOM_FIRST_MESSAGE_ACTION_VERSION_CODE_ANDROID = 131
 MICRO_POLLS_ANDROID_VERSION_CODE = 139
 EVENT_ATTACHMENT_VERSION_CODE_AN = 151
 
-DM_CHATROOMS_VERSION_CODE_IOS = 1001
-DM_CHATROOMS_VERSION_CODE_ANDROID = 1001
+DM_CHATROOMS_VERSION_CODE_IOS = 213
+DM_CHATROOMS_VERSION_CODE_ANDROID = 156
 
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
 EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%s added you as a host for %s in %s"
@@ -506,3 +506,43 @@ ATTENDEES_FILTER_NAME = "attendees"
 CO_HOSTS_FILTER_NAME = "co_hosts"
 
 ALL_MEMBER_COHORT_TEXT = "All member group"
+SUBSCRIPTION_COHORT_NAME = 'Subscription Plan - {}'
+SUBSCRIPTION_EXPIRED_COHORT_NAME = 'Subscription Expired Plan - {}'
+
+SUBSCRIPTION_PLAN_NAMES = {
+    "days": {
+        "unique": False,
+        "title": "Day/s",
+        "subtitle": "day/s"
+    },
+    "weekly": {
+        "unique": False,
+        "title": "Week/s",
+        "subtitle": "week/s"
+    },
+    "monthly": {
+        "unique": False,
+        "title": "Month/s",
+        "subtitle": "month/s"
+    },
+    "quarterly": {
+        "unique": True,
+        "title": "Quarterly",
+        "subtitle": "month/s"
+    },
+    "half_yearly": {
+        "unique": True,
+        "title": "Half Yearly",
+        "subtitle": "month/s"
+    },
+    "yearly": {
+        "unique": True,
+        "title": "Yearly",
+        "subtitle": "month/s"
+    },
+    "lifetime": {
+        "unique": True,
+        "title": "Lifetime",
+        "subtitle": "lifetime"
+    }
+}

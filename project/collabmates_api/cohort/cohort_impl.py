@@ -7,13 +7,15 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
-    CohortRights, memberRights
+    CohortRights, memberRights, userMemberRights
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
 from ..rest_api import CohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
-from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list
+from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list, check_history_exists, \
+    check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
+    update_member_rights_in_member_engage
 from ..views import get_added_and_removed_rights
 
 error_logger = LoggingWrapper.get_instance()
@@ -186,6 +188,7 @@ class CohortImpl(CohortManager):
         if not is_cm:
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
+            CohortHelper.give_member_rights_when_added_to_cohort(cohort_instance, user_instance)
             return {'success': True}
 
         update_dict = {'name': name, 'type': type, 'type_id': None}
@@ -359,7 +362,9 @@ class CohortImpl(CohortManager):
 
             try:
                 right = memberRights.objects.get(pk=right_id)
+                CohortHelper.remove_rights_to_all_cohort_members(cohort_instance, right)
                 CohortRights.objects.filter(cohort=cohort_instance, member_rights=right).delete()
+
             except:
                 error_logger.error(f"rights doesn't exist for cohort {cohort_instance}")
 
@@ -370,6 +375,8 @@ class CohortImpl(CohortManager):
             try:
                 right = memberRights.objects.get(pk=right_id)
                 CohortRights(cohort=cohort_instance, member_rights=right).save()
+                CohortHelper.give_rights_to_all_cohort_members(cohort_instance, right)
+
             except:
                 error_logger.error(f"rights already exists for cohort {cohort_instance}")
 
@@ -545,3 +552,67 @@ class CohortHelper:
 
         members_to_add = list(set(member_ids) - existing_cohort_members)
         CohortHelper.create_cohort_member_instance(cohort_instance=cohort_instance, member_ids=members_to_add)
+
+    @staticmethod
+    def give_rights_to_all_cohort_members(cohort_instance, right):
+
+        cohort_member_filter = {
+            'cohort': cohort_instance
+        }
+
+        community_instance = cohort_instance.community
+
+        cohort_members = ModelUtilities.get_model_filter(CohortMember, cohort_member_filter).select_related("user")
+
+        for cohort_member in cohort_members:
+
+            try:
+                user = cohort_member.user
+                save_member_right(user=user, community=community_instance, right=right)
+
+            except:
+                error_logger.error(
+                    f"member right already exist for user {cohort_member.user} in community {community_instance.id}")
+
+    @staticmethod
+    def remove_rights_to_all_cohort_members(cohort_instance, right):
+
+        cohort_member_filter = {
+            'cohort': cohort_instance
+        }
+
+        community_instance = cohort_instance.community
+
+        cohort_members = ModelUtilities.get_model_filter(CohortMember, cohort_member_filter).select_related("user")
+
+        for cohort_member in cohort_members:
+
+            try:
+                user = cohort_member.user
+
+                userMemberRights.objects.filter(user=user, community=community_instance, right=right).delete()
+
+                update_member_rights_in_member_engage.delay(community_instance.id, user.id)
+                update_member_rights_in_conversation_engage.delay(community_instance.id, user.id)
+
+            except:
+                error_logger.error(
+                    f"member right does not exist for user {cohort_member.user} in community {community_instance.id}")
+
+    @staticmethod
+    def give_member_rights_when_added_to_cohort(cohort_instance, user_instance):
+
+        community_instance = cohort_instance.community
+
+        existing_rights = set(ModelUtilities.get_model_filter(CohortRights, {'cohort': cohort_instance})
+                              .values_list("member_rights__id", flat=True))
+
+        for right_id in existing_rights:
+            right = memberRights.objects.get(id=right_id)
+
+            try:
+                save_member_right(user=user_instance, community=community_instance, right=right)
+
+            except:
+                error_logger.error(
+                    f"member right already exist for user {user_instance.id} in community {community_instance.id}")

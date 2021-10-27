@@ -56,3 +56,12 @@ CTA_ROUTE_DIRECT_MESSAGES = "route://direct_messages"
 CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_SINGLE_CM = "route://direct_messages?chatroom_id={}"
 CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE = "route://direct_messages?chatroom_id={}&community_id={}"
 
+COMMUNITY_FEED_ACTIONS = {
+    "create_room": True,
+    "create_poll": True,
+    "create_event": True,
+    "respond_in_rooms": True,
+    "auto_approve": True,
+    "create_secret_chatroom": True,
+    "show_dm": True
+}

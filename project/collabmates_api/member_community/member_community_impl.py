@@ -30,7 +30,7 @@ from ..static_files import REMOVED_USER_URL
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
-    check_admin_edit_community_right
+    check_admin_edit_community_right, check_all_member_rights
 from ..utility import pagination
 from ..views import get_home_screen_community_actions, \
     generate_internal_link_preview_for_conversation, get_latest_conversation_members
@@ -863,21 +863,29 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'chatrooms': chatroom_context_list}
 
     @staticmethod
-    def create_feed_actions(community_instance, pinned_top_bar) -> []:
+    def create_feed_actions(community_instance, pinned_top_bar, user_id=None) -> []:
 
         actions = []
         community_id = StringUtilities.get_string_from_integer(community_instance.id)
         community_name = community_instance.name
 
+        member_rights = COMMUNITY_FEED_ACTIONS
+
+        if user_id:
+            member_rights = check_all_member_rights(user_id, community_instance)
+
         INVITE_MEMBERS['route'] = INVITE_MEMBERS_ROUTE % community_id
-        NEW_CHATROOM['route'] = NEW_CHATROOM_ROUTE % (community_id, community_name)
+        actions.append(INVITE_MEMBERS)
+
+        if member_rights["create_room"]:
+            NEW_CHATROOM['route'] = NEW_CHATROOM_ROUTE % (community_id, community_name)
+            actions.append(NEW_CHATROOM)
+
         DIRECTORY['route'] = DIRECTORY_ROUTE % (community_id, community_name)
+        actions.append(DIRECTORY)
+
         PINNED['route'] = PINNED_ROUTE % community_id
         COMMUNITY_DETAILS['route'] = COMMUNITY_DETAILS_ROUTE % community_id
-
-        actions.append(INVITE_MEMBERS)
-        actions.append(NEW_CHATROOM)
-        actions.append(DIRECTORY)
 
         if pinned_top_bar:
             actions.append(PINNED)
@@ -949,7 +957,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if pinned_top_bar:
             feed_context['pinned_top_bar'] = pinned_top_bar
 
-        actions = self.create_feed_actions(community_instance, pinned_top_bar)
+        actions = self.create_feed_actions(community_instance, pinned_top_bar, user_id=self.get_member_id())
         community = self._community_serializer(community_instance, self.get_member_id())
         feed_context['actions'] = actions
         feed_context['community'] = community
