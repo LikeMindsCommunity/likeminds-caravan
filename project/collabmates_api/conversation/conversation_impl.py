@@ -1375,6 +1375,19 @@ class ConversationImpl(ConversationManager):
         for conversation in conversations:
 
             if conversation.preview_chatroom:
+
+                state_filter_dict = {
+                    'card': conversation.preview_chatroom,
+                    'user_id': self.get_member_id(),
+                    'follow_status': True,
+                    'remove': None
+                }
+
+                state_filter = ModelUtilities.get_model_filter(collabcardState, state_filter_dict)
+
+                if not state_filter:
+                    continue
+
                 unread_count = fetch_conversations_unread(conversation.preview_chatroom.id, self.get_member_id())
 
                 if unread_count != 0:
