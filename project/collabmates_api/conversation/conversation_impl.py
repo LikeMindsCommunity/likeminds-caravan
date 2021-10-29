@@ -158,7 +158,7 @@ class ConversationImpl(ConversationManager):
         conversations = card_answers.objects \
             .select_related('reply', 'preview_community', 'preview_chatroom') \
             .filter(card=self.get_chatroom_id())
-        
+
         if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
             excluded_ids = self.chatroom_previews_with_non_zero_conversation_unread(conversations)
             conversations = conversations.exclude(id__in=excluded_ids)
@@ -1388,6 +1388,19 @@ class ConversationImpl(ConversationManager):
         for conversation in conversations:
 
             if conversation.preview_chatroom:
+
+                state_filter_dict = {
+                    'card': conversation.preview_chatroom,
+                    'user_id': self.get_member_id(),
+                    'follow_status': True,
+                    'remove': None
+                }
+
+                state_filter = ModelUtilities.get_model_filter(collabcardState, state_filter_dict)
+
+                if not state_filter:
+                    continue
+
                 unread_count = fetch_conversations_unread(conversation.preview_chatroom.id, self.get_member_id())
 
                 if unread_count != 0:
