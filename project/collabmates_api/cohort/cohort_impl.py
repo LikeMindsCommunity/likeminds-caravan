@@ -5,9 +5,10 @@ from celery import shared_task
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
+from ..chatroom.chatroom_impl import ChatroomImpl
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
-    CohortRights, memberRights, userMemberRights
+    CohortRights, memberRights, userMemberRights, ChatroomCohort
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
 from ..rest_api import CohortSerializer
 
@@ -22,7 +23,6 @@ error_logger = LoggingWrapper.get_instance()
 
 
 class CohortImpl(CohortManager):
-
     member_id = None
 
     def __init__(self, member_id: str = None):
@@ -250,7 +250,6 @@ class CohortImpl(CohortManager):
         cohort_list = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
 
         for cohort in cohort_list:
-
             cohort_context = {
                 'cohort_id': cohort.id,
                 'name': cohort.name,
@@ -292,6 +291,20 @@ class CohortImpl(CohortManager):
 
         if not is_cm:
             return {'success': False, 'error_message': "User doesn’t have ability to remove member from cohort"}
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort,
+                                                                 {'cohort_id': cohort_id}).prefetch_related('chatroom')
+
+        for chatroom_cohort_instance in chatroom_cohort_filter:
+            chatroom_instance = chatroom_cohort_instance.chatroom
+            chatroom_id = chatroom_instance.id
+
+            try:
+                chatroom_manager = ChatroomImpl(self.get_member_id(), chatroom_id=chatroom_id)
+                chatroom_manager.leave_secret_chatroom(user_id)
+
+            except Exception as e:
+                error_logger.error(e.args)
 
         cohort_member = ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_instance,
                                                                        'user_id': cohort_member_instance})
