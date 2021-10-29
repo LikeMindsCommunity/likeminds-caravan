@@ -217,6 +217,7 @@ class CohortImpl(CohortManager):
                         'error_message': 'CM doesn’t have the ability to update the following set of rights'}
 
             self._add_rights_to_cohort(rights_to_add, cohort_instance)
+            CohortHelper.remove_rights_to_all_cohort_members(cohort_instance, rights_to_remove)
 
         self._update_members_for_cohort(cohort_instance, member_ids)
 
@@ -357,16 +358,7 @@ class CohortImpl(CohortManager):
         return {'success': True, 'cohorts': cohorts}
 
     def _remove_rights_from_cohort(self, rights_to_remove, cohort_instance):
-
-        for right_id in rights_to_remove:
-
-            try:
-                right = memberRights.objects.get(pk=right_id)
-                CohortHelper.remove_rights_to_all_cohort_members(cohort_instance, right)
-                CohortRights.objects.filter(cohort=cohort_instance, member_rights=right).delete()
-
-            except:
-                error_logger.error(f"rights doesn't exist for cohort {cohort_instance}")
+        CohortRights.objects.filter(cohort=cohort_instance, member_rights_id__in=rights_to_remove).delete()
 
     def _add_rights_to_cohort(self, rights_to_add, cohort_instance):
 
@@ -575,7 +567,7 @@ class CohortHelper:
                     f"member right already exist for user {cohort_member.user} in community {community_instance.id}")
 
     @staticmethod
-    def remove_rights_to_all_cohort_members(cohort_instance, right):
+    def remove_rights_to_all_cohort_members(cohort_instance, right_list):
 
         cohort_member_filter = {
             'cohort': cohort_instance
@@ -590,7 +582,8 @@ class CohortHelper:
             try:
                 user = cohort_member.user
 
-                userMemberRights.objects.filter(user=user, community=community_instance, right=right).delete()
+                userMemberRights.objects.filter(user=user, community=community_instance,
+                                                right_id__in=right_list).delete()
 
                 update_member_rights_in_member_engage.delay(community_instance.id, user.id)
                 update_member_rights_in_conversation_engage.delay(community_instance.id, user.id)
