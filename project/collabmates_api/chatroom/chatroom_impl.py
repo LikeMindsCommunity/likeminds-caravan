@@ -3055,7 +3055,7 @@ class ChatroomHelper:
             update_event_attendees.delay({
                 "chatroom_id": card_instance.id,
                 "status": True,
-                "user_id": co_host_list
+                "user_id": [int(co_host) for co_host in co_host_list if str(co_host).isdigit()]
             })
 
         send_notification_to_event_co_hosts.delay(co_host_list, card_instance.id,
