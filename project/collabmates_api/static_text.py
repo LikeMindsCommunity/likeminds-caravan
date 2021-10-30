@@ -488,11 +488,21 @@ PAID_COMMUNITY_LEVEL_4_SUB_TITLE = "Invite members with payment link"
 CHATROOM_SETTINGS_VERSION_CODE_AN = 155
 CHATROOM_SETTINGS_VERSION_CODE_IOS = 232
 
-INTRO_ROOM_V2_VERSION_CODE_DICT = {
-    "an": 1001,
-    "ios": 235,
-    "web": 1001
-}
+INTRO_ROOM_V2_VERSION_CODE_DICT = {}
+
+if settings.IS_BETA:
+    INTRO_ROOM_V2_VERSION_CODE_DICT = {
+        "an": 159,
+        "ios": 235,
+        "web": 1001
+    }
+
+else:
+    INTRO_ROOM_V2_VERSION_CODE_DICT = {
+        "an": 1001,
+        "ios": 235,
+        "web": 1001
+    }
 
 MEMBER_LEFT_DM_CHATROOM_MESSAGE = "{} left {}"
 MEMBER_REMOVED_DM_CHATROOM_MESSAGE = "{} was removed from {}"
