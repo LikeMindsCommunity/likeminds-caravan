@@ -135,7 +135,7 @@ class CommunityImpl(CommunityManager):
     def _fetch_queryset_of_community_chatrooms(self, intro_room_settings_enabled, version_code, platform_code):
 
         if is_version_code_supported_for_intro_room(version_code, platform_code):
-            
+
             if not intro_room_settings_enabled:
                 return Collabcard.objects.filter(community=self.get_community_id(),
                                                 is_pending=False,
@@ -292,8 +292,8 @@ class CommunityImpl(CommunityManager):
         if intro_room_setting_filter:
             intro_room_setting_enabled = True
 
-        community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms(intro_room_setting_enabled, 
-                                                                                self.get_version_code(), 
+        community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms(intro_room_setting_enabled,
+                                                                                self.get_version_code(),
                                                                                 self.get_request_platform())
 
         response_context = dict()
@@ -1372,12 +1372,15 @@ class CommunityHelper:
         engage_list = []
 
         for instance in followed_filter:
-
-            engage_instance = conversationEngage.create_instance_for_bulk_create(community_instance, instance.card,
-                                                                                 user_instance,
-                                                                                 created_at=instance.created_at,
-                                                                                 updated_at=instance.updated_at)
-            engage_list.append(engage_instance)
+            engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'community': community_instance,
+                                                                                 'card': instance.card,
+                                                                                 'user': user_instance})
+            if not engage_filter:
+                engage_instance = conversationEngage.create_instance_for_bulk_create(community_instance, instance.card,
+                                                                                     user_instance,
+                                                                                     created_at=instance.created_at,
+                                                                                     updated_at=instance.updated_at)
+                engage_list.append(engage_instance)
 
         ModelUtilities.bulk_create_instances(conversationEngage, engage_list)
 
