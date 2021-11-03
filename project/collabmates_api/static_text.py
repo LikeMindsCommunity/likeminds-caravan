@@ -493,8 +493,7 @@ INTRO_ROOM_V2_VERSION_CODE_DICT = {}
 if settings.IS_BETA:
     INTRO_ROOM_V2_VERSION_CODE_DICT = {
         "an": 159,
-        "ios": 235,
-        "web": 1001
+        "ios": 235
     }
 
 else:
