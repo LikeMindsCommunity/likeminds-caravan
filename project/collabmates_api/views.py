@@ -8062,7 +8062,7 @@ def send_otp_on_mobile(phone_no, international=False):
         response = rqst.get(generate_url)
 
     info_logger.info("Gupshap mobile generate otp response")
-    info_logger.info(response.text)
+    info_logger.info(f'gupshup response -> {response.text}')
 
     if response.status_code == 200:
         success = True
