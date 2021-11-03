@@ -1284,7 +1284,7 @@ class MemberCommunityHelper:
         filter_dict = {
             'community_id__in': community_count_dict.keys(),
             'setting_type': community_setting_types.INTRO_ROOM,
-            'enabled': True
+            'enabled': False
         }
         intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
 
