@@ -1281,6 +1281,16 @@ class MemberCommunityHelper:
 
         community_count_dict = get_chatroom_count_based_on_community_list(community_id_list, member_id)
 
+        filter_dict = {
+            'community_id__in': community_count_dict.keys(),
+            'setting_type': community_setting_types.INTRO_ROOM,
+            'enabled': True
+        }
+        intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+        for intro_room_setting_instance in intro_room_setting_filter:
+            community_count_dict[intro_room_setting_instance.community_id] -= 1
+
         return community_count_dict
 
     @staticmethod
