@@ -34,7 +34,8 @@ def delete_duplicate_conversation_engage():
             total_duplicate_count += len(engage_filter)
             print('Deleted Engage instances so far', deleted_engages_so_far_count)
             deleted_engages_so_far_count += len(engage_filter)
-            engage_filter.delete()
+            for engage_instance in engage_filter:
+                engage_instance.delete()
 
     print('total_duplicate_count', total_duplicate_count)
     print('duplicate_for_count', duplicate_for_count)
