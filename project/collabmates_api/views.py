@@ -7845,9 +7845,11 @@ def generate_otp(request):
             international = True
 
         if retry:
-            context = send_retry_otp(phone_no)
-        else:
             context = send_otp_on_mobile(phone_no, international=international)
+
+        else:
+            context = send_retry_otp(phone_no)
+
         backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
 
         if not backup_filter.exists():
