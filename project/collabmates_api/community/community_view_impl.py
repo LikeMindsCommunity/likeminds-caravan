@@ -193,6 +193,37 @@ class FetchCommunityOTLUrl(APIView):
         return JsonResponse(response_context)
 
 
+class FetchPaymentPageUrl(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        community_id = request.GET.get('community_id')
+
+        payment_page_id = request.GET.get('payment_page_id')
+
+        if not community_id:
+            response = {
+                "success": False,
+                "error_message": "Send community_id in query params"
+            }
+
+            return JsonResponse(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        if not payment_page_id:
+            response = {
+                "success": False,
+                "error_message": "Send payment_page_id in query params"
+            }
+
+            return JsonResponse(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id, community_id)
+        response_context = community_manager.fetch_payment_page_url(payment_page_id)
+
+        return JsonResponse(response_context)
+
+
 class FetchDiscoverableCommunities(APIView):
 
     def get(self, request):

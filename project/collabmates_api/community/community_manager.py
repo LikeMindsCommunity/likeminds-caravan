@@ -26,7 +26,8 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'update_community_toast_v1') and
                  callable(subclass.update_community_toast_v1)) and
                 (hasattr(subclass, 'add_join_email') and callable(subclass.add_join_email)) and
-                (hasattr(subclass, 'fetch_join_email') and callable(subclass.fetch_join_email)) or
+                (hasattr(subclass, 'fetch_join_email') and callable(subclass.fetch_join_email)) and
+                (hasattr(subclass, 'fetch_payment_page_url') and callable(subclass.fetch_payment_page_url)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -124,5 +125,11 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fetch_join_email(self):
         """ fetches join email for a community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_payment_page_url(self, payment_page_id):
+        """ fetches branch link for payment pages"""
 
         raise NotImplementedError
