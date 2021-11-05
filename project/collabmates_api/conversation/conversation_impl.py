@@ -1374,7 +1374,7 @@ class ConversationImpl(ConversationManager):
 
         for conversation in conversations:
 
-            if conversation.preview_chatroom:
+            if conversation.preview_chatroom and not conversation.preview_chatroom.is_deleted:
 
                 state_filter_dict = {
                     'card': conversation.preview_chatroom,
@@ -1400,7 +1400,7 @@ class ConversationImpl(ConversationManager):
 
         for conversation in conversations:
 
-            if conversation.preview_chatroom:
+            if conversation.preview_chatroom and not conversation.preview_chatroom.is_deleted:
 
                 state_filter_dict = {
                     'card': conversation.preview_chatroom,
