@@ -1805,6 +1805,14 @@ class mobileBackup(models.Model):
     mobile_no = models.BigIntegerField(null=True)
     created_at = models.BigIntegerField(default=0)
 
+    @staticmethod
+    def create_instance(backup_info):
+        instance = mobileBackup()
+        instance.mobile_no = backup_info.get('mobile_no')
+        instance.country_code = backup_info.get('country_code')
+        instance.created_at = time.time()
+        instance.save()
+
 
 class membersEngagePilot(models.Model):
     '''models to save member engage pilot for backuping pilot community users'''

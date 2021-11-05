@@ -2809,6 +2809,8 @@ class ChatroomHelper:
         is_event_chatroom = card_instance.type == card_types.CARD_EVENT or card_instance.type == \
                             card_types.CARD_PUBLIC_EVENT
 
+        community_admins_list = []
+
         for data in member_filter:
             user_instance = data.member_id
 
@@ -2832,7 +2834,12 @@ class ChatroomHelper:
                     "status": attending_status
                 })
 
+                if data.state == member_states.ADMIN:
+                    community_admins_list.append(user_instance.id)
+
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
+        ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
+            card_instance.id, community_admins_list)
 
     @staticmethod
     def update_unseen_count_for_homescreen_communitites(card_instance, community_instance):
@@ -2915,7 +2922,7 @@ class ChatroomHelper:
         state_filter = collabcardState.objects.filter(card=card_instance, user__in=member_list,
                                                       follow_status=follow_status)
 
-        chatroom_state_dict = {user_id: None for user_id in member_list}
+        chatroom_state_dict = {int(user_id): None for user_id in member_list if str(user_id).isdigit()}
 
         for data in state_filter:
             user_id = data.user_id
@@ -3022,6 +3029,8 @@ class ChatroomHelper:
                                                                                    follow_status=False)
         bulk_update_list = []
         chatroom_member_list = []
+
+        user_list = [int(user_id) for user_id in user_list if str(user_id).isdigit()]
 
         for community_member in user_list:
 

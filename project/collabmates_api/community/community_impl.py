@@ -20,7 +20,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
     userEmails, ContentDownloadSettings
 
-from collabmates_api.branch import create_community_feed_url, create_community_otl_url
+from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
@@ -647,6 +647,13 @@ class CommunityImpl(CommunityManager):
         private_link = create_community_otl_url(community_instance, payment_id, shared_by)
 
         return {'success': True, 'private_link': private_link}
+
+    def fetch_payment_page_url(self, payment_page_id):
+        community_instance = Community.get_community_or_raise_exception(self.get_community_id())
+
+        payment_page_link = create_payment_page_url(community_instance, payment_page_id)
+
+        return {'success': True, 'payment_page_link': payment_page_link}
 
     def fetch_discoverable_communities(self, page, page_size):
         communities = Community.objects.filter(is_discoverable=True).order_by("id")

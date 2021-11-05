@@ -546,3 +546,4 @@ SUBSCRIPTION_PLAN_NAMES = {
         "subtitle": "lifetime"
     }
 }
+
