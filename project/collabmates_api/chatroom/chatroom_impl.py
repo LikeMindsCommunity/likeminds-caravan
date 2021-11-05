@@ -2922,7 +2922,7 @@ class ChatroomHelper:
         state_filter = collabcardState.objects.filter(card=card_instance, user__in=member_list,
                                                       follow_status=follow_status)
 
-        chatroom_state_dict = {user_id: None for user_id in member_list}
+        chatroom_state_dict = {int(user_id): None for user_id in member_list if str(user_id).isdigit()}
 
         for data in state_filter:
             user_id = data.user_id
@@ -3029,6 +3029,8 @@ class ChatroomHelper:
                                                                                    follow_status=False)
         bulk_update_list = []
         chatroom_member_list = []
+
+        user_list = [int(user_id) for user_id in user_list if str(user_id).isdigit()]
 
         for community_member in user_list:
 
