@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from external_services.mixpanel.events import MixpanelEvents
+from external_services.otp.otp_api_client import OTPApiClient
 from togther.models import *
 from utility.string_utilities import StringUtilities
 from random import randint
@@ -7818,77 +7819,81 @@ def generate_otp(request):
 
     if retry == '1':
         retry = True
+
     else:
         retry = False
 
-    country_code_msg = "\n\n country code %s" % country_code
-    info_logger.info(country_code_msg)
-
-    info_logger.info("mobile number")
-    info_logger.info(mobile_no)
-
-    info_logger.info("user_id")
-    info_logger.info(user_id)
+    info_logger.info(f'Country Code: {country_code}, Mobile Number: {mobile_no}, User ID: {user_id}')
 
     phone_no = str(country_code) + str(mobile_no)
     context = {}
+
     if mobile_no:
         try:
             mobile_no = int(mobile_no)
+
         except:
             context = get_error_context(False, "special characters error")
             info_logger.info(context)
             return JsonResponse(context)
 
         international = False
+
         if country_code != '91':
             international = True
 
         if retry:
-            context = send_otp_on_mobile(phone_no, international=international)
+            otp_manager = OTPApiClient()
+            context = otp_manager.send_retry_otp_via_msg_91(phone_no)
 
         else:
-            context = send_retry_otp(phone_no)
+            otp_manager = OTPApiClient()
+            context = otp_manager.send_otp_via_gupshup(phone_no, international)
 
-        backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
+        backup_filter = ModelUtilities.get_model_filter(mobileBackup, {'mobile_no': mobile_no})
 
-        if not backup_filter.exists():
-            instance = mobileBackup()
-            instance.mobile_no = mobile_no
-            instance.country_code = country_code
-            instance.created_at = time.time()
-            instance.save()
+        if not backup_filter:
+            backup_info = {'mobile_no': mobile_no, 'country_code': country_code}
+            mobileBackup.create_instance(backup_info)
 
     # user wants to merge the account
     if user_id:
-        mobile_filter = userMobiles.objects.filter(user_id=user_id)
-        for instance in mobile_filter:
-            phone_no = str(instance.country_code) + str(instance.mobile_no)
-
-            international = False
-            if str(instance.country_code) != '91':
-                international = True
-
-            if retry:
-                context = send_retry_otp(phone_no)
-            else:
-                context = send_otp_on_mobile(phone_no, international=international)
-
-            info_logger.info(instance.user.id)
-            info_logger.info(context)
-
-        email_filter = userEmails.objects.filter(user_id=user_id)
-
-        for instance in email_filter:
-            email = instance.email
-            context = send_otp_on_email(email)
-            info_logger.info(context)
-            info_logger.info(instance.user.id)
-            info_logger.info(email)
+        send_otp_on_user_mobiles(user_id, retry)
+        send_otp_on_user_emails(user_id)
 
         context['success'] = True
 
     return JsonResponse(context)
+
+
+def send_otp_on_user_emails(user_id):
+    email_filter = ModelUtilities.get_model_filter(userEmails, {'user_id': user_id})
+
+    for instance in email_filter:
+        email = instance.email
+        context = send_otp_on_email(email)
+        info_logger.info(f'OTP Context: {context}, User ID: {instance.user.id}, E-Mail: {email}')
+
+def send_otp_on_user_mobiles(user_id, retry):
+    mobile_filter = ModelUtilities.get_model_filter(userMobiles, {'user_id': user_id})
+
+    for instance in mobile_filter:
+        phone_no = str(instance.country_code) + str(instance.mobile_no)
+
+        international = False
+        if str(instance.country_code) != '91':
+            international = True
+
+        if retry:
+            otp_manager = OTPApiClient()
+            context = otp_manager.send_retry_otp_via_msg_91(phone_no)
+
+        else:
+            otp_manager = OTPApiClient()
+            context = otp_manager.send_otp_via_gupshup(phone_no, international)
+
+        info_logger.info(f'User ID: {instance.user.id}')
+        info_logger.info(f'OTP Context: {context}')
 
 
 def verify_otp(request):
@@ -7896,18 +7901,7 @@ def verify_otp(request):
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
     otp = request.GET.get('otp')
-
-    info_logger.info("country code")
-    info_logger.info(country_code)
-
-    info_logger.info("mobile number")
-    info_logger.info(mobile_no)
-
-    info_logger.info("user_id")
-    info_logger.info(user_id)
-
-    info_logger.info("otp")
-    info_logger.info(otp)
+    info_logger.info(f'Country Code: {country_code}, Mobile Number: {mobile_no}, User ID: {user_id}, OTP: {otp}')
 
     lm_mobile_no_list = ["9458668721", "9467796637"]
 
@@ -7967,8 +7961,9 @@ def verify_otp(request):
         if country_code != '91':
             international = True
 
-        verified = verify_otp_on_mobile(phone_no, otp, international=international)
-        verified_msg = verify_retry_otp(phone_no, otp)
+        otp_manager = OTPApiClient()
+        verified = otp_manager.verify_otp_via_gupshup(phone_no, otp, international)
+        verified_msg = otp_manager.verify_retry_otp_via_msg_91(phone_no, otp)
         context['success'] = False
 
         if verified['success'] or verified_msg['success']:
@@ -8011,8 +8006,9 @@ def verify_otp(request):
             if str(instance.country_code) != '91':
                 international = True
 
-            context = verify_otp_on_mobile(phone_no, otp, international=international)
-            context_msg = verify_retry_otp(phone_no, otp)
+            otp_manager = OTPApiClient()
+            context = otp_manager.verify_otp_via_gupshup(phone_no, otp, international)
+            context_msg = otp_manager.verify_retry_otp_via_msg_91(phone_no, otp)
 
             if context['success'] or context_msg['success']:
                 login(request, user=mobile_filter[0].user, backend="django.contrib.auth.backends.ModelBackend")
@@ -8042,82 +8038,6 @@ def verify_otp(request):
         return JsonResponse(context)
 
     return JsonResponse(context)
-
-
-def send_otp_on_mobile(phone_no, international=False):
-    key = settings.GHUPSHUP_KEY
-    context = {}
-    success = False
-
-    if not international:
-        generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
-            phone_no, key)
-        response = rqst.get(generate_url)
-    else:
-        inter_auth = settings.INTERNATIONAL_GHUPSHAP
-        ghupshap_user_id = inter_auth['user_id']
-        password = inter_auth['password']
-        phone_no = "00" + str(phone_no)
-        msg = inter_auth['msg']
-        generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC""" % (
-            str(ghupshap_user_id), str(password), str(phone_no), str(msg))
-        response = rqst.get(generate_url)
-
-    info_logger.info("Gupshap mobile generate otp response")
-    info_logger.info(f'gupshup response, status_code: {response.status_code}, text: {response.text}')
-
-    if response.status_code == 200:
-        success = True
-        response = response.text
-        response_list = response.split("|")
-        if response_list[0].strip() == "error":
-            success = False
-
-    context['success'] = success
-    if not success:
-        context['error_message'] = response
-
-    info_logger.info("api/generate_otp mobile response")
-    info_logger.info(context)
-    info_logger.info("\n\n")
-    return context
-
-
-def verify_otp_on_mobile(phone_no, otp, international=False):
-    key = settings.GHUPSHUP_KEY
-
-    if not international:
-        verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s""" % (
-            str(phone_no), key, str(otp))
-        response = rqst.get(verify_url)
-    else:
-        inter_auth = settings.INTERNATIONAL_GHUPSHAP
-        ghupshap_user_id = inter_auth['user_id']
-        password = inter_auth['password']
-        phone_no = "00" + str(phone_no)
-        verify_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&otp_code=%s""" % (
-            str(ghupshap_user_id), str(password), str(phone_no), str(otp))
-        response = rqst.get(verify_url)
-
-    info_logger.info("Ghupshap verify otp response")
-    info_logger.info(response.text)
-    context = {}
-    success = False
-
-    if response.status_code == 200:
-        success = True
-        response = response.text
-        response_list = response.split("|")
-        if response_list[0].strip() == "error":
-            success = False
-
-    context['success'] = success
-    if not success:
-        context['error_message'] = "Incorrect OTP"
-    info_logger.info("api/verify_otp mobile response")
-    info_logger.info(context)
-    info_logger.info("\n\n")
-    return context
 
 
 def send_otp_on_email(email):
