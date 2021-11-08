@@ -225,10 +225,6 @@ unfollow_chatroom = {'id': 9, 'title': 'Leave chatroom'}
 
 report = {'id': 10, 'title': 'Report Spam/Abuse'}
 
-mark_active = {'id': 11, 'title': 'Mark active'}
-
-mark_inactive = {'id': 12, 'title': 'Mark inactive'}
-
 pin_chatroom = {'id': 13, 'title': "Pin chat room"}
 
 unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
@@ -413,15 +409,8 @@ CHATROOM_FIRST_MESSAGE_ACTION_VERSION_CODE_ANDROID = 131
 MICRO_POLLS_ANDROID_VERSION_CODE = 139
 EVENT_ATTACHMENT_VERSION_CODE_AN = 151
 
-if not settings.IS_BETA:
-    DM_CHATROOMS_VERSION_CODE = 773
-    DM_CHATROOMS_VERSION_CODE_IOS = 773
-    DM_CHATROOMS_VERSION_CODE_ANDROID = 773
-
-else:
-    DM_CHATROOMS_VERSION_CODE = 146
-    DM_CHATROOMS_VERSION_CODE_IOS = 212
-    DM_CHATROOMS_VERSION_CODE_ANDROID = 146
+DM_CHATROOMS_VERSION_CODE_IOS = 213
+DM_CHATROOMS_VERSION_CODE_ANDROID = 156
 
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
 EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%s added you as a host for %s in %s"
@@ -500,10 +489,10 @@ CHATROOM_SETTINGS_VERSION_CODE_AN = 155
 CHATROOM_SETTINGS_VERSION_CODE_IOS = 232
 
 INTRO_ROOM_V2_VERSION_CODE_DICT = {
-    "an": 1001,
-    "ios": 235,
-    "web": 1001
+    "an": 159,
+    "ios": 235
 }
+
 
 MEMBER_LEFT_DM_CHATROOM_MESSAGE = "{} left {}"
 MEMBER_REMOVED_DM_CHATROOM_MESSAGE = "{} was removed from {}"
@@ -517,3 +506,44 @@ ATTENDEES_FILTER_NAME = "attendees"
 CO_HOSTS_FILTER_NAME = "co_hosts"
 
 ALL_MEMBER_COHORT_TEXT = "All member group"
+SUBSCRIPTION_COHORT_NAME = 'Subscription Plan - {}'
+SUBSCRIPTION_EXPIRED_COHORT_NAME = 'Subscription Expired Plan - {}'
+
+SUBSCRIPTION_PLAN_NAMES = {
+    "days": {
+        "unique": False,
+        "title": "Day/s",
+        "subtitle": "day/s"
+    },
+    "weekly": {
+        "unique": False,
+        "title": "Week/s",
+        "subtitle": "week/s"
+    },
+    "monthly": {
+        "unique": False,
+        "title": "Month/s",
+        "subtitle": "month/s"
+    },
+    "quarterly": {
+        "unique": True,
+        "title": "Quarterly",
+        "subtitle": "month/s"
+    },
+    "half_yearly": {
+        "unique": True,
+        "title": "Half Yearly",
+        "subtitle": "month/s"
+    },
+    "yearly": {
+        "unique": True,
+        "title": "Yearly",
+        "subtitle": "month/s"
+    },
+    "lifetime": {
+        "unique": True,
+        "title": "Lifetime",
+        "subtitle": "lifetime"
+    }
+}
+

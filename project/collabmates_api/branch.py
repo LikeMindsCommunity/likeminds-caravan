@@ -8,7 +8,7 @@ from togther.models import Community
 from .static_files import *
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
-                               BRANCH_FEATURE_COMMUNITY_OTL_URL)
+                               BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL)
 from utility.api_client import ApiClient
 
 info_logger = LoggingWrapper.get_instance()
@@ -21,6 +21,7 @@ def strip_scheme(url):
 
 
 host_url = strip_scheme(settings.URL)
+web_host_url = strip_scheme(settings.WEB_URL)
 api_endpoint = BRANCH_QUICKLINK_URI % settings.BRANCH_KEY
 
 
@@ -185,6 +186,11 @@ def create_link_item(base_url, community, channel, feature, private=False):
         else:
             link_item['data']['$desktop_url'] = desktop_url
 
+    if feature == BRANCH_FEATURE_PAYMENT_PAGE_URL:
+        link_item["data"]['$web_only'] = True
+        link_item['data']['$fallback_url'] = fallback_url
+        link_item['data']['$desktop_url'] = desktop_url
+
     return link_item
 
 
@@ -228,6 +234,35 @@ def create_community_otl_url(community_instance, payment_id, shared_by=None):
         private_url = base_url + f'?payment_id={payment_id}'
 
     long_url_item = create_link_item(private_url, community_instance, "AppBackend", BRANCH_FEATURE_COMMUNITY_OTL_URL, private=True)
+    data.append(long_url_item)
+
+    client = ApiClient()
+    client.update_request_url(api_endpoint)
+    client.update_body(data)
+    client.post()
+
+    if client.fetch_response_code() != 200:
+        data = [{}]
+        info_logger.info("Branch failed, sending normal links")
+    else:
+        data = client.fetch_response()
+
+    # in case branch fails
+    if 'url' not in data[0]:
+        data[0]['url'] = f'https://{private_url}'
+
+    return data[0]['url']
+
+
+def create_payment_page_url(community_instance, payment_id):
+
+    data = []
+
+    base_url = f'{web_host_url}/payment_page'
+
+    private_url = base_url + f'?payment_page_id={payment_id}'
+
+    long_url_item = create_link_item(private_url, community_instance, "AppBackend", BRANCH_FEATURE_PAYMENT_PAGE_URL)
     data.append(long_url_item)
 
     client = ApiClient()

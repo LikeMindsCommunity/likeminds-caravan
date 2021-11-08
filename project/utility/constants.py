@@ -60,12 +60,14 @@ BRANCH_FEATURE_PUBLIC_LINK = "CommunityPublic"
 BRANCH_FEATURE_PRIVATE_LINK = "CommunityPrivate"
 BRANCH_FEATURE_DIRECTORY_LINK = "Community Members Directory"
 BRANCH_FEATURE_COMMUNITY_OTL_URL = "CommunityOtlUrl"
+BRANCH_FEATURE_PAYMENT_PAGE_URL = "PaymentPageUrl"
 
 HOURS_24 = 86400
 MINUTES_30 = 1800
 MINUTES_10 = 600
 MINUTES_5 = 300
 MINUTES_2 = 120
+ONE_DAY_HOURS = 24
 
 VALID_URLS_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 

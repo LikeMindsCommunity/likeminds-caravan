@@ -5,21 +5,24 @@ from celery import shared_task
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
+from ..chatroom.chatroom_impl import ChatroomImpl
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
-    CohortRights, memberRights
+    CohortRights, memberRights, userMemberRights, ChatroomCohort
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
+from ..rest_api import CohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
-from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list
+from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list, check_history_exists, \
+    check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
+    update_member_rights_in_member_engage
 from ..views import get_added_and_removed_rights
 
 error_logger = LoggingWrapper.get_instance()
 
 
 class CohortImpl(CohortManager):
-
     member_id = None
 
     def __init__(self, member_id: str = None):
@@ -88,7 +91,20 @@ class CohortImpl(CohortManager):
         CohortHelper.create_cohort_rights_instance(cohort_instance=cohort_instance,
                                                    community_instance=community_instance)
 
-        return {'success': True}
+        cohort_instance_object = CohortSerializer(cohort_instance, many=False).data
+
+        if 'rights' in cohort_instance_object:
+            admin_rights = check_all_manager_rights(user_instance, community_instance)
+            cohort_rights_filter = list(ModelUtilities.get_model_filter(
+                CohortRights, {'id__in': cohort_instance_object['rights']}).prefetch_related('member_rights'))
+            cohort_rights = CohortHelper.get_all_the_cohort_rights(cohort_rights_filter)
+            rights_list = get_saved_member_rights_list(cohort_rights, admin_rights)
+
+            cohort_instance_object['rights'] = rights_list
+            cohort_instance_object['cohort_id'] = cohort_instance_object['id']
+            del cohort_instance_object['id']
+
+        return {'success': True, 'cohort_data': cohort_instance_object}
 
     def delete_cohort(self, cohort_id):
 
@@ -172,6 +188,7 @@ class CohortImpl(CohortManager):
         if not is_cm:
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
+            CohortHelper.give_member_rights_when_added_to_cohort(cohort_instance, user_instance)
             return {'success': True}
 
         update_dict = {'name': name, 'type': type, 'type_id': None}
@@ -181,24 +198,27 @@ class CohortImpl(CohortManager):
 
         ModelUtilities.model_update(Cohort, {'id': cohort_id}, update_dict)
 
-        existing_rights = set(
-            ModelUtilities.get_model_filter(CohortRights, {'cohort': cohort_instance}).values_list(
-                "member_rights__id", flat=True))
+        if rights:
+            existing_rights = set(
+                ModelUtilities.get_model_filter(CohortRights, {'cohort': cohort_instance}).values_list(
+                    "member_rights__id", flat=True))
 
-        rights_to_add, rights_to_remove = get_added_and_removed_rights(selected_rights=rights,
-                                                                       existing_rights=existing_rights)
+            rights_to_add, rights_to_remove = get_added_and_removed_rights(selected_rights=rights,
+                                                                           existing_rights=existing_rights)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-        admin_rights = check_all_manager_rights(user_instance, cohort_instance.community)
-        can_add_rights = CohortHelper.check_addition_of_rights(rights_to_add, admin_rights)
+            user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+            admin_rights = check_all_manager_rights(user_instance, cohort_instance.community)
+            can_add_rights = CohortHelper.check_addition_of_rights(rights_to_add, admin_rights)
 
-        self._remove_rights_from_cohort(rights_to_remove, cohort_instance)
+            self._remove_rights_from_cohort(rights_to_remove, cohort_instance)
 
-        if not can_add_rights:
-            return {'success': False,
-                    'error_message': 'CM doesn’t have the ability to update the following set of rights'}
+            if not can_add_rights:
+                return {'success': False,
+                        'error_message': 'CM doesn’t have the ability to update the following set of rights'}
 
-        self._add_rights_to_cohort(rights_to_add, cohort_instance)
+            self._add_rights_to_cohort(rights_to_add, cohort_instance)
+            CohortHelper.remove_rights_to_all_cohort_members(cohort_instance, rights_to_remove)
+
         self._update_members_for_cohort(cohort_instance, member_ids)
 
         return {'success': True}
@@ -225,11 +245,20 @@ class CohortImpl(CohortManager):
         if not is_cm:
             return {'success': False, 'error_message': "User doesn’t have the ability to fetch cohort"}
 
-        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort__community_id': community_id})
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'))
-                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members'))
+        cohort_context_list = []
 
-        return {'success': True, 'cohorts': cohort_list}
+        cohort_list = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
+
+        for cohort in cohort_list:
+            cohort_context = {
+                'cohort_id': cohort.id,
+                'name': cohort.name,
+                'type': cohort.type,
+                'total_members': ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()
+            }
+            cohort_context_list.append(cohort_context)
+
+        return {'success': True, 'cohorts': cohort_context_list}
 
     def remove_member_from_cohort(self, request_body):
         user_id = request_body.get('user_id', "")
@@ -262,6 +291,20 @@ class CohortImpl(CohortManager):
 
         if not is_cm:
             return {'success': False, 'error_message': "User doesn’t have ability to remove member from cohort"}
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort,
+                                                                 {'cohort_id': cohort_id}).prefetch_related('chatroom')
+
+        for chatroom_cohort_instance in chatroom_cohort_filter:
+            chatroom_instance = chatroom_cohort_instance.chatroom
+            chatroom_id = chatroom_instance.id
+
+            try:
+                chatroom_manager = ChatroomImpl(self.get_member_id(), chatroom_id=chatroom_id)
+                chatroom_manager.leave_secret_chatroom(user_id)
+
+            except Exception as e:
+                error_logger.error(e.args)
 
         cohort_member = ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_instance,
                                                                        'user_id': cohort_member_instance})
@@ -322,20 +365,13 @@ class CohortImpl(CohortManager):
                    'member_count': len(members),
                    'rights': rights_list}
 
-        if cohorts.get('type_id'):
+        if cohorts.get('type') in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
             cohorts['type_id'] = cohort_instance.type_id
 
         return {'success': True, 'cohorts': cohorts}
 
     def _remove_rights_from_cohort(self, rights_to_remove, cohort_instance):
-
-        for right_id in rights_to_remove:
-
-            try:
-                right = memberRights.objects.get(pk=right_id)
-                CohortRights.objects.filter(cohort=cohort_instance, member_rights=right).delete()
-            except:
-                error_logger.error(f"rights doesn't exist for cohort {cohort_instance}")
+        CohortRights.objects.filter(cohort=cohort_instance, member_rights_id__in=rights_to_remove).delete()
 
     def _add_rights_to_cohort(self, rights_to_add, cohort_instance):
 
@@ -344,6 +380,8 @@ class CohortImpl(CohortManager):
             try:
                 right = memberRights.objects.get(pk=right_id)
                 CohortRights(cohort=cohort_instance, member_rights=right).save()
+                CohortHelper.give_rights_to_all_cohort_members(cohort_instance, right)
+
             except:
                 error_logger.error(f"rights already exists for cohort {cohort_instance}")
 
@@ -454,7 +492,7 @@ class CohortHelper:
                 rights['auto_approve'] = True
 
             elif right.state == create_secret_chatroom_right['state']:
-                rights['secret_chatroom'] = True
+                rights['create_secret_chatroom'] = True
 
         return rights
 
@@ -519,3 +557,68 @@ class CohortHelper:
 
         members_to_add = list(set(member_ids) - existing_cohort_members)
         CohortHelper.create_cohort_member_instance(cohort_instance=cohort_instance, member_ids=members_to_add)
+
+    @staticmethod
+    def give_rights_to_all_cohort_members(cohort_instance, right):
+
+        cohort_member_filter = {
+            'cohort': cohort_instance
+        }
+
+        community_instance = cohort_instance.community
+
+        cohort_members = ModelUtilities.get_model_filter(CohortMember, cohort_member_filter).select_related("user")
+
+        for cohort_member in cohort_members:
+
+            try:
+                user = cohort_member.user
+                save_member_right(user=user, community=community_instance, right=right)
+
+            except:
+                error_logger.error(
+                    f"member right already exist for user {cohort_member.user} in community {community_instance.id}")
+
+    @staticmethod
+    def remove_rights_to_all_cohort_members(cohort_instance, right_list):
+
+        cohort_member_filter = {
+            'cohort': cohort_instance
+        }
+
+        community_instance = cohort_instance.community
+
+        cohort_members = ModelUtilities.get_model_filter(CohortMember, cohort_member_filter).select_related("user")
+
+        for cohort_member in cohort_members:
+
+            try:
+                user = cohort_member.user
+
+                userMemberRights.objects.filter(user=user, community=community_instance,
+                                                right_id__in=right_list).delete()
+
+                update_member_rights_in_member_engage.delay(community_instance.id, user.id)
+                update_member_rights_in_conversation_engage.delay(community_instance.id, user.id)
+
+            except:
+                error_logger.error(
+                    f"member right does not exist for user {cohort_member.user} in community {community_instance.id}")
+
+    @staticmethod
+    def give_member_rights_when_added_to_cohort(cohort_instance, user_instance):
+
+        community_instance = cohort_instance.community
+
+        existing_rights = set(ModelUtilities.get_model_filter(CohortRights, {'cohort': cohort_instance})
+                              .values_list("member_rights__id", flat=True))
+
+        for right_id in existing_rights:
+            right = memberRights.objects.get(id=right_id)
+
+            try:
+                save_member_right(user=user_instance, community=community_instance, right=right)
+
+            except:
+                error_logger.error(
+                    f"member right already exist for user {user_instance.id} in community {community_instance.id}")

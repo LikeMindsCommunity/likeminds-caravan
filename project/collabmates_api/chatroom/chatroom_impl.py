@@ -518,10 +518,7 @@ class ChatroomImpl(ChatroomManager):
 
         member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance)
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
-        community_membership_expired = MemberCommunityImpl.fetch_members_for_membership_expired(member_list,
-                                                                                                community_instance)
-        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data,
-                                                                         community_membership_expired)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
         return tagging_list
 
@@ -816,7 +813,7 @@ class ChatroomImpl(ChatroomManager):
             card_instance=card_instance
         )
 
-        chatroom_obj.update(event_recordings_data)
+        chatroom_obj.get('chatroom').update(event_recordings_data)
 
         return chatroom_obj
 
@@ -2812,6 +2809,8 @@ class ChatroomHelper:
         is_event_chatroom = card_instance.type == card_types.CARD_EVENT or card_instance.type == \
                             card_types.CARD_PUBLIC_EVENT
 
+        community_admins_list = []
+
         for data in member_filter:
             user_instance = data.member_id
 
@@ -2835,7 +2834,12 @@ class ChatroomHelper:
                     "status": attending_status
                 })
 
+                if data.state == member_states.ADMIN:
+                    community_admins_list.append(user_instance.id)
+
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
+        ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
+            card_instance.id, community_admins_list)
 
     @staticmethod
     def update_unseen_count_for_homescreen_communitites(card_instance, community_instance):
@@ -2918,7 +2922,7 @@ class ChatroomHelper:
         state_filter = collabcardState.objects.filter(card=card_instance, user__in=member_list,
                                                       follow_status=follow_status)
 
-        chatroom_state_dict = {user_id: None for user_id in member_list}
+        chatroom_state_dict = {int(user_id): None for user_id in member_list if str(user_id).isdigit()}
 
         for data in state_filter:
             user_id = data.user_id
@@ -3026,6 +3030,8 @@ class ChatroomHelper:
         bulk_update_list = []
         chatroom_member_list = []
 
+        user_list = [int(user_id) for user_id in user_list if str(user_id).isdigit()]
+
         for community_member in user_list:
 
             if chatroom_state_dict.get(community_member) is not None:
@@ -3058,7 +3064,7 @@ class ChatroomHelper:
             update_event_attendees.delay({
                 "chatroom_id": card_instance.id,
                 "status": True,
-                "user_id": co_host_list
+                "user_id": [int(co_host) for co_host in co_host_list if str(co_host).isdigit()]
             })
 
         send_notification_to_event_co_hosts.delay(co_host_list, card_instance.id,

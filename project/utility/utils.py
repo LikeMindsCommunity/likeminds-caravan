@@ -133,12 +133,20 @@ def generate_private_link(community_instance, promoter_instance, just_send_aj=Fa
 
     """function to generate private links of community"""
 
-    community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
+    distinct_unique_codes_in_db = set(communityExpiryCodes.objects.all().values_list('unique_code', flat=True))
+
+    filter_dict = {
+        'community' : community_instance, 
+        'promoter' : promoter_instance
+    }
+
+    community_expire_filter = ModelUtilities.get_model_filter(communityExpiryCodes, filter_dict).order_by('-id')
+
     unique_code_list = list(community_expire_filter.values_list('unique_code', flat=True))
 
     if not unique_code_list:
 
-        unique_code = generate_random(unique_code_list)
+        unique_code = generate_random(distinct_unique_codes_in_db)
         expireInstance = communityExpiryCodes()
         expireInstance.community = community_instance
         expireInstance.promoter = promoter_instance
@@ -159,7 +167,7 @@ def generate_private_link(community_instance, promoter_instance, just_send_aj=Fa
         last_created_time = community_expire_filter[0].created_at
 
         if current_time - last_created_time > 3600:
-            unique_code = generate_random(unique_code_list)
+            unique_code = generate_random(distinct_unique_codes_in_db)
             expireInstance = communityExpiryCodes()
             expireInstance.community = community_instance
             expireInstance.promoter = promoter_instance
@@ -183,7 +191,7 @@ def generate_random(unique_code_list):
 
   '''function to generate a random number'''
 
-  randInt = randint(1, 100000)
+  randInt = randint(1, 1000000)
 
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
@@ -1243,7 +1251,10 @@ def is_version_code_supported_for_intro_room(version_code, platform_code):
     except:
         return False
     
-    if platform_code in INTRO_ROOM_V2_VERSION_CODE_DICT.keys():
+    if platform_code == 'web':
+        return True
+    
+    elif platform_code in INTRO_ROOM_V2_VERSION_CODE_DICT.keys():
         
         if version_code >= INTRO_ROOM_V2_VERSION_CODE_DICT[platform_code]:
 

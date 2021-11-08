@@ -20,7 +20,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
     userEmails, ContentDownloadSettings
 
-from collabmates_api.branch import create_community_feed_url, create_community_otl_url
+from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
@@ -135,7 +135,7 @@ class CommunityImpl(CommunityManager):
     def _fetch_queryset_of_community_chatrooms(self, intro_room_settings_enabled, version_code, platform_code):
 
         if is_version_code_supported_for_intro_room(version_code, platform_code):
-            
+
             if not intro_room_settings_enabled:
                 return Collabcard.objects.filter(community=self.get_community_id(),
                                                 is_pending=False,
@@ -227,15 +227,6 @@ class CommunityImpl(CommunityManager):
 
             return response_context
 
-        user_instance = CommunityHelper.fetch_user_instance(self.get_member_id())
-
-        if (client_type == "an" or client_type == "ios") and not user_instance:
-            response_context['error_message'] = "Invalid user_id"
-            response_context['response_code'] = 400
-            response_context['status'] = False
-
-            return response_context
-
         community_member = MemberCommunityImpl(self.get_member_id(), self.get_community_id())
         state = community_member.community_member_state()
         community_instance = CommunityHelper.fetch_community_instance(self.get_community_id())
@@ -301,8 +292,8 @@ class CommunityImpl(CommunityManager):
         if intro_room_setting_filter:
             intro_room_setting_enabled = True
 
-        community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms(intro_room_setting_enabled, 
-                                                                                self.get_version_code(), 
+        community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms(intro_room_setting_enabled,
+                                                                                self.get_version_code(),
                                                                                 self.get_request_platform())
 
         response_context = dict()
@@ -656,6 +647,13 @@ class CommunityImpl(CommunityManager):
         private_link = create_community_otl_url(community_instance, payment_id, shared_by)
 
         return {'success': True, 'private_link': private_link}
+
+    def fetch_payment_page_url(self, payment_page_id):
+        community_instance = Community.get_community_or_raise_exception(self.get_community_id())
+
+        payment_page_link = create_payment_page_url(community_instance, payment_page_id)
+
+        return {'success': True, 'payment_page_link': payment_page_link}
 
     def fetch_discoverable_communities(self, page, page_size):
         communities = Community.objects.filter(is_discoverable=True).order_by("id")
@@ -1381,12 +1379,15 @@ class CommunityHelper:
         engage_list = []
 
         for instance in followed_filter:
-
-            engage_instance = conversationEngage.create_instance_for_bulk_create(community_instance, instance.card,
-                                                                                 user_instance,
-                                                                                 created_at=instance.created_at,
-                                                                                 updated_at=instance.updated_at)
-            engage_list.append(engage_instance)
+            engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'community': community_instance,
+                                                                                 'card': instance.card,
+                                                                                 'user': user_instance})
+            if not engage_filter:
+                engage_instance = conversationEngage.create_instance_for_bulk_create(community_instance, instance.card,
+                                                                                     user_instance,
+                                                                                     created_at=instance.created_at,
+                                                                                     updated_at=instance.updated_at)
+                engage_list.append(engage_instance)
 
         ModelUtilities.bulk_create_instances(conversationEngage, engage_list)
 
@@ -1647,13 +1648,11 @@ class CommunityHelper:
 
         if is_aj_present:
             aj_instance = is_aj_present[0]
-            is_aj_valid = CommunityHelper.is_aj_valid(aj_instance)
 
-            if is_aj_valid:
-                res['success'] = True
-                res['community_id'] = aj_instance.community.id
-                res['shared_by'] = aj_instance.promoter.id
-                return res
+            res['success'] = True
+            res['community_id'] = aj_instance.community.id
+            res['shared_by'] = aj_instance.promoter.id
+            return res
 
         res['error_message'] = 'Invalid aj'
         return res

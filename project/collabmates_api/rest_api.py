@@ -24,7 +24,8 @@ from utility.states import (card_types, question_states, member_states, poll_typ
 from utility.utils import (get_time_text, generate_private_link, eligibility_count,
                            get_members_count_in_community)
 from django.conf import settings
-from .user_moderation_rights import check_admin_approve_right, get_saved_member_rights_list, check_all_member_rights
+from .user_moderation_rights import (check_admin_approve_right, get_saved_member_rights_list, check_all_member_rights,
+                                     check_all_manager_rights)
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from .static_files import *
@@ -144,7 +145,7 @@ class YourCommunitySerializer(serializers.ModelSerializer):
         data['member_right_states'] = json.loads(community_engage.rights_list) if community_engage.rights_list else []
 
         data['community_setting_rights'] = get_saved_member_rights_list(
-            check_all_member_rights(community=community_engage.community_id), show_dm_right=True, version_code=773)
+            check_all_member_rights(community=community_engage.community_id), show_dm_right=True)
 
         actions = self.get_home_screen_community_actions(community_engage.community_id)
 
@@ -206,7 +207,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         for field in fields:
 
             data['community_setting_rights'] = get_saved_member_rights_list(
-                check_all_member_rights(community=community.id), show_dm_right=True, version_code=773)
+                check_all_member_rights(community=community.id), show_dm_right=True)
 
             if field.field_name == "image_url":
                 if community.image_link:
@@ -1151,8 +1152,17 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                     preview = get_preview_for_url(member_id=self.current_user_id,
                                                   preview_url=data['internal_link'],
                                                   )
+
+                    chatroom_preview = preview['chatroom']
+
+                    if chatroom_preview.get('id'):
+                        chatroom_preview['conversations_unread'] = fetch_conversations_unread(chatroom_preview['id'],
+                                                                                              self.current_user_id)
+                    preview['chatroom'] = chatroom_preview
+
                     if preview:
                         data['preview'] = preview
+
                 except:
                     data['preview'] = None
                 del data['internal_link']
@@ -1269,4 +1279,32 @@ class CommunityToastV1Serializer(serializers.ModelSerializer):
     class Meta:
         model = CommunityToastV1
         fields = ['id', 'text']
+
+
+class CohortSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Cohort
+        fields = ('id', 'name', 'community_id', 'type', 'type_id')
+
+    def __init__(self, *args, **kwargs):
+        super(CohortSerializer, self).__init__(*args, **kwargs)
+
+    def to_representation(self, cohort):
+        data = super(CohortSerializer, self).to_representation(cohort)
+
+        data['member_ids'] = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).values_list(
+            'user_id', flat=True))
+
+        data['rights'] = list(ModelUtilities.get_model_filter(CohortRights, {'cohort_id': cohort.id}).values_list(
+            'member_rights_id', flat=True))
+
+        fields = self._readable_fields
+
+        for field in fields:
+
+            if data[field.field_name] is None:
+                del data[field.field_name]
+
+        return data
 

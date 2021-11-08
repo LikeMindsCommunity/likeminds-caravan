@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from external_services.mixpanel.events import MixpanelEvents
+from external_services.otp.otp_api_client import OTPApiClient
 from togther.models import *
 from utility.string_utilities import StringUtilities
 from random import randint
@@ -364,7 +365,7 @@ def my_chatrooms_version_1(request):
                                                                      dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                                      intro_room_community_list=intro_room_community_list)
 
-    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time, version_code, platform_code, 
+    active_chatroom_count = get_active_my_chatrooms_count(member_id, current_time, version_code, platform_code,
                                                           consider_dm_chatrooms=consider_dm_chatrooms,
                                                           dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                           intro_room_community_list=intro_room_community_list)
@@ -2708,7 +2709,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     if card_type == card_types.CARD_PURPOSE:
         card.member_can_message = False
-    
+
     card.image_count = res.get('image_count', 0)
     card.pdf_count = res.get('pdf_count', 0)
 
@@ -4738,14 +4739,6 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         actions.append(action)
 
-    if card_status['follow_status']:
-
-        if card_status["active"]:
-            actions.append(mark_inactive)
-
-        else:
-            actions.append(mark_active)
-
     if promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
@@ -5304,7 +5297,8 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     if card_instance.type != card_types.CARD_MASTER_INTRO:
         if card_instance.is_secret:
             secret_room_participants = json.loads(card_instance.secret_chatroom_participants)
-            context['participant_count'] = len(secret_room_participants)
+            context['participant_count'] = len(get_members_based_on_user_list_query(secret_room_participants,
+                                                                                    card_instance.community_id))
         else:
             context['participant_count'] = collabcardState.objects.filter(follow_status=True,
                                                                           card=card_instance, remove=None,
@@ -7825,75 +7819,81 @@ def generate_otp(request):
 
     if retry == '1':
         retry = True
+
     else:
         retry = False
 
-    country_code_msg = "\n\n country code %s" % country_code
-    info_logger.info(country_code_msg)
-
-    info_logger.info("mobile number")
-    info_logger.info(mobile_no)
-
-    info_logger.info("user_id")
-    info_logger.info(user_id)
+    info_logger.info(f'Country Code: {country_code}, Mobile Number: {mobile_no}, User ID: {user_id}')
 
     phone_no = str(country_code) + str(mobile_no)
     context = {}
+
     if mobile_no:
         try:
             mobile_no = int(mobile_no)
+
         except:
             context = get_error_context(False, "special characters error")
             info_logger.info(context)
             return JsonResponse(context)
 
         international = False
+
         if country_code != '91':
             international = True
 
         if retry:
-            context = send_retry_otp(phone_no)
-        else:
-            context = send_otp_on_mobile(phone_no, international=international)
-        backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
+            otp_manager = OTPApiClient()
+            context = otp_manager.send_retry_otp_via_msg_91(phone_no)
 
-        if not backup_filter.exists():
-            instance = mobileBackup()
-            instance.mobile_no = mobile_no
-            instance.country_code = country_code
-            instance.created_at = time.time()
-            instance.save()
+        else:
+            otp_manager = OTPApiClient()
+            context = otp_manager.send_otp_via_gupshup(phone_no, international)
+
+        backup_filter = ModelUtilities.get_model_filter(mobileBackup, {'mobile_no': mobile_no})
+
+        if not backup_filter:
+            backup_info = {'mobile_no': mobile_no, 'country_code': country_code}
+            mobileBackup.create_instance(backup_info)
 
     # user wants to merge the account
     if user_id:
-        mobile_filter = userMobiles.objects.filter(user_id=user_id)
-        for instance in mobile_filter:
-            phone_no = str(instance.country_code) + str(instance.mobile_no)
-
-            international = False
-            if str(instance.country_code) != '91':
-                international = True
-
-            if retry:
-                context = send_retry_otp(phone_no)
-            else:
-                context = send_otp_on_mobile(phone_no, international=international)
-
-            info_logger.info(instance.user.id)
-            info_logger.info(context)
-
-        email_filter = userEmails.objects.filter(user_id=user_id)
-
-        for instance in email_filter:
-            email = instance.email
-            context = send_otp_on_email(email)
-            info_logger.info(context)
-            info_logger.info(instance.user.id)
-            info_logger.info(email)
+        send_otp_on_user_mobiles(user_id, retry)
+        send_otp_on_user_emails(user_id)
 
         context['success'] = True
 
     return JsonResponse(context)
+
+
+def send_otp_on_user_emails(user_id):
+    email_filter = ModelUtilities.get_model_filter(userEmails, {'user_id': user_id})
+
+    for instance in email_filter:
+        email = instance.email
+        context = send_otp_on_email(email)
+        info_logger.info(f'OTP Context: {context}, User ID: {instance.user.id}, E-Mail: {email}')
+
+def send_otp_on_user_mobiles(user_id, retry):
+    mobile_filter = ModelUtilities.get_model_filter(userMobiles, {'user_id': user_id})
+
+    for instance in mobile_filter:
+        phone_no = str(instance.country_code) + str(instance.mobile_no)
+
+        international = False
+        if str(instance.country_code) != '91':
+            international = True
+
+        if retry:
+            otp_manager = OTPApiClient()
+            context = otp_manager.send_retry_otp_via_msg_91(phone_no)
+
+        else:
+            otp_manager = OTPApiClient()
+            context = otp_manager.send_otp_via_gupshup(phone_no, international)
+
+        info_logger.info(f'User ID: {instance.user.id}')
+        info_logger.info(f'OTP Context: {context}')
 
 
 def verify_otp(request):
@@ -7901,18 +7901,7 @@ def verify_otp(request):
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
     otp = request.GET.get('otp')
-
-    info_logger.info("country code")
-    info_logger.info(country_code)
-
-    info_logger.info("mobile number")
-    info_logger.info(mobile_no)
-
-    info_logger.info("user_id")
-    info_logger.info(user_id)
-
-    info_logger.info("otp")
-    info_logger.info(otp)
+    info_logger.info(f'Country Code: {country_code}, Mobile Number: {mobile_no}, User ID: {user_id}, OTP: {otp}')
 
     lm_mobile_no_list = ["9458668721", "9467796637"]
 
@@ -7972,8 +7961,9 @@ def verify_otp(request):
         if country_code != '91':
             international = True
 
-        verified = verify_otp_on_mobile(phone_no, otp, international=international)
-        verified_msg = verify_retry_otp(phone_no, otp)
+        otp_manager = OTPApiClient()
+        verified = otp_manager.verify_otp_via_gupshup(phone_no, otp, international)
+        verified_msg = otp_manager.verify_retry_otp_via_msg_91(phone_no, otp)
         context['success'] = False
 
         if verified['success'] or verified_msg['success']:
@@ -8016,8 +8006,9 @@ def verify_otp(request):
             if str(instance.country_code) != '91':
                 international = True
 
-            context = verify_otp_on_mobile(phone_no, otp, international=international)
-            context_msg = verify_retry_otp(phone_no, otp)
+            otp_manager = OTPApiClient()
+            context = otp_manager.verify_otp_via_gupshup(phone_no, otp, international)
+            context_msg = otp_manager.verify_retry_otp_via_msg_91(phone_no, otp)
 
             if context['success'] or context_msg['success']:
                 login(request, user=mobile_filter[0].user, backend="django.contrib.auth.backends.ModelBackend")
@@ -8047,82 +8038,6 @@ def verify_otp(request):
         return JsonResponse(context)
 
     return JsonResponse(context)
-
-
-def send_otp_on_mobile(phone_no, international=False):
-    key = settings.GHUPSHUP_KEY
-    context = {}
-    success = False
-
-    if not international:
-        generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
-            phone_no, key)
-        response = rqst.get(generate_url)
-    else:
-        inter_auth = settings.INTERNATIONAL_GHUPSHAP
-        ghupshap_user_id = inter_auth['user_id']
-        password = inter_auth['password']
-        phone_no = "00" + str(phone_no)
-        msg = inter_auth['msg']
-        generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC""" % (
-            str(ghupshap_user_id), str(password), str(phone_no), str(msg))
-        response = rqst.get(generate_url)
-
-    info_logger.info("Gupshap mobile generate otp response")
-    info_logger.info(response.text)
-
-    if response.status_code == 200:
-        success = True
-        response = response.text
-        response_list = response.split("|")
-        if response_list[0].strip() == "error":
-            success = False
-
-    context['success'] = success
-    if not success:
-        context['error_message'] = response
-
-    info_logger.info("api/generate_otp mobile response")
-    info_logger.info(context)
-    info_logger.info("\n\n")
-    return context
-
-
-def verify_otp_on_mobile(phone_no, otp, international=False):
-    key = settings.GHUPSHUP_KEY
-
-    if not international:
-        verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s""" % (
-            str(phone_no), key, str(otp))
-        response = rqst.get(verify_url)
-    else:
-        inter_auth = settings.INTERNATIONAL_GHUPSHAP
-        ghupshap_user_id = inter_auth['user_id']
-        password = inter_auth['password']
-        phone_no = "00" + str(phone_no)
-        verify_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&otp_code=%s""" % (
-            str(ghupshap_user_id), str(password), str(phone_no), str(otp))
-        response = rqst.get(verify_url)
-
-    info_logger.info("Ghupshap verify otp response")
-    info_logger.info(response.text)
-    context = {}
-    success = False
-
-    if response.status_code == 200:
-        success = True
-        response = response.text
-        response_list = response.split("|")
-        if response_list[0].strip() == "error":
-            success = False
-
-    context['success'] = success
-    if not success:
-        context['error_message'] = "Incorrect OTP"
-    info_logger.info("api/verify_otp mobile response")
-    info_logger.info(context)
-    info_logger.info("\n\n")
-    return context
 
 
 def send_otp_on_email(email):
@@ -9721,7 +9636,7 @@ def push_report_v1(request):
                 return JsonResponse({'success': False, "error_message": "you have no right to report chatroom"})
 
             collabcard_instance = ModelUtilities.get_model_instance_or_none(Collabcard, collabcard_id)
-            
+
             if not collabcard_instance:
                 return JsonResponse(get_error_context(False, "invalid collabcard_id"))
 
@@ -11571,6 +11486,14 @@ def fetch_community_setting_rights(request):
     user_id = request.GET.get('user_id', None)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
+    can_show = False
+
+    if RequestUtilities.is_request_android(request) and version_code >= DM_CHATROOMS_VERSION_CODE_ANDROID:
+        can_show = True
+
+    if RequestUtilities.is_request_ios(request) and version_code >= DM_CHATROOMS_VERSION_CODE_IOS:
+        can_show = True
+
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context)
@@ -11594,7 +11517,7 @@ def fetch_community_setting_rights(request):
     if admin.exists():
         user_rights = check_all_member_rights(community=community_instance)
         # fetching all the rights of the community
-        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=True, version_code=version_code)
+        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=can_show)
         return JsonResponse({"rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")
@@ -11723,7 +11646,10 @@ class SyncChatrooms(APIView):
 
         can_add_dm_chatrooms = False
 
-        if RequestUtilities.is_request_android(request) and (version_code >= DM_CHATROOMS_VERSION_CODE):
+        if RequestUtilities.is_request_android(request) and version_code >= DM_CHATROOMS_VERSION_CODE_ANDROID:
+            can_add_dm_chatrooms = True
+
+        if RequestUtilities.is_request_ios(request) and version_code >= DM_CHATROOMS_VERSION_CODE_IOS:
             can_add_dm_chatrooms = True
 
         query_params = request.query_params
@@ -11931,7 +11857,6 @@ class SyncChatrooms(APIView):
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue
 
-
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 
             filter_dict = {
@@ -11958,7 +11883,6 @@ class SyncChatrooms(APIView):
             )
 
             chatroom.update(event_recordings_data)
-
 
             chatrooms.append(chatroom)
 
@@ -12403,7 +12327,7 @@ class SyncChatroomsDiff(APIView):
 
             if previous_app_version < EVENT_ATTACHMENT_VERSION_CODE_AN <= version_code:
                 attachment_chatroom_list = self._get_event_recordings_of_user(user_instance)
-            
+
             if previous_app_version < VIDEO_SYNC_TRIGGER_VERSION_CODE_AN <= version_code:
                 video_chatroom_list = self._get_video_chatrooms_of_user(user_instance)
 
@@ -12950,6 +12874,10 @@ class SyncConversation(APIView):
                                                                    'preview_url': conversation[13],
                                                                    'preview_object': conversation_context['preview'],
                                                                    'conversation_id': conversation_context['id']})
+
+                    conversation_context['preview']['chatroom']['conversations_unread'] = fetch_conversations_unread(
+                        preview_chatroom_id, member_id)
+
                 elif conversation[26] and \
                         (conversation[17] == "community" or conversation[17] == "directory"):
 
@@ -14144,9 +14072,9 @@ class SyncCommunities(APIView):
         if not member_id:
             context = get_error_context(False, "send member id in headers")
             return JsonResponse(context)
-        
+
         query_params = request.query_params
-        
+
         page = query_params.get('page', 1)
         paginate_by = query_params.get('page_size', 200)
         last_updated = query_params.get('last_updated', 0)
@@ -14161,7 +14089,7 @@ class SyncCommunities(APIView):
 
         try:
             page = int(page)
-        
+
         except:
             context = get_error_context(False, "invalid page value")
             return JsonResponse(context)
@@ -14181,7 +14109,7 @@ class SyncCommunities(APIView):
 
             if not community_obj:
                 return JsonResponse(get_error_context(False, "Invalid community_id"))
-            
+
             engage_filter = Member_Engage.objects.filter(member_id=member_id, community_id=community_id
                                                          ).select_related('community_id')
 
@@ -14193,7 +14121,7 @@ class SyncCommunities(APIView):
             if last_updated:
                 engage_filter = Member_Engage.objects.filter(member_id=member_id, updated_at__gt=last_updated
                                                              ).select_related('community_id').order_by('updated_at')
-            
+
             else:
                 engage_filter = Member_Engage.objects.filter(member_id=member_id
                                                              ).select_related('community_id').order_by('updated_at')
@@ -14223,16 +14151,18 @@ def fetch_community_of_chatroom(chatroom_id, member_id, last_updated=0):
     if not community_instance:
         return {'communities': []}
 
+    context = {"current_user_id": member_id}
+
     engage_filter = ModelUtilities.get_model_filter(Member_Engage, {'community_id': community_instance,
                                                                     'member_id': member_id})
     if engage_filter.exists():
         last_updated_filter = engage_filter.filter(updated_at__gt=last_updated)
 
+        temp = YourCommunitySerializer(engage_filter, context=context, many=True)
+
         if last_updated_filter:
-            temp = CommunitySerializerV1([last_updated_filter[0].community_id], context={"current_user_id": member_id},
-                                         many=True)
             community_context = temp.data
-            chatroom_context = {'communities': community_context, 'last_updated':last_updated_filter[0].updated_at}
+            chatroom_context = {'communities': community_context, 'last_updated': last_updated_filter[0].updated_at}
 
             return chatroom_context
 
@@ -14242,10 +14172,20 @@ def fetch_community_of_chatroom(chatroom_id, member_id, last_updated=0):
         state_filter = Collabcard.objects.filter(id=chatroom_id).select_related('community')
 
         if state_filter.exists():
-            temp = CommunitySerializerV1([state_filter[0].community], context={"current_user_id": member_id},
-                                         many=True)
+            temp = CommunitySerializerV1([state_filter[0].community], context=context, many=True)
+            community_context = []
 
-            chatroom_context = {'communities': temp.data}
+            member_state_filter = ModelUtilities.get_model_filter(Members,
+                                                                  {"community_id": state_filter[0].community,
+                                                                   "member_id": member_id})
+
+            if member_state_filter:
+
+                for community_ctx in temp.data:
+                    community_ctx['member_state'] = member_state_filter[0].state
+                    community_context.append(community_ctx)
+
+            chatroom_context = {'communities': community_context}
 
         else:
             chatroom_context = {'communities': []}

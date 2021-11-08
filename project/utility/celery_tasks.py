@@ -27,7 +27,7 @@ from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVER
     CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY, \
-    SUBSCRIPTION_FETCH_EVENT_PLAN, COMMUNITY_PUBLIC_URL, CONVERSATIONS_UNREAD_USER_CHATROOM_KEY
+    SUBSCRIPTION_FETCH_EVENT_PLAN, COMMUNITY_PUBLIC_URL, CONVERSATIONS_UNREAD_USER_CHATROOM_KEY, ONE_DAY_HOURS
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
@@ -1573,7 +1573,13 @@ def member_left_removed_dm_chatroom(user_id, community_id, removed_members_id, r
         # Update ConversationEngage
         conversation_engage_instance = conversation_engage_instances.filter(card=dm_chatroom)
 
-        conversation_engage_instance.update(last_conversation=card_answer_instance)
+        card_created_at = TimeUtilities.convert_milliseconds_to_sec(card_answer_instance.last_updated)
+
+        conversation_engage_instance.update(last_conversation=card_answer_instance,
+                                            updated_at=card_created_at)
+
+        ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances}).update(
+            expiry_time=TimeUtilities.add_hours_to_epoch_time(card_created_at, ONE_DAY_HOURS))
 
         conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count')+1)
 
@@ -1633,7 +1639,13 @@ def cm_removed_dm_chatroom(user_id, community_id):
         # Update ConversationEngage
         conversation_engage_instance = conversation_engage_instances.filter(card=dm_chatroom)
 
-        conversation_engage_instance.update(last_conversation=card_answer_instance)
+        card_created_at = TimeUtilities.convert_milliseconds_to_sec(card_answer_instance.last_updated)
+
+        conversation_engage_instance.update(last_conversation=card_answer_instance,
+                                            updated_at=card_created_at)
+
+        ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances}).update(
+            expiry_time=TimeUtilities.add_hours_to_epoch_time(card_created_at, ONE_DAY_HOURS))
 
         conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count') + 1)
 
@@ -1708,7 +1720,13 @@ def member_becomes_cm_dm_chatroom(user_id, community_id):
             # Update ConversationEngage
             conversation_engage_instance = conversation_engage_instances.filter(card=dm_chatroom)
 
-            conversation_engage_instance.update(last_conversation=card_answer_instance)
+            card_created_at = TimeUtilities.convert_milliseconds_to_sec(card_answer_instance.last_updated)
+
+            conversation_engage_instance.update(last_conversation=card_answer_instance,
+                                                updated_at=card_created_at)
+
+            ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances}).update(
+                expiry_time=TimeUtilities.add_hours_to_epoch_time(card_created_at, ONE_DAY_HOURS))
 
             conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count') + 1)
 
