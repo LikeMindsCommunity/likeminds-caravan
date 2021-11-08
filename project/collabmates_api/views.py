@@ -10816,7 +10816,9 @@ def transfer_community_ownership(request):
             if str(instance.country_code) != '91':
                 international = True
 
-            context = verify_otp_on_mobile(phone_no, otp, international=international)
+            otp_manager = OTPApiClient()
+            context = otp_manager.verify_otp_via_gupshup(phone_no, otp, international)
+
             if context['success']:
                 break
 
