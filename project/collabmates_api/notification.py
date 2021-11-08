@@ -1285,6 +1285,9 @@ def get_custom_data_for_new_conversation_created(user_id):
 
         chatroom_name = card_instance.header
 
+        if not chatroom_name:
+            chatroom_name = card_instance.title
+
         if conversation.unseen_count > 1:
             chatroom_name = chatroom_name + """ (%s messages)""" % (str(conversation.unseen_count))
 
