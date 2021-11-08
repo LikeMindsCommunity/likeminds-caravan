@@ -10291,6 +10291,21 @@ def edit_conversation(request):
     member_id = get_member_id_from_headers(request)
     conversation_id = request.POST.get('conversation_id', None)
     edited_answer = request.POST.get('text', None)
+    share_link = request.POST.get('share_link', None)
+    og_tags = request.POST.get('og_tags', None)
+
+    if share_link:
+        og_tags_payload = {
+            'share_link': share_link
+        } 
+    
+    elif og_tags:
+        og_tags_payload = {
+            'og_tags': og_tags
+        }
+
+    else:
+        og_tags_payload = {}
 
     if not conversation_id:
         context = get_error_context(False, "send the conversation_id in post params")
@@ -10309,10 +10324,16 @@ def edit_conversation(request):
     if conversation.is_deleted:
         context = get_error_context(False, "Cannot edit deleted conversation")
         return JsonResponse(context)
+
     elif int(conversation.user.id) == int(member_id):
+
+        from collabmates_api.conversation.conversation_impl import ConversationHelper
+
+        og_tags = ConversationHelper.fetch_og_tags(og_tags_payload)
+
         update_models_for_syncing_apis(SyncTypes.CONVERSATION,
                                        {'id': conversation_id},
-                                       {'answer': edited_answer, 'is_edited': True})
+                                       {'answer': edited_answer, 'is_edited': True, 'og_tags': og_tags})
         conversation.refresh_from_db()
 
         ElasticSearchSync.update_conversations.delay([conversation_id])
