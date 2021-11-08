@@ -45,7 +45,7 @@ class CohortImpl(CohortManager):
         if type not in cohort_type_list:
             return {'success': False, 'error_message': "Invalid Cohort Type"}
 
-        if type in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN] and not type_id:
+        if type == cohort_types.SUBSCRIPTION_PLAN and not type_id:
             return {'success': False, 'error_message': "Invalid Type ID"}
 
         if not name:
@@ -67,6 +67,18 @@ class CohortImpl(CohortManager):
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_id,
                                                                   'member_id': user_instance})
 
+        if type in [cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]:
+
+            filter_dict = {
+                'type': type,
+                'community_id': community_id
+            }
+
+            cohort_filter = ModelUtilities.get_model_filter(Cohort, filter_dict)
+
+            if cohort_filter:
+                return {'success': False, 'error_message': "This type of cohort already exists in community"}
+
         if not member_filter:
             return {'success': False, 'error_message': "User is not a member of community"}
 
@@ -82,7 +94,7 @@ class CohortImpl(CohortManager):
             'type': type,
         }
 
-        if type in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
+        if type == cohort_types.SUBSCRIPTION_PLAN:
             cohort_info['type_id'] = type_id
 
         cohort_instance = Cohort.create_instance(cohort_info)
@@ -149,7 +161,7 @@ class CohortImpl(CohortManager):
         if type not in cohort_type_list:
             return {'success': False, 'error_message': "Invalid Cohort Type"}
 
-        if type in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN] and not type_id:
+        if type == cohort_types.SUBSCRIPTION_PLAN and not type_id:
             return {'success': False, 'error_message': "Invalid Type ID"}
 
         if cohort_id and not name:
@@ -162,6 +174,9 @@ class CohortImpl(CohortManager):
 
             if not type_id:
                 return {'success': False, 'error_message': "Invalid type_id"}
+
+            if type == cohort_types.SUBSCRIPTION_EXPIRED_PLAN:
+                type_id = None
 
             cohort_filter = ModelUtilities.get_model_filter(Cohort, {'type_id': type_id, 'type': type})
 
@@ -534,7 +549,7 @@ class CohortHelper:
                                                                         cohort_types.SUBSCRIPTION_EXPIRED_PLAN],
                                                                         'user_id__in': member_ids})
 
-        if len(cohort_member_type_filter) and cohort_instance.type_id:
+        if len(cohort_member_type_filter):
             # Remove existing plans cohort
             cohort_member_type_filter.delete()
 

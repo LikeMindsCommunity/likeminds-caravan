@@ -506,8 +506,8 @@ ATTENDEES_FILTER_NAME = "attendees"
 CO_HOSTS_FILTER_NAME = "co_hosts"
 
 ALL_MEMBER_COHORT_TEXT = "All member group"
-SUBSCRIPTION_COHORT_NAME = 'Subscription Plan - {}'
-SUBSCRIPTION_EXPIRED_COHORT_NAME = 'Subscription Expired Plan - {}'
+SUBSCRIPTION_COHORT_NAME = "Subscription Plan - {}"
+SUBSCRIPTION_EXPIRED_COHORT_NAME = "Subscription Expired Plan"
 
 SUBSCRIPTION_PLAN_NAMES = {
     "days": {
