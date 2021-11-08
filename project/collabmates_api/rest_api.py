@@ -182,7 +182,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         fields = ('id', 'name', 'purpose', 'about', 'image_url', 'members_count',
                   'type', 'sub_type', 'is_paid', 'auto_approval', 'grace_period',
                   'is_discoverable', 'website_url', "community_category", "referral_enabled",
-                  "dashboard_link")
+                  "dashboard_link", "updated_at")
 
     def __init__(self, *args, **kwargs):
         super(CommunitySerializerV1, self).__init__(*args, **kwargs)
