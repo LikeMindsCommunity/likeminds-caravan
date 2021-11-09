@@ -172,7 +172,7 @@ class CohortImpl(CohortManager):
 
         if not cohort_instance:
 
-            if not type_id:
+            if not type_id and type == cohort_types.SUBSCRIPTION_PLAN:
                 return {'success': False, 'error_message': "Invalid type_id"}
 
             if type == cohort_types.SUBSCRIPTION_EXPIRED_PLAN:
