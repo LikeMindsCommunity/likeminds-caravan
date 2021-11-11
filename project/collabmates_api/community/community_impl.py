@@ -31,7 +31,7 @@ from external_services.mixpanel.events import MixpanelEvents
 
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
-from collabmates_api.cohort.cohort_impl import CohortHelper
+from collabmates_api.cohort.cohort_impl import CohortHelper, CohortImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types
@@ -621,6 +621,15 @@ class CommunityImpl(CommunityManager):
             CohortHelper.add_all_member_to_cohort(community_instance.id, [user_instance.id])
 
             self._send_join_email_to_member(user_instance.id, community_instance.id)
+
+            cohort_manager = CohortImpl(member_id=user_instance.id)
+
+            member_cohort_response = cohort_manager.add_user_to_subscription_plans_when_membership_approved(
+                community_id=community_instance.id
+            )
+
+            if member_cohort_response.get('error_message'):
+                info_logger.info(f'Unable to add member to respective subscription plan cohort: {member_cohort_response}')
 
         else:
             self._decline_community_join_request(community_instance, user_instance)

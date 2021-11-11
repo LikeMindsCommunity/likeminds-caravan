@@ -5,6 +5,7 @@ from celery import shared_task
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
+from utility.time_utilities import TimeUtilities
 from ..chatroom.chatroom_impl import ChatroomImpl
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
@@ -14,6 +15,7 @@ from ..rest_api import CohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
+from ..user.user_impl import UserImpl, UserHelper
 from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list, check_history_exists, \
     check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
     update_member_rights_in_member_engage
@@ -384,6 +386,41 @@ class CohortImpl(CohortManager):
             cohorts['type_id'] = cohort_instance.type_id
 
         return {'success': True, 'cohorts': cohorts}
+
+    def add_user_to_subscription_plans_when_membership_approved(self, community_id):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid User ID"}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid Community ID"}
+
+        subscriptions = UserHelper.fetch_user_subscriptions(self.get_member_id(), community_id=community_id)
+
+        if not subscriptions:
+            return {'success': False, 'error_message': "User has no subscription for this community"}
+
+        for subscription in subscriptions:
+            valid_till = subscription.get('valid_till')
+            grace_period = subscription.get('grace_period')
+            current_time = TimeUtilities.current_time_in_milliseconds()
+
+            if subscription.get('plan'):
+
+                if current_time > valid_till + grace_period:
+
+                    request_body = {
+                        'member_ids': [int(self.get_member_id())],
+                        'type': cohort_types.SUBSCRIPTION_PLAN,
+                        'type_id': subscription['plan'].get('plan_id')
+                    }
+
+                    self.update_cohort(request_body)
+
+        return {'success': True}
 
     def _remove_rights_from_cohort(self, rights_to_remove, cohort_instance):
         CohortRights.objects.filter(cohort=cohort_instance, member_rights_id__in=rights_to_remove).delete()
