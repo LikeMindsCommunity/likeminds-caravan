@@ -1417,7 +1417,7 @@ class ConversationImpl(ConversationManager):
                 unread_count = fetch_conversations_unread(conversation.preview_chatroom.id, self.get_member_id())
 
                 if unread_count != 0:
-                    total_unread_count += unread_count
+                    total_unread_count += 1
 
         return total_unread_count
 
