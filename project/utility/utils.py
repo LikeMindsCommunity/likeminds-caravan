@@ -1,5 +1,8 @@
 # file containing common functions of both android and web
 from __future__ import absolute_import, unicode_literals
+
+from urllib.parse import urlparse
+
 from celery import shared_task
 from bs4 import BeautifulSoup
 import requests
@@ -281,12 +284,8 @@ def decode_meta_from_url(url):
     '''function to take meta tags from url'''
 
     try:
-        is_valid_https=url.find("https://")
-
-        if is_valid_https == -1:
-            url="https://"+url
-
-        r = requests.get(url)
+        validated_url = validate_url_scheme(url)
+        r = requests.get(validated_url)
 
         soup = BeautifulSoup(r.text,'html.parser')
         title = soup.find("meta", property="og:title")
@@ -296,19 +295,19 @@ def decode_meta_from_url(url):
 
         try:
             og_tags['title']=title['content']
-        
+
         except:
             pass
 
         try:
             og_tags['image'] = image['content']
-        
+
         except:
             pass
 
         try:
             og_tags['description'] = description['content']
-        
+
         except:
             pass
         og_tags['url']=url
@@ -320,6 +319,39 @@ def decode_meta_from_url(url):
 
     return og_tags
 
+
+def validate_url_scheme(requested_url: str) -> str:
+    small_case_url = requested_url.lower()
+    url_scheme_http = 'http'
+    url_scheme_https = 'https'
+
+    if check_url_scheme_https(small_case_url):
+        return validate_url(requested_url, 'https')
+
+    if check_url_scheme_http(small_case_url):
+        return validate_url(requested_url, 'http')
+
+    return requested_url
+
+
+def check_url_scheme_https(small_case_url: str) -> bool:
+    parsed_url = urlparse(small_case_url)
+
+    if parsed_url.scheme == 'https':
+        return True
+    return False
+
+def check_url_scheme_http(small_case_url: str) -> bool:
+    parsed_url = urlparse(small_case_url)
+
+    if parsed_url.scheme == 'http':
+        return True
+    return False
+
+
+def validate_url(requested_url: str, scheme: str) -> str:
+    parsed_url = urlparse(requested_url)
+    return parsed_url.geturl().replace(parsed_url.scheme, scheme, 1)
 
 def get_time_text(created_time):
     """ function to get time stamp """
