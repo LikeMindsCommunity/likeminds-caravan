@@ -2519,6 +2519,7 @@ class ContentDownloadSettings(models.Model):
 
 
 class Cohort(models.Model):
+
     name = models.CharField(max_length=200)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=0)
@@ -2550,6 +2551,7 @@ class Cohort(models.Model):
 
 
 class CohortMember(models.Model):
+
     cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=0)
@@ -2591,6 +2593,7 @@ class CohortMember(models.Model):
 
 
 class CohortRights(models.Model):
+
     cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     member_rights = models.ForeignKey(memberRights, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=0)
@@ -2629,6 +2632,34 @@ class CohortRights(models.Model):
         instance.updated_at = current_time_ms
 
         return instance
+
+
+class CohortFilter(models.Model):
+
+    cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
+    question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
+    value = models.CharField(max_length=200)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(CohortFilter, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(cohort_filter_data):
+        cohort_filter = CohortFilter()
+        cohort_filter.cohort = cohort_filter_data.get('cohort')
+        cohort_filter.question = cohort_filter_data.get('question')
+        cohort_filter.value = cohort_filter_data.get('value')
+        cohort_filter.save()
 
 
 class DirectMessageTutorial(models.Model):
@@ -2723,24 +2754,24 @@ class EventRecordingsAttachments(models.Model):
         ('audio','audio'),
         ('voice_note','voice_note'),
     )
-    
+
     url = models.TextField(
         help_text=_(
             'download url of multimedia'
         )
     )
     chatroom_id = models.ForeignKey(
-        Collabcard, 
-        on_delete=models.CASCADE, 
-        null=True, 
+        Collabcard,
+        on_delete=models.CASCADE,
+        null=True,
         blank=True,
             help_text=_(
                 'id of chatroom'
             )
     )
     conversation_id = models.ForeignKey(
-        card_answers, 
-        on_delete=models.CASCADE, 
+        card_answers,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         help_text=_(
@@ -2748,7 +2779,7 @@ class EventRecordingsAttachments(models.Model):
         )
     )
     type = models.CharField(
-        max_length=50, 
+        max_length=50,
         choices=TYPE_CHOICES,
         help_text=_(
             'type of attachment'
@@ -2766,29 +2797,29 @@ class EventRecordingsAttachments(models.Model):
         )
     )
     height = models.IntegerField(
-        null=True, 
+        null=True,
         blank=True,
         help_text=_(
             'height of multimedia'
         )
     )
     thumbnail_url = models.TextField(
-        null=True, 
+        null=True,
         blank=True,
         help_text=_(
             'thumbnail in case of video'
         )
     )
     name = models.CharField(
-        max_length=250, 
-        null=True, 
+        max_length=250,
+        null=True,
         blank=True,
         help_text=_(
             'file name'
         )
     )
     meta = models.TextField(
-        null=True, 
+        null=True,
         blank=True,
         help_text=_(
             'meta data of multimedia'

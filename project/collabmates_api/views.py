@@ -1763,6 +1763,12 @@ def edit_member_profile(request):
 
     set_level_click_state.delay({"community_id": community_instance.id, "is_promoter": True if is_promoter else False})
 
+    from collabmates_api.cohort.cohort_impl import CohortHelper
+
+    CohortHelper.remove_cohort_membership_when_updating_community_answers(member_id, community_id)
+
+    CohortHelper.add_member_to_respective_question_based_cohorts(member_id, community_id)
+
     if question_answer:
         return JsonResponse({'success': True, 'question_answers': question_answer})
 

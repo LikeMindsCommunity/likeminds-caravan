@@ -574,6 +574,8 @@ class CommunityImpl(CommunityManager):
 
         self._send_join_email_to_member(user_instance.id, community_instance.id)
 
+        CohortHelper.add_member_to_respective_question_based_cohorts(self.get_member_id(), self.get_community_id())
+
     def approve_or_decline_community(self, req_body) -> {}:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
@@ -630,6 +632,9 @@ class CommunityImpl(CommunityManager):
 
             if member_cohort_response.get('error_message'):
                 info_logger.info(f'Unable to add member to respective subscription plan cohort: {member_cohort_response}')
+
+            CohortHelper.add_member_to_respective_question_based_cohorts(member_id=user_instance.id,
+                                                                         community_id=community_instance.id)
 
         else:
             self._decline_community_join_request(community_instance, user_instance)
