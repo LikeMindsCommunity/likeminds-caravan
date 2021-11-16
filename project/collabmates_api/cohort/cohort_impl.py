@@ -469,7 +469,10 @@ class CohortImpl(CohortManager):
                         'type_id': subscription['plan'].get('plan_id')
                     }
 
-                    self.update_cohort(request_body)
+                    update_cohort_response = self.update_cohort(request_body)
+
+                    if update_cohort_response.get('error_message'):
+                        error_logger.error(update_cohort_response)
 
         return {'success': True}
 
