@@ -138,7 +138,7 @@ class CohortImpl(CohortManager):
                 cohort_filter_data = {
                     'cohort': cohort_instance,
                     'question': question_instance,
-                    'filter': filter_value
+                    'value': filter_value
                 }
 
                 CohortFilter.create_instance(cohort_filter_data)
@@ -192,9 +192,6 @@ class CohortImpl(CohortManager):
         if type == cohort_types.SUBSCRIPTION_PLAN and not type_id:
             return {'success': False, 'error_message': "Invalid Type ID"}
 
-        if cohort_id and not name:
-            return {'success': False, 'error_message': "Invalid Name"}
-
         if not isinstance(member_ids, list):
             return {'success': False, 'error_message': "Invalid Member id List"}
 
@@ -237,7 +234,10 @@ class CohortImpl(CohortManager):
             CohortHelper.give_member_rights_when_added_to_cohort(cohort_instance, user_instance)
             return {'success': True}
 
-        update_dict = {'name': name, 'type': type, 'type_id': None}
+        update_dict = {'type': type, 'type_id': None}
+
+        if name:
+            update_dict['name'] = name
 
         if type in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
             update_dict['type_id'] = type_id
@@ -462,7 +462,7 @@ class CohortImpl(CohortManager):
 
             if subscription.get('plan'):
 
-                if current_time > valid_till + grace_period:
+                if current_time < valid_till + grace_period:
                     request_body = {
                         'member_ids': [int(self.get_member_id())],
                         'type': cohort_types.SUBSCRIPTION_PLAN,
@@ -768,7 +768,7 @@ class CohortHelper:
                     'cohort_id': cohort_instance.id,
                     'type': cohort_types.NORMAL,
                     'community_id': community_id,
-                    'member_ids': [member_id]
+                    'member_ids': [int(member_id)]
                 }
 
                 cohort_manager = CohortImpl(member_id=member_id)
