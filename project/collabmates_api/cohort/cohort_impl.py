@@ -5,21 +5,24 @@ from celery import shared_task
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
+from utility.time_utilities import TimeUtilities
 from ..chatroom.chatroom_impl import ChatroomImpl
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
-    CohortRights, memberRights, userMemberRights, ChatroomCohort
+    CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
 from ..rest_api import CohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
+from ..user.user_impl import UserImpl, UserHelper
 from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list, check_history_exists, \
     check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
     update_member_rights_in_member_engage
 from ..views import get_added_and_removed_rights
 
 error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 
 class CohortImpl(CohortManager):
@@ -41,11 +44,12 @@ class CohortImpl(CohortManager):
         community_id = request_body.get('community_id')
         type = request_body.get('type', 0)
         type_id = request_body.get('type_id', '')
+        filter_list = request_body.get('filter', [])
 
         if type not in cohort_type_list:
             return {'success': False, 'error_message': "Invalid Cohort Type"}
 
-        if type in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN] and not type_id:
+        if type == cohort_types.SUBSCRIPTION_PLAN and not type_id:
             return {'success': False, 'error_message': "Invalid Type ID"}
 
         if not name:
@@ -53,6 +57,9 @@ class CohortImpl(CohortManager):
 
         if not isinstance(member_ids, list):
             return {'success': False, 'error_message': "Invalid Member id List"}
+
+        if not isinstance(filter_list, list):
+            return {'success': False, 'error_message': "Invalid Filter List"}
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
@@ -66,6 +73,18 @@ class CohortImpl(CohortManager):
 
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_id,
                                                                   'member_id': user_instance})
+
+        if type in [cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]:
+
+            filter_dict = {
+                'type': type,
+                'community_id': community_id
+            }
+
+            cohort_filter = ModelUtilities.get_model_filter(Cohort, filter_dict)
+
+            if cohort_filter:
+                return {'success': False, 'error_message': "This type of cohort already exists in community"}
 
         if not member_filter:
             return {'success': False, 'error_message': "User is not a member of community"}
@@ -82,7 +101,7 @@ class CohortImpl(CohortManager):
             'type': type,
         }
 
-        if type in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
+        if type == cohort_types.SUBSCRIPTION_PLAN:
             cohort_info['type_id'] = type_id
 
         cohort_instance = Cohort.create_instance(cohort_info)
@@ -103,6 +122,26 @@ class CohortImpl(CohortManager):
             cohort_instance_object['rights'] = rights_list
             cohort_instance_object['cohort_id'] = cohort_instance_object['id']
             del cohort_instance_object['id']
+
+        if filter_list:
+
+            for filter in filter_list:
+
+                filter_question_id = filter.get('question_id')
+                filter_value = filter.get('value')
+
+                question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, filter_question_id)
+
+                if not question_instance:
+                    continue
+
+                cohort_filter_data = {
+                    'cohort': cohort_instance,
+                    'question': question_instance,
+                    'value': filter_value
+                }
+
+                CohortFilter.create_instance(cohort_filter_data)
 
         return {'success': True, 'cohort_data': cohort_instance_object}
 
@@ -143,25 +182,29 @@ class CohortImpl(CohortManager):
         rights = request_body.get('rights')
         type = request_body.get('type')
         type_id = request_body.get('type_id')
+        filter_list = request_body.get('filter', [])
 
         cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
 
         if type not in cohort_type_list:
             return {'success': False, 'error_message': "Invalid Cohort Type"}
 
-        if type in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN] and not type_id:
+        if type == cohort_types.SUBSCRIPTION_PLAN and not type_id:
             return {'success': False, 'error_message': "Invalid Type ID"}
-
-        if cohort_id and not name:
-            return {'success': False, 'error_message': "Invalid Name"}
 
         if not isinstance(member_ids, list):
             return {'success': False, 'error_message': "Invalid Member id List"}
 
+        if not isinstance(filter_list, list):
+            return {'success': False, 'error_message': "Invalid Filter List"}
+
         if not cohort_instance:
 
-            if not type_id:
+            if not type_id and type == cohort_types.SUBSCRIPTION_PLAN:
                 return {'success': False, 'error_message': "Invalid type_id"}
+
+            if type == cohort_types.SUBSCRIPTION_EXPIRED_PLAN:
+                type_id = None
 
             cohort_filter = ModelUtilities.get_model_filter(Cohort, {'type_id': type_id, 'type': type})
 
@@ -191,7 +234,10 @@ class CohortImpl(CohortManager):
             CohortHelper.give_member_rights_when_added_to_cohort(cohort_instance, user_instance)
             return {'success': True}
 
-        update_dict = {'name': name, 'type': type, 'type_id': None}
+        update_dict = {'type': type, 'type_id': None}
+
+        if name:
+            update_dict['name'] = name
 
         if type in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
             update_dict['type_id'] = type_id
@@ -220,6 +266,29 @@ class CohortImpl(CohortManager):
             CohortHelper.remove_rights_to_all_cohort_members(cohort_instance, rights_to_remove)
 
         self._update_members_for_cohort(cohort_instance, member_ids)
+
+        if filter_list:
+
+            for filter in filter_list:
+
+                filter_question_id = filter.get('question_id')
+                filter_value = filter.get('value')
+
+                question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, filter_question_id)
+
+                if not question_instance:
+                    continue
+
+                cohort_filter_data = {
+                    'cohort': cohort_instance,
+                    'question': question_instance,
+                    'value': filter_value
+                }
+
+                cohort_filter_list = ModelUtilities.get_model_filter(CohortFilter, cohort_filter_data)
+
+                if not cohort_filter_list:
+                    CohortFilter.create_instance(cohort_filter_data)
 
         return {'success': True}
 
@@ -369,6 +438,40 @@ class CohortImpl(CohortManager):
             cohorts['type_id'] = cohort_instance.type_id
 
         return {'success': True, 'cohorts': cohorts}
+
+    def add_user_to_subscription_plans_when_membership_approved(self, community_id):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid User ID"}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid Community ID"}
+
+        subscriptions = UserHelper.fetch_user_subscriptions(self.get_member_id(), community_id=community_id)
+
+        if not subscriptions:
+            return {'success': False, 'error_message': "User has no subscription for this community"}
+
+        for subscription in subscriptions:
+            valid_till = subscription.get('valid_till')
+            grace_period = subscription.get('grace_period')
+            current_time = TimeUtilities.current_time_in_milliseconds()
+
+            if subscription.get('plan'):
+
+                if current_time < valid_till + grace_period:
+                    request_body = {
+                        'member_ids': [int(self.get_member_id())],
+                        'type': cohort_types.SUBSCRIPTION_PLAN,
+                        'type_id': subscription['plan'].get('plan_id')
+                    }
+
+                    self.update_cohort(request_body)
+
+        return {'success': True}
 
     def _remove_rights_from_cohort(self, rights_to_remove, cohort_instance):
         CohortRights.objects.filter(cohort=cohort_instance, member_rights_id__in=rights_to_remove).delete()
@@ -534,7 +637,7 @@ class CohortHelper:
                                                                         cohort_types.SUBSCRIPTION_EXPIRED_PLAN],
                                                                         'user_id__in': member_ids})
 
-        if len(cohort_member_type_filter) and cohort_instance.type_id:
+        if len(cohort_member_type_filter):
             # Remove existing plans cohort
             cohort_member_type_filter.delete()
 
@@ -622,3 +725,106 @@ class CohortHelper:
             except:
                 error_logger.error(
                     f"member right already exist for user {user_instance.id} in community {community_instance.id}")
+
+    @staticmethod
+    def pre_compute_community_answers(member_id, community_id):
+        answer_filter = ModelUtilities.get_model_filter(communityAnswers, {'member_id': member_id,
+                                                                           'community_id': community_id})
+
+        answer_dict = {}
+
+        for answer in answer_filter:
+            community_question_id = answer.question_id
+
+            if answer_dict.get(community_question_id) is None:
+                answer_dict[community_question_id] = answer
+
+        return answer_dict
+
+    @staticmethod
+    def add_member_to_respective_question_based_cohorts(member_id, community_id):
+
+        answer_dict = CohortHelper.pre_compute_community_answers(member_id=member_id, community_id=community_id)
+
+        community_cohorts = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
+
+        for cohort_instance in community_cohorts:
+            filtered_cohort_filter = ModelUtilities.get_model_filter(CohortFilter, {'cohort_id': cohort_instance.id})
+            answer_mismatched = False
+
+            for cohort_filter_instance in filtered_cohort_filter:
+                question_id = cohort_filter_instance.question_id
+                answer_instance = answer_dict.get(question_id)
+
+                # If any answer mismatched with cohort filter
+                if not answer_instance or cohort_filter_instance.value != answer_instance.question_answer:
+                    answer_mismatched = True
+                    break
+
+            # If no answer mismatched, add user to cohort.
+            if not answer_mismatched:
+
+                cohort_info = {
+                    'cohort_id': cohort_instance.id,
+                    'type': cohort_types.NORMAL,
+                    'community_id': community_id,
+                    'member_ids': [int(member_id)]
+                }
+
+                cohort_manager = CohortImpl(member_id=member_id)
+                update_cohort_response = cohort_manager.update_cohort(cohort_info)
+
+                if update_cohort_response.get('error_message'):
+                    error_logger.error(update_cohort_response)
+
+    @staticmethod
+    def remove_cohort_membership_when_updating_community_answers(member_id, community_id):
+
+        answer_dict = CohortHelper.pre_compute_community_answers(member_id=member_id, community_id=community_id)
+
+        community_cohorts = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
+
+        for cohort_instance in community_cohorts:
+            filtered_cohort_filter = ModelUtilities.get_model_filter(CohortFilter, {'cohort_id': cohort_instance.id})
+            answer_mismatched = False
+
+            for cohort_filter_instance in filtered_cohort_filter:
+                question_id = cohort_filter_instance.question_id
+                answer_instance = answer_dict.get(question_id)
+
+                # If any answer mismatched with cohort filter
+                if not answer_instance or cohort_filter_instance.value != answer_instance.question_answer:
+                    answer_mismatched = True
+                    break
+
+            # If any answer mismatched, remove user from cohort.
+            if answer_mismatched:
+
+                filter_dict = {
+                    'cohort_id': cohort_instance.id,
+                    'user_id': member_id
+                }
+
+                cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, filter_dict)
+
+                if not cohort_member_filter:
+                    continue
+
+                # get cohorts related to chatroom
+                chatroom_cohort_filter = ModelUtilities.get_model_filter(
+                    model=ChatroomCohort,
+                    filter_dict={'cohort_id': cohort_instance.id}
+                ).prefetch_related('chatroom')
+
+                for chatroom_cohort_instance in chatroom_cohort_filter:
+                    chatroom_instance = chatroom_cohort_instance.chatroom
+                    chatroom_id = chatroom_instance.id
+
+                    try:
+                        chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
+                        chatroom_manager.leave_secret_chatroom(member_id=member_id)
+
+                    except Exception as e:
+                        error_logger.error(e.args)
+
+                cohort_member_filter.delete()

@@ -1219,10 +1219,13 @@ class UserHelper:
         }
 
     @staticmethod
-    def fetch_user_subscriptions(user_id):
+    def fetch_user_subscriptions(user_id, community_id=None):
         client = ApiClient(host=subscription_url,
                            method='get',
                            path=SUBSCRIPTION_FETCH_API_PATH)
+
+        if community_id:
+            client.add_url_param('community_id', community_id)
 
         client.add_header('x-member-id', user_id).request()
 
