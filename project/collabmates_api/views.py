@@ -4683,7 +4683,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     if promoter and not creator:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
-                or (platform_code == "an" and version_code < CHATROOM_SETTINGS_VERSION_CODE_AN):
+                or (platform_code == "an" and version_code < CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web":
 
             if admin_has_delete_right:
                 final.append(delete_chatroom)
@@ -4748,7 +4748,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     if promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
-                or (platform_code == "an" and version_code < CHATROOM_SETTINGS_VERSION_CODE_AN):
+                or (platform_code == "an" and version_code < CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web":
 
             if card_instance.is_pinned:
                 actions.insert(1, unpin_chatroom)
@@ -4783,11 +4783,12 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             actions.append(leave_chatroom)
 
     if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
-            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)) and not master_intro_card:
+            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web") \
+            and not master_intro_card:
         actions.append(chatroom_settings)
 
     if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
-            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN):
+            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web":
 
         if rename_chatroom in actions:
             actions.remove(rename_chatroom)
