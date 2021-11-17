@@ -1,8 +1,10 @@
+import json
 from django.http import JsonResponse
 from rest_framework.views import APIView
 
 from utility.exception_utilities import InvalidHeaderException
 from utility.request_utilities import RequestUtilities
+from cms.cms_auth_utilities import CMSAuthUtilities
 from django.conf import settings
 from collabmates_api.user.user_impl import UserImpl
 from rest_framework import status as status_codes
@@ -184,3 +186,32 @@ class FetchDmFeed(APIView):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(user_context)
+
+
+class FetchAllUsers(APIView):
+    """
+    Fetch all the users
+    """
+
+    def get(self, request):
+        page = RequestUtilities.get_page_number(request, default=1)
+        user_ids = json.loads(request.GET.get('user_ids')) if request.GET.get('user_ids') else None
+
+        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
+
+        if not CMSAuthUtilities.validate_user(user_name, password):
+            return JsonResponse({
+                'success': False,
+                'error_message': 'user name and password does not match'
+            }, status=status_codes.HTTP_401_UNAUTHORIZED)
+
+        user_manager = UserImpl(user_id=None)
+        user_response = user_manager.fetch_all_users(page=page, user_ids=user_ids)
+
+        if 'error_message' in user_response:
+            return JsonResponse({
+                'success': False,
+                'error_message': user_response['error_message']
+            }, status=user_response['status'])
+
+        return JsonResponse(user_response)

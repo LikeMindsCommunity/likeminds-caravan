@@ -87,6 +87,10 @@ class Community(models.Model):
 
     dashboard_link = models.TextField(null=True)
 
+    fee_membership = models.IntegerField(default=5)
+    fee_event = models.IntegerField(default=5)
+    fee_payment_pages = models.IntegerField(default=5)
+
     def __str__(self):
         return self.name
 

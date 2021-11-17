@@ -229,7 +229,6 @@ class CommunityImpl(CommunityManager):
 
         community_member = MemberCommunityImpl(self.get_member_id(), self.get_community_id())
         state = community_member.community_member_state()
-        community_instance = CommunityHelper.fetch_community_instance(self.get_community_id())
         block_leave_community = self._is_leave_community_blocked(state)
         community_context = {}
 
@@ -250,9 +249,14 @@ class CommunityImpl(CommunityManager):
 
         return response_context
 
-    def fetch_all_communities(self, page) -> {}:
+    def fetch_all_communities(self, page, community_ids: list = None) -> {}:
 
-        community_instances = ModelUtilities.get_model_filter(Community, {}).order_by('-created_at')
+        community_filter = {}
+
+        if community_ids is not None:
+            community_filter['pk__in'] = community_ids
+
+        community_instances = ModelUtilities.get_model_filter(Community, community_filter).order_by('-created_at')
         total_communities_count = len(community_instances)
 
         community_instances = ModelUtilities.paginate_queryset(community_instances, page, paginate_by=50)

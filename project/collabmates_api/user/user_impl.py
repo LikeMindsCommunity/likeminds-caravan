@@ -23,7 +23,6 @@ from utility.states import email_states, mobile_states, member_states, login_typ
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
-from utility.request_utilities import RequestUtilities
 
 from utility.url_utilities import UrlUtilities
 
@@ -32,6 +31,7 @@ from ..raw_queries import get_community_id_list
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
 from ..tasks import send_verification_mail_for_email_sync
 from ..rest_api import CommunitySerializerV1
+from ..serializers import get_logged_in_user
 from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -735,6 +735,28 @@ class UserImpl(UserManager):
 
         response_context["total_cm_communities_count"] = len(cm_instances)
         response_context["total_member_communities_count"] = len(member_instances)
+
+        return response_context
+
+    @staticmethod
+    def fetch_all_users(page, user_ids):
+
+        user_filter = {}
+
+        if user_ids is not None:
+            user_filter['pk__in'] = user_ids
+
+        user_instances = ModelUtilities.get_model_filter(User, user_filter)
+        user_instances = ModelUtilities.paginate_queryset(user_instances, page, paginate_by=USER_LIST_PAGE_SIZE)
+
+        user_serialized_instances = []
+        for user_instance in user_instances:
+            user_serialized_instances.append(get_logged_in_user(user_instance))
+
+        response_context = {
+            'users': user_serialized_instances,
+            'success': True
+        }
 
         return response_context
 
