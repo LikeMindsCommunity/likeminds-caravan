@@ -629,7 +629,8 @@ class ChatroomMemberHelper:
                             'is_paid': card_instance.is_paid,
                             'access': card_instance.access,
                             'online_link_enable_before': card_instance.online_link_enable_before,
-                            'is_private': card_instance.is_private}
+                            'is_private': card_instance.is_private,
+                            'member_can_message': card_instance.member_can_message}
 
         if card_instance.is_secret:
             chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)
