@@ -17,7 +17,6 @@ info_logger = LoggingWrapper.get_instance()
 url = settings.URL
 
 @shared_task
-
 def trigger_event_comms(payload_for_whatsapp_comms, payload_for_app_notifications):
     trigger_whatsapp_communication_for_event.delay(payload_for_whatsapp_comms)
     trigger_app_notification_for_event.delay(payload_for_app_notifications)
@@ -95,11 +94,7 @@ def schedule_whatsapp_notification_for_event_comms(payload_for_whatsapp_comms, c
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS
 
         elif event_type == EVENT_TYPE.ATTENDANCE_10_MIN:
-            users_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
-                                                                                                    active_user_ids, 
-                                                                                                    attending=True)
-
-            final_user_ids = users_attending_event
+            final_user_ids = active_user_ids
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN
 
         user_data_for_wa_notification = TasksHelper.create_user_data_for_wa_notification(user_ids=final_user_ids, 
