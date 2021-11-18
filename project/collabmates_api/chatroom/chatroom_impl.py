@@ -68,6 +68,7 @@ from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
 
+from collabmates_api.notifications.tasks import trigger_event_comms
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
@@ -1391,6 +1392,14 @@ class ChatroomImpl(ChatroomManager):
             send_chatroom_creation_notification(card_instance, user_instance)
             send_event_analytics_on_event_creation.delay(card_instance.id, user_instance.id)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
+
+            payload_for_whatsapp_comms = {
+                'chatroom': card_instance.id,
+                'community': community_instance.id,
+                'user': user_instance.id
+            }
+
+            trigger_event_comms.delay(payload_for_whatsapp_comms)
 
             chatroom_context = {
                 'success': True,
