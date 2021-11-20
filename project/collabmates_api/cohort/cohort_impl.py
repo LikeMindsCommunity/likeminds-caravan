@@ -183,6 +183,7 @@ class CohortImpl(CohortManager):
         type = request_body.get('type')
         type_id = request_body.get('type_id')
         filter_list = request_body.get('filter', [])
+        community_id = request_body.get('community_id')
 
         cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
 
@@ -206,7 +207,11 @@ class CohortImpl(CohortManager):
             if type == cohort_types.SUBSCRIPTION_EXPIRED_PLAN:
                 type_id = None
 
-            cohort_filter = ModelUtilities.get_model_filter(Cohort, {'type_id': type_id, 'type': type})
+            if type in [cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER] and not community_id:
+                return {'success': False, 'error_message:': 'Invalid Community ID'}
+
+            cohort_filter = ModelUtilities.get_model_filter(Cohort, {'type_id': type_id, 'type': type,
+                                                                     'community_id': community_id})
 
             if not cohort_filter:
                 return {'success': False, 'error_message': "Invalid cohort_id"}
