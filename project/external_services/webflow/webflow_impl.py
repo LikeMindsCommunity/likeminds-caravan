@@ -1,5 +1,5 @@
 from utility.api_client import ApiClient
-from .constants import WEBFLOW_HOST, WEBFLOW_CREATE_EVENT_PATH, WEBFLOW_UPDATE_EVENT_PATH
+from .constants import WEBFLOW_HOST, WEBFLOW_CREATE_EVENT_PATH, WEBFLOW_UPDATE_EVENT_PATH, WEBFLOW_PUBLISH_EVENT_PATH
 from .webflow_manager import WebflowManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from django.conf import settings
@@ -37,5 +37,18 @@ class WebflowImpl(WebflowManager):
         client.add_header('accept-version', '1.0.0')
         client.update_body(event_meta)
         client.patch()
+
+        return client.fetch_response()
+
+    @staticmethod
+    def publish_event_in_webflow(event_meta, site_id):
+        client = ApiClient(host=WEBFLOW_HOST,
+                           method='post',
+                           path=WEBFLOW_PUBLISH_EVENT_PATH % site_id)
+
+        client.add_header('Authorization', 'Bearer %s' % settings.WEBFLOW_KEYS.get('api_key'))
+        client.add_header('accept-version', '1.0.0')
+        client.update_body(event_meta)
+        client.post()
 
         return client.fetch_response()

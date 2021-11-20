@@ -12,8 +12,8 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  FetchEventLinkForDashboard, AddEventRecordingAttachment,
                                  AddEventRecordingAttachmentMeta,
                                  DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta,
-                                 RemoveCohortFromChatroomView, AddCohortToChatroomView, FetchChatroomParticipantsView
-                                 )
+                                 RemoveCohortFromChatroomView, AddCohortToChatroomView, FetchChatroomParticipantsView,
+                                 PublishEventWebflowView)
 
 urlpatterns = [
     path('fetch', FetchChatroomView.as_view(), name="fetch_chatroom"),
@@ -54,8 +54,9 @@ urlpatterns = [
     path('event/fetch_event_link_for_dashboard', FetchEventLinkForDashboard.as_view(),
          name="fetch_event_link_for_dashboard"),
 
-     path('event/upload_recordings_meta', AddEventRecordingAttachmentMeta.as_view(), name='upload_recordings_meta'),
-     path('event/upload_recordings', AddEventRecordingAttachment.as_view(), name='upload_recordings'),
-     path('event/delete_recordings_meta', DeleteEventRecordingAttachmentMeta.as_view(), name='delete_recordings_meta'),
-     path('event/delete_recordings', DeleteEventRecordingAttachment.as_view(), name='delete_recordings'),
+    path('event/upload_recordings_meta', AddEventRecordingAttachmentMeta.as_view(), name='upload_recordings_meta'),
+    path('event/upload_recordings', AddEventRecordingAttachment.as_view(), name='upload_recordings'),
+    path('event/delete_recordings_meta', DeleteEventRecordingAttachmentMeta.as_view(), name='delete_recordings_meta'),
+    path('event/delete_recordings', DeleteEventRecordingAttachment.as_view(), name='delete_recordings'),
+    path('event/pubish_webflow', PublishEventWebflowView.as_view(), name='publish_webflow'),
 ]

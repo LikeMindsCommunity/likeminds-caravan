@@ -48,6 +48,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
                             EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember)
 from external_services.logging.logging_wrapper import LoggingWrapper
+from external_services.webflow.webflow_impl import WebflowImpl
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types
 
@@ -2392,6 +2393,28 @@ class ChatroomImpl(ChatroomManager):
 
         return res
 
+    def publish_event_webflow(self, req_body) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member_id'}
+
+        validated_req_body = ChatroomHelper.validate_publish_event_webflow_req_body(req_body)
+
+        if not validated_req_body.get('success'):
+            return validated_req_body
+
+        validated_req_body = validated_req_body.get('req_body')
+
+        event_meta_data = {
+            'domains': validated_req_body.get('domains')
+        }
+
+        webflow_response = WebflowImpl.publish_event_in_webflow(event_meta_data, validated_req_body.get('site_id'))
+
+        return {'success': True}
+
 
 class ChatroomHelper:
 
@@ -3260,3 +3283,17 @@ class ChatroomHelper:
         attachment_count = ModelUtilities.get_model_filter(EventRecordingsAttachments, filter_dict).count()
 
         return attachment_count
+
+    @staticmethod
+    def validate_publish_event_webflow_req_body(req_body):
+
+        if 'site_id' not in req_body:
+            return {'success': False, 'error_message': 'Send site_id'}
+
+        if 'domains' not in req_body:
+            return {'success': False, 'error_message': 'Send domains'}
+
+        if not isinstance(req_body.get('domains'), list):
+            return {'success': False, 'error_message': 'Domains must be list'}
+
+        return {'success': True, 'req_body': req_body}
