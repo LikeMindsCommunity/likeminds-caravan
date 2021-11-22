@@ -5,6 +5,7 @@ from django.conf import settings
 
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from external_services.webflow.webflow_impl import WebflowImpl
+from project.celery import app
 from utility.string_utilities import StringUtilities
 from utility.api_client import ApiClient
 from collabmates_api.serializers import get_user_profile, get_preview_for_url, UserinfoSerializer
@@ -32,8 +33,7 @@ from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
     level_click_states, event_access, event_webflow_update_types, deleted_members, collabcard_states, SyncTypes, \
-    community_setting_types
-from utility.utils import decode_meta_from_url
+    community_setting_types, CollabcardTypes, poll_types
 
 from collabmates_api.search.sync import ElasticSearchSync
 
@@ -625,12 +625,18 @@ def compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, 
     total_votes = poll_voters.get('total_votes', 0)
     total_user_set = poll_voters.get('total_user_set')
     chatroom_poll_members = poll_voters.get('conversation_poll_members', {})
+    conversation_id = conversation_context.get('conversation_id')
+    conversation_instance = conversation_context.get('conversation_instance')
+
+    if not conversation_instance:
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    is_cm = Members.is_member_community_promoter(conversation_instance.community, user_instance)
 
     polls = []
 
     multi_select = conversation_context.get('multiple_select_no', None)
-    poll_type = conversation_context.get('poll_type', 0)
-    expiry_time = conversation_context.get('expiry_time', 0)
 
     for data in poll_options:
 
@@ -639,12 +645,8 @@ def compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, 
         temp['id'] = data['id']
         temp['text'] = data['text']
         temp['is_selected'] = False
-
-        if total_votes == 0:
-            temp['no_votes'] = 0
-            temp['percentage'] = 0
-            polls.append(temp)
-            continue
+        temp['no_votes'] = 0
+        temp['percentage'] = 0
 
         if data.get('member'):
             temp['member'] = data.get('member')
@@ -660,14 +662,22 @@ def compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, 
         if multi_select:
             total_votes = len(total_user_set)
 
-        temp['no_votes'] = count
+        if total_votes != 0:
+            temp['no_votes'] = count
+            temp['percentage'] = int((count / total_votes) * 100)
 
-        temp['percentage'] = int((count / total_votes) * 100)
+        temp['to_show_results'] = False
 
-        if poll_type == conversation_poll_types.DEFERRED and \
-                expiry_time >= TimeUtilities.current_time_in_milliseconds():
-            del temp['no_votes']
-            del temp['percentage']
+        if is_cm or user_instance == conversation_instance.user:
+            temp['to_show_results'] = True
+
+        elif conversation_instance.poll_type == conversation_poll_types.INSTANT and temp['is_selected'] is True:
+            temp['to_show_results'] = True
+
+        elif conversation_instance.poll_type == conversation_poll_types.DEFERRED \
+                and TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
+            temp['to_show_results'] = True
+
 
         polls.append(temp)
 
@@ -675,6 +685,16 @@ def compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, 
 
 
 def compute_conversation_poll_options_from_cache(poll_options, conversation_info):
+    conversation_id = conversation_info.get('conversation_id')
+    member_id = conversation_info.get('member_id')
+    conversation_instance = conversation_info.get('conversation_instance')
+
+    if not conversation_instance:
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    is_cm = Members.is_member_community_promoter(conversation_instance.community, user_instance)
+
     polls = []
 
     for data in poll_options:
@@ -689,10 +709,17 @@ def compute_conversation_poll_options_from_cache(poll_options, conversation_info
         if data.get('member'):
             temp['member'] = data.get('member')
 
-        if conversation_info.get('poll_type') == conversation_poll_types.DEFERRED and \
-                conversation_info.get('expiry_time') >= TimeUtilities.current_time_in_milliseconds():
-            del temp['no_votes']
-            del temp['percentage']
+        temp['to_show_results'] = False
+
+        if is_cm or user_instance == conversation_instance.user:
+            temp['to_show_results'] = True
+
+        elif conversation_instance.poll_type == conversation_poll_types.INSTANT and temp['is_selected'] is True:
+            temp['to_show_results'] = True
+
+        elif conversation_instance.poll_type == conversation_poll_types.DEFERRED \
+                and TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
+            temp['to_show_results'] = True
 
         polls.append(temp)
 
@@ -711,6 +738,9 @@ def compute_conversation_polls(conversation_info):
                                                                 {'conversation': conversation_instance})
     conversation_poll_members = ModelUtilities.get_model_filter(conversationPollMembers,
                                                                 {'conversation': conversation_instance})
+
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    is_cm = Members.is_member_community_promoter(conversation_instance.community, user_instance)
 
     poll_members_dict = {}
 
@@ -744,12 +774,8 @@ def compute_conversation_polls(conversation_info):
         temp['id'] = poll_id
         temp['text'] = data.text
         temp['is_selected'] = False
-
-        if total_votes == 0:
-            temp['no_votes'] = 0
-            temp['percentage'] = 0
-            polls.append(temp)
-            continue
+        temp['no_votes'] = 0
+        temp['percentage'] = 0
 
         if user_dict.get(data.user_id):
             temp['member'] = user_dict.get(data.user_id)
@@ -769,14 +795,22 @@ def compute_conversation_polls(conversation_info):
         if is_multi:
             total_votes = len(total_user_set)
 
-        temp['no_votes'] = count
+        if total_votes != 0:
+            temp['no_votes'] = count
+            temp['percentage'] = int((count / total_votes) * 100)
 
-        temp['percentage'] = int((count / total_votes) * 100)
+        temp['to_show_results'] = False
 
-        if conversation_instance.poll_type == conversation_poll_types.DEFERRED and \
-                conversation_instance.expiry_time >= TimeUtilities.current_time_in_milliseconds():
-            del temp['no_votes']
-            del temp['percentage']
+        # If user is CM or Creator of POLL
+        if is_cm or user_instance == conversation_instance.user:
+            temp['to_show_results'] = True
+
+        elif conversation_instance.poll_type == conversation_poll_types.INSTANT and temp['is_selected'] is True:
+            temp['to_show_results'] = True
+
+        elif conversation_instance.poll_type == conversation_poll_types.DEFERRED \
+                and TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
+            temp['to_show_results'] = True
 
         polls.append(temp)
 
@@ -1184,7 +1218,6 @@ def send_analytics_on_event_registered_to_attend(card_id, user_id, attending_sta
 
 @shared_task
 def send_event_analytics_on_event_creation(card_id, user_id):
-
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
 
     if not card_instance:
@@ -1253,7 +1286,7 @@ def schedule_event_analytics_daily_7AM(card_instance, n_hour, n_minute):
     args = [card_id, "Event day (Core Service)"]
 
     task_begin_epoch_time = TimeUtilities.get_epoch_from_datetime(card_instance.date_time,
-                                                                           n_hour, n_minute)
+                                                                  n_hour, n_minute)
     task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
     current_time = TimeUtilities.current_time_in_sec()
 
@@ -1286,7 +1319,6 @@ def schedule_event_analytics_on_event_before_n_hour(card_instance, n):
 
 
 def create_event_request_meta_for_webflow_create(card_instance, community_instance):
-
     event_meta = {
         'fields': {
             'name': card_instance.header,
@@ -1309,7 +1341,6 @@ def create_event_request_meta_for_webflow_create(card_instance, community_instan
 
 
 def create_event_in_webflow_service(card_instance):
-
     if card_instance.type not in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
         return
 
@@ -1334,7 +1365,6 @@ def create_event_in_webflow_service(card_instance):
 
 
 def create_update_request_meta_of_webflow_for_instructors(info_list):
-
     fields = {}
     i = 1
 
@@ -1342,7 +1372,7 @@ def create_update_request_meta_of_webflow_for_instructors(info_list):
         index = StringUtilities.get_string_from_integer(i)
         fields['instructors-image-' + index] = data.get('url', '')
         fields['instructors-about-' + index] = data.get('about', '')
-        i = i+1
+        i = i + 1
 
     return {'fields': fields}
 
@@ -1388,7 +1418,6 @@ def create_update_request_meta_of_webflow_for_faq(info_list):
 
 
 def create_update_request_meta_of_webflow_for_file(update_info):
-
     chatroom_id = update_info.get('chatroom_id')
     fields = {}
     file_filter = ModelUtilities.get_model_filter(Card_Attachment, {'collabcard': chatroom_id}).order_by('id')
@@ -1455,7 +1484,6 @@ def create_event_request_meta_for_webflow_update(update_info):
 
 @shared_task
 def update_event_in_webflow_service(update_info):
-
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, update_info.get('chatroom_id'))
 
     if not card_instance:
@@ -1482,7 +1510,6 @@ def update_event_in_webflow_service(update_info):
 
 @shared_task
 def update_event_attendees_for_micro_event(attendees_info):
-
     conversation_instance = attendees_info.get('conversation_instance')
 
     if not conversation_instance:
@@ -1531,6 +1558,7 @@ def update_event_attendees_for_micro_event(attendees_info):
         'event_attendees_list': event_attendees_list
     })
 
+
 @shared_task
 def member_left_removed_dm_chatroom(user_id, community_id, removed_members_id, removed_state, chatroom_ids_list=[]):
     user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
@@ -1553,7 +1581,8 @@ def member_left_removed_dm_chatroom(user_id, community_id, removed_members_id, r
     message = MEMBER_LEFT_DM_CHATROOM_MESSAGE if removed_state == deleted_members.LEFT else \
         MEMBER_REMOVED_DM_CHATROOM_MESSAGE
 
-    user_route = user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(user_instance.id) + ">>"
+    user_route = user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(
+        user_instance.id) + ">>"
     community_route = "<<" + str(community_instance.name) + "|route://community?community_id=" + str(
         community_instance.id) + ">>"
 
@@ -1581,7 +1610,7 @@ def member_left_removed_dm_chatroom(user_id, community_id, removed_members_id, r
         ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances}).update(
             expiry_time=TimeUtilities.add_hours_to_epoch_time(card_created_at, ONE_DAY_HOURS))
 
-        conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count')+1)
+        conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count') + 1)
 
 
 @shared_task
@@ -1603,10 +1632,10 @@ def cm_removed_dm_chatroom(user_id, community_id):
 
     # Create Card Answer for all DM Chatroom
     dm_chatroom_instances_ids_as_creator = ModelUtilities.get_model_filter(Collabcard,
-                                                                       {"user": user_instance,
-                                                                        "chatroom_with_user_id__in": member_ids_list,
-                                                                        "community": community_instance,
-                                                                        "is_private": True}).\
+                                                                           {"user": user_instance,
+                                                                            "chatroom_with_user_id__in": member_ids_list,
+                                                                            "community": community_instance,
+                                                                            "is_private": True}). \
         exclude(chatroom_with_user=None).values_list("id", flat=True)
 
     dm_chatroom_instances_ids_as_user = ModelUtilities.get_model_filter(Collabcard,
@@ -1692,10 +1721,12 @@ def member_becomes_cm_dm_chatroom(user_id, community_id):
                                                                                                             flat=True)
 
         dm_chatroom_instances_with_user_as_creator = ModelUtilities.get_model_filter(Collabcard,
-                                                                      {"chatroom_with_user_id__in": cms_user_ids_list,
-                                                                       "user": user_instance,
-                                                                       "community_id": community_id,
-                                                                       "is_private": True}).values_list("id", flat=True)
+                                                                                     {
+                                                                                         "chatroom_with_user_id__in": cms_user_ids_list,
+                                                                                         "user": user_instance,
+                                                                                         "community_id": community_id,
+                                                                                         "is_private": True}).values_list(
+            "id", flat=True)
 
         dm_chatroom_instances = list(dm_chatroom_instances_with_user) + list(dm_chatroom_instances_with_user_as_creator)
         dm_chatroom_instances = ModelUtilities.get_model_filter(Collabcard, {"id__in": dm_chatroom_instances})
@@ -1741,7 +1772,6 @@ def member_becomes_cm_dm_chatroom(user_id, community_id):
 
 
 def compute_member_images_for_homescreen_celery(chatroom_instance, community_instance):
-
     user_list = ModelUtilities.get_model_filter(card_answers, {"card": chatroom_instance}).exclude(
         user=chatroom_instance.user).values_list("user_id", flat=True)
 
@@ -1995,7 +2025,8 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
 
                 if not is_script:
 
-                    user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(user_instance.id) + ">>"
+                    user_route = "<<" + str(user_instance.userinfo.name) + "|route://member/" + str(
+                        user_instance.id) + ">>"
 
                     if is_joining:
                         answer = MEMBER_JOINING_COMMUNITY_DM_CHATROOM_MESSAGE.format(user_route)
@@ -2120,7 +2151,6 @@ def reset_unread_message_count_in_cache(chatroom_id, user_id):
 
 
 def fetch_conversations_unread(chatroom_id, user_id):
-
     if not chatroom_id or not user_id:
         info_logger.info("Chatroom ID: {} - User ID: {}", chatroom_id, user_id)
         return 0
@@ -2158,7 +2188,6 @@ def fetch_conversations_unread(chatroom_id, user_id):
 
 @shared_task
 def create_chatroom_cohort_instances(chatroom_id, cohort_ids):
-
     chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
     if not chatroom_instance:
@@ -2185,7 +2214,6 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
                                                                         'chatroom__is_secret': True})
 
     for chatroom_cohort in chatroom_cohorts:
-
         # importing locally to resolve circular import issue.
         from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 
@@ -2201,7 +2229,6 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
 
 @shared_task
 def create_intro_room_disabled_text_for_community_members(disabled_community_settings_context_list):
-
     for disabled_community_settings_context in disabled_community_settings_context_list:
         community_id = disabled_community_settings_context.get('community_id')
         setting_type = disabled_community_settings_context.get('setting_type')
@@ -2253,3 +2280,36 @@ def create_intro_room_disabled_text_for_community_members(disabled_community_set
         ModelUtilities.bulk_create_instances(CommunityToastV1, bulk_create_list)
         ModelUtilities.bulk_update_instances(CommunityToastV1, bulk_update_list, ['is_shown', 'updated_at'])
 
+
+@shared_task
+def update_deferred_conversation_poll_updated_at_value(conversation_id):
+    conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+    if not conversation_instance:
+        return
+
+    if conversation_instance.state != conversation_states.CONVERSATION_POLL:
+        return
+
+    if conversation_instance.poll_type != conversation_poll_types.DEFERRED:
+        return
+
+    conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
+    conversation_instance.save()
+
+
+@shared_task
+def update_deferred_card_poll_updated_at_value(chatroom_id):
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not chatroom_instance:
+        return
+
+    if chatroom_instance.type != CollabcardTypes.CARD_POLL:
+        return
+
+    if chatroom_instance.poll_type != poll_types.POLL_TYPE_DEFERRED:
+        return
+
+    chatroom_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+    chatroom_instance.save()

@@ -54,7 +54,8 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
                                   get_conversation_poll, save_conversation_poll_options_in_cache,
                                   save_conversation_poll_voters_in_cache, update_multiple_previews_in_community,
                                   update_event_attendees_for_micro_event, update_unread_message_count_in_cache,
-                                  fetch_conversations_unread, reset_unread_message_count_in_cache)
+                                  fetch_conversations_unread, reset_unread_message_count_in_cache,
+                                  update_deferred_conversation_poll_updated_at_value)
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -318,6 +319,20 @@ class ConversationImpl(ConversationManager):
             conversation_list.append(conversation_dict)
 
         return conversation_list
+
+    def _create_conversation_dict(self, conversation):
+        conversation_dict = {}
+
+        if (conversation.attachment_count > 0 and
+            conversation.attachments_uploaded is False) and (
+                (self.get_member_id() and
+                 conversation.user.id != NumberUtilities.get_integer_from_string(self.get_member_id())) or
+                conversation.api_version <= 0 or conversation.device_id != self.device_id):
+            return conversation_dict
+
+        conversation_dict = self._serialize_conversation(conversation)
+
+        return conversation_dict
 
     def _is_user_already_guest(self, chatroom, user):
         return collabcardState.objects.filter(card=chatroom,
@@ -682,6 +697,13 @@ class ConversationImpl(ConversationManager):
             conversations = self._create_conversation_list(conversations)
             return conversations
 
+        # Client is not sending scroll direction and only sending conversation id
+        if self.get_conversation_id() and self.get_scroll_direction() is None:
+            conversation = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
+            conversation_dict = self._create_conversation_dict(conversation)
+            return conversation_dict
+
+        # Client is sending scroll direction as False with conversation ID
         if not self.get_scroll_direction() and self.get_conversation_id():
             last_seen_conversation = self._fetch_last_seen_conversation()
 
@@ -849,6 +871,14 @@ class ConversationImpl(ConversationManager):
 
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
+        args = [conversation_instance.id]
+        start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(conversation_instance.expiry_time)
+
+        if conversation_instance.state == conversation_states.CONVERSATION_POLL and \
+                conversation_instance.poll_type == conversation_poll_types.DEFERRED:
+
+            update_deferred_conversation_poll_updated_at_value.apply_async(args=args, kwargs={},
+                                                                           eta=start_time)
 
         conversation_response = {
             'success': True,

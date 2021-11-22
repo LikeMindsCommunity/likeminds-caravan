@@ -1157,18 +1157,25 @@ def CollabcardPollsSerializer(poll, user, card):
     if card.multiple_select_no is not None or card.multiple_select_state is not None:
         is_multi_select = True
 
-    if card.poll_type == poll_types.POLL_TYPE_INSTANT:
-        poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
-        polls['poll_count'] = poll_detail[0]
-        polls['no_votes'] = poll_detail[0]
-        polls['percentage'] = int(poll_detail[1])
+    # Always return no_votes and percentage
+    poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
+    polls['no_votes'] = poll_detail[0]
+    polls['percentage'] = int(poll_detail[1])
+
+    # Start returning to_show_results
+    is_cm = Members.is_member_community_promoter(card.community, user)
+
+    polls['to_show_results'] = False
+
+    # If user is CM or Creator of POLL
+    if is_cm or user == card.user:
+        polls['to_show_results'] = True
+
+    elif card.poll_type == poll_types.POLL_TYPE_INSTANT and polls['is_selected'] is True:
+        polls['to_show_results'] = True
 
     elif card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date // 1000 <= TimeUtilities.current_time_in_sec():
-
-        poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
-        polls['poll_count'] = poll_detail[0]
-        polls['no_votes'] = poll_detail[0]
-        polls['percentage'] = int(poll_detail[1])
+        polls['to_show_results'] = True
 
     if poll.sub_text:
         polls['sub_text'] = poll.sub_text
@@ -1183,7 +1190,6 @@ def CollabcardPollsSerializer(poll, user, card):
                                            send_profile=False)
 
     return polls
-
 
 def is_poll_selected(poll, user, card):
     """ function to know if user selected a poll or not """
