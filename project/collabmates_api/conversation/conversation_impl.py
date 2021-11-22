@@ -872,11 +872,11 @@ class ConversationImpl(ConversationManager):
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
         args = [conversation_instance.id]
-        start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(conversation_instance.expiry_time)
 
         if conversation_instance.state == conversation_states.CONVERSATION_POLL and \
                 conversation_instance.poll_type == conversation_poll_types.DEFERRED:
 
+            start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(conversation_instance.expiry_time)
             update_deferred_conversation_poll_updated_at_value.apply_async(args=args, kwargs={},
                                                                            eta=start_time)
 
