@@ -2413,7 +2413,7 @@ class ChatroomImpl(ChatroomManager):
 
         webflow_response = WebflowImpl.publish_event_in_webflow(event_meta_data, validated_req_body.get('site_id'))
 
-        return {'success': True}
+        return {'success': True, 'data': webflow_response}
 
 
 class ChatroomHelper:

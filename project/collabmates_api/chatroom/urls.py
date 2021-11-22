@@ -58,5 +58,5 @@ urlpatterns = [
     path('event/upload_recordings', AddEventRecordingAttachment.as_view(), name='upload_recordings'),
     path('event/delete_recordings_meta', DeleteEventRecordingAttachmentMeta.as_view(), name='delete_recordings_meta'),
     path('event/delete_recordings', DeleteEventRecordingAttachment.as_view(), name='delete_recordings'),
-    path('event/pubish_webflow', PublishEventWebflowView.as_view(), name='publish_webflow'),
+    path('event/publish_webflow', PublishEventWebflowView.as_view(), name='publish_webflow'),
 ]
