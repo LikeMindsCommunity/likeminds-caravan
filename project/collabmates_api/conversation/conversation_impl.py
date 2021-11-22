@@ -320,20 +320,6 @@ class ConversationImpl(ConversationManager):
 
         return conversation_list
 
-    def _create_conversation_dict(self, conversation):
-        conversation_dict = {}
-
-        if (conversation.attachment_count > 0 and
-            conversation.attachments_uploaded is False) and (
-                (self.get_member_id() and
-                 conversation.user.id != NumberUtilities.get_integer_from_string(self.get_member_id())) or
-                conversation.api_version <= 0 or conversation.device_id != self.device_id):
-            return conversation_dict
-
-        conversation_dict = self._serialize_conversation(conversation)
-
-        return conversation_dict
-
     def _is_user_already_guest(self, chatroom, user):
         return collabcardState.objects.filter(card=chatroom,
                                               user=user,
@@ -700,8 +686,9 @@ class ConversationImpl(ConversationManager):
         # Client is not sending scroll direction and only sending conversation id
         if self.get_conversation_id() and self.get_scroll_direction() is None:
             conversation = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
-            conversation_dict = self._create_conversation_dict(conversation)
-            return conversation_dict
+            conversations = [conversation]
+            conversations = self._create_conversation_list(conversations)
+            return conversations
 
         # Client is sending scroll direction as False with conversation ID
         if not self.get_scroll_direction() and self.get_conversation_id():

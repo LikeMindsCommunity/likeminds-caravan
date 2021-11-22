@@ -46,9 +46,6 @@ class FetchConversation(APIView):
 
         conversations = conversation_manager.fetch_conversation(top_navigate)
 
-        if isinstance(conversations, dict):
-            return JsonResponse({'conversation': conversations})
-
         return JsonResponse({'conversations': conversations})
 
 
