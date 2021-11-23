@@ -195,7 +195,12 @@ class FetchAllUsers(APIView):
 
     def get(self, request):
         page = RequestUtilities.get_page_number(request, default=1)
-        user_ids = json.loads(request.GET.get('user_ids')) if request.GET.get('user_ids') else None
+
+        try:
+            user_ids = json.loads(request.GET.get('user_ids'))
+
+        except:
+            user_ids = None
 
         user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
 
