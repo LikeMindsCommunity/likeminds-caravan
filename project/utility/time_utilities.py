@@ -194,3 +194,20 @@ class TimeUtilities:
 
         return time.strftime('%d/%m/%Y', time.localtime(epoch_time)) + "T" + TimeUtilities.convert_epoch_time_in_hh_mm(
             epoch_time)
+
+    @staticmethod
+    def add_IST_offset_to_date_time(date_time):
+
+        """2020-10-11 01:56:24 --> 2020-10-11 01:56:24+05:30"""
+
+        tz_ist = TimeUtilities.get_indian_time_zone()
+        return date_time.replace(tzinfo=tz_ist)
+
+    @staticmethod
+    def get_current_datetime_in_IST():
+
+        """format --> 2020-10-11 01:56:24+05:30"""
+
+        current_time_in_epoch = TimeUtilities.current_time_in_sec()
+
+        return TimeUtilities.convert_epoch_to_datetime_in_IST(current_time_in_epoch)

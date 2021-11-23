@@ -60,7 +60,9 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'add_cohort_to_chatroom') and
                  callable(subclass.add_cohort_to_chatroom)) and
                 (hasattr(subclass, 'fetch_chatroom_participants') and
-                 callable(subclass.fetch_chatroom_participants))
+                 callable(subclass.fetch_chatroom_participants)) and
+                (hasattr(subclass, 'publish_event_webflow') and
+                 callable(subclass.publish_event_webflow))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -284,6 +286,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def fetch_chatroom_participants(self):
         """
         function to fetch chatroom participants meta data
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def publish_event_webflow(self, req_body) -> dict:
+        """
+        Publishes the events in webflow
         """
 
         raise NotImplementedError

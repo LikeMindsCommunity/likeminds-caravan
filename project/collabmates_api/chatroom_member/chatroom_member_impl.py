@@ -23,7 +23,7 @@ from utility.number_utilities import NumberUtilities
 from utility.states import card_types, poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
-    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort
+    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort, Collabcard
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -94,6 +94,9 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
     @staticmethod
     def process_poll(poll_data, chatroom_id, poll_votes, is_multi, member_id):
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+        is_cm = Members.is_member_community_promoter(chatroom_instance.community, user_instance)
 
         chatroom_poll_data = poll_data.get(chatroom_id)
         chatroom_votes = poll_votes.get(chatroom_id)
@@ -118,11 +121,9 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             temp['text'] = data['text']
             temp['is_selected'] = False
             temp['member'] = data['member']
-            if total_votes == 0:
-                temp['no_votes'] = 0
-                temp['percentage'] = 0
-                polls.append(temp)
-                continue
+            temp['no_votes'] = 0
+            temp['percentage'] = 0
+
             for member in chatroom_votes:
 
                 if member['user_id'] not in total_member_set:
@@ -139,9 +140,21 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                 count = len(member_set)
                 total_votes = len(total_member_set)
 
-            temp['no_votes'] = count
+            if total_votes != 0:
+                temp['no_votes'] = count
+                temp['percentage'] = int((count / total_votes) * 100)
 
-            temp['percentage'] = int((count / total_votes) * 100)
+            temp['to_show_results'] = False
+
+            if is_cm or user_instance == chatroom_instance.user:
+                temp['to_show_results'] = True
+
+            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_INSTANT and temp['is_selected'] is True:
+                temp['to_show_results'] = True
+
+            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_DEFERRED \
+                    and TimeUtilities.current_time_in_sec() >= chatroom_instance.end_date // 1000:
+                temp['to_show_results'] = True
 
             polls.append(temp)
 

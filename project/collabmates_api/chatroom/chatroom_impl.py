@@ -48,6 +48,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
                             EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember)
 from external_services.logging.logging_wrapper import LoggingWrapper
+from external_services.webflow.webflow_impl import WebflowImpl
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types
 
@@ -68,6 +69,7 @@ from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
 
+from collabmates_api.notifications.tasks import trigger_event_comms
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
@@ -1392,6 +1394,14 @@ class ChatroomImpl(ChatroomManager):
             send_event_analytics_on_event_creation.delay(card_instance.id, user_instance.id)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
 
+            payload_for_whatsapp_comms = {
+                'chatroom': card_instance.id,
+                'community': community_instance.id,
+                'user': user_instance.id
+            }
+
+            trigger_event_comms.delay(payload_for_whatsapp_comms)
+
             chatroom_context = {
                 'success': True,
                 'chatroom': ChatroomHelper.compute_chatroom_response(card_instance, user_instance, community_instance),
@@ -2370,6 +2380,28 @@ class ChatroomImpl(ChatroomManager):
 
         return res
 
+    def publish_event_webflow(self, req_body) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member_id'}
+
+        validated_req_body = ChatroomHelper.validate_publish_event_webflow_req_body(req_body)
+
+        if not validated_req_body.get('success'):
+            return validated_req_body
+
+        validated_req_body = validated_req_body.get('req_body')
+
+        event_meta_data = {
+            'domains': validated_req_body.get('domains')
+        }
+
+        webflow_response = WebflowImpl.publish_event_in_webflow(event_meta_data, validated_req_body.get('site_id'))
+
+        return {'success': True, 'data': webflow_response}
+
 
 class ChatroomHelper:
 
@@ -3238,3 +3270,17 @@ class ChatroomHelper:
         attachment_count = ModelUtilities.get_model_filter(EventRecordingsAttachments, filter_dict).count()
 
         return attachment_count
+
+    @staticmethod
+    def validate_publish_event_webflow_req_body(req_body):
+
+        if 'site_id' not in req_body:
+            return {'success': False, 'error_message': 'Send site_id'}
+
+        if 'domains' not in req_body:
+            return {'success': False, 'error_message': 'Send domains'}
+
+        if not isinstance(req_body.get('domains'), list):
+            return {'success': False, 'error_message': 'Domains must be list'}
+
+        return {'success': True, 'req_body': req_body}

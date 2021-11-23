@@ -10,6 +10,7 @@ class UserManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'logout') and callable(subclass.logout)) and
                 (hasattr(subclass, 'remove_profile') and callable(subclass.remove_profile)) and
                 (hasattr(subclass, 'login') and callable(subclass.login)) and
+                (hasattr(subclass, 'fetch_all_users') and callable(subclass.fetch_all_users)) and
                 (hasattr(subclass, 'fetch_app_access') and callable(subclass.fetch_app_access)) or
                 (hasattr(subclass, 'fetch_dm_home') and callable(subclass.fetch_dm_home)) or
                 (hasattr(subclass, 'update_dm_tutorial') and callable(subclass.update_dm_tutorial)) or
@@ -87,6 +88,13 @@ class UserManager(metaclass=abc.ABCMeta):
     def fetch_dm_feed(self) -> dict:
         """
         Check whether the Direct Message Right Enabled or not
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_all_users(self, page, user_ids) -> dict:
+        """
+        returns all the users corresponding to given user_ids
         """
         raise NotImplementedError
 

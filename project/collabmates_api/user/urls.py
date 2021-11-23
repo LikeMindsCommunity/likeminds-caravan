@@ -1,7 +1,7 @@
 from django.urls import path
 from collabmates_api.user.view_impl import (DeleteUserView, UserSeenSurvey, UserLogout,
                                             UserRemoveProfile, UserLoginView, FetchUserAccess, FetchDmHome,
-                                            UpdateDmTutorial, FetchDmFeed)
+                                            UpdateDmTutorial, FetchDmFeed, FetchAllUsers)
 
 
 urlpatterns = [
@@ -14,4 +14,5 @@ urlpatterns = [
     path('fetch_dm_home', FetchDmHome.as_view(), name="fetch_dm_home"),
     path('update_dm_tutorial', UpdateDmTutorial.as_view(), name="update_dm_tutorial"),
     path('fetch_dm_feed', FetchDmFeed.as_view(), name="fetch_dm_feed"),
+    path('fetch_all', FetchAllUsers.as_view(), name="fetch_all_users")
 ]

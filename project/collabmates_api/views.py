@@ -32,7 +32,7 @@ from utility.celery_tasks import (
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom, reset_unread_message_count_in_cache,
-    fetch_conversations_unread)
+    fetch_conversations_unread, update_deferred_card_poll_updated_at_value)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -2694,6 +2694,15 @@ def create_poll(request):
 
     send_sync_notification.delay({'chatroom_id': context['chatroom_local']['id'],
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+    collabcard = context.get('collabcard')
+    start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(collabcard.get('expiry_time'))
+
+    args = [collabcard.get('id')]
+
+    if collabcard.get('type') == CollabcardTypes.CARD_POLL and \
+            collabcard.get('poll_type') == poll_types.POLL_TYPE_DEFERRED:
+        update_deferred_card_poll_updated_at_value.apply_async(args=args, kwargs={}, eta=start_time)
 
     return JsonResponse(context)
 
@@ -8969,6 +8978,10 @@ def edit_community_version_1(request):
     community_instance.referral_enabled = res.get('referral_enabled', community_instance.referral_enabled)
     community_instance.dashboard_link = res.get('dashboard_link', community_instance.dashboard_link)
 
+    community_instance.fee_membership = res.get('fee_membership', community_instance.fee_membership)
+    community_instance.fee_event = res.get('fee_event', community_instance.fee_event)
+    community_instance.fee_payment_pages = res.get('fee_payment_pages', community_instance.fee_payment_pages)
+
     if edit_field:
         edit_community_data(community_instance, user_instance, edit_field=edit_field)
 
@@ -12069,6 +12082,9 @@ class SyncChatrooms(APIView):
 
         chatroom_poll_data = poll_data.get(chatroom_id)
         chatroom_votes = poll_votes.get(chatroom_id)
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+        is_cm = Members.is_member_community_promoter(chatroom_instance.community, user_instance)
 
         if not chatroom_poll_data:
             chatroom_poll_data = []
@@ -12089,11 +12105,9 @@ class SyncChatrooms(APIView):
             temp['text'] = data['text']
             temp['is_selected'] = False
             temp['member'] = data['member']
-            if total_votes == 0:
-                temp['no_votes'] = 0
-                temp['percentage'] = 0
-                polls.append(temp)
-                continue
+            temp['no_votes'] = 0
+            temp['percentage'] = 0
+
             for member in chatroom_votes:
 
                 if member['user_id'] not in total_member_set:
@@ -12110,9 +12124,21 @@ class SyncChatrooms(APIView):
                 count = len(member_set)
                 total_votes = len(total_member_set)
 
-            temp['no_votes'] = count
+            if total_votes != 0:
+                temp['no_votes'] = count
+                temp['percentage'] = int((count / total_votes) * 100)
 
-            temp['percentage'] = int((count / total_votes) * 100)
+            temp['to_show_results'] = False
+
+            if is_cm or user_instance == chatroom_instance.user:
+                temp['to_show_results'] = True
+
+            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_INSTANT and temp['is_selected'] is True:
+                temp['to_show_results'] = True
+
+            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_DEFERRED \
+                    and TimeUtilities.current_time_in_sec() >= chatroom_instance.end_date // 1000:
+                temp['to_show_results'] = True
 
             polls.append(temp)
 
@@ -12571,6 +12597,9 @@ class SyncChatroomsDiff(APIView):
 
         chatroom_poll_data = poll_data.get(chatroom_id)
         chatroom_votes = poll_votes.get(chatroom_id)
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+        is_cm = Members.is_member_community_promoter(chatroom_instance.community, user_instance)
 
         if not chatroom_poll_data:
             chatroom_poll_data = []
@@ -12592,11 +12621,9 @@ class SyncChatroomsDiff(APIView):
             temp['text'] = data['text']
             temp['is_selected'] = False
             temp['member'] = data['member']
-            if total_votes == 0:
-                temp['no_votes'] = 0
-                temp['percentage'] = 0
-                polls.append(temp)
-                continue
+            temp['no_votes'] = 0
+            temp['percentage'] = 0
+
             for member in chatroom_votes:
 
                 if member['user_id'] not in total_member_set:
@@ -12613,9 +12640,21 @@ class SyncChatroomsDiff(APIView):
                 count = len(member_set)
                 total_votes = len(total_member_set)
 
-            temp['no_votes'] = count
+            if total_votes != 0:
+                temp['no_votes'] = count
+                temp['percentage'] = int((count / total_votes) * 100)
 
-            temp['percentage'] = int((count / total_votes) * 100)
+            temp['to_show_results'] = False
+
+            if is_cm or user_instance == chatroom_instance.user:
+                temp['to_show_results'] = True
+
+            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_INSTANT and temp['is_selected'] is True:
+                temp['to_show_results'] = True
+
+            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_DEFERRED \
+                    and TimeUtilities.current_time_in_sec() >= chatroom_instance.end_date // 1000:
+                temp['to_show_results'] = True
 
             polls.append(temp)
 

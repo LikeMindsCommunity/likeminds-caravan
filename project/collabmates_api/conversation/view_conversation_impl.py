@@ -46,9 +46,7 @@ class FetchConversation(APIView):
 
         conversations = conversation_manager.fetch_conversation(top_navigate)
 
-        return JsonResponse({
-            'conversations': conversations
-        })
+        return JsonResponse({'conversations': conversations})
 
 
 class CreateConversation(APIView):

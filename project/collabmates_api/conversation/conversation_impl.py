@@ -54,7 +54,8 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
                                   get_conversation_poll, save_conversation_poll_options_in_cache,
                                   save_conversation_poll_voters_in_cache, update_multiple_previews_in_community,
                                   update_event_attendees_for_micro_event, update_unread_message_count_in_cache,
-                                  fetch_conversations_unread, reset_unread_message_count_in_cache)
+                                  fetch_conversations_unread, reset_unread_message_count_in_cache,
+                                  update_deferred_conversation_poll_updated_at_value)
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -682,6 +683,14 @@ class ConversationImpl(ConversationManager):
             conversations = self._create_conversation_list(conversations)
             return conversations
 
+        # Client is not sending scroll direction and only sending conversation id
+        if self.get_conversation_id() and self.get_scroll_direction() is None:
+            conversation = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
+            conversations = [conversation]
+            conversations = self._create_conversation_list(conversations)
+            return conversations
+
+        # Client is sending scroll direction as False with conversation ID
         if not self.get_scroll_direction() and self.get_conversation_id():
             last_seen_conversation = self._fetch_last_seen_conversation()
 
@@ -849,6 +858,14 @@ class ConversationImpl(ConversationManager):
 
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
+        args = [conversation_instance.id]
+
+        if conversation_instance.state == conversation_states.CONVERSATION_POLL and \
+                conversation_instance.poll_type == conversation_poll_types.DEFERRED:
+
+            start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(conversation_instance.expiry_time)
+            update_deferred_conversation_poll_updated_at_value.apply_async(args=args, kwargs={},
+                                                                           eta=start_time)
 
         conversation_response = {
             'success': True,
