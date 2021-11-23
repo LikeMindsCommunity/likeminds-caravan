@@ -4,17 +4,9 @@ from togther.models import ModelUtilities, Members, collabcardState, userMobiles
 from utility.time_utilities import TimeUtilities
 from utility.utils import generate_private_link_for_chatroom
 from utility.states import member_states, mobile_states
-from collabmates_api.notification import get_token_for_fcm
 
 from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_SHOULD_HAPPEN_AFTER, \
-                        EVENT_COMM_SHOULD_HAPPEN_BEFORE, TIME_10_AM, TITLE_EVENT_CREATION_APP_NOTIFICATION, \
-                        SUB_TITLE_EVENT_CREATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION, \
-                        ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION, TITLE_EVENT_LAST_CALL_APP_NOTIFICATION, \
-                        SUB_TITLE_EVENT_LAST_CALL_APP_NOTIFICATION, ROUTE_PAID_EVENT_LAST_CALL_APP_NOTIFICATION, \
-                        ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION, TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION, \
-                        SUB_TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION, ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION, \
-                        TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, \
-                        ROUTE_EVENT_REGISTRATION_APP_NOTIFICATION
+                        EVENT_COMM_SHOULD_HAPPEN_BEFORE, EVENT_LAST_CALL_TIME
 from .tasks_manager import TaskManager
 
 
@@ -134,74 +126,6 @@ class TasksImpl(TaskManager):
         
         return custom_params
 
-    def get_response_dict_for_app_notifications(self, payload):
-
-        event_id = payload.get('chatroom').id
-        event_name = payload.get('chatroom').title
-        is_paid_event = payload.get('chatroom').is_paid
-        online_link_enable_before = payload.get('chatroom').online_link_enable_before
-
-        online_link_enable_before_in_mins = TimeUtilities.convert_milliseconds_to_min(online_link_enable_before)
-
-        member_name = payload.get('user').userinfo.name if payload.get('user') else None
-
-        response_dict = self.process_app_notification_response_dict(event_name, is_paid_event, event_id, 
-                                                                online_link_enable_before_in_mins, member_name)
-
-        return response_dict
-
-    def process_app_notification_response_dict(self, event_name, is_paid_event, event_id, online_link_enable_before_in_mins, \
-                                            member_name):
-
-        if self.get_event_type() == EVENT_TYPE.CREATION:
-
-            title = TITLE_EVENT_CREATION_APP_NOTIFICATION % event_name
-            subtitle = SUB_TITLE_EVENT_CREATION_APP_NOTIFICATION
-
-            if is_paid_event:
-                route = ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION % event_id
-            
-            else:
-                route = ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION % event_id
-
-        elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
-
-            title = TITLE_EVENT_LAST_CALL_APP_NOTIFICATION
-            subtitle = SUB_TITLE_EVENT_LAST_CALL_APP_NOTIFICATION % event_name
-
-            if is_paid_event:
-                route = ROUTE_PAID_EVENT_LAST_CALL_APP_NOTIFICATION % event_id
-
-            else:
-                route = ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION % event_id
-
-        elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_15_MIN:
-
-            title = TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION % online_link_enable_before_in_mins
-            subtitle = SUB_TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION % event_name
-            route = ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION % event_id
-
-        elif self.get_event_type() == EVENT_TYPE.REGISTRATION:
-
-            title = TITLE_EVENT_REGISTRATION_APP_NOTIFICATION
-            subtitle = SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION % (member_name, event_name)
-            route = ROUTE_EVENT_REGISTRATION_APP_NOTIFICATION % event_id
-
-        else:
-            title = ""
-            subtitle = ""
-            route = ""
-
-        response_dict = {
-            'payload': {
-                'title': title,
-                'sub_title': subtitle,
-                'route': route
-            }
-        }
-        
-        return response_dict
-
     def calculate_time_for_sending_notification(self, event_instance):
 
         event_date_time_epoch = event_instance.date_time
@@ -212,13 +136,6 @@ class TasksImpl(TaskManager):
 
             final_time = self.process_whatsapp_notification_final_time(event_date_time_in_IST)
         
-        elif self.get_comm_type() == COMM_TYPE.APP_NOTI:
-
-            online_link_enable_before = event_instance.online_link_enable_before
-            online_link_enable_before_in_mins = TimeUtilities.convert_milliseconds_to_min(online_link_enable_before)
-
-            final_time = self.process_app_notification_final_time(event_date_time_in_IST, online_link_enable_before_in_mins)
-
         final_time = TimeUtilities.add_IST_offset_to_date_time(final_time)
 
         current_date_time_in_IST = TimeUtilities.get_current_datetime_in_IST()
@@ -241,7 +158,7 @@ class TasksImpl(TaskManager):
 
             event_last_call_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.LAST_CALL_WHATSAPP
 
-            final_time = TasksHelper.calculate_notification_time(event_last_call_time, TIME_10_AM)
+            final_time = TasksHelper.calculate_notification_time(event_last_call_time, EVENT_LAST_CALL_TIME)
 
         elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_5_HRS:
 
@@ -256,33 +173,7 @@ class TasksImpl(TaskManager):
 
             final_time = TasksHelper.calculate_notification_time(event_attendance_10_min_time, 
                                                                         EVENT_COMM_SHOULD_HAPPEN_AFTER)
-
-        return final_time
-
-    def process_app_notification_final_time(self, event_date_time_in_IST, online_link_enable_before_in_mins):
-    
-        if self.get_event_type() == EVENT_TYPE.CREATION:
-
-            event_creation_time = TimeUtilities.get_current_datetime_in_IST()
-            final_time = TasksHelper.calculate_notification_time(event_creation_time, 
-                                                                        EVENT_COMM_SHOULD_HAPPEN_AFTER)
         
-        elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
-
-            event_last_call_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.LAST_CALL_APP_NOTI
-            final_time = TasksHelper.calculate_notification_time(event_last_call_time, TIME_10_AM)
-
-        elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_15_MIN:
-
-            event_attendance_15_min_time = event_date_time_in_IST - timedelta(minutes=online_link_enable_before_in_mins)
-            final_time = TasksHelper.calculate_notification_time(event_attendance_15_min_time, 
-                                                                        EVENT_COMM_SHOULD_HAPPEN_AFTER)
-                                                                
-        elif self.get_event_type() == EVENT_TYPE.REGISTRATION:
-
-            event_registration_time = TimeUtilities.get_current_datetime_in_IST()
-            final_time = TasksHelper.calculate_notification_time(event_registration_time, TIME_10_AM)
-
         return final_time
 
         
@@ -300,21 +191,6 @@ class TasksHelper:
         payload_with_objects['chatroom'] = chatroom_instance
         payload_with_objects['community'] = community_instance
         payload_with_objects['user'] = user_instance
-
-        return payload_with_objects
-
-    @staticmethod
-    def update_app_notification_payload_with_object_instances(payload):
-        
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, payload.get('chatroom'))
-
-        payload_with_objects = {}
-
-        payload_with_objects['chatroom'] = chatroom_instance
-
-        if payload.get('user'):
-            user_instance = ModelUtilities.get_model_instance_or_none(User, payload.get('user'))
-            payload_with_objects['user'] = user_instance
 
         return payload_with_objects
 
@@ -338,19 +214,6 @@ class TasksHelper:
         }).values_list('user', flat=True)
 
         return attending_members_list
-
-    @staticmethod
-    def get_community_owner_and_event_creator(community_id, event_instance):
-
-        owner = Members.get_community_owner_user_instance_or_none(community_id)
-
-        event_creator = event_instance.user
-
-        users_list = ModelUtilities.get_model_filter(User,{
-            'id__in':[owner.id, event_creator.id]
-        }).values_list('id', flat=True)
-
-        return users_list
 
     @staticmethod
     def calculate_notification_time(noti_time, alternate_noti_time):
@@ -394,19 +257,3 @@ class TasksHelper:
         event_end_time_in_IST = TimeUtilities.convert_epoch_to_datetime_in_IST(event_end_time)
 
         return event_end_time_in_IST
-
-    @staticmethod
-    def create_user_details_list_for_sending_app_notification(user_instances):
-        
-        notification_details_list = []
-
-        for user_id in user_instances:
-            notification_details = get_token_for_fcm(user_id, True)
-
-            notification_details_list.append({
-                'id': user_id,
-                'fcm_token': notification_details[0],
-                'mobile_os': notification_details[1]
-            })
-        
-        return notification_details_list
