@@ -53,7 +53,11 @@ class FetchAllCommunities(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         page = RequestUtilities.get_page_number(request, default=1)
 
-        community_ids = json.loads(request.GET.get('community_ids')) if request.GET.get('community_ids') else None
+        try:
+            community_ids = json.loads(request.GET.get('community_ids'))
+
+        except:
+            community_ids = None
 
         community_manager = CommunityImpl(member_id)
         community_response = community_manager.fetch_all_communities(page=page, community_ids=community_ids)
