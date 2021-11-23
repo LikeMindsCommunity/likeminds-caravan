@@ -784,44 +784,6 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
     return notification_list, message
 
 
-def get_user_data_for_event_wa_notification(card_instance):
-    community_instance = card_instance.community
-    card_title = get_title_from_collabcard(card_instance)
-
-    members_queryset = Members.get_members_of_community(community_instance)
-
-    data_list = []
-    user_ids = [data.member_id_id for data in members_queryset]
-
-    user_data = get_user_details_for_event_attendees(user_ids)
-
-    for user_id in user_ids:
-        data_item = {
-            "whatsappNumber": user_data[user_id]['phone'],
-            "customParams": [
-                {
-                    "name": "name",
-                    "value": user_data[user_id]['name'].strip(),
-                },
-                {
-                    "name": "event_name",
-                    "value": card_title.strip()
-                },
-                {
-                    "name": "community_name",
-                    "value": community_instance.name.strip()
-                },
-                {
-                    "name": "event_link",
-                    "value": str(card_instance.id)
-                }
-            ]
-        }
-        data_list.append(data_item)
-
-    return data_list
-
-
 def precompute_usernames_for_event_attendees(user_ids):
     userinfo_queryset = ModelUtilities.get_model_filter(Userinfo, {
         'user_id__in': user_ids
