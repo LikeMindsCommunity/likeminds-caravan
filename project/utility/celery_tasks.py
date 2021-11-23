@@ -2285,13 +2285,8 @@ def create_intro_room_disabled_text_for_community_members(disabled_community_set
 def update_deferred_conversation_poll_updated_at_value(conversation_id):
     conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
 
-    if not conversation_instance:
-        return
-
-    if conversation_instance.state != conversation_states.CONVERSATION_POLL:
-        return
-
-    if conversation_instance.poll_type != conversation_poll_types.DEFERRED:
+    if (not conversation_instance) or (conversation_instance.state != conversation_states.CONVERSATION_POLL) or \
+            (conversation_instance.poll_type != conversation_poll_types.DEFERRED):
         return
 
     conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
@@ -2302,13 +2297,8 @@ def update_deferred_conversation_poll_updated_at_value(conversation_id):
 def update_deferred_card_poll_updated_at_value(chatroom_id):
     chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
-    if not chatroom_instance:
-        return
-
-    if chatroom_instance.type != CollabcardTypes.CARD_POLL:
-        return
-
-    if chatroom_instance.poll_type != poll_types.POLL_TYPE_DEFERRED:
+    if (not chatroom_instance) or (chatroom_instance.type != CollabcardTypes.CARD_POLL) or \
+            (chatroom_instance.poll_type != poll_types.POLL_TYPE_DEFERRED):
         return
 
     chatroom_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
