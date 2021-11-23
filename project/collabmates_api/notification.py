@@ -723,19 +723,6 @@ def schedule_online_event_future_notification(card_instance):
                                                           eta=task_begin_date_time,
                                                           expires=task_expiry_date_time)
 
-    # Do not send wa notifications in beta
-    if not settings.IS_BETA:
-        task_begin_epoch_time = TimeUtilities.subtract_minutes_from_epoch_time(card_end_time, minutes=10)
-        task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=15)
-
-        # scheduling event remainder on whatsapp before 10 minutes
-        task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
-        task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
-        online_event_reminder_notification_10_min.apply_async(args=args,
-                                                              kwargs={},
-                                                              eta=task_begin_date_time,
-                                                              expires=task_expiry_date_time)
-
 
 def schedule_offline_event_future_notifications(card_instance):
     card_id = card_instance.id
@@ -795,44 +782,6 @@ def get_user_data_for_event_notifications(card_instance, sub_title, route):
     }}
 
     return notification_list, message
-
-
-def get_user_data_for_event_wa_notification(card_instance):
-    community_instance = card_instance.community
-    card_title = get_title_from_collabcard(card_instance)
-
-    members_queryset = Members.get_members_of_community(community_instance)
-
-    data_list = []
-    user_ids = [data.member_id_id for data in members_queryset]
-
-    user_data = get_user_details_for_event_attendees(user_ids)
-
-    for user_id in user_ids:
-        data_item = {
-            "whatsappNumber": user_data[user_id]['phone'],
-            "customParams": [
-                {
-                    "name": "name",
-                    "value": user_data[user_id]['name'].strip(),
-                },
-                {
-                    "name": "event_name",
-                    "value": card_title.strip()
-                },
-                {
-                    "name": "community_name",
-                    "value": community_instance.name.strip()
-                },
-                {
-                    "name": "event_link",
-                    "value": str(card_instance.id)
-                }
-            ]
-        }
-        data_list.append(data_item)
-
-    return data_list
 
 
 def precompute_usernames_for_event_attendees(user_ids):
@@ -948,31 +897,6 @@ def should_send_notification(card_instance: object):
         return False, message
 
     return True, ""
-
-
-@app.task
-@shared_task
-def online_event_reminder_notification_10_min(card_id, **kwargs):
-    """ function to send notification to all members when event/poll is going to start/end """
-
-    try:
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
-
-        if not card_instance:
-            raise Exception(f"aborting notification. chatroom does not exist (id = {card_id}).")
-
-        send_allowed, message = should_send_notification(card_instance)
-
-        if not send_allowed:
-            raise Exception(message)
-
-        user_data_for_wa_notification = get_user_data_for_event_wa_notification(card_instance)
-        template_name = WATI_NOTIFICATION_CONST['TEMPLATE_NAMES']['EVENT_REMINDER']
-        broadcast_name = WATI_NOTIFICATION_CONST['BROADCAST_NAMES']['EVENT_REMINDER']
-        NotificationImpl.send_wa_bulk_notitfications(user_data_for_wa_notification, template_name, broadcast_name)
-
-    except Exception as e:
-        error_logger.error(f"online_event_remainder_notification_10_min {e.args}")
 
 
 @app.task
