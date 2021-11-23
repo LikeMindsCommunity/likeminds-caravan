@@ -98,8 +98,11 @@ def schedule_whatsapp_notification_for_event_comms(payload_for_whatsapp_comms, c
         user_data_for_wa_notification = TasksHelper.create_user_data_for_wa_notification(user_ids=final_user_ids, 
                                                                                         custom_params=custom_params)
 
-        NotificationImpl.send_wa_bulk_notitfications(user_data_for_wa_notification, template_name=template_name, 
-                                                    broadcast_name=template_name)
+        send_allowed = TasksHelper.should_send_notification(event_instance)
+
+        if send_allowed:
+            NotificationImpl.send_wa_bulk_notitfications(user_data_for_wa_notification, template_name=template_name, 
+                                                        broadcast_name=template_name)
     
     except Exception as e:
         error_logger.exception("got error in schedule_whatsapp_notification | error - %s | payload reveived = %s | \

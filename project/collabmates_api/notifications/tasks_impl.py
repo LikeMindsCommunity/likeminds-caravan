@@ -9,6 +9,8 @@ from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_S
                         EVENT_COMM_SHOULD_HAPPEN_BEFORE, EVENT_LAST_CALL_TIME
 from .tasks_manager import TaskManager
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+error_logger = LoggingWrapper.get_instance()
 
 class TasksImpl(TaskManager):
     event_type = None
@@ -122,7 +124,7 @@ class TasksImpl(TaskManager):
             ]
 
         else:
-            custom_params = {}
+            custom_params = []
         
         return custom_params
 
@@ -230,7 +232,7 @@ class TasksHelper:
         return final_time
 
     @staticmethod
-    def create_user_data_for_wa_notification(user_ids, custom_params={}):
+    def create_user_data_for_wa_notification(user_ids, custom_params=[]):
         mobile_queryset = ModelUtilities.get_model_filter(userMobiles, {
             'user__in': user_ids,
             'state': mobile_states.PRIMARY
@@ -257,3 +259,13 @@ class TasksHelper:
         event_end_time_in_IST = TimeUtilities.convert_epoch_to_datetime_in_IST(event_end_time)
 
         return event_end_time_in_IST
+
+    @staticmethod
+    def should_send_notification(card_instance: object):
+        if getattr(card_instance, 'is_deleted', False) and \
+                Collabcard.is_chatroom_deleted(card_instance.is_deleted):
+            message = f"aborting notification. chatroom is deleted (id = {card_instance.id})."
+            error_logger.exception(message)
+            return False
+
+        return True
