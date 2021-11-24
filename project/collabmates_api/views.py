@@ -32,7 +32,7 @@ from utility.celery_tasks import (
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom, reset_unread_message_count_in_cache,
-    fetch_conversations_unread, update_deferred_card_poll_updated_at_value)
+    fetch_conversations_unread, update_deferred_card_poll_updated_at_value, get_to_show_results_for_conversation_poll)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -11815,6 +11815,9 @@ class SyncChatrooms(APIView):
 
                 polls = self._get_polls_v1(poll_data, chatroom['id'], poll_votes, data[29], member_id)
                 if polls:
+                    from collabmates_api.chatroom_member.chatroom_member_impl import ChatroomMemberHelper
+                    chatroom['to_show_results'] = ChatroomMemberHelper.get_to_show_results(chatroom['id'], member_id,
+                                                                                           poll_votes)
                     chatroom['polls'] = polls
                 chatroom["expiry_time"] = data[32]
 
@@ -12082,9 +12085,6 @@ class SyncChatrooms(APIView):
 
         chatroom_poll_data = poll_data.get(chatroom_id)
         chatroom_votes = poll_votes.get(chatroom_id)
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-        is_cm = Members.is_member_community_promoter(chatroom_instance.community, user_instance)
 
         if not chatroom_poll_data:
             chatroom_poll_data = []
@@ -12127,18 +12127,6 @@ class SyncChatrooms(APIView):
             if total_votes != 0:
                 temp['no_votes'] = count
                 temp['percentage'] = int((count / total_votes) * 100)
-
-            temp['to_show_results'] = False
-
-            if is_cm or user_instance == chatroom_instance.user:
-                temp['to_show_results'] = True
-
-            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_INSTANT and temp['is_selected'] is True:
-                temp['to_show_results'] = True
-
-            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_DEFERRED \
-                    and TimeUtilities.current_time_in_sec() >= chatroom_instance.end_date // 1000:
-                temp['to_show_results'] = True
 
             polls.append(temp)
 
@@ -12510,14 +12498,17 @@ class SyncChatroomsDiff(APIView):
             chatroom['is_anonymous'] = data[30]
             chatroom['poll_type'] = data[31]
             chatroom['poll_type_text'] = "Instant poll" \
-                if chatroom[ 'poll_type'] == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+                if chatroom['poll_type'] == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
             chatroom['submit_type_text'] = "Secret voting" if chatroom[
                 'is_poll_anonymous'] else "Public voting"
 
             polls = self._get_polls_v1(poll_data, chatroom['id'], poll_votes, data[29], member_id)
             if polls:
+                from collabmates_api.chatroom_member.chatroom_member_impl import ChatroomMemberHelper
+                chatroom['to_show_results'] = ChatroomMemberHelper.get_to_show_results(chatroom['id'], member_id,
+                                                                                       poll_votes)
                 chatroom['polls'] = polls
-            chatroom["expiry_time"] = data[32]
+            chatroom['expiry_time'] = data[32]
 
     def _add_event_data(self, chatroom, data):
         if chatroom['type'] == card_types.CARD_EVENT or chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
@@ -12597,9 +12588,6 @@ class SyncChatroomsDiff(APIView):
 
         chatroom_poll_data = poll_data.get(chatroom_id)
         chatroom_votes = poll_votes.get(chatroom_id)
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-        is_cm = Members.is_member_community_promoter(chatroom_instance.community, user_instance)
 
         if not chatroom_poll_data:
             chatroom_poll_data = []
@@ -12643,19 +12631,6 @@ class SyncChatroomsDiff(APIView):
             if total_votes != 0:
                 temp['no_votes'] = count
                 temp['percentage'] = int((count / total_votes) * 100)
-
-            temp['to_show_results'] = False
-
-            if is_cm or user_instance == chatroom_instance.user:
-                temp['to_show_results'] = True
-
-            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_INSTANT and temp['is_selected'] is True:
-                temp['to_show_results'] = True
-
-            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_DEFERRED \
-                    and TimeUtilities.current_time_in_sec() >= chatroom_instance.end_date // 1000:
-                temp['to_show_results'] = True
-
             polls.append(temp)
 
         return polls
@@ -12973,11 +12948,16 @@ class SyncConversation(APIView):
 
                 conversation_context['allow_add_option'] = conversation[24]
                 conversation_context['expiry_time'] = conversation[25]
-                conversation_context['polls'] = get_conversation_poll({'conversation_id': conversation[0],
-                                                                       'poll_type': conversation[20],
-                                                                       'multiple_select_no': conversation[22],
-                                                                       'expiry_time': conversation[25],
-                                                                       'member_id': member_id})
+
+                conversation_info = {
+                    'conversation_id': conversation[0],
+                    'poll_type': conversation[20],
+                    'multiple_select_no': conversation[22],
+                    'expiry_time': conversation[25],
+                    'member_id': member_id
+                }
+                conversation_context['polls'] = get_conversation_poll(conversation_info)
+                conversation_context['to_show_results'] = get_to_show_results_for_conversation_poll(conversation_info)
                 conversation_context['poll_answer_text'] = conversation[29]
 
             # conversation[27] = has_reactions

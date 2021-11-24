@@ -621,18 +621,61 @@ def update_chatroom_conversation_creators_in_cache(conversation_creator_info):
             CacheImpl.set_cache(key, conversation_creator_dict)
 
 
-def compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, conversation_context):
-    total_votes = poll_voters.get('total_votes', 0)
-    total_user_set = poll_voters.get('total_user_set')
-    chatroom_poll_members = poll_voters.get('conversation_poll_members', {})
+def get_to_show_results_for_conversation_poll(conversation_context):
     conversation_id = conversation_context.get('conversation_id')
+    member_id = NumberUtilities.get_integer_from_string(conversation_context.get('member_id'))
     conversation_instance = conversation_context.get('conversation_instance')
+    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not conversation_instance:
         conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
 
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
     is_cm = Members.is_member_community_promoter(conversation_instance.community, user_instance)
+    # If user is CM or Creator of POLL, to_show_results will be true
+
+    if is_cm or user_instance == conversation_instance.user:
+        return True
+
+    if conversation_instance.poll_type == conversation_poll_types.DEFERRED and \
+            TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
+        return True
+
+    conversation_poll_options = ModelUtilities.get_model_filter(conversationPolls,
+                                                                {'conversation': conversation_instance})
+    conversation_poll_members = ModelUtilities.get_model_filter(conversationPollMembers,
+                                                                {'conversation': conversation_instance})
+    poll_members_dict = {}
+
+    for data in conversation_poll_members:
+
+        poll_id = data.poll_id
+        user_id = data.user_id
+
+        if poll_id not in poll_members_dict:
+            poll_members_dict[poll_id] = [user_id]
+
+        else:
+            poll_members_dict[poll_id].append(user_id)
+
+    for data in conversation_poll_options:
+        poll_id = data.id
+        chatroom_votes = poll_members_dict.get(poll_id)
+
+        if not chatroom_votes:
+            chatroom_votes = []
+
+        is_selected = member_id in chatroom_votes
+
+        if conversation_instance.poll_type == conversation_poll_types.INSTANT and is_selected is True:
+            return True
+
+    return False
+
+
+def compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, conversation_context):
+    total_votes = poll_voters.get('total_votes', 0)
+    total_user_set = poll_voters.get('total_user_set')
+    chatroom_poll_members = poll_voters.get('conversation_poll_members', {})
 
     polls = []
 
@@ -666,34 +709,12 @@ def compute_conversation_polls_from_cache(poll_options, poll_voters, member_id, 
             temp['no_votes'] = count
             temp['percentage'] = int((count / total_votes) * 100)
 
-        temp['to_show_results'] = False
-
-        if is_cm or user_instance == conversation_instance.user:
-            temp['to_show_results'] = True
-
-        elif conversation_instance.poll_type == conversation_poll_types.INSTANT and temp['is_selected'] is True:
-            temp['to_show_results'] = True
-
-        elif conversation_instance.poll_type == conversation_poll_types.DEFERRED \
-                and TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
-            temp['to_show_results'] = True
-
-
         polls.append(temp)
 
     return polls
 
 
 def compute_conversation_poll_options_from_cache(poll_options, conversation_info):
-    conversation_id = conversation_info.get('conversation_id')
-    member_id = conversation_info.get('member_id')
-    conversation_instance = conversation_info.get('conversation_instance')
-
-    if not conversation_instance:
-        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
-
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-    is_cm = Members.is_member_community_promoter(conversation_instance.community, user_instance)
 
     polls = []
 
@@ -708,18 +729,6 @@ def compute_conversation_poll_options_from_cache(poll_options, conversation_info
 
         if data.get('member'):
             temp['member'] = data.get('member')
-
-        temp['to_show_results'] = False
-
-        if is_cm or user_instance == conversation_instance.user:
-            temp['to_show_results'] = True
-
-        elif conversation_instance.poll_type == conversation_poll_types.INSTANT and temp['is_selected'] is True:
-            temp['to_show_results'] = True
-
-        elif conversation_instance.poll_type == conversation_poll_types.DEFERRED \
-                and TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
-            temp['to_show_results'] = True
 
         polls.append(temp)
 
@@ -738,9 +747,6 @@ def compute_conversation_polls(conversation_info):
                                                                 {'conversation': conversation_instance})
     conversation_poll_members = ModelUtilities.get_model_filter(conversationPollMembers,
                                                                 {'conversation': conversation_instance})
-
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-    is_cm = Members.is_member_community_promoter(conversation_instance.community, user_instance)
 
     poll_members_dict = {}
 
@@ -798,19 +804,6 @@ def compute_conversation_polls(conversation_info):
         if total_votes != 0:
             temp['no_votes'] = count
             temp['percentage'] = int((count / total_votes) * 100)
-
-        temp['to_show_results'] = False
-
-        # If user is CM or Creator of POLL
-        if is_cm or user_instance == conversation_instance.user:
-            temp['to_show_results'] = True
-
-        elif conversation_instance.poll_type == conversation_poll_types.INSTANT and temp['is_selected'] is True:
-            temp['to_show_results'] = True
-
-        elif conversation_instance.poll_type == conversation_poll_types.DEFERRED \
-                and TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
-            temp['to_show_results'] = True
 
         polls.append(temp)
 

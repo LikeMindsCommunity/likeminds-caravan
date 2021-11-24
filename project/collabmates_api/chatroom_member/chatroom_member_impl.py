@@ -94,9 +94,6 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
     @staticmethod
     def process_poll(poll_data, chatroom_id, poll_votes, is_multi, member_id):
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-        is_cm = Members.is_member_community_promoter(chatroom_instance.community, user_instance)
 
         chatroom_poll_data = poll_data.get(chatroom_id)
         chatroom_votes = poll_votes.get(chatroom_id)
@@ -143,18 +140,6 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             if total_votes != 0:
                 temp['no_votes'] = count
                 temp['percentage'] = int((count / total_votes) * 100)
-
-            temp['to_show_results'] = False
-
-            if is_cm or user_instance == chatroom_instance.user:
-                temp['to_show_results'] = True
-
-            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_INSTANT and temp['is_selected'] is True:
-                temp['to_show_results'] = True
-
-            elif chatroom_instance.poll_type == poll_types.POLL_TYPE_DEFERRED \
-                    and TimeUtilities.current_time_in_sec() >= chatroom_instance.end_date // 1000:
-                temp['to_show_results'] = True
 
             polls.append(temp)
 
@@ -421,6 +406,9 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                       self.get_member_id())
 
             if polls:
+                poll_serializer['to_show_results'] = ChatroomMemberHelper.get_to_show_results(card_instance.id,
+                                                                                              self.get_member_id(),
+                                                                                              poll_votes)
                 poll_serializer['polls'] = polls
 
             chatroom_context.update(poll_serializer)
@@ -831,3 +819,41 @@ class ChatroomMemberHelper:
         chatroom_files['attachments'] = collabcard_files[4]
 
         return chatroom_files
+
+    @staticmethod
+    def get_to_show_results(chatroom_id, member_id, poll_votes):
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+        is_cm = Members.is_member_community_promoter(chatroom_instance.community, user_instance)
+
+        # If user is CM or Creator of POLL, to_show_results will be true
+        if is_cm or user_instance == chatroom_instance.user:
+            return True
+
+        if chatroom_instance.poll_type == poll_types.POLL_TYPE_DEFERRED and \
+                chatroom_instance.end_date // 1000 <= TimeUtilities.current_time_in_sec():
+            return True
+
+        chatroom_votes = poll_votes.get(chatroom_id)
+
+        if not chatroom_votes:
+            chatroom_votes = []
+
+        for poll in chatroom_votes:
+
+            filter_dict = {
+                'user_id': member_id,
+                'card_id': chatroom_id,
+                'poll_id': poll.get('poll_id')
+            }
+
+            is_selected = False
+            member_vote_filter = ModelUtilities.get_model_filter(MemberPollVotes, filter_dict) if user_instance else None
+
+            if member_vote_filter:
+                is_selected = True
+
+            if chatroom_instance.poll_type == poll_types.POLL_TYPE_INSTANT and is_selected:
+                return True
+
+        return False
