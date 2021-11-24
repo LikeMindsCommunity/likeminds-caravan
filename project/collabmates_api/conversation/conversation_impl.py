@@ -55,7 +55,8 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
                                   save_conversation_poll_voters_in_cache, update_multiple_previews_in_community,
                                   update_event_attendees_for_micro_event, update_unread_message_count_in_cache,
                                   fetch_conversations_unread, reset_unread_message_count_in_cache,
-                                  update_deferred_conversation_poll_updated_at_value)
+                                  update_deferred_conversation_poll_updated_at_value,
+                                  get_to_show_results_for_conversation_poll)
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -224,6 +225,17 @@ class ConversationImpl(ConversationManager):
 
         return polls
 
+    def fetch_conversation_poll_to_show_results(self, conversation_instance):
+        member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
+        to_show_results = get_to_show_results_for_conversation_poll({'conversation_instance': conversation_instance,
+                                               'member_id': member_id,
+                                               'conversation_id': conversation_instance.id,
+                                               'poll_type': conversation_instance.poll_type,
+                                               'multiple_select_no': conversation_instance.multiple_select_no,
+                                               'expiry_time': conversation_instance.expiry_time,
+                                               })
+        return to_show_results
+
     def _serialize_conversation(self, conversation_instance):
 
         conversation_serializer = conversationSerializer(conversation_instance,
@@ -268,6 +280,7 @@ class ConversationImpl(ConversationManager):
             poll_conversation['expiry_time'] = conversation_instance.expiry_time
 
             poll_conversation['polls'] = self._fetch_conversation_polls(conversation_instance)
+            poll_conversation['to_show_results'] = self.fetch_conversation_poll_to_show_results(conversation_instance)
 
             poll_conversation['poll_type_text'] = "Instant poll" \
                 if poll_conversation['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"

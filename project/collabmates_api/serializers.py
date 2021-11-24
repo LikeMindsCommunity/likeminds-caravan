@@ -263,6 +263,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         collabcard["answer_text"] = get_answer_text_for_poll(card, current_user_id)
         collabcard['polls'] = polls
         collabcard['expiry_time'] = card.end_date
+        collabcard['to_show_results'] = get_to_show_results(card_polls, user, card)
 
         if card.multiple_select:
             collabcard['multiple_select'] = card.multiple_select
@@ -1143,6 +1144,25 @@ def get_member_instances_for_footer_images_in_chatroom(card_instance):
     return temp
 
 
+def get_to_show_results(card_polls, user, card):
+    is_cm = Members.is_member_community_promoter(card.community, user)
+
+    # If user is CM or Creator of POLL, to_show_results will be true
+    if is_cm or user == card.user:
+        return True
+
+    if card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date // 1000 <= TimeUtilities.current_time_in_sec():
+        return True
+
+    for poll in card_polls:
+        is_selected = is_poll_selected(poll, user, card) if user else False
+
+        if card.poll_type == poll_types.POLL_TYPE_INSTANT and is_selected is True:
+            return True
+
+    return False
+
+
 def CollabcardPollsSerializer(poll, user, card):
     """ Poll serializer """
     # print("user--",user)
@@ -1161,21 +1181,6 @@ def CollabcardPollsSerializer(poll, user, card):
     poll_detail = poll_percentage(card, poll, is_multi_select=is_multi_select)
     polls['no_votes'] = poll_detail[0]
     polls['percentage'] = int(poll_detail[1])
-
-    # Start returning to_show_results
-    is_cm = Members.is_member_community_promoter(card.community, user)
-
-    polls['to_show_results'] = False
-
-    # If user is CM or Creator of POLL
-    if is_cm or user == card.user:
-        polls['to_show_results'] = True
-
-    elif card.poll_type == poll_types.POLL_TYPE_INSTANT and polls['is_selected'] is True:
-        polls['to_show_results'] = True
-
-    elif card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date // 1000 <= TimeUtilities.current_time_in_sec():
-        polls['to_show_results'] = True
 
     if poll.sub_text:
         polls['sub_text'] = poll.sub_text

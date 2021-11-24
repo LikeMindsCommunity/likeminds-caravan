@@ -12,7 +12,8 @@ import time
 
 from utility.celery_tasks import get_conversation_poll, update_event_instructors_in_cache, \
     update_event_highlights_in_cache, update_event_member_testimonials_in_cache, update_event_faq_in_cache, \
-    update_event_attendees, update_event_attendees_for_micro_event, fetch_conversations_unread
+    update_event_attendees, update_event_attendees_for_micro_event, fetch_conversations_unread,\
+    get_to_show_results_for_conversation_poll
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
@@ -500,7 +501,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                                         order_by('created_at', 'id'))
 
             update_event_attendees.delay({'chatroom_id': card.id,
-                                    'event_attendees_list': event_attendees_list})
+                                          'event_attendees_list': event_attendees_list})
 
             return event_attendees_list
 
@@ -596,7 +597,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
     def get_online_link(self, card):
 
         if card.online_link and not card.is_paid:
-
             return card.online_link
 
     def get_online_link_id(self, card):
@@ -610,7 +610,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             return card.online_link_password
 
     def get_event_attachment_details(self, card, member_id):
-        
+
         from .chatroom.chatroom_impl import ChatroomHelper
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
@@ -756,10 +756,10 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                     data['recording_url_og_tags'] = json.loads(data['recording_url_og_tags'])
                 except:
                     data['recording_url_og_tags'] = None
-         
+
             elif field.field_name == 'has_event_recording' and data['has_event_recording']:
                 event_dict = self.get_event_attachment_details(card, self.member_id)
-                
+
                 data['recordings_attachments'] = event_dict.get('recordings_attachments')
                 data['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
 
@@ -1133,7 +1133,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                     del data['og_tags']
 
             elif (field.field_name == "attachment_count" and
-                     data['attachment_count'] > 0):
+                  data['attachment_count'] > 0):
                 answer_files = get_answer_files(data['id'])
                 data['images'] = answer_files['image']
                 data['pdf'] = answer_files['pdf']
@@ -1175,9 +1175,18 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
             elif field.field_name == 'has_event_recording' and data['has_event_recording']:
                 event_dict = self.get_event_attachment_details(obj, self.current_user_id)
-                
+
                 data['recordings_attachments'] = event_dict.get('recordings_attachments')
                 data['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
+
+            elif field.field_name == 'polls' and data['polls'] is not None:
+                data['to_show_results'] = get_to_show_results_for_conversation_poll({'conversation_instance': obj,
+                                                               'member_id': self.current_user_id,
+                                                               'conversation_id': obj.id,
+                                                               'poll_type': obj.poll_type,
+                                                               'multiple_select_no': obj.multiple_select_no,
+                                                               'expiry_time': obj.expiry_time,
+                                                               })
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
@@ -1258,7 +1267,6 @@ class EventRecordingsAttachmentsSerializer(serializers.ModelSerializer):
 
 
 class CommunitySettingsSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = CommunitySettings
         fields = ('setting_type', 'setting_title', 'setting_sub_title', 'enabled', 'enabled_by')
@@ -1282,7 +1290,6 @@ class CommunityToastV1Serializer(serializers.ModelSerializer):
 
 
 class CohortSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Cohort
         fields = ('id', 'name', 'community_id', 'type', 'type_id')
@@ -1307,4 +1314,3 @@ class CohortSerializer(serializers.ModelSerializer):
                 del data[field.field_name]
 
         return data
-
