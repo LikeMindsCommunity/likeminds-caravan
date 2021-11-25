@@ -4,6 +4,7 @@ from togther.models import ModelUtilities, Members, collabcardState, userMobiles
 from utility.time_utilities import TimeUtilities
 from utility.utils import generate_private_link_for_chatroom
 from utility.states import member_states, mobile_states
+from utility.url_utilities import UrlUtilities
 
 from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_SHOULD_HAPPEN_AFTER, \
                         EVENT_COMM_SHOULD_HAPPEN_BEFORE, EVENT_LAST_CALL_TIME
@@ -50,7 +51,10 @@ class TasksImpl(TaskManager):
             payload.get('user')
         )
 
-        link = share_url.get('private_link')
+        path = UrlUtilities.extract_part_from_url(share_url.get('private_link'),'path', init_slash_off=True)
+        query_params = UrlUtilities.extract_part_from_url(share_url.get('private_link'),'query', init_slash_off=False)
+        
+        link = "%s?%s" % (path, query_params)
 
         custom_params = self.process_whatsapp_notification_custom_params(event_name, community_name, event_time, event_date, \
                                                                         cm_name, link)
