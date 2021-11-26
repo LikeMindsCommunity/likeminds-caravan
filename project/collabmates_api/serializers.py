@@ -1151,7 +1151,7 @@ def get_to_show_results(card_polls, user, card):
     if is_cm or user == card.user:
         return True
 
-    if card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date // 1000 <= TimeUtilities.current_time_in_sec():
+    if card.end_date <= TimeUtilities.current_time_in_milliseconds():
         return True
 
     for poll in card_polls:

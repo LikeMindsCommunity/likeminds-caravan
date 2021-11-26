@@ -2700,8 +2700,7 @@ def create_poll(request):
 
     args = [collabcard.get('id')]
 
-    if collabcard.get('type') == CollabcardTypes.CARD_POLL and \
-            collabcard.get('poll_type') == poll_types.POLL_TYPE_DEFERRED:
+    if collabcard.get('type') == CollabcardTypes.CARD_POLL:
         update_deferred_card_poll_updated_at_value.apply_async(args=args, kwargs={}, eta=start_time)
 
     return JsonResponse(context)

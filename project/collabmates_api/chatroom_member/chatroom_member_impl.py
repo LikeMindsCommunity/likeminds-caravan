@@ -830,8 +830,7 @@ class ChatroomMemberHelper:
         if is_cm or user_instance == chatroom_instance.user:
             return True
 
-        if chatroom_instance.poll_type == poll_types.POLL_TYPE_DEFERRED and \
-                chatroom_instance.end_date // 1000 <= TimeUtilities.current_time_in_sec():
+        if chatroom_instance.end_date <= TimeUtilities.current_time_in_milliseconds():
             return True
 
         chatroom_votes = poll_votes.get(chatroom_id)
