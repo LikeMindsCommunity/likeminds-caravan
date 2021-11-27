@@ -166,12 +166,6 @@ class MembershipImpl(MembershipManager):
                                                        'user_instance': user_instance,
                                                        'removed_state': remove_state})
 
-            ModelUtilities.delete_record_in_model(conversationEngage,
-                                                  {
-                                                      "community": community_id,
-                                                      "user": member_id
-                                                  })
-
             ModelUtilities.model_update(collabcardState,
                                         {'community': community_instance,
                                          'user': user_instance},
@@ -187,9 +181,6 @@ class MembershipImpl(MembershipManager):
                                             'remove': instance,
                                             'last_updated': TimeUtilities.current_time_in_milliseconds()
                                         })
-
-            ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_instance.id,
-                                                                        user_instance.id)
 
         return {'success': True}
 

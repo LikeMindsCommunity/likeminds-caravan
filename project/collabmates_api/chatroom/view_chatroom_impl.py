@@ -27,10 +27,8 @@ class FetchChatroomView(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
         chatroom_id = request.GET.get('chatroom_id')
-        source_id = request.GET.get('source_id')
-        aj = request.GET.get('aj')
 
-        chatroom_manager = ChatroomImpl(member_id, chatroom_id, source_id, aj, device_id=device_id,
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id, device_id=device_id,
                                         request_platform=request_platform, version_code=version_code)
         chatroom_data = chatroom_manager.fetch_chatroom()
 
@@ -613,6 +611,43 @@ class FetchEventLinkForDashboard(APIView):
         return JsonResponse(response_context)
 
 
+class UpdateAccessWithOutSubscriptionView(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False,
+                                 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        value = req_body.get('value')
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
+        context = chatroom_manager.update_access_without_subscription(value=value)
+
+        if context.get('error_message'):
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(context)
+
+
+class FetchAccessChatroomView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        chatroom_id = request.GET.get('chatroom_id')
+
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
+        response_context = chatroom_manager.fetch_access_for_chatroom()
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+      
 class AddEventRecordingAttachmentMeta(APIView):
 
     def _validate_request(self, member_id, req_body):

@@ -22,7 +22,7 @@ from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstance
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
-    delete_chatroom
+    delete_chatroom, accessible_without_subscription
 from ..sync.model_update import update_models_for_syncing_apis
 from ..upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
 from ..user_moderation_rights import check_admin_delete_right
@@ -46,7 +46,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
-                            EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember)
+                            EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember, removedMembers)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
@@ -124,15 +124,6 @@ class ChatroomImpl(ChatroomManager):
     def get_request_platform(self):
         return self.request_platform
 
-    def _is_user_guest(self, card_instance):
-
-        is_guest = False
-        if card_instance:
-            if self.get_aj() and self.get_source_id():
-                is_guest = True
-
-        return is_guest
-
     def _make_user_chatroom_guest(self, card_instance):
         guest_context = adding_guest_in_chatroom({}, card_instance, self.get_aj(), self.get_source_id(),
                                                  card_instance.community.id, current_user_id=self.get_member_id())
@@ -168,7 +159,6 @@ class ChatroomImpl(ChatroomManager):
             'mute_status': chatroom_data['mute_status'],
             'follow_status': chatroom_data['follow_status'],
             'attending_status': chatroom_data['attending_status'],
-            'is_guest': chatroom_data['is_guest'],
             'type': chatroom_data['type'],
             'is_tagged': chatroom_data['is_tagged'],
             'active': chatroom_data['active']
@@ -752,10 +742,6 @@ class ChatroomImpl(ChatroomManager):
             return {'error_message': "user is not associated with chatroom"}
 
         reset_unread_message_count_in_cache.delay(self.get_chatroom_id(), self.get_member_id())
-
-        if self._is_user_guest(card_instance):
-            guest_context = self._make_user_chatroom_guest(card_instance)
-            chatroom_data.update(guest_context)
 
         chatroom_icons = self._fetch_icon_states_for_chatroom(card_instance, chatroom_data)
         chatroom_data.update(chatroom_icons)
@@ -1894,6 +1880,37 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_context
 
+    def update_access_without_subscription(self, value) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        card_filter = ModelUtilities.get_model_filter(Collabcard, {'id': self.get_chatroom_id()})
+
+        if not card_filter:
+            return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        card_instance = card_filter[0]
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "User is not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return {'success': False,
+                    'error_message': "User can’t enable/disable access without subscription option"}
+
+        card_filter.update(access_without_subscription=value, updated_at=TimeUtilities.current_time_in_milliseconds())
+
+        return {'success': True}
+       
     def remove_cohort_from_chatroom(self, request_body) -> dict:
         cohort_id = request_body.get('cohort_id')
         chatroom_id = request_body.get('chatroom_id')
@@ -2018,6 +2035,38 @@ class ChatroomImpl(ChatroomManager):
             ChatroomCohort.create_instance(chatroom_cohort_dict)
 
         return {'success': True}
+
+    def fetch_access_for_chatroom(self) -> dict:
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not card_instance:
+            return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        community_instance = card_instance.community
+
+        chatroom_object = dict()
+
+        chatroom_object['community'] = CommunitySerializerV1(community_instance).data
+
+        chatroom_object['access_without_subscription'] = card_instance.access_without_subscription
+
+        if self.get_member_id():
+            user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+            if not user_instance:
+                return {'success': False, 'error_message': "Invalid User ID"}
+
+            removed_member_filter = ModelUtilities.get_model_filter(removedMembers,
+                                                                    {'community': community_instance,
+                                                                     'member': user_instance})
+
+            if removed_member_filter:
+                remove_instance = removed_member_filter[0]
+
+                chatroom_object['remove_state'] = remove_instance.removed_state
+
+        return chatroom_object
 
     def fetch_chatroom_participants(self):
 
@@ -3195,6 +3244,9 @@ class ChatroomHelper:
 
             elif settings['id'] == pin_chatroom['id']:
                 settings_dict['is_selected'] = card_instance.is_pinned
+
+            elif settings['id'] == accessible_without_subscription['id']:
+                settings_dict['is_selected'] = card_instance.access_without_subscription
 
             chatroom_settings.append(settings_dict)
 

@@ -5215,24 +5215,13 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 def get_chatroom_internal_version_2(request, card_instance, user_id, page, conversation_id, scroll_direction,
                                     is_ios=False):
     '''version 1 function for sending chatroom instance without conversations'''
-    source_id = request.GET.get('source_id')
-    aj = request.GET.get('aj')
 
-    is_guest = False
     context = {}
 
-    if aj:
-        is_guest = True
-
     user_instance = None
+
     if user_id:
         user_instance = User.objects.get(id=user_id)
-
-    if not conversation_id and not scroll_direction:
-
-        if is_guest:
-            context = adding_guest_in_chatroom(context, card_instance, aj, source_id,
-                                               card_instance.community.id, current_user_id=user_id)
 
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
     # if the user is seeing this chatroom from external link or notification
@@ -5351,12 +5340,13 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                                                                     'remove': None,
                                                                                     'secret_chatroom_left': False})
 
-
         elif card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False:
             can_access_secret_chatroom = not is_draft_chatroom(card_instance, user_id, device_id)
 
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
+
+    context['access_without_subscription'] = card_instance.access_without_subscription
 
     return context
 
@@ -5886,8 +5876,6 @@ def collabcard_follow(request, function_dict=None):
     collabcard_id = request.GET.get('collabcard_id', '')
     member_id = request.GET.get('member_id', '')
     status = request.GET.get('value', 'true')
-    aj = request.GET.get('aj')
-    source_id = request.GET.get('source_id')
     status = (status == "true")
 
     # local imports from conversations in order to resolve circular import
@@ -5915,12 +5903,6 @@ def collabcard_follow(request, function_dict=None):
 
     community_instance = card_instance.community
     member_state = Members.get_community_member_state(community_instance.id, user_instance.id)
-
-    context = handle_guest_follow_case(community_instance, user_instance, card_instance, aj,
-                                       source_id, member_state)
-
-    if context:
-        return JsonResponse(context)
 
     expiry_time = get_expiry_time_of_chatroom()
 
@@ -11780,7 +11762,7 @@ class SyncChatrooms(APIView):
             chatroom['state'] = data[17]
             chatroom['mute_status'] = data[18]
             chatroom['follow_status'] = data[19]
-            chatroom['is_guest'] = data[20]
+            chatroom['access_without_subscription'] = data[20]
             chatroom['is_tagged'] = data[21]
 
             if data[22]:

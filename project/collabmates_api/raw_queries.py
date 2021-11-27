@@ -825,7 +825,7 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcardState.state,
                     togther_collabcardState.mute_status,
                     togther_collabcardState.follow_status,
-                    togther_collabcardState.is_guest,
+                    togther_collabcard.access_without_subscription,
                     togther_collabcardState.is_tagged,
                     togther_collabcardState.last_seen_conversation_id,
                     togther_collabcardState.expiry_time,

@@ -241,9 +241,9 @@ accessible_without_subscription = {'id': 19, 'title': "Accessible without subscr
 
 view_profile = {'id': 21, 'title': "View profile"}
 
-settings_for_purpose_chatroom = [rename_chatroom, member_can_message]
+settings_for_purpose_chatroom = [rename_chatroom, member_can_message, accessible_without_subscription]
 
-settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom]
+settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom, accessible_without_subscription]
 
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [

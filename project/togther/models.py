@@ -502,6 +502,7 @@ class Collabcard(models.Model):
     member_can_message = models.BooleanField(default=True)
     topic = models.ForeignKey('card_answers', on_delete=models.SET_NULL, null=True)
     is_edited = models.BooleanField(default=False)
+    access_without_subscription = models.BooleanField(default=False)
 
     # fields for event
     online_link = models.TextField(null=True)

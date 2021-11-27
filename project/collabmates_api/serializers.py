@@ -775,14 +775,7 @@ def get_share_url_text(card, user_id):
 
     share = {}
     share['link_created_at'] = get_date_time_from_timestamp(TimeUtilities.current_time_in_sec())
-    if not user_id:
-        card_url = url + '/collabcard/' + str(card.id)
-
-    else:
-        user_instance = User.objects.get(id=user_id)
-        card_temp = generate_private_link_for_chatroom(card, user_instance)
-        card_url = card_temp['private_link']
-        share['link_created_at'] = card_temp['private_link_created_at']
+    card_url = url + '/collabcard/' + str(card.id)
 
     share['share_url'] = card_url
     share['creator_share_url'] = card_url

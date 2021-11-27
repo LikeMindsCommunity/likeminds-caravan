@@ -631,6 +631,7 @@ class ChatroomMemberHelper:
                             'access': card_instance.access,
                             'online_link_enable_before': card_instance.online_link_enable_before,
                             'is_private': card_instance.is_private,
+                            'access_without_subscription': card_instance.access_without_subscription,
                             'member_can_message': card_instance.member_can_message}
 
         if card_instance.is_secret:
@@ -699,7 +700,6 @@ class ChatroomMemberHelper:
         chatroom_user_actions['mute_status'] = state_instance.mute_status
         chatroom_user_actions['follow_status'] = state_instance.follow_status
         chatroom_user_actions['attending_status'] = state_instance.attending_status
-        chatroom_user_actions['is_guest'] = state_instance.is_guest
         chatroom_user_actions['active'] = False
         chatroom_user_actions['is_tagged'] = state_instance.is_tagged
         chatroom_user_actions['attended'] = state_instance.attended

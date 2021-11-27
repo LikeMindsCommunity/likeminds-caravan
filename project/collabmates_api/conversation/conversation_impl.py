@@ -771,7 +771,6 @@ class ConversationImpl(ConversationManager):
         return conversations
 
     def create_conversation(self, req_body: dict, is_ios: bool = False,
-                            is_user_guest: bool = False,
                             user_instance: User = None, chatroom_instance: Collabcard = None) -> {}:
 
         chatroom_id = req_body.get('chatroom_id', None)
@@ -820,12 +819,6 @@ class ConversationImpl(ConversationManager):
 
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return {'success': False, 'error_message': "Responding is disabled"}
-
-        self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
-                                    is_guest=is_user_guest,
-                                    aj=req_body.get('aj', None),
-                                    source_id=req_body.get('source_id', None),
-                                    created_at=created_at)
 
         chatroom_state_instance = collabcardState.get_chatroom_state_instance(chatroom_instance.id,
                                                                               user_instance.id)
