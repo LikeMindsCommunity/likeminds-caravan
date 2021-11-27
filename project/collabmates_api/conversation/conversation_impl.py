@@ -774,7 +774,6 @@ class ConversationImpl(ConversationManager):
                             user_instance: User = None, chatroom_instance: Collabcard = None) -> {}:
 
         chatroom_id = req_body.get('chatroom_id', None)
-        created_at = req_body.get('created_at', TimeUtilities.current_time_in_milliseconds())
         has_files = req_body.get('has_files', False)
 
         if not chatroom_id:
@@ -819,6 +818,8 @@ class ConversationImpl(ConversationManager):
 
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return {'success': False, 'error_message': "Responding is disabled"}
+
+        created_at = TimeUtilities.current_time_in_milliseconds()
 
         chatroom_state_instance = collabcardState.get_chatroom_state_instance(chatroom_instance.id,
                                                                               user_instance.id)
