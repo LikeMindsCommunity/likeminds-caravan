@@ -71,6 +71,7 @@ from utility.request_utilities import RequestUtilities
 from utility.number_utilities import NumberUtilities
 from utility.exception_utilities import (CustomException, InvalidHeaderException)
 from external_services.logging.logging_wrapper import LoggingWrapper
+from external_services.segment.segment_impl import SegmentImpl
 
 from .search.sync import ElasticSearchSync
 from .community.constants import *
@@ -1859,6 +1860,14 @@ def remove_from_member(request):
                         info_logger.info(
                             f"REMOVE_MEMBER_API (REMOVED CASE) -current user id = {member_id}, user id = {member}"
                             f", community id = {community_id}")
+
+                        analytics_data = {
+                            'removed_member_id': member,
+                            'community_id': community_id,
+                            'reason': reason
+                        }
+
+                        SegmentImpl.track_event(member_id, 'Member removed (Backend)', analytics_data)
 
                         send_sync_notification.delay({'community_id':community_id,
                                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
