@@ -1045,10 +1045,17 @@ def fetch_member_poll_votes(chatroom_id_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
+def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0, expired_member_ids=[]):
     try:
         conn = get_connection()
         curr = conn.cursor()
+
+        if expired_member_ids:
+            expired_member_list = "(togther_collabcardState.remove_id in ({}) OR togther_collabcardState.remove_id is NULL)" \
+                                  "".format(",".join([str(i) for i in expired_member_ids]))
+
+        else:
+            expired_member_list = "togther_collabcardState.remove_id is NULL"
 
         sql = """
         SELECT %s
@@ -1059,11 +1066,11 @@ def fetch_chatroom_id_query(chatroom_id, user_id, last_updated=0):
             ON togther_community.id = togther_collabcard.community_id
         WHERE togther_collabcardState.user_id=%s
                 AND togther_collabcardState.card_id=%s
-                AND togther_collabcardState.remove_id is NULL
+                AND %s
                 AND togther_collabcardState.updated_at > %s
         
         """ % (get_chatroom_query_meta_for_sync(),
-               str(user_id), str(chatroom_id), str(last_updated))
+               str(user_id), str(chatroom_id), str(expired_member_list), str(last_updated))
 
         curr.execute(sql)
         data = curr.fetchall()

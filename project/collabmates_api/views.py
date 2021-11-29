@@ -11699,11 +11699,18 @@ class SyncChatrooms(APIView):
 
         if chatroom_id:
 
-            if ModelUtilities.is_model_filter_exists(collabcardState, {'card': chatroom_id,
-                                                                       'user': member_id}):
+            collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState,
+                                                                      {'card': chatroom_id, 'user': member_id})
+
+            if collabcard_state_filter.exists():
+
+                expired_member_remove_ids = list(ModelUtilities.get_model_filter(
+                    removedMembers, {'community': collabcard_state_filter[0].community, 'member': member_id,
+                                     'removed_state__in': [deleted_members.LEFT, deleted_members.MEMBERSHIP_EXPIRED]}).values_list('id', flat=True))
 
                 chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id,
-                                                                          last_updated=last_updated)
+                                                                          last_updated=last_updated,
+                                                                          expired_member_ids=expired_member_remove_ids)
             else:
                 chatroom = get_chatroom_data_in_case_of_guest(chatroom_id, member_id)
 
