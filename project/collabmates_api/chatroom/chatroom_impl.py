@@ -2056,7 +2056,7 @@ class ChatroomImpl(ChatroomManager):
         community_object['promoters_count'] = admin_filter.count()
 
         chatroom_object = {'access_without_subscription': card_instance.access_without_subscription,
-                           'community': community_object}
+                           'community': community_object, 'chatroom_type': card_instance.type}
 
         if self.get_member_id():
             user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
