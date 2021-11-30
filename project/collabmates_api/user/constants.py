@@ -27,7 +27,7 @@ TITLE_ACCESS_MORE_EXPIRED_COMMUNITIES = 'Renew memberships!'
 TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITIES = TITLE_ACCESS_ONE_EXPIRED_COMMUNITY
 TITLE_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES = TITLE_ACCESS_MORE_EXPIRED_COMMUNITIES
 
-SECOND_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'Are you a community builder and wish to build you own community?'
+SECOND_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'Are you a community builder and wish to collaborate with other community builders?'
 
 SUB_TITLE_ACCESS_NOT_PART_OF_COMMUNITIES = 'If yes, click on the invitation link you have received.\nOr enter the invite code here.'
 SUB_TITLE_ACCESS_ONE_PENDING_COMMUNITY = 'Your application to join this community has been submitted. You will have access to community events, chat rooms and member profiles as soon as you are approved.'
@@ -36,8 +36,7 @@ SUB_TITLE_ACCESS_MORE_PENDING_COMMUNITIES = 'Your applications to join the follo
 SUB_TITLE_ACCESS_MORE_EXPIRED_COMMUNITIES = 'Your subscription to following communities has expired. Buy membership plans of your choice to regain access to community events, chat rooms and member profiles.'
 SUB_TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITY = 'Your membership plan for “%s” has expired. You will have access to community events, chat rooms and member profiles as soon as you <<renew your membership|route://renew_membership?community_id=%s>>'
 SUB_TITLE_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES = 'Your membership plans for multiple communities have expired. You will have access to your community and other awesome features on this app as soon as you renew your memberships.'
-
-SUB_TITLE_2_ACCESS_NOT_PART_OF_COMMUNITIES = 'To get onboarded on this platform to build and grow your community, fill out <<this form|route://browser?link=https://collabmates.app.link/e/3WjswrRfhdb>>'
+SUB_TITLE_2_ACCESS_NOT_PART_OF_COMMUNITIES = 'Apply to join Community hood by clicking <<here|route://browser?link=https://collabmates.app.link/e/3WjswrRfhdb>>.'
 SUB_TITLE_2_ACCESS_COMMON = '**Usually It takes upto 48 hours to get approved. If you have paid for the membership and in case you are not approved, your payment would be refunded.'
 
 ACCESS_FOOTER = 'Need help? <<Get in touch|route://browser?url=https%3A//wa.me/%2B919971769713%3Ftext%3DI%20need%20help%20in%20joining%20a%20community>>'
