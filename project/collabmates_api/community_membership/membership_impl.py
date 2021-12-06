@@ -93,7 +93,7 @@ class MembershipImpl(MembershipManager):
 
         email_hash = {email['user_id']: email['email'] for email in owner_emails}
 
-        return {owner['community_id_id']: email_hash[owner['member_id_id']] for owner in community_owners}
+        return {owner['community_id_id']: email_hash.get(owner['member_id_id']) for owner in community_owners}
 
     def _process_benefits(self, community_ids, community_hash, attended_events, participated_rooms, member_count,
                           owner_mails):
