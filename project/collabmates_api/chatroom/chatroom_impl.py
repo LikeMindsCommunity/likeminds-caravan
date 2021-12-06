@@ -2097,17 +2097,14 @@ class ChatroomImpl(ChatroomManager):
         member_filter = ModelUtilities.get_model_filter(Members,
                                                         {'community_id': community_instance,
                                                          'member_id': user_instance})
-        if not member_filter:
-            context = get_error_context(False, "User is not a part of this community.")
 
-            return context
+        if member_filter:
 
-        member_instance = member_filter[0]
+            member_instance = member_filter[0]
+            is_cm = member_instance.state == member_states.ADMIN
 
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if is_cm:
-            can_edit_participant = True
+            if is_cm:
+                can_edit_participant = True
 
         filter_dict = {
             'card': card_instance,
