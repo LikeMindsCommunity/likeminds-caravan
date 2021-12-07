@@ -2896,6 +2896,8 @@ class ChatroomHelper:
 
         community_admins_list = []
 
+        event_attendees_list = []
+
         for data in member_filter:
             user_instance = data.member_id
 
@@ -2913,16 +2915,21 @@ class ChatroomHelper:
                 if instance:
                     bulk_create_list.append(instance)
 
-                update_event_attendees.delay({
-                    "chatroom_id": card_instance.id,
-                    "user_id": user_instance.id,
-                    "status": attending_status
-                })
+                if attending_status and (user_instance.id not in event_attendees_list):
+                    event_attendees_list.append(user_instance.id)
 
                 if data.state == member_states.ADMIN:
                     community_admins_list.append(user_instance.id)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
+
+        if event_attendees_list:
+            update_event_attendees({
+                "chatroom_id": card_instance.id,
+                "user_id": event_attendees_list,
+                "status": True
+            })
+
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
             card_instance.id, community_admins_list)
 
@@ -3146,7 +3153,7 @@ class ChatroomHelper:
 
         if co_host_list:
             # Update Cache with Event Chatroom Attendees
-            update_event_attendees.delay({
+            update_event_attendees({
                 "chatroom_id": card_instance.id,
                 "status": True,
                 "user_id": [int(co_host) for co_host in co_host_list if str(co_host).isdigit()]

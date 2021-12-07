@@ -501,8 +501,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                                                                         ).values_list('user', flat=True).
                                         order_by('created_at', 'id'))
 
-            update_event_attendees.delay({'chatroom_id': card.id,
-                                          'event_attendees_list': event_attendees_list})
+            update_event_attendees.delay({'chatroom_id': card.id})
 
             return event_attendees_list
 

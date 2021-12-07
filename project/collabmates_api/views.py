@@ -12217,8 +12217,7 @@ class SyncChatrooms(APIView):
                                                                     ).values_list('user', flat=True).
                                     order_by('created_at', 'id'))
 
-        update_event_attendees.delay({'chatroom_id': chatroom['id'],
-                                'event_attendees_list': event_attendees_list})
+        update_event_attendees.delay({'chatroom_id': chatroom['id']})
         chatroom['attendees_ids'] = event_attendees_list
 
     def fetch_event_instructors(self, card_id):

@@ -1062,14 +1062,11 @@ def update_event_attendees(attendees_info):
 
         return
 
-    event_attendees_list = attendees_info.get('event_attendees_list', [])
-
-    if not event_attendees_list:
-        event_attendees_list = list(ModelUtilities.get_model_filter(collabcardState,
-                                                                    {'card': card_instance,
-                                                                     'attending_status': True}
-                                                                    ).values_list('user', flat=True).
-                                    order_by('created_at', 'id'))
+    event_attendees_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                                {'card': card_instance,
+                                                                 'attending_status': True}
+                                                                ).values_list('user', flat=True).
+                                order_by('created_at', 'id'))
 
     CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
         'event_attendees_list': event_attendees_list

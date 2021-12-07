@@ -187,8 +187,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                            order_by('created_at', 'id'))
 
         attendees_list = self.process_event_attendees_list(event_attendees_list, community_instance)
-        update_event_attendees.delay({'chatroom_id': card_instance.id,
-                                'event_attendees_list': event_attendees_list})
+        update_event_attendees.delay({'chatroom_id': card_instance.id})
         return attendees_list
 
     def process_event_attendees_list(self, event_attendees_list, community_instance):
