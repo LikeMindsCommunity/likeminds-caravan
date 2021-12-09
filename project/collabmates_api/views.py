@@ -71,6 +71,7 @@ from utility.request_utilities import RequestUtilities
 from utility.number_utilities import NumberUtilities
 from utility.exception_utilities import (CustomException, InvalidHeaderException)
 from external_services.logging.logging_wrapper import LoggingWrapper
+from external_services.segment.segment_impl import SegmentImpl
 
 from .search.sync import ElasticSearchSync
 from .community.constants import *
@@ -1860,6 +1861,14 @@ def remove_from_member(request):
                             f"REMOVE_MEMBER_API (REMOVED CASE) -current user id = {member_id}, user id = {member}"
                             f", community id = {community_id}")
 
+                        analytics_data = {
+                            'removed_member_id': member,
+                            'community_id': community_id,
+                            'reason': reason
+                        }
+
+                        SegmentImpl.track_event(member_id, 'Member removed (Backend)', analytics_data)
+
                         send_sync_notification.delay({'community_id':community_id,
                                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
                         update_multiple_previews_in_community.delay({'community_id': community_id})
@@ -2700,8 +2709,7 @@ def create_poll(request):
 
     args = [collabcard.get('id')]
 
-    if collabcard.get('type') == CollabcardTypes.CARD_POLL and \
-            collabcard.get('poll_type') == poll_types.POLL_TYPE_DEFERRED:
+    if collabcard.get('type') == CollabcardTypes.CARD_POLL:
         update_deferred_card_poll_updated_at_value.apply_async(args=args, kwargs={}, eta=start_time)
 
     return JsonResponse(context)
@@ -5216,24 +5224,13 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 def get_chatroom_internal_version_2(request, card_instance, user_id, page, conversation_id, scroll_direction,
                                     is_ios=False):
     '''version 1 function for sending chatroom instance without conversations'''
-    source_id = request.GET.get('source_id')
-    aj = request.GET.get('aj')
 
-    is_guest = False
     context = {}
 
-    if aj:
-        is_guest = True
-
     user_instance = None
+
     if user_id:
         user_instance = User.objects.get(id=user_id)
-
-    if not conversation_id and not scroll_direction:
-
-        if is_guest:
-            context = adding_guest_in_chatroom(context, card_instance, aj, source_id,
-                                               card_instance.community.id, current_user_id=user_id)
 
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
     # if the user is seeing this chatroom from external link or notification
@@ -5352,12 +5349,13 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                                                                     'remove': None,
                                                                                     'secret_chatroom_left': False})
 
-
         elif card_instance.attachment_count > 0 and\
                 card_instance.attachments_uploaded is False:
             can_access_secret_chatroom = not is_draft_chatroom(card_instance, user_id, device_id)
 
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
+
+    context['access_without_subscription'] = card_instance.access_without_subscription
 
     return context
 
@@ -5887,8 +5885,6 @@ def collabcard_follow(request, function_dict=None):
     collabcard_id = request.GET.get('collabcard_id', '')
     member_id = request.GET.get('member_id', '')
     status = request.GET.get('value', 'true')
-    aj = request.GET.get('aj')
-    source_id = request.GET.get('source_id')
     status = (status == "true")
 
     # local imports from conversations in order to resolve circular import
@@ -5916,12 +5912,6 @@ def collabcard_follow(request, function_dict=None):
 
     community_instance = card_instance.community
     member_state = Members.get_community_member_state(community_instance.id, user_instance.id)
-
-    context = handle_guest_follow_case(community_instance, user_instance, card_instance, aj,
-                                       source_id, member_state)
-
-    if context:
-        return JsonResponse(context)
 
     expiry_time = get_expiry_time_of_chatroom()
 
@@ -11709,11 +11699,18 @@ class SyncChatrooms(APIView):
 
         if chatroom_id:
 
-            if ModelUtilities.is_model_filter_exists(collabcardState, {'card': chatroom_id,
-                                                                       'user': member_id}):
+            collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState,
+                                                                      {'card': chatroom_id, 'user': member_id})
+
+            if collabcard_state_filter.exists():
+
+                expired_member_remove_ids = list(ModelUtilities.get_model_filter(
+                    removedMembers, {'community': collabcard_state_filter[0].community, 'member': member_id,
+                                     'removed_state__in': [deleted_members.LEFT, deleted_members.MEMBERSHIP_EXPIRED]}).values_list('id', flat=True))
 
                 chatroom_data, chatroom_id_list = fetch_chatroom_id_query(chatroom_id, member_id,
-                                                                          last_updated=last_updated)
+                                                                          last_updated=last_updated,
+                                                                          expired_member_ids=expired_member_remove_ids)
             else:
                 chatroom = get_chatroom_data_in_case_of_guest(chatroom_id, member_id)
 
@@ -11781,7 +11778,7 @@ class SyncChatrooms(APIView):
             chatroom['state'] = data[17]
             chatroom['mute_status'] = data[18]
             chatroom['follow_status'] = data[19]
-            chatroom['is_guest'] = data[20]
+            chatroom['access_without_subscription'] = data[20]
             chatroom['is_tagged'] = data[21]
 
             if data[22]:
@@ -12214,8 +12211,7 @@ class SyncChatrooms(APIView):
                                                                     ).values_list('user', flat=True).
                                     order_by('created_at', 'id'))
 
-        update_event_attendees.delay({'chatroom_id': chatroom['id'],
-                                'event_attendees_list': event_attendees_list})
+        update_event_attendees.delay({'chatroom_id': chatroom['id']})
         chatroom['attendees_ids'] = event_attendees_list
 
     def fetch_event_instructors(self, card_id):

@@ -187,8 +187,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                            order_by('created_at', 'id'))
 
         attendees_list = self.process_event_attendees_list(event_attendees_list, community_instance)
-        update_event_attendees.delay({'chatroom_id': card_instance.id,
-                                'event_attendees_list': event_attendees_list})
+        update_event_attendees.delay({'chatroom_id': card_instance.id})
         return attendees_list
 
     def process_event_attendees_list(self, event_attendees_list, community_instance):
@@ -631,6 +630,7 @@ class ChatroomMemberHelper:
                             'access': card_instance.access,
                             'online_link_enable_before': card_instance.online_link_enable_before,
                             'is_private': card_instance.is_private,
+                            'access_without_subscription': card_instance.access_without_subscription,
                             'member_can_message': card_instance.member_can_message}
 
         if card_instance.is_secret:
@@ -699,7 +699,6 @@ class ChatroomMemberHelper:
         chatroom_user_actions['mute_status'] = state_instance.mute_status
         chatroom_user_actions['follow_status'] = state_instance.follow_status
         chatroom_user_actions['attending_status'] = state_instance.attending_status
-        chatroom_user_actions['is_guest'] = state_instance.is_guest
         chatroom_user_actions['active'] = False
         chatroom_user_actions['is_tagged'] = state_instance.is_tagged
         chatroom_user_actions['attended'] = state_instance.attended
@@ -830,8 +829,7 @@ class ChatroomMemberHelper:
         if is_cm or user_instance == chatroom_instance.user:
             return True
 
-        if chatroom_instance.poll_type == poll_types.POLL_TYPE_DEFERRED and \
-                chatroom_instance.end_date // 1000 <= TimeUtilities.current_time_in_sec():
+        if chatroom_instance.end_date <= TimeUtilities.current_time_in_milliseconds():
             return True
 
         chatroom_votes = poll_votes.get(chatroom_id)

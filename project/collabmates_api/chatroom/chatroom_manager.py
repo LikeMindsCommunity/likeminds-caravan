@@ -55,6 +55,10 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                  callable(subclass.update_files)) and
                 (hasattr(subclass, 'fetch_event_link_for_dashboard') and
                  callable(subclass.fetch_event_link_for_dashboard)) and
+                (hasattr(subclass, 'update_access_without_subscription') and
+                 callable(subclass.update_access_without_subscription)) and
+                (hasattr(subclass, 'fetch_access_for_chatroom') and
+                 callable(subclass.fetch_access_for_chatroom)) and
                 (hasattr(subclass, 'remove_cohort_from_chatroom') and
                  callable(subclass.remove_cohort_from_chatroom)) and
                 (hasattr(subclass, 'add_cohort_to_chatroom') and
@@ -267,6 +271,22 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def update_access_without_subscription(self, value) -> dict:
+        """
+        updates without subscription access value
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_access_for_chatroom(self) -> dict:
+        """
+        returns access, remove_state and community object for a chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def remove_cohort_from_chatroom(self, request_body) -> dict:
         """
         function to remove cohort from the chatroom
@@ -287,7 +307,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         """
         function to fetch chatroom participants meta data
         """
-
+        
         raise NotImplementedError
 
     @abc.abstractmethod

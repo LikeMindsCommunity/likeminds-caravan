@@ -28,6 +28,7 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
 from django.db.models import Q, F
 
 from external_services.mixpanel.events import MixpanelEvents
+from external_services.segment.segment_impl import SegmentImpl
 
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -1049,6 +1050,13 @@ class CommunityImpl(CommunityManager):
 
         if not join_email_instance['success']:
             return {'success': False, 'error_message': join_email_instance['error_message']}
+
+        analytics_data = {
+            'community_id': community_instance.id,
+            'community_name': community_instance.name
+        }
+
+        SegmentImpl.track_event(self.get_member_id(), "Welcome email added (Backend)", analytics_data)
 
         return {'success': True}
 

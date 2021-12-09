@@ -771,11 +771,9 @@ class ConversationImpl(ConversationManager):
         return conversations
 
     def create_conversation(self, req_body: dict, is_ios: bool = False,
-                            is_user_guest: bool = False,
                             user_instance: User = None, chatroom_instance: Collabcard = None) -> {}:
 
         chatroom_id = req_body.get('chatroom_id', None)
-        created_at = req_body.get('created_at', TimeUtilities.current_time_in_milliseconds())
         has_files = req_body.get('has_files', False)
 
         if not chatroom_id:
@@ -821,11 +819,7 @@ class ConversationImpl(ConversationManager):
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return {'success': False, 'error_message': "Responding is disabled"}
 
-        self._add_guest_in_chatroom(chatroom_instance, community_id, member_state,
-                                    is_guest=is_user_guest,
-                                    aj=req_body.get('aj', None),
-                                    source_id=req_body.get('source_id', None),
-                                    created_at=created_at)
+        created_at = TimeUtilities.current_time_in_milliseconds()
 
         chatroom_state_instance = collabcardState.get_chatroom_state_instance(chatroom_instance.id,
                                                                               user_instance.id)
@@ -873,8 +867,7 @@ class ConversationImpl(ConversationManager):
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
         args = [conversation_instance.id]
 
-        if conversation_instance.state == conversation_states.CONVERSATION_POLL and \
-                conversation_instance.poll_type == conversation_poll_types.DEFERRED:
+        if conversation_instance.state == conversation_states.CONVERSATION_POLL:
 
             start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(conversation_instance.expiry_time)
             update_deferred_conversation_poll_updated_at_value.apply_async(args=args, kwargs={},

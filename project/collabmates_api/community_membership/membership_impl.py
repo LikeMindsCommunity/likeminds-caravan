@@ -93,7 +93,7 @@ class MembershipImpl(MembershipManager):
 
         email_hash = {email['user_id']: email['email'] for email in owner_emails}
 
-        return {owner['community_id_id']: email_hash[owner['member_id_id']] for owner in community_owners}
+        return {owner['community_id_id']: email_hash.get(owner['member_id_id']) for owner in community_owners}
 
     def _process_benefits(self, community_ids, community_hash, attended_events, participated_rooms, member_count,
                           owner_mails):
@@ -166,12 +166,6 @@ class MembershipImpl(MembershipManager):
                                                        'user_instance': user_instance,
                                                        'removed_state': remove_state})
 
-            ModelUtilities.delete_record_in_model(conversationEngage,
-                                                  {
-                                                      "community": community_id,
-                                                      "user": member_id
-                                                  })
-
             ModelUtilities.model_update(collabcardState,
                                         {'community': community_instance,
                                          'user': user_instance},
@@ -187,9 +181,6 @@ class MembershipImpl(MembershipManager):
                                             'remove': instance,
                                             'last_updated': TimeUtilities.current_time_in_milliseconds()
                                         })
-
-            ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_instance.id,
-                                                                        user_instance.id)
 
         return {'success': True}
 

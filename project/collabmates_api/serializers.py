@@ -775,14 +775,7 @@ def get_share_url_text(card, user_id):
 
     share = {}
     share['link_created_at'] = get_date_time_from_timestamp(TimeUtilities.current_time_in_sec())
-    if not user_id:
-        card_url = url + '/collabcard/' + str(card.id)
-
-    else:
-        user_instance = User.objects.get(id=user_id)
-        card_temp = generate_private_link_for_chatroom(card, user_instance)
-        card_url = card_temp['private_link']
-        share['link_created_at'] = card_temp['private_link_created_at']
+    card_url = url + '/collabcard/' + str(card.id)
 
     share['share_url'] = card_url
     share['creator_share_url'] = card_url
@@ -1151,7 +1144,7 @@ def get_to_show_results(card_polls, user, card):
     if is_cm or user == card.user:
         return True
 
-    if card.poll_type == poll_types.POLL_TYPE_DEFERRED and card.end_date // 1000 <= TimeUtilities.current_time_in_sec():
+    if card.end_date <= TimeUtilities.current_time_in_milliseconds():
         return True
 
     for poll in card_polls:

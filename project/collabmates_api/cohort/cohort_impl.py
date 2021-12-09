@@ -124,24 +124,7 @@ class CohortImpl(CohortManager):
             del cohort_instance_object['id']
 
         if filter_list:
-
-            for filter in filter_list:
-
-                filter_question_id = filter.get('question_id')
-                filter_value = filter.get('value')
-
-                question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, filter_question_id)
-
-                if not question_instance:
-                    continue
-
-                cohort_filter_data = {
-                    'cohort': cohort_instance,
-                    'question': question_instance,
-                    'value': filter_value
-                }
-
-                CohortFilter.create_instance(cohort_filter_data)
+            CohortHelper.create_cohort_filters(filter_list, cohort_instance)
 
         return {'success': True, 'cohort_data': cohort_instance_object}
 
@@ -273,27 +256,7 @@ class CohortImpl(CohortManager):
         self._update_members_for_cohort(cohort_instance, member_ids)
 
         if filter_list:
-
-            for filter in filter_list:
-
-                filter_question_id = filter.get('question_id')
-                filter_value = filter.get('value')
-
-                question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, filter_question_id)
-
-                if not question_instance:
-                    continue
-
-                cohort_filter_data = {
-                    'cohort': cohort_instance,
-                    'question': question_instance,
-                    'value': filter_value
-                }
-
-                cohort_filter_list = ModelUtilities.get_model_filter(CohortFilter, cohort_filter_data)
-
-                if not cohort_filter_list:
-                    CohortFilter.create_instance(cohort_filter_data)
+            CohortHelper.create_cohort_filters(filter_list, cohort_instance)
 
         return {'success': True}
 
@@ -750,19 +713,24 @@ class CohortHelper:
     def add_member_to_respective_question_based_cohorts(member_id, community_id):
 
         answer_dict = CohortHelper.pre_compute_community_answers(member_id=member_id, community_id=community_id)
-
         community_cohorts = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
 
         for cohort_instance in community_cohorts:
-            filtered_cohort_filter = ModelUtilities.get_model_filter(CohortFilter, {'cohort_id': cohort_instance.id})
             answer_mismatched = False
 
-            for cohort_filter_instance in filtered_cohort_filter:
-                question_id = cohort_filter_instance.question_id
+            # Fetch all the Cohort Filters related to cohort
+            cohort_filter_dict = CohortHelper.get_cohort_filters_dict_using_cohort_id(cohort_instance.id)
+
+            for question_id in cohort_filter_dict:
+                # Fetch supported answers for particular question
+                supported_answers = cohort_filter_dict.get(question_id)
                 answer_instance = answer_dict.get(question_id)
 
-                # If any answer mismatched with cohort filter
-                if not answer_instance or cohort_filter_instance.value != answer_instance.question_answer:
+                if isinstance(supported_answers, type(None)):
+                    supported_answers = []
+
+                # If given answer doesn't match with cohort filter supported answers
+                if (not answer_instance) or (answer_instance.question_answer not in supported_answers):
                     answer_mismatched = True
                     break
 
@@ -786,19 +754,24 @@ class CohortHelper:
     def remove_cohort_membership_when_updating_community_answers(member_id, community_id):
 
         answer_dict = CohortHelper.pre_compute_community_answers(member_id=member_id, community_id=community_id)
-
         community_cohorts = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
 
         for cohort_instance in community_cohorts:
-            filtered_cohort_filter = ModelUtilities.get_model_filter(CohortFilter, {'cohort_id': cohort_instance.id})
             answer_mismatched = False
 
-            for cohort_filter_instance in filtered_cohort_filter:
-                question_id = cohort_filter_instance.question_id
+            # Fetch all the Cohort Filters related to cohort
+            cohort_filter_dict = CohortHelper.get_cohort_filters_dict_using_cohort_id(cohort_instance.id)
+
+            for question_id in cohort_filter_dict:
+                # Fetch supported answers for particular question
+                supported_answers = cohort_filter_dict.get(question_id)
                 answer_instance = answer_dict.get(question_id)
 
-                # If any answer mismatched with cohort filter
-                if not answer_instance or cohort_filter_instance.value != answer_instance.question_answer:
+                if isinstance(supported_answers, type(None)):
+                    supported_answers = []
+
+                # If given answer doesn't match with cohort filter supported answers
+                if (not answer_instance) or (answer_instance.question_answer not in supported_answers):
                     answer_mismatched = True
                     break
 
@@ -833,3 +806,55 @@ class CohortHelper:
                         error_logger.error(e.args)
 
                 cohort_member_filter.delete()
+
+    @staticmethod
+    def get_cohort_filters_dict_using_cohort_id(cohort_id):
+        cohort_filter_dict = dict()
+        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+
+        if not cohort_instance:
+            return cohort_filter_dict
+
+        filtered_cohort_filter = ModelUtilities.get_model_filter(CohortFilter, {'cohort_id': cohort_id})
+
+        if not filtered_cohort_filter:
+            return cohort_filter_dict
+
+        for cohort_filter in filtered_cohort_filter:
+            community_question_id = cohort_filter.question_id
+
+            if cohort_filter_dict.get(community_question_id) is None:
+                cohort_filter_dict[community_question_id] = [cohort_filter.value]
+
+            else:
+                cohort_filter_dict[community_question_id].append(cohort_filter.value)
+
+        return cohort_filter_dict
+
+    @staticmethod
+    def create_cohort_filters(filter_list, cohort_instance):
+
+        cohort_filter_dict = CohortHelper.get_cohort_filters_dict_using_cohort_id(cohort_instance.id)
+
+        for filter_object in filter_list:
+
+            filter_question_id = filter_object.get('question_id')
+            filter_value = filter_object.get('value')
+
+            question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, filter_question_id)
+
+            if not question_instance:
+                continue
+
+            existing_question_filter = cohort_filter_dict.get(filter_question_id)
+
+            if isinstance(existing_question_filter, type(None)):
+                existing_question_filter = []
+
+            if filter_value not in existing_question_filter:
+                cohort_filter_data = {
+                    'cohort': cohort_instance,
+                    'question': question_instance,
+                    'value': filter_value
+                }
+                CohortFilter.create_instance(cohort_filter_data)

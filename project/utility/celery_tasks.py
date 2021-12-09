@@ -636,8 +636,7 @@ def get_to_show_results_for_conversation_poll(conversation_context):
     if is_cm or user_instance == conversation_instance.user:
         return True
 
-    if conversation_instance.poll_type == conversation_poll_types.DEFERRED and \
-            TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
+    if TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
         return True
 
     conversation_poll_options = ModelUtilities.get_model_filter(conversationPolls,
@@ -1063,14 +1062,11 @@ def update_event_attendees(attendees_info):
 
         return
 
-    event_attendees_list = attendees_info.get('event_attendees_list', [])
-
-    if not event_attendees_list:
-        event_attendees_list = list(ModelUtilities.get_model_filter(collabcardState,
-                                                                    {'card': card_instance,
-                                                                     'attending_status': True}
-                                                                    ).values_list('user', flat=True).
-                                    order_by('created_at', 'id'))
+    event_attendees_list = list(ModelUtilities.get_model_filter(collabcardState,
+                                                                {'card': card_instance,
+                                                                 'attending_status': True}
+                                                                ).values_list('user', flat=True).
+                                order_by('created_at', 'id'))
 
     CacheImpl.set_cache(EVENT_ATTENDEES_CHATROOM % str(card_instance.id), {
         'event_attendees_list': event_attendees_list
@@ -2278,8 +2274,7 @@ def create_intro_room_disabled_text_for_community_members(disabled_community_set
 def update_deferred_conversation_poll_updated_at_value(conversation_id):
     conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
 
-    if (not conversation_instance) or (conversation_instance.state != conversation_states.CONVERSATION_POLL) or \
-            (conversation_instance.poll_type != conversation_poll_types.DEFERRED):
+    if not conversation_instance or conversation_instance.state != conversation_states.CONVERSATION_POLL:
         return
 
     conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
@@ -2290,8 +2285,7 @@ def update_deferred_conversation_poll_updated_at_value(conversation_id):
 def update_deferred_card_poll_updated_at_value(chatroom_id):
     chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
-    if (not chatroom_instance) or (chatroom_instance.type != CollabcardTypes.CARD_POLL) or \
-            (chatroom_instance.poll_type != poll_types.POLL_TYPE_DEFERRED):
+    if not chatroom_instance or chatroom_instance.type != CollabcardTypes.CARD_POLL:
         return
 
     chatroom_instance.updated_at = TimeUtilities.current_time_in_milliseconds()

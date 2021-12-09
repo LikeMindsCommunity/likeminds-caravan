@@ -63,12 +63,9 @@ class CreateConversation(APIView):
         platform_code = RequestUtilities.get_platform_code(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
-        is_user_guest = ConversationViewsHelper.is_user_guest(req_body)
-
         conversation_manager = ConversationImpl(member_id, platform_code=platform_code, device_id=device_id)
 
-        conversation_response = conversation_manager.create_conversation(req_body, is_ios,
-                                                                             is_user_guest)
+        conversation_response = conversation_manager.create_conversation(req_body, is_ios)
 
         if conversation_response.get('error_message'):
             return JsonResponse(conversation_response, status=400)
@@ -340,7 +337,6 @@ class FetchUserAllEvents(APIView):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(response_context)
-
 
 class FetchUnreadPreview(APIView):
 
