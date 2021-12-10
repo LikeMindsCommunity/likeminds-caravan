@@ -15,6 +15,10 @@ class EVENT_TYPE:
     ATTENDANCE_15_MIN = 'event attendance 15 min'
     REGISTRATION = 'event registration'
 
+    ATTENDANCE_9_AM = 'event attendance 9 AM'
+    POST_EVENT_ATTENDEES = 'post event attendees'
+    POST_EVENT_ATTACHMENTS = 'post event attachments'
+
 class EVENT_COMM_FREQUENCY:
     LAST_CALL_WHATSAPP = timedelta(hours=24)
     ATTENDANCE_5_HRS_WHATSAPP = timedelta(hours=5)
@@ -23,10 +27,15 @@ class EVENT_COMM_FREQUENCY:
     LAST_CALL_APP_NOTI = timedelta(hours=48)
     ATTENDANCE_15_MIN_APP_NOTI = timedelta(minutes=15)
 
+    LAST_CALL_EMAIL = timedelta(hours=24)
+    POST_EVENT_ATTENDEES_MAIL = timedelta(hours=1)
+    POST_EVENT_ATTENDEES_MAIL_EXPIRY_AFTER = timedelta(hours=2)
+
 EVENT_COMM_SHOULD_HAPPEN_BEFORE = datetime.strptime("22:0", "%H:%M") # 1O:00 PM
 EVENT_COMM_SHOULD_HAPPEN_AFTER = datetime.strptime("08:0", "%H:%M") # 8:00 AM
 
 TIME_10_AM = datetime.strptime("10:0", "%H:%M") # 10:00 AM
+TIME_9_AM = datetime.strptime("9:0", "%H:%M") # 9:00 AM
 
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION = 'event_created_v1'
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL = 'event_registration_last_cal_v1'
@@ -59,3 +68,14 @@ ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION = "route://event_chatroom?chatroo
 
 CHATROOM_URL = "%s/collabcard/%s"
 MAIL_EVENT_NOTIFICATION = 30
+
+POST_EVENT_ATTENDEES_LINK = "%s/dashboard/%s"
+
+SUBJECT_EVENT_CREATION_MAIL = "New Event happening in %s community 😃"
+SUBJECT_EVENT_LAST_CALL_MAIL = "Registration reminder! Don’t miss out on this."
+SUBJECT_EVENT_REGISTRATION_MAIL = "Registration complete ✅"
+SUBJECT_EVENT_ATTENDANCE_MAIL = "Event day 🥳"
+SUBJECT_POST_EVENT_ATTENDEES_MAIL = "Attendess list for %s 👥"
+SUBJECT_POST_EVENT_ATTACHMENT_MAIL = "Event recordings & attachments added 📹 🗃"
+
+SENDER_FOR_EMAIL_COMMS = "Team LikeMinds<team@likeminds.chat>"

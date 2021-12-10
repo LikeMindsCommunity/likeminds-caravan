@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta
 from django.conf import settings
+from django.template.loader import get_template
 
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, userEmails
 from utility.time_utilities import TimeUtilities
 from utility.utils import generate_private_link_for_chatroom
 from utility.states import member_states, mobile_states, email_states
-
 from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
-from collabmates_api.notification import get_token_for_fcm
+from utility.celery_tasks import get_event_pricing
 
 from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_SHOULD_HAPPEN_AFTER, \
                         EVENT_COMM_SHOULD_HAPPEN_BEFORE, TIME_10_AM, TITLE_EVENT_CREATION_APP_NOTIFICATION, \
@@ -21,11 +21,17 @@ from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_S
                         ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION, \
                         TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION, TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION, \
                         SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION, ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION, \
-                        MAIL_EVENT_NOTIFICATION, CHATROOM_URL
+                        MAIL_EVENT_NOTIFICATION, CHATROOM_URL, POST_EVENT_ATTENDEES_LINK, TIME_9_AM, \
+                        SUBJECT_EVENT_CREATION_MAIL, SUBJECT_EVENT_LAST_CALL_MAIL, SUBJECT_EVENT_ATTENDANCE_MAIL, \
+                        SUBJECT_EVENT_REGISTRATION_MAIL, SUBJECT_POST_EVENT_ATTENDEES_MAIL, SUBJECT_POST_EVENT_ATTACHMENT_MAIL, \
+                        SENDER_FOR_EMAIL_COMMS
 from .tasks_manager import TaskManager
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 error_logger = LoggingWrapper.get_instance()
+
+url = settings.URL 
+
 
 class TasksImpl(TaskManager):
     event_type = None
@@ -272,6 +278,86 @@ class TasksImpl(TaskManager):
         }
 
         return event_metadata
+      
+    def get_response_dict_for_email_comms(self, payload):
+
+        event_name = payload.get('chatroom').title
+        event_description = payload.get('chatroom').about
+        event_time = TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(payload.get('chatroom').date_time)
+        event_date = TimeUtilities.convert_epoch_time_to_date_month_year(payload.get('chatroom').date_time)
+        community_id = payload.get('chatroom').community.id
+
+        share_url = generate_private_link_for_chatroom(
+            payload.get('chatroom'),
+            payload.get('chatroom').user
+        )
+
+        link = share_url.get('private_link')
+
+        is_paid_event = payload.get('chatroom').is_paid
+
+        if is_paid_event == True:
+            event_cost_list = get_event_pricing(payload.get('chatroom').id)
+            event_cost = str(event_cost_list[0]) + '/-' if event_cost_list else "NA"
+
+        else:
+            event_cost = None
+
+            if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.LAST_CALL:
+                link = link + '&cta=register'
+
+        response_dict = self.process_email_comms_response_dict(event_name, event_description, event_time, event_date, \
+                                                            link, event_cost, community_id)
+
+        return response_dict
+    
+    def process_email_comms_response_dict(self, event_name, event_description, event_time, event_date, link,\
+                                        event_cost, community_id):
+
+        if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.LAST_CALL:
+
+            response_dict = {
+                'event_name': event_name,
+                'event_description': event_description,
+                'event_time': event_time,
+                'event_date': event_date,
+                'link': link
+            }
+
+            if event_cost:
+                response_dict['event_cost'] = event_cost
+            
+        elif self.get_event_type() == EVENT_TYPE.REGISTRATION or self.get_event_type() == EVENT_TYPE.ATTENDANCE_9_AM:
+            
+            response_dict = {
+                'event_name': event_name,
+                'event_time': event_time,
+                'event_date': event_date,
+                'link': link
+            }
+
+        elif self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTENDEES:
+
+            link = POST_EVENT_ATTENDEES_LINK % (url, community_id)
+
+            response_dict = {
+                'event_name': event_name,
+                'link': link,
+                'event_time': event_time,
+                'event_date': event_date
+            }
+
+        elif self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
+
+            response_dict = {
+                'event_name': event_name,
+                'link': link,
+            }
+
+        else:
+            response_dict = {}
+
+        return response_dict
 
     def calculate_time_for_sending_notification(self, event_instance):
 
@@ -289,6 +375,12 @@ class TasksImpl(TaskManager):
 
             final_time = self.process_app_notification_final_time(event_date_time_in_IST, online_link_enable_before_in_mins)
 
+        elif self.get_comm_type() == COMM_TYPE.EMAIL:
+
+            event_end_date_time_in_IST = TasksHelper.get_end_time_for_event(event_instance)
+
+            final_time = self.process_email_comms_final_time(event_date_time_in_IST, event_end_date_time_in_IST)
+
         elif self.get_comm_type() == COMM_TYPE.CALENDAR:
 
             final_time = self.process_calendar_invite_final_time(event_date_time_in_IST)
@@ -296,6 +388,9 @@ class TasksImpl(TaskManager):
         final_time = TimeUtilities.add_IST_offset_to_date_time(final_time)
 
         current_date_time_in_IST = TimeUtilities.get_current_datetime_in_IST()
+
+        if "post" in self.get_event_type() and final_time >= current_date_time_in_IST:
+            return final_time
 
         if final_time >= event_date_time_in_IST or final_time < current_date_time_in_IST:
             final_time = 0
@@ -367,6 +462,33 @@ class TasksImpl(TaskManager):
             final_time = current_date_time_in_IST
             
         return final_time
+      
+    def process_email_comms_final_time(self, event_date_time_in_IST, event_end_date_time_in_IST):
+        
+        if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.REGISTRATION or \
+            self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
+
+            event_creation_time = TimeUtilities.get_current_datetime_in_IST()
+
+            final_time = event_creation_time
+
+        elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
+
+            event_last_call_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.LAST_CALL_EMAIL
+
+            final_time = TasksHelper.calculate_notification_time(event_last_call_time, TIME_10_AM)
+
+        elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_9_AM:
+
+            final_time = TasksHelper.calculate_9_am_attendance_time_for_email_comms(event_date_time_in_IST)
+
+        elif self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTENDEES:
+
+            post_event_attendees_time = event_end_date_time_in_IST + EVENT_COMM_FREQUENCY.POST_EVENT_ATTENDEES_MAIL
+
+            final_time = post_event_attendees_time
+
+        return final_time
 
     @staticmethod
     def get_response_dict_for_event_attachment_app_noti(event_instance, has_event_attachment):
@@ -437,6 +559,16 @@ class TasksHelper:
         return members_list
 
     @staticmethod
+    def get_list_of_members_who_attended_event(chatroom_id):
+
+        attending_members_list = ModelUtilities.get_model_filter(collabcardState, {
+            'card': chatroom_id,
+            'attended': True
+        }).values_list('user', flat=True)
+
+        return attending_members_list
+
+    @staticmethod
     def get_list_of_members_attending_or_not_attending_event(chatroom_id, user_ids, attending=False):
         
         attending_members_list = ModelUtilities.get_model_filter(collabcardState, {
@@ -461,6 +593,16 @@ class TasksHelper:
         return users_list
 
     @staticmethod
+    def get_community_managers_of_community(community_id):
+
+        community_managers = Members.objects.filter(
+            community_id__id=community_id, 
+            state=member_states.ADMIN
+        ).values_list("member_id__id", flat=True)
+
+        return community_managers
+
+    @staticmethod
     def calculate_notification_time(noti_time, alternate_noti_time):
 
         final_time = noti_time
@@ -471,6 +613,18 @@ class TasksHelper:
 
         elif noti_time.time() < EVENT_COMM_SHOULD_HAPPEN_AFTER.time():
             final_time = datetime.combine(noti_time.date(), alternate_noti_time.time())
+
+        return final_time
+    
+    @staticmethod
+    def calculate_9_am_attendance_time_for_email_comms(event_date_time_in_IST):
+
+        if event_date_time_in_IST.time() < TIME_9_AM.time():
+            final_time = datetime.combine(event_date_time_in_IST.date() - timedelta(days=1), \
+                                        TIME_9_AM.time())
+
+        else:
+            final_time = datetime.combine(event_date_time_in_IST.date(), TIME_9_AM.time())
 
         return final_time
 
@@ -518,6 +672,86 @@ class TasksHelper:
             })
 
         return notification_details_list
+
+    @staticmethod
+    def create_context_for_sending_emails(user_instances, event_type, event_instance, data_dict):
+
+        user_instances = [User.objects.get(id=1305)]
+
+        community_name = event_instance.community.name
+        event_name = event_instance.title
+        
+        is_paid_event = False
+
+        if event_instance.is_paid:
+            is_paid_event = True
+
+        community_owner_instance = Members.get_community_owner_user_instance_or_none(event_instance.community)
+        community_owner_email = TasksHelper.get_emails_list_for_user_instances([community_owner_instance])
+
+        to_mails_list = TasksHelper.get_emails_list_for_user_instances(user_instances)
+        reply_to = community_owner_email
+
+        context = {
+            'from_email': SENDER_FOR_EMAIL_COMMS,
+            'to_mails_list': to_mails_list,
+            'reply_to': reply_to
+        }
+
+        if event_type == EVENT_TYPE.CREATION:
+            context['subject'] = SUBJECT_EVENT_CREATION_MAIL % community_name
+
+            if is_paid_event:
+                context['template'] = get_template("mails/event_comms/paid-event-created.html").render(data_dict)
+            else:
+                context['template'] = get_template("mails/event_comms/free-event-created.html").render(data_dict)
+
+        elif event_type == EVENT_TYPE.LAST_CALL:
+            context['subject'] = SUBJECT_EVENT_LAST_CALL_MAIL
+
+            if is_paid_event:
+                context['template'] = get_template("mails/event_comms/paid-event-last-call.html").render(data_dict)
+            else:
+                context['template'] = get_template("mails/event_comms/free-event-last-call.html").render(data_dict)
+
+        elif event_type == EVENT_TYPE.REGISTRATION:
+            context['subject'] = SUBJECT_EVENT_REGISTRATION_MAIL
+
+            if is_paid_event:
+                context['template'] = get_template("mails/event_comms/paid-event-reg-success.html").render(data_dict)
+            else:
+                context['template'] = get_template("mails/event_comms/free-event-reg-success.html").render(data_dict)
+
+        elif event_type == EVENT_TYPE.ATTENDANCE_9_AM:
+            context['subject'] = SUBJECT_EVENT_ATTENDANCE_MAIL
+            context['template'] = get_template("mails/event_comms/event-attendance.html").render(data_dict)
+
+        elif event_type == EVENT_TYPE.POST_EVENT_ATTENDEES:
+            attended_members_list = TasksHelper.get_list_of_members_who_attended_event(event_instance)
+            attended_member_count = attended_members_list.count()
+
+            data_dict['attended_member_count'] = attended_member_count
+
+            context['subject'] = SUBJECT_POST_EVENT_ATTENDEES_MAIL % event_name
+            context['reply_to'] = [SENDER_FOR_EMAIL_COMMS]
+            context['template'] = get_template("mails/event_comms/post-event-attendees.html").render(data_dict)
+
+        elif event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
+            context['subject'] = SUBJECT_POST_EVENT_ATTACHMENT_MAIL
+            context['template'] = get_template("mails/event_comms/post-event-attachments.html").render(data_dict)
+            
+        return context
+
+    @staticmethod
+    def get_emails_list_for_user_instances(user_instances):
+        user_email_filter = ModelUtilities.get_model_filter(userEmails,
+                                                            {'user__in': user_instances,
+                                                            'email_state': email_states.PRIMARY,
+                                                            'verified': True}).order_by('created_at')
+
+        email_list = [instance.email for instance in user_email_filter if instance.email]
+
+        return email_list
 
     @staticmethod
     def should_send_notification(card_instance: object):

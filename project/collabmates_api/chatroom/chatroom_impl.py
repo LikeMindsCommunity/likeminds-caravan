@@ -70,7 +70,8 @@ from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
 
 from collabmates_api.notifications.tasks import trigger_event_comms, send_app_notification_on_event_attachment, \
-                                                send_app_notification_for_event_type, send_calender_invite_for_event_type
+                                                send_app_notification_for_event_type, send_calender_invite_for_event_type, \
+                                                send_email_notification_for_event_type
 from collabmates_api.notifications.constants import EVENT_TYPE
 
 error_logger = LoggingWrapper.get_instance()
@@ -1389,11 +1390,11 @@ class ChatroomImpl(ChatroomManager):
                 'user': user_instance.id
             }
 
-            payload_for_app_notifications = {
+            payload_for_app_and_email_notifications = {
                 'chatroom': card_instance.id
             }
 
-            trigger_event_comms.delay(payload_for_whatsapp_comms, payload_for_app_notifications)
+            trigger_event_comms.delay(payload_for_whatsapp_comms, payload_for_app_and_email_notifications)
 
             chatroom_context = {
                 'success': True,
@@ -1694,16 +1695,17 @@ class ChatroomImpl(ChatroomManager):
         #     ChatroomHelper.send_event_creation_mail.delay(card_instance.id, send_to_members=False,
         #                                                   user_list=[user_instance.id])
 
-        payload_for_app_notification = {
+        payload_for_app_and_email_notification = {
             'chatroom': card_instance.id,
             'user': user_instance.id
         }
 
+        send_app_notification_for_event_type.delay(payload_for_app_and_email_notification, EVENT_TYPE.REGISTRATION)
+        send_email_notification_for_event_type.delay(payload_for_app_and_email_notification, EVENT_TYPE.REGISTRATION)
+
         payload_for_calendar_invite = {
             'chatroom': card_instance.id,
         }
-
-        send_app_notification_for_event_type.delay(payload_for_app_notification, EVENT_TYPE.REGISTRATION)
 
         send_calender_invite_for_event_type(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION, send_to_members=False, \
                                         user_list=[user_instance.id])
@@ -2162,6 +2164,11 @@ class ChatroomImpl(ChatroomManager):
                 if req_body.get('recording_url') \
                 else {}
 
+            payload_for_email_comms = {
+                'chatroom': chatroom_instance.id,
+            }
+            
+            send_email_notification_for_event_type.delay(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTACHMENTS)
             send_app_notification_on_event_attachment.delay(chatroom_instance.id, chatroom_instance.has_event_recording)
 
             chatroom_instance.about_recording = req_body.get('about_recording')
@@ -2246,6 +2253,11 @@ class ChatroomImpl(ChatroomManager):
                     req_body.get('chatroom_id')
                 )
 
+                payload_for_email_comms = {
+                    'chatroom': event_obj.id,
+                }
+                
+                send_email_notification_for_event_type.delay(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTACHMENTS)
                 send_app_notification_on_event_attachment.delay(event_obj.id, event_obj.has_event_recording)
 
                 event_obj.has_event_recording=True

@@ -8,6 +8,8 @@ class TaskManager(metaclass=abc.ABCMeta):
                 callable(subclass.get_response_dict_for_whatsapp_comms)) and
                 (hasattr(subclass, 'get_response_dict_for_app_notifications') and 
                 callable(subclass.get_response_dict_for_app_notifications)) and
+                (hasattr(subclass, 'get_response_dict_for_email_comms') and 
+                callable(subclass.get_response_dict_for_email_comms)) and
                 (hasattr(subclass, 'get_response_dict_for_calendar_invite') and 
                 callable(subclass.get_response_dict_for_calendar_invite)) and
                 (hasattr(subclass, 'calculate_time_for_sending_notification') and 
@@ -25,6 +27,13 @@ class TaskManager(metaclass=abc.ABCMeta):
     def get_response_dict_for_app_notifications(self, payload):
         """
         getting response_dict for app notifications
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_response_dict_for_email_comms(self, payload):
+        """
+        getting response_dict for email notifications
         """
         raise NotImplementedError
 
