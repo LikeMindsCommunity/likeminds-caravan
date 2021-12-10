@@ -355,11 +355,11 @@ class SearchImpl(SearchManager):
         if member_img_url is not None:
             member_img = member_img_url
         else:
-            if user_img_url.get('image_link'):
-                member_img = user_img_url.get('image_link')
+            if user_img_url['image_link']:
+                member_img = user_img_url['image_link']
 
             else:
-                member_img = user_img_url.get('image_url')
+                member_img = user_img_url['image_url']
 
         return member_img
 
