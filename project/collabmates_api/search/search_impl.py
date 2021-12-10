@@ -355,8 +355,11 @@ class SearchImpl(SearchManager):
         if member_img_url is not None:
             member_img = member_img_url
         else:
-            if user_img_url is not None:
-                member_img = user_img_url
+            if user_img_url.get('image_link'):
+                member_img = user_img_url.get('image_link')
+
+            else:
+                member_img = user_img_url.get('image_url')
 
         return member_img
 
@@ -408,7 +411,7 @@ class SearchImpl(SearchManager):
             member_introduction_dict['name'] = hit['member']['user']['name']
             member_introduction_dict['updated_at'] = hit['updated_at']
 
-            member_img = self.get_image_url(hit['image_url'], hit['member']['user']['image_url'])
+            member_img = self.get_image_url(hit['image_url'], hit['member']['user'])
 
             if member_img is not None:
                 member_introduction_dict['image_url'] = member_img

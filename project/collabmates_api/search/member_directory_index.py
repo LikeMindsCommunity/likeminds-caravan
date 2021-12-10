@@ -60,7 +60,8 @@ class MemberDirectoryDocument(Document):
                             'lower': StringField(analyzer=autocomplete)
                         }
                     ),
-                    'image_url': StringField()
+                    'image_url': StringField(),
+                    'image_link': StringField()
                 }
             )
         },
