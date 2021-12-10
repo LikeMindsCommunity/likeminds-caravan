@@ -246,7 +246,6 @@ def schedule_calendar_invite_for_event_comms(payload_for_calendar_invite, event_
 
 @shared_task
 def trigger_email_communication_for_event(payload_for_email_comms):
-    send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.CREATION)
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.LAST_CALL)
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.ATTENDANCE_9_AM)
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTENDEES)
@@ -257,9 +256,11 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_email_comms)
 
         event_instance = payload.get('chatroom')
+        event_cost_in_event_creation_mail = payload_for_email_comms.get('event_cost')
 
         tasks_instance = TasksImpl(event_type=event_type, comm_type=COMM_TYPE.EMAIL)
-        response_dict = tasks_instance.get_response_dict_for_email_comms(payload)
+        response_dict = tasks_instance.get_response_dict_for_email_comms(payload, event_cost_in_event_creation_mail)
+
         task_begin_time = tasks_instance.calculate_time_for_sending_notification(event_instance=event_instance)
         
         if 'post' in event_type:

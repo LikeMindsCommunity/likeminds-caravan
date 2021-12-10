@@ -279,7 +279,7 @@ class TasksImpl(TaskManager):
 
         return event_metadata
       
-    def get_response_dict_for_email_comms(self, payload):
+    def get_response_dict_for_email_comms(self, payload, event_cost_in_event_creation_mail=None):
 
         event_name = payload.get('chatroom').title
         event_description = payload.get('chatroom').about
@@ -296,12 +296,14 @@ class TasksImpl(TaskManager):
 
         is_paid_event = payload.get('chatroom').is_paid
 
-        if is_paid_event == True:
-            event_cost_list = get_event_pricing(payload.get('chatroom').id)
-            event_cost = str(event_cost_list[0]) + '/-' if event_cost_list else "NA"
+        event_cost = None
+
+        if is_paid_event:
+
+            if self.get_event_type() == EVENT_TYPE.CREATION:
+                event_cost = str(event_cost_in_event_creation_mail) + '/-'
 
         else:
-            event_cost = None
 
             if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.LAST_CALL:
                 link = link + '&cta=register'
@@ -676,8 +678,6 @@ class TasksHelper:
     @staticmethod
     def create_context_for_sending_emails(user_instances, event_type, event_instance, data_dict):
 
-        user_instances = [User.objects.get(id=1305)]
-
         community_name = event_instance.community.name
         event_name = event_instance.title
         
@@ -710,6 +710,11 @@ class TasksHelper:
             context['subject'] = SUBJECT_EVENT_LAST_CALL_MAIL
 
             if is_paid_event:
+                event_cost_list = get_event_pricing(event_instance.id)
+                event_cost = str(event_cost_list[0]) + '/-' if event_cost_list else "NA"
+                
+                data_dict['event_cost'] = event_cost
+
                 context['template'] = get_template("mails/event_comms/paid-event-last-call.html").render(data_dict)
             else:
                 context['template'] = get_template("mails/event_comms/free-event-last-call.html").render(data_dict)
