@@ -6,6 +6,7 @@ from utility.utils import generate_private_link_for_chatroom
 from utility.states import member_states, mobile_states
 from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
+from collabmates_api.notification import get_token_for_fcm
 
 from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_SHOULD_HAPPEN_AFTER, \
                         EVENT_COMM_SHOULD_HAPPEN_BEFORE, TIME_10_AM, TITLE_EVENT_CREATION_APP_NOTIFICATION, \
@@ -15,7 +16,9 @@ from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_S
                         ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION, TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION, \
                         SUB_TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION, ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION, \
                         TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, \
-                        ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION
+                        ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION, \
+                        TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION, TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION, \
+                        SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION, ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION
 from .tasks_manager import TaskManager
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -295,6 +298,31 @@ class TasksImpl(TaskManager):
 
         return final_time
 
+    @staticmethod
+    def get_response_dict_for_event_attachment_app_noti(event_instance, has_event_attachment):
+
+        event_name = event_instance.title
+        event_id = event_instance.id
+
+        if has_event_attachment:
+            title = TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
+        
+        else:
+            title = TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
+
+        subtitle = SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION
+        route = ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION % event_id
+
+        response_dict = {
+            'payload': {
+                'title': title,
+                'sub_title': subtitle,
+                'route': route
+            }
+        }
+
+        return response_dict
+
         
 class TasksHelper:
 
@@ -430,3 +458,28 @@ class TasksHelper:
             return False
 
         return True
+
+    @staticmethod
+    def create_user_details_list_for_sending_app_notification(user_instances):
+
+        notification_details_list = []
+
+        for user_id in user_instances:
+            notification_details = get_token_for_fcm(user_id, True)
+
+            notification_details_list.append({
+                'id': user_id,
+                'fcm_token': notification_details[0],
+                'mobile_os': notification_details[1]
+            })
+
+        return notification_details_list
+
+    @staticmethod
+    def get_chatroom_instance(chatroom_id):
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(
+            Collabcard,
+            chatroom_id
+        )
+
+        return chatroom_instance

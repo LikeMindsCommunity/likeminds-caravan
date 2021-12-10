@@ -32,6 +32,11 @@ WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL = 'event_registration_last_cal_v1'
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS = 'attend_5_hrs_before_v1'
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN = 'attend_10_mins_before_v1'
 
+TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION = "New attachments & recordings have been added to %s event in your community"
+TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION = "Attachments & recordings have been updated in %s event."
+SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION = "Tap to view details"
+ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION = "route://event_attachment?chatroom_id=%s"
+
 TITLE_EVENT_CREATION_APP_NOTIFICATION = "%s event happening in your community"
 SUB_TITLE_EVENT_CREATION_APP_NOTIFICATION = "Register for the event now!"
 ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION = "route://event_chatroom?chatroom_id=%s&is_paid=false&type=register"

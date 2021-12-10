@@ -69,7 +69,8 @@ from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
 
-from collabmates_api.notifications.tasks import trigger_event_comms, send_app_notification_for_event_type
+from collabmates_api.notifications.tasks import trigger_event_comms, send_app_notification_on_event_attachment, \
+                                                send_app_notification_for_event_type
 from collabmates_api.notifications.constants import EVENT_TYPE
 
 error_logger = LoggingWrapper.get_instance()
@@ -2154,6 +2155,8 @@ class ChatroomImpl(ChatroomManager):
                 if req_body.get('recording_url') \
                 else {}
 
+            send_app_notification_on_event_attachment.delay(chatroom_instance.id, chatroom_instance.has_event_recording)
+
             chatroom_instance.about_recording = req_body.get('about_recording')
             chatroom_instance.recording_url_og_tags = json.dumps(recording_url_og_tags)
             chatroom_instance.has_event_recording = True
@@ -2235,6 +2238,8 @@ class ChatroomImpl(ChatroomManager):
                     Collabcard,
                     req_body.get('chatroom_id')
                 )
+
+                send_app_notification_on_event_attachment.delay(event_obj.id, event_obj.has_event_recording)
 
                 event_obj.has_event_recording=True
                 event_obj.save()

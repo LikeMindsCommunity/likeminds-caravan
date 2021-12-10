@@ -5,6 +5,7 @@ from django.conf import settings
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from project.celery import app
+from utility.time_utilities import TimeUtilities
 from .constants import COMM_TYPE, EVENT_TYPE, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN, \
         WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION, \
         WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL
@@ -190,5 +191,53 @@ def schedule_app_notification_event_comms(payload_for_app_notification, app_noti
             notification_meta(user_details_list, app_noti_dict)
 
     except Exception as e:
-        error_logger.exception("got error in schedule_whatsapp_notification | error - %s | payload received = %s | \
+        error_logger.exception("got error in schedule_app_notification | error - %s | payload received = %s | \
                                 event_type = %s" % (str(e), payload_for_app_notification, event_type))
+
+
+@shared_task
+def send_app_notification_on_event_attachment(event_id, has_event_attachment=False):
+    try:
+        event_instance = TasksHelper.get_chatroom_instance(event_id)
+
+        response_dict = TasksImpl.get_response_dict_for_event_attachment_app_noti(event_instance, has_event_attachment)
+
+        schedule_time = TimeUtilities.get_current_datetime_in_IST()
+        task_expiry_time = TasksHelper.get_end_time_for_event(event_instance)
+
+        args = [event_id, response_dict]
+
+        info_logger.info("Scheduling app notification for event attachment | event_id = %s | response_dict = %s" \
+                        % (event_id, response_dict))
+                    
+        schedule_app_notification_on_event_attachment.apply_async(
+            args,
+            kwargs={},
+            eta=schedule_time,
+            expires=task_expiry_time
+        )
+
+    except Exception as e:
+        error_logger.exception("got error in send_app_notification_on_event_attachment | error - %s | event_id \
+                            received = %s" % (str(e), event_id))
+
+@app.task
+@shared_task
+def schedule_app_notification_on_event_attachment(event_id, app_noti_dict):
+    try:
+        event_instance = TasksHelper.get_chatroom_instance(event_id)
+        
+        community_id = event_instance.community
+
+        active_user_ids = TasksHelper.get_active_members_of_community(community_id)
+        
+        user_details_list = TasksHelper.create_user_details_list_for_sending_app_notification(active_user_ids)
+        
+        send_allowed = TasksHelper.should_send_notification(event_instance)
+
+        if send_allowed:
+            notification_meta(user_details_list, app_noti_dict)
+    
+    except Exception as e:
+        error_logger.exception("got error in schedule_app_notification_on_event_attachment | error - %s | event_id \
+                            received = %s" % (str(e), event_id))
