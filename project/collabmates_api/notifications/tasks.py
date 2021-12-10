@@ -12,6 +12,8 @@ from .constants import COMM_TYPE, EVENT_TYPE, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_A
 from .tasks_impl import TasksImpl, TasksHelper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from collabmates_api.notification import notification_meta
+from external_services.calender.calendar_impl import CalendarImpl
+
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -193,6 +195,53 @@ def schedule_app_notification_event_comms(payload_for_app_notification, app_noti
     except Exception as e:
         error_logger.exception("got error in schedule_app_notification | error - %s | payload received = %s | \
                                 event_type = %s" % (str(e), payload_for_app_notification, event_type))
+
+
+@shared_task
+def send_calender_invite_for_event_type(payload_for_calendar_invite, event_type, send_to_members=True, user_list=None):
+    try:
+        payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_calendar_invite)
+
+        event_instance = payload.get('chatroom')
+
+        tasks_instance = TasksImpl(event_type=event_type, comm_type=COMM_TYPE.CALENDAR)
+        event_metadata = tasks_instance.get_event_metadata_for_calendar_invite(payload_for_calendar_invite.get('chatroom'), 
+                                                                            send_to_members, user_list)
+        task_begin_time = tasks_instance.calculate_time_for_sending_notification(event_instance=event_instance)
+        
+        task_expiry_time = TasksHelper.get_end_time_for_event(event_instance)
+
+        if task_begin_time != 0:
+            args = [payload_for_calendar_invite, event_metadata, event_type]
+
+            info_logger.info("Scheduling calendar invite for event_type = %s | event_metadata = %s | \
+                            payload received = %s" % (event_type, event_metadata, payload))
+                        
+            schedule_calendar_invite_for_event_comms.apply_async(
+                args,
+                kwargs={},
+                eta=task_begin_time,
+                expires=task_expiry_time
+            )
+
+        else:    
+            info_logger.info("No calendar invite sent for event_type = %s | payload received = %s" % (event_type, \
+                            payload))
+    
+    except Exception as e:
+        error_logger.exception("got error in send_calender_invite_for_event_type | error - %s | payload received = %s |\
+                            event_type = %s" % (str(e), payload_for_calendar_invite, event_type))
+
+@app.task
+@shared_task
+def schedule_calendar_invite_for_event_comms(payload_for_calendar_invite, event_metadata, event_type):
+    try:
+        if event_metadata:
+            CalendarImpl().call_calender_api(event_metadata)
+
+    except Exception as e:
+        error_logger.exception("got error in schedule_calendar_invite | error - %s | payload received = %s | \
+                                event_type = %s" % (str(e), payload_for_calendar_invite, event_type))
 
 
 @shared_task

@@ -70,7 +70,7 @@ from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
 
 from collabmates_api.notifications.tasks import trigger_event_comms, send_app_notification_on_event_attachment, \
-                                                send_app_notification_for_event_type
+                                                send_app_notification_for_event_type, send_calender_invite_for_event_type
 from collabmates_api.notifications.constants import EVENT_TYPE
 
 error_logger = LoggingWrapper.get_instance()
@@ -1699,7 +1699,14 @@ class ChatroomImpl(ChatroomManager):
             'user': user_instance.id
         }
 
+        payload_for_calendar_invite = {
+            'chatroom': card_instance.id,
+        }
+
         send_app_notification_for_event_type.delay(payload_for_app_notification, EVENT_TYPE.REGISTRATION)
+
+        send_calender_invite_for_event_type(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION, send_to_members=False, \
+                                        user_list=[user_instance.id])
 
         ChatroomHelper.run_async_task_related_to_event_chatroom_attend_analytics(card_instance,
                                                                                  user_instance, status)

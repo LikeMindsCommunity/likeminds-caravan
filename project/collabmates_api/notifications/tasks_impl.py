@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
+from django.conf import settings
 
-from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User
+from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, userEmails
 from utility.time_utilities import TimeUtilities
 from utility.utils import generate_private_link_for_chatroom
-from utility.states import member_states, mobile_states
+from utility.states import member_states, mobile_states, email_states
+
 from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
 from collabmates_api.notification import get_token_for_fcm
@@ -18,7 +20,8 @@ from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_S
                         TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, \
                         ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION, \
                         TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION, TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION, \
-                        SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION, ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION
+                        SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION, ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION, \
+                        MAIL_EVENT_NOTIFICATION, CHATROOM_URL
 from .tasks_manager import TaskManager
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -216,6 +219,60 @@ class TasksImpl(TaskManager):
 
         return response_dict
 
+    @staticmethod
+    def get_event_metadata_for_calendar_invite(card_id, send_to_members, user_list):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+        if not card_instance:
+            return
+
+        if send_to_members:
+            member_list = list(TasksHelper.get_active_members_of_community(card_instance.community))
+        else:
+            member_list = user_list
+
+        user_email_filter = ModelUtilities.get_model_filter(userEmails,
+                                                            {'user__in': member_list,
+                                                            'email_state': email_states.PRIMARY,
+                                                            'verified': True}).order_by('created_at')
+
+        user_email_list = [{'email': instance.email} for instance in user_email_filter if instance.email]
+
+        event_metadata = TasksImpl.process_calendar_invite_event_metadata(card_instance, user_email_list)
+
+        return event_metadata
+
+    @staticmethod
+    def process_calendar_invite_event_metadata(card_instance, user_email_list):
+
+        if not user_email_list:
+            return {}
+
+        chatroom_url = CHATROOM_URL % (settings.URL, str(card_instance.id))
+
+        event_metadata = {
+            'summary': card_instance.title,
+            'location': chatroom_url,
+            'description': card_instance.about,
+            'start': {
+                'dateTime': TimeUtilities.convert_epoch_time_to_RFC3339(card_instance.date_time),
+                'timeZone': settings.TIME_ZONE,
+            },
+            'end': {
+                'dateTime': TimeUtilities.convert_epoch_time_to_RFC3339(card_instance.end_date),
+                'timeZone': settings.TIME_ZONE,
+            },
+            'attendees': user_email_list,
+            'reminders': {
+                'useDefault': False,
+                'overrides': [
+                    {'method': 'email', 'minutes': MAIL_EVENT_NOTIFICATION},
+                ],
+            },
+        }
+
+        return event_metadata
+
     def calculate_time_for_sending_notification(self, event_instance):
 
         event_date_time_epoch = event_instance.date_time
@@ -231,6 +288,10 @@ class TasksImpl(TaskManager):
             online_link_enable_before_in_mins = TimeUtilities.convert_milliseconds_to_min(online_link_enable_before)
 
             final_time = self.process_app_notification_final_time(event_date_time_in_IST, online_link_enable_before_in_mins)
+
+        elif self.get_comm_type() == COMM_TYPE.CALENDAR:
+
+            final_time = self.process_calendar_invite_final_time(event_date_time_in_IST)
         
         final_time = TimeUtilities.add_IST_offset_to_date_time(final_time)
 
@@ -296,6 +357,15 @@ class TasksImpl(TaskManager):
             event_registration_time = TimeUtilities.get_current_datetime_in_IST()
             final_time = TasksHelper.calculate_notification_time(event_registration_time, TIME_10_AM)
 
+        return final_time
+      
+    def process_calendar_invite_final_time(self, event_date_time_in_IST):
+
+        if self.get_event_type() == EVENT_TYPE.REGISTRATION:
+
+            current_date_time_in_IST = TimeUtilities.get_current_datetime_in_IST()
+            final_time = current_date_time_in_IST
+            
         return final_time
 
     @staticmethod

@@ -174,7 +174,8 @@ class TimeUtilities:
     @staticmethod
     def convert_epoch_time_to_RFC3339(epoch_time):
 
-        epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
+        if TimeUtilities.is_epoch_in_milliseconds(epoch_time):
+            epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
 
         dt = datetime.utcfromtimestamp(epoch_time).isoformat() + 'Z'
 
