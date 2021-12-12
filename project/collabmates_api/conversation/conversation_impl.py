@@ -47,7 +47,8 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types
-from utility.utils import decode_meta_from_url, check_notification_flag, is_version_code_supported_for_intro_room
+from utility.utils import decode_meta_from_url, check_notification_flag, is_version_code_supported_for_intro_room, \
+    is_member_verified
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
                                   update_preview_of_chatroom_in_cache,
@@ -228,12 +229,12 @@ class ConversationImpl(ConversationManager):
     def fetch_conversation_poll_to_show_results(self, conversation_instance):
         member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
         to_show_results = get_to_show_results_for_conversation_poll({'conversation_instance': conversation_instance,
-                                               'member_id': member_id,
-                                               'conversation_id': conversation_instance.id,
-                                               'poll_type': conversation_instance.poll_type,
-                                               'multiple_select_no': conversation_instance.multiple_select_no,
-                                               'expiry_time': conversation_instance.expiry_time,
-                                               })
+                                                                     'member_id': member_id,
+                                                                     'conversation_id': conversation_instance.id,
+                                                                     'poll_type': conversation_instance.poll_type,
+                                                                     'multiple_select_no': conversation_instance.multiple_select_no,
+                                                                     'expiry_time': conversation_instance.expiry_time,
+                                                                     })
         return to_show_results
 
     def _serialize_conversation(self, conversation_instance):
@@ -819,6 +820,21 @@ class ConversationImpl(ConversationManager):
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return {'success': False, 'error_message': "Responding is disabled"}
 
+        if chatroom_instance.access_without_subscription:
+
+            status = is_member_verified(community_id, self.get_member_id())
+            state_filter = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_id,
+                                                                             'user_id': self.get_member_id()})
+
+            if not status and not state_filter:
+                func_dict = {'collabcard_id': chatroom_id, 'member_id': self.get_member_id(), 'status': True,
+                             'is_guest': True}
+
+                collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+
+                ModelUtilities.model_update(Userinfo, {'user_id': self.get_member_id()},
+                                            {'updated_at': TimeUtilities.current_time_in_sec()})
+
         created_at = TimeUtilities.current_time_in_milliseconds()
 
         chatroom_state_instance = collabcardState.get_chatroom_state_instance(chatroom_instance.id,
@@ -868,7 +884,6 @@ class ConversationImpl(ConversationManager):
         args = [conversation_instance.id]
 
         if conversation_instance.state == conversation_states.CONVERSATION_POLL:
-
             start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(conversation_instance.expiry_time)
             update_deferred_conversation_poll_updated_at_value.apply_async(args=args, kwargs={},
                                                                            eta=start_time)
