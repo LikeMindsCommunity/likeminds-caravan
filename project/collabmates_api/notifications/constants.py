@@ -79,3 +79,5 @@ SUBJECT_POST_EVENT_ATTENDEES_MAIL = "Attendess list for %s 👥"
 SUBJECT_POST_EVENT_ATTACHMENT_MAIL = "Event recordings & attachments added 📹 🗃"
 
 SENDER_FOR_EMAIL_COMMS = "Team LikeMinds<team@likeminds.chat>"
+
+PAID_EVENT_REGISTRATION_SOUND = "ka-ching.mp3"

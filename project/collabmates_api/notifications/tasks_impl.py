@@ -24,7 +24,7 @@ from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_S
                         MAIL_EVENT_NOTIFICATION, CHATROOM_URL, POST_EVENT_ATTENDEES_LINK, TIME_9_AM, \
                         SUBJECT_EVENT_CREATION_MAIL, SUBJECT_EVENT_LAST_CALL_MAIL, SUBJECT_EVENT_ATTENDANCE_MAIL, \
                         SUBJECT_EVENT_REGISTRATION_MAIL, SUBJECT_POST_EVENT_ATTENDEES_MAIL, SUBJECT_POST_EVENT_ATTACHMENT_MAIL, \
-                        SENDER_FOR_EMAIL_COMMS
+                        SENDER_FOR_EMAIL_COMMS, PAID_EVENT_REGISTRATION_SOUND
 from .tasks_manager import TaskManager
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -222,6 +222,10 @@ class TasksImpl(TaskManager):
                 'route': route
             }
         }
+
+        if self.get_event_type() == EVENT_TYPE.REGISTRATION and is_paid_event:
+
+            response_dict['payload']['sound'] = PAID_EVENT_REGISTRATION_SOUND
 
         return response_dict
 

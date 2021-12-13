@@ -143,6 +143,7 @@ def send_notification_for_ios(token_list, message):
                                                   message_title=message['payload']['title'],
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'],
+                                                  sound=message['payload'].get('sound'),
                                                   extra_kwargs=extra_kwargs)
 
     print(result)
