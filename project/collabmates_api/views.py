@@ -6005,8 +6005,8 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
     mute_status = False
 
     if 'is_guest' in func_dict:
-        is_guest = func_dict['is_guest']
-        source_id = func_dict['source_id']
+        is_guest = func_dict.get('is_guest')
+        source_id = func_dict.get('source_id')
         ref_filter = User.objects.filter(id=source_id)
         if ref_filter.exists():
             ref_instance = ref_filter[0]
