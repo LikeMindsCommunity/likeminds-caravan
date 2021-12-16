@@ -343,6 +343,19 @@ class ElasticSearchSync:
 
     @staticmethod
     @shared_task
+    def update_member_name(user_id: int, user_name: str):
+        """
+        @param user_id: int
+        @param user_name: str
+        @return: None
+        @description: Bulk updates user name in conversations and chatrooms created by the user
+        """
+        query_dict = ElasticSearchQueryHelper.get_user_rename_update_dict(user_id, user_name, key_name='user')
+        ElasticSearchSync.bulk_update_documents(index=SearchIndexes.MEMBER_DIRECTORY,
+                                                query_dict=query_dict)
+
+    @staticmethod
+    @shared_task
     def delete_member_from_community(member_id: int, community_id: int):
         """
         @param member_id: int
@@ -503,16 +516,17 @@ class ElasticSearchQueryHelper:
         }
 
     @staticmethod
-    def get_user_rename_update_dict(user_id: int, user_name: str):
+    def get_user_rename_update_dict(user_id: int, user_name: str, key_name: str = 'profile'):
         """
         @param user_id: int
         @param user_name: str
+        @param key_name: str
         @return: dict
         @sql: update set member_profile_name = user_name where member_id = user_id
         """
         return {
             "script": {
-                "inline": f"ctx._source.member.profile.name = '{user_name}'",
+                "inline": f"ctx._source.member.{key_name}.name = '{user_name}'",
                 "lang": "painless"
             },
             "query": {
