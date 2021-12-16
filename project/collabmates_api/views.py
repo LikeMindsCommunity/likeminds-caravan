@@ -1462,6 +1462,7 @@ def edit_user(request):
                                        {})
 
         ElasticSearchSync.update_user_name.delay(user_id, userinfo_instance.name)
+        ElasticSearchSync.update_member_name.delay(user_id, userinfo_instance.name)
 
     return JsonResponse({'success': True})
 
