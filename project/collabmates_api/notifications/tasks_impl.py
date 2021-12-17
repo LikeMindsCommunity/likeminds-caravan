@@ -158,18 +158,20 @@ class TasksImpl(TaskManager):
         event_name = payload.get('chatroom').title
         is_paid_event = payload.get('chatroom').is_paid
         online_link_enable_before = payload.get('chatroom').online_link_enable_before
+        community_id = payload.get('chatroom').community.id
 
         online_link_enable_before_in_mins = TimeUtilities.convert_milliseconds_to_min(online_link_enable_before)
 
         member_name = payload.get('user').userinfo.name if payload.get('user') else None
 
         response_dict = self.process_app_notification_response_dict(event_name, is_paid_event, event_id,
-                                                                online_link_enable_before_in_mins, member_name)
+                                                                online_link_enable_before_in_mins, member_name,
+                                                                community_id)
 
         return response_dict
 
     def process_app_notification_response_dict(self, event_name, is_paid_event, event_id, online_link_enable_before_in_mins, \
-                                            member_name):
+                                            member_name, community_id):
 
         if self.get_event_type() == EVENT_TYPE.CREATION:
 
@@ -205,10 +207,10 @@ class TasksImpl(TaskManager):
             subtitle = SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION % (member_name, event_name)
 
             if is_paid_event:
-                route = ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION % event_id
+                route = ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION % (event_id, community_id)
             
             else:
-                route = ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION % event_id
+                route = ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION % (event_id, community_id)
 
         else:
             title = ""
