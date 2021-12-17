@@ -3018,7 +3018,8 @@ def send_chatroom_creation_notification(card_instance, user_instance):
     TODO: update logic with new intro room update
     """
 
-    if card_instance.type == card_types.CARD_INTRO:
+    if card_instance.type == card_types.CARD_INTRO or card_instance.type == card_types.CARD_EVENT or \
+        card_instance.type == card_types.CARD_PUBLIC_EVENT:
         return
 
     else:

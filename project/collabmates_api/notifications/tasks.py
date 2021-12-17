@@ -246,6 +246,11 @@ def schedule_calendar_invite_for_event_comms(payload_for_calendar_invite, event_
 
 @shared_task
 def trigger_email_communication_for_event(payload_for_email_comms):
+    payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_email_comms)
+
+    if not payload.get('chatroom').is_paid:
+        send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.CREATION)
+        
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.LAST_CALL)
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.ATTENDANCE_9_AM)
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTENDEES)
