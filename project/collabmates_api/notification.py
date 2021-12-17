@@ -143,6 +143,7 @@ def send_notification_for_ios(token_list, message):
                                                   message_title=message['payload']['title'],
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'],
+                                                  sound=message['payload'].get('sound'),
                                                   extra_kwargs=extra_kwargs)
 
     print(result)
@@ -639,16 +640,6 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             sub_title = str(card_creater_name) + " created a secret chatroom: " + str(collabcard_title)
             route = 'route://chatroom_detail?chatroom_id=' + str(card_id)
 
-        elif typ == card_types.CARD_EVENT or typ == card_types.CARD_PUBLIC_EVENT:
-            sub_title = str(card_creater_name) + " created a new event: " + str(collabcard_title) + ". Join now!"
-            route = 'route://event_chatroom?chatroom_id=' + str(card_id)
-
-            if card.online_link is None or card.online_link == '':
-                schedule_offline_event_future_notifications(card)
-
-            else:
-                schedule_online_event_future_notification(card)
-
         elif typ == card_types.CARD_POLL:
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
@@ -706,118 +697,6 @@ def schedule_poll_end_notification(card_id):
                                               )
 
 
-def schedule_online_event_future_notification(card_instance):
-    card_id = card_instance.id
-    args = [card_id]
-
-    card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.date_time)
-    task_begin_epoch_time = TimeUtilities.subtract_minutes_from_epoch_time(card_end_time, minutes=2)
-    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
-
-    # scheduling event remainder before 2 minutes
-    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
-    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
-
-    online_event_remainder_notification_2_min.apply_async(args=args,
-                                                          kwargs={},
-                                                          eta=task_begin_date_time,
-                                                          expires=task_expiry_date_time)
-
-
-def schedule_offline_event_future_notifications(card_instance):
-    card_id = card_instance.id
-    args = [card_id]
-
-    card_end_time = TimeUtilities.convert_milliseconds_to_sec(card_instance.date_time)
-    task_begin_epoch_time = TimeUtilities.subtract_hours_from_epoch_time(card_end_time, hours=24)
-    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
-
-    # scheduling event remainder before 24 hours
-    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
-    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
-
-    offline_event_remainder_notification_24_hours.apply_async(args=args,
-                                                              eta=task_begin_date_time,
-                                                              expires=task_expiry_date_time)
-
-    # scheduling event remainder before 30 minutes
-    task_begin_epoch_time = TimeUtilities.subtract_minutes_from_epoch_time(card_end_time, minutes=30)
-    task_expiry_epoch_time = TimeUtilities.add_minutes_to_epoch_time(task_begin_epoch_time, minutes=5)
-
-    task_begin_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_epoch_time)
-    task_expiry_date_time = TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_epoch_time)
-
-    offline_event_remainder_notification_30_minutes.apply_async(args=args,
-                                                                kwargs={},
-                                                                eta=task_begin_date_time,
-                                                                expires=task_expiry_date_time)
-
-
-def get_user_data_for_event_notifications(card_instance, sub_title, route):
-    card_id = card_instance.id
-    card_owner = card_instance.user
-    owner_flag = False
-    card_title = get_title_from_collabcard(card_instance)
-
-    collabcardstates = collabcardState.objects.filter(card=card_id,
-                                                      attending_status=True,
-                                                      remove=None).select_related('user', 'community')
-
-    notification_list = []
-    for ccs in collabcardstates:
-
-        if card_owner.id == ccs.user.id:
-            owner_flag = True
-
-        notification_list.append({'id': ccs.user.id})
-
-    # add owner to notification list
-    if owner_flag is False:
-        notification_list.append({'id': card_owner.id})
-
-    message = {'payload': {
-        'title': EVENT_NOTIFICATIONS_TITLE,
-        'sub_title': str(card_title) + sub_title,
-        'route': route
-    }}
-
-    return notification_list, message
-
-
-def precompute_usernames_for_event_attendees(user_ids):
-    userinfo_queryset = ModelUtilities.get_model_filter(Userinfo, {
-        'user_id__in': user_ids
-    })
-
-    user_names = {}
-
-    for userinfo in userinfo_queryset:
-        user_names[userinfo.user_id_id] = userinfo.name
-
-    return user_names
-
-
-def get_user_details_for_event_attendees(user_ids):
-    mobile_queryset = ModelUtilities.get_model_filter(userMobiles, {
-        'user__in': user_ids,
-        'state': mobile_states.PRIMARY
-    })
-
-    user_names = precompute_usernames_for_event_attendees(user_ids)
-
-    user_data = {}
-
-    for mobile in mobile_queryset:
-        user_name = user_names[mobile.user_id]
-        user_mobile = str(mobile.country_code) + str(mobile.mobile_no)
-
-        user_data[mobile.user_id] = {}
-        user_data[mobile.user_id]['phone'] = user_mobile
-        user_data[mobile.user_id]['name'] = user_name
-
-    return user_data
-
-
 def fetch_all_valid_urls(string):
     regex = VALID_URLS_REGEX
     valid_urls = re.findall(regex, string)
@@ -865,31 +744,6 @@ def poll_room_ending_notification(card_id, **kwargs):
         error_logger.error(f"poll_room_ending_notification : {e}")
 
 
-@app.task
-@shared_task
-def online_event_remainder_notification_2_min(card_id, **kwargs):
-    """ function to send notification to all members when event/poll is going to start/end """
-    try:
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
-
-        if not card_instance:
-            raise Exception(f"aborting notification. chatroom does not exist (id = {card_id}).")
-
-        send_allowed, message = should_send_notification(card_instance)
-
-        if not send_allowed:
-            raise Exception(message)
-
-        sub_title = ONLINE_EVENT_NOTIFICATION_SUB_TITLE
-        route = ONLINE_EVENT_NOTIFICATION_ROUTE % card_instance.online_link
-
-        notification_list, message = get_user_data_for_event_notifications(card_instance, sub_title, route)
-        notification_meta(notification_list, message)
-
-    except Exception as e:
-        error_logger.error(f"online_event_remainder_notification_2_min {e.args}")
-
-
 def should_send_notification(card_instance: object):
     if getattr(card_instance, 'is_deleted', False) and \
             Collabcard.is_chatroom_deleted(card_instance.is_deleted):
@@ -897,58 +751,6 @@ def should_send_notification(card_instance: object):
         return False, message
 
     return True, ""
-
-
-@app.task
-@shared_task
-def offline_event_remainder_notification_24_hours(card_id, **kwargs):
-    """ function to send notification to all members when event/poll is going to start/end """
-    try:
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
-
-        if not card_instance:
-            raise Exception(f"aborting notification. chatroom does not exist (id = {card_id}).")
-
-        send_allowed, message = should_send_notification(card_instance)
-
-        if not send_allowed:
-            raise Exception(message)
-
-        sub_title = OFFLINE_EVENT_NOTIFICATION_24_H_SUB_TITLE
-        route = OFFLINE_EVENT_NOTIFICATION_24_H_ROUTE % card_id
-
-        notification_list, message = get_user_data_for_event_notifications(card_instance, sub_title, route)
-
-        notification_meta(notification_list, message)
-
-    except Exception as e:
-        error_logger.error(f"offline_event_remainder_notification_24_hours {e.args}")
-
-
-@app.task
-@shared_task
-def offline_event_remainder_notification_30_minutes(card_id, **kwargs):
-    """ function to send notification to all members when event/poll is going to start/end """
-    try:
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
-
-        if not card_instance:
-            raise Exception(f"aborting notification. chatroom does not exist (id = {card_id}).")
-
-        send_allowed, message = should_send_notification(card_instance)
-
-        if not send_allowed:
-            raise Exception(message)
-
-        sub_title = OFFLINE_EVENT_NOTIFICATION_30_M_SUB_TITLE
-        route = OFFLINE_EVENT_NOTIFICATION_30_M_ROUTE % card_id
-
-        notification_list, message = get_user_data_for_event_notifications(card_instance, sub_title, route)
-
-        notification_meta(notification_list, message)
-
-    except Exception as e:
-        error_logger.error(f"offline_event_remainder_notification_30_minutes {e.args}")
 
 
 def get_custom_data_for_new_chatroom_created(card):

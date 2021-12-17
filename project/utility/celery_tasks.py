@@ -1142,7 +1142,7 @@ def get_event_pricing(card_id):
     client.add_url_param('chatroom_ids', [card_id])
     client.request()
     response = client.fetch_response()
-    cost_list = [data.get('cost') / 100 for data in response.get('event_plans', [])]
+    cost_list = [data.get('cost') for data in response.get('event_plans', [])]
 
     return cost_list
 

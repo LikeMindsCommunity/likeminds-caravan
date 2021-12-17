@@ -40,6 +40,10 @@ class TimeUtilities:
         return millisec // 1000
 
     @staticmethod
+    def convert_milliseconds_to_min(millisec):
+        return millisec // 60000
+
+    @staticmethod
     def get_epoch_time(hours=0, minutes=0):
         epoch_time = hours * 3600 + minutes * 60
         return epoch_time
@@ -170,7 +174,8 @@ class TimeUtilities:
     @staticmethod
     def convert_epoch_time_to_RFC3339(epoch_time):
 
-        epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
+        if TimeUtilities.is_epoch_in_milliseconds(epoch_time):
+            epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
 
         dt = datetime.utcfromtimestamp(epoch_time).isoformat() + 'Z'
 
