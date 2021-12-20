@@ -1,0 +1,48 @@
+
+<div style="width: 98px; height: 48px; margin: auto; overflow: visible;">
+    <img class="CToWUd" style="width: 98px; height: 98px;" src="{{community_logo}}">
+  </div>
+  <div style="padding: 24px; padding-top: 48px; max-width: 500px; margin: auto; background: #fff; border-radius: 8px; border: 1px solid #eee; box-sizing: border-box;">
+    <h3 style="font-size: 20px; font-weight: 400; text-align: center; color: #718297">{{community_name}}</h3>
+    <div style="font-size: 20px; color: #666; text-align: left; font-weight: bold;">Hello!</div>
+    <div style="text-align: left; margin-top: 20px;">
+      <div style="color: #718297; font-size: 16px;">
+        {% block main_body %}
+        {% endblock %}
+      </div>
+      <div style="margin-top: 24px; display: flex; width: 100%;">
+        <a href="{{button_link}}" style="width: 100%; text-align: center; text-decoration: none; background-color: {{community_brand_color}}; padding: 12px; color: white; border-radius: 24px;">{{button_text}}</a>
+      </div>
+      <br>
+      <div style="color: #718297; font-size: 16px;">
+        {% block after_body %}
+        {% endblock %}
+      </div>
+    </div>
+  </div>
+  <div>
+    <table style="border-collapse: collapse; width: 100%; height: 157px;" border="0">
+      <tbody>
+        <tr style="border: 0px; height: 157px;">
+          <td style="width: 400px; text-align: center; border: 0px; height: 157px;">
+            <p style="text-align: center; width: 100%; color: #718297; margin-top: 24px; margin-bottom: 12px;">You’ve been invited to join {{community_name}}. Get the LikeMinds App to access the community.</p>
+            <a style="text-decoration: none; color: #000; display: inline-block; vertical-align: middle; padding: 6px; box-sizing: border-box;" rel="noreferrer">
+              <img class="CToWUd" style="height: 66px; display: inline-block; vertical-align: middle;"
+                   src="https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/google-play-img.png" alt="Play Store">
+            </a>
+            <a style="text-decoration: none; color: #000; display: inline-block; vertical-align: middle; padding: 6px; box-sizing: border-box;" rel="noreferrer">
+              <img class="CToWUd" style="height: 45px; display: inline-block; vertical-align: middle;"
+                   src="https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/app-store-logo.png" alt="App Store">
+            </a>
+            <div style="padding: 0px; width: 100%; color: #929292; margin-top: 12px;">
+              <span style="opacity: 0.8; font-size: 12px; text-align: center;">{{community_name}} is powered by
+                <a href="https://www.likeminds.community" style="text-decoration: none; color: #01897b;" target="_blank" data-saferedirecturl="https://www.google.com/url?q=https://www.likeminds.community&amp;source=gmail&amp;ust=1638192794302000&amp;usg=AOvVaw1zbjUtECN2WoDXZQdSgCqj" rel="noopener">
+                  <strong>LikeMinds</strong>
+                </a>
+              </span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>

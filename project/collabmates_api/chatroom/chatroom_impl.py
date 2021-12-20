@@ -6,13 +6,16 @@ from rest_framework import status as status_codes
 from django.contrib.auth.models import User
 from django.db.models import Q, Max
 from celery import shared_task
+from django.template.loader import get_template
 
 from django.conf import settings
 
 from external_services.calender.calendar_impl import CalendarImpl
 from utility.api_client import ApiClient
 from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_PLACEHOLDER_USER_ROUTE, \
-    SUBSCRIPTION_VALIDATE_EVENT_ONLINE_LINK, EVENT_CARD_MAIL_DESCRIPTION, CHATROOM_URL, MAIL_EVENT_NOTIFICATION
+    SUBSCRIPTION_VALIDATE_EVENT_ONLINE_LINK, EVENT_CARD_MAIL_DESCRIPTION, CHATROOM_URL, MAIL_EVENT_NOTIFICATION, \
+    FIRST_EVENT_CM_MAIL_SUBJECT, FIRST_EVENT_CM_MAIL_BUTTON_TEXT, FIRST_EVENT_CM_REPLY_EMAIL, \
+    DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
@@ -31,8 +34,9 @@ from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_
                      save_the_latest_conversation, collabcard_follow_internal,
                      send_chatroom_creation_notifications_and_mails, update_seen_status_for_new_user_in_chatroom,
                      create_chatroom, get_latest_conversation_members, event_access, CommunitySerializerV1,
-                     send_chatroom_creation_notification, get_community_creator)
-from ..tasks import update_pending_chatroom_count_for_promoters
+                     send_chatroom_creation_notification, get_community_creator, update_community_get_started)
+
+from ..tasks import update_pending_chatroom_count_for_promoters, cm_onboarding_version_check
 from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts,
                             send_ice_breaker_notification, send_sync_notification,
                             send_pin_chatroom_notification, send_notification_for_new_secret_room_participant,
@@ -46,11 +50,13 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
-                            EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember, removedMembers)
+                            EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember, removedMembers, CommunityGetStarted)
+
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
+from external_services.email.email_wrapper import MailWrapper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
-    SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types
+    SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types
 
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -68,6 +74,8 @@ from utility.exception_utilities import (CustomException)
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
+
+from collabmates_api.branch import create_community_feed_url_for_cm_onboarding
 
 from collabmates_api.notifications.tasks import trigger_event_comms, send_app_notification_on_event_attachment, \
                                                 send_app_notification_for_event_type, send_calender_invite_for_event_type, \
@@ -1383,6 +1391,10 @@ class ChatroomImpl(ChatroomManager):
             send_chatroom_creation_notification(card_instance, user_instance)
             send_event_analytics_on_event_creation.delay(card_instance.id, user_instance.id)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
+
+            if cm_onboarding_version_check(self.get_request_platform(), self.get_version_code()):
+                ChatroomHelper.send_first_event_creation_email_to_promoter(card_instance)
+                update_community_get_started(community_instance, get_started_types.CREATE_EVENT_TYPE, is_enabled=True)
 
             payload_for_whatsapp_comms = {
                 'chatroom': card_instance.id,
@@ -3278,6 +3290,32 @@ class ChatroomHelper:
 
         if event_metadata:
             CalendarImpl().call_calender_api(event_metadata)
+
+    @staticmethod
+    def send_first_event_creation_email_to_promoter(card_instance):
+        community_get_started_instances = ModelUtilities.get_model_filter(CommunityGetStarted,
+                                                                          {'community': card_instance.community,
+                                                                           'get_started__type': get_started_types.CREATE_EVENT_TYPE,
+                                                                           'completed': True})
+
+        if not community_get_started_instances:
+            mail_subject = FIRST_EVENT_CM_MAIL_SUBJECT.format(card_instance.user.userinfo.name)
+
+            branch_link = create_community_feed_url_for_cm_onboarding(card_instance.community)
+
+            mail_template = get_template('mails/cm_onboarding/first_event_creation_cm_onboarding.html').render({
+                "community_logo": card_instance.community.image_url,
+                "community_name": card_instance.community.name,
+                "cm_name": card_instance.user.userinfo.name,
+                "community_brand_color": card_instance.community.brand_color if card_instance.community.brand_color
+                else DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+                "button_link": branch_link,
+                "button_text": FIRST_EVENT_CM_MAIL_BUTTON_TEXT
+            })
+
+            send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
+                                                               [card_instance.user.userinfo.email],
+                                                               reply_to=[FIRST_EVENT_CM_REPLY_EMAIL])
 
     @staticmethod
     def get_settings_for_chatroom(chatroom_settings_list, card_instance):

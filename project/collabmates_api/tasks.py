@@ -16,11 +16,12 @@ from utility.utils import (android_app_download_link, ios_app_download_link,
                            android_app_download_link,ios_app_download_link,check_notification_flag)
 from utility.states import (collabcard_states, member_states, community_states,
                             card_types, chatroom_actions, member_rights, manager_rights,
-                            moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states)
+                            moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states,
+                            user_email_send_status_types)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
-from togther.models import Collabcard, userMemberRightsHistory, Members, Community
+from togther.models import Collabcard, userMemberRightsHistory, Members, Community, UserEmailsSendStatus
 from utility.encryption import encrypt, decrypt
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
 from .user_moderation_rights import (get_related_reports_for_user, check_admin_delete_right,
@@ -29,9 +30,11 @@ import json
 import requests
 from .serializers import CollabcardPollsSerializer
 from .notification import get_title_from_collabcard,send_intro_room_evening_notifications
-from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24
+from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARDING_IOS_VERSION_CODE, \
+    CM_ONBOARDING_WEB_VERSION_CODE, CM_ONBOARDING_ANDROID_VERSION_CODE
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
+from external_services.email.email_wrapper import MailWrapper
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -849,3 +852,55 @@ def request_api(method, api_url, headers, payload):
 def task_to_send_intro_notifications():
     # print("chal ja bhai")
     send_intro_room_evening_notifications()
+
+
+def send_cm_onboarding_getting_started_email():
+
+    cm_onboarding_user_email_status_filter = ModelUtilities.get_model_filter(UserEmailsSendStatus,
+                                                                             {'is_completed': False,
+                                                                              'status_type':
+                                                                                  user_email_send_status_types.CM_ONBOARDING,
+                                                                              'expires_at__gte': TimeUtilities.current_time_in_sec()})
+
+    if cm_onboarding_user_email_status_filter:
+
+        for user_email_status_instance in cm_onboarding_user_email_status_filter:
+
+            user_email_status_instance.count += 1
+            user_email_status_instance.save()
+
+            if user_email_status_instance.count > user_email_status_instance.max_count:
+                user_email_status_instance.is_completed = True
+                user_email_status_instance.save()
+                continue
+
+            if TimeUtilities.current_time_in_sec() < TimeUtilities.add_minutes_to_epoch_time(
+                    user_email_status_instance.updated_at, minutes=user_email_status_instance.frequency_in_minutes):
+                continue
+
+            mail_body = json.loads(user_email_status_instance.mail_data)
+
+            MailWrapper.send_email.delay(subject=mail_body.get('subject'),
+                                         template=mail_body.get('mail_body'),
+                                         to_mails_list=mail_body.get('mail_recipient_list'),
+                                         reply_to=mail_body.get('reply_to'))
+
+            user_email_status_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+
+    return
+
+
+@app.task
+def send_daily_emails():
+    send_cm_onboarding_getting_started_email()
+
+
+def cm_onboarding_version_check(platform_code, version_code):
+    is_enabled = False
+
+    if any([((platform_code == 'ios') and (version_code >= CM_ONBOARDING_IOS_VERSION_CODE)),
+            ((platform_code == 'web') and (version_code >= CM_ONBOARDING_WEB_VERSION_CODE)),
+            ((platform_code == 'an') and (version_code >= CM_ONBOARDING_ANDROID_VERSION_CODE))]):
+        is_enabled = True
+
+    return is_enabled

@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from external_services.mixpanel.events import MixpanelEvents
+from external_services.segment.segment_impl import SegmentImpl
 from external_services.otp.otp_api_client import OTPApiClient
 from togther.models import *
 from utility.string_utilities import StringUtilities
@@ -45,7 +46,7 @@ from .sync.model_update import update_models_for_syncing_apis
 from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
-                    )
+                    cm_onboarding_version_check)
 from .static_text import ALL_MEMBER_COHORT_TEXT
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
@@ -72,6 +73,8 @@ from utility.number_utilities import NumberUtilities
 from utility.exception_utilities import (CustomException, InvalidHeaderException)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.segment.segment_impl import SegmentImpl
+from external_services.email.email_wrapper import MailWrapper
+from .branch import create_community_feed_url_for_cm_onboarding
 
 from .search.sync import ElasticSearchSync
 from .community.constants import *
@@ -895,6 +898,8 @@ def questions(request):
     member_id = get_member_id_from_headers(request)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     if not user_instance:
         context = get_error_context(False, "Invalid member id")
@@ -933,12 +938,13 @@ def questions(request):
     # private link share flow
     aj = request.GET.get('aj', None)
     shared_by = request.GET.get('shared_by', None)
-    user_instance = User.objects.get(id=member_id)
 
     is_valid_private_link = False
     auto_join = {}
     title = f"You are joining {community_serialized_object['name']}"
     shared_by_user = None
+
+    is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
     try:
         shared_by_user = User.objects.get(pk=shared_by)
@@ -949,7 +955,11 @@ def questions(request):
 
     if aj and shared_by_user:
         try:
-            auto_join = private_link_app_invite(community_instance, aj, created_by, shared_by_user)
+            if is_cm_onboarding_enabled:
+                auto_join = private_link_app_invite_v2(community_instance, aj, created_by, shared_by_user, user_instance)
+
+            else:
+                auto_join = private_link_app_invite(community_instance, aj, created_by, shared_by_user)
             is_valid_private_link = True
         except:
             error_logger.error(f"aj is not valid. aj ---> {aj}")
@@ -984,6 +994,30 @@ def questions(request):
     if is_valid_private_link:
         context.update(auto_join)
     return JsonResponse(context)
+
+
+def private_link_app_invite_v2(community_instance, unique_code, created_by=None, shared_by_user=None,
+                              user_instance=None):
+    '''function to send private link for app invite on playstore'''
+
+    expiry_filter = communityExpiryCodes.objects.filter(community=community_instance, unique_code=unique_code)
+    shared_by_user_name = shared_by_user.userinfo.name
+
+    auto_join = {
+        'toast': PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST.format(shared_by_user_name),
+        'aj_expired': True
+    }
+
+    if ((not community_instance.is_paid) and (not expiry_filter)) or \
+            (community_instance.is_paid and expiry_filter.filter(user=user_instance)):
+
+        return auto_join
+
+    if expiry_filter.exists():
+        auto_join['aj_expired'] = False
+        auto_join['toast'] = ""
+
+    return auto_join
 
 
 def private_link_app_invite(community_instance, unique_code, created_by=None, shared_by_user=None):
@@ -1198,6 +1232,29 @@ def post_purpose_collabcard_for_community(request, community_instance, member_id
         'title': introduction_answer,
         'type': card_types.CARD_PURPOSE,
     }
+    context = create_card_internal(member_id, community_instance.id, req_dict)
+
+    return context['card_instance']
+
+
+def post_general_collabcard_for_community(community_instance, member_id):
+    '''function to post general card for community'''
+
+    req_dict = {
+
+        'member_id': member_id,
+        'community_id': community_instance.id,
+        'title': GENERAL_CHAT_TITLE_TEXT,
+        'type': card_types.CARD_NORMAL,
+        'header': GENERAL_CHAT_HEADER,
+        'auto_follow_done': True,
+        'include_members_later': True
+    }
+
+    if ModelUtilities.is_model_filter_exists(Collabcard, {'community': community_instance.id,
+                                                          'type': card_types.CARD_NORMAL}):
+        return
+
     context = create_card_internal(member_id, community_instance.id, req_dict)
 
     return context['card_instance']
@@ -2339,6 +2396,8 @@ def create_community_version_1(request):
     member_id = get_member_id_from_headers(request)
     user_instance = User.objects.get(pk=member_id)
     res = json.loads(request.body)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_name = ""
     purpose = ""
@@ -2436,9 +2495,6 @@ def create_community_version_1(request):
         }
         send_created_community_email_to_team.delay(email_context)
 
-        community_serializer = CommunitySerializerV1(community_instance, context={"current_user_id": member_id},
-                                                                   many=False).data
-
         # Create Content Download Settings
         content_download_settings_list = []
 
@@ -2453,6 +2509,12 @@ def create_community_version_1(request):
         ModelUtilities.bulk_create_instances(ContentDownloadSettings, content_download_settings_list)
 
         add_community_settings_for_community(community_instance, user_instance)
+
+        if cm_onboarding_version_check(platform_code, version_code):
+            update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
+
+        community_serializer = CommunitySerializerV1(community_instance, context={"current_user_id": member_id},
+                                                     many=False).data
 
         return JsonResponse({'success': True, 'community': community_serializer})
 
@@ -2581,6 +2643,65 @@ def create_or_update_question_instances(question_instance, question, community_i
     question_instance.help_text = question['help_text'] if 'help_text' in question else None
     question_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
     question_instance.field = question['field'] if 'field' in question else False
+    question_instance.save()
+
+
+def create_introduction_question_in_community_v2(community_instance):
+    '''function to create introduction question in community and mobile information'''
+
+    help_text = ''
+    field_filter = communityField.objects.filter(state=question_states.INTRODUCTION,
+                                                 type=community_instance.type, sub_type=community_instance.sub_type)
+
+    if field_filter.exists():
+        help_text = field_filter[0].help_text
+
+    if ModelUtilities.is_model_filter_exists(communityQuestions,
+                                             {'community': community_instance}):
+        return
+
+    value_list = [{"min_chars": "50", "max_chars": "No limit"}]
+    question_title = field_filter[0].question_title if field_filter.exists() else "Introduce yourself"
+
+    question_instance = communityQuestions.create_instance({'community_instance': community_instance,
+                                                            'question_title': question_title,
+                                                            'question_state': question_states.INTRODUCTION,
+                                                            'value': json.dumps(value_list),
+                                                            'optional': False,
+                                                            'help_text': help_text,
+                                                            'is_hidden': False})
+    question_instance.save()
+
+    value_list = [{"answer_privacy": "Private"}]
+    question_instance = communityQuestions.create_instance({'community_instance': community_instance,
+                                                            'question_title': 'Phone Number',
+                                                            'question_state': question_states.MOBILE_NO,
+                                                            'value': json.dumps(value_list),
+                                                            'optional': False,
+                                                            'help_text': 'Your mobile number',
+                                                            'is_hidden': True,
+                                                            'field': True})
+    question_instance.save()
+
+    value_list = [{"answer_privacy": "Private"}]
+    question_instance = communityQuestions.create_instance({'community_instance': community_instance,
+                                                            'question_title': 'Email',
+                                                            'question_state': question_states.EMAIL_ID,
+                                                            'value': json.dumps(value_list),
+                                                            'optional': True,
+                                                            'help_text': 'Your email id',
+                                                            'is_hidden': False,
+                                                            'field': True})
+    question_instance.save()
+
+    question_instance = communityQuestions.create_instance({'community_instance': community_instance,
+                                                            'question_title': 'Name',
+                                                            'question_state': question_states.PARAGRAPH,
+                                                            'value': None,
+                                                            'optional': False,
+                                                            'help_text': 'Your name',
+                                                            'is_hidden': False,
+                                                            'field': True})
     question_instance.save()
 
 
@@ -2840,6 +2961,12 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
             cm_list = set(Members.get_managers_list(community=community_instance))
             final_participants_list = list(set(secret_chatroom_participants) | cm_list)
             card.secret_chatroom_participants = json.dumps(final_participants_list)
+
+    if res.get('auto_follow_done'):
+        card.auto_follow_done = res.get('auto_follow_done')
+
+    if res.get('include_members_later'):
+        card.include_members_later = res.get('include_members_later')
 
     card.save()
     # add ownerflag here
@@ -3714,6 +3841,7 @@ def get_branch_links_for_community_share(user_instance, community_instance):
     member_filter = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
     user_has_approve_right = False
+    member_invite_private_right = False
     community_id = community_instance.id
     member_id = user_instance.id
     aj = community_id
@@ -3732,6 +3860,10 @@ def get_branch_links_for_community_share(user_instance, community_instance):
         if is_promoter or is_owner:
             user_has_approve_right = check_admin_approve_right(user_instance, community_instance)
 
+        else:
+            member_invite_private_right = userMemberRights.check_member_invite_private_right(user_instance,
+                                                                                             community_instance)
+
         if user_has_approve_right:
             aj = generate_private_link(community_instance=community_instance,
                                        promoter_instance=user_instance,
@@ -3749,9 +3881,40 @@ def get_branch_links_for_community_share(user_instance, community_instance):
         'is_owner': is_owner,
         'is_promoter': is_promoter,
         'user_has_approve_right': user_has_approve_right,
+        'member_invite_private_right': member_invite_private_right,
         'aj': aj
     }
     return share_context
+
+
+def fill_share_context_for_paid_community_v2(community_instance, share_context, community_share):
+    branch_links = share_context['branch_links']
+    aj = share_context['aj']
+    community_name = community_instance.name
+
+    if len(share_context) <= 0:
+        return
+
+    community_share['public_link'] = branch_links[0]['url']
+
+    community_share['public_link_text'] = SHARE_TEXT_ADMIN_PUBLIC_PAID_COMMUNITY % (
+        community_name,  community_share['public_link'])
+
+    if share_context['user_has_approve_right']:
+        community_share['private_link'] = branch_links[1]['url']
+        community_share['private_link_text'] = SHARE_TEXT_ADMIN_PRIVATE_PAID_COMMUNITY % (
+                community_name, branch_links[1]['url'], aj)
+
+        community_share['private_link_members_directory'] = branch_links[2]['url']
+        private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
+            community_name, branch_links[2]['url'], aj)
+
+        community_share['private_link_text_members_directory'] = private_link_text_members_directory
+
+    else:
+        community_share['public_link'] = branch_links[0]['url']
+        community_share['public_link_text'] = SHARE_TEXT_MEMBER_PUBLIC % (
+            community_name, community_share['public_link'])
 
 
 def fill_share_context_for_paid_community(community_instance, share_context, community_share):
@@ -3782,6 +3945,40 @@ def fill_share_context_for_paid_community(community_instance, share_context, com
         community_share['public_link'] = branch_links[0]['url']
         community_share['public_link_text'] = SHARE_TEXT_MEMBER_PUBLIC % (
             community_name, community_share['public_link'])
+
+
+def fill_share_context_for_unpaid_community_v2(community_instance, share_context, community_share):
+    branch_links = share_context['branch_links']
+    aj = share_context['aj']
+    community_name = community_instance.name
+
+    if len(share_context) <= 0:
+        return
+
+    community_share['private_link'] = branch_links[1]['url']
+    community_share['private_link_members_directory'] = branch_links[2]['url']
+
+    if share_context['user_has_approve_right']:
+        members_count = get_members_count_in_community(community_instance.id)
+
+        if members_count <= 10:
+            community_share['private_link_text'] = PRIVATE_LINK_TEXT_ADMIN_1 % (
+                community_name, branch_links[1]['url'], aj)
+
+        else:
+            community_share['private_link_text'] = PRIVATE_LINK_TEXT_ADMIN_2 % (
+                community_name, branch_links[1]['url'], aj)
+
+        private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
+            community_name, branch_links[2]['url'], aj)
+
+        community_share['private_link_text_members_directory'] = private_link_text_members_directory
+
+    else:
+        community_share['private_link_text'] = SHARE_TEXT_MEMBER % (
+            community_name, community_share['private_link'], aj)
+        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
+            community_share['private_link_members_directory'])
 
 
 def fill_share_context_for_unpaid_community(community_instance, share_context, community_share):
@@ -3827,8 +4024,12 @@ def fetch_share_url(request):
 
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+    is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
     if not user_instance:
         context = get_error_context(False, "In-valid member id")
@@ -3872,15 +4073,24 @@ def fetch_share_url(request):
         share_context = get_branch_links_for_community_share(user_instance, community_instance)
         community_share = {}
 
-        if community_instance.is_paid:
-            fill_share_context_for_paid_community(community_instance, share_context, community_share)
+        if is_cm_onboarding_enabled:
+
+            if community_instance.is_paid:
+                fill_share_context_for_paid_community_v2(community_instance, share_context, community_share)
+
+            else:
+                fill_share_context_for_unpaid_community_v2(community_instance, share_context, community_share)
 
         else:
-            fill_share_context_for_unpaid_community(community_instance, share_context, community_share)
+            if community_instance.is_paid:
+                fill_share_context_for_paid_community(community_instance, share_context, community_share)
+
+            else:
+                fill_share_context_for_unpaid_community(community_instance, share_context, community_share)
 
         if not community_share:
             return JsonResponse({'error_message': "Error in generating link", 'success': False},
-                                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+                                status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse({'community_share': community_share, 'success': True})
 
@@ -8993,6 +9203,8 @@ def edit_community_questions(request):
 
     member_id = get_member_id_from_headers(request)
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     if not user_instance:
         response = get_error_context(False, 'Send member id in headers')
@@ -9117,6 +9329,34 @@ def edit_community_questions(request):
 
     send_sync_notification.delay({'community_id': community_instance.id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+    if cm_onboarding_version_check(platform_code, version_code):
+        # Check if it questions are edited for first time
+        community_get_started_filter = ModelUtilities.get_model_filter(CommunityGetStarted,
+                                                                       {'community': community_instance,
+                                                                        'get_started__type': get_started_types.CUSTOMISE_JOIN_FORM,
+                                                                        'completed': True})
+
+        if not len(community_get_started_filter):
+            update_community_get_started(community_instance, get_started_types.CUSTOMISE_JOIN_FORM, is_enabled=True)
+
+            # Send Join Form Mail
+            branch_link = create_community_feed_url_for_cm_onboarding(community_instance)
+
+            mail_template = get_template('mails/cm_onboarding/customise_join_form_cm_onboarding.html').render({
+                "community_name": community_instance.name,
+                "cm_name": user_instance.userinfo.name,
+                "dashboard_link": CM_ONBOARDING_CREATE_COMMUNITY_DASHBOARD_LINK,
+                "community_brand_color": community_instance.brand_color if community_instance.brand_color else
+                DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+                "button_text": GETTING_STARTED_CM_BUTTON_TEXT,
+                "button_link": branch_link
+            })
+
+            mail_subject = CUSTOMISE_JOIN_FORM_MAIL_SUBJECT.format(user_instance.userinfo.name)
+
+            send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template, [user_instance.userinfo.email],
+                                                               reply_to=[INVITE_MEMBER_REPLY_EMAIL])
 
     return JsonResponse({'success': True})
 
@@ -9262,6 +9502,8 @@ def edit_community_data(community_instance, user_instance, edit_field):
             bubble_text = "<<" + user_name + """ changed the community icon. Tap to view.""" + "|" + community_route + ">>"
             edit_announcement_bubbles(card_instance, user_instance, bubble_text)
 
+            add_community_upload_image_analytics.delay(user_instance.id, community_instance.id, community_instance.name)
+
         if edit_field == "directory":
             member_directory_route = """route://members_directory?community_id=%s&community_name=%s""" % (
                 str(community_instance.id), quote(community_instance.name))
@@ -9277,6 +9519,15 @@ def edit_community_data(community_instance, user_instance, edit_field):
         update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                        {'community_id': community_instance, 'member_id': user_instance},
                                        {})
+
+@shared_task
+def add_community_upload_image_analytics(user_id, community_id, community_name):
+    community_image_segment_metadata = {
+        "community_id": community_id,
+        "community_name": community_name
+    }
+
+    SegmentImpl.track_event(user_id, SEGMENT_COMMUNITY_LOGO_UPLOADED_EVENT_NAME, community_image_segment_metadata)
 
 
 def edit_announcement_bubbles(card_instance, user_instance, bubble_text):
@@ -11393,6 +11644,8 @@ def fetch_management_tools(request):
 
     current_user_id = get_member_id_from_headers(request)
     # user_instance = User.objects.get(id=current_user_id)
+    is_platform_web = RequestUtilities.is_request_web(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_id = request.GET.get('community_id', None)
 
@@ -11476,6 +11729,12 @@ def fetch_management_tools(request):
         if has_right_1:
             management_tools.append(tool_edit_directory_questions)
         management_tools.append(tool_edit_community_details)
+
+    if is_platform_web and (version_code >= CM_ONBOARDING_WEB_VERSION_CODE):
+        tool_membership_plans = MEMBERSHIP_PLANS_MANAGEMENT_TOOLS.copy()
+        tool_membership_plans['route'] = tool_membership_plans['route'].format(community_id)
+
+        management_tools.append(tool_membership_plans)
 
     if has_right_0 or has_right_1:
         global tool_community_settings
@@ -14384,3 +14643,47 @@ def add_community_settings_for_community(community_instance, user_instance):
         community_settings_list.append(community_settings_instance)
 
     ModelUtilities.bulk_create_instances(CommunitySettings, community_settings_list)
+
+
+def update_community_get_started(community_instance, community_get_started_type, is_enabled=False):
+
+    community_get_started_instances = ModelUtilities.get_model_filter(CommunityGetStarted,
+                                                                      {'community': community_instance})
+
+    if (community_get_started_type == get_started_types.CREATE_COMMUNITY_TYPE) and \
+            not len(community_get_started_instances):
+
+        community_get_started_instance_list = []
+
+        for get_started_instance in ModelUtilities.get_model_filter(GetStarted, {}):
+            community_get_started_instance_list.append(CommunityGetStarted.create_instance({
+                'get_started': get_started_instance,
+                'community': community_instance,
+                'completed': is_enabled if (get_started_instance.type == get_started_types.CREATE_COMMUNITY_TYPE)
+                else False
+            }))
+
+        ModelUtilities.bulk_create_instances(CommunityGetStarted, community_get_started_instance_list)
+
+    else:
+
+        community_get_started_instance = community_get_started_instances.filter(get_started__type=community_get_started_type)
+
+        if community_get_started_instance:
+            community_get_started_instance = community_get_started_instance[0]
+            community_get_started_instance.completed = is_enabled
+            community_get_started_instance.save()
+
+
+@shared_task
+def check_join_community_hood_get_started(user_id, community_id):
+
+    member_filter = ModelUtilities.get_model_filter(Members,
+                                                    {'member_id': user_id,
+                                                     'state': member_states.ADMIN})
+
+    if len(member_filter):
+
+        for member_instance in member_filter:
+            update_community_get_started(member_instance.community_id, get_started_types.JOIN_COMMUNITY_HOOD,
+                                         is_enabled=True)

@@ -1,0 +1,14 @@
+{% extends "mails/cm_onboarding/cm_onboarding_main.html" %}
+
+{% block main_body %}
+<p style="margin: 0;">Hi {{cm_name}}!</p>
+<p style="margin: 0;">You have successfully created joining form for your community {{community_name}}. It's time to
+invite more members to the community. Click on the link before to get started:</p>
+{% endblock %}
+
+{% block after_body %}
+<p>If you are facing any issues or want some help, we would love to help you thought the process. Just reply to this
+email and we will be right there</p>
+<p>Regards</p>
+<p>Team LikeMinds</p>
+{% endblock %}

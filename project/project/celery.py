@@ -64,6 +64,10 @@ app.conf.beat_schedule = {
         'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
         'schedule': crontab(hour=20, minute=53),
     },
+    'send_daily_emails': {
+        'task': 'collabmates_api.tasks.send_daily_emails',
+        'schedule': crontab(hour=10, minute=0),
+    }
 }
 app.conf.timezone = 'Asia/Kolkata'
 

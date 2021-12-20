@@ -1,0 +1,32 @@
+{% extends "mails/cm_onboarding/cm_onboarding_main.html" %}
+
+{% block main_body %}
+<p style='margin-bottom: 0;'>Hi {{cm_name}}!</p>
+<p style='margin-top: 0;'>Congratulations on completing your first step to create your community. You can get an
+overview of the platforms via this youtube playlist:</p>
+<p>If you are more of a reader, you can read the feature documentation here:
+<a style='text-decoration:none; color: #007AFF;' href='https://www.notion.so/Product-Guide-02ba918e680a4cec8c1e4a840532861f'>Feature documentation</a>.</p>
+<p>You can start your journey of community building with LikeMinds:</p>
+<ul>
+    <p><li><a style='text-decoration:none; color: #007AFF;' href='{{dashboard_link}}'>Invite members</a> to your newly
+    created community and start make them the part of the community. You can even create paid plans to charge a
+    membership fee from your members.</li></p>
+    <p><li><a style='text-decoration:none; color: #007AFF;' href='{{dashboard_link}}'>Create Event</a> as events
+    are an amazing way to engage and retain users. We will help you improve your event attendance rates which will
+    improve your member retention.</li></p>
+    <p><li><a style='text-decoration:none; color: #007AFF;' href='{{dashboard_link}}'>Customise community join
+    form</a> for the members to build a directory. It is a great way to filter the members and also improves the
+    bonding when member find similar interests.</li></p>
+    <p><li><a style='text-decoration:none; color: #007AFF;' href='{{dashboard_link}}'>Join LMCM</a> It is a community
+    of community managers whom you can collaborate with to build communities together. We also send updates around
+    product, events and upcoming features on this community.</li></p>
+</ul>
+<p>Click on the link below to get started:</p>
+{% endblock %}
+
+{% block after_body %}
+<p>If you are facing any issues or want some help, we would love to help you thought the process. Just reply to this
+email and we will be right there</p>
+<p>Regards</p>
+<p>Team LikeMinds</p>
+{% endblock %}
