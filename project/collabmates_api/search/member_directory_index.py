@@ -1,10 +1,11 @@
 from django.conf import settings
+from django.db.models import F
 from django_elasticsearch_dsl import Document, Index, fields, KeywordField, BooleanField, IntegerField, \
     TextField, LongField
 from django_elasticsearch_dsl_drf.compat import StringField
 from elasticsearch_dsl import analyzer, token_filter
 
-from togther.models import Members
+from togther.models import Members, ModelUtilities, CohortMember, Cohort
 
 # Name of the Elasticsearch index
 INDEX = Index(settings.ELASTICSEARCH_INDEX_NAMES[__name__])
@@ -100,8 +101,29 @@ class MemberDirectoryDocument(Document):
     parent_cm_list = TextField()
     became_member_at = LongField()
     has_onboarded = BooleanField()
+    cohorts = fields.ObjectField(
+        properties={
+            'cohort_id': IntegerField(),
+            'name': StringField(),
+        },
+        multi=True
+    )
 
     class Django(object):
         """Inner nested class Django."""
         model = Members  # The model associate with this Document
         queryset_pagination = 50
+
+    @staticmethod
+    def prepare_cohorts(instance):
+        community_cohort_filter = ModelUtilities.get_model_filter(Cohort, {'community_id': instance.community_id_id})
+        community_cohort_ids = list(community_cohort_filter.values_list('id', flat=True))
+        user_cohort_filter = {
+            'cohort_id__in': community_cohort_ids,
+            'user_id': instance.member_id.id
+        }
+        member_cohort_filter = ModelUtilities.get_model_filter(CohortMember, user_cohort_filter).select_related(
+            'cohort').annotate(**{'name': F('cohort__name')})
+        member_cohort_context = list(member_cohort_filter.values('cohort_id', 'name'))
+
+        return member_cohort_context

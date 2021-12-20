@@ -203,7 +203,7 @@ class SearchImpl(SearchManager):
             }
         }
     
-    def _get_member_directory_name_tag_search_ngram_query_dict(self, search_field):
+    def _get_member_directory_search_ngram_query_dict(self, search_field):
         """
         @param search_field: Field of member index
         @return: dict
@@ -365,7 +365,7 @@ class SearchImpl(SearchManager):
 
     def search_member_directory(self):
 
-        res = Search.from_dict(self._get_member_directory_name_tag_search_ngram_query_dict(
+        res = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
             self.get_search_field())).execute()
 
         members_list = []
@@ -410,6 +410,7 @@ class SearchImpl(SearchManager):
             member_introduction_dict['id'] = hit['member']['id']
             member_introduction_dict['name'] = hit['member']['user']['name']
             member_introduction_dict['updated_at'] = hit['updated_at']
+            member_introduction_dict['member_cohorts'] = [cohort.to_dict() for cohort in hit['cohorts']]
 
             member_img = self.get_image_url(hit['image_url'], hit['member']['user'])
 

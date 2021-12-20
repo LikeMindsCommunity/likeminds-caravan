@@ -13,7 +13,9 @@ class CohortManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'remove_member_from_cohort') and
                  callable(subclass.remove_member_from_cohort)) and
                 (hasattr(subclass, 'fetch_cohorts_with_community_and_cohort_id') and
-                 callable(subclass.fetch_cohorts_with_community_and_cohort_id)) or
+                 callable(subclass.fetch_cohorts_with_community_and_cohort_id)) and
+                (hasattr(subclass, 'fetch_member_cohorts') and
+                 callable(subclass.fetch_member_cohorts)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -55,5 +57,12 @@ class CohortManager(metaclass=abc.ABCMeta):
     def fetch_cohorts_with_community_and_cohort_id(self, cohort_id, community_id):
         """
         Fetches cohort details in a community
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_member_cohorts(self, community_id, member_ids):
+        """
+        Fetches cohorts of members in a community
         """
         raise NotImplementedError
