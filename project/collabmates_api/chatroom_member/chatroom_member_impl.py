@@ -702,6 +702,7 @@ class ChatroomMemberHelper:
         chatroom_user_actions['active'] = False
         chatroom_user_actions['is_tagged'] = state_instance.is_tagged
         chatroom_user_actions['attended'] = state_instance.attended
+        chatroom_user_actions['external_seen'] = state_instance.external_seen
         expiry_time = state_instance.expiry_time
 
         if not expiry_time or expiry_time >= TimeUtilities.current_time_in_sec():

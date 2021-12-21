@@ -13,7 +13,7 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  AddEventRecordingAttachmentMeta, UpdateAccessWithOutSubscriptionView,
                                  DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta,
                                  RemoveCohortFromChatroomView, AddCohortToChatroomView, FetchChatroomParticipantsView,
-                                 PublishEventWebflowView)
+                                 PublishEventWebflowView, FetchUserAllEventsMeta)
 
 urlpatterns = [
     path('fetch', FetchChatroomView.as_view(), name="fetch_chatroom"),
@@ -48,8 +48,8 @@ urlpatterns = [
     path('event/update_last_seen', UpdateLastSeenEventChatroom.as_view(), name="update_last_seen"),
     path('event/fetch_unseen_count', FetchUnseenCountInEvent.as_view(), name="fetch_unseen_count_in_event"),
     path('event/fetch_link', FetchLinkForEvent.as_view(), name="fetch_link_for_event"),
-    path('event/fetch_all', FetchUserAllEvents.as_view(),
-         name="fetch_all_events"),
+    path('event/fetch_all', FetchUserAllEvents.as_view(), name="fetch_all_events"),
+    path('event/fetch_all_meta', FetchUserAllEventsMeta.as_view(), name="fetch_all_events_meta"),
     path('event/attend', AttendEventView.as_view(), name="attend_event"),
     path('event/update', UpdateEventView.as_view(), name="update_event"),
     path('event/attended', SetEventAttendedView.as_view(), name="set_event_attended"),

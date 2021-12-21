@@ -41,6 +41,8 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                  callable(subclass.fetch_link_for_event)) and
                 (hasattr(subclass, 'fetch_user_all_events') and
                  callable(subclass.fetch_user_all_events)) and
+                (hasattr(subclass, 'fetch_user_all_events_meta') and
+                 callable(subclass.fetch_user_all_events_meta)) and
                 (hasattr(subclass, 'attend_event') and
                  callable(subclass.attend_event)) and
                 (hasattr(subclass, 'set_event_attended') and
@@ -204,6 +206,13 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def fetch_user_all_events(self, page, attending_status, past_events=False, community_id=None) -> dict:
         """
         fetch attending events of user
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_user_all_events_meta(self, past_events=False, community_id=None) -> dict:
+        """
+        fetch meta data for attending events of user
         """
         raise NotImplementedError
 
