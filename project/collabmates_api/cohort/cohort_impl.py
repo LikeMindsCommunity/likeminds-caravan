@@ -384,7 +384,7 @@ class CohortImpl(CohortManager):
             return {'success': False, 'error_message': "User with given user id is not a member of cohort."}
 
         cohort_member.delete()
-        ElasticSearchSync.bulk_update_members(member_ids=[user_id], community_id=cohort_instance.community_id)
+        ElasticSearchSync.update_member.delay(member_id=user_id, community_id=community_instance.id)
 
         return {'success': True}
 
@@ -502,6 +502,11 @@ class CohortImpl(CohortManager):
         if members_to_add:
             add_new_participants_to_cohorts_secret_chatroom.delay(cohort_instance.id, self.get_member_id(), member_ids)
 
+        # In case of cohort meta-data update, updating elasticsearch doc.
+        else:
+            ElasticSearchSync.update_members.delay(member_ids=list(existing_cohort_members),
+                                                   community_id=cohort_instance.community_id)
+
 
 class CohortHelper:
 
@@ -522,7 +527,7 @@ class CohortHelper:
                 bulk_create_list.append(cohort_member_instance)
 
         ModelUtilities.bulk_create_instances(CohortMember, bulk_create_list)
-        ElasticSearchSync.bulk_update_members(member_ids=member_ids, community_id=cohort_instance.community_id)
+        ElasticSearchSync.update_members.delay(member_ids=member_ids, community_id=cohort_instance.community_id)
 
     @staticmethod
     def create_cohort_rights_instance(cohort_instance, community_instance):
