@@ -180,7 +180,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
 
     class Meta:
         model = Community
-        fields = ('id', 'name', 'purpose', 'about', 'image_url', 'members_count',
+        fields = ('id', 'name', 'purpose', 'brand_color', 'about', 'image_url', 'members_count',
                   'type', 'sub_type', 'is_paid', 'auto_approval', 'grace_period',
                   'is_discoverable', 'website_url', 'community_category', 'referral_enabled',
                   'dashboard_link', 'updated_at', 'fee_membership', 'fee_event', 'fee_payment_pages')
@@ -1283,6 +1283,28 @@ class CommunitySettingsSerializer(serializers.ModelSerializer):
         return data
 
 
+class CommunityGetStartedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CommunityGetStarted
+        fields = ('id', 'completed', 'community_id')
+
+    def to_representation(self, obj):
+        data = super(CommunityGetStartedSerializer, self).to_representation(obj)
+
+        data['type'] = obj.get_started.type
+        data['title'] = obj.get_started.title
+        data['tool_tip_text'] = obj.get_started.tool_tip_text
+
+        field_list = self._readable_fields
+
+        for field in field_list:
+            if data[field.field_name] is None:
+                del data[field.field_name]
+
+        return data
+
+
 class CommunityToastV1Serializer(serializers.ModelSerializer):
     class Meta:
         model = CommunityToastV1
@@ -1306,6 +1328,23 @@ class CohortSerializer(serializers.ModelSerializer):
         data['rights'] = list(ModelUtilities.get_model_filter(CohortRights, {'cohort_id': cohort.id}).values_list(
             'member_rights_id', flat=True))
 
+        fields = self._readable_fields
+
+        for field in fields:
+
+            if data[field.field_name] is None:
+                del data[field.field_name]
+
+        return data
+
+
+class CohortMetaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cohort
+        fields = ('id', 'name', 'community_id', 'type', 'type_id')
+
+    def to_representation(self, cohort):
+        data = super(CohortMetaSerializer, self).to_representation(cohort)
         fields = self._readable_fields
 
         for field in fields:

@@ -7,11 +7,12 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
 from utility.time_utilities import TimeUtilities
 from ..chatroom.chatroom_impl import ChatroomImpl
+from ..search.sync import ElasticSearchSync
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
-from ..rest_api import CohortSerializer
+from ..rest_api import CohortSerializer, CohortMetaSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
@@ -19,7 +20,7 @@ from ..user.user_impl import UserImpl, UserHelper
 from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list, check_history_exists, \
     check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
     update_member_rights_in_member_engage
-from ..views import get_added_and_removed_rights
+from ..views import get_added_and_removed_rights, get_error_context
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -260,6 +261,39 @@ class CohortImpl(CohortManager):
 
         return {'success': True}
 
+    def fetch_member_cohorts(self, community_id, member_ids):
+
+        if not isinstance(member_ids, list):
+            return get_error_context(success=False, error_message="Invalid member_ids list")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return get_error_context(success=False, error_message="Invalid community_id")
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return get_error_context(success=False, error_message="Invalid member_id passed in headers")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return get_error_context(success=False, error_message="User is not a member of community")
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm or not member_ids:
+            member_cohort_dict = CohortHelper.precompute_cohorts_of_members(community_id=community_id,
+                                                                            member_ids=[self.get_member_id()])
+        else:
+            member_cohort_dict = CohortHelper.precompute_cohorts_of_members(community_id=community_id,
+                                                                            member_ids=member_ids)
+
+        return {'success': True, 'member_cohorts': member_cohort_dict}
+
     def fetch_cohorts_with_community_id(self, community_id):
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
@@ -350,6 +384,7 @@ class CohortImpl(CohortManager):
             return {'success': False, 'error_message': "User with given user id is not a member of cohort."}
 
         cohort_member.delete()
+        ElasticSearchSync.update_member.delay(member_id=user_id, community_id=community_instance.id)
 
         return {'success': True}
 
@@ -467,6 +502,11 @@ class CohortImpl(CohortManager):
         if members_to_add:
             add_new_participants_to_cohorts_secret_chatroom.delay(cohort_instance.id, self.get_member_id(), member_ids)
 
+        # In case of cohort meta-data update, updating elasticsearch doc.
+        else:
+            ElasticSearchSync.update_members.delay(member_ids=list(existing_cohort_members),
+                                                   community_id=cohort_instance.community_id)
+
 
 class CohortHelper:
 
@@ -487,6 +527,7 @@ class CohortHelper:
                 bulk_create_list.append(cohort_member_instance)
 
         ModelUtilities.bulk_create_instances(CohortMember, bulk_create_list)
+        ElasticSearchSync.update_members.delay(member_ids=member_ids, community_id=cohort_instance.community_id)
 
     @staticmethod
     def create_cohort_rights_instance(cohort_instance, community_instance):
@@ -806,6 +847,30 @@ class CohortHelper:
                         error_logger.error(e.args)
 
                 cohort_member_filter.delete()
+
+    @staticmethod
+    def precompute_cohorts_of_members(community_id, member_ids):
+        community_cohort_filter = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
+        community_cohort_ids = list(community_cohort_filter.values_list('id', flat=True))
+        user_cohort_filter = {
+            'cohort_id__in': community_cohort_ids,
+            'user_id__in': member_ids
+        }
+        member_cohort_filter = ModelUtilities.get_model_filter(CohortMember, user_cohort_filter).select_related(
+            'cohort')
+        member_cohort_dict = {int(user_id): None for user_id in member_ids if str(user_id).isdigit()}
+
+        for data in member_cohort_filter:
+            user_id = data.user_id
+            cohort_context = CohortMetaSerializer(data.cohort, many=False).data
+
+            if member_cohort_dict.get(user_id) is None:
+                member_cohort_dict[user_id] = [cohort_context]
+
+            else:
+                member_cohort_dict[user_id].append(cohort_context)
+
+        return member_cohort_dict
 
     @staticmethod
     def get_cohort_filters_dict_using_cohort_id(cohort_id):

@@ -305,12 +305,15 @@ class CreateEventView(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
         req_body = RequestUtilities.load_request_body(request)
+        request_platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not req_body:
             return JsonResponse({'success': False, 'error_message': "Invalid-request body"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
-        chatroom_manager = ChatroomImpl(member_id=member_id)
+        chatroom_manager = ChatroomImpl(member_id=member_id, request_platform=request_platform,
+                                        version_code=version_code)
         context = chatroom_manager.create_event(req_body)
 
         if context.get('error_message'):
@@ -456,14 +459,33 @@ class FetchLinkForEvent(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        chatroom_ids = self.get_chatroom_ids_from_query_params(request)
         chatroom_id = request.GET.get('chatroom_id')
-        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
-        response_context = chatroom_manager.fetch_link_for_event()
+
+        if chatroom_id:
+            chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
+            response_context = chatroom_manager.fetch_link_for_event()
+
+        else:
+            response_context = ChatroomImpl.fetch_link_for_events_list(member_id=member_id, chatroom_ids=chatroom_ids)
 
         if response_context.get('error_message'):
+            response_context['success'] = False
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
+        response_context['success'] = True
         return JsonResponse(response_context)
+
+    def get_chatroom_ids_from_query_params(self, request):
+
+        chatroom_ids = []
+
+        try:
+            chatroom_ids = json.loads(request.GET.get('chatroom_ids'))
+        except:
+            pass
+
+        return chatroom_ids
 
 
 class FetchUserAllEvents(APIView):
@@ -471,12 +493,38 @@ class FetchUserAllEvents(APIView):
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         page = RequestUtilities.get_page_number(request)
-        attending_status = StringUtilities.get_boolean_from_string(request.GET.get('attending_status', False))
         past_events = StringUtilities.get_boolean_from_string(request.GET.get('past_events', False))
         community_id = request.GET.get('community_id')
+
+        if request.GET.get('attending_status'):
+            attending_status = StringUtilities.get_boolean_from_string(request.GET.get('attending_status'))
+        else:
+            attending_status = None
+
+        if request.GET.get('has_content'):
+            has_content = StringUtilities.get_boolean_from_string(request.GET.get('has_content'))
+        else:
+            has_content = None
+
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.fetch_user_all_events(page, attending_status,
+        response_context = chatroom_manager.fetch_user_all_events(page, attending_status, has_content,
                                                                   past_events=past_events, community_id=community_id)
+
+        if response_context.get('error_message'):
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response_context)
+
+
+class FetchUserAllEventsMeta(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        past_events = StringUtilities.get_boolean_from_string(request.GET.get('past_events', False))
+        community_id = request.GET.get('community_id')
+
+        chatroom_manager = ChatroomImpl(member_id=member_id)
+        response_context = chatroom_manager.fetch_user_all_events_meta(past_events=past_events, community_id=community_id)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)

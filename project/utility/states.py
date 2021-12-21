@@ -438,6 +438,7 @@ event_webflow_update_types = EventWebflowUpdateTypes()
 
 class CommunitySettingTypes:
     INTRO_ROOM = "intro_room"
+    MEMBERS_AUTO_JOIN = "members_auto_join"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -454,3 +455,35 @@ cohort_types = CohortTypes()
 
 cohort_type_list = [cohort_types.NORMAL, cohort_types.SUBSCRIPTION_PLAN,
                     cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]
+
+
+class GetStartedTypes:
+    CREATE_COMMUNITY_TYPE = 0
+    INVITE_MEMBERS_TYPE = 1
+    CREATE_EVENT_TYPE = 2
+    CUSTOMISE_JOIN_FORM = 3
+    JOIN_COMMUNITY_HOOD = 4
+
+
+get_started_types = GetStartedTypes()
+
+get_started_types_object = {
+    "Create community": get_started_types.CREATE_COMMUNITY_TYPE,
+    "Invite members": get_started_types.INVITE_MEMBERS_TYPE,
+    "Create event": get_started_types.CREATE_EVENT_TYPE
+}
+
+
+class SendInviteTypes:
+    EMAIL_INVITE = 'email'
+    WHATSAPP_INVITE = 'whatsapp'
+
+
+send_invite_types = SendInviteTypes()
+
+
+class UserEmailSendStatusTypes:
+    CM_ONBOARDING = 1
+
+
+user_email_send_status_types = UserEmailSendStatusTypes()

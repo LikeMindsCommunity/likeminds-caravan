@@ -1,0 +1,15 @@
+{% extends "mails/cm_onboarding/cm_onboarding_main.html" %}
+
+{% block main_body %}
+<p>I'd like to invite you to our community, {{community_name}}.<p>
+<p>It takes less than a minute to join and together we’re sharing our stories, experiences, and ideas.</p>
+<p>I know you’ll love it.</p>
+<p style="margin:0;">See you here!</p>
+<p style="margin:0;">{{cm_name}}</p>
+{% endblock %}
+
+{% block after_body %}
+<div style="display: flex;text-align: center;width: 100%;justify-content: center;">
+<i style="opacity:.8;font-size: 12px;text-align: center;">**Here is the join code for your reference: {{join_code}}.</i>
+</div>
+{% endblock %}

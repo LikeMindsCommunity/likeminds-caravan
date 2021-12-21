@@ -109,7 +109,8 @@ class UserLoginView(APIView):
                                 mobile_no="")
         user_context = user_manager.login(req_body,
                                           RequestUtilities.get_platform_code(request),
-                                          RequestUtilities.get_device_id_from_headers(request))
+                                          RequestUtilities.get_device_id_from_headers(request),
+                                          RequestUtilities.get_version_code_from_headers(request))
 
         return JsonResponse(user_context)
 

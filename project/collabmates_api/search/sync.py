@@ -4,7 +4,7 @@ from elasticsearch import Elasticsearch
 from celery import shared_task
 from utility.states import SearchIndexes, conversation_states
 
-from togther.models import collabcardState, card_answers, Members
+from togther.models import collabcardState, card_answers, Members, ModelUtilities
 
 from django_elasticsearch_dsl.registries import registry
 
@@ -12,7 +12,7 @@ client = Elasticsearch()
 
 
 class ElasticSearchSync:
-    
+
     @staticmethod
     def bulk_update_documents(index: SearchIndexes, query_dict: dict):
         """
@@ -368,6 +368,19 @@ class ElasticSearchSync:
         ElasticSearchSync.delete_documents(index=SearchIndexes.MEMBER_DIRECTORY,
                                            query_dict=query_dict)
 
+    @staticmethod
+    @shared_task
+    def update_members(member_ids: list, community_id: int):
+        """
+        @param member_ids: list
+        @param community_id: int
+        @return: None
+        @description: Updates members for a given community id and matching member ids
+        """
+        member_instances = ModelUtilities.get_model_filter(Members, {'member_id_id__in': member_ids,
+                                                                     'community_id_id': community_id})
+        ElasticSearchSync.update_document(member_instances)
+
 
 class ElasticSearchQueryHelper:
     @staticmethod
@@ -611,6 +624,35 @@ class ElasticSearchQueryHelper:
                         {
                             "term": {
                                 "member.id": member_id
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+
+    @staticmethod
+    def get_community_members_by_member_ids(community_id: int, member_ids: list):
+        """
+        @param community_id: int
+        @param member_ids: list<int>
+        @return: dict
+        @sql: where member_id in (list of ids) and community_id = community_id
+        """
+        return {
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "match": {
+                                "community_id.id": community_id
+                            }
+                        }
+                    ],
+                    "filter": [
+                        {
+                            "terms": {
+                                "member.id": member_ids
                             }
                         }
                     ]

@@ -6,9 +6,11 @@ from urllib.parse import urlparse
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
 from .static_files import *
+from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL, CM_ONBOARDING_COMMUNITY_FEED_URL_ANDROID_ROUTE
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
-                               BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL)
+                               BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
+                               BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL)
 from utility.api_client import ApiClient
 
 info_logger = LoggingWrapper.get_instance()
@@ -141,7 +143,7 @@ def get_community_image(community):
         return APP_LOGO
 
 
-def create_link_item(base_url, community, channel, feature, private=False):
+def create_link_item(base_url, community, channel, feature, private=False, android_ios_url=""):
     link_item = {
         "channel": channel,
         "feature": feature,
@@ -191,6 +193,16 @@ def create_link_item(base_url, community, channel, feature, private=False):
         link_item['data']['$fallback_url'] = fallback_url
         link_item['data']['$desktop_url'] = desktop_url
 
+    if feature == BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL:
+        link_item["data"]['$ios_url'] = fallback_url
+        link_item['data']['$desktop_url'] = desktop_url
+
+        if android_ios_url:
+            link_item["data"]['$android_url'] = android_ios_url
+            link_item["data"]['$android_deeplink_path'] = android_ios_url
+            link_item["data"]['deep_link'] = android_ios_url
+            link_item["data"]['android_deep_link'] = android_ios_url
+
     return link_item
 
 
@@ -201,6 +213,38 @@ def create_community_feed_url(community_instance):
     feed_url = f'{host_url}/community_feed?community_id={community_instance.id}'
 
     long_url_item = create_link_item(feed_url, community_instance, "AppBackend", "CommunityFeed", private=True)
+    data.append(long_url_item)
+
+    client = ApiClient()
+    client.update_request_url(api_endpoint)
+    client.update_body(data)
+    client.post()
+
+    if client.fetch_response_code() != 200:
+        data = [{}]
+        info_logger.info("Branch failed, sending normal links")
+    else:
+        data = client.fetch_response()
+
+    # in case branch fails
+    if 'url' not in data[0]:
+        data[0]['url'] = f'https://{feed_url}'
+
+    return data[0]['url']
+
+
+def create_community_feed_url_for_cm_onboarding(community_instance):
+
+    data = []
+
+    feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(host_url, community_instance.id)
+
+    android_ios_route = CM_ONBOARDING_COMMUNITY_FEED_URL_ANDROID_ROUTE.format(community_instance.id,
+                                                                              community_instance.name)
+
+    long_url_item = create_link_item(feed_url, community_instance, "AppBackend",
+                                     BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL,
+                                     private=True, android_ios_url=android_ios_route)
     data.append(long_url_item)
 
     client = ApiClient()

@@ -7,14 +7,19 @@ from collabmates_api.community.community_view_impl import (FetchCommunity, Fetch
                                                            FetchAllCommunities, FetchCommunityMeta, FetchCommunitySettings,
                                                            UpdateCommunitySettings, FetchCommunityToastsV1View,
                                                            UpdateCommunityToastV1View, JoinEmailAddView,
-                                                           JoinEmailFetchView, FetchPaymentPageUrl)
+                                                           JoinEmailFetchView, FetchPaymentPageUrl,
+                                                           CreateCommunityView, FetchGetStartedView,
+                                                           SendInviteView, FetchCommunityFeedCM_OnboardingUrlView)
 
 urlpatterns = [
+    path('create', CreateCommunityView.as_view(), name="create_community"),
     path('fetch', FetchCommunity.as_view(), name="fetch_community"),
     path('fetch_all', FetchAllCommunities.as_view(), name="fetch_all_communities"),
     path('fetch_chatroom_feed', FetchChatroomFeed.as_view(), name="fetch_chatroom_feed"),
     path('delete',  DeleteCommunityView.as_view(), name="delete_community"),
     path('fetch_feed_url',  FetchCommunityFeedUrl.as_view(), name="fetch_feed_url"),
+    path('fetch_feed_url_cm_onboarding', FetchCommunityFeedCM_OnboardingUrlView.as_view(),
+         name="fetch_feed_url_cm_onboarding"),
     path('fetch_discoverable_communities', FetchDiscoverableCommunities.as_view(),
          name="fetch_discoverable_communities"),
     path('fetch_otl_url', FetchCommunityOTLUrl.as_view(), name="fetch_otl_url"),
@@ -30,4 +35,6 @@ urlpatterns = [
     path('join_email/add', JoinEmailAddView.as_view(), name="add_join_email"),
     path('join_email/fetch', JoinEmailFetchView.as_view(), name="fetch_join_email"),
     path('fetch_payment_page_url', FetchPaymentPageUrl.as_view(), name="fetch_payment_page_url"),
+    path('fetch_get_started', FetchGetStartedView.as_view(), name="fetch_get_started"),
+    path('invite', SendInviteView.as_view(), name="send_invite")
 ]

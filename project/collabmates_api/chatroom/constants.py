@@ -11,3 +11,16 @@ About the event:
 
 CHATROOM_URL = "%s/collabcard/%s"
 MAIL_EVENT_NOTIFICATION = 30
+
+IMAGE_LINK_FOR_NO_EVENTS_FOUND = "https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Animation.svg"
+TITLE_FOR_NO_UPCOMING_EVENTS_FOUND = "No Events"
+SUB_TITLE_FOR_CM_VIEW_NO_UPCOMING_EVENTS_FOUND = "Create events to engage your members and increase connections in your community.\n\nNot sure? Explore types of <<online community events|route://browser?link=https://likeminds.community/blog/online-community-events/>> you can host on LikeMinds."
+SUB_TITLE_FOR_MEMBER_VIEW_NO_UPCOMING_EVENTS_FOUND = "Some exciting events coming really soon 😃"
+
+TITLE_FOR_NO_PAST_EVENTS_FOUND = "No events ended"
+SUB_TITLE_FOR_NO_PAST_EVENTS_FOUND = "All ended events would start appearing here for you to explore later. Do check for any new content/recordings added once an event ends"
+
+FIRST_EVENT_CM_MAIL_SUBJECT = "Hi {}! You have successfully created your first event"
+FIRST_EVENT_CM_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
+FIRST_EVENT_CM_MAIL_BUTTON_TEXT = "INVITE MEMBERS"
+DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"

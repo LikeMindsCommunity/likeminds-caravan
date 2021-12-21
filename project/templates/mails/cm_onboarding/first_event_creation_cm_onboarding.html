@@ -1,0 +1,17 @@
+{% extends "mails/cm_onboarding/cm_onboarding_main.html" %}
+
+{% block main_body %}
+<p style="margin: 0;">Hi {{cm_name}}!</p>
+<p style="margin: 0;">Congratulations on creating your first event with LikeMinds. You can read the detailed list of features here
+<a style='text-decoration:none; color: #007AFF;' href='https://www.notion.so/Product-Guide-02ba918e680a4cec8c1e4a840532861f'>Product guide</a></p>
+<p>We have curated the best practices on how to host online events here: <a style='text-decoration:none; color:
+#007AFF;' href='https://www.notion.so/Events-1f1985c4eff74de79fc2e7ada9d29834'>Event guide</a></p>
+<p>Or, you can start inviting members to the event using the link below:</p>
+{% endblock %}
+
+{% block after_body %}
+<p>If you are facing any issues or want some help, we would love to help you thought the process. Just reply to this
+email and we will be right there</p>
+<p>Regards</p>
+<p>Team LikeMinds</p>
+{% endblock %}

@@ -5,11 +5,13 @@ class CommunityManager(metaclass=abc.ABCMeta):
 
     @classmethod
     def __subclasshook__(cls, subclass):
-        return ((hasattr(subclass, 'fetch_community') and callable(subclass.fetch_community)) and
+        return ((hasattr(subclass, 'create_community') and callable(subclass.create_community)) and
+                (hasattr(subclass, 'fetch_community') and callable(subclass.fetch_community)) and
                 (hasattr(subclass, 'fetch_all_communities') and callable(subclass.fetch_all_communities)) and
                 (hasattr(subclass, 'fetch_chatroom_feed') and callable(subclass.fetch_chatroom_feed)) and
                 (hasattr(subclass, 'delete_community') and callable(subclass.delete_community)) and
                 (hasattr(subclass, 'fetch_feed_url') and callable(subclass.fetch_feed_url)) and
+                (hasattr(subclass, 'fetch_feed_url') and callable(subclass.fetch_feed_url_for_cm_onboarding)) and
                 (hasattr(subclass, 'fetch_otl_url') and callable(subclass.fetch_otl_url)) and
                 (hasattr(subclass, 'fetch_discoverable_communities') and
                  callable(subclass.fetch_discoverable_communities)) and
@@ -27,8 +29,17 @@ class CommunityManager(metaclass=abc.ABCMeta):
                  callable(subclass.update_community_toast_v1)) and
                 (hasattr(subclass, 'add_join_email') and callable(subclass.add_join_email)) and
                 (hasattr(subclass, 'fetch_join_email') and callable(subclass.fetch_join_email)) and
-                (hasattr(subclass, 'fetch_payment_page_url') and callable(subclass.fetch_payment_page_url)) or
+                (hasattr(subclass, 'fetch_payment_page_url') and callable(subclass.fetch_payment_page_url)) and
+                (hasattr(subclass, 'fetch_get_started') and callable(subclass.fetch_get_started)) and
+                (hasattr(subclass, 'send_invite') and callable(subclass.send_invite)) or
                 NotImplemented)
+
+    @abc.abstractmethod
+    def create_community(self, req_body) -> {}:
+        """
+        creates new community
+        """
+        raise NotImplementedError
 
     @abc.abstractmethod
     def fetch_community(self, client_type):
@@ -60,6 +71,11 @@ class CommunityManager(metaclass=abc.ABCMeta):
 
     def fetch_feed_url(self):
         """returns community feed url as a branch link"""
+
+        raise NotImplementedError
+
+    def fetch_feed_url_for_cm_onboarding(self):
+        """returns community feed url for cm onboarding as a branch link"""
 
         raise NotImplementedError
 
@@ -131,5 +147,17 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fetch_payment_page_url(self, payment_page_id):
         """ fetches branch link for payment pages"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_get_started(self) -> {}:
+        """ fetches get started for community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def send_invite(self, req_body) -> {}:
+        """ Send email or whatsapp invite """
 
         raise NotImplementedError

@@ -2,49 +2,63 @@ import json
 
 from celery import shared_task
 from django.contrib.auth.models import User
-from django.db.models.base import Model
+from django.template.loader import get_template
+import re
 
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
-from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer
-from collabmates_api.user_moderation_rights import check_admin_edit_community_right, \
-    update_member_rights_in_member_engage
+from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
+    CommunityGetStartedSerializer
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
-    give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage
-
+    give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
+    set_community_actions, add_community_settings_for_community, create_introduction_question_in_community_v2, \
+    post_purpose_collabcard_for_community, post_master_introductions_for_community, post_member_directory_link, \
+    post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share, \
+    fill_share_context_for_paid_community, fill_share_context_for_unpaid_community, \
+    check_join_community_hood_get_started
+from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.number_utilities import NumberUtilities
 from external_services.email.email_wrapper import MailWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
-    userEmails, ContentDownloadSettings
-
-from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url
-from collabmates_api.rest_api import CommunitySerializerV1
-from collabmates_api.user_moderation_rights import check_admin_edit_community_right
-from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
-    give_default_member_rights
+    userEmails, ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
+    communityFieldSubTypes
+from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT
+from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url, \
+    create_community_feed_url_for_cm_onboarding
+from collabmates_api.user_moderation_rights import check_admin_edit_community_right, give_all_manager_rights, \
+    give_all_member_rights, save_moderation_history, give_all_community_setting_rights, \
+    update_member_rights_in_member_engage
 from django.db.models import Q, F
 
 from external_services.mixpanel.events import MixpanelEvents
+from external_services.wa_notification.wa_notification_impl import NotificationImpl
+
 from external_services.segment.segment_impl import SegmentImpl
 
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+
+from collabmates_api.mails import send_created_community_email_to_team
+
 from collabmates_api.cohort.cohort_impl import CohortHelper, CohortImpl
+
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
-    community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types
-from utility.utils import check_notification_flag, get_first_name_from_name, decode_option
+    community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
+    SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types
 from utility.time_utilities import TimeUtilities
-from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room
+from utility.url_utilities import UrlUtilities
+from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
+    decode_option, community_default_image, community_default_thumbnail
 from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..mails import send_8am_level_mails_to_admin_scheduler
 from ..search.sync import ElasticSearchSync
 
-from ..tasks import send_community_confirmation_email
+from ..tasks import send_community_confirmation_email, cm_onboarding_version_check
 from ..sms import send_community_confirmation_sms
 
 error_logger = LoggingWrapper.get_instance()
@@ -629,6 +643,8 @@ class CommunityImpl(CommunityManager):
 
             self._send_join_email_to_member(user_instance.id, community_instance.id)
 
+            update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
+
             cohort_manager = CohortImpl(member_id=user_instance.id)
 
             member_cohort_response = cohort_manager.add_user_to_subscription_plans_when_membership_approved(
@@ -657,6 +673,13 @@ class CommunityImpl(CommunityManager):
         community_instance = Community.get_community_or_raise_exception(self.get_community_id())
 
         feed_url = create_community_feed_url(community_instance)
+
+        return {'success': True, 'feed_url': feed_url}
+
+    def fetch_feed_url_for_cm_onboarding(self):
+        community_instance = Community.get_community_or_raise_exception(self.get_community_id())
+
+        feed_url = create_community_feed_url_for_cm_onboarding(community_instance)
 
         return {'success': True, 'feed_url': feed_url}
 
@@ -703,13 +726,26 @@ class CommunityImpl(CommunityManager):
         auto_join_code = req_body.get('aj')
         shared_by_user = ModelUtilities.get_model_instance_or_none(User, req_body.get('shared_by'))
 
+        join_link_invalid_message = ''
+        is_cm_onboarding_enabled = cm_onboarding_version_check(self.get_request_platform(), self.get_version_code())
+
         if member_state == member_states.GUEST:
 
-            join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance)
+            if is_cm_onboarding_enabled:
+                join_link_valid, join_link_invalid_message = CommunityHelper.is_join_link_valid_v2(auto_join_code,
+                                                                                                   shared_by_user,
+                                                                                                   community_instance,
+                                                                                                   user_instance)
+
+            else:
+                join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance)
 
             if join_link_valid:
                 self.make_requesting_user_as_member_of_community_automatically(user_instance, community_instance,
                                                                                auto_join_code, shared_by_user, req_body)
+
+            elif (not join_link_valid) and join_link_invalid_message:
+                return {'success': False, 'error_message': join_link_invalid_message}
 
             else:
                 self.make_requesting_user_as_pending_member(community_instance, user_instance, shared_by_user, req_body)
@@ -727,6 +763,9 @@ class CommunityImpl(CommunityManager):
         user_has_access = Members.user_has_app_access(user_instance.id)
 
         ElasticSearchSync.update_member.delay(self.get_member_id(), self.get_community_id())
+
+        if is_cm_onboarding_enabled and (community_instance.id == COMMUNITY_HOOD_COMMUNITY_ID):
+            check_join_community_hood_get_started.delay(user_instance.id, COMMUNITY_HOOD_COMMUNITY_ID)
 
         return {'success': True, 'access': user_has_access}
 
@@ -1136,6 +1175,226 @@ class CommunityImpl(CommunityManager):
         join_email_data = self._fetch_join_email_data(self.get_community_id(), community_instance)
 
         return {"success": True, "join_email": join_email_data}
+
+    def create_community(self, req_body) -> {}:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member-id'}
+
+        validate_req_body = CommunityHelper.create_community_validation(req_body)
+
+        if 'error_message' in validate_req_body:
+            return validate_req_body
+
+        community_field_type_filter = ModelUtilities.get_model_filter(communityFieldTypes,
+                                                                      {'type': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
+                                                                       'rank': DEFAULT_COMMUNITY_FIELD_TYPE_RANK})
+
+        community_field_sub_type_filter = ModelUtilities.get_model_filter(communityFieldSubTypes,
+                                                                          {'type': community_field_type_filter[0]})
+
+        community_state = 0
+
+        community_instance = Community.create_instance({'name': validate_req_body['name'],
+                                                        'members_count': 1,
+                                                        'purpose': validate_req_body['headline'],
+                                                        'brand_color': validate_req_body['brand_color'],
+                                                        'image_link': community_default_image,
+                                                        'thumbnail': community_default_thumbnail,
+                                                        'type': community_field_type_filter[0].id,
+                                                        'sub_type': community_field_sub_type_filter[0].id,
+                                                        'hide_community': community_state})
+
+        self.set_community_id(community_instance.id)
+
+        set_community_actions(community_instance)
+
+        # making the member instance for created community
+        member_instance = Members.create_instance({'user_instance': user_instance,
+                                                   'community_instance': community_instance,
+                                                   'state': member_states.ADMIN,
+                                                   'actions_required': True,
+                                                   'is_owner': True,
+                                                   'custom_title': 'Owner',
+                                                   'became_member_at': TimeUtilities.current_time_in_sec()})
+
+        # making the member engage instance for created community
+        engage = Member_Engage.create_instance({'user_instance': user_instance,
+                                                'community_instance': community_instance,
+                                                'state': member_states.ADMIN,
+                                                'click_state': click_states.SET_PURPOSE,
+                                                'member_referral': 'Finish setting up your community',
+                                                'rights_list': json.dumps(member_rights.ALL_MEMBER_RIGHTS)})
+
+        # give all the CM and member rights to the community creator i.e owner
+        CommunityHelper.give_owner_all_member_manager_rights(user_instance, community_instance)
+
+        # give all community setting rights
+        give_all_community_setting_rights(community=community_instance)
+
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=user_instance,
+                                type=moderation_history_types.STARTED_COMMUNITY)
+
+        # send community created mail to the team
+        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance)
+
+        # Create Content Download Settings
+        CommunityHelper.create_content_download_settings_for_community(community_instance)
+
+        add_community_settings_for_community(community_instance, user_instance)
+
+        update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                       {'community_id': community_instance, 'member_id': self.get_member_id()},
+                                       {'click_state': click_states.DEFAULT})
+
+        create_introduction_question_in_community_v2(community_instance)
+        post_purpose_collabcard_for_community(req_body, community_instance, self.get_member_id())
+        post_master_introductions_for_community(community_instance.id, self.get_member_id())
+        post_general_collabcard_for_community(community_instance, self.get_member_id())
+        post_member_directory_link(user_instance, community_instance)
+
+        # Create All member cohort
+        CommunityHelper.create_all_member_cohort_for_new_community.delay(self.get_member_id(), community_instance.id)
+
+        # send mails to ask cm to upgrade level
+        send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
+                                                      TimeUtilities.current_time_in_sec(),
+                                                      level=1, day=0, counter=0)
+
+        update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
+
+        CommunityHelper.send_create_community_welcome_whatsapp_message.delay(user_instance.id)
+        CommunityHelper.send_communtiy_creation_segment_events.delay(user_instance.id,
+                                                                     SEGMENT_COMMUNITY_CREATION_EVENT_NAME,
+                                                                     {"community_id": community_instance.id,
+                                                                      "community_name": community_instance.name})
+        CommunityHelper.set_user_email_status.delay(user_instance.id, community_instance.id)
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': COMMUNITY_HOOD_COMMUNITY_ID,
+                                                                  'member_id': user_instance})
+
+        if len(member_filter):
+            update_community_get_started(community_instance, get_started_types.JOIN_COMMUNITY_HOOD, is_enabled=True)
+
+        community_serializer = CommunitySerializerV1(community_instance,
+                                                     context={"current_user_id": self.get_member_id()},
+                                                     many=False).data
+
+        return {'success': True, 'community': community_serializer}
+
+    def fetch_get_started(self) -> {}:
+
+        validated_body = CommunityHelper.validate_fetch_get_started(self.get_member_id(), self.get_community_id())
+
+        if not validated_body.get('success'):
+            return validated_body
+
+        community_instance = validated_body.get('community_instance')
+
+        community_get_started_filter = ModelUtilities.get_model_filter(CommunityGetStarted,
+                                                                       {'community': community_instance})
+
+        get_started_list = CommunityGetStartedSerializer(community_get_started_filter, many=True).data
+
+        return {'success': True,
+                'heading': FETCH_GET_STARTED_HEADING.format(community_instance.name),
+                'title': FETCH_GET_STARTED_TITLE,
+                'sub_title': FETCH_GET_STARTED_SUB_TITLE,
+                'image': FETCH_GET_STARTED_IMAGE,
+                'bottom_text': FETCH_GET_STARTED_BOTTOM_TEXT,
+                'get_started_list': get_started_list}
+
+    def send_invite(self, req_body) -> {}:
+
+        validated_req_body = CommunityHelper.validate_send_invite(req_body)
+
+        if not validated_req_body.get('success'):
+            return validated_req_body
+
+        validated_req_body = validated_req_body.get('req_body')
+
+        validated_logic = CommunityHelper.validate_send_invite_logic(self.get_member_id(), validated_req_body)
+
+        if not validated_logic.get('success'):
+            return validated_logic
+
+        user_instance = validated_logic.get('user_instance')
+
+        community_instance = validated_logic.get('community_instance')
+
+        self.set_community_id(community_instance.id)
+
+        share_context = get_branch_links_for_community_share(user_instance, community_instance)
+        community_share = {}
+
+        if community_instance.is_paid:
+            fill_share_context_for_paid_community(community_instance, share_context, community_share)
+
+        else:
+            fill_share_context_for_unpaid_community(community_instance, share_context, community_share)
+
+        if not community_share:
+            return {'error_message': "Error in generating link", 'success': False}
+
+        if validated_req_body.get('link_type') == 'free':
+            link = community_share.get('private_link')
+
+        else:
+            link = community_share.get('public_link')
+
+        if validated_req_body.get('type') == send_invite_types.EMAIL_INVITE:
+            email_ids_list = CommunityHelper.get_list_from_comma_string(validated_req_body.get('email_id'))
+
+            valid_email_ids_list = [email_id for email_id in email_ids_list if CommunityHelper.is_valid_email(email_id)]
+
+            if not len(valid_email_ids_list):
+
+                if len(email_ids_list) < 2:
+                    error_text = 'Invalid email ID!'
+
+                else:
+                    error_text = "Invalid email ID's!"
+
+                return {'success': False, 'error_message': error_text}
+
+            send_email_response = CommunityHelper.send_invite_email_to_given_emails_list(user_instance,
+                                                                                         community_instance,
+                                                                                         valid_email_ids_list,
+                                                                                         validated_req_body,
+                                                                                         share_context, link)
+
+            if not send_email_response:
+                return {'success': False, "error_message": "Error while sending email."}
+
+            update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
+
+            return {'success': True}
+
+        elif validated_req_body.get('type') == send_invite_types.WHATSAPP_INVITE:
+            mobile_nos_list = CommunityHelper.get_list_from_comma_string(validated_req_body.get('mobile_no'))
+            mobile_nos_list = [NumberUtilities.get_integer_from_string(i) if str(i).isdigit() else i for i in
+                               mobile_nos_list]
+
+            link_path = UrlUtilities.extract_part_from_url(link, 'path', init_slash_off=True)
+
+            template_name = WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME if validated_req_body.get('link_type') == 'free' \
+                else WHATSAPP_INVITE_TEMPLATE_WITHOUT_CODE_NAME
+
+            receivers_list = CommunityHelper.send_invite_whatsapp_context_dict(user_instance, community_instance,
+                                                                               mobile_nos_list, validated_req_body,
+                                                                               share_context, link_path)
+
+            NotificationImpl.send_bulk_wa_notification.delay(receivers_list, template_name, template_name)
+
+            update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
+
+            return {'success': True}
+
+        else:
+            return {'success': False, 'error_message': 'Invalid type!'}
 
 
 class CommunityHelper:
@@ -1643,6 +1902,47 @@ class CommunityHelper:
         CommunityHelper.update_hidden_fields_in_member_responses(user_instance, community_instance)
 
     @staticmethod
+    def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None):
+        join_link_valid = False
+        join_link_invalid_message = ''
+
+        if (not community_instance.is_paid) and (not auto_join_code) and (not shared_by_user):
+            join_link_invalid_message = 'Please send valid invite code to join this community'
+            return join_link_valid, join_link_invalid_message
+
+        community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                     {'community': community_instance,
+                                                                      'setting_type': community_setting_types.MEMBERS_AUTO_JOIN})
+
+        auto_approval = community_setting_instance[0].enabled if len(community_setting_instance) else community_instance.auto_approval
+
+        if auto_join_code is None \
+                and shared_by_user is None:
+            join_link_valid = community_instance.is_paid and auto_approval
+
+        else:
+
+            auto_join_code = NumberUtilities.get_integer_from_string(auto_join_code)
+            aj_filter = ModelUtilities.get_model_filter(communityExpiryCodes, {'community': community_instance,
+                                                                               'unique_code': auto_join_code})
+
+            if (not community_instance.is_paid) and (not aj_filter):
+                join_link_invalid_message = 'Invalid invite code!'
+                return join_link_valid, join_link_invalid_message
+
+            if community_instance.is_paid and (aj_filter and aj_filter[0].user_id is not None):
+                join_link_invalid_message = 'Free invite code already used!'
+                return join_link_valid, join_link_invalid_message
+
+            if community_instance.is_paid:
+                aj_filter.update(user=user_instance)
+
+            if not aj_filter:
+                join_link_invalid_message = 'Invalid invite code!'
+
+        return join_link_valid, join_link_invalid_message
+
+    @staticmethod
     def is_join_link_valid(auto_join_code, shared_by_user, community_instance):
         join_link_valid = False
 
@@ -1691,3 +1991,319 @@ class CommunityHelper:
         is_aj_valid = (current_time - expiry_time) <= aj_instance.expire_duration
 
         return is_aj_valid
+
+    @staticmethod
+    def create_community_validation(req_body):
+
+        if 'name' not in req_body:
+            return {'success': False, 'error_message': 'Empty name!'}
+
+        if 'headline' not in req_body:
+            return {'success': False, 'error_message': 'Empty headline!'}
+
+        if 'brand_color' not in req_body:
+            return {'success': False, 'error_message': 'Empty brand color!'}
+
+        return req_body
+
+    @staticmethod
+    def validate_send_invite(req_body):
+
+        if 'type' not in req_body:
+            return {'success': False, 'error_message': 'Send type'}
+
+        if 'community_id' not in req_body:
+            return {'success': False, 'error_message': 'Send community_id'}
+
+        if req_body.get('type') not in [send_invite_types.EMAIL_INVITE, send_invite_types.WHATSAPP_INVITE]:
+            return {'success': False, 'error_message': 'invalid type'}
+
+        if (req_body.get('type') == send_invite_types.EMAIL_INVITE) and ('email_id' not in req_body):
+            return {'success': False, 'error_message': 'Send email_id'}
+
+        if (req_body.get('type') == send_invite_types.WHATSAPP_INVITE) and ('mobile_no' not in req_body):
+            return {'success': False, 'error_message': 'send mobile_no'}
+
+        if 'text' not in req_body:
+            return {'success': False, 'error_message': 'Send text'}
+
+        if 'link_type' not in req_body:
+            return {'success': False, 'error_message': 'Send link_type'}
+
+        return {'success': True, 'req_body': req_body}
+
+    @staticmethod
+    def get_list_from_comma_string(comma_seperated_string):
+
+        comma_seperated_string = comma_seperated_string.split(',')
+        comma_seperated_string = [i.strip() if isinstance(i, str) else i for i in comma_seperated_string]
+
+        return  comma_seperated_string
+
+    @staticmethod
+    def is_valid_email(email_id):
+        return re.fullmatch(EMAIL_VALIDATION_REGEX, email_id)
+
+    @staticmethod
+    def create_community_creation_whatsapp_context_dict(user_instance, cm_primary_mobile):
+        receivers_list = [
+            {
+                'whatsappNumber': '{}{}'.format(cm_primary_mobile.country_code, cm_primary_mobile.mobile_no),
+                "customParams": [
+                    {
+                        "name": "name",
+                        "value": user_instance.userinfo.name
+                    },
+                    {
+                        "name": "link",
+                        "value": CM_ONBOARDING_DASHBOARD_LINK
+                    }
+                ]
+            }
+        ]
+
+        return receivers_list
+
+    @staticmethod
+    @shared_task
+    def send_create_community_welcome_whatsapp_message(user_id):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return
+
+        cm_primary_mobile = ModelUtilities.get_model_filter(userMobiles,
+                                                            {'user': user_instance,
+                                                             'state': mobile_states.PRIMARY})
+
+        if not len(cm_primary_mobile):
+            return
+
+        cm_primary_mobile = cm_primary_mobile[0]
+
+        receivers_list = CommunityHelper.create_community_creation_whatsapp_context_dict(user_instance,
+                                                                                         cm_primary_mobile)
+
+        template_name = broadcast_name = WHATSAPP_COMMUNITY_CREATED_TEMPLATE_FOR_CM_NAME
+        NotificationImpl.send_bulk_wa_notification.delay(receivers_list, template_name, broadcast_name)
+
+        return
+
+    @staticmethod
+    @shared_task
+    def send_communtiy_creation_segment_events(user_id, event_name, event_metadata):
+        SegmentImpl.track_event(user_id, event_name, event_metadata)
+
+    @staticmethod
+    @shared_task
+    def set_user_email_status(user_id, community_id):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return
+
+        user_email_status_filter = ModelUtilities.get_model_filter(UserEmailsSendStatus,
+                                                                   {"community": community_instance,
+                                                                    "user": user_instance,
+                                                                    "status_type": user_email_send_status_types.CM_ONBOARDING})
+
+        if not user_email_status_filter:
+            branch_link = create_community_feed_url_for_cm_onboarding(community_instance)
+
+            mail_body = CommunityHelper.get_mail_body_for_community_creation_get_started(user_instance,
+                                                                                         community_instance,
+                                                                                         branch_link)
+
+            user_email_status = UserEmailsSendStatus.create_instance({
+                "user": user_instance,
+                "community": community_instance,
+                "status_type": user_email_send_status_types.CM_ONBOARDING,
+                "frequency_in_minutes": FREQUENCY_OF_GETTING_STARTED_EMAIL_IN_MINS,
+                "count": 0,
+                "max_count": MAX_NUMBER_OF_TIMES_GETTING_STARTED_EMAIL_SHOULD_FIRE,
+                "mail_data": json.dumps(mail_body),
+                "expires_at": TimeUtilities.add_hours_to_epoch_time(TimeUtilities.current_time_in_sec(),
+                                                                    hours=MAX_NUMBER_OF_TIMES_GETTING_STARTED_EMAIL_SHOULD_FIRE * 24)
+            })
+
+
+    @staticmethod
+    def get_mail_body_for_community_creation_get_started(user_instance, community_instance, branch_link=''):
+        mail_template = get_template('mails/cm_onboarding/getting_started_cm_onboarding.html').render({
+            "community_logo": community_instance.image_url,
+            "community_name": community_instance.name,
+            "cm_name": user_instance.userinfo.name,
+            "dashboard_link": CM_ONBOARDING_CREATE_COMMUNITY_DASHBOARD_LINK,
+            "community_brand_color": community_instance.brand_color if community_instance.brand_color else
+            DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+            "button_text": GETTING_STARTED_CM_BUTTON_TEXT,
+            "button_link": branch_link
+        })
+
+        mail_subject = GETTING_STARTED_CM_MAIL_SUBJECT.format(user_instance.userinfo.name)
+
+        mail_body = {
+            'subject': mail_subject,
+            'mail_body': mail_template,
+            'mail_recipient_list': [user_instance.userinfo.email],
+            'reply_to': [INVITE_MEMBER_REPLY_EMAIL]
+        }
+
+        return mail_body
+
+    @staticmethod
+    def give_owner_all_member_manager_rights(user_instance, community_instance):
+        give_all_manager_rights(user=user_instance, community=community_instance)
+        give_all_member_rights(user=user_instance, community=community_instance)
+
+    @staticmethod
+    def send_community_creation_email_to_team(member_instance, community_instance):
+        # send community created mail to the team
+        email_context = {
+            'member_name': member_instance.member_id.userinfo.name,
+            'community_name': community_instance.name,
+            'member_email': member_instance.member_id.userinfo.email,
+            'community_id': community_instance.id
+        }
+        send_created_community_email_to_team.delay(email_context)
+
+    @staticmethod
+    def create_content_download_settings_for_community(community_instance):
+        content_download_settings_list = []
+
+        for download_setting_type, download_setting_title in DOWNLOAD_SETTING_TYPE_TITLE_MAPPING.items():
+            content_download_settings_list.append(ContentDownloadSettings.create_instance({
+                'community_instance': community_instance,
+                'download_setting_type': download_setting_type,
+                'download_setting_title': download_setting_title,
+                'enabled': True
+            }))
+
+        ModelUtilities.bulk_create_instances(ContentDownloadSettings, content_download_settings_list)
+
+    @staticmethod
+    @shared_task
+    def create_all_member_cohort_for_new_community(member_id, community_id):
+        cohort_body = {
+            'name': ALL_MEMBER_COHORT_TEXT,
+            'member_ids': [member_id],
+            'community_id': community_id,
+            'type': cohort_types.ALL_MEMBER,
+        }
+
+        from collabmates_api.cohort.cohort_impl import CohortImpl
+
+        cohort_manager = CohortImpl(member_id)
+
+        cohort_response = cohort_manager.create_cohort(cohort_body)
+
+        if cohort_response.get('error_message'):
+            error_logger.error(cohort_response)
+
+    @staticmethod
+    def validate_fetch_get_started(member_id, community_id):
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': 'Invalid community_id'}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member_id'}
+
+        is_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
+
+        if not is_admin:
+            return {'success': False, 'error_message': 'You are not the CM of this community!'}
+
+        return {'success': True, 'community_instance': community_instance, 'user_instance': user_instance}
+
+    @staticmethod
+    def validate_send_invite_logic(member_id, validated_req_body):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member_id'}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community,
+                                                                       validated_req_body.get('community_id'))
+
+        if not community_instance:
+            return {'success': False, 'error_message': 'Invalid community_id'}
+
+        members_filter = ModelUtilities.get_model_filter(Members,
+                                                         {'member_id': user_instance,
+                                                          'community_id': community_instance})
+
+        if not members_filter:
+            return {'success': False, 'error_message': 'You are not part of the community.'}
+
+        is_admin = members_filter[0].state == member_states.ADMIN
+
+        if not is_admin:
+            return {'success': False, 'error_message': 'You are not the CM of this community!'}
+
+        return {'success': True, 'community_instance': community_instance, 'user_instance': user_instance}
+
+    @staticmethod
+    def send_invite_email_to_given_emails_list(user_instance, community_instance, valid_email_ids_list,
+                                               validated_req_body, share_context, link):
+        mail_template = get_template('mails/cm_onboarding/invite_members_cm_onboarding.html').render({
+            "community_logo": community_instance.image_url,
+            "community_name": community_instance.name,
+            "cm_name": user_instance.userinfo.name,
+            "community_brand_color": community_instance.brand_color if community_instance.brand_color else
+            DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+            "join_code": share_context.get('aj') if validated_req_body.get('link_type') == 'free' else '',
+            "button_text": INVITE_MEMBERS_BUTTON_TEXT,
+            "button_link": link
+        })
+
+        mail_subject = INVITE_MEMBERS_SUBJECT.format(community_instance.name)
+
+        send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
+                                                           valid_email_ids_list, reply_to=[INVITE_MEMBER_REPLY_EMAIL])
+
+        return send_email_response
+
+    @staticmethod
+    def send_invite_whatsapp_context_dict(user_instance, community_instance, mobile_nos_list, validated_req_body,
+                                          share_context, link_path):
+        receivers_list = []
+
+        for mobile_no in mobile_nos_list:
+            receiver_info = {
+                "whatsappNumber": mobile_no,
+                "customParams": [
+                    {
+                        "name": "community_name",
+                        "value": community_instance.name
+                    },
+                    {
+                        "name": "cm_name",
+                        "value": user_instance.userinfo.name
+                    },
+                    {
+                        "name": "link",
+                        "value": link_path
+                    }
+                ]
+            }
+
+            if validated_req_body.get('link_type') == 'free':
+                receiver_info['customParams'].append({
+                    "name": "join_code",
+                    "value": share_context.get("aj")
+                })
+
+            receivers_list.append(receiver_info)
+
+        return receivers_list

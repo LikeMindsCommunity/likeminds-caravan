@@ -1,9 +1,15 @@
+import json
+
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status as status_codes
 
 from collabmates_api.cohort.cohort_impl import CohortImpl
+from collabmates_api.views import get_error_context
+from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.request_utilities import RequestUtilities
+
+error_logger = LoggingWrapper.get_instance()
 
 
 class CreateCohortView(APIView):
@@ -132,6 +138,32 @@ class UpdateCohortView(APIView):
 
         cohort_manager = CohortImpl(member_id=header_member_id)
         response = cohort_manager.update_cohort(request_body=request_body)
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response, status=status_codes.HTTP_200_OK)
+
+
+class FetchMemberCohortsView(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        community_id = request.GET.get('community_id', None)
+
+        try:
+            member_ids = json.loads(request.GET.get('member_ids'))
+
+        except Exception as e:
+            member_ids = []
+            error_logger.exception(f"Exception {str(e)} while loading member_ids: {request.GET.get('member_ids')}")
+
+        if not member_id:
+            response = get_error_context(success=False, error_message="Invalid member_id passed in header")
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        cohort_manager = CohortImpl(member_id=member_id)
+        response = cohort_manager.fetch_member_cohorts(community_id=community_id, member_ids=member_ids)
 
         if response.get('error_message'):
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)

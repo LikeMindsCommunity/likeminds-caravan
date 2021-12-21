@@ -871,7 +871,8 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcard.webflow_item_id,
                     togther_collabcard.is_private,
                     togther_collabcard.chatroom_with_user_id,
-                    togther_collabcard.member_can_message
+                    togther_collabcard.member_can_message,
+                    togther_collabcardState.external_seen
                 """
 
     return meta_query

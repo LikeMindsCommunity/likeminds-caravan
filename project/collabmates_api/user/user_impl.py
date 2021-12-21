@@ -4,6 +4,8 @@ import requests as rqst
 from urllib import parse
 from typing import Union
 from rest_framework import status as status_codes
+from django.template.loader import get_template
+from celery import shared_task
 
 from django.db.models import Q, Sum
 from django.contrib.auth.models import User
@@ -29,12 +31,13 @@ from utility.url_utilities import UrlUtilities
 from .constants import *
 from ..raw_queries import get_community_id_list
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
-from ..tasks import send_verification_mail_for_email_sync
+from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
 from ..rest_api import CommunitySerializerV1
 from ..serializers import get_logged_in_user
 from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS
 
 from external_services.logging.logging_wrapper import LoggingWrapper
+from external_services.email.email_wrapper import MailWrapper
 
 host_url = settings.URL
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
@@ -350,13 +353,13 @@ class UserImpl(UserManager):
                                                         email=email)
 
     @staticmethod
-    def save_user_analytics_for_user_login(req_body, user_instance, platform_code, device_id):
+    def save_user_analytics_for_user_login(req_body, user_instance, platform_code, device_id, version_code):
 
         if req_body.get('user_acquisition_url'):
             user_acquired = UserHelper.decode_user_acquisition_url_for_login(user_instance,
                                                                              req_body['user_acquisition_url'],
                                                                              platform_code, device_id)
-            UserHelper.create_userAcquition_analytics(user_instance, user_acquired)
+            UserHelper.create_userAcquition_analytics(user_instance, user_acquired, platform_code, version_code)
 
     def create_user_context_for_email_exists(self, email):
 
@@ -376,7 +379,7 @@ class UserImpl(UserManager):
 
         return user_email_exists_object
 
-    def login(self, req_body, platform_code, device_id) -> {}:
+    def login(self, req_body, platform_code, device_id, version_code) -> {}:
 
         try:
             user_context = UserHelper.validate_login_types(req_body)
@@ -422,7 +425,7 @@ class UserImpl(UserManager):
 
         userinfo_instance = user_instance.userinfo
         self.send_email_verification_mails_for_custom_user(user_context, user_instance, userinfo_instance)
-        self.save_user_analytics_for_user_login(req_body, user_instance, platform_code, device_id)
+        self.save_user_analytics_for_user_login(req_body, user_instance, platform_code, device_id, version_code)
         user_context = self.compute_logged_in_user(userinfo_instance)
         access = UserHelper.is_user_belong_to_any_community(user_instance)
 
@@ -1117,6 +1120,9 @@ class UserHelper:
                 url_path_dict['landing_type'] = "chatroom_join"
                 url_path_dict['chatroom_id'] = path_list[2]
 
+            elif path_list[1] == "create_community":
+                url_path_dict['landing_type'] = CM_ONBOARDING_LANDING_TYPE
+
         except Exception as e:
             error_logger.error(e)
 
@@ -1169,7 +1175,7 @@ class UserHelper:
         return user_acquired
 
     @staticmethod
-    def create_userAcquition_analytics(user_instance, user_acquired):
+    def create_userAcquition_analytics(user_instance, user_acquired, platform_code, version_code):
         '''saving the analytics of acquired user'''
 
         user_filter = userAcquition.objects.filter(user=user_instance)
@@ -1216,6 +1222,47 @@ class UserHelper:
                 instance.chatroom = card_instance
 
             instance.save()
+
+            if cm_onboarding_version_check(platform_code, version_code) and \
+                    (instance.landing_type == CM_ONBOARDING_LANDING_TYPE):
+                task_begin_time = TimeUtilities.add_hours_to_epoch_time(TimeUtilities.current_time_in_sec(), hours=1)
+                task_expiry_time = TimeUtilities.add_hours_to_epoch_time(TimeUtilities.current_time_in_sec(), hours=2)
+
+                UserHelper.cm_send_email_for_creating_community.apply_async(args=[instance.user_id], kwargs={},
+                                                                            eta=TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_time),
+                                                                            expires=TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_time))
+
+    @staticmethod
+    @shared_task
+    def cm_send_email_for_creating_community(user_id):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        print(user_instance)
+
+        if not user_instance:
+            return
+
+        members_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_id,
+                                                                   'state': member_states.ADMIN,
+                                                                   'is_owner': True})
+
+        if members_filter:
+            mail_subject = FIRST_LOGIN_NON_FORM_CM_MAIL_SUBJECT
+
+            mail_template = get_template('mails/cm_onboarding/cm_dropoff_mail_cm_onboarding.html').render({
+                "community_logo": LIKEMINDS_LOGO,
+                "community_name": 'LikeMinds',
+                "cm_name": user_instance.userinfo.name,
+                "community_brand_color": DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+                "button_text": FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_TEXT,
+                "button_link": FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_LINK
+            })
+
+            send_email_response = MailWrapper.send_email(mail_subject, mail_template, [user_instance.userinfo.email],
+                                                         reply_to=[FIRST_LOGIN_NON_FORM_CM_REPLY_EMAIL])
+
+            return
 
     @staticmethod
     def emailSerializer(email_instance):

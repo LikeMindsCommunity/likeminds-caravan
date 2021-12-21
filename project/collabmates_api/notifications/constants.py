@@ -75,7 +75,7 @@ SUBJECT_EVENT_CREATION_MAIL = "New Event happening in %s community 😃"
 SUBJECT_EVENT_LAST_CALL_MAIL = "Registration reminder! Don’t miss out on this."
 SUBJECT_EVENT_REGISTRATION_MAIL = "Registration complete ✅"
 SUBJECT_EVENT_ATTENDANCE_MAIL = "Event day 🥳"
-SUBJECT_POST_EVENT_ATTENDEES_MAIL = "Attendess list for %s 👥"
+SUBJECT_POST_EVENT_ATTENDEES_MAIL = "Attendees list for %s 👥"
 SUBJECT_POST_EVENT_ATTACHMENT_MAIL = "Event recordings & attachments added 📹 🗃"
 
 SENDER_FOR_EMAIL_COMMS = "Team LikeMinds<team@likeminds.chat>"

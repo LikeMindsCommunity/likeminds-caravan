@@ -86,6 +86,8 @@ class Community(models.Model):
     referral_enabled = models.BooleanField(default=False)
 
     dashboard_link = models.TextField(null=True)
+    brand_color = models.TextField(null=True)
+    likeminds_plan = models.TextField(null=True)
 
     fee_membership = models.IntegerField(default=5)
     fee_event = models.IntegerField(default=5)
@@ -105,6 +107,22 @@ class Community(models.Model):
         self.updated_at = current_time
 
         super(Community, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(community_object):
+        community_instance = Community()
+        community_instance.name = community_object['name']
+        community_instance.members_count = community_object['members_count']
+        community_instance.purpose = community_object['purpose']
+        community_instance.brand_color = community_object['brand_color']
+        community_instance.image_link = community_object['image_link']
+        community_instance.thumbnail = community_object['thumbnail']
+        community_instance.type = community_object['type']
+        community_instance.sub_type = community_object['sub_type']
+        community_instance.hide_community = community_object['hide_community']
+        community_instance.save()
+
+        return community_instance
 
     @staticmethod
     def get_community_or_raise_exception(community_id):
@@ -189,9 +207,13 @@ class Members(models.Model):
         member_instance.created_at = TimeUtilities.current_time_in_sec()
         member_instance.updated_at = TimeUtilities.current_time_in_sec()
         member_instance.joined_by = create_info.get('joined_by', None)
+        member_instance.actions_required = create_info.get('actions_required', None)
+        member_instance.is_owner = create_info.get('is_owner', False)
         member_instance.custom_title = create_info.get('custom_title', None)
         member_instance.became_member_at = create_info.get('became_member_at', 0)
         member_instance.save()
+
+        return member_instance
 
     @staticmethod
     def is_community_member(community: Community, member: Union[User, str, int]) -> bool:
@@ -1302,7 +1324,11 @@ class Member_Engage(models.Model):
         engage.updated_at = TimeUtilities.current_time_in_sec()
         engage.member_state = create_info.get('state')
         engage.click_state = create_info.get('click_state', 0)
+        engage.member_referral = create_info.get('member_referral', '')
+        engage.rights_list = create_info.get('rights_list', None)
         engage.save()
+
+        return engage
 
     def save(self, *args, **kwargs):
         current_time = TimeUtilities.current_time_in_milliseconds()
@@ -1602,6 +1628,20 @@ class communityQuestions(models.Model):
     def __str__(self):
         return str(self.question_title)
 
+    @staticmethod
+    def create_instance(community_questions_data):
+        questions_instance = communityQuestions()
+        questions_instance.community = community_questions_data.get('community_instance')
+        questions_instance.question_title = community_questions_data.get('question_title', None)
+        questions_instance.question_state = community_questions_data.get('question_state', 0)
+        questions_instance.value = community_questions_data.get('value', None)
+        questions_instance.optional = community_questions_data.get('optional', False)
+        questions_instance.help_text = community_questions_data.get('help_text', None)
+        questions_instance.is_hidden = community_questions_data.get('is_hidden', False)
+        questions_instance.field = community_questions_data.get('field', False)
+
+        return questions_instance
+
 
 class communityAnswers(models.Model):
     '''model to save answers of a user in community'''
@@ -1693,11 +1733,12 @@ class communityExpiryCodes(models.Model):
     '''model to generate private links of community'''
 
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
-    promoter = models.ForeignKey(User, on_delete=models.CASCADE)
+    promoter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='promoter')
     created_at = models.BigIntegerField(default=0, null=True)
     unique_code = models.IntegerField(default=0)
     private_link = models.CharField(max_length=2048, null=True)
     expire_duration = models.BigIntegerField(default=0, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_id', null=True)
 
 
 class chatroomExpiryCodes(models.Model):
@@ -2938,4 +2979,106 @@ class CommunityJoinEmail(models.Model):
         instance.body = community_join_email_info.get('body')
         instance.community_id = community_join_email_info.get('community_instance')
         instance.save()
+        return instance
+
+
+class GetStarted(models.Model):
+    type = models.IntegerField(null=False)
+    title = models.CharField(max_length=255, null=False)
+    tool_tip_text = models.TextField(default="", null=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(GetStarted, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(get_started_info):
+        instance = GetStarted()
+        instance.type = get_started_info.get('type')
+        instance.title = get_started_info.get('title')
+        instance.tool_tip_text = get_started_info.get('tool_tip_text')
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+        instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+
+        return instance
+
+
+class CommunityGetStarted(models.Model):
+    get_started = models.ForeignKey(GetStarted, on_delete=models.CASCADE)
+    completed = models.BooleanField(default=False)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(CommunityGetStarted, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(community_get_started_info):
+        instance = CommunityGetStarted()
+        instance.get_started = community_get_started_info.get('get_started')
+        instance.completed = community_get_started_info.get('completed')
+        instance.community = community_get_started_info.get('community')
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+        instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+
+        return instance
+
+
+class UserEmailsSendStatus(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.SET_NULL, null=True)
+    status_type = models.IntegerField(default=0)
+    frequency_in_minutes = models.IntegerField(null=True)
+    count = models.IntegerField(null=True)
+    max_count = models.IntegerField(null=True)
+    mail_data = models.TextField(null=True)
+    is_completed = models.BooleanField(default=False)
+    expires_at = models.BigIntegerField(default=0)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(UserEmailsSendStatus, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(user_emails_info):
+        instance = UserEmailsSendStatus()
+        instance.user = user_emails_info.get('user')
+        instance.community = user_emails_info.get('community')
+        instance.status_type = user_emails_info.get('status_type')
+        instance.frequency_in_minutes = user_emails_info.get('frequency_in_minutes')
+        instance.count = user_emails_info.get('count')
+        instance.max_count = user_emails_info.get('max_count')
+        instance.mail_data = user_emails_info.get('mail_data')
+        instance.expires_at = user_emails_info.get('expires_at')
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+        instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+        instance.save()
+
         return instance

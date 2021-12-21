@@ -16,6 +16,25 @@ error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
 
+class CreateCommunityView(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not req_body:
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"})
+
+        community_manager = CommunityImpl(member_id)
+        community_context = community_manager.create_community(req_body)
+
+        if 'error_message' in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context)
+
+
 class FetchCommunity(APIView):
     '''inheriting API view class for using class based views in django'''
 
@@ -168,6 +187,27 @@ class FetchCommunityFeedUrl(APIView):
         return JsonResponse(response_context)
 
 
+class FetchCommunityFeedCM_OnboardingUrlView(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        community_id = request.GET.get('community_id')
+
+        if not community_id:
+            response = {
+                "success": False,
+                "error_message": "Send community_id in query params"
+            }
+
+            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id, community_id)
+        response_context = community_manager.fetch_feed_url_for_cm_onboarding()
+
+        return JsonResponse(response_context)
+
+
 class FetchCommunityOTLUrl(APIView):
 
     def get(self, request):
@@ -257,13 +297,14 @@ class CommunityJoinView(APIView):
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
         request_platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not req_body:
             return JsonResponse({'success': False, 'error_message': "Invalid Json Body"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id, req_body.get('community_id'), device_id=device_id,
-                                          request_platform=request_platform)
+                                          request_platform=request_platform, version_code=version_code)
         community_context = community_manager.join_community(req_body)
 
         if 'error_message' in community_context:
@@ -511,3 +552,44 @@ class FetchCommunityMeta(APIView):
             error_logger.error(e.args)
             
             return JsonResponse(res, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class FetchGetStartedView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        community_id = request.GET.get('community_id')
+
+        if not community_id:
+            return JsonResponse({'success': False, 'error_message': 'send community_id'},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+
+        content_settings_data = community_manager.fetch_get_started()
+
+        if 'error_message' in content_settings_data:
+            return JsonResponse(content_settings_data, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(content_settings_data)
+
+
+class SendInviteView(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        if not member_id:
+            return JsonResponse({'success': False, 'error_message': 'Send member_id'},
+                                status=status_codes.HTTP_200_OK)
+
+        community_manager = CommunityImpl(member_id=member_id)
+
+        res = community_manager.send_invite(req_body)
+
+        if not res.get('success'):
+            return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(res, status=status_codes.HTTP_200_OK)

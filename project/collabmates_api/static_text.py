@@ -433,6 +433,9 @@ COMMUNITY_DETAIL_ROUTE = f"route://community?community_id=%s&community_name=%s"
 MASTER_INTRO_TITLE_TEXT = "This chat room has introductions of all members of the community. Greet members in their respective intro rooms to make them feel welcomed."
 MASTER_INTRO_HEADER = "Introductions "+u"\U0001F590"
 
+GENERAL_CHAT_TITLE_TEXT = "This chatroom is to have off-topic conversations with the community members."
+GENERAL_CHAT_HEADER = "General Chat Room"
+
 CHATROOM_PREVIW_CACHE_KEY = "chatroom_preview_%s_%s"
 
 PIN_CHATROOM_TITLE = "Chat room pinned!"
@@ -547,3 +550,23 @@ SUBSCRIPTION_PLAN_NAMES = {
     }
 }
 
+
+MEMBERSHIP_PLANS_MANAGEMENT_TOOLS = {
+    "title": "Membership plans",
+    "image_url": "https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/mambership_plans_icon.png",
+    "route": "route://membership_plans?community_id={}"
+}
+
+SEGMENT_COMMUNITY_LOGO_UPLOADED_EVENT_NAME = "Community logo uploaded (Core Service)"
+
+CUSTOMISE_JOIN_FORM_MAIL_SUBJECT = "Hi {}! Your community join form is all set"
+
+CM_ONBOARDING_ANDROID_VERSION_CODE = 1000
+CM_ONBOARDING_IOS_VERSION_CODE = 1000
+CM_ONBOARDING_WEB_VERSION_CODE = 1000
+
+CM_ONBOARDING_COMMUNITY_FEED_URL = "{}/community_feed?community_id={}"
+CM_ONBOARDING_COMMUNITY_FEED_URL_ANDROID_ROUTE = "likeminds://chatroom_new_feed?community_id={}&community_name={}&share=true"
+
+PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST = "The private invite link has expired. Continue to join the community and " \
+                                        "wait for admin’s approval. Or, ask {} to resend a private invite link."
