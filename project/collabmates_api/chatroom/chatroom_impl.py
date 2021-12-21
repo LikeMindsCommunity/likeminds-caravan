@@ -2584,6 +2584,9 @@ class ChatroomImpl(ChatroomManager):
 
         if not user_instance:
             return get_error_context(False, "Invalid user-id")
+        
+        if not isinstance(chatroom_ids, list):
+            return get_error_context(False, "chatroom_ids should be of type 'list'")
 
         final_response['success'] = True
 
