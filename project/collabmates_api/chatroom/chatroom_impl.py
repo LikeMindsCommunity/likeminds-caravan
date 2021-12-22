@@ -3484,7 +3484,7 @@ class ChatroomHelper:
             else:
                 event_dict['recording_url_og_tags'] = event_obj.recording_url_og_tags
 
-            if recordings_attachment_obj is None:
+            if recordings_attachment_serialized_obj is None:
                 event_recording_instances = EventRecordingsAttachments.objects.filter(chatroom_id=card_instance) \
                                             if card_instance else \
                                             EventRecordingsAttachments.objects.filter(conversation_id=conversation_instance)
@@ -3494,7 +3494,7 @@ class ChatroomHelper:
                 event_dict['recordings_attachments'] = json.loads(json.dumps(serializer.data))
 
             else:
-                event_dict['recordings_attachments'] = recordings_attachment_obj
+                event_dict['recordings_attachments'] = recordings_attachment_serialized_obj
 
         except Exception as e:
             error_logger.error(e.args)
