@@ -3450,7 +3450,8 @@ class ChatroomHelper:
                                                      attending_status)
 
     @staticmethod
-    def display_event_recordings_and_attachments(user_instance, card_instance=None, conversation_instance=None):
+    def display_event_recordings_and_attachments(user_instance, card_instance=None, conversation_instance=None,
+                                                 recordings_attachment_serialized_obj=None):
         event_dict = {}
 
         try:
@@ -3483,13 +3484,17 @@ class ChatroomHelper:
             else:
                 event_dict['recording_url_og_tags'] = event_obj.recording_url_og_tags
 
-            event_recording_instances = EventRecordingsAttachments.objects.filter(chatroom_id=card_instance) \
-                                        if card_instance else \
-                                        EventRecordingsAttachments.objects.filter(conversation_id=conversation_instance)
+            if recordings_attachment_obj is None:
+                event_recording_instances = EventRecordingsAttachments.objects.filter(chatroom_id=card_instance) \
+                                            if card_instance else \
+                                            EventRecordingsAttachments.objects.filter(conversation_id=conversation_instance)
 
-            serializer = EventRecordingsAttachmentsSerializer(event_recording_instances, many=True)
+                serializer = EventRecordingsAttachmentsSerializer(event_recording_instances, many=True)
 
-            event_dict['recordings_attachments'] = json.loads(json.dumps(serializer.data))
+                event_dict['recordings_attachments'] = json.loads(json.dumps(serializer.data))
+
+            else:
+                event_dict['recordings_attachments'] = recordings_attachment_obj
 
         except Exception as e:
             error_logger.error(e.args)

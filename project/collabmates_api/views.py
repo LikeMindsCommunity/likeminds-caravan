@@ -60,7 +60,7 @@ from cms.cms_auth_utilities import CMSAuthUtilities
 
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
-                       YourCommunitySerializer)
+                       YourCommunitySerializer, EventRecordingsAttachmentsSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
@@ -11998,6 +11998,16 @@ class SyncChatrooms(APIView):
 
         chatrooms = []
 
+        # Get Chatroom IDs
+        chatroom_ids_list = [data[0] for data in chatroom_data]
+
+        # Pre-compute cohort data
+        cohort_member_map = self.fetch_cohort_members_for_chatroom_list(chatroom_ids_list)
+
+        # Pre-compute event recordings data
+        chatroom_event_recordings_mapper = self.fetch_event_recordings_for_chatroom_list(user_instance,
+                                                                                         chatroom_ids_list)
+
         max_last_updated = 0
         for data in chatroom_data:
 
@@ -12142,28 +12152,9 @@ class SyncChatrooms(APIView):
 
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 
-            filter_dict = {
-                'chatroom_id': chatroom['id']
-            }
+            chatroom['cohorts'] = cohort_member_map.get(data[0], [])
 
-            cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
-                                                                                                  flat=True)
-
-            cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids})
-                               .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
-                                                          community_id=F('cohort__community_id'))
-                               .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
-
-            chatroom['cohorts'] = cohort_list
-
-            # For Event Recordings and Attachments data
-            from .chatroom.chatroom_impl import ChatroomHelper
-
-            card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, data[0])
-            event_recordings_data = ChatroomHelper.display_event_recordings_and_attachments(
-                user_instance=user_instance,
-                card_instance=card_instance
-            )
+            event_recordings_data = chatroom_event_recordings_mapper.get(data[0], {})
 
             chatroom.update(event_recordings_data)
 
@@ -12559,6 +12550,76 @@ class SyncChatrooms(APIView):
                                                              'testimonials_list': testimonials_list})
 
         return testimonials_list
+
+    def fetch_event_recordings_for_chatroom_list(self, user_instance, card_ids_list):
+
+        from .chatroom.chatroom_impl import ChatroomHelper
+
+        chatroom_event_recordings_mapper = {}
+
+        card_instance_filter = ModelUtilities.get_model_filter(Collabcard, {'id__in': card_ids_list})
+
+        event_recording_instances = ModelUtilities.get_model_filter(
+            EventRecordingsAttachments, {'chatroom_id__in': card_ids_list}).prefetch_related('chatroom_id')
+
+        serialized_event_rec = EventRecordingsAttachmentsSerializer(event_recording_instances, many=True).data
+
+        for event_rec_obj in serialized_event_rec:
+            event_rec_obj = dict(event_rec_obj)
+
+            if event_rec_obj['chatroom_id'] not in chatroom_event_recordings_mapper:
+                chatroom_event_recordings_mapper[event_rec_obj['chatroom_id']] = {}
+                chatroom_event_recordings_mapper[event_rec_obj['chatroom_id']]['recording_attachments'] = [event_rec_obj]
+
+            else:
+                chatroom_event_recordings_mapper[event_rec_obj['chatroom_id']]['recording_attachments'].append(event_rec_obj)
+
+        for event_obj in card_instance_filter:
+            recordings_attachment_obj = []
+
+            if event_obj.id in chatroom_event_recordings_mapper:
+                recordings_attachment_obj = chatroom_event_recordings_mapper[event_obj.id]['recording_attachments']
+
+            event_record_data = ChatroomHelper.display_event_recordings_and_attachments(
+                user_instance=user_instance, card_instance=event_obj,
+                recordings_attachment_serialized_obj=recordings_attachment_obj)
+
+            chatroom_event_recordings_mapper[event_obj.id] = event_record_data
+
+        return chatroom_event_recordings_mapper
+
+    def fetch_cohort_members_for_chatroom_list(self, chatroom_ids_list):
+        cohort_chatroom_map = {}
+        cohort_member_map = {}
+
+        cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id__in': chatroom_ids_list})
+
+        cohort_ids_list = list(set(cohort_filter.values_list('cohort_id', flat=True)))
+
+        cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids_list}). \
+            values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
+                                      community_id=F('cohort__community_id')).order_by('cohort_id').values(
+            'cohort_id', 'name', 'total_members', 'community_id')
+
+        cohort_filter = cohort_filter.values('chatroom_id', 'cohort_id')
+
+        for cohort_member_obj in cohort_member_filter:
+            if cohort_member_obj['cohort_id'] not in cohort_member_map:
+                cohort_member_map[cohort_member_obj['cohort_id']] = [cohort_member_obj]
+
+            else:
+                cohort_member_map[cohort_member_obj['cohort_id']].append(cohort_member_obj)
+
+        for cohort_object in cohort_filter:
+
+            if cohort_object['chatroom_id'] not in cohort_chatroom_map:
+                cohort_chatroom_map[cohort_object['chatroom_id']] = [cohort_member_map[cohort_object['cohort_id']]] \
+                    if not cohort_member_map[cohort_object['cohort_id']] else []
+
+            else:
+                cohort_chatroom_map[cohort_object['chatroom_id']] += cohort_member_map[cohort_object['cohort_id']]
+
+        return cohort_chatroom_map
 
 
 class SyncChatroomsDiff(APIView):
