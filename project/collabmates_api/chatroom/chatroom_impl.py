@@ -689,15 +689,15 @@ class ChatroomImpl(ChatroomManager):
         else:
             filter_dict['card__date_time__lt'] = current_time_ms
 
-        chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
-            filter(Q(card__type=card_types.CARD_EVENT) | Q(card__type=card_types.CARD_PUBLIC_EVENT)). \
-            select_related('card', 'card__user', 'community')
-        
         if not past_events:
-            chatroom_queryset.order_by('card__date_time')
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
+            filter(Q(card__type=card_types.CARD_EVENT) | Q(card__type=card_types.CARD_PUBLIC_EVENT)). \
+            select_related('card', 'card__user', 'community').order_by('card__date_time')
 
         else:
-            chatroom_queryset.order_by('-card__date_time')
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
+            filter(Q(card__type=card_types.CARD_EVENT) | Q(card__type=card_types.CARD_PUBLIC_EVENT)). \
+            select_related('card', 'card__user', 'community').order_by('-card__date_time')
 
         return chatroom_queryset
 
