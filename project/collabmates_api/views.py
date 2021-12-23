@@ -12613,7 +12613,7 @@ class SyncChatrooms(APIView):
         for cohort_object in cohort_filter:
 
             if cohort_object['chatroom_id'] not in cohort_chatroom_map:
-                cohort_chatroom_map[cohort_object['chatroom_id']] = [cohort_member_map[cohort_object['cohort_id']]] \
+                cohort_chatroom_map[cohort_object['chatroom_id']] = cohort_member_map[cohort_object['cohort_id']] \
                     if cohort_object['cohort_id'] in cohort_member_map else []
 
             else:
