@@ -2120,6 +2120,11 @@ def update_unread_message_count_in_cache(chatroom_id, conversation_creator_id=0)
                                     'user_id__in': followed_members},
                                    update_dict={})
 
+    update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                   {'preview_chatroom': card_instance,
+                                    'preview_type': "chatroom"},
+                                   update_dict={})
+
 
 @shared_task
 def reset_unread_message_count_in_cache(chatroom_id, user_id):
@@ -2141,6 +2146,12 @@ def reset_unread_message_count_in_cache(chatroom_id, user_id):
     }
 
     CacheImpl.set_cache(key, reset_count)
+
+    update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                   {'preview_chatroom': card_instance,
+                                    'preview_type': "chatroom"},
+                                   update_dict={})
+
 
 
 def fetch_conversations_unread(chatroom_id, user_id):
