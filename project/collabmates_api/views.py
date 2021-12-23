@@ -12617,7 +12617,8 @@ class SyncChatrooms(APIView):
                     if cohort_object['cohort_id'] in cohort_member_map else []
 
             else:
-                cohort_chatroom_map[cohort_object['chatroom_id']] += cohort_member_map[cohort_object['cohort_id']]
+                cohort_chatroom_map[cohort_object['chatroom_id']] += cohort_member_map[cohort_object['cohort_id']] if\
+                    cohort_object['cohort_id'] in cohort_member_map else []
 
         return cohort_chatroom_map
 
