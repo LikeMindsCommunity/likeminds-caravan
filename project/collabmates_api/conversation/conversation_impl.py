@@ -875,9 +875,10 @@ class ConversationImpl(ConversationManager):
         ConversationHelper.update_previews_on_conversation_creation(chatroom_instance)
         self._send_conversation_creation_notifications(chatroom_instance, conversation_instance, has_files)
 
-        update_unread_message_count_in_cache.delay(chatroom_id)
+        conversation_creator_id = int(self.get_member_id()) if self.get_member_id() else 0
 
-        reset_unread_message_count_in_cache.delay(chatroom_id, self.get_member_id())
+        update_unread_message_count_in_cache.delay(chatroom_id=chatroom_id,
+                                                   conversation_creator_id=conversation_creator_id)
 
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data

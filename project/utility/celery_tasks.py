@@ -2072,7 +2072,7 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
 
 
 @shared_task
-def update_unread_message_count_in_cache(chatroom_id):
+def update_unread_message_count_in_cache(chatroom_id, conversation_creator_id=0):
     """ function to update the unread message count for chatroom """
 
     if not chatroom_id:
@@ -2091,6 +2091,10 @@ def update_unread_message_count_in_cache(chatroom_id):
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
+            continue
+
+        if user_id == conversation_creator_id:
+            reset_unread_message_count_in_cache(chatroom_id, user_id)
             continue
 
         key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
