@@ -12,6 +12,7 @@ urlpatterns = [
     url('', include('django_prometheus.urls')),
     path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
     path('your_communities/<int:user_id>/', include('collabmates_api.member_community.urls')),
+    path('home/bottom_menu', api_views.bottom_menu, name='bottom_menu'),
 
     path('community/<int:community_id>', api_views.community, name="community"),
 

@@ -1562,8 +1562,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
             str(community_id), str(member_id))
 
-        community_profile['member_since'] = "Member of %s since %s" % (
-            member_instance.community_id.name,
+        community_profile['member_since'] = "Member since %s" % (
             TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(member_instance.created_at))
 
     elif member_instance.state == member_states.PENDING_MEMBER:
@@ -2190,7 +2189,8 @@ def get_member_instance_for_db_synching(member_instance, community_id, current_u
         # community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
         #     str(community_id), str(member_id))
 
-        community_profile['member_since'] = "Member of " + community_name + " since " + TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(member_instance.created_at)
+        community_profile['member_since'] = COMMUNITY_MEMBER_PROFILE_MEMBER_SINCE_TEXT.format(
+            TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(member_instance.created_at))
     elif member_instance.state == member_states.PENDING_MEMBER:
         community_profile['member_since'] = "Verification pending for " + community_name
 

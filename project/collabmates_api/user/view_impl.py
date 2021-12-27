@@ -2,6 +2,7 @@ import json
 from django.http import JsonResponse
 from rest_framework.views import APIView
 
+from collabmates_api.utility import single_community_view_version_check
 from utility.exception_utilities import InvalidHeaderException
 from utility.request_utilities import RequestUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
@@ -130,13 +131,25 @@ class FetchDmHome(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        community_id = request.GET.get('community_id', None)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
 
-        user_manager = UserImpl(user_id=member_id, platform_code=platform_code, version_code=version_code)
+        if single_community_view_version_check(platform_code, version_code):
+            if not community_id:
+                return JsonResponse({
+                    'status': status_codes.HTTP_400_BAD_REQUEST,
+                    'success': False,
+                    'error_message': 'missing required parameter: community_id'
+                })
+
+        user_manager = UserImpl(user_id=member_id,
+                                community_id=community_id,
+                                platform_code=platform_code,
+                                version_code=version_code)
         user_context = user_manager.fetch_dm_home()
 
         if 'error_message' in user_context:

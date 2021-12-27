@@ -82,8 +82,8 @@ class ModerationHistoryTypes:
     REJOINED_COMMUNITY_PUBLIC_LINK = 11
     REJOINED_COMMUNITY_PRIVATE_LINK = 12
     APPLIED_PUBLIC_LINK_WEBSITE = 13
-    APPLIED_PUBLIC_LINK_TEXT = "Applied via public link from "
-    APPLIED_PRIVATE_LINK_TEXT = "Joined via private link from "
+    APPLIED_PUBLIC_LINK_TEXT = "Applied via invite link from "
+    APPLIED_PRIVATE_LINK_TEXT = "Joined via invite link from "
     APPROVED_FROM_TEXT = "Approved from "
     MEMBER_PERMISSION_EDITED_TEXT = "Member permission edited by "
     MANAGER_PERMISSION_EDITED_TEXT = "Management permission edited by "
@@ -93,8 +93,8 @@ class ModerationHistoryTypes:
     LEFT_COMMUNITY_TEXT = "Left community"
     STARTED_COMMUNITY_TEXT = "Started this community"
     TRANSFERRED_OWNERSHIP_TEXT = "Transferred ownership to "
-    REJOINED_COMMUNITY_PUBLIC_LINK_TEXT = "Rejoined via public link from  "
-    REJOINED_COMMUNITY_PRIVATE_LINK_TEXT = "Rejoined via private link from "
+    REJOINED_COMMUNITY_PUBLIC_LINK_TEXT = "Rejoined via invite link from  "
+    REJOINED_COMMUNITY_PRIVATE_LINK_TEXT = "Rejoined via invite link from "
     APPLIED_PUBLIC_LINK_WEBSITE_TEXT = "Applied via community website"
 
 

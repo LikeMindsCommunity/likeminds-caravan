@@ -48,10 +48,17 @@ info_logger = LoggingWrapper.get_instance()
 
 class UserImpl(UserManager):
     user_id = None
+    community_id = None
     mobile_no = None
 
-    def __init__(self, user_id: str, mobile_no: str = None, platform_code: str = None, version_code: int = 0):
+    def __init__(self,
+                 user_id: str,
+                 community_id: str = None,
+                 mobile_no: str = None,
+                 platform_code: str = None,
+                 version_code: int = 0):
         self.user_id = user_id
+        self.community_id = community_id
         self.mobile_no = mobile_no
         self.platform_code = platform_code
         self.version_code = version_code
@@ -61,6 +68,12 @@ class UserImpl(UserManager):
 
     def set_user_id(self, user_id):
         self.user_id = user_id
+
+    def get_community_id(self):
+        return self.community_id
+
+    def set_community_id(self, community_id):
+        self.community_id = community_id
 
     def get_mobile_no(self):
         return self.mobile_no
@@ -605,9 +618,14 @@ class UserImpl(UserManager):
 
         is_cm = False
 
-        # Get all communities user is part of
-        communities_list = list(ModelUtilities.get_model_filter(Members, {"member_id": user_instance}).values_list(
-            "community_id_id", flat=True))
+        if self.get_community_id():
+            communities_list = list(self.get_community_id())
+
+        else:
+            communities_list = list(ModelUtilities.get_model_filter(Members, {
+                "member_id": user_instance
+            }).values_list(
+                "community_id_id", flat=True))
 
         communities = ModelUtilities.get_model_filter(communityRightsSettings,
                                                       {"community__id__in": communities_list,

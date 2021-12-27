@@ -116,27 +116,32 @@ def get_inactive_chatrooms_count_in_community(community_id, user_id, current_tim
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_inactive_followed_chatrooms_count(user_id, current_time, version_code, platform_code, consider_dm_chatrooms=False,
-                                          dm_instance_community_ids_list=[], intro_room_community_list=[]):
-    '''function to get active chatrooms based on community and user'''
+def get_inactive_followed_chatrooms_count(user_id,
+                                          current_time,
+                                          version_code,
+                                          platform_code,
+                                          consider_dm_chatrooms=False,
+                                          dm_instance_community_ids_list=[],
+                                          community_id=None,
+                                          intro_room_community_list=[]):
+    """function to get active chatrooms based on community and user"""
 
     try:
+        is_private = "FALSE"
+        chatroom_with_user_id_val = "NULL"
+        dm_chatrooms_communities_filter = ""
 
-        is_sql = True
+        if community_id:
+            dm_chatrooms_communities_filter = f"AND community_id IN ({str(community_id)})"
 
-        if not consider_dm_chatrooms:
-            is_private = "FALSE"
-            chatroom_with_user_id_val = "NULL"
-            dm_chatrooms_communities_filter = ""
+        if consider_dm_chatrooms and len(dm_instance_community_ids_list) == 0:
+            return 0
 
-        else:
+        if consider_dm_chatrooms and len(dm_instance_community_ids_list) != 0:
             is_private = "TRUE"
             chatroom_with_user_id_val = "NOT NULL"
-            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([str(i) for i in
-                                                                                     dm_instance_community_ids_list])
-
-            if len(dm_instance_community_ids_list) == 0:
-                is_sql = False
+            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([
+                str(i) for i in dm_instance_community_ids_list])
 
         if is_version_code_supported_for_intro_room(version_code, platform_code):
 
@@ -150,12 +155,9 @@ def get_inactive_followed_chatrooms_count(user_id, current_time, version_code, p
 
             else:
                 filter_intro_rooms_query = """type IN ( 1, 9 )"""
-        
+
         else:
             filter_intro_rooms_query = """type = -1"""
-
-        if not is_sql:
-            return 0
 
         conn = get_connection()
         curr = conn.cursor()
@@ -172,9 +174,14 @@ def get_inactive_followed_chatrooms_count(user_id, current_time, version_code, p
                                              FROM   togther_collabcard
                                              WHERE  is_private = %s
                                              AND not (%s)
-                                             AND chatroom_with_user_id IS %s %s) """ % \
-              (str(user_id), str(current_time), is_private, str(filter_intro_rooms_query),
-               chatroom_with_user_id_val, dm_chatrooms_communities_filter)
+                                             AND chatroom_with_user_id IS %s %s) """ % (
+            str(user_id),
+            str(current_time),
+            is_private,
+            str(filter_intro_rooms_query),
+            chatroom_with_user_id_val,
+            dm_chatrooms_communities_filter
+        )
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -186,27 +193,32 @@ def get_inactive_followed_chatrooms_count(user_id, current_time, version_code, p
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
-def get_active_my_chatrooms_count(user_id, current_time, version_code, platform_code, consider_dm_chatrooms=False,
-                                  dm_instance_community_ids_list=[], intro_room_community_list=[]):
-    '''function to give the count of active my chatrooms'''
+def get_active_my_chatrooms_count(user_id,
+                                  current_time,
+                                  version_code,
+                                  platform_code,
+                                  consider_dm_chatrooms=False,
+                                  dm_instance_community_ids_list=[],
+                                  community_id=None,
+                                  intro_room_community_list=[]):
+    """function to give the count of active my chatrooms"""
 
     try:
+        is_private = "FALSE"
+        chatroom_with_user_id_val = "NULL"
+        dm_chatrooms_communities_filter = ""
 
-        is_sql = True
+        if community_id:
+            dm_chatrooms_communities_filter = f"AND community_id IN ({str(community_id)})"
 
-        if not consider_dm_chatrooms:
-            is_private = "FALSE"
-            chatroom_with_user_id_val = "NULL"
-            dm_chatrooms_communities_filter = ""
+        if consider_dm_chatrooms and len(dm_instance_community_ids_list) == 0:
+            return 0
 
-        else:
+        if consider_dm_chatrooms and len(dm_instance_community_ids_list) != 0:
             is_private = "TRUE"
             chatroom_with_user_id_val = "NOT NULL"
-            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([str(i) for i in
-                                                                                     dm_instance_community_ids_list])
-
-            if len(dm_instance_community_ids_list) == 0:
-                is_sql = False
+            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([
+                str(i) for i in dm_instance_community_ids_list])
 
         if is_version_code_supported_for_intro_room(version_code, platform_code):
 
@@ -224,15 +236,12 @@ def get_active_my_chatrooms_count(user_id, current_time, version_code, platform_
         else:
             filter_intro_rooms_query = """type = -1"""
 
-        if not is_sql:
-            return 0
-
         conn = get_connection()
         curr = conn.cursor()
 
         sql = """SELECT Count(id)
                 FROM   togther_conversationengage
-                WHERE  user_id =% s
+                WHERE  user_id = %s
                        AND card_id IN (SELECT card_id
                                        FROM   togther_collabcardstate
                                        WHERE  user_id = %s
@@ -247,8 +256,14 @@ def get_active_my_chatrooms_count(user_id, current_time, version_code, platform_
                                                                      AND not (%s)
                                                                      AND chatroom_with_user_id
                                                                          IS %s %s)
-                  ) """ % (str(user_id), str(user_id), str(current_time), is_private, str(filter_intro_rooms_query),
-                           chatroom_with_user_id_val, dm_chatrooms_communities_filter)
+                  ) """ % (
+            str(user_id),
+            str(user_id),
+            str(current_time),
+            is_private,
+            str(filter_intro_rooms_query),
+            chatroom_with_user_id_val,
+            dm_chatrooms_communities_filter)
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -260,31 +275,39 @@ def get_active_my_chatrooms_count(user_id, current_time, version_code, platform_
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_active_followed_chatrooms(user_id, current_time, page, version_code, platform_code, limit=10, 
-                                consider_dm_chatrooms=False, dm_instance_community_ids_list=[], intro_room_community_list=[]):
-    '''function to get the active followed chatroom count'''
+def get_active_followed_chatrooms(user_id,
+                                  current_time,
+                                  page,
+                                  version_code,
+                                  platform_code,
+                                  limit=10,
+                                  consider_dm_chatrooms=False,
+                                  dm_instance_community_ids_list=[],
+                                  community_id=None,
+                                  intro_room_community_list=[]):
+    """function to get the active followed chatroom count"""
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
-        is_sql = True
+        is_private_val = "FALSE"
+        chatroom_with_user_val = "NULL"
+        dm_chatrooms_communities_filter = ""
 
-        if consider_dm_chatrooms:
+        if community_id:
+            dm_chatrooms_communities_filter = f"AND community_id IN ({str(community_id)})"
+
+        if consider_dm_chatrooms and len(dm_instance_community_ids_list) == 0:
+            return []
+
+        if consider_dm_chatrooms and len(dm_instance_community_ids_list) != 0:
             is_private_val = "TRUE"
             chatroom_with_user_val = "NOT NULL"
-            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([str(i) for i in
-                                                                                     dm_instance_community_ids_list])
-
-            if len(dm_instance_community_ids_list) == 0:
-                is_sql = False
-
-        else:
-            is_private_val = "FALSE"
-            chatroom_with_user_val = "NULL"
-            dm_chatrooms_communities_filter = ""
+            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([
+                str(i) for i in dm_instance_community_ids_list])
 
         if is_version_code_supported_for_intro_room(version_code, platform_code):
-        
+
             if intro_room_community_list:
                 intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
                 filter_intro_rooms_query = """
@@ -298,9 +321,6 @@ def get_active_followed_chatrooms(user_id, current_time, page, version_code, pla
 
         else:
             filter_intro_rooms_query = """type = -1"""
-
-        if not is_sql:
-            return []
 
         conn = get_connection()
         curr = conn.cursor()
@@ -329,16 +349,23 @@ def get_active_followed_chatrooms(user_id, current_time, page, version_code, pla
                                               AND    chatroom_with_user_id IS %s %s) )
                 ORDER BY updated_at DESC,
                          id DESC limit %s offset %s""" % (
-            str(user_id), str(user_id), str(current_time), str(is_private_val), str(filter_intro_rooms_query),
-            str(chatroom_with_user_val), str(dm_chatrooms_communities_filter), str(limit), str(offset))
+            str(user_id),
+            str(user_id),
+            str(current_time),
+            str(is_private_val),
+            str(filter_intro_rooms_query),
+            str(chatroom_with_user_val),
+            str(dm_chatrooms_communities_filter),
+            str(limit),
+            str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()
 
         engage_list = []
-
         for id in res:
             engage_list.append(id[0])
+
         curr.close()
 
         return engage_list
@@ -347,32 +374,39 @@ def get_active_followed_chatrooms(user_id, current_time, page, version_code, pla
         error_logger.error("Error while connecting to PostgreSQL  %s", error)
 
 
-def get_inactive_followed_chatrooms(user_id, current_time, page, version_code, platform_code, limit=10, 
-                                    consider_dm_chatrooms=False, dm_instance_community_ids_list=[], 
+def get_inactive_followed_chatrooms(user_id,
+                                    current_time,
+                                    page,
+                                    version_code,
+                                    platform_code,
+                                    limit=10,
+                                    consider_dm_chatrooms=False,
+                                    dm_instance_community_ids_list=[],
+                                    community_id=None,
                                     intro_room_community_list=[]):
-    '''function to get the active followed chatroom count'''
+    """function to get the active followed chatroom count"""
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
-        is_sql = True
+        is_private_val = "FALSE"
+        chatroom_with_user_val = "NULL"
+        dm_chatrooms_communities_filter = ""
 
-        if consider_dm_chatrooms:
+        if community_id:
+            dm_chatrooms_communities_filter = f"AND community_id IN ({str(community_id)})"
+
+        if consider_dm_chatrooms and len(dm_instance_community_ids_list) == 0:
+            return []
+
+        if consider_dm_chatrooms and len(dm_instance_community_ids_list) != 0:
             is_private_val = "TRUE"
             chatroom_with_user_val = "NOT NULL"
             dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([str(i) for i in
                                                                                      dm_instance_community_ids_list])
 
-            if len(dm_instance_community_ids_list) == 0:
-                is_sql = False
-
-        else:
-            is_private_val = "FALSE"
-            chatroom_with_user_val = "NULL"
-            dm_chatrooms_communities_filter = ""
-
         if is_version_code_supported_for_intro_room(version_code, platform_code):
-        
+
             if intro_room_community_list:
                 intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
                 filter_intro_rooms_query = """
@@ -386,9 +420,6 @@ def get_inactive_followed_chatrooms(user_id, current_time, page, version_code, p
 
         else:
             filter_intro_rooms_query = """type = -1"""
-
-        if not is_sql:
-            return []
 
         conn = get_connection()
         curr = conn.cursor()
@@ -416,10 +447,16 @@ def get_inactive_followed_chatrooms(user_id, current_time, page, version_code, p
                                               AND not (%s)
                                               AND    chatroom_with_user_id IS %s %s) )
                 ORDER BY updated_at DESC,
-                         id DESC limit %s offset %s""" % (str(user_id), str(user_id), str(current_time),
-                                                          str(is_private_val), str(filter_intro_rooms_query),
-                                                          str(chatroom_with_user_val),
-                                                          str(dm_chatrooms_communities_filter), str(limit), str(offset))
+                         id DESC limit %s offset %s""" % (
+            str(user_id),
+            str(user_id),
+            str(current_time),
+            str(is_private_val),
+            str(filter_intro_rooms_query),
+            str(chatroom_with_user_val),
+            str(dm_chatrooms_communities_filter),
+            str(limit),
+            str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()
@@ -436,7 +473,7 @@ def get_inactive_followed_chatrooms(user_id, current_time, page, version_code, p
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_draft_chatrooms_on_home_screen(user_id, page, limit=10):
+def get_draft_chatrooms_on_home_screen(user_id, page, community_id):
     '''api to get draft chatroom home-screen'''
 
     try:
@@ -444,10 +481,25 @@ def get_draft_chatrooms_on_home_screen(user_id, page, limit=10):
         limit = 10
         offset = (page_number - 1) * 10
 
+        community_filter = ""
+        if community_id:
+            community_filter = f"AND community_id = {str(community_id)}"
+
         conn = get_connection()
         curr = conn.cursor()
-        sql = """select id,card_id,draft_id from togther_conversationEngage where user_id=%s order by updated_at desc,id desc limit %s offset %s""" % (
-            str(user_id), str(limit), str(offset))
+        sql = """SELECT id,
+                        card_id,
+                        draft_id
+                FROM togther_conversationEngage
+                WHERE user_id =%s
+                %s
+                ORDER BY updated_at desc, id DESC 
+                limit %s 
+                offset %s""" % (
+            str(user_id),
+            community_filter,
+            str(limit),
+            str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()

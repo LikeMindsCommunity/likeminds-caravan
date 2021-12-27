@@ -60,6 +60,7 @@ from ..search.sync import ElasticSearchSync
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check
 from ..sms import send_community_confirmation_sms
+from ..utility import single_community_view_version_check
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -100,7 +101,7 @@ class CommunityImpl(CommunityManager):
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
 
-    def _community_menu_options(self, state, community_instance) -> []:
+    def _community_menu_options(self, state, community_instance, platform_code: str, version_code: int) -> []:
 
         menu = []
         if state == member_states.ADMIN:
@@ -117,6 +118,9 @@ class CommunityImpl(CommunityManager):
 
         elif state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
             menu = MENU['member']
+
+        if single_community_view_version_check(platform_code, version_code):
+            menu.append("Subscription status")
 
         return menu
 
@@ -230,7 +234,7 @@ class CommunityImpl(CommunityManager):
 
         return chatroom_list
 
-    def fetch_community(self, client_type) -> {}:
+    def fetch_community(self, client_type, platform_code: str, version_code: int) -> {}:
 
         community_instance = CommunityHelper.fetch_community_instance(self.get_community_id())
         response_context = dict()
@@ -251,7 +255,10 @@ class CommunityImpl(CommunityManager):
             leave_community = self._leave_community_object()
             community_context['leave_community'] = leave_community
 
-        menu = self._community_menu_options(state, community_instance)
+        menu = self._community_menu_options(state,
+                                            community_instance,
+                                            platform_code,
+                                            version_code)
 
         if menu:
             community_context['menu'] = menu

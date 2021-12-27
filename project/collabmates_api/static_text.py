@@ -550,6 +550,10 @@ SUBSCRIPTION_PLAN_NAMES = {
     }
 }
 
+SINGLE_COMMUNITY_VIEW_VERSION_CODE = {
+    "an": 1001,
+    "ios": 1001
+}
 
 MEMBERSHIP_PLANS_MANAGEMENT_TOOLS = {
     "title": "Membership plans",
@@ -570,3 +574,5 @@ CM_ONBOARDING_COMMUNITY_FEED_URL_ANDROID_ROUTE = "likeminds://chatroom_new_feed?
 
 PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST = "The private invite link has expired. Continue to join the community and " \
                                         "wait for admin’s approval. Or, ask {} to resend a private invite link."
+
+COMMUNITY_MEMBER_PROFILE_MEMBER_SINCE_TEXT = "Member since {}"

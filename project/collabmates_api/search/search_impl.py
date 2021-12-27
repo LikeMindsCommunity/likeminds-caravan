@@ -244,14 +244,21 @@ class SearchImpl(SearchManager):
             }
         }
 
-    def _fetch_user_chatrooms_id_list(self):
+    def _fetch_user_chatrooms_id_list(self, community_id: int) -> list:
+        filter_dict = {
+            'user__id': self.get_member_id(),
+            'card__is_deleted': False,
+            'card__is_private': False,
+            'secret_chatroom_left': False,
+            'follow_status': self.get_follow_status(),
+            'remove': None
+        }
+
+        if community_id:
+            filter_dict['community_id'] = community_id
+
         return list(collabcardState.objects
-                    .filter(user__id=self.get_member_id(),
-                            card__is_deleted=False,
-                            card__is_private=False,
-                            secret_chatroom_left=False,
-                            follow_status=self.get_follow_status(),
-                            remove=None)
+                    .filter(**filter_dict)
                     .values_list('card_id', flat=True))
 
     def _fetch_user_community_id_list_with_respond_right(self):
@@ -289,9 +296,14 @@ class SearchImpl(SearchManager):
 
         return is_disabled
 
-    def search_chatroom(self):
+    def search_chatroom(self, community_id: int):
 
-        res = Search.from_dict(self._get_chatroom_search_ngram_query_dict()).execute()
+        search_query_dict = self._get_chatroom_search_ngram_query_dict()
+
+        if community_id:
+            self._append_community_id(search_query_dict, community_id)
+
+        res = Search.from_dict(search_query_dict).execute()
 
         context = {
             'chatrooms': [hit.to_dict() for hit in res]
@@ -299,9 +311,20 @@ class SearchImpl(SearchManager):
 
         return context
 
-    def search_conversation(self):
+    @staticmethod
+    def _append_community_id(search_query_dict: dict, community_id: int) -> None:
+        community_id_param_dict = {
+            "term": {
+                "community.id": community_id
+            }
+        }
 
-        chatroom_id_list = self._fetch_user_chatrooms_id_list()
+        must_params_dict = search_query_dict['query']['bool']['must']
+        must_params_dict.append(community_id_param_dict)
+
+    def search_conversation(self, community_id: int):
+
+        chatroom_id_list = self._fetch_user_chatrooms_id_list(community_id)
 
         res = Search.from_dict(self._get_conversation_search_ngram_query_dict(chatroom_id_list)).execute()
 
@@ -311,9 +334,9 @@ class SearchImpl(SearchManager):
 
         return context
 
-    def search_third_party(self):
+    def search_third_party(self, community_id: int):
 
-        chatroom_data = self.search_chatroom()
+        chatroom_data = self.search_chatroom(community_id)
 
         respond_right_community_id_list = self._fetch_user_community_id_list_with_respond_right()
 
