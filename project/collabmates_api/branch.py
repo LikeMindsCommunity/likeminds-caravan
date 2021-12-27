@@ -194,14 +194,10 @@ def create_link_item(base_url, community, channel, feature, private=False, andro
         link_item['data']['$desktop_url'] = desktop_url
 
     if feature == BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL:
+        link_item["data"]['$web_only'] = True
         link_item["data"]['$ios_url'] = fallback_url
         link_item['data']['$desktop_url'] = desktop_url
-
-        if android_ios_url:
-            link_item["data"]['$android_url'] = android_ios_url
-            link_item["data"]['$android_deeplink_path'] = android_ios_url
-            link_item["data"]['deep_link'] = android_ios_url
-            link_item["data"]['android_deep_link'] = android_ios_url
+        link_item["data"]['$android_url'] = fallback_url
 
     return link_item
 

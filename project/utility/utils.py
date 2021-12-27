@@ -166,10 +166,7 @@ def generate_private_link(community_instance, promoter_instance, just_send_aj=Fa
 
     else:
 
-        current_time = int(time.time())
-        last_created_time = community_expire_filter[0].created_at
-
-        if (current_time - last_created_time > 3600) or community_instance.is_paid:
+        if community_instance.is_paid:
             unique_code = generate_random(distinct_unique_codes_in_db)
             expireInstance = communityExpiryCodes()
             expireInstance.community = community_instance

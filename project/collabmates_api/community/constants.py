@@ -57,25 +57,27 @@ DOWNLOAD_SETTING_TYPE_TITLE_MAPPING = {
     "screen_record": "Allow screenshots & screen recording"
 }
 
-# COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
-#     "intro_room": "Introductions Room",
-#     "members_auto_join": "Members auto-join"
-# }
-#
-# COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
-#     "intro_room": "Introduction rooms are used to welcome new members in your communities. If the feature is turned "
-#                   "off, Introduction rooms and intro rooms would be hidden.",
-#     "members_auto_join": "If disabled, members will need approval from the community manager to join the community."
-# }
+if settings.IS_BETA:
+    COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
+        "intro_room": "Introductions Room",
+        "members_auto_join": "Members auto-join"
+    }
 
-COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
-    "intro_room": "Introductions Room"
-}
+    COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
+        "intro_room": "Introduction rooms are used to welcome new members in your communities. If the feature is "
+                      "turned off, Introduction rooms and intro rooms would be hidden.",
+        "members_auto_join": "If disabled, members will need approval from the community manager to join the community."
+    }
 
-COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
-    "intro_room": "Introduction rooms are used to welcome new members in your communities. If the feature is turned "
-                  "off, Introduction rooms and intro rooms would be hidden."
-}
+else:
+    COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
+        "intro_room": "Introductions Room"
+    }
+
+    COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
+        "intro_room": "Introduction rooms are used to welcome new members in your communities. If the feature is "
+                      "turned off, Introduction rooms and intro rooms would be hidden."
+    }
 
 INTRO_ROOM_SETTING_DISABLED_TOAST = "Introduction Room has been turned off by the community manager."
 
@@ -107,8 +109,6 @@ CREATE_EVENT_DASHBOARD_LINK = web_url + "/dashboard/{}/events"
 
 MAX_NUMBER_OF_TIMES_GETTING_STARTED_EMAIL_SHOULD_FIRE = 7
 FREQUENCY_OF_GETTING_STARTED_EMAIL_IN_MINS = 1440
-
-CM_ONBOARDING_DASHBOARD_LINK = "test_link"
 
 DEFAULT_COMMUNITY_FIELD_TYPE_NAME = 'default'
 DEFAULT_COMMUNITY_FIELD_TYPE_RANK = 999

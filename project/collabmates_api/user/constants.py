@@ -126,7 +126,6 @@ CM_ONBOARDING_LANDING_TYPE = 'cm_onboarding'
 FIRST_LOGIN_NON_FORM_CM_MAIL_SUBJECT = "You are one step away from building your community!"
 FIRST_LOGIN_NON_FORM_CM_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
 FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_TEXT = "CREATE COMMUNITY"
-FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_LINK = web_url + "/create_community"
 DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"
 LIKEMINDS_LOGO = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flogo.png?alt=media&token=2e66c0e5-35ef-4f94-ad2b-356c78eeaaba"
 

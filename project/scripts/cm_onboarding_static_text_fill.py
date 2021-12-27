@@ -7,6 +7,7 @@ from collabmates_api.views import post_general_collabcard_for_community
 from django.db.models import Q
 import time
 from utility.time_utilities import TimeUtilities
+from collabmates_api.static_text import GENERAL_CHAT_TITLE_TEXT, GENERAL_CHAT_HEADER
 
 COMMUNITY_HOOD_COMMUNITY_ID = 49751
 
@@ -306,7 +307,22 @@ def add_general_chatroom_in_previous_communitites():
 
     all_communities_filter = ModelUtilities.get_model_filter(Community, {})
 
+    communities_count = len(all_communities_filter)
+
     for community_instance in all_communities_filter:
+
+        print("Communities left", communities_count)
+        communities_count -= 1
+
+        filter_dict = {
+            'community': community_instance,
+            'title': GENERAL_CHAT_TITLE_TEXT,
+            'type': card_types.CARD_NORMAL,
+            'header': GENERAL_CHAT_HEADER,
+        }
+
+        if ModelUtilities.is_model_filter_exists(Collabcard, filter_dict):
+            continue
 
         community_owner_filter = ModelUtilities.get_model_filter(Members,
                                                                  {'community_id': community_instance,
@@ -316,7 +332,7 @@ def add_general_chatroom_in_previous_communitites():
             continue
 
         community_owner_instance = community_owner_filter[0]
-        post_general_collabcard_for_community(community_instance, community_owner_instance.id)
+        post_general_collabcard_for_community(community_instance, community_owner_instance.member_id_id)
 
 
 print("Started")

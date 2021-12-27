@@ -3958,12 +3958,6 @@ def fill_share_context_for_paid_community_v2(community_instance, share_context, 
         community_share['private_link_text'] = SHARE_TEXT_ADMIN_PRIVATE_PAID_COMMUNITY % (
             community_name, branch_links[1]['url'], aj)
 
-        community_share['private_link_members_directory'] = branch_links[2]['url']
-        private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
-            community_name, branch_links[2]['url'], aj)
-
-        community_share['private_link_text_members_directory'] = private_link_text_members_directory
-
     else:
         community_share['public_link'] = branch_links[0]['url']
         community_share['public_link_text'] = SHARE_TEXT_MEMBER_PUBLIC % (
@@ -4009,7 +4003,6 @@ def fill_share_context_for_unpaid_community_v2(community_instance, share_context
         return
 
     community_share['private_link'] = branch_links[1]['url']
-    community_share['private_link_members_directory'] = branch_links[2]['url']
 
     if share_context['user_has_approve_right']:
         members_count = get_members_count_in_community(community_instance.id)
@@ -4022,16 +4015,9 @@ def fill_share_context_for_unpaid_community_v2(community_instance, share_context
             community_share['private_link_text'] = PRIVATE_LINK_TEXT_ADMIN_2 % (
                 community_name, branch_links[1]['url'], aj)
 
-        private_link_text_members_directory = PRIVATE_LINK_TEXT_MEMBERS_DIRECTORY_1 % (
-            community_name, branch_links[2]['url'], aj)
-
-        community_share['private_link_text_members_directory'] = private_link_text_members_directory
-
     else:
         community_share['private_link_text'] = SHARE_TEXT_MEMBER % (
             community_name, community_share['private_link'], aj)
-        community_share['private_link_text_members_directory'] = MEMBER_DIRECTORY_LINK_FOR_PERMITTED_USER % (
-            community_share['private_link_members_directory'])
 
 
 def fill_share_context_for_unpaid_community(community_instance, share_context, community_share):
@@ -9391,7 +9377,6 @@ def edit_community_questions(request):
             mail_template = get_template('mails/cm_onboarding/customise_join_form_cm_onboarding.html').render({
                 "community_name": community_instance.name,
                 "cm_name": user_instance.userinfo.name,
-                "dashboard_link": CM_ONBOARDING_CREATE_COMMUNITY_DASHBOARD_LINK,
                 "community_brand_color": community_instance.brand_color if community_instance.brand_color else
                 DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
                 "button_text": GETTING_STARTED_CM_BUTTON_TEXT,

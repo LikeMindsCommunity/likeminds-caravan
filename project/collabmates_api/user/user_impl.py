@@ -34,7 +34,8 @@ from ..views import remove_members, remove_all_member_rights, remove_all_manager
 from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
 from ..rest_api import CommunitySerializerV1
 from ..serializers import get_logged_in_user
-from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS
+from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
+    CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper
@@ -1274,7 +1275,7 @@ class UserHelper:
                 "cm_name": user_instance.userinfo.name,
                 "community_brand_color": DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
                 "button_text": FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_TEXT,
-                "button_link": FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_LINK
+                "button_link": CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
             })
 
             send_email_response = MailWrapper.send_email(mail_subject, mail_template, [user_instance.userinfo.email],

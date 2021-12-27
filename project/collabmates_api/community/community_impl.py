@@ -1273,7 +1273,8 @@ class CommunityImpl(CommunityManager):
 
         update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
 
-        CommunityHelper.send_create_community_welcome_whatsapp_message.delay(user_instance.id)
+        CommunityHelper.send_create_community_welcome_whatsapp_message.delay(user_instance.id,
+                                                                             community_instance.id)
         CommunityHelper.send_communtiy_creation_segment_events.delay(user_instance.id,
                                                                      SEGMENT_COMMUNITY_CREATION_EVENT_NAME,
                                                                      {"community_id": community_instance.id,
@@ -2052,7 +2053,7 @@ class CommunityHelper:
         return re.fullmatch(EMAIL_VALIDATION_REGEX, email_id)
 
     @staticmethod
-    def create_community_creation_whatsapp_context_dict(user_instance, cm_primary_mobile):
+    def create_community_creation_whatsapp_context_dict(user_instance, cm_primary_mobile, community_dash_link_path):
         receivers_list = [
             {
                 'whatsappNumber': '{}{}'.format(cm_primary_mobile.country_code, cm_primary_mobile.mobile_no),
@@ -2063,7 +2064,7 @@ class CommunityHelper:
                     },
                     {
                         "name": "link",
-                        "value": CM_ONBOARDING_DASHBOARD_LINK
+                        "value": community_dash_link_path
                     }
                 ]
             }
@@ -2073,11 +2074,16 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def send_create_community_welcome_whatsapp_message(user_id):
+    def send_create_community_welcome_whatsapp_message(user_id, community_id):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
+            return
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
             return
 
         cm_primary_mobile = ModelUtilities.get_model_filter(userMobiles,
@@ -2089,8 +2095,13 @@ class CommunityHelper:
 
         cm_primary_mobile = cm_primary_mobile[0]
 
+        branch_link = create_community_feed_url_for_cm_onboarding(community_instance)
+
+        community_dash_link_path = UrlUtilities.extract_part_from_url(branch_link, 'path', init_slash_off=True)
+
         receivers_list = CommunityHelper.create_community_creation_whatsapp_context_dict(user_instance,
-                                                                                         cm_primary_mobile)
+                                                                                         cm_primary_mobile,
+                                                                                         community_dash_link_path)
 
         template_name = broadcast_name = WHATSAPP_COMMUNITY_CREATED_TEMPLATE_FOR_CM_NAME
         NotificationImpl.send_bulk_wa_notification.delay(receivers_list, template_name, broadcast_name)
