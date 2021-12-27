@@ -108,16 +108,13 @@ def paginate_list(queryset, page_number, paginate_by=10):
 
 
 def single_community_view_version_check(platform_code: str, version_code: int) -> bool:
-    if not platform_code or platform_code.lower() not in ["an", "ios", "web"]:
+    if not platform_code or platform_code.lower() not in ["an", "ios"]:
         return False
 
     elif platform_code == "an" and version_code >= SINGLE_COMMUNITY_VIEW_VERSION_CODE[platform_code]:
         return True
 
     elif platform_code == "ios" and version_code >= SINGLE_COMMUNITY_VIEW_VERSION_CODE[platform_code]:
-        return True
-
-    elif platform_code == "web":
         return True
 
     return False
