@@ -10,7 +10,8 @@ from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL, CM_ONBOARDING_COMMUNI
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
                                BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
-                               BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL)
+                               BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL, COMMUNITY_HOOD_ID,
+                               COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE)
 from utility.api_client import ApiClient
 
 info_logger = LoggingWrapper.get_instance()
@@ -161,6 +162,10 @@ def create_link_item(base_url, community, channel, feature, private=False, andro
             '$uri_redirect_mode': 1,
         }
     }
+
+    if community.id == COMMUNITY_HOOD_ID:
+        link_item["type"] = BRANCH_LINK_TYPE
+        link_item["data"]["$marketing_title"] = COMMUNITY_HOOD_MARKETING_TITLE
 
     fallback_url = desktop_url = 'https://%s' % base_url
 

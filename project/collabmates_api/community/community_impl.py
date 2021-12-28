@@ -19,6 +19,7 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.number_utilities import NumberUtilities
 from external_services.email.email_wrapper import MailWrapper
+from external_services.airtable.airtable_wrapper import AirtableWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
@@ -1875,6 +1876,7 @@ class CommunityHelper:
     def save_responses_of_member_in_community(user_id, community_id, question_list):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        userinfo_instance = user_instance.userinfo
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         if not question_list or \
@@ -1883,6 +1885,12 @@ class CommunityHelper:
             return
 
         question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(question_list)
+        airtable_data = {
+            'user_id': user_id,
+            'community_id': community_id,
+            'user_name': userinfo_instance.name,
+            'question_list': {}
+        }
 
         for question in question_list:
 
@@ -1907,7 +1915,11 @@ class CommunityHelper:
                                                                                    community_instance)
             CommunityHelper.save_profile_links_for_social_handles(question_instance, answer_instance)
 
+            airtable_data['question_list'][question_instance.id] = question.get('value')
+
         CommunityHelper.update_hidden_fields_in_member_responses(user_instance, community_instance)
+        airtable_manager = AirtableWrapper()
+        airtable_manager.send_data(airtable_data)
 
     @staticmethod
     def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None):

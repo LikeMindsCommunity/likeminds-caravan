@@ -1,3 +1,5 @@
+from django.conf import settings
+
 # MSG91 API urls
 MSG91_SENDOTP_URI = 'https://api.msg91.com/api/v5/otp?authkey=%s&template_id=%s&mobile=%s&invisible=0&otp_expiry=10'
 MSG91_VERIFYOTP_URI = 'https://api.msg91.com/api/v5/otp/verify?authkey=%s&mobile=%s&otp=%s'
@@ -82,3 +84,7 @@ SUBSCRIPTION_FETCH_EVENT_PLAN = "api/subscription/fetch_event_plan"
 COMMUNITY_PUBLIC_URL = "%s/community/%s"
 
 CONVERSATIONS_UNREAD_USER_CHATROOM_KEY = "conversations_unread_%s_%s"
+
+COMMUNITY_HOOD_ID = 49751
+COMMUNITY_HOOD_MARKETING_TITLE = "CH onboarding beta" if settings.IS_BETA else "CH onboarding prod"
+BRANCH_LINK_TYPE = 2
