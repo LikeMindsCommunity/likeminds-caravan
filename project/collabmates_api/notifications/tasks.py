@@ -337,8 +337,8 @@ def schedule_email_notifications_for_event(payload_for_email_comms, response_dic
 
         if send_allowed:
             send_email_with_custom_from_email(context['subject'], context['template'], context['from_email'],\
-                                            context['to_mails_list'], categories=context.get('categories'), \
-                                            reply_to=context['reply_to'])
+                                            context['to_mails_list'], context['bcc_mails_list'], \
+                                            categories=context.get('categories'), reply_to=context['reply_to'])
 
     except Exception as e:
         error_logger.exception("got error in send_email_notification_for_event_type | error - %s | payload received = %s |\
@@ -346,13 +346,15 @@ def schedule_email_notifications_for_event(payload_for_email_comms, response_dic
 
 
 @shared_task
-def send_email_with_custom_from_email(subject, template, from_email, to_mails_list, categories=None, reply_to=None):
+def send_email_with_custom_from_email(subject, template, from_email, to_mails_list, bcc_mails_list, \
+                                    categories=None, reply_to=None):
 
     fail_silently = False
     msg = EmailMultiAlternatives(subject=subject,
                                  body=template,
                                  from_email=from_email,
                                  to=to_mails_list,
+                                 bcc=bcc_mails_list,
                                  reply_to=reply_to,
                                 )
     msg.attach_alternative(template, "text/html")
