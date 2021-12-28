@@ -6389,18 +6389,22 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
     else:
 
         state_instance = is_present[0]
+        should_update_time = False
 
-        if state_instance.state == 0:
+        if state_instance.state == collabcard_states.COLLABCARD_STATE_UNSEEN:
             state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+            should_update_time = True
 
-            if not state_instance.external_seen:
-                state_instance.external_seen = True
-                state_instance.expiry_time = expiry_time
-                state_instance.updated_at = TimeUtilities.current_time_in_sec()
+        if not state_instance.external_seen:
+            state_instance.external_seen = True
+            should_update_time = True
 
-            state_instance.save()
+        if should_update_time:
+            state_instance.expiry_time = expiry_time
+            state_instance.updated_at = TimeUtilities.current_time_in_sec()
 
-            update_last_unseen_in_engage(user=user_instance, community=community)
+        state_instance.save()
+        update_last_unseen_in_engage(user=user_instance, community=community)
 
 
 @csrf_exempt
