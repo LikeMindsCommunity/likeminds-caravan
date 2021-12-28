@@ -620,7 +620,7 @@ class UserImpl(UserManager):
         is_cm = False
 
         if self.get_community_id():
-            communities_list = list(self.get_community_id())
+            communities_list = [self.get_community_id()]
 
         else:
             communities_list = list(ModelUtilities.get_model_filter(Members, {

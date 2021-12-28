@@ -701,14 +701,14 @@ def get_home_screen_community_actions(community_instance):
     actions = []
 
     community_details = {
-        'title': "View community details",
+        'title': "Community details",
         'route': """route://community?community_id=%s""" % (str(community_instance.id))
     }
 
     actions.append(community_details)
 
     member_directory = {
-        'title': "View member directory",
+        'title': "Member directory",
         'route': """route://members_directory?community_id=%s&community_name=%s""" % (
             str(community_instance.id), community_instance.name)
     }
@@ -716,7 +716,7 @@ def get_home_screen_community_actions(community_instance):
     actions.append(member_directory)
 
     invite_members = {
-        'title': "Invite members to this community",
+        'title': "Invite members",
         'route': """route://community?community_id=%s&share=true""" % (
             str(community_instance.id))
     }

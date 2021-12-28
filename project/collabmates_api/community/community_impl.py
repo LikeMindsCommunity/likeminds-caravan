@@ -121,7 +121,7 @@ class CommunityImpl(CommunityManager):
             menu = MENU['member']
 
         if single_community_view_version_check(platform_code, version_code):
-            menu.append("Subscription status")
+            menu = menu + MENU["Subscription"]
 
         return menu
 

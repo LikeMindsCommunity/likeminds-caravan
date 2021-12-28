@@ -21,6 +21,9 @@ MENU = {
     ],
     'pending_member_in_paid_community': [
         'Cancel membership request'
+    ],
+    "Subscription": [
+        "Subscription status"
     ]
 }
 
