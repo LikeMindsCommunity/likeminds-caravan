@@ -30,7 +30,7 @@ from .tasks_manager import TaskManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 error_logger = LoggingWrapper.get_instance()
 
-url = settings.URL 
+url = settings.WEB_URL 
 
 
 class TasksImpl(TaskManager):
