@@ -1297,7 +1297,7 @@ def post_purpose_collabcard_for_community(request, community_instance, member_id
     return context['card_instance']
 
 
-def post_general_collabcard_for_community(community_instance, member_id):
+def post_general_collabcard_for_community(community_instance, member_id, is_script=False):
     '''function to post general card for community'''
 
     req_dict = {
@@ -1311,9 +1311,11 @@ def post_general_collabcard_for_community(community_instance, member_id):
         'include_members_later': True
     }
 
-    if ModelUtilities.is_model_filter_exists(Collabcard, {'community': community_instance.id,
-                                                          'type': card_types.CARD_NORMAL}):
-        return
+    if not is_script:
+
+        if ModelUtilities.is_model_filter_exists(Collabcard, {'community': community_instance.id,
+                                                              'type': card_types.CARD_NORMAL}):
+            return
 
     context = create_card_internal(member_id, community_instance.id, req_dict)
 

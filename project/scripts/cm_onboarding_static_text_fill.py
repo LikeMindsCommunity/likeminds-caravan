@@ -332,7 +332,7 @@ def add_general_chatroom_in_previous_communitites():
             continue
 
         community_owner_instance = community_owner_filter[0]
-        post_general_collabcard_for_community(community_instance, community_owner_instance.member_id_id)
+        post_general_collabcard_for_community(community_instance, community_owner_instance.member_id_id, is_script=True)
 
 
 print("Started")
