@@ -15,7 +15,7 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     post_purpose_collabcard_for_community, post_master_introductions_for_community, post_member_directory_link, \
     post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share, \
     fill_share_context_for_paid_community, fill_share_context_for_unpaid_community, \
-    check_join_community_hood_get_started
+    check_join_community_hood_get_started, add_community_upload_image_analytics
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.number_utilities import NumberUtilities
 from external_services.email.email_wrapper import MailWrapper
@@ -1209,11 +1209,14 @@ class CommunityImpl(CommunityManager):
                                                         'members_count': 1,
                                                         'purpose': validate_req_body['headline'],
                                                         'brand_color': validate_req_body['brand_color'],
-                                                        'image_link': community_default_image,
+                                                        'image_link': validate_req_body['image_url'],
                                                         'thumbnail': community_default_thumbnail,
                                                         'type': community_field_type_filter[0].id,
                                                         'sub_type': community_field_sub_type_filter[0].id,
                                                         'hide_community': community_state})
+
+        if validate_req_body.get('has_logo_uploaded', False):
+            add_community_upload_image_analytics.delay(user_instance.id, community_instance.id, community_instance.name)
 
         self.set_community_id(community_instance.id)
 
@@ -2023,6 +2026,9 @@ class CommunityHelper:
 
         if 'brand_color' not in req_body:
             return {'success': False, 'error_message': 'Empty brand color!'}
+
+        if 'image_url' not in req_body:
+            return {'success': False, 'error_message': 'Empty image url!'}
 
         return req_body
 
