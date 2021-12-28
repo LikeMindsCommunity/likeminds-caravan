@@ -24,13 +24,13 @@ from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_S
                         MAIL_EVENT_NOTIFICATION, CHATROOM_URL, POST_EVENT_ATTENDEES_LINK, TIME_9_AM, \
                         SUBJECT_EVENT_CREATION_MAIL, SUBJECT_EVENT_LAST_CALL_MAIL, SUBJECT_EVENT_ATTENDANCE_MAIL, \
                         SUBJECT_EVENT_REGISTRATION_MAIL, SUBJECT_POST_EVENT_ATTENDEES_MAIL, SUBJECT_POST_EVENT_ATTACHMENT_MAIL, \
-                        SENDER_FOR_EMAIL_COMMS, PAID_EVENT_REGISTRATION_SOUND
+                        SENDER_FOR_EMAIL_COMMS, PAID_EVENT_REGISTRATION_SOUND, TO_FOR_EMAIL_COMMS
 from .tasks_manager import TaskManager
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 error_logger = LoggingWrapper.get_instance()
 
-url = settings.URL 
+url = settings.WEB_URL 
 
 
 class TasksImpl(TaskManager):
@@ -700,7 +700,8 @@ class TasksHelper:
 
         context = {
             'from_email': SENDER_FOR_EMAIL_COMMS,
-            'to_mails_list': to_mails_list,
+            'to_mails_list': [TO_FOR_EMAIL_COMMS],
+            'bcc_mails_list': to_mails_list,
             'reply_to': reply_to
         }
 
