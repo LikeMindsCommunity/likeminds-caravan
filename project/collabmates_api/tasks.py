@@ -848,10 +848,10 @@ def request_api(method, api_url, headers, payload):
     return response
 
 
-@app.task
-def task_to_send_intro_notifications():
-    # print("chal ja bhai")
-    send_intro_room_evening_notifications()
+# @app.task
+# def task_to_send_intro_notifications():
+#     # print("chal ja bhai")
+#     send_intro_room_evening_notifications()
 
 
 def send_cm_onboarding_getting_started_email():
@@ -890,9 +890,9 @@ def send_cm_onboarding_getting_started_email():
     return
 
 
-@app.task
-def send_daily_emails():
-    send_cm_onboarding_getting_started_email()
+# @app.task
+# def send_daily_emails():
+#     send_cm_onboarding_getting_started_email()
 
 
 def cm_onboarding_version_check(platform_code, version_code):

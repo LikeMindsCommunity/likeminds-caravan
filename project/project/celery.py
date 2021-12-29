@@ -36,38 +36,38 @@ app.conf.beat_schedule = {
     #   'schedule': crontab(hour=8, minute=0),
     #   minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
     # },
-    'send_pending_request_notification_at_8am': {
-        'task': 'collabmates_api.notification.send_morning_pending_request_notification',
-        'schedule': crontab(hour=8, minute=0),
-    },
-    'send_level_notification_at_8pm': {
-        'task': 'collabmates_api.notification.send_evening_level_notification',
-        'schedule': crontab(hour=20, minute=0),
-    },
-    'send_uninstall_notification_3am': {
-        'task': 'cms.utils.find_uninstall_devices',
-        'schedule': crontab(hour=3, minute=0),
-    },
-    'update_dashboard_daily': {
-        'task': 'cms.utils.run_daily_tasks',
-        'schedule': crontab(hour=6, minute=0),
-    },
-    'send_notification_to_inactive_chatroom_users': {
-        'task': 'collabmates_api.notification.send_notification_to_inactive_chatroom_users',
-        'schedule': 300,
-    },
+    # 'send_pending_request_notification_at_8am': {
+    #     'task': 'collabmates_api.notification.send_morning_pending_request_notification',
+    #     'schedule': crontab(hour=8, minute=0),
+    # },
+    # 'send_level_notification_at_8pm': {
+    #     'task': 'collabmates_api.notification.send_evening_level_notification',
+    #     'schedule': crontab(hour=20, minute=0),
+    # },
+    # 'send_uninstall_notification_3am': {
+    #     'task': 'cms.utils.find_uninstall_devices',
+    #     'schedule': crontab(hour=3, minute=0),
+    # },
+    # 'update_dashboard_daily': {
+    #     'task': 'cms.utils.run_daily_tasks',
+    #     'schedule': crontab(hour=6, minute=0),
+    # },
+    # 'send_notification_to_inactive_chatroom_users': {
+    #     'task': 'collabmates_api.notification.send_notification_to_inactive_chatroom_users',
+    #     'schedule': 300,
+    # },
     # 'test_task_for_beat': {
     #     'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
     #     'schedule': crontab(hour=15, minute=56),
     # },
-    'new_test_task_for_intro_room': {
-        'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
-        'schedule': crontab(hour=20, minute=53),
-    },
-    'send_daily_emails': {
-        'task': 'collabmates_api.tasks.send_daily_emails',
-        'schedule': crontab(hour=10, minute=0),
-    }
+    # 'new_test_task_for_intro_room': {
+    #     'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
+    #     'schedule': crontab(hour=20, minute=53),
+    # },
+    # 'send_daily_emails': {
+    #     'task': 'collabmates_api.tasks.send_daily_emails',
+    #     'schedule': crontab(hour=10, minute=0),
+    # }
 }
 app.conf.timezone = 'Asia/Kolkata'
 
