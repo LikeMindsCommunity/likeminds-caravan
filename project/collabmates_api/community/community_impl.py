@@ -52,6 +52,7 @@ from utility.states import member_states, card_types, click_states, member_right
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
+from utility.states import (mobile_states)
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
 from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members
@@ -1880,6 +1881,8 @@ class CommunityHelper:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
         userinfo_instance = user_instance.userinfo
+        user_mobiles = ModelUtilities.get_model_filter(userMobiles, {'user_id': user_id,
+                                                                     'state': mobile_states.PRIMARY})
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         if not question_list or \
@@ -1888,10 +1891,14 @@ class CommunityHelper:
             return
 
         question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(question_list)
+
+        phone = '+{}{}'.format(user_mobiles[0].country_code, user_mobiles[0].mobile_no) if len(user_mobiles) else ''
+
         airtable_data = {
             'user_id': user_id,
             'community_id': community_id,
             'user_name': userinfo_instance.name,
+            'phone_number': phone,
             'question_list': {}
         }
 
