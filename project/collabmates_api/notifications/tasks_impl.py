@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.template.loader import get_template
 
-from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, userEmails
+from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, userEmails, \
+                            EventCommsCeleryTasks
 from utility.time_utilities import TimeUtilities
 from utility.utils import generate_private_link_for_chatroom
 from utility.states import member_states, mobile_states, email_states
@@ -523,6 +524,28 @@ class TasksImpl(TaskManager):
 
         return response_dict
 
+    @staticmethod
+    def log_task_detail_in_db_on_new_task_creation_or_updation(task_id, event_instance, comm_type, event_type):
+        filter_dict = {
+            'event': event_instance,
+            'comm_type': comm_type,
+            'event_type': event_type,
+            'is_deleted': False
+        }
+
+        is_task_already_created = ModelUtilities.is_model_filter_exists(EventCommsCeleryTasks , filter_dict)
+
+        if is_task_already_created:
+            task_instances = ModelUtilities.get_model_filter(EventCommsCeleryTasks, filter_dict)
+
+            task_instances.update(is_deleted=True, updated_at=TimeUtilities.current_time_in_milliseconds())
+
+            # from .tasks import delete_older_tasks_from_celery_queue
+            # delete_older_tasks_from_celery_queue(task_ids)
+
+        if task_id:
+            filter_dict['task_id'] = task_id
+            EventCommsCeleryTasks.create_instance(filter_dict)
         
 class TasksHelper:
 
@@ -799,3 +822,14 @@ class TasksHelper:
         )
 
         return chatroom_instance
+
+    @staticmethod
+    def is_event_comms_task_deleted(task_id):
+        filter_dict = {
+            'task_id': task_id,
+            'is_deleted': True
+        }
+
+        is_event_comms_task_deleted = ModelUtilities.is_model_filter_exists(EventCommsCeleryTasks , filter_dict)
+
+        return is_event_comms_task_deleted

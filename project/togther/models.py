@@ -3082,3 +3082,38 @@ class UserEmailsSendStatus(models.Model):
         instance.save()
 
         return instance
+
+
+class EventCommsCeleryTasks(models.Model):
+    task_id = models.CharField(max_length=100)
+    event = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    comm_type = models.CharField(max_length=30)
+    event_type = models.CharField(max_length=30)
+    is_deleted = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(EventCommsCeleryTasks, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(task_info):
+        instance = EventCommsCeleryTasks()
+        instance.task_id = task_info.get('task_id')
+        instance.event = task_info.get('event')
+        instance.comm_type = task_info.get('comm_type')
+        instance.event_type = task_info.get('event_type')
+        instance.is_deleted = task_info.get('is_deleted')
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+        instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+        instance.save()
+
+        return instance
