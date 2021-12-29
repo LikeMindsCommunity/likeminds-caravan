@@ -1883,8 +1883,7 @@ class CommunityHelper:
         userinfo_instance = user_instance.userinfo
         user_mobiles = ModelUtilities.get_model_filter(userMobiles, {'user_id': user_id,
                                                                      'state': mobile_states.PRIMARY})
-        user_emails = ModelUtilities.get_model_filter(userEmails, {'user_id': user_id,
-                                                                   'verified': True})
+        user_emails = ModelUtilities.get_model_filter(userEmails, {'user_id': user_id})
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         if not question_list or \
