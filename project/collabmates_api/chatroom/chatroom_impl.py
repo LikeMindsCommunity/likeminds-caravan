@@ -23,7 +23,7 @@ from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of_new_event_chatrooms_created_for_user
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
-                        CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
+    CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
@@ -613,10 +613,17 @@ class ChatroomImpl(ChatroomManager):
         create_context['event_payment_link'] = req_body.get('event_payment_link')
         create_context['event_web_page'] = req_body.get('event_web_page')
 
+        if create_context.get('access') in [event_access.NON_COMMUNITY_USERS,
+                                            event_access.NON_COMMUNITY_USERS_AND_MEMBERS]:
+            create_context['access_without_subscription'] = True
+
         card_instance = Collabcard(**create_context)
         card_instance.save()
 
         self.set_chatroom_id(card_instance.id)
+
+        if req_body.get('cohort_ids'):
+            create_chatroom_cohort_instances(chatroom_id=card_instance.id, cohort_ids=req_body.get('cohort_ids'))
 
         return card_instance
 
@@ -728,6 +735,20 @@ class ChatroomImpl(ChatroomManager):
             return {'error_message': "invalid user id"}
 
         community_instance = card_instance.community
+
+        if card_instance.access not in [event_access.COMMUNITY_MEMBERS, event_access.NON_COMMUNITY_USERS_AND_MEMBERS] \
+                and card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+
+            is_promoter = Members.is_member_community_promoter(community_instance, user_instance)
+
+            if not is_promoter:
+                # If only non-members have event access, he/she should be member of of any chatroom related cohort.
+                from collabmates_api.cohort.cohort_impl import CohortHelper
+                has_event_access = CohortHelper.check_if_user_is_member_of_chatroom_related_cohort(card_instance,
+                                                                                                   user_instance)
+
+                if not has_event_access:
+                    return {'error_message': "You don't have access to this event"}
 
         chatroom_data = ChatroomHelper.compute_chatroom_response(card_instance, user_instance,
                                                                  community_instance=community_instance)
@@ -1566,8 +1587,29 @@ class ChatroomImpl(ChatroomManager):
 
         last_seen_event_chatroom_id = get_last_seen_event_chatroom_id_for_user(user_instance.id)
 
-        if not last_seen_event_chatroom_id:
+        # Fetch cohorts user is part of
+        user_cohorts = ModelUtilities.get_model_filter(CohortMember, {'user_id': self.get_member_id()}).values_list(
+            'cohort_id', flat=True)
+
+        # Get ids of chatroom in which user related cohorts are added.
+        chatroom_ids = ModelUtilities.get_model_filter(ChatroomCohort, {'cohort_id__in': user_cohorts}).values_list(
+            'id', flat=True)
+
+        # filter event chatrooms which are accessible by non community members only.
+        non_community_member_events = ModelUtilities.get_model_filter(Collabcard, {
+            'type__in': [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT],
+            'access': event_access.NON_COMMUNITY_USERS,
+            'id__in': chatroom_ids
+        }).order_by('id')
+
+        if not last_seen_event_chatroom_id and not non_community_member_events:
             return {'success': True}
+
+        elif last_seen_event_chatroom_id and non_community_member_events:
+            last_seen_event_chatroom_id = max(last_seen_event_chatroom_id, non_community_member_events[0].id)
+
+        elif non_community_member_events:
+            last_seen_event_chatroom_id = non_community_member_events[0].id
 
         event_nudge_filter = ModelUtilities.get_model_filter(EventNudge, {'user': user_instance})
 
@@ -1601,7 +1643,28 @@ class ChatroomImpl(ChatroomManager):
 
         if nudge_filter:
             card_instance = nudge_filter[0].seen_event_chatroom
+
+            # Fetch cohorts user is part of
+            user_cohorts = ModelUtilities.get_model_filter(CohortMember, {'user_id': self.get_member_id()}).values_list(
+                'cohort_id', flat=True)
+
+            filter_dict = {
+                'cohort_id__in': user_cohorts,
+                'chatroom_id__gt': card_instance.id
+            }
+
+            # Get ids of chatroom in which user related cohorts are added & chatroom_id > card_instance.id.
+            chatroom_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('id', flat=True)
+
+            # filter event chatrooms which are accessible by non community members only.
+            non_community_member_events = ModelUtilities.get_model_filter(Collabcard, {
+                'type__in': [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT],
+                'access': event_access.NON_COMMUNITY_USERS,
+                'id__in': chatroom_ids
+            }).order_by('id')
+
             unseen_count = get_count_of_new_event_chatrooms_created_for_user(card_instance.id, user_instance.id)
+            unseen_count += non_community_member_events.count()
 
         return {'count': unseen_count}
 

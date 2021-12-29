@@ -1233,6 +1233,16 @@ def get_chatroom_id_list(data):
     return chatroom_id_list
 
 
+def get_event_chatroom_id_list(data):
+    event_chatroom_ids = []
+
+    for card in data:
+        if card[8] in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+            event_chatroom_ids.append(card[0])
+
+    return event_chatroom_ids
+
+
 def get_community_id_list(member_id):
     """function to give community id list of member"""
 
@@ -2182,8 +2192,7 @@ def get_last_seen_event_chatroom_id_for_user(user_id):
                  WHERE card_id IN 
                     (SELECT id
                     FROM togther_collabcard
-                    WHERE type=2
-                            OR type=6)
+                    WHERE type in (2,6) AND access in (1,2))
                         AND user_id=%s
                  ORDER BY card_id desc limit 1
         """ % str(user_id)
@@ -2208,8 +2217,7 @@ def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
                  WHERE card_id IN 
                     (SELECT id
                     FROM togther_collabcard
-                    WHERE type=2
-                            OR type=6)
+                    WHERE type in (2,6) AND access in (1,2))
                         AND user_id=%s
                  AND card_id > %s
         """ % (str(user_id), str(card_id))
