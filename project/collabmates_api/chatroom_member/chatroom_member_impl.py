@@ -20,7 +20,7 @@ from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTI
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.number_utilities import NumberUtilities
-from utility.states import card_types, poll_types, conversation_states, event_access
+from utility.states import card_types, poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
     EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort, Collabcard
@@ -492,19 +492,6 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
             if ChatroomMemberHelper.has_attachments_uploaded(card_instance, current_user_id, device_id=self.device_id):
                 continue
-
-            if card_instance.access not in [event_access.COMMUNITY_MEMBERS, event_access.NON_COMMUNITY_USERS_AND_MEMBERS]:
-
-                is_promoter = Members.is_member_community_promoter(community_instance, user_instance)
-
-                if not is_promoter:
-                    # If only non-members have event access, he/she should be member of of any chatroom related cohort.
-                    from collabmates_api.cohort.cohort_impl import CohortHelper
-                    has_event_access = CohortHelper.check_if_user_is_member_of_chatroom_related_cohort(card_instance,
-                                                                                                       user_instance)
-
-                    if not has_event_access:
-                        continue
 
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
                                                      , {}, {})

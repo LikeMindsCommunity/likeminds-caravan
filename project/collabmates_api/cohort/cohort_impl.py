@@ -923,22 +923,3 @@ class CohortHelper:
                     'value': filter_value
                 }
                 CohortFilter.create_instance(cohort_filter_data)
-
-    @staticmethod
-    def check_if_user_is_member_of_chatroom_related_cohort(card_instance, user_instance):
-
-        if not user_instance or not card_instance:
-            return False
-
-        chatroom_cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort,
-                                                              {'chatroom': card_instance}).values_list('cohort_id',
-                                                                                                       flat=True)
-
-        cohort_member_filter = ModelUtilities.get_model_filter(CohortMember,
-                                                               {'cohort_id__in': chatroom_cohort_ids,
-                                                                'user': user_instance})
-
-        if cohort_member_filter:
-            return True
-
-        return False
