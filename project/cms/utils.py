@@ -253,15 +253,15 @@ def get_weekly_records(community, day=1):
     per_day_record.save()
 
 
-@app.task
-@shared_task
-def run_daily_tasks(day=0):
-    communities = Community.objects.filter(created_at__gte=1596157200)
-    for community in communities:
-        get_general_records(community, day)
-
-    if datetime.today().weekday() == 0:
-        run_weekly_tasks()
+# @app.task
+# @shared_task
+# def run_daily_tasks(day=0):
+#     communities = Community.objects.filter(created_at__gte=1596157200)
+#     for community in communities:
+#         get_general_records(community, day)
+#
+#     if datetime.today().weekday() == 0:
+#         run_weekly_tasks()
 
 
 def run_weekly_tasks(day=1):
@@ -284,38 +284,38 @@ def get_percent(a, b):
         return ("%.0f" % (a / b * 100) + '%')
 
 
-@app.task
-@shared_task
-def find_uninstall_devices():
-    """
-    task to be run at 3 am to check if user has app installed
-    """
-    user_devices = userDevices.objects.all()
-    all_users = User.objects.all()
-
-    for user in all_users:
-        app_uninstall, created = appUninstalls.objects.get_or_create(user=user)
-
-        # skip the user  if the uninstall days == 10
-        if app_uninstall.uninstall_days == 10:
-            continue
-
-        devices = user_devices.filter(user=user)
-        flag_installed = False
-        token_list = get_user_tokens(devices)
-
-        if len(token_list):
-            result = send_silent_notification(token_list)
-
-            if result['success'] > 0:
-                flag_installed = True
-
-        if flag_installed:
-            app_uninstall.uninstall_days = 0
-        else:
-            app_uninstall.uninstall_days = app_uninstall.uninstall_days + 1
-
-        app_uninstall.save()
+# @app.task
+# @shared_task
+# def find_uninstall_devices():
+#     """
+#     task to be run at 3 am to check if user has app installed
+#     """
+#     user_devices = userDevices.objects.all()
+#     all_users = User.objects.all()
+#
+#     for user in all_users:
+#         app_uninstall, created = appUninstalls.objects.get_or_create(user=user)
+#
+#         # skip the user  if the uninstall days == 10
+#         if app_uninstall.uninstall_days == 10:
+#             continue
+#
+#         devices = user_devices.filter(user=user)
+#         flag_installed = False
+#         token_list = get_user_tokens(devices)
+#
+#         if len(token_list):
+#             result = send_silent_notification(token_list)
+#
+#             if result['success'] > 0:
+#                 flag_installed = True
+#
+#         if flag_installed:
+#             app_uninstall.uninstall_days = 0
+#         else:
+#             app_uninstall.uninstall_days = app_uninstall.uninstall_days + 1
+#
+#         app_uninstall.save()
 
 
 def get_user_tokens(devices):

@@ -1474,84 +1474,84 @@ def send_login_dropoff_notification_scheduled(token, platform_code):
         notification_meta(notification_list, message)
 
 
-@app.task
-def send_morning_pending_request_notification():
-    ''' send morning notification at 8 am '''
-    print('sending notification')
-    Members.objects.filter(community_id=49063, member_id=504).update(state=3)
-    members = Members.objects.filter(state=member_states.PENDING_MEMBER)
-    communities = []
-    for member in members:
-        if member.community_id not in communities:
-            communities.append(member.community_id)
+# @app.task
+# def send_morning_pending_request_notification():
+#     ''' send morning notification at 8 am '''
+#     print('sending notification')
+#     Members.objects.filter(community_id=49063, member_id=504).update(state=3)
+#     members = Members.objects.filter(state=member_states.PENDING_MEMBER)
+#     communities = []
+#     for member in members:
+#         if member.community_id not in communities:
+#             communities.append(member.community_id)
+#
+#     # communities = Community.objects.filter(pk__in=)
+#     for community in communities:
+#         members = Members.objects.filter(community_id=community.id)
+#
+#         pending_members = members.filter(state=member_states.PENDING_MEMBER)
+#         pending_members_count = pending_members.count()
+#
+#         if pending_members_count > 0:
+#             promoters = members.filter(state=member_states.ADMIN)
+#             notification_list = []
+#             for promoter in promoters:
+#                 notification_details = get_token_for_fcm(promoter.member_id.id, flag=True)
+#                 temp = {
+#                     'id': promoter.member_id.id,
+#                     'fcm_token': notification_details[0],
+#                     'mobile_os': notification_details[1],
+#                 }
+#
+#                 notification_list.append(temp)
+#
+#             message = {}
+#
+#             message['payload'] = {
+#                 "title": str(community.name),
+#                 "sub_title": str(pending_members_count) + " members are awaiting your approval to join the community.",
+#                 'route': 'route://member_approve?' + 'community_id=' + str(
+#                     community.id) + "&" + "community_name=" + str(community.name)
+#
+#             }
+#
+#             if pending_members_count == 1:
+#                 message['payload']['sub_title'] = "1 member is awaiting your approval to join the community."
+#
+#             notification_meta(notification_list, message)
 
-    # communities = Community.objects.filter(pk__in=)
-    for community in communities:
-        members = Members.objects.filter(community_id=community.id)
 
-        pending_members = members.filter(state=member_states.PENDING_MEMBER)
-        pending_members_count = pending_members.count()
-
-        if pending_members_count > 0:
-            promoters = members.filter(state=member_states.ADMIN)
-            notification_list = []
-            for promoter in promoters:
-                notification_details = get_token_for_fcm(promoter.member_id.id, flag=True)
-                temp = {
-                    'id': promoter.member_id.id,
-                    'fcm_token': notification_details[0],
-                    'mobile_os': notification_details[1],
-                }
-
-                notification_list.append(temp)
-
-            message = {}
-
-            message['payload'] = {
-                "title": str(community.name),
-                "sub_title": str(pending_members_count) + " members are awaiting your approval to join the community.",
-                'route': 'route://member_approve?' + 'community_id=' + str(
-                    community.id) + "&" + "community_name=" + str(community.name)
-
-            }
-
-            if pending_members_count == 1:
-                message['payload']['sub_title'] = "1 member is awaiting your approval to join the community."
-
-            notification_meta(notification_list, message)
-
-
-@app.task
-def send_evening_level_notification():
-    ''' send evening notification at 8 pm to ask them to level up'''
-
-    community_levels = communityLevels.objects.filter(state=community_level_states.PENDING)
-    for community_level in community_levels:
-        members = Members.objects.filter(community_id=community_level.community.id, state=member_states.ADMIN)
-
-        notification_list = []
-
-        for member in members:
-            notification_details = get_token_for_fcm(member.member_id.id, flag=True)
-            temp = {
-                'id': member.member_id.id,
-                'fcm_token': notification_details[0],
-                'mobile_os': notification_details[1],
-            }
-
-            notification_list.append(temp)
-
-        message = {}
-
-        message['payload'] = {
-            "title": 'Level up ' + str(community_level.community.name),
-            "sub_title": str(community_level.title) + ". " + str(community_level.sub_title),
-            'route': 'route://community_collabcard?community_id=' + str(
-                community_level.community.id) + '&community_name=' + str(
-                community_level.community.name) + '&show_level=true'
-        }
-        # todo
-        notification_meta(notification_list, message)
+# @app.task
+# def send_evening_level_notification():
+#     ''' send evening notification at 8 pm to ask them to level up'''
+#
+#     community_levels = communityLevels.objects.filter(state=community_level_states.PENDING)
+#     for community_level in community_levels:
+#         members = Members.objects.filter(community_id=community_level.community.id, state=member_states.ADMIN)
+#
+#         notification_list = []
+#
+#         for member in members:
+#             notification_details = get_token_for_fcm(member.member_id.id, flag=True)
+#             temp = {
+#                 'id': member.member_id.id,
+#                 'fcm_token': notification_details[0],
+#                 'mobile_os': notification_details[1],
+#             }
+#
+#             notification_list.append(temp)
+#
+#         message = {}
+#
+#         message['payload'] = {
+#             "title": 'Level up ' + str(community_level.community.name),
+#             "sub_title": str(community_level.title) + ". " + str(community_level.sub_title),
+#             'route': 'route://community_collabcard?community_id=' + str(
+#                 community_level.community.id) + '&community_name=' + str(
+#                 community_level.community.name) + '&show_level=true'
+#         }
+#
+#         notification_meta(notification_list, message)
 
 
 @shared_task
@@ -1995,68 +1995,68 @@ def send_ice_breaker_notification(community_id, start_time, day=0):
         return
 
 
-@app.task
-def send_notification_to_inactive_chatroom_users():
-    current_time = time.time()
-    INACTIVE_NOTIFICATION_START_TIME = 1603604997  # Sunday, 25 October 2020 11:19:57
-
-    inactive_chatrooms = collabcardState.objects \
-        .filter(follow_status=True, remove=None) \
-        .filter(~Q(expiry_time=None) & Q(expiry_time__lt=current_time)) \
-        .filter(created_at__gt=INACTIVE_NOTIFICATION_START_TIME) \
-        .filter(Q(user_id=F('card__user_id'))) \
-        .select_related('card', 'user')
-
-    user_set = set()
-    user_list = []
-
-    for data in inactive_chatrooms:
-
-        card_instance = data.card
-        user_instance = data.user
-
-        if card_instance.type == card_types.CARD_PURPOSE and \
-                not is_member_promoter(card_instance.community, card_instance.user):
-            continue
-
-        key = str(user_instance) + "--" + str(card_instance)
-
-        if key not in user_set:
-
-            temp = {}
-            notification_filter = memberNotificationFlag.objects.filter(member=user_instance,
-                                                                        card=card_instance,
-                                                                        code='chat_room_becoming_inactive'
-                                                                        )
-            if notification_filter.exists():
-                if data.expiry_time > notification_filter[0].updated_at:
-                    temp['user_id'] = user_instance.id
-                    temp['user_name'] = user_instance.userinfo.name
-                    temp['chatroom_id'] = card_instance.id
-                    temp['chatroom_name'] = get_title_from_collabcard(card_instance)
-                    notification_filter.update(updated_at=current_time)
-
-                    user_list.append(temp)
-
-            else:
-                instance = memberNotificationFlag()
-                instance.member = user_instance
-                instance.card = card_instance
-                instance.updated_at = current_time
-                instance.created_at = current_time
-                instance.community = data.community
-                instance.flag = True
-                instance.code = 'chat_room_becoming_inactive'
-                instance.save()
-                temp['user_id'] = user_instance.id
-                temp['user_name'] = user_instance.userinfo.name
-                temp['chatroom_id'] = card_instance.id
-                temp['chatroom_name'] = get_title_from_collabcard(card_instance)
-
-                user_list.append(temp)
-
-            user_set.add(key)
-    send_inactive_notification_utils(user_list)
+# @app.task
+# def send_notification_to_inactive_chatroom_users():
+#     current_time = time.time()
+#     INACTIVE_NOTIFICATION_START_TIME = 1603604997  # Sunday, 25 October 2020 11:19:57
+#
+#     inactive_chatrooms = collabcardState.objects \
+#         .filter(follow_status=True, remove=None) \
+#         .filter(~Q(expiry_time=None) & Q(expiry_time__lt=current_time)) \
+#         .filter(created_at__gt=INACTIVE_NOTIFICATION_START_TIME) \
+#         .filter(Q(user_id=F('card__user_id'))) \
+#         .select_related('card', 'user')
+#
+#     user_set = set()
+#     user_list = []
+#
+#     for data in inactive_chatrooms:
+#
+#         card_instance = data.card
+#         user_instance = data.user
+#
+#         if card_instance.type == card_types.CARD_PURPOSE and \
+#                 not is_member_promoter(card_instance.community, card_instance.user):
+#             continue
+#
+#         key = str(user_instance) + "--" + str(card_instance)
+#
+#         if key not in user_set:
+#
+#             temp = {}
+#             notification_filter = memberNotificationFlag.objects.filter(member=user_instance,
+#                                                                         card=card_instance,
+#                                                                         code='chat_room_becoming_inactive'
+#                                                                         )
+#             if notification_filter.exists():
+#                 if data.expiry_time > notification_filter[0].updated_at:
+#                     temp['user_id'] = user_instance.id
+#                     temp['user_name'] = user_instance.userinfo.name
+#                     temp['chatroom_id'] = card_instance.id
+#                     temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+#                     notification_filter.update(updated_at=current_time)
+#
+#                     user_list.append(temp)
+#
+#             else:
+#                 instance = memberNotificationFlag()
+#                 instance.member = user_instance
+#                 instance.card = card_instance
+#                 instance.updated_at = current_time
+#                 instance.created_at = current_time
+#                 instance.community = data.community
+#                 instance.flag = True
+#                 instance.code = 'chat_room_becoming_inactive'
+#                 instance.save()
+#                 temp['user_id'] = user_instance.id
+#                 temp['user_name'] = user_instance.userinfo.name
+#                 temp['chatroom_id'] = card_instance.id
+#                 temp['chatroom_name'] = get_title_from_collabcard(card_instance)
+#
+#                 user_list.append(temp)
+#
+#             user_set.add(key)
+#     send_inactive_notification_utils(user_list)
 
 
 def send_inactive_notification_utils(user_list):
