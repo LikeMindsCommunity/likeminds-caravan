@@ -3112,9 +3112,11 @@ class ChatroomHelper:
         for data in member_filter:
             user_instance = data.member_id
 
-            if member_dict.get(user_instance.id) is False:
+            is_card_creator = user_instance.id == card_instance.user_id
 
-                attending_status = True if is_event_chatroom and data.state == member_states.ADMIN else False
+            if not member_dict.get(user_instance.id):
+
+                attending_status = is_event_chatroom and (data.state == member_states.ADMIN)
                 follow_status = True if attending_status else card_instance.auto_follow_done
 
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
@@ -3122,7 +3124,8 @@ class ChatroomHelper:
                                                                                            state=state,
                                                                                            follow_status=follow_status,
                                                                                            community_instance=community_instance,
-                                                                                           attending_status=attending_status)
+                                                                                           attending_status=attending_status,
+                                                                                           external_seen=is_card_creator)
                 if instance:
                     bulk_create_list.append(instance)
 
