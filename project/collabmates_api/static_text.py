@@ -553,7 +553,7 @@ SUBSCRIPTION_PLAN_NAMES = {
 LM_PLATFORM_CODES = ["an", "ios", "web"]
 
 SINGLE_COMMUNITY_VIEW_VERSION_CODE = {
-    "an": 1001,
+    "an": 170,
     "ios": 1001,
     "web": 1001
 }

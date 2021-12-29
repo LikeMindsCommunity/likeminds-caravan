@@ -620,6 +620,10 @@ class UserImpl(UserManager):
         is_cm = False
 
         if self.get_community_id():
+            admin = ModelUtilities.get_model_filter(Members, {
+                "member_id": user_instance,
+                "community_id_id": self.get_community_id(),
+                "state": member_states.ADMIN})
             communities_list = [self.get_community_id()]
 
         else:

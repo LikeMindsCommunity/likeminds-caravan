@@ -316,14 +316,6 @@ def my_chatrooms_version_1(request):
     else:
         show_dm = False
 
-    if single_community_view_version_check(platform_code, version_code):
-        if not community_id:
-            return JsonResponse({
-                'status': status_codes.HTTP_400_BAD_REQUEST,
-                'success': False,
-                'error_message': 'missing required parameter: community_id'
-            })
-
     member_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance})
     if community_id:
         user_community_ids.append(community_id)
