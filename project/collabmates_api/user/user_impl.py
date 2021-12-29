@@ -34,7 +34,8 @@ from ..views import remove_members, remove_all_member_rights, remove_all_manager
 from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
 from ..rest_api import CommunitySerializerV1
 from ..serializers import get_logged_in_user
-from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS
+from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
+    CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper
@@ -48,10 +49,17 @@ info_logger = LoggingWrapper.get_instance()
 
 class UserImpl(UserManager):
     user_id = None
+    community_id = None
     mobile_no = None
 
-    def __init__(self, user_id: str, mobile_no: str = None, platform_code: str = None, version_code: int = 0):
+    def __init__(self,
+                 user_id: str,
+                 community_id: str = None,
+                 mobile_no: str = None,
+                 platform_code: str = None,
+                 version_code: int = 0):
         self.user_id = user_id
+        self.community_id = community_id
         self.mobile_no = mobile_no
         self.platform_code = platform_code
         self.version_code = version_code
@@ -61,6 +69,12 @@ class UserImpl(UserManager):
 
     def set_user_id(self, user_id):
         self.user_id = user_id
+
+    def get_community_id(self):
+        return self.community_id
+
+    def set_community_id(self, community_id):
+        self.community_id = community_id
 
     def get_mobile_no(self):
         return self.mobile_no
@@ -605,9 +619,18 @@ class UserImpl(UserManager):
 
         is_cm = False
 
-        # Get all communities user is part of
-        communities_list = list(ModelUtilities.get_model_filter(Members, {"member_id": user_instance}).values_list(
-            "community_id_id", flat=True))
+        if self.get_community_id():
+            admin = ModelUtilities.get_model_filter(Members, {
+                "member_id": user_instance,
+                "community_id_id": self.get_community_id(),
+                "state": member_states.ADMIN})
+            communities_list = [self.get_community_id()]
+
+        else:
+            communities_list = list(ModelUtilities.get_model_filter(Members, {
+                "member_id": user_instance
+            }).values_list(
+                "community_id_id", flat=True))
 
         communities = ModelUtilities.get_model_filter(communityRightsSettings,
                                                       {"community__id__in": communities_list,
@@ -1256,7 +1279,7 @@ class UserHelper:
                 "cm_name": user_instance.userinfo.name,
                 "community_brand_color": DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
                 "button_text": FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_TEXT,
-                "button_link": FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_LINK
+                "button_link": CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
             })
 
             send_email_response = MailWrapper.send_email(mail_subject, mail_template, [user_instance.userinfo.email],

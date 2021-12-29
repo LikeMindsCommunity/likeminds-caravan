@@ -3049,9 +3049,11 @@ class ChatroomHelper:
         for data in member_filter:
             user_instance = data.member_id
 
-            if member_dict.get(user_instance.id) is False:
+            is_card_creator = user_instance.id == card_instance.user_id
 
-                attending_status = True if is_event_chatroom and data.state == member_states.ADMIN else False
+            if not member_dict.get(user_instance.id):
+
+                attending_status = is_event_chatroom and (data.state == member_states.ADMIN)
                 follow_status = True if attending_status else card_instance.auto_follow_done
 
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
@@ -3059,7 +3061,8 @@ class ChatroomHelper:
                                                                                            state=state,
                                                                                            follow_status=follow_status,
                                                                                            community_instance=community_instance,
-                                                                                           attending_status=attending_status)
+                                                                                           attending_status=attending_status,
+                                                                                           external_seen=is_card_creator)
                 if instance:
                     bulk_create_list.append(instance)
 
@@ -3451,7 +3454,8 @@ class ChatroomHelper:
                                                      attending_status)
 
     @staticmethod
-    def display_event_recordings_and_attachments(user_instance, card_instance=None, conversation_instance=None):
+    def display_event_recordings_and_attachments(user_instance, card_instance=None, conversation_instance=None,
+                                                 recordings_attachment_serialized_obj=None):
         event_dict = {}
 
         try:
@@ -3484,13 +3488,17 @@ class ChatroomHelper:
             else:
                 event_dict['recording_url_og_tags'] = event_obj.recording_url_og_tags
 
-            event_recording_instances = EventRecordingsAttachments.objects.filter(chatroom_id=card_instance) \
-                                        if card_instance else \
-                                        EventRecordingsAttachments.objects.filter(conversation_id=conversation_instance)
+            if recordings_attachment_serialized_obj is None:
+                event_recording_instances = EventRecordingsAttachments.objects.filter(chatroom_id=card_instance) \
+                                            if card_instance else \
+                                            EventRecordingsAttachments.objects.filter(conversation_id=conversation_instance)
 
-            serializer = EventRecordingsAttachmentsSerializer(event_recording_instances, many=True)
+                serializer = EventRecordingsAttachmentsSerializer(event_recording_instances, many=True)
 
-            event_dict['recordings_attachments'] = json.loads(json.dumps(serializer.data))
+                event_dict['recordings_attachments'] = json.loads(json.dumps(serializer.data))
+
+            else:
+                event_dict['recordings_attachments'] = recordings_attachment_serialized_obj
 
         except Exception as e:
             error_logger.error(e.args)

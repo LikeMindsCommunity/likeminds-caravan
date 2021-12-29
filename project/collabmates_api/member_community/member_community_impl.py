@@ -31,7 +31,7 @@ from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights
-from ..utility import pagination
+from ..utility import pagination, single_community_view_version_check
 from ..views import get_home_screen_community_actions, \
     generate_internal_link_preview_for_conversation, get_latest_conversation_members
 
@@ -154,6 +154,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                 self.has_promoter_management_rights(self.get_member_id(), member_community['id']):
             self._add_admin_actions(member_community, actions)
 
+        if member_community.get('is_paid') and single_community_view_version_check(self.get_platform_code(),
+                                                                                   self.get_version_code()):
+            self._add_subscription_action(member_community['id'], actions)
+
         member_community['actions'] = actions
 
     @staticmethod
@@ -166,6 +170,13 @@ class MemberCommunityImpl(MemberCommunityManager):
         }
 
         actions.append(management_tools)
+
+    @staticmethod
+    def _add_subscription_action(community_id: str, actions: list) -> None:
+        subscription_action = SUBSCRIPTION_ACTION_DICT
+        subscription_action['route'] = subscription_action['route'].format(community_id)
+
+        actions.append(subscription_action)
 
     @staticmethod
     def _add_unseen_count_info(member_community: dict, community: {}) -> None:
@@ -601,8 +612,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                 if member['state'] == member_states.ADMIN or \
                         member['state'] == member_states.MEMBER or \
                         member['state'] == member_states.PROFILE_UNAVAILABLE:
-                    member['member_since'] = MEMBER_SINCE_TEXT % (community_name,
-                                                                  TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(
+                    member['member_since'] = MEMBER_SINCE_TEXT % (TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(
                                                                       data['created_at']))
 
                 elif member['state'] == member_states.PENDING_MEMBER:
@@ -863,7 +873,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'chatrooms': chatroom_context_list}
 
     @staticmethod
-    def create_feed_actions(community_instance, pinned_top_bar, user_id=None) -> []:
+    def create_feed_actions(community_instance,
+                            platform_code,
+                            version_code,
+                            pinned_top_bar,
+                            user_id=None) -> []:
 
         actions = []
         community_id = StringUtilities.get_string_from_integer(community_instance.id)
@@ -891,6 +905,13 @@ class MemberCommunityImpl(MemberCommunityManager):
             actions.append(PINNED)
 
         actions.append(COMMUNITY_DETAILS)
+
+        """
+        Single community view removes all actions 
+        barring pinned chatrooms
+        """
+        if single_community_view_version_check(platform_code, version_code):
+            actions = [PINNED]
 
         return actions
 
@@ -951,13 +972,17 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'error_message': "Invalid user id", 'status': 400}
 
         feed_context = dict()
-        pinned_top_bar = self.create_pinned_chatrooms_header(community_instance, self.get_version_code(), 
+        pinned_top_bar = self.create_pinned_chatrooms_header(community_instance, self.get_version_code(),
                                                             self.get_platform_code())
 
         if pinned_top_bar:
             feed_context['pinned_top_bar'] = pinned_top_bar
 
-        actions = self.create_feed_actions(community_instance, pinned_top_bar, user_id=self.get_member_id())
+        actions = self.create_feed_actions(community_instance,
+                                           self.get_platform_code(),
+                                           self.get_version_code(),
+                                           pinned_top_bar,
+                                           user_id=self.get_member_id())
         community = self._community_serializer(community_instance, self.get_member_id())
         feed_context['actions'] = actions
         feed_context['community'] = community

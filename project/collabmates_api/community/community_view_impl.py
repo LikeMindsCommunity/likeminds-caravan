@@ -51,8 +51,13 @@ class FetchCommunity(APIView):
 
         else:
             request_type = RequestUtilities.get_request_type(request)
+            platform_code = RequestUtilities.get_platform_code(request)
+            version_code = RequestUtilities.get_version_code_from_headers(request)
+
             community_manager = CommunityImpl(member_id, community_id)
-            community_response = community_manager.fetch_community(client_type=request_type)
+            community_response = community_manager.fetch_community(client_type=request_type,
+                                                                   platform_code=platform_code,
+                                                                   version_code=version_code)
 
             if community_response['status']:
                 return JsonResponse({

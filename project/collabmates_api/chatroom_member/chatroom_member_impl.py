@@ -377,7 +377,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes) -> {}:
 
-        chatroom_context = ChatroomMemberHelper.serialize_chatroom(card_instance, return_topic=True)
+        chatroom_context = ChatroomMemberHelper.serialize_chatroom(card_instance, user=self.get_member_id(),
+                                                                   return_topic=True)
 
         if card_instance.has_reactions:
             reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
@@ -597,7 +598,7 @@ class ChatroomMemberHelper:
         return poll_context
 
     @staticmethod
-    def serialize_chatroom(card_instance, return_topic=False) -> dict:
+    def serialize_chatroom(card_instance, user, return_topic=False) -> dict:
 
         chatroom_context = {'id': card_instance.id,
                             'title': card_instance.title,
@@ -687,6 +688,16 @@ class ChatroomMemberHelper:
                                                   send_profile=False)
 
             chatroom_context['chatroom_with_user'] = chatroom_member[0]
+
+        if card_instance.is_deleted:
+            member_ids = [card_instance.deleted_by_user]
+            temp = get_members_profile(member_ids=member_ids, community_id=card_instance.community_id,
+                                       current_user_id=user, send_profile=False)
+            member_obj = temp[0]
+            member_obj['community_id'] = card_instance.community_id
+            member_obj['chatroom_id'] = card_instance.id
+            chatroom_context['deleted_by_member'] = member_obj
+            chatroom_context['deleted_by'] = card_instance.deleted_by_user_id
 
         return chatroom_context
 

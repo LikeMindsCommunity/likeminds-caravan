@@ -2,6 +2,8 @@
 
 from django.core.paginator import Paginator
 
+from .static_text import SINGLE_COMMUNITY_VIEW_VERSION_CODE, LM_PLATFORM_CODES
+
 
 def get_member_id_from_headers(request):
     '''function to get member id from headers'''
@@ -86,8 +88,7 @@ def get_paginated_queryset_with_maxpages(queryset,page_number,paginate_by=10):
     return temp
 
 
-def get_total_pages(count,limit=10):
-
+def get_total_pages(count, limit=10):
 
     last_digit = count % limit
     if last_digit == 0:
@@ -98,8 +99,6 @@ def get_total_pages(count,limit=10):
     return page_count
 
 
-
-
 def paginate_list(queryset, page_number, paginate_by=10):
     '''function to create pagination and return a query set for page number'''
     paginator = Paginator(queryset, paginate_by)
@@ -107,3 +106,18 @@ def paginate_list(queryset, page_number, paginate_by=10):
 
     return [] if (max_page < int(page_number) or not queryset) else paginator.get_page(page_number)
 
+
+def single_community_view_version_check(platform_code: str, version_code: int) -> bool:
+    if not platform_code or platform_code.lower() not in LM_PLATFORM_CODES:
+        return False
+
+    elif platform_code == "an" and version_code >= SINGLE_COMMUNITY_VIEW_VERSION_CODE[platform_code]:
+        return True
+
+    elif platform_code == "ios" and version_code >= SINGLE_COMMUNITY_VIEW_VERSION_CODE[platform_code]:
+        return True
+
+    elif platform_code == "web" and version_code >= SINGLE_COMMUNITY_VIEW_VERSION_CODE[platform_code]:
+        return True
+
+    return False

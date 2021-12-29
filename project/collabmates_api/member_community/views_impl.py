@@ -96,8 +96,9 @@ class FetchFeedMeta(APIView):
         if not member_id or not community_id:
             return JsonResponse({'error_message': 'Invalid parameters'}, status=400)
 
-        member_community_manager = MemberCommunityImpl(member_id, community_id, version_code=version_code,
-                                                    platform_code=platform_code)
+        member_community_manager = MemberCommunityImpl(member_id, community_id,
+                                                       version_code=version_code,
+                                                       platform_code=platform_code)
 
         feed_context = member_community_manager.fetch_feed_meta()
 

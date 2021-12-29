@@ -15,10 +15,11 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     post_purpose_collabcard_for_community, post_master_introductions_for_community, post_member_directory_link, \
     post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share, \
     fill_share_context_for_paid_community, fill_share_context_for_unpaid_community, \
-    check_join_community_hood_get_started
+    check_join_community_hood_get_started, add_community_upload_image_analytics
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.number_utilities import NumberUtilities
 from external_services.email.email_wrapper import MailWrapper
+from external_services.airtable.airtable_wrapper import AirtableWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
@@ -51,6 +52,7 @@ from utility.states import member_states, card_types, click_states, member_right
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
+from utility.states import (mobile_states)
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
 from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members
@@ -60,6 +62,7 @@ from ..search.sync import ElasticSearchSync
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check
 from ..sms import send_community_confirmation_sms
+from ..utility import single_community_view_version_check
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -100,7 +103,7 @@ class CommunityImpl(CommunityManager):
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
 
-    def _community_menu_options(self, state, community_instance) -> []:
+    def _community_menu_options(self, state, community_instance, platform_code: str, version_code: int) -> []:
 
         menu = []
         if state == member_states.ADMIN:
@@ -117,6 +120,9 @@ class CommunityImpl(CommunityManager):
 
         elif state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
             menu = MENU['member']
+
+        if single_community_view_version_check(platform_code, version_code):
+            menu = menu + MENU["Subscription"]
 
         return menu
 
@@ -230,7 +236,7 @@ class CommunityImpl(CommunityManager):
 
         return chatroom_list
 
-    def fetch_community(self, client_type) -> {}:
+    def fetch_community(self, client_type, platform_code: str, version_code: int) -> {}:
 
         community_instance = CommunityHelper.fetch_community_instance(self.get_community_id())
         response_context = dict()
@@ -251,7 +257,10 @@ class CommunityImpl(CommunityManager):
             leave_community = self._leave_community_object()
             community_context['leave_community'] = leave_community
 
-        menu = self._community_menu_options(state, community_instance)
+        menu = self._community_menu_options(state,
+                                            community_instance,
+                                            platform_code,
+                                            version_code)
 
         if menu:
             community_context['menu'] = menu
@@ -1201,11 +1210,14 @@ class CommunityImpl(CommunityManager):
                                                         'members_count': 1,
                                                         'purpose': validate_req_body['headline'],
                                                         'brand_color': validate_req_body['brand_color'],
-                                                        'image_link': community_default_image,
+                                                        'image_link': validate_req_body['image_url'],
                                                         'thumbnail': community_default_thumbnail,
                                                         'type': community_field_type_filter[0].id,
                                                         'sub_type': community_field_sub_type_filter[0].id,
                                                         'hide_community': community_state})
+
+        if validate_req_body.get('has_logo_uploaded', False):
+            add_community_upload_image_analytics.delay(user_instance.id, community_instance.id, community_instance.name)
 
         self.set_community_id(community_instance.id)
 
@@ -1220,41 +1232,7 @@ class CommunityImpl(CommunityManager):
                                                    'custom_title': 'Owner',
                                                    'became_member_at': TimeUtilities.current_time_in_sec()})
 
-        # making the member engage instance for created community
-        engage = Member_Engage.create_instance({'user_instance': user_instance,
-                                                'community_instance': community_instance,
-                                                'state': member_states.ADMIN,
-                                                'click_state': click_states.SET_PURPOSE,
-                                                'member_referral': 'Finish setting up your community',
-                                                'rights_list': json.dumps(member_rights.ALL_MEMBER_RIGHTS)})
-
-        # give all the CM and member rights to the community creator i.e owner
-        CommunityHelper.give_owner_all_member_manager_rights(user_instance, community_instance)
-
-        # give all community setting rights
-        give_all_community_setting_rights(community=community_instance)
-
-        save_moderation_history(user=user_instance, community=community_instance,
-                                moderation_by=user_instance,
-                                type=moderation_history_types.STARTED_COMMUNITY)
-
-        # send community created mail to the team
-        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance)
-
-        # Create Content Download Settings
-        CommunityHelper.create_content_download_settings_for_community(community_instance)
-
-        add_community_settings_for_community(community_instance, user_instance)
-
-        update_models_for_syncing_apis(SyncTypes.COMMUNITY,
-                                       {'community_id': community_instance, 'member_id': self.get_member_id()},
-                                       {'click_state': click_states.DEFAULT})
-
-        create_introduction_question_in_community_v2(community_instance)
-        post_purpose_collabcard_for_community(req_body, community_instance, self.get_member_id())
-        post_master_introductions_for_community(community_instance.id, self.get_member_id())
-        post_general_collabcard_for_community(community_instance, self.get_member_id())
-        post_member_directory_link(user_instance, community_instance)
+        CommunityHelper.create_community_async_tasks.delay(user_instance.id, community_instance.id, req_body)
 
         # Create All member cohort
         CommunityHelper.create_all_member_cohort_for_new_community.delay(self.get_member_id(), community_instance.id)
@@ -1264,20 +1242,13 @@ class CommunityImpl(CommunityManager):
                                                       TimeUtilities.current_time_in_sec(),
                                                       level=1, day=0, counter=0)
 
-        update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
-
-        CommunityHelper.send_create_community_welcome_whatsapp_message.delay(user_instance.id)
+        CommunityHelper.send_create_community_welcome_whatsapp_message.delay(user_instance.id,
+                                                                             community_instance.id)
         CommunityHelper.send_communtiy_creation_segment_events.delay(user_instance.id,
                                                                      SEGMENT_COMMUNITY_CREATION_EVENT_NAME,
                                                                      {"community_id": community_instance.id,
                                                                       "community_name": community_instance.name})
         CommunityHelper.set_user_email_status.delay(user_instance.id, community_instance.id)
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': COMMUNITY_HOOD_COMMUNITY_ID,
-                                                                  'member_id': user_instance})
-
-        if len(member_filter):
-            update_community_get_started(community_instance, get_started_types.JOIN_COMMUNITY_HOOD, is_enabled=True)
 
         community_serializer = CommunitySerializerV1(community_instance,
                                                      context={"current_user_id": self.get_member_id()},
@@ -1867,6 +1838,10 @@ class CommunityHelper:
     def save_responses_of_member_in_community(user_id, community_id, question_list):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        userinfo_instance = user_instance.userinfo
+        user_mobiles = ModelUtilities.get_model_filter(userMobiles, {'user_id': user_id,
+                                                                     'state': mobile_states.PRIMARY})
+        user_emails = ModelUtilities.get_model_filter(userEmails, {'user_id': user_id})
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         if not question_list or \
@@ -1875,6 +1850,18 @@ class CommunityHelper:
             return
 
         question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(question_list)
+
+        phone = '+{}{}'.format(user_mobiles[0].country_code, user_mobiles[0].mobile_no) if len(user_mobiles) else ''
+        email = user_emails[0].email if len(user_emails) else ''
+
+        airtable_data = {
+            'user_id': user_id,
+            'community_id': community_id,
+            'user_name': userinfo_instance.name,
+            'user_email': email,
+            'phone_number': phone,
+            'question_list': {}
+        }
 
         for question in question_list:
 
@@ -1899,7 +1886,11 @@ class CommunityHelper:
                                                                                    community_instance)
             CommunityHelper.save_profile_links_for_social_handles(question_instance, answer_instance)
 
+            airtable_data['question_list'][question_instance.id] = question.get('value')
+
         CommunityHelper.update_hidden_fields_in_member_responses(user_instance, community_instance)
+        airtable_manager = AirtableWrapper()
+        airtable_manager.send_data(airtable_data)
 
     @staticmethod
     def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None):
@@ -2004,6 +1995,9 @@ class CommunityHelper:
         if 'brand_color' not in req_body:
             return {'success': False, 'error_message': 'Empty brand color!'}
 
+        if 'image_url' not in req_body:
+            return {'success': False, 'error_message': 'Empty image url!'}
+
         return req_body
 
     @staticmethod
@@ -2045,7 +2039,7 @@ class CommunityHelper:
         return re.fullmatch(EMAIL_VALIDATION_REGEX, email_id)
 
     @staticmethod
-    def create_community_creation_whatsapp_context_dict(user_instance, cm_primary_mobile):
+    def create_community_creation_whatsapp_context_dict(user_instance, cm_primary_mobile, community_dash_link_path):
         receivers_list = [
             {
                 'whatsappNumber': '{}{}'.format(cm_primary_mobile.country_code, cm_primary_mobile.mobile_no),
@@ -2056,7 +2050,7 @@ class CommunityHelper:
                     },
                     {
                         "name": "link",
-                        "value": CM_ONBOARDING_DASHBOARD_LINK
+                        "value": community_dash_link_path
                     }
                 ]
             }
@@ -2066,11 +2060,16 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def send_create_community_welcome_whatsapp_message(user_id):
+    def send_create_community_welcome_whatsapp_message(user_id, community_id):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
+            return
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
             return
 
         cm_primary_mobile = ModelUtilities.get_model_filter(userMobiles,
@@ -2082,8 +2081,13 @@ class CommunityHelper:
 
         cm_primary_mobile = cm_primary_mobile[0]
 
+        branch_link = create_community_feed_url_for_cm_onboarding(community_instance)
+
+        community_dash_link_path = UrlUtilities.extract_part_from_url(branch_link, 'path', init_slash_off=True)
+
         receivers_list = CommunityHelper.create_community_creation_whatsapp_context_dict(user_instance,
-                                                                                         cm_primary_mobile)
+                                                                                         cm_primary_mobile,
+                                                                                         community_dash_link_path)
 
         template_name = broadcast_name = WHATSAPP_COMMUNITY_CREATED_TEMPLATE_FOR_CM_NAME
         NotificationImpl.send_bulk_wa_notification.delay(receivers_list, template_name, broadcast_name)
@@ -2307,3 +2311,70 @@ class CommunityHelper:
             receivers_list.append(receiver_info)
 
         return receivers_list
+
+    @staticmethod
+    @shared_task
+    def create_community_async_tasks(user_id, community_id, req_body):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return
+
+        member_filter = ModelUtilities.get_model_filter(Members,
+                                                        {'community_id': community_instance,
+                                                         'member_id': user_instance})
+
+        if not member_filter:
+            return
+
+        member_instance = member_filter[0]
+
+        # making the member engage instance for created community
+        engage = Member_Engage.create_instance({'user_instance': user_instance,
+                                                'community_instance': community_instance,
+                                                'state': member_states.ADMIN,
+                                                'click_state': click_states.SET_PURPOSE,
+                                                'member_referral': 'Finish setting up your community',
+                                                'rights_list': json.dumps(member_rights.ALL_MEMBER_RIGHTS)})
+
+        # give all the CM and member rights to the community creator i.e owner
+        CommunityHelper.give_owner_all_member_manager_rights(user_instance, community_instance)
+
+        # give all community setting rights
+        give_all_community_setting_rights(community=community_instance)
+
+        save_moderation_history(user=user_instance, community=community_instance,
+                                moderation_by=user_instance,
+                                type=moderation_history_types.STARTED_COMMUNITY)
+
+        # send community created mail to the team
+        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance)
+
+        # Create Content Download Settings
+        CommunityHelper.create_content_download_settings_for_community(community_instance)
+
+        add_community_settings_for_community(community_instance, user_instance)
+
+        update_models_for_syncing_apis(SyncTypes.COMMUNITY,
+                                       {'community_id': community_instance, 'member_id': user_id},
+                                       {'click_state': click_states.DEFAULT})
+
+        create_introduction_question_in_community_v2(community_instance)
+        post_purpose_collabcard_for_community(req_body, community_instance, user_id)
+        post_master_introductions_for_community(community_instance.id, user_id)
+        post_general_collabcard_for_community(community_instance, user_id)
+        post_member_directory_link(user_instance, community_instance)
+
+        update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': COMMUNITY_HOOD_COMMUNITY_ID,
+                                                                  'member_id': user_instance})
+
+        if len(member_filter):
+            update_community_get_started(community_instance, get_started_types.JOIN_COMMUNITY_HOOD, is_enabled=True)

@@ -13,15 +13,27 @@ from .member_directory_index import MemberDirectoryDocument
 # --------------------------------------------------------
 
 from .search_impl import SearchImpl
+from ..utility import single_community_view_version_check
 
 
 class ChatroomSearchView(APIView):
 
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        community_id = request.GET.get('community_id', None)
+        platform_code = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
+
+        if single_community_view_version_check(platform_code, version_code):
+            if not community_id:
+                return JsonResponse({
+                    'status': status_codes.HTTP_400_BAD_REQUEST,
+                    'success': False,
+                    'error_message': 'missing required parameter: community_id'
+                })
 
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', CHATROOM_FIELD_HEADER)
@@ -46,7 +58,7 @@ class ChatroomSearchView(APIView):
                                     search_field=search_field, follow_status=follow_status,
                                     page=page, page_size=page_size)
 
-        chatrooms_data = search_manager.search_chatroom()
+        chatrooms_data = search_manager.search_chatroom(community_id)
 
         return JsonResponse(chatrooms_data)
 
@@ -55,9 +67,20 @@ class ConversationSearchView(APIView):
 
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        community_id = request.GET.get('community_id', None)
+        platform_code = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
+
+        if single_community_view_version_check(platform_code, version_code):
+            if not community_id:
+                return JsonResponse({
+                    'status': status_codes.HTTP_400_BAD_REQUEST,
+                    'success': False,
+                    'error_message': 'missing required parameter: community_id'
+                })
 
         search_term = request.GET.get('search')
         page = RequestUtilities.get_page_number(request)
@@ -72,7 +95,7 @@ class ConversationSearchView(APIView):
                                     follow_status=follow_status,
                                     page=page, page_size=page_size)
 
-        conversations_data = search_manager.search_conversation()
+        conversations_data = search_manager.search_conversation(community_id)
 
         return JsonResponse(conversations_data)
 
@@ -81,6 +104,17 @@ class ThirdPartySearchView(APIView):
 
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        community_id = request.GET.get('community_id', None)
+        platform_code = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        if single_community_view_version_check(platform_code, version_code):
+            if not community_id:
+                return JsonResponse({
+                    'status': status_codes.HTTP_400_BAD_REQUEST,
+                    'success': False,
+                    'error_message': 'missing required parameter: community_id'
+                })
 
         if not member_id:
             raise InvalidHeaderException()
@@ -96,7 +130,7 @@ class ThirdPartySearchView(APIView):
                                     search_field=CHATROOM_FIELD_HEADER, follow_status=True,
                                     page=page, page_size=page_size, device_id=device_id)
 
-        chatrooms_data = search_manager.search_third_party()
+        chatrooms_data = search_manager.search_third_party(community_id)
 
         return JsonResponse(chatrooms_data)
 

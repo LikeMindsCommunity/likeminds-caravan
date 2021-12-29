@@ -10,7 +10,8 @@ from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL, CM_ONBOARDING_COMMUNI
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
                                BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
-                               BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL)
+                               BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL, COMMUNITY_HOOD_ID,
+                               COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE)
 from utility.api_client import ApiClient
 
 info_logger = LoggingWrapper.get_instance()
@@ -162,6 +163,10 @@ def create_link_item(base_url, community, channel, feature, private=False, andro
         }
     }
 
+    if community.id == COMMUNITY_HOOD_ID:
+        link_item["type"] = BRANCH_LINK_TYPE
+        link_item["data"]["$marketing_title"] = COMMUNITY_HOOD_MARKETING_TITLE
+
     fallback_url = desktop_url = 'https://%s' % base_url
 
     if community.is_paid and feature == BRANCH_FEATURE_PUBLIC_LINK:
@@ -194,14 +199,10 @@ def create_link_item(base_url, community, channel, feature, private=False, andro
         link_item['data']['$desktop_url'] = desktop_url
 
     if feature == BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL:
+        link_item["data"]['$web_only'] = True
         link_item["data"]['$ios_url'] = fallback_url
         link_item['data']['$desktop_url'] = desktop_url
-
-        if android_ios_url:
-            link_item["data"]['$android_url'] = android_ios_url
-            link_item["data"]['$android_deeplink_path'] = android_ios_url
-            link_item["data"]['deep_link'] = android_ios_url
-            link_item["data"]['android_deep_link'] = android_ios_url
+        link_item["data"]['$android_url'] = fallback_url
 
     return link_item
 

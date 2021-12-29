@@ -48,7 +48,7 @@ CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED = "Profile does not exist"
 CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED = "The profile you are trying to access does not exist. %s's membership expired on %s"
 
 MEMBER_COMMUNITY_PROFILE_ROUTE = "route://member_community_profile?community_id=%s&member_id=%s"
-MEMBER_SINCE_TEXT = "Member of %s since %s"
+MEMBER_SINCE_TEXT = "Member since %s"
 
 PENDING_MEMBER_TEXT = "Verification pending for %s"
 
@@ -64,4 +64,9 @@ COMMUNITY_FEED_ACTIONS = {
     "auto_approve": True,
     "create_secret_chatroom": True,
     "show_dm": True
+}
+
+SUBSCRIPTION_ACTION_DICT = {
+    'title': 'Subscription status',
+    'route': 'route://subscription_status?community_id={}'
 }
