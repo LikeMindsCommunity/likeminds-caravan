@@ -1883,6 +1883,8 @@ class CommunityHelper:
         userinfo_instance = user_instance.userinfo
         user_mobiles = ModelUtilities.get_model_filter(userMobiles, {'user_id': user_id,
                                                                      'state': mobile_states.PRIMARY})
+        user_emails = ModelUtilities.get_model_filter(userEmails, {'user_id': user_id,
+                                                                   'verified': True})
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         if not question_list or \
@@ -1893,11 +1895,13 @@ class CommunityHelper:
         question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(question_list)
 
         phone = '+{}{}'.format(user_mobiles[0].country_code, user_mobiles[0].mobile_no) if len(user_mobiles) else ''
+        email = user_emails[0].email if len(user_emails) else ''
 
         airtable_data = {
             'user_id': user_id,
             'community_id': community_id,
             'user_name': userinfo_instance.name,
+            'user_email': email,
             'phone_number': phone,
             'question_list': {}
         }
