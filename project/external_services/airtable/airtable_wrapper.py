@@ -19,4 +19,4 @@ class AirtableWrapper(AirtableManager):
             info_logger.info(response.json())
 
         else:
-            error_logger.error('error while making request on airtable')
+            error_logger.error('error while making request on airtable: {}'.format(response.json()))
