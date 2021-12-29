@@ -81,8 +81,7 @@ from collabmates_api.branch import create_community_feed_url_for_cm_onboarding
 
 from collabmates_api.notifications.tasks import trigger_event_comms, send_app_notification_on_event_attachment, \
                                                 send_app_notification_for_event_type, send_calender_invite_for_event_type, \
-                                                send_email_notification_for_event_type, \
-                                                reschedule_event_comms_notifications_on_event_update
+                                                send_email_notification_for_event_type
 from collabmates_api.notifications.constants import EVENT_TYPE
 
 error_logger = LoggingWrapper.get_instance()
@@ -1437,19 +1436,6 @@ class ChatroomImpl(ChatroomManager):
 
             if not req_body.get('restrict_event_update_notification'):
                 send_notification_for_event_update.delay(card_instance.id)
-
-            payload_for_whatsapp_comms = {
-                'chatroom': card_instance.id,
-                'community': community_instance.id,
-                'user': user_instance.id
-            }
-
-            payload_for_app_and_email_notifications = {
-                'chatroom': card_instance.id
-            }
-
-            reschedule_event_comms_notifications_on_event_update.delay(payload_for_whatsapp_comms, 
-                                                                        payload_for_app_and_email_notifications)
 
             return chatroom_context
 

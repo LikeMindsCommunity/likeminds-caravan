@@ -1,5 +1,4 @@
 from celery.app import shared_task
-from celery.result import AsyncResult
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -53,29 +52,23 @@ def send_whatsapp_notification_for_event_type(payload_for_whatsapp_comms, event_
             info_logger.info("Scheduling whatsapp notification for event_type = %s | custom_params = %s | \
                             payload received = %s" % (event_type, custom_params, payload))
                         
-            task_id = schedule_whatsapp_notification_for_event_comms.apply_async(
+            schedule_whatsapp_notification_for_event_comms.apply_async(
                 args,
                 kwargs={},
                 eta=task_begin_time,
                 expires=task_expiry_time
             )
 
-        else:
-            task_id = "" 
+        else:    
             info_logger.info("No whatsapp notification sent for event_type = %s | payload received = %s" % (event_type, payload))
-
-        TasksImpl.log_task_detail_in_db_on_new_task_creation_or_updation(task_id=str(task_id), 
-                                                                        event_instance=event_instance, 
-                                                                        comm_type=COMM_TYPE.WA,
-                                                                        event_type=event_type)
     
     except Exception as e:
         error_logger.exception("got error in send_whatsapp_notification_for_event_type | error - %s | payload received = %s |\
                             event_type = %s" % (str(e), payload_for_whatsapp_comms, event_type))
 
 @app.task
-@shared_task(bind=True)
-def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_comms, custom_params, event_type):
+@shared_task
+def schedule_whatsapp_notification_for_event_comms(payload_for_whatsapp_comms, custom_params, event_type):
     try:
         payload = TasksHelper.update_whatsapp_comms_payload_with_object_instances(payload_for_whatsapp_comms)
 
@@ -114,16 +107,9 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
 
         send_allowed = TasksHelper.should_send_notification(event_instance)
 
-        is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
-
-        if send_allowed and not is_task_deleted:
+        if send_allowed:
             NotificationImpl.send_wa_bulk_notitfications(user_data_for_wa_notification, template_name=template_name, 
                                                         broadcast_name=template_name)
-
-        else:
-            info_logger.info("No whatsapp notification scheuduled for event_type = %s | chatroom_deleted = %s | \
-                is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted, \
-                payload_for_whatsapp_comms))
     
     except Exception as e:
         error_logger.exception("got error in schedule_whatsapp_notification | error - %s | payload received = %s | \
@@ -155,7 +141,7 @@ def send_app_notification_for_event_type(payload_for_app_notification, event_typ
             info_logger.info("Scheduling app notification for event_type = %s | payload generated = %s | \
                             payload received = %s" % (event_type, app_noti_dict, payload))
                         
-            task_id = schedule_app_notification_event_comms.apply_async(
+            schedule_app_notification_event_comms.apply_async(
                 args,
                 kwargs={},
                 eta=task_begin_time,
@@ -163,21 +149,15 @@ def send_app_notification_for_event_type(payload_for_app_notification, event_typ
             )
 
         else:    
-            task_id = ""
             info_logger.info("No app notification sent for event_type = %s | payload received = %s" % (event_type, payload))
-
-        TasksImpl.log_task_detail_in_db_on_new_task_creation_or_updation(task_id=str(task_id), 
-                                                                        event_instance=event_instance, 
-                                                                        comm_type=COMM_TYPE.APP_NOTI,
-                                                                        event_type=event_type)
-
+    
     except Exception as e:
         error_logger.exception("got error in send_app_notification_for_event_type | error - %s | payload received = %s |\
                             event_type = %s" % (str(e), payload_for_app_notification, event_type))
 
 @app.task
-@shared_task(bind=True)
-def schedule_app_notification_event_comms(self, payload_for_app_notification, app_noti_dict, event_type):
+@shared_task
+def schedule_app_notification_event_comms(payload_for_app_notification, app_noti_dict, event_type):
     try:
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_app_notification)
 
@@ -210,15 +190,8 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
 
         send_allowed = TasksHelper.should_send_notification(event_instance)
 
-        is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
-
-        if send_allowed and not is_task_deleted:
+        if send_allowed:
             notification_meta(user_details_list, app_noti_dict)
-
-        else:
-            info_logger.info("No app notification scheuduled for event_type = %s | chatroom_deleted = %s | \
-                is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted, \
-                payload_for_app_notification))
 
     except Exception as e:
         error_logger.exception("got error in schedule_app_notification | error - %s | payload received = %s | \
@@ -308,7 +281,7 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
             info_logger.info("Scheduling email notification for event_type = %s | response_dict = %s | \
                             payload received = %s" % (event_type, response_dict, payload))
                         
-            task_id = schedule_email_notifications_for_event.apply_async(
+            schedule_email_notifications_for_event.apply_async(
                 args,
                 kwargs={},
                 eta=task_begin_time,
@@ -316,21 +289,15 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
             )
 
         else:
-            task_id = ""
             info_logger.info("No email notification sent for event_type = %s | payload received = %s" % (event_type, payload))
     
-        TasksImpl.log_task_detail_in_db_on_new_task_creation_or_updation(task_id=str(task_id), 
-                                                                        event_instance=event_instance, 
-                                                                        comm_type=COMM_TYPE.EMAIL,
-                                                                        event_type=event_type)
-
     except Exception as e:
         error_logger.exception("got error in send_email_notification_for_event_type | error - %s | payload received = %s |\
                             event_type = %s" % (str(e), payload_for_email_comms, event_type))
 
 @app.task
-@shared_task(bind=True)
-def schedule_email_notifications_for_event(self, payload_for_email_comms, response_dict, event_type):
+@shared_task
+def schedule_email_notifications_for_event(payload_for_email_comms, response_dict, event_type):
     try:
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_email_comms)
 
@@ -368,17 +335,10 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
         send_allowed = TasksHelper.should_send_notification(event_instance)
 
-        is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
-
-        if send_allowed and not is_task_deleted:
+        if send_allowed:
             send_email_with_custom_from_email(context['subject'], context['template'], context['from_email'],\
                                             context['to_mails_list'], context['bcc_mails_list'], \
                                             categories=context.get('categories'), reply_to=context['reply_to'])
-
-        else:
-            info_logger.info("No email notification scheuduled for event_type = %s | chatroom_deleted = %s | \
-                is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted, \
-                payload_for_email_comms))
 
     except Exception as e:
         error_logger.exception("got error in send_email_notification_for_event_type | error - %s | payload received = %s |\
@@ -452,34 +412,3 @@ def schedule_app_notification_on_event_attachment(event_id, app_noti_dict):
     except Exception as e:
         error_logger.exception("got error in schedule_app_notification_on_event_attachment | error - %s | event_id \
                             received = %s" % (str(e), event_id))
-
-
-@shared_task
-def reschedule_event_comms_notifications_on_event_update(payload_for_whatsapp_comms, payload_for_app_and_email_notifications):
-    send_whatsapp_notification_for_event_type(payload_for_whatsapp_comms, EVENT_TYPE.LAST_CALL)
-    send_whatsapp_notification_for_event_type(payload_for_whatsapp_comms, EVENT_TYPE.ATTENDANCE_5_HRS)
-    send_whatsapp_notification_for_event_type(payload_for_whatsapp_comms, EVENT_TYPE.ATTENDANCE_10_MIN)
-
-    send_app_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.LAST_CALL)
-    send_app_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.ATTENDANCE_15_MIN)
-
-    send_email_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.LAST_CALL)
-    send_email_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.ATTENDANCE_9_AM)
-    send_email_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.POST_EVENT_ATTENDEES)
-
-##### keeping the following code in case we find a solution for deleting the tasks from rabbitmq #####
-
-# @shared_task
-# def delete_older_tasks_from_celery_queue(task_ids):
-#     try:
-#         info_logger.info('deleting older celery tasks from queue | task_ids received = %s' % task_ids)
-
-#         for task_id in task_ids:
-#             AsyncResult(task_id).revoke(terminate=True)
-#             # app.control.revoke(task, terminate=True)
-
-#         info_logger.info('successfully deleted older celery tasks from queue | task_ids received = %s' % task_ids)
-
-#     except Exception as e:
-#         error_logger.error('got error while deleting older celery tasks | exception ocurred = %s | task_ids received \
-#             = %s' % (str(e), task_ids))
