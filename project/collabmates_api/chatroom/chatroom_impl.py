@@ -684,10 +684,10 @@ class ChatroomImpl(ChatroomManager):
             filter_dict['card__has_event_recording'] = has_content
 
         if not past_events:
-            filter_dict['card__date_time__gte'] = current_time_ms
-        
+            filter_dict['card__end_date__gte'] = current_time_ms
+
         else:
-            filter_dict['card__date_time__lt'] = current_time_ms
+            filter_dict['card__end_date__lte'] = current_time_ms
 
         if not past_events:
             chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
