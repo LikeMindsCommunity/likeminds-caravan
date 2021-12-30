@@ -1611,6 +1611,9 @@ class ChatroomImpl(ChatroomManager):
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
+        if not user_instance:
+            return {'error_message': "No user found"}
+
         if not card_instance:
             return {'error_message': "No chatroom found"}
 
@@ -3052,6 +3055,14 @@ class ChatroomHelper:
         for data in member_filter:
             user_instance = data.member_id
 
+            if data.state == member_states.ADMIN:
+                payload_for_calendar_invite = {
+                    'chatroom': card_instance.id
+                }
+
+                send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION, 
+                                                    send_to_members=False, user_list=[user_instance.id])
+                
             is_card_creator = user_instance.id == card_instance.user_id
 
             if not member_dict.get(user_instance.id):
