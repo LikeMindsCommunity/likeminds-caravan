@@ -684,10 +684,10 @@ class ChatroomImpl(ChatroomManager):
             filter_dict['card__has_event_recording'] = has_content
 
         if not past_events:
-            filter_dict['card__date_time__gte'] = current_time_ms
-        
+            filter_dict['card__end_date__gte'] = current_time_ms
+
         else:
-            filter_dict['card__date_time__lt'] = current_time_ms
+            filter_dict['card__end_date__lte'] = current_time_ms
 
         if not past_events:
             chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
@@ -1610,6 +1610,9 @@ class ChatroomImpl(ChatroomManager):
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+
+        if not user_instance:
+            return {'error_message': "No user found"}
 
         if not card_instance:
             return {'error_message': "No chatroom found"}
@@ -2588,21 +2591,24 @@ class ChatroomImpl(ChatroomManager):
         if not isinstance(chatroom_ids, list):
             return get_error_context(False, "chatroom_ids should be of type 'list'")
 
-        final_response['success'] = True
+        chatrooms_link_objects = []
 
         for chatroom_id in chatroom_ids:
             chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
             response_context = chatroom_manager.fetch_link_for_event()
 
             if response_context.get('error_message'):
-                final_response[chatroom_id] = {
+                chatrooms_link_objects.append({
+                    'chatroom_id': chatroom_id,
                     'error_message': response_context['error_message']
-                }
+                })
 
             else:
-                final_response[chatroom_id] = response_context
+                response_context['chatroom_id'] = chatroom_id
+                chatrooms_link_objects.append(response_context)
 
-        return final_response
+        return {'success': True, 'chatroom_links': chatrooms_link_objects}
+
 
 class ChatroomHelper:
 
@@ -3049,6 +3055,14 @@ class ChatroomHelper:
         for data in member_filter:
             user_instance = data.member_id
 
+            if data.state == member_states.ADMIN:
+                payload_for_calendar_invite = {
+                    'chatroom': card_instance.id
+                }
+
+                send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION, 
+                                                    send_to_members=False, user_list=[user_instance.id])
+                
             is_card_creator = user_instance.id == card_instance.user_id
 
             if not member_dict.get(user_instance.id):
