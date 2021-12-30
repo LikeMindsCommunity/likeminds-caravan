@@ -2588,21 +2588,24 @@ class ChatroomImpl(ChatroomManager):
         if not isinstance(chatroom_ids, list):
             return get_error_context(False, "chatroom_ids should be of type 'list'")
 
-        final_response['success'] = True
+        chatrooms_link_objects = []
 
         for chatroom_id in chatroom_ids:
             chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
             response_context = chatroom_manager.fetch_link_for_event()
 
             if response_context.get('error_message'):
-                final_response[chatroom_id] = {
+                chatrooms_link_objects.append({
+                    'chatroom_id': chatroom_id,
                     'error_message': response_context['error_message']
-                }
+                })
 
             else:
-                final_response[chatroom_id] = response_context
+                response_context['chatroom_id'] = chatroom_id
+                chatrooms_link_objects.append(response_context)
 
-        return final_response
+        return {'success': True, 'chatroom_links': chatrooms_link_objects}
+
 
 class ChatroomHelper:
 
