@@ -37,7 +37,7 @@ SUB_TITLE_ACCESS_MORE_EXPIRED_COMMUNITIES = 'Your subscription to following comm
 SUB_TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITY = 'Your membership plan for “%s” has expired. You will have access to community events, chat rooms and member profiles as soon as you <<renew your membership|route://renew_membership?community_id=%s>>'
 SUB_TITLE_ACCESS_MORE_PENDING_MORE_EXPIRED_COMMUNITIES = 'Your membership plans for multiple communities have expired. You will have access to your community and other awesome features on this app as soon as you renew your memberships.'
 
-SUB_TITLE_2_ACCESS_NOT_PART_OF_COMMUNITIES = 'Apply to join Community hood by clicking <<here|route://browser?link=https://collabmates.app.link/U7XVk6c1Mlb>>.'
+SUB_TITLE_2_ACCESS_NOT_PART_OF_COMMUNITIES = 'Apply to join CommunityHood by clicking <<here|route://browser?link=https://collabmates.app.link/U7XVk6c1Mlb>>.'
 SUB_TITLE_2_ACCESS_COMMON = '**Usually It takes upto 48 hours to get approved. If you have paid for the membership and in case you are not approved, your payment would be refunded.'
 
 ACCESS_FOOTER = 'Need help? <<Get in touch|route://browser?url=https%3A//wa.me/%2B919971769713%3Ftext%3DI%20need%20help%20in%20joining%20a%20community>>'
