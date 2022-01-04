@@ -1735,7 +1735,7 @@ class ChatroomImpl(ChatroomManager):
             else:
                 past_event_empty_view = {
                     'image': IMAGE_LINK_FOR_NO_EVENTS_FOUND,
-                    'title': SUB_TITLE_FOR_NO_PAST_EVENTS_FOUND,
+                    'title': TITLE_FOR_NO_PAST_EVENTS_FOUND,
                     'sub_title': SUB_TITLE_FOR_NO_PAST_EVENTS_FOUND
                 }
 
