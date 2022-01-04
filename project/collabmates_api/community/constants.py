@@ -88,7 +88,8 @@ FETCH_GET_STARTED_HEADING = u"\U0001f44b" + " Welcome to {}! " + u"\U0001f389"
 FETCH_GET_STARTED_TITLE = "What’s next?"
 FETCH_GET_STARTED_SUB_TITLE = 'Check the "get started" list here ' + u'\U0001f449'
 FETCH_GET_STARTED_IMAGE = "https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Humaaans+-+Space+(1).png"
-FETCH_GET_STARTED_BOTTOM_TEXT = "Need help in setting community, reach out to us <here|route://browser?link=https://rebrand.ly/lmcontactus>"
+FETCH_GET_STARTED_BOTTOM_TEXT = "Need help in setting community, reach out to us " \
+                                "<<here|route://browser?link=https://rebrand.ly/lmcontactus>>"
 
 EMAIL_VALIDATION_REGEX = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 

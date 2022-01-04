@@ -183,7 +183,8 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         fields = ('id', 'name', 'purpose', 'brand_color', 'about', 'image_url', 'members_count',
                   'type', 'sub_type', 'is_paid', 'auto_approval', 'grace_period',
                   'is_discoverable', 'website_url', 'community_category', 'referral_enabled',
-                  'dashboard_link', 'updated_at', 'fee_membership', 'fee_event', 'fee_payment_pages')
+                  'dashboard_link', 'updated_at', 'fee_membership', 'fee_event', 'fee_payment_pages',
+                  'likeminds_plan')
 
     def __init__(self, *args, **kwargs):
         super(CommunitySerializerV1, self).__init__(*args, **kwargs)

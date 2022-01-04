@@ -9212,6 +9212,7 @@ def edit_community_version_1(request):
     community_instance.fee_membership = res.get('fee_membership', community_instance.fee_membership)
     community_instance.fee_event = res.get('fee_event', community_instance.fee_event)
     community_instance.fee_payment_pages = res.get('fee_payment_pages', community_instance.fee_payment_pages)
+    community_instance.likeminds_plan = res.get('likeminds_plan', community_instance.likeminds_plan)
 
     if edit_field:
         edit_community_data(community_instance, user_instance, edit_field=edit_field)
