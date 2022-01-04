@@ -12,7 +12,7 @@ About the event:
 CHATROOM_URL = "%s/collabcard/%s"
 MAIL_EVENT_NOTIFICATION = 30
 
-IMAGE_LINK_FOR_NO_EVENTS_FOUND = "https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Animation.svg"
+IMAGE_LINK_FOR_NO_EVENTS_FOUND = "https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Animation.png"
 TITLE_FOR_NO_UPCOMING_EVENTS_FOUND = "No Events"
 SUB_TITLE_FOR_CM_VIEW_NO_UPCOMING_EVENTS_FOUND = "Create events to engage your members and increase connections in your community.\n\nNot sure? Explore types of <<online community events|route://browser?link=https://likeminds.community/blog/online-community-events/>> you can host on LikeMinds."
 SUB_TITLE_FOR_MEMBER_VIEW_NO_UPCOMING_EVENTS_FOUND = "Some exciting events coming really soon 😃"
