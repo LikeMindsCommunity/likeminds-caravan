@@ -15,11 +15,11 @@ def get_json_data_from_csv_file():
 
     # For beta
     if settings.IS_BETA:
-        file = r'/home/ec2-user/likeminds/project/scripts/plan_data.csv'
+        file = r'/home/ec2-user/likeminds/project/scripts/subscription_record.csv'
 
     # For prod
     else:
-        file = r'/home/ec2-user/Togther/project/scripts/plan_data.csv'
+        file = r'/home/ec2-user/Togther/project/scripts/subscription_record.csv'
 
     cols = pd.read_csv(file, nrows=1).columns
     df = pd.read_csv(file, usecols=cols)
@@ -133,7 +133,6 @@ def backfill_subscription_cohort_members():
 
 
 start_time = time.time()
-delete_existing_subscription_expired_cohort()
 create_single_subscription_expired_cohort()
 backfill_subscription_cohort_members()
 end_time = time.time()
