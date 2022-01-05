@@ -223,15 +223,8 @@ class CohortImpl(CohortManager):
             CohortHelper.give_member_rights_when_added_to_cohort(cohort_instance, user_instance)
             return {'success': True}
 
-        update_dict = {'type': type, 'type_id': None}
-
         if name:
-            update_dict['name'] = name
-
-        if type in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
-            update_dict['type_id'] = type_id
-
-        ModelUtilities.model_update(Cohort, {'id': cohort_id}, update_dict)
+            ModelUtilities.model_update(Cohort, {'id': cohort_id}, {'name': name})
 
         if rights:
             existing_rights = set(
