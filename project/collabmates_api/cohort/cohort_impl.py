@@ -780,7 +780,8 @@ class CohortHelper:
 
                 cohort_info = {
                     'cohort_id': cohort_instance.id,
-                    'type': cohort_types.NORMAL,
+                    'type': cohort_instance.type,
+                    'type_id': cohort_instance.type_id,
                     'community_id': community_id,
                     'member_ids': [int(member_id)]
                 }
