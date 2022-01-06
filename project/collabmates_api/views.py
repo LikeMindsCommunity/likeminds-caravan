@@ -8926,6 +8926,7 @@ def config(request):
 
     access = is_user_community_part(user_instance.id)
     context['access'] = access
+    context['community_id'] = 49992
 
     context['survey_seen'] = False
 
