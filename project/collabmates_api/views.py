@@ -2414,7 +2414,7 @@ def set_community_actions(community_instance):
             'level_state': community_level_states.PENDING,
             'image': IMAGE_LEVEL_2,
             'joined_members': 0,
-            'max_members': 1 if settings.IS_BETA else 5
+            'max_members': 1 if settings.IS_BETA else 2
         })
 
         # third level
@@ -8926,6 +8926,7 @@ def config(request):
 
     access = is_user_community_part(user_instance.id)
     context['access'] = access
+    context['community_id'] = 49992
 
     context['survey_seen'] = False
 
