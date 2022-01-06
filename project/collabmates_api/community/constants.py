@@ -34,7 +34,7 @@ LEVEL_1_TITLE = 'Create onboarding room'
 LEVEL_1_SUB_TITLE = 'Break the ice for new members. Tell what this community stands for.'
 
 LEVEL_2_TITLE = 'Invite your inner circle'
-LEVEL_2_SUB_TITLE = 'Bring 5 trusted people you want to build this community with.'
+LEVEL_2_SUB_TITLE = 'Bring 2 trusted people you want to build this community with.'
 
 LEVEL_3_TITLE = "Set up community directory"
 LEVEL_3_SUB_TITLE = "Help members know each other. Give 10 members a community-specific identity."
