@@ -2198,6 +2198,72 @@ def get_last_seen_event_chatroom_id_for_user(user_id):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def get_last_seen_non_member_access_event_chatroom_id_for_community_managers(user_id):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """
+                SELECT card_id
+                FROM togther_collabcardState
+                WHERE card_id IN 
+                    (SELECT id
+                    FROM togther_collabcard
+                    WHERE type IN (2,6)
+                            AND access = 0
+                            AND community_id IN 
+                        (SELECT community_id_id
+                        FROM togther_members
+                        WHERE user_id=%s
+                                AND state = 1))
+                            AND user_id=%s
+                ORDER BY card_id DESC limit 1
+        """ % (str(user_id), str(user_id))
+
+        curr.execute(sql)
+        card_tuple = curr.fetchone()
+        curr.close()
+
+        if card_tuple:
+            return card_tuple[0]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_last_seen_non_member_access_event_for_user(user_id):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """
+                SELECT card_id
+                FROM togther_collabcardState
+                WHERE card_id IN 
+                    (SELECT id
+                    FROM togther_Collabcard
+                    WHERE type IN (2,6)
+                            AND access = 0
+                            AND id IN 
+                        (SELECT chatroom_id
+                        FROM togther_ChatroomCohort
+                        WHERE cohort_id IN 
+                            (SELECT cohort_id
+                            FROM togther_CohortMember
+                            WHERE user_id = %s)))
+                                AND user_id = %s
+                ORDER BY card_id DESC limit 1;
+        """ % (str(user_id), str(user_id))
+
+        curr.execute(sql)
+        card_tuple = curr.fetchone()
+        curr.close()
+
+        if card_tuple:
+            return card_tuple[0]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
     try:
         conn = get_connection()
