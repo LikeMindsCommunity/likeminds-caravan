@@ -1233,6 +1233,16 @@ def get_chatroom_id_list(data):
     return chatroom_id_list
 
 
+def get_event_chatroom_id_list(data):
+    event_chatroom_ids = []
+
+    for card in data:
+        if card[8] in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+            event_chatroom_ids.append(card[0])
+
+    return event_chatroom_ids
+
+
 def get_community_id_list(member_id):
     """function to give community id list of member"""
 
@@ -2182,8 +2192,7 @@ def get_last_seen_event_chatroom_id_for_user(user_id):
                  WHERE card_id IN 
                     (SELECT id
                     FROM togther_collabcard
-                    WHERE type=2
-                            OR type=6)
+                    WHERE type in (2,6) AND access in (1,2))
                         AND user_id=%s
                  ORDER BY card_id desc limit 1
         """ % str(user_id)
@@ -2274,8 +2283,7 @@ def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
                  WHERE card_id IN 
                     (SELECT id
                     FROM togther_collabcard
-                    WHERE type=2
-                            OR type=6)
+                    WHERE type in (2,6) AND access in (1,2))
                         AND user_id=%s
                  AND card_id > %s
         """ % (str(user_id), str(card_id))
@@ -2286,6 +2294,79 @@ def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
         if card_tupple:
             return card_tupple[0]
 
+        return 0
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_count_for_new_non_member_access_event_chatroom_community_managers(user_id, card_id):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """
+                SELECT count(*)
+                FROM togther_collabcardState
+                WHERE card_id IN 
+                    (SELECT id
+                    FROM togther_collabcard
+                    WHERE type IN (2,6)
+                            AND access = 0
+                            AND community_id IN 
+                        (SELECT community_id_id
+                        FROM togther_members
+                        WHERE user_id=%s
+                                AND state = 1))
+                            AND user_id=%s
+                 AND card_id > %s
+        """ % (str(user_id), str(user_id), str(card_id))
+
+        curr.execute(sql)
+        card_tuple = curr.fetchone()
+        curr.close()
+
+        if card_tuple:
+            return card_tuple[0]
+        return 0
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_count_for_non_member_access_event_for_user_non_community_manager(user_id, card_id):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """
+                SELECT count(*)
+                FROM togther_collabcardState
+                WHERE card_id IN 
+                    (SELECT id
+                    FROM togther_Collabcard
+                    WHERE type IN (2,6)
+                            AND access = 0
+                            AND id IN 
+                        (SELECT chatroom_id
+                        FROM togther_ChatroomCohort
+                        WHERE cohort_id IN 
+                            (SELECT cohort_id
+                            FROM togther_CohortMember
+                            WHERE user_id = %s))
+                                    AND community_id NOT IN 
+                                (SELECT community_id_id
+                                FROM togther_members
+                                WHERE user_id=%s
+                                        AND state = 1))
+                                    AND user_id = %s
+                 AND card_id > %s
+        """ % (str(user_id), str(user_id), str(user_id), str(card_id))
+
+        curr.execute(sql)
+        card_tuple = curr.fetchone()
+        curr.close()
+
+        if card_tuple:
+            return card_tuple[0]
         return 0
 
     except (Exception, psycopg2.Error) as error:

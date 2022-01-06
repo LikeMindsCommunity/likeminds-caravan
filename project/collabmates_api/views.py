@@ -12030,6 +12030,11 @@ class SyncChatrooms(APIView):
             poll_data = fetch_chatroom_polls(chatroom_id_list)
             poll_votes = fetch_member_poll_votes(chatroom_id_list)
 
+        event_chatroom_ids = get_event_chatroom_id_list(chatroom_data)
+
+        from .chatroom.chatroom_impl import ChatroomHelper
+        event_chatroom_dict = ChatroomHelper.pre_compute_chatroom_instances_from_chatroom_list(event_chatroom_ids)
+
         chatrooms = []
 
         # Get Chatroom IDs
@@ -12124,6 +12129,27 @@ class SyncChatrooms(APIView):
                 chatroom["expiry_time"] = data[32]
 
             if chatroom['type'] == card_types.CARD_EVENT or chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
+
+                if data[59] not in [event_access.COMMUNITY_MEMBERS, event_access.NON_COMMUNITY_USERS_AND_MEMBERS]:
+
+                    chatroom_instance = event_chatroom_dict.get(chatroom['id'])
+
+                    if not chatroom_instance:
+                        continue
+
+                    is_promoter = Members.is_member_community_promoter(chatroom_instance.community, user_instance)
+
+                    if not is_promoter:
+                        from collabmates_api.cohort.cohort_impl import CohortHelper
+
+                        has_event_access = CohortHelper.check_if_user_is_member_of_chatroom_related_cohort(
+                            chatroom_instance,
+                            user_instance
+                        )
+
+                        if not has_event_access:
+                            continue
+
                 self._fill_event_related_details(chatroom, data)
 
             if data[36]:

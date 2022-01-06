@@ -23,9 +23,11 @@ from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of_new_event_chatrooms_created_for_user, \
     get_last_seen_non_member_access_event_chatroom_id_for_community_managers, \
-    get_last_seen_non_member_access_event_for_user
+    get_last_seen_non_member_access_event_for_user, \
+    get_count_for_new_non_member_access_event_chatroom_community_managers, \
+    get_count_for_non_member_access_event_for_user_non_community_manager
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
-                        CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
+    CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
@@ -755,10 +757,16 @@ class ChatroomImpl(ChatroomManager):
             filter_dict = {}
 
         # If Community ID not given, fetch all communities in which user is CM
-        if not filter_dict.get('community_id'):
+        if not filter_dict.get('community'):
             community_manager_filter = ModelUtilities.get_model_filter(Members, {'state': member_states.ADMIN,
                                                                                  'member_id_id': user_instance.id})
             filter_dict['community_id__in'] = community_manager_filter.values_list('community_id_id', flat=True)
+        else:
+            community_manager_filter = ModelUtilities.get_model_filter(Members, {'state': member_states.ADMIN,
+                                                                                 'member_id_id': user_instance.id,
+                                                                                 'community_id_id': filter_dict.get('community')})
+            if not community_manager_filter:
+                return collabcardState.objects.none()
 
         filter_dict['card__access__in'] = [event_access.NON_COMMUNITY_USERS, None]
 
@@ -799,6 +807,20 @@ class ChatroomImpl(ChatroomManager):
             return {'error_message': "invalid user id"}
 
         community_instance = card_instance.community
+
+        if card_instance.access not in [event_access.COMMUNITY_MEMBERS, event_access.NON_COMMUNITY_USERS_AND_MEMBERS] \
+                and card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+
+            is_promoter = Members.is_member_community_promoter(community_instance, user_instance)
+
+            if not is_promoter:
+                # If only non-members have event access, he/she should be member of of any chatroom related cohort.
+                from collabmates_api.cohort.cohort_impl import CohortHelper
+                has_event_access = CohortHelper.check_if_user_is_member_of_chatroom_related_cohort(card_instance,
+                                                                                                   user_instance)
+
+                if not has_event_access:
+                    return {'error_message': "You don't have access to this event"}
 
         chatroom_data = ChatroomHelper.compute_chatroom_response(card_instance, user_instance,
                                                                  community_instance=community_instance)
@@ -1648,8 +1670,9 @@ class ChatroomImpl(ChatroomManager):
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user-id"}
 
-        last_seen_event_chatroom_id = get_last_seen_event_chatroom_id_for_user(user_instance.id)
-        last_seen_event_chatroom_id_for_cohort_member = get_last_seen_non_member_access_event_for_user(user_instance.id)
+        last_seen_event_chatroom_id = get_last_seen_event_chatroom_id_for_user(user_id=user_instance.id)
+        last_seen_event_chatroom_id_for_cohort_member = get_last_seen_non_member_access_event_for_user(
+            user_id=user_instance.id)
         last_seen_event_chatroom_id_for_cm = get_last_seen_non_member_access_event_chatroom_id_for_community_managers(
             user_id=user_instance.id
         )
@@ -1662,9 +1685,8 @@ class ChatroomImpl(ChatroomManager):
         if not last_seen_event_chatroom_id_for_cohort_member:
             last_seen_event_chatroom_id_for_cohort_member = 0
 
-        last_seen_event_chatroom_id = min(last_seen_event_chatroom_id, last_seen_event_chatroom_id_for_cm,
+        last_seen_event_chatroom_id = max(last_seen_event_chatroom_id, last_seen_event_chatroom_id_for_cm,
                                           last_seen_event_chatroom_id_for_cohort_member)
-
 
         if not last_seen_event_chatroom_id:
             return {'success': True}
@@ -1702,27 +1724,15 @@ class ChatroomImpl(ChatroomManager):
         if nudge_filter:
             card_instance = nudge_filter[0].seen_event_chatroom
 
-            # Fetch cohorts user is part of
-            user_cohorts = ModelUtilities.get_model_filter(CohortMember, {'user_id': self.get_member_id()}).values_list(
-                'cohort_id', flat=True)
+            unseen_count = get_count_of_new_event_chatrooms_created_for_user(card_id=card_instance.id,
+                                                                             user_id=user_instance.id)
+            unseen_count += get_count_for_new_non_member_access_event_chatroom_community_managers(
+                card_id=card_instance.id,
+                user_id=user_instance.id)
 
-            filter_dict = {
-                'cohort_id__in': user_cohorts,
-                'chatroom_id__gt': card_instance.id
-            }
-
-            # Get ids of chatroom in which user related cohorts are added & chatroom_id > card_instance.id.
-            chatroom_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('chatroom_id',
-                                                                                                    flat=True)
-
-            # filter event chatrooms which are accessible by non community members only.
-            non_community_member_events = ModelUtilities.get_model_filter(Collabcard, {
-                'type__in': [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT],
-                'access': event_access.NON_COMMUNITY_USERS,
-                'id__in': chatroom_ids
-            }).order_by('-id')
-
-            unseen_count = get_count_of_new_event_chatrooms_created_for_user(card_instance.id, user_instance.id)
+            unseen_count += get_count_for_non_member_access_event_for_user_non_community_manager(
+                card_id=card_instance.id,
+                user_id=user_instance.id)
 
         return {'count': unseen_count}
 
@@ -1776,6 +1786,12 @@ class ChatroomImpl(ChatroomManager):
 
         if not user_instance:
             return {'error_message': "Invalid user-id"}
+
+        if community_id:
+            community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+            if not community_instance:
+                return {'error_message': "Invalid Community ID"}
 
         filter_dict = self.get_filter_dict_for_fetch_all_events(user_instance=user_instance,
                                                                 attending_status=attending_status,
@@ -1842,7 +1858,8 @@ class ChatroomImpl(ChatroomManager):
         if is_user_cm:
             non_member_access_chatroom_queryset = self.fetch_non_member_access_events_for_community_manager_queryset(
                 past_events=past_events,
-                filter_dict=filter_dict
+                filter_dict=filter_dict,
+                user_instance=user_instance
             )
 
         else:
@@ -2779,7 +2796,6 @@ class ChatroomImpl(ChatroomManager):
                 chatrooms_link_objects.append(response_context)
 
         return {'success': True, 'chatroom_links': chatrooms_link_objects}
-
 
 
 class ChatroomHelper:
