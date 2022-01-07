@@ -2414,7 +2414,7 @@ def set_community_actions(community_instance):
             'level_state': community_level_states.PENDING,
             'image': IMAGE_LEVEL_2,
             'joined_members': 0,
-            'max_members': 1 if settings.IS_BETA else 5
+            'max_members': 1 if settings.IS_BETA else 2
         })
 
         # third level
@@ -9212,6 +9212,7 @@ def edit_community_version_1(request):
     community_instance.fee_membership = res.get('fee_membership', community_instance.fee_membership)
     community_instance.fee_event = res.get('fee_event', community_instance.fee_event)
     community_instance.fee_payment_pages = res.get('fee_payment_pages', community_instance.fee_payment_pages)
+    community_instance.brand_color = res.get('brand_color', community_instance.brand_color)
     community_instance.likeminds_plan = res.get('likeminds_plan', community_instance.likeminds_plan)
 
     if edit_field:
@@ -12028,6 +12029,11 @@ class SyncChatrooms(APIView):
             poll_data = fetch_chatroom_polls(chatroom_id_list)
             poll_votes = fetch_member_poll_votes(chatroom_id_list)
 
+        event_chatroom_ids = get_event_chatroom_id_list(chatroom_data)
+
+        from .chatroom.chatroom_impl import ChatroomHelper
+        event_chatroom_dict = ChatroomHelper.pre_compute_chatroom_instances_from_chatroom_list(event_chatroom_ids)
+
         chatrooms = []
 
         # Get Chatroom IDs
@@ -12122,6 +12128,27 @@ class SyncChatrooms(APIView):
                 chatroom["expiry_time"] = data[32]
 
             if chatroom['type'] == card_types.CARD_EVENT or chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
+
+                if data[59] not in [event_access.COMMUNITY_MEMBERS, event_access.NON_COMMUNITY_USERS_AND_MEMBERS]:
+
+                    chatroom_instance = event_chatroom_dict.get(chatroom['id'])
+
+                    if not chatroom_instance:
+                        continue
+
+                    is_promoter = Members.is_member_community_promoter(chatroom_instance.community, user_instance)
+
+                    if not is_promoter:
+                        from collabmates_api.cohort.cohort_impl import CohortHelper
+
+                        has_event_access = CohortHelper.check_if_user_is_member_of_chatroom_related_cohort(
+                            chatroom_instance,
+                            user_instance
+                        )
+
+                        if not has_event_access:
+                            continue
+
                 self._fill_event_related_details(chatroom, data)
 
             if data[36]:
