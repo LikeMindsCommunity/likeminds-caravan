@@ -890,9 +890,9 @@ def send_cm_onboarding_getting_started_email():
     return
 
 
-# @app.task
-# def send_daily_emails():
-#     send_cm_onboarding_getting_started_email()
+@app.task
+def send_daily_emails():
+    send_cm_onboarding_getting_started_email()
 
 
 def cm_onboarding_version_check(platform_code, version_code):

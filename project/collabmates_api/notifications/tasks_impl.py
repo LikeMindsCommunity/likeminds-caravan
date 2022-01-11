@@ -2,11 +2,12 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.template.loader import get_template
 
-from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, userEmails, \
-                            EventCommsCeleryTasks
+from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
+    userEmails, \
+    EventCommsCeleryTasks, ChatroomCohort, CohortMember
 from utility.time_utilities import TimeUtilities
 from utility.utils import generate_private_link_for_chatroom
-from utility.states import member_states, mobile_states, email_states
+from utility.states import member_states, mobile_states, email_states, event_access, card_types
 from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
@@ -833,3 +834,51 @@ class TasksHelper:
         is_event_comms_task_deleted = ModelUtilities.is_model_filter_exists(EventCommsCeleryTasks , filter_dict)
 
         return is_event_comms_task_deleted
+
+    @staticmethod
+    def is_non_member_access_event(event_instance: Collabcard):
+        """
+        This function checks if event has non member access or not.
+        @param event_instance: Collabcard instance having type 2 or 6
+        @return: True if event access is 0 or NULL else False
+        """
+
+        if event_instance.access in [event_access.NON_COMMUNITY_USERS, None]:
+            return True
+
+        return False
+
+    @staticmethod
+    def filter_member_ids_for_non_member_access_event(event_instance: Collabcard, member_ids: list):
+        """
+        This function filters member_ids on the basis of added member groups in event.
+        @param event_instance: Collabcard instance having type 2 or 6
+        @param member_ids: List of member Ids
+        @return: List of filtered member_ids
+        """
+
+        members_to_be_notified = member_ids.copy()
+
+        active_members = TasksHelper.get_active_members_of_community(community_id=event_instance.community_id)
+
+        if not event_instance or not member_ids or event_instance.type not in [card_types.CARD_EVENT,
+                                                                               card_types.CARD_PUBLIC_EVENT]:
+            return []
+
+        if event_instance.access in [event_access.COMMUNITY_MEMBERS, event_access.NON_COMMUNITY_USERS_AND_MEMBERS]:
+            return member_ids
+
+        event_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': event_instance.pk})
+        event_cohort_ids = list(event_cohort_filter.values_list('cohort_id', flat=True))
+
+        event_cohort_members = ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': event_cohort_ids})
+        event_cohort_member_ids = (event_cohort_members.values_list('user_id', flat=True).distinct())
+
+        for member_id in member_ids:
+
+            if member_id in active_members and member_id not in event_cohort_member_ids:
+                members_to_be_notified.remove(member_id)
+
+        return members_to_be_notified
+
+
