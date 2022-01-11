@@ -25,9 +25,11 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 # import collabmates_api.notification.send_morning_pending_request_notification
 
+
 @app.task(bind=True)
 def debug_task(self):
     print('Request: {0!r}'.format(self.request))
+
 
 app.conf.beat_schedule = {
 
@@ -64,10 +66,10 @@ app.conf.beat_schedule = {
     #     'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
     #     'schedule': crontab(hour=20, minute=53),
     # },
-    # 'send_daily_emails': {
-    #     'task': 'collabmates_api.tasks.send_daily_emails',
-    #     'schedule': crontab(hour=10, minute=0),
-    # }
+    'send_daily_emails': {
+        'task': 'collabmates_api.tasks.send_daily_emails',
+        'schedule': crontab(hour=10, minute=0),
+    }
 }
 app.conf.timezone = 'Asia/Kolkata'
 
