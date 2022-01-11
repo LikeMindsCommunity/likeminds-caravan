@@ -83,10 +83,10 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
         community_instance = payload.get('community')
 
         active_user_ids = TasksHelper.get_active_members_of_community(community_instance.id)
-        final_user_ids = []
+        user_ids = []
 
         if event_type == EVENT_TYPE.CREATION:
-            final_user_ids = active_user_ids
+            user_ids = active_user_ids
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION
 
         elif event_type == EVENT_TYPE.LAST_CALL:
@@ -94,7 +94,7 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
                                                                                                             active_user_ids,
                                                                                                             attending=False)
 
-            final_user_ids = users_not_attending_event
+            user_ids = users_not_attending_event
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL
 
         elif event_type == EVENT_TYPE.ATTENDANCE_5_HRS:
@@ -102,19 +102,21 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
                                                                                                     active_user_ids,
                                                                                                     attending=True)
 
-            final_user_ids = users_attending_event
+            user_ids = users_attending_event
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS
 
         elif event_type == EVENT_TYPE.ATTENDANCE_10_MIN:
 
-            final_user_ids = active_user_ids
+            user_ids = active_user_ids
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN
 
         is_non_member_access_event = TasksHelper.is_non_member_access_event(event_instance=event_instance)
 
         if is_non_member_access_event:
             final_user_ids = TasksHelper.filter_member_ids_for_non_member_access_event(event_instance,
-                                                                                       list(final_user_ids))
+                                                                                       list(user_ids))
+        else:
+            final_user_ids = user_ids
 
         user_data_for_wa_notification = TasksHelper.create_user_data_for_wa_notification(user_ids=final_user_ids,
                                                                                         custom_params=custom_params)
@@ -192,33 +194,34 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         community_id = event_instance.community
 
         active_user_ids = TasksHelper.get_active_members_of_community(community_id)
-        final_user_instances = []
+        user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
-            final_user_instances = active_user_ids
+            user_instances = active_user_ids
 
         elif event_type == EVENT_TYPE.LAST_CALL:
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
                                                                                                             active_user_ids,
                                                                                                             attending=False)
-
-            final_user_instances = users_not_attending_event
+            user_instances = users_not_attending_event
 
         elif event_type == EVENT_TYPE.ATTENDANCE_15_MIN:
             users_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
                                                                                                     active_user_ids,
                                                                                                     attending=True)
 
-            final_user_instances = users_attending_event
+            user_instances = users_attending_event
 
         elif event_type == EVENT_TYPE.REGISTRATION:
-            final_user_instances = TasksHelper.get_community_owner_and_event_creator(community_id, event_instance)
+            user_instances = TasksHelper.get_community_owner_and_event_creator(community_id, event_instance)
 
         is_non_member_access_event = TasksHelper.is_non_member_access_event(event_instance=event_instance)
 
         if is_non_member_access_event:
             final_user_instances = TasksHelper.filter_member_ids_for_non_member_access_event(event_instance,
-                                                                                             list(final_user_instances))
+                                                                                             list(user_instances))
+        else:
+            final_user_instances = user_instances
 
         user_details_list = TasksHelper.create_user_details_list_for_sending_app_notification(final_user_instances)
 
@@ -352,36 +355,39 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         community_id = event_instance.community
 
         active_user_ids = TasksHelper.get_active_members_of_community(community_id)
+        user_instances = []
 
         if event_type == EVENT_TYPE.CREATION or event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
-            final_user_instances = active_user_ids
+            user_instances = active_user_ids
 
         elif event_type == EVENT_TYPE.LAST_CALL:
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
                                                                                                             active_user_ids,
                                                                                                             attending=False)
 
-            final_user_instances = users_not_attending_event
+            user_instances = users_not_attending_event
 
         elif event_type == EVENT_TYPE.REGISTRATION:
 
-            final_user_instances = [payload.get('user')]
+            user_instances = [payload.get('user')]
 
         elif event_type == EVENT_TYPE.ATTENDANCE_9_AM:
             users_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
                                                                                                     active_user_ids,
                                                                                                     attending=True)
 
-            final_user_instances = users_attending_event
+            user_instances = users_attending_event
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTENDEES:
-            final_user_instances = TasksHelper.get_community_owner_and_event_creator(community_id, event_instance)
+            user_instances = TasksHelper.get_community_owner_and_event_creator(community_id, event_instance)
 
         is_non_member_access_event = TasksHelper.is_non_member_access_event(event_instance=event_instance)
 
         if is_non_member_access_event:
             final_user_instances = TasksHelper.filter_member_ids_for_non_member_access_event(event_instance,
-                                                                                             list(final_user_instances))
+                                                                                             list(user_instances))
+        else:
+            final_user_instances = user_instances
 
         context = TasksHelper.create_context_for_sending_emails(final_user_instances, event_type, event_instance,\
                                                                 data_dict=response_dict)

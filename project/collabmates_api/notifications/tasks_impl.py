@@ -857,7 +857,7 @@ class TasksHelper:
         @return: List of filtered member_ids
         """
 
-        final_user_ids = member_ids
+        members_to_be_notified = member_ids.copy()
 
         active_members = TasksHelper.get_active_members_of_community(community_id=event_instance.community_id)
 
@@ -877,7 +877,8 @@ class TasksHelper:
         for member_id in member_ids:
 
             if member_id in active_members and member_id not in event_cohort_member_ids:
-                final_user_ids.remove(member_id)
+                members_to_be_notified.remove(member_id)
 
-        return final_user_ids
+        return members_to_be_notified
+
 
