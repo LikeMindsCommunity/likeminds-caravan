@@ -856,6 +856,11 @@ class TasksHelper:
         @param member_ids: List of member Ids
         @return: List of filtered member_ids
         """
+
+        final_user_ids = member_ids
+
+        active_members = TasksHelper.get_active_members_of_community(community_id=event_instance.community_id)
+
         if not event_instance or not member_ids or event_instance.type not in [card_types.CARD_EVENT,
                                                                                card_types.CARD_PUBLIC_EVENT]:
             return []
@@ -867,16 +872,12 @@ class TasksHelper:
         event_cohort_ids = list(event_cohort_filter.values_list('cohort_id', flat=True))
 
         event_cohort_members = ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': event_cohort_ids})
-        event_cohort_member_ids = (event_cohort_members.values_list('user_id', flat=True))
+        event_cohort_member_ids = (event_cohort_members.values_list('user_id', flat=True).distinct())
 
-        community_managers = TasksHelper.get_community_managers_of_community(community_id=event_instance.community_id)
+        for member_id in member_ids:
 
-        event_cohort_member_ids_set = set(event_cohort_member_ids)
+            if member_id in active_members and member_id not in event_cohort_member_ids:
+                final_user_ids.remove(member_id)
 
-        members_to_be_notified = event_cohort_member_ids_set & set(member_ids)
+        return final_user_ids
 
-        community_managers_to_be_notified = event_cohort_member_ids_set & set(community_managers)
-
-        users_to_be_notified = set(members_to_be_notified) | set(community_managers_to_be_notified)
-
-        return list(users_to_be_notified)
