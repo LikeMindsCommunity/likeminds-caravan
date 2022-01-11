@@ -755,6 +755,9 @@ class CohortHelper:
             # Fetch all the Cohort Filters related to cohort
             cohort_filter_dict = CohortHelper.get_cohort_filters_dict_using_cohort_id(cohort_instance.id)
 
+            if not cohort_filter_dict:
+                continue
+
             for question_id in cohort_filter_dict:
                 # Fetch supported answers for particular question
                 supported_answers = cohort_filter_dict.get(question_id)
@@ -796,6 +799,9 @@ class CohortHelper:
 
             # Fetch all the Cohort Filters related to cohort
             cohort_filter_dict = CohortHelper.get_cohort_filters_dict_using_cohort_id(cohort_instance.id)
+
+            if not cohort_filter_dict:
+                continue
 
             for question_id in cohort_filter_dict:
                 # Fetch supported answers for particular question
