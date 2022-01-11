@@ -245,20 +245,19 @@ class MemberCommunityImpl(MemberCommunityManager):
                 community.new_chatroom_users:
             member_community['new_chatroom_users'] = json.loads(community.new_chatroom_users)
         else:
-
-            if community_chatroom_count_dict.get(community.community_id_id):
-                chatroom_count = community_chatroom_count_dict.get(community.community_id_id)
-            else:
-                chatroom_count = 0
-
-            member_community['chatroom_count'] = chatroom_count
-
             user_list = get_distinct_chatroom_creator_list(community.community_id_id, member_id)
             member_dict = MemberCommunityImpl.fetch_members_based_on_user_list(user_list, community.community_id)
             chatroom_users = MemberCommunityHelper.extract_member_tagging_data(member_dict)
 
             if chatroom_users:
                 member_community['chatroom_users'] = chatroom_users
+
+        if community_chatroom_count_dict.get(community.community_id_id):
+            chatroom_count = community_chatroom_count_dict.get(community.community_id_id)
+        else:
+            chatroom_count = 0
+
+        member_community['chatroom_count'] = chatroom_count
 
     @staticmethod
     def _add_members_count_in_home_communities(member_community, community_id, community_members_count_dict):
