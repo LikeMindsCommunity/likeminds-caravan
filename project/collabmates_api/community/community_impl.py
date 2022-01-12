@@ -2265,8 +2265,11 @@ class CommunityHelper:
     @staticmethod
     def send_invite_email_to_given_emails_list(user_instance, community_instance, valid_email_ids_list,
                                                validated_req_body, share_context, link, mail_body):
+
+        mail_body = "<br>".join(mail_body.split("\n"))
+
         mail_template = get_template('mails/cm_onboarding/invite_members_cm_onboarding.html').render({
-            "community_logo": community_instance.image_url,
+            "community_logo": community_instance.image_link,
             "community_name": community_instance.name,
             "cm_name": user_instance.userinfo.name,
             "mail_text": mail_body,

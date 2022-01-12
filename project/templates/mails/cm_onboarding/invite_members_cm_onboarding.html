@@ -1,7 +1,7 @@
 {% extends "mails/cm_onboarding/cm_onboarding_main_2.html" %}
 
 {% block main_body %}
-{{mail_text}}
+{{mail_text | safe}}
 {% endblock %}
 
 {% block after_body %}
