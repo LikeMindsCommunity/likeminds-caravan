@@ -1232,13 +1232,7 @@ class CommunityImpl(CommunityManager):
                                                    'custom_title': 'Owner',
                                                    'became_member_at': TimeUtilities.current_time_in_sec()})
 
-        CommunityHelper.create_community_async_tasks.delay(user_instance.id, community_instance.id)
-
-        create_introduction_question_in_community_v2(community_instance)
-        post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
-        post_master_introductions_for_community(community_instance.id, user_instance.id)
-        post_general_collabcard_for_community(community_instance, user_instance.id)
-        post_member_directory_link(user_instance, community_instance)
+        CommunityHelper.create_community_async_tasks.delay(user_instance.id, community_instance.id, req_body)
 
         update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
 
@@ -2322,7 +2316,7 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def create_community_async_tasks(user_id, community_id):
+    def create_community_async_tasks(user_id, community_id, req_body):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -2368,6 +2362,12 @@ class CommunityHelper:
         CommunityHelper.create_content_download_settings_for_community(community_instance)
 
         add_community_settings_for_community(community_instance, user_instance)
+
+        create_introduction_question_in_community_v2(community_instance)
+        post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
+        post_master_introductions_for_community(community_instance.id, user_instance.id)
+        post_general_collabcard_for_community(community_instance, user_instance.id)
+        post_member_directory_link(user_instance, community_instance)
 
         update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                        {'community_id': community_instance, 'member_id': user_id},
