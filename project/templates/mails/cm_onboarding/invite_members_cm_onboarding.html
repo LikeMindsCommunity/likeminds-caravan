@@ -1,11 +1,7 @@
-{% extends "mails/cm_onboarding/cm_onboarding_main.html" %}
+{% extends "mails/cm_onboarding/cm_onboarding_main_2.html" %}
 
 {% block main_body %}
-<p>I'd like to invite you to our community, {{community_name}}.<p>
-<p>It takes less than a minute to join and together we’re sharing our stories, experiences, and ideas.</p>
-<p>I know you’ll love it.</p>
-<p style="margin:0;">See you here!</p>
-<p style="margin:0;">{{cm_name}}</p>
+{{mail_text}}
 {% endblock %}
 
 {% block after_body %}

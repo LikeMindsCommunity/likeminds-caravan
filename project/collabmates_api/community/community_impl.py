@@ -1333,11 +1333,14 @@ class CommunityImpl(CommunityManager):
 
                 return {'success': False, 'error_message': error_text}
 
+            mail_text = validated_req_body.get('text')
+
             send_email_response = CommunityHelper.send_invite_email_to_given_emails_list(user_instance,
                                                                                          community_instance,
                                                                                          valid_email_ids_list,
                                                                                          validated_req_body,
-                                                                                         share_context, link)
+                                                                                         share_context, link,
+                                                                                         mail_text)
 
             if not send_email_response:
                 return {'success': False, "error_message": "Error while sending email."}
@@ -2261,11 +2264,12 @@ class CommunityHelper:
 
     @staticmethod
     def send_invite_email_to_given_emails_list(user_instance, community_instance, valid_email_ids_list,
-                                               validated_req_body, share_context, link):
+                                               validated_req_body, share_context, link, mail_body):
         mail_template = get_template('mails/cm_onboarding/invite_members_cm_onboarding.html').render({
             "community_logo": community_instance.image_url,
             "community_name": community_instance.name,
             "cm_name": user_instance.userinfo.name,
+            "mail_text": mail_body,
             "community_brand_color": community_instance.brand_color if community_instance.brand_color else
             DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
             "join_code": share_context.get('aj') if validated_req_body.get('link_type') == 'free' else '',
