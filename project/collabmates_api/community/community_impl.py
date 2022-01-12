@@ -1232,7 +1232,15 @@ class CommunityImpl(CommunityManager):
                                                    'custom_title': 'Owner',
                                                    'became_member_at': TimeUtilities.current_time_in_sec()})
 
-        CommunityHelper.create_community_async_tasks.delay(user_instance.id, community_instance.id, req_body)
+        CommunityHelper.create_community_async_tasks.delay(user_instance.id, community_instance.id)
+
+        create_introduction_question_in_community_v2(community_instance)
+        post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
+        post_master_introductions_for_community(community_instance.id, user_instance.id)
+        post_general_collabcard_for_community(community_instance, user_instance.id)
+        post_member_directory_link(user_instance, community_instance)
+
+        update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
 
         # Create All member cohort
         CommunityHelper.create_all_member_cohort_for_new_community.delay(self.get_member_id(), community_instance.id)
@@ -2314,7 +2322,7 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def create_community_async_tasks(user_id, community_id, req_body):
+    def create_community_async_tasks(user_id, community_id):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -2364,14 +2372,6 @@ class CommunityHelper:
         update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                        {'community_id': community_instance, 'member_id': user_id},
                                        {'click_state': click_states.DEFAULT})
-
-        create_introduction_question_in_community_v2(community_instance)
-        post_purpose_collabcard_for_community(req_body, community_instance, user_id)
-        post_master_introductions_for_community(community_instance.id, user_id)
-        post_general_collabcard_for_community(community_instance, user_id)
-        post_member_directory_link(user_instance, community_instance)
-
-        update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
 
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': COMMUNITY_HOOD_COMMUNITY_ID,
                                                                   'member_id': user_instance})
