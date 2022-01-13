@@ -60,27 +60,16 @@ DOWNLOAD_SETTING_TYPE_TITLE_MAPPING = {
     "screen_record": "Allow screenshots & screen recording"
 }
 
-if settings.IS_BETA:
-    COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
-        "intro_room": "Introductions Room",
-        "members_auto_join": "Members auto-join"
-    }
+COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
+    "intro_room": "Introductions Room",
+    "members_auto_join": "Members auto-join"
+}
 
-    COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
-        "intro_room": "Introduction rooms are used to welcome new members in your communities. If the feature is "
-                      "turned off, Introduction rooms and intro rooms would be hidden.",
-        "members_auto_join": "If disabled, members will need approval from the community manager to join the community."
-    }
-
-else:
-    COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
-        "intro_room": "Introductions Room"
-    }
-
-    COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
-        "intro_room": "Introduction rooms are used to welcome new members in your communities. If the feature is "
-                      "turned off, Introduction rooms and intro rooms would be hidden."
-    }
+COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
+    "intro_room": "Introduction rooms are used to welcome new members in your communities. If the feature is "
+                  "turned off, Introduction rooms and intro rooms would be hidden.",
+    "members_auto_join": "If disabled, members will need approval from the community manager to join the community."
+}
 
 INTRO_ROOM_SETTING_DISABLED_TOAST = "Introduction Room has been turned off by the community manager."
 
