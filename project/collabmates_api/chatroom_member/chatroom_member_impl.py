@@ -630,6 +630,7 @@ class ChatroomMemberHelper:
                             'is_paid': card_instance.is_paid,
                             'access': card_instance.access,
                             'online_link_enable_before': card_instance.online_link_enable_before,
+                            'online_link_type': card_instance.online_link_type,
                             'is_private': card_instance.is_private,
                             'access_without_subscription': card_instance.access_without_subscription,
                             'member_can_message': card_instance.member_can_message}

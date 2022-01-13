@@ -528,6 +528,7 @@ class Collabcard(models.Model):
 
     # fields for event
     online_link = models.TextField(null=True)
+    online_link_type = models.IntegerField(null=True)
     online_link_enable_before = models.BigIntegerField(
         default=TimeUtilities.get_minutes_in_milliseconds(15))  # 15 minutes in milliseconds
     online_link_id = models.TextField(null=True)
