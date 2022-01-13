@@ -12205,8 +12205,6 @@ class SyncChatrooms(APIView):
 
             chatroom["external_seen"] = data[67]
 
-            chatroom["online_link_type"] = data[68]
-
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue
 

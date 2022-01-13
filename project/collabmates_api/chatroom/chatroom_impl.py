@@ -63,8 +63,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
 from external_services.email.email_wrapper import MailWrapper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
-    SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
-    event_online_link_types
+    SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types
 
 from utility.utils import decode_meta_from_url, check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -602,7 +601,6 @@ class ChatroomImpl(ChatroomManager):
         create_context['online_link'] = req_body.get('online_link')
         create_context['online_link_id'] = req_body.get('online_link_id')
         create_context['online_link_password'] = req_body.get('online_link_password')
-        create_context['online_link_type'] = req_body.get('online_link_type')
         create_context['location'] = req_body.get('location')
         create_context['location_lat'] = req_body.get('location_lat')
         create_context['location_long'] = req_body.get('location_long')
@@ -646,8 +644,6 @@ class ChatroomImpl(ChatroomManager):
         update_context['online_link_id'] = req_body.get('online_link_id', card_instance.online_link_id)
         update_context['online_link_password'] = req_body.get('online_link_password',
                                                               card_instance.online_link_password)
-        update_context['online_link_type'] = req_body.get('online_link_type',
-                                                              card_instance.online_link_type)
         update_context['location'] = req_body.get('location', card_instance.location)
         update_context['location_lat'] = req_body.get('location_lat', card_instance.location_lat)
         update_context['location_long'] = req_body.get('location_long', card_instance.location_long)

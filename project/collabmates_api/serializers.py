@@ -234,7 +234,6 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'is_edited': card.is_edited,
         'is_paid': card.is_paid,
         'access': card.access,
-        'online_link_type': card.online_link_type,
         'online_link_enable_before': card.online_link_enable_before,
         'is_private': card.is_private,
         'about_recording': card.about_recording,
