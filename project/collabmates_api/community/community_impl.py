@@ -1963,7 +1963,7 @@ class CommunityHelper:
         return join_link_valid
 
     @staticmethod
-    def fetch_community_for_aj(aj):
+    def fetch_community_for_aj(aj, user_id):
         res = {
             'success': False
         }
@@ -1972,6 +1972,17 @@ class CommunityHelper:
 
         if is_aj_present:
             aj_instance = is_aj_present[0]
+
+            if aj_instance.community.is_paid:
+                user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+                if not user_instance:
+                    res['error_message'] = 'Invalid member-id'
+                    return res
+
+                if aj_instance.user != user_instance:
+                    res['error_message'] = 'Invalid aj'
+                    return res
 
             res['success'] = True
             res['community_id'] = aj_instance.community.id

@@ -541,7 +541,7 @@ class FetchCommunityMeta(APIView):
 
             from .community_impl import CommunityHelper
 
-            res = CommunityHelper.fetch_community_for_aj(aj)
+            res = CommunityHelper.fetch_community_for_aj(aj, member_id)
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
