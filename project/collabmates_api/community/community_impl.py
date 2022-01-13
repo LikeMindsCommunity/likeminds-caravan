@@ -1963,7 +1963,7 @@ class CommunityHelper:
         return join_link_valid
 
     @staticmethod
-    def fetch_community_for_aj(aj, user_id):
+    def fetch_community_for_aj(aj, user_id, platform_code, version_code):
         res = {
             'success': False
         }
@@ -1972,8 +1972,9 @@ class CommunityHelper:
 
         if is_aj_present:
             aj_instance = is_aj_present[0]
+            is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
-            if aj_instance.community.is_paid:
+            if is_cm_onboarding_enabled and aj_instance.community.is_paid:
                 user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
                 if not user_instance:
