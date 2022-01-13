@@ -652,8 +652,6 @@ class CommunityImpl(CommunityManager):
 
             self._send_join_email_to_member(user_instance.id, community_instance.id)
 
-            update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
-
             cohort_manager = CohortImpl(member_id=user_instance.id)
 
             member_cohort_response = cohort_manager.add_user_to_subscription_plans_when_membership_approved(
@@ -773,8 +771,12 @@ class CommunityImpl(CommunityManager):
 
         ElasticSearchSync.update_member.delay(self.get_member_id(), self.get_community_id())
 
-        if is_cm_onboarding_enabled and (community_instance.id == COMMUNITY_HOOD_COMMUNITY_ID):
-            check_join_community_hood_get_started.delay(user_instance.id, COMMUNITY_HOOD_COMMUNITY_ID)
+        if is_cm_onboarding_enabled:
+
+            if community_instance.id == COMMUNITY_HOOD_COMMUNITY_ID:
+                check_join_community_hood_get_started.delay(user_instance.id, COMMUNITY_HOOD_COMMUNITY_ID)
+
+            update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
         return {'success': True, 'access': user_has_access}
 
@@ -1234,6 +1236,8 @@ class CommunityImpl(CommunityManager):
 
         CommunityHelper.create_community_async_tasks.delay(user_instance.id, community_instance.id, req_body)
 
+        update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
+
         # Create All member cohort
         CommunityHelper.create_all_member_cohort_for_new_community.delay(self.get_member_id(), community_instance.id)
 
@@ -1331,11 +1335,14 @@ class CommunityImpl(CommunityManager):
 
                 return {'success': False, 'error_message': error_text}
 
+            mail_text = validated_req_body.get('text')
+
             send_email_response = CommunityHelper.send_invite_email_to_given_emails_list(user_instance,
                                                                                          community_instance,
                                                                                          valid_email_ids_list,
                                                                                          validated_req_body,
-                                                                                         share_context, link)
+                                                                                         share_context, link,
+                                                                                         mail_text)
 
             if not send_email_response:
                 return {'success': False, "error_message": "Error while sending email."}
@@ -1956,7 +1963,7 @@ class CommunityHelper:
         return join_link_valid
 
     @staticmethod
-    def fetch_community_for_aj(aj):
+    def fetch_community_for_aj(aj, user_id, platform_code, version_code):
         res = {
             'success': False
         }
@@ -1965,6 +1972,18 @@ class CommunityHelper:
 
         if is_aj_present:
             aj_instance = is_aj_present[0]
+            is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
+
+            if is_cm_onboarding_enabled and aj_instance.community.is_paid:
+                user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+                if not user_instance:
+                    res['error_message'] = 'Invalid member-id'
+                    return res
+
+                if aj_instance.user != user_instance:
+                    res['error_message'] = 'Invalid aj'
+                    return res
 
             res['success'] = True
             res['community_id'] = aj_instance.community.id
@@ -1988,6 +2007,9 @@ class CommunityHelper:
 
         if 'name' not in req_body:
             return {'success': False, 'error_message': 'Empty name!'}
+
+        if len(req_body.get('name')) > CHARACTER_LIMIT_ON_COMMUNITY_NAME:
+            return {'success': False, 'error_message': 'Characters length should not be greater than 30'}
 
         if 'headline' not in req_body:
             return {'success': False, 'error_message': 'Empty headline!'}
@@ -2259,11 +2281,15 @@ class CommunityHelper:
 
     @staticmethod
     def send_invite_email_to_given_emails_list(user_instance, community_instance, valid_email_ids_list,
-                                               validated_req_body, share_context, link):
+                                               validated_req_body, share_context, link, mail_body):
+
+        mail_body = "<br>".join(mail_body.split("\n"))
+
         mail_template = get_template('mails/cm_onboarding/invite_members_cm_onboarding.html').render({
-            "community_logo": community_instance.image_url,
+            "community_logo": community_instance.image_link,
             "community_name": community_instance.name,
             "cm_name": user_instance.userinfo.name,
+            "mail_text": mail_body,
             "community_brand_color": community_instance.brand_color if community_instance.brand_color else
             DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
             "join_code": share_context.get('aj') if validated_req_body.get('link_type') == 'free' else '',
@@ -2361,17 +2387,15 @@ class CommunityHelper:
 
         add_community_settings_for_community(community_instance, user_instance)
 
+        create_introduction_question_in_community_v2(community_instance)
+        post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
+        post_master_introductions_for_community(community_instance.id, user_instance.id)
+        post_general_collabcard_for_community(community_instance, user_instance.id)
+        post_member_directory_link(user_instance, community_instance)
+
         update_models_for_syncing_apis(SyncTypes.COMMUNITY,
                                        {'community_id': community_instance, 'member_id': user_id},
                                        {'click_state': click_states.DEFAULT})
-
-        create_introduction_question_in_community_v2(community_instance)
-        post_purpose_collabcard_for_community(req_body, community_instance, user_id)
-        post_master_introductions_for_community(community_instance.id, user_id)
-        post_general_collabcard_for_community(community_instance, user_id)
-        post_member_directory_link(user_instance, community_instance)
-
-        update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
 
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': COMMUNITY_HOOD_COMMUNITY_ID,
                                                                   'member_id': user_instance})
