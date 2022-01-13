@@ -652,8 +652,6 @@ class CommunityImpl(CommunityManager):
 
             self._send_join_email_to_member(user_instance.id, community_instance.id)
 
-            update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
-
             cohort_manager = CohortImpl(member_id=user_instance.id)
 
             member_cohort_response = cohort_manager.add_user_to_subscription_plans_when_membership_approved(
@@ -773,8 +771,12 @@ class CommunityImpl(CommunityManager):
 
         ElasticSearchSync.update_member.delay(self.get_member_id(), self.get_community_id())
 
-        if is_cm_onboarding_enabled and (community_instance.id == COMMUNITY_HOOD_COMMUNITY_ID):
-            check_join_community_hood_get_started.delay(user_instance.id, COMMUNITY_HOOD_COMMUNITY_ID)
+        if is_cm_onboarding_enabled:
+
+            if community_instance.id == COMMUNITY_HOOD_COMMUNITY_ID:
+                check_join_community_hood_get_started.delay(user_instance.id, COMMUNITY_HOOD_COMMUNITY_ID)
+
+            update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
         return {'success': True, 'access': user_has_access}
 
