@@ -533,8 +533,6 @@ class FetchCommunityMeta(APIView):
         try:
             member_id = RequestUtilities.get_member_id_from_headers(request)
             aj = request.query_params.get('aj')
-            platform_code = RequestUtilities.get_platform_code(request)
-            version_code = RequestUtilities.get_version_code_from_headers(request)
 
             request_validation_errors = self._validate_request(aj)
 
@@ -543,7 +541,7 @@ class FetchCommunityMeta(APIView):
 
             from .community_impl import CommunityHelper
 
-            res = CommunityHelper.fetch_community_for_aj(aj, member_id, platform_code, version_code)
+            res = CommunityHelper.fetch_community_for_aj(aj, member_id)
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
