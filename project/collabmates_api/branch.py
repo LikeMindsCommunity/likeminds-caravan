@@ -238,7 +238,7 @@ def create_community_feed_url_for_cm_onboarding(community_instance):
 
     data = []
 
-    feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(host_url, community_instance.id)
+    feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(web_host_url, community_instance.id)
 
     android_ios_route = CM_ONBOARDING_COMMUNITY_FEED_URL_ANDROID_ROUTE.format(community_instance.id,
                                                                               community_instance.name)

@@ -89,7 +89,7 @@ INVITE_MEMBERS_SUBJECT = "Hi there! You have been invited to join {}"
 INVITE_MEMBER_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
 INVITE_MEMBERS_BUTTON_TEXT = "JOIN NOW"
 
-WHATSAPP_COMMUNITY_CREATED_TEMPLATE_FOR_CM_NAME = 'community_created'
+WHATSAPP_COMMUNITY_CREATED_TEMPLATE_FOR_CM_NAME = 'community_created_v1'
 SEGMENT_COMMUNITY_CREATION_EVENT_NAME = "Community creation completed (Core Service)"
 DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"
 
