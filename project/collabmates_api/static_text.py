@@ -573,7 +573,6 @@ CM_ONBOARDING_IOS_VERSION_CODE = 1000
 CM_ONBOARDING_WEB_VERSION_CODE = 1000
 
 CM_ONBOARDING_COMMUNITY_FEED_URL = "{}/community_feed?community_id={}"
-CM_ONBOARDING_COMMUNITY_FEED_URL_ANDROID_ROUTE = "likeminds://chatroom_new_feed?community_id={}&community_name={}&share=true"
 
 PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST = "The private invite link has expired. Continue to join the community and " \
                                         "wait for admin’s approval. Or, ask {} to resend a private invite link."
