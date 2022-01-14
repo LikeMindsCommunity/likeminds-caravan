@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
 from .static_files import *
-from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL, CM_ONBOARDING_COMMUNITY_FEED_URL_ANDROID_ROUTE
+from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
                                BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
