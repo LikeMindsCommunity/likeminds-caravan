@@ -1905,7 +1905,7 @@ class CommunityHelper:
         join_link_invalid_message = ''
 
         if (not community_instance.is_paid) and (not auto_join_code) and (not shared_by_user):
-            join_link_invalid_message = 'Please send valid invite code to join this community'
+            join_link_invalid_message = FREE_COMMUNITY_NOT_AJ_NOT_SHARED_BY_MESSAGE
             return join_link_valid, join_link_invalid_message
 
         community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings,
@@ -1914,9 +1914,8 @@ class CommunityHelper:
 
         auto_approval = community_setting_instance[0].enabled if len(community_setting_instance) else community_instance.auto_approval
 
-        if auto_join_code is None \
-                and shared_by_user is None:
-            join_link_valid = community_instance.is_paid and auto_approval
+        if community_instance.is_paid and (auto_join_code is None) and (shared_by_user is None):
+            join_link_valid = auto_approval
 
         else:
 
@@ -1925,18 +1924,21 @@ class CommunityHelper:
                                                                                'unique_code': auto_join_code})
 
             if (not community_instance.is_paid) and (not aj_filter):
-                join_link_invalid_message = 'Invalid invite code!'
+                join_link_invalid_message = INVALID_INVITE_CODE_MESSAGE
                 return join_link_valid, join_link_invalid_message
 
             if community_instance.is_paid and (aj_filter and aj_filter[0].user_id is not None):
-                join_link_invalid_message = 'Free invite code already used!'
+                join_link_invalid_message = FREE_INVITE_CODE_ALREADY_USED_MESSAGE
                 return join_link_valid, join_link_invalid_message
 
             if community_instance.is_paid:
                 aj_filter.update(user=user_instance)
 
             if not aj_filter:
-                join_link_invalid_message = 'Invalid invite code!'
+                join_link_invalid_message = INVALID_INVITE_CODE_MESSAGE
+
+            else:
+                join_link_valid = auto_approval
 
         return join_link_valid, join_link_invalid_message
 
