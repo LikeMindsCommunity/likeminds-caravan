@@ -570,9 +570,9 @@ CUSTOMISE_JOIN_FORM_MAIL_SUBJECT = "Hi {}! Your community join form is all set"
 
 CM_ONBOARDING_ANDROID_VERSION_CODE = 175
 CM_ONBOARDING_IOS_VERSION_CODE = 1000
-CM_ONBOARDING_WEB_VERSION_CODE = 1000
+CM_ONBOARDING_WEB_VERSION_CODE = 1
 
-CM_ONBOARDING_COMMUNITY_FEED_URL = "{}/community_feed?community_id={}"
+CM_ONBOARDING_COMMUNITY_FEED_URL = "{}/community_feed?community_id={}&community_name={}"
 
 PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST = "The private invite link has expired. Continue to join the community and " \
                                         "wait for admin’s approval. Or, ask {} to resend a private invite link."

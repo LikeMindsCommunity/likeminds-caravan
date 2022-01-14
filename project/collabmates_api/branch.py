@@ -237,7 +237,7 @@ def create_community_feed_url_for_cm_onboarding(community_instance):
 
     data = []
 
-    feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(host_url, community_instance.id)
+    feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(host_url, community_instance.id, community_instance.name)
 
     long_url_item = create_link_item(feed_url, community_instance, "AppBackend",
                                      BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL,
