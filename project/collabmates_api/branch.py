@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
 from .static_files import *
-from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL, CM_ONBOARDING_COMMUNITY_FEED_URL_ANDROID_ROUTE
+from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
                                BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
@@ -144,7 +144,7 @@ def get_community_image(community):
         return APP_LOGO
 
 
-def create_link_item(base_url, community, channel, feature, private=False, android_ios_url=""):
+def create_link_item(base_url, community, channel, feature, private=False):
     link_item = {
         "channel": channel,
         "feature": feature,
@@ -199,7 +199,6 @@ def create_link_item(base_url, community, channel, feature, private=False, andro
         link_item['data']['$desktop_url'] = desktop_url
 
     if feature == BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL:
-        link_item["data"]['$web_only'] = True
         link_item["data"]['$ios_url'] = fallback_url
         link_item['data']['$desktop_url'] = desktop_url
         link_item["data"]['$android_url'] = fallback_url
@@ -238,14 +237,11 @@ def create_community_feed_url_for_cm_onboarding(community_instance):
 
     data = []
 
-    feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(host_url, community_instance.id)
-
-    android_ios_route = CM_ONBOARDING_COMMUNITY_FEED_URL_ANDROID_ROUTE.format(community_instance.id,
-                                                                              community_instance.name)
+    feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(host_url, community_instance.id, community_instance.name)
 
     long_url_item = create_link_item(feed_url, community_instance, "AppBackend",
                                      BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL,
-                                     private=True, android_ios_url=android_ios_route)
+                                     private=True)
     data.append(long_url_item)
 
     client = ApiClient()
