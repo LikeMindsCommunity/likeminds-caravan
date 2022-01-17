@@ -15,7 +15,8 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     post_purpose_collabcard_for_community, post_master_introductions_for_community, post_member_directory_link, \
     post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share, \
     fill_share_context_for_paid_community, fill_share_context_for_unpaid_community, \
-    check_join_community_hood_get_started, add_community_upload_image_analytics
+    check_join_community_hood_get_started, add_community_upload_image_analytics, \
+    create_introduction_question_in_community
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.number_utilities import NumberUtilities
 from external_services.email.email_wrapper import MailWrapper
@@ -2389,7 +2390,7 @@ class CommunityHelper:
 
         add_community_settings_for_community(community_instance, user_instance)
 
-        create_introduction_question_in_community_v2(community_instance)
+        create_introduction_question_in_community(community_instance)
         post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
         post_master_introductions_for_community(community_instance.id, user_instance.id)
         post_general_collabcard_for_community(community_instance, user_instance.id)
