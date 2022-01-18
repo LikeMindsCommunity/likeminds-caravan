@@ -292,8 +292,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
                   'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohorts',
-                  'has_event_recording', 'about_recording', 'recording_url_og_tags', 'unread_messages',
-                  'access_without_subscription'
+                  'has_event_recording', 'unread_messages', 'access_without_subscription'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -752,14 +751,14 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 'secret_chatroom_participants'] is not None:
                 data['secret_chatroom_participants'] = json.loads(data['secret_chatroom_participants'])
 
-            elif field.field_name == 'recording_url_og_tags' and data['recording_url_og_tags'] is not None:
-                try:
-                    data['recording_url_og_tags'] = json.loads(data['recording_url_og_tags'])
-                except:
-                    data['recording_url_og_tags'] = None
-
             elif field.field_name == 'has_event_recording' and data['has_event_recording']:
                 event_dict = self.get_event_attachment_details(card, self.member_id)
+
+                if event_dict.get('about_recording'):
+                    data['about_recording'] = event_dict.get('about_recording')
+
+                if event_dict.get('recording_url_og_tags'):
+                    data['recording_url_og_tags'] = event_dict.get('recording_url_og_tags')
 
                 data['recordings_attachments'] = event_dict.get('recordings_attachments')
                 data['recordings_url'] = event_dict.get('recordings_url')

@@ -3741,13 +3741,6 @@ class ChatroomHelper:
                     has_event_recording = 3
 
             event_dict['recordings_attachments_view'] = has_event_recording
-            event_dict['about_recording'] = event_obj.about_recording
-
-            if event_obj.recording_url_og_tags:
-                event_dict['recording_url_og_tags'] = json.loads(event_obj.recording_url_og_tags)
-
-            else:
-                event_dict['recording_url_og_tags'] = event_obj.recording_url_og_tags
 
             if recordings_attachment_serialized_obj is None:
                 event_recording_instances = EventRecordingsAttachments.objects.filter(chatroom_id=card_instance) \
@@ -3769,9 +3762,17 @@ class ChatroomHelper:
                 serializer = EventRecordingsURLSerializer(event_url_instances, many=True)
 
                 event_dict['recordings_url'] = json.loads(json.dumps(serializer.data))
+                event_dict['about_recording'] = serializer.data[0].get('about_recording') \
+                    if serializer.data else ""
+                event_dict['recording_url_og_tags'] = serializer.data[0].get('recording_url_og_tags') \
+                    if serializer.data else ""
 
             else:
                 event_dict['recordings_url'] = recordings_url_serialized_obj
+                event_dict['about_recording'] = recordings_url_serialized_obj[0].get('about_recording') \
+                    if recordings_url_serialized_obj else ""
+                event_dict['recording_url_og_tags'] = recordings_url_serialized_obj[0].get('recording_url_og_tags') \
+                    if recordings_url_serialized_obj else ""
 
         except Exception as e:
             error_logger.error(e.args)
