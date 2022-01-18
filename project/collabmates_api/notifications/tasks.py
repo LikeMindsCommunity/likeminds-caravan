@@ -525,7 +525,8 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
             not have collabcard state in chatroom_id %s" % (receiver_id, chatroom_id))
             return
 
-        if collabcard_state_instance.last_seen_conversation.id != last_conversation_id:
+        if collabcard_state_instance.last_seen_conversation and \
+                collabcard_state_instance.last_seen_conversation.id != last_conversation_id:
             return
 
         context = TasksHelper.create_context_for_chatroom_not_opened(receiver_id, sender_id, chatroom_id,

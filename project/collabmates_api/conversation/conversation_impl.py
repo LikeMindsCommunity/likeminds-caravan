@@ -1592,8 +1592,10 @@ class ConversationHelper:
 
             collabcard_state_instance = collabcard_state_instances[0]
 
-            if not collabcard_state_instance.last_seen_conversation:
-                return
+            last_seen_conversation = None
+
+            if collabcard_state_instance.last_seen_conversation:
+                last_seen_conversation = collabcard_state_instance.last_seen_conversation.id
 
             user_email_send_status_data = {
                 'user': ModelUtilities.get_model_instance_or_none(User, receiver_id),
@@ -1604,8 +1606,7 @@ class ConversationHelper:
 
             UserEmailsSendStatus.create_instance(user_email_send_status_data)
 
-            args = [receiver_id, sender_id, chatroom_id, chatroom_not_opened_type,
-                    collabcard_state_instance.last_seen_conversation.id]
+            args = [receiver_id, sender_id, chatroom_id, chatroom_not_opened_type, last_seen_conversation]
             countdown = ENGAGEMENT_COMMUNICATION_DURATION_IN_HOURS*MINUTES_60
 
             # runs after 6 hours, expires after 6 hours and 30 minutes
