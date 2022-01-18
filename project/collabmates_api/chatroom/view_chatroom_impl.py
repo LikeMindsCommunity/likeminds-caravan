@@ -695,7 +695,7 @@ class FetchAccessChatroomView(APIView):
 
         return JsonResponse(response_context)
 
-      
+
 class AddEventRecordingAttachmentMeta(APIView):
 
     def _validate_request(self, member_id, req_body):
@@ -729,10 +729,10 @@ class AddEventRecordingAttachmentMeta(APIView):
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
-            
+
             else:
                 return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
-        
+
         except Exception as e:
             res = {
                 'success': False,
@@ -743,7 +743,7 @@ class AddEventRecordingAttachmentMeta(APIView):
 
 
 class AddEventRecordingAttachment(APIView):
-    
+
     def _validate_request(self, member_id, req_body):
         res = {}
 
@@ -795,6 +795,9 @@ class DeleteEventRecordingAttachmentMeta(APIView):
         elif not req_body:
             res = get_error_context(False, "Invalid request body")
 
+        elif not req_body.get('id'):
+            res = get_error_context(False, "id cannot be empty")
+
         elif not req_body.get('chatroom_id') and not req_body.get('conversation_id'):
             res = get_error_context(False, "Both chatroom_id and conversation_id cannot be empty")
 
@@ -814,10 +817,10 @@ class DeleteEventRecordingAttachmentMeta(APIView):
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
-            
+
             else:
                 return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
-        
+
         except Exception as e:
             res = {
                 'success': False,
@@ -830,7 +833,6 @@ class DeleteEventRecordingAttachmentMeta(APIView):
 class DeleteEventRecordingAttachment(APIView):
 
     def _validate_request(self, member_id, req_body):
-        
 
         res = {}
 
@@ -859,10 +861,10 @@ class DeleteEventRecordingAttachment(APIView):
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
-            
+
             else:
                 return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
-        
+
         except Exception as e:
             res = {
                 'success': False,

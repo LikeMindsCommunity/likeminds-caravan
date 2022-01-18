@@ -762,6 +762,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                 event_dict = self.get_event_attachment_details(card, self.member_id)
 
                 data['recordings_attachments'] = event_dict.get('recordings_attachments')
+                data['recordings_url'] = event_dict.get('recordings_url')
                 data['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
 
             elif data[field.field_name] is None:
@@ -1178,6 +1179,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                 event_dict = self.get_event_attachment_details(obj, self.current_user_id)
 
                 data['recordings_attachments'] = event_dict.get('recordings_attachments')
+                data['recordings_url'] = event_dict.get('recordings_url')
                 data['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
 
             elif field.field_name == 'polls' and data['polls'] is not None:
@@ -1264,6 +1266,11 @@ class ConversationAttachmentsSerializer(serializers.ModelSerializer):
 class EventRecordingsAttachmentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventRecordingsAttachments
+        fields = '__all__'
+
+class EventRecordingsURLSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventRecordingsURL
         fields = '__all__'
 
 

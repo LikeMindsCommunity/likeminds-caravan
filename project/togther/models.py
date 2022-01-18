@@ -2243,6 +2243,15 @@ class ModelUtilities:
         return model.objects.filter(**filter_dict).exists()
 
     @staticmethod
+    def update_or_create_model(model, filter_dict, update_dict):
+        model_instance, created = model.objects.update_or_create(
+            **filter_dict,
+            defaults=update_dict
+        )
+
+        return model_instance, created
+
+    @staticmethod
     def get_model_instance_or_none(model, pk):
 
         instance = None
@@ -2884,6 +2893,19 @@ class EventRecordingsAttachments(models.Model):
             'instance updated time'
         )
     )
+    is_recording = models.BooleanField(
+        default=False,
+        null=True,
+        help_text=(
+            'whether its a recording or not'
+        )
+    )
+    about = models.TextField(
+        null=True,
+        help_text=(
+            'description for the attachment'
+        )
+    )
 
     class Meta:
             verbose_name = 'event recording attachment'
@@ -2900,6 +2922,75 @@ class EventRecordingsAttachments(models.Model):
         super(EventRecordingsAttachments, self).save(*args, **kwargs)
 
 
+class EventRecordingsURL(models.Model):
+    """ table to store URL details of event """
+
+    chatroom_id = models.ForeignKey(
+        Collabcard,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text=_(
+            'id of chatroom'
+        )
+    )
+    conversation_id = models.ForeignKey(
+        card_answers,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text=_(
+            'id of conversation'
+        )
+    )
+    recording_url_og_tags = models.TextField(
+        null=True,
+        blank=True,
+        help_text=_(
+            'og tags'
+        )
+    )
+    is_recording = models.BooleanField(
+        default=False,
+        help_text=(
+            'whether its a recording or not'
+        )
+    )
+    about_recording = models.TextField(
+        null=True,
+        blank=True,
+        help_text=(
+            'description for the attachment'
+        )
+    )
+    created_at = models.BigIntegerField(
+        default=0,
+        help_text=_(
+            'instance created time'
+        )
+    )
+    updated_at = models.BigIntegerField(
+        default=0,
+        help_text=_(
+            'instance updated time'
+        )
+    )
+
+    class Meta:
+        verbose_name = 'event recording url'
+        verbose_name_plural = 'event recording urls'
+        db_table = 'togther_event_recording_url'
+
+    def save(self, *args, **kwargs):
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+        self.updated_at = current_time_in_ms
+
+        if self.created_at <= 0:
+            self.created_at = current_time_in_ms
+
+        super(EventRecordingsURL, self).save(*args, **kwargs)
+
+     
 class ChatroomCohort(models.Model):
     cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
