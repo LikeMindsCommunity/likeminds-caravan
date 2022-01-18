@@ -767,10 +767,9 @@ def request_api(method, api_url, headers, payload):
     return response
 
 
-# @app.task
-# def task_to_send_intro_notifications():
-#     # print("chal ja bhai")
-#     send_intro_room_evening_notifications()
+@app.task
+def task_to_send_intro_notifications():
+    send_intro_room_evening_notifications()
 
 
 def send_cm_onboarding_getting_started_email():
