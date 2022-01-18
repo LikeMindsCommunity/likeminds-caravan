@@ -756,11 +756,11 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
                 data['about_recording'] = event_dict.get('about_recording') \
                     if event_dict.get('about_recording') \
-                    else ""
+                    else None
 
                 data['recording_url_og_tags'] = event_dict.get('recording_url_og_tags') \
                     if event_dict.get('recording_url_og_tags') \
-                    else ""
+                    else None
 
                 data['recordings_attachments'] = event_dict.get('recordings_attachments')
                 data['recordings_url'] = event_dict.get('recordings_url')

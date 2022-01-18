@@ -3759,16 +3759,16 @@ class ChatroomHelper:
 
                 event_dict['recordings_url'] = json.loads(json.dumps(serializer.data))
                 event_dict['about_recording'] = serializer.data[0].get('about_recording') \
-                    if serializer.data else ""
+                    if serializer.data else None
                 event_dict['recording_url_og_tags'] = serializer.data[0].get('recording_url_og_tags') \
-                    if serializer.data else ""
+                    if serializer.data else None
 
             else:
                 event_dict['recordings_url'] = recordings_url_serialized_obj
                 event_dict['about_recording'] = recordings_url_serialized_obj[0].get('about_recording') \
-                    if recordings_url_serialized_obj else ""
+                    if recordings_url_serialized_obj else None
                 event_dict['recording_url_og_tags'] = recordings_url_serialized_obj[0].get('recording_url_og_tags') \
-                    if recordings_url_serialized_obj else ""
+                    if recordings_url_serialized_obj else None
 
         except Exception as e:
             error_logger.error(e.args)
