@@ -1,5 +1,6 @@
 import abc
 
+
 class TaskManager(metaclass=abc.ABCMeta):
 
     @classmethod

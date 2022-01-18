@@ -82,3 +82,6 @@ SENDER_FOR_EMAIL_COMMS = "Team LikeMinds<team@likeminds.chat>"
 TO_FOR_EMAIL_COMMS = "support@likeminds.community"
 
 PAID_EVENT_REGISTRATION_SOUND = "ka-ching.mp3"
+
+SUBJECT_CHATROOM_NOT_OPENED_MAIL = "%s is waiting for your response!"
+SENDER_FOR_ENGAGEMENT_COMMUNICATION = "hello@likeminds.community"

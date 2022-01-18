@@ -3,36 +3,37 @@ from django.conf import settings
 from django.template.loader import get_template
 
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
-    userEmails, \
-    EventCommsCeleryTasks, ChatroomCohort, CohortMember
+    userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember
 from utility.time_utilities import TimeUtilities
 from utility.utils import generate_private_link_for_chatroom
-from utility.states import member_states, mobile_states, email_states, event_access, card_types
+from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
+    user_email_send_status_types, event_access, card_types
 from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
 
-from .constants import COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_SHOULD_HAPPEN_AFTER, \
-                        EVENT_COMM_SHOULD_HAPPEN_BEFORE, TIME_10_AM, TITLE_EVENT_CREATION_APP_NOTIFICATION, \
-                        SUB_TITLE_EVENT_CREATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION, \
-                        ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION, TITLE_EVENT_LAST_CALL_APP_NOTIFICATION, \
-                        SUB_TITLE_EVENT_LAST_CALL_APP_NOTIFICATION, ROUTE_PAID_EVENT_LAST_CALL_APP_NOTIFICATION, \
-                        ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION, TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION, \
-                        SUB_TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION, ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION, \
-                        TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, \
-                        ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION, \
-                        TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION, TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION, \
-                        SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION, ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION, \
-                        MAIL_EVENT_NOTIFICATION, CHATROOM_URL, POST_EVENT_ATTENDEES_LINK, TIME_9_AM, \
-                        SUBJECT_EVENT_CREATION_MAIL, SUBJECT_EVENT_LAST_CALL_MAIL, SUBJECT_EVENT_ATTENDANCE_MAIL, \
-                        SUBJECT_EVENT_REGISTRATION_MAIL, SUBJECT_POST_EVENT_ATTENDEES_MAIL, SUBJECT_POST_EVENT_ATTACHMENT_MAIL, \
-                        SENDER_FOR_EMAIL_COMMS, PAID_EVENT_REGISTRATION_SOUND, TO_FOR_EMAIL_COMMS
+from .constants import (COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_SHOULD_HAPPEN_AFTER,
+                        EVENT_COMM_SHOULD_HAPPEN_BEFORE, TIME_10_AM, TITLE_EVENT_CREATION_APP_NOTIFICATION,
+                        SUB_TITLE_EVENT_CREATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION,
+                        ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION, TITLE_EVENT_LAST_CALL_APP_NOTIFICATION,
+                        SUB_TITLE_EVENT_LAST_CALL_APP_NOTIFICATION, ROUTE_PAID_EVENT_LAST_CALL_APP_NOTIFICATION,
+                        ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION, TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION,
+                        SUB_TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION, ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION,
+                        TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION,
+                        ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION,
+                        TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION, TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION,
+                        SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION, ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION,
+                        MAIL_EVENT_NOTIFICATION, CHATROOM_URL, POST_EVENT_ATTENDEES_LINK, TIME_9_AM,
+                        SUBJECT_EVENT_CREATION_MAIL, SUBJECT_EVENT_LAST_CALL_MAIL, SUBJECT_EVENT_ATTENDANCE_MAIL,
+                        SUBJECT_EVENT_REGISTRATION_MAIL, SUBJECT_POST_EVENT_ATTENDEES_MAIL,
+                        SUBJECT_POST_EVENT_ATTACHMENT_MAIL, SENDER_FOR_EMAIL_COMMS, PAID_EVENT_REGISTRATION_SOUND,
+                        TO_FOR_EMAIL_COMMS, SUBJECT_CHATROOM_NOT_OPENED_MAIL, SENDER_FOR_ENGAGEMENT_COMMUNICATION)
 from .tasks_manager import TaskManager
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 error_logger = LoggingWrapper.get_instance()
 
-url = settings.WEB_URL 
+url = settings.WEB_URL
 
 
 class TasksImpl(TaskManager):
@@ -64,7 +65,7 @@ class TasksImpl(TaskManager):
 
         if cm_filter:
             cm_name = cm_filter[0].member_id.userinfo.name
-        
+
         else:
             cm_name = ""
 
@@ -75,7 +76,7 @@ class TasksImpl(TaskManager):
 
         path = UrlUtilities.extract_part_from_url(share_url.get('private_link'),'path', init_slash_off=True)
         query_params = UrlUtilities.extract_part_from_url(share_url.get('private_link'),'query', init_slash_off=False)
-        
+
         link = "%s?%s" % (path, query_params)
 
         custom_params = self.process_whatsapp_notification_custom_params(event_name, community_name, event_time, event_date, \
@@ -85,7 +86,7 @@ class TasksImpl(TaskManager):
 
     def process_whatsapp_notification_custom_params(self, event_name, community_name, event_time, event_date, \
                                                     cm_name, link):
-        
+
         if self.get_event_type() == EVENT_TYPE.LAST_CALL or self.get_event_type() == EVENT_TYPE.CREATION:
 
             custom_params = [
@@ -116,7 +117,7 @@ class TasksImpl(TaskManager):
             ]
 
         elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_5_HRS:
-            
+
             custom_params = [
                 {
                     "name": "event_name",
@@ -151,7 +152,7 @@ class TasksImpl(TaskManager):
 
         else:
             custom_params = []
-        
+
         return custom_params
 
     def get_response_dict_for_app_notifications(self, payload):
@@ -210,7 +211,7 @@ class TasksImpl(TaskManager):
 
             if is_paid_event:
                 route = ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION % (event_id, community_id)
-            
+
             else:
                 route = ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION % (event_id, community_id)
 
@@ -286,7 +287,7 @@ class TasksImpl(TaskManager):
         }
 
         return event_metadata
-      
+
     def get_response_dict_for_email_comms(self, payload, event_cost_in_event_creation_mail=None):
 
         event_name = payload.get('chatroom').title
@@ -320,7 +321,7 @@ class TasksImpl(TaskManager):
                                                             link, event_cost, community_id)
 
         return response_dict
-    
+
     def process_email_comms_response_dict(self, event_name, event_description, event_time, event_date, link,\
                                         event_cost, community_id):
 
@@ -336,9 +337,9 @@ class TasksImpl(TaskManager):
 
             if event_cost:
                 response_dict['event_cost'] = event_cost
-            
+
         elif self.get_event_type() == EVENT_TYPE.REGISTRATION or self.get_event_type() == EVENT_TYPE.ATTENDANCE_9_AM:
-            
+
             response_dict = {
                 'event_name': event_name,
                 'event_time': event_time,
@@ -377,7 +378,7 @@ class TasksImpl(TaskManager):
         if self.get_comm_type() == COMM_TYPE.WA:
 
             final_time = self.process_whatsapp_notification_final_time(event_date_time_in_IST)
-        
+
         elif self.get_comm_type() == COMM_TYPE.APP_NOTI:
 
             online_link_enable_before = event_instance.online_link_enable_before
@@ -394,7 +395,7 @@ class TasksImpl(TaskManager):
         elif self.get_comm_type() == COMM_TYPE.CALENDAR:
 
             final_time = self.process_calendar_invite_final_time(event_date_time_in_IST)
-        
+
         final_time = TimeUtilities.add_IST_offset_to_date_time(final_time)
 
         current_date_time_in_IST = TimeUtilities.get_current_datetime_in_IST()
@@ -413,7 +414,7 @@ class TasksImpl(TaskManager):
 
             event_creation_time = TimeUtilities.get_current_datetime_in_IST()
 
-            final_time = TasksHelper.calculate_notification_time(event_creation_time, 
+            final_time = TasksHelper.calculate_notification_time(event_creation_time,
                                                                         EVENT_COMM_SHOULD_HAPPEN_AFTER)
 
         elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
@@ -426,14 +427,14 @@ class TasksImpl(TaskManager):
 
             event_attendance_5_hrs_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.ATTENDANCE_5_HRS_WHATSAPP
 
-            final_time = TasksHelper.calculate_notification_time(event_attendance_5_hrs_time, 
+            final_time = TasksHelper.calculate_notification_time(event_attendance_5_hrs_time,
                                                                         EVENT_COMM_SHOULD_HAPPEN_AFTER)
 
         elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_10_MIN:
 
             event_attendance_10_min_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.ATTENDANCE_10_MIN_WHATSAPP
 
-            final_time = TasksHelper.calculate_notification_time(event_attendance_10_min_time, 
+            final_time = TasksHelper.calculate_notification_time(event_attendance_10_min_time,
                                                                         EVENT_COMM_SHOULD_HAPPEN_AFTER)
 
         return final_time
@@ -463,18 +464,18 @@ class TasksImpl(TaskManager):
             final_time = TasksHelper.calculate_notification_time(event_registration_time, TIME_10_AM)
 
         return final_time
-      
+
     def process_calendar_invite_final_time(self, event_date_time_in_IST):
 
         if self.get_event_type() == EVENT_TYPE.REGISTRATION:
 
             current_date_time_in_IST = TimeUtilities.get_current_datetime_in_IST()
             final_time = current_date_time_in_IST
-            
+
         return final_time
-      
+
     def process_email_comms_final_time(self, event_date_time_in_IST, event_end_date_time_in_IST):
-        
+
         if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.REGISTRATION or \
             self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
 
@@ -508,7 +509,7 @@ class TasksImpl(TaskManager):
 
         if has_event_attachment:
             title = TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
-        
+
         else:
             title = TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
 
@@ -547,12 +548,13 @@ class TasksImpl(TaskManager):
         if task_id:
             filter_dict['task_id'] = task_id
             EventCommsCeleryTasks.create_instance(filter_dict)
-        
+
+
 class TasksHelper:
 
     @staticmethod
     def update_whatsapp_comms_payload_with_object_instances(payload):
-        
+
         chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, payload.get('chatroom'))
         community_instance = ModelUtilities.get_model_instance_or_none(Community, payload.get('community'))
         user_instance = ModelUtilities.get_model_instance_or_none(User, payload.get('user'))
@@ -602,7 +604,7 @@ class TasksHelper:
 
     @staticmethod
     def get_list_of_members_attending_or_not_attending_event(chatroom_id, user_ids, attending=False):
-        
+
         attending_members_list = ModelUtilities.get_model_filter(collabcardState, {
             'card': chatroom_id,
             'attending_status': attending,
@@ -628,7 +630,7 @@ class TasksHelper:
     def get_community_managers_of_community(community_id):
 
         community_managers = Members.objects.filter(
-            community_id__id=community_id, 
+            community_id__id=community_id,
             state=member_states.ADMIN
         ).values_list("member_id__id", flat=True)
 
@@ -647,7 +649,7 @@ class TasksHelper:
             final_time = datetime.combine(noti_time.date(), alternate_noti_time.time())
 
         return final_time
-    
+
     @staticmethod
     def calculate_9_am_attendance_time_for_email_comms(event_date_time_in_IST):
 
@@ -710,7 +712,7 @@ class TasksHelper:
 
         community_name = event_instance.community.name
         event_name = event_instance.title
-        
+
         is_paid_event = False
 
         if event_instance.is_paid:
@@ -743,7 +745,7 @@ class TasksHelper:
             if is_paid_event:
                 event_cost_list = get_event_pricing(event_instance.id)
                 event_cost = str(event_cost_list[0]) + '/-' if event_cost_list else "NA"
-                
+
                 data_dict['event_cost'] = event_cost
 
                 context['template'] = get_template("mails/event_comms/paid-event-last-call.html").render(data_dict)
@@ -775,7 +777,7 @@ class TasksHelper:
         elif event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
             context['subject'] = SUBJECT_POST_EVENT_ATTACHMENT_MAIL
             context['template'] = get_template("mails/event_comms/post-event-attachments.html").render(data_dict)
-            
+
         return context
 
     @staticmethod
@@ -798,22 +800,6 @@ class TasksHelper:
             return False
 
         return True
-
-    @staticmethod
-    def create_user_details_list_for_sending_app_notification(user_instances):
-
-        notification_details_list = []
-
-        for user_id in user_instances:
-            notification_details = get_token_for_fcm(user_id, True)
-
-            notification_details_list.append({
-                'id': user_id,
-                'fcm_token': notification_details[0],
-                'mobile_os': notification_details[1]
-            })
-
-        return notification_details_list
 
     @staticmethod
     def get_chatroom_instance(chatroom_id):
@@ -881,4 +867,80 @@ class TasksHelper:
 
         return members_to_be_notified
 
+    @staticmethod
+    def get_collabcard_state_instance(member_id, chatroom_id):
+        collabcard_state_instance = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_id,
+                                                                                      'user_id': member_id})
 
+        if not collabcard_state_instance:
+            return None
+
+        return collabcard_state_instance[0]
+
+    @staticmethod
+    def create_context_for_chatroom_not_opened(receiver_id, sender_id, chatroom_id, community_id,
+                                               chatroom_not_opened_type):
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        sender_instance = ModelUtilities.get_model_instance_or_none(User, sender_id)
+        receiver_instance = ModelUtilities.get_model_instance_or_none(User, receiver_id)
+
+        community_owner_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+        community_owner_email = TasksHelper.get_emails_list_for_user_instances([community_owner_instance])
+
+        if not community_instance or not chatroom_instance or not sender_instance or not receiver_instance or not \
+                chatroom_not_opened_type:
+            return None
+
+        to_mails_list = TasksHelper.get_emails_list_for_user_instances([receiver_instance])
+        reply_to = community_owner_email
+        share_url = generate_private_link_for_chatroom(chatroom_instance, community_owner_instance)
+        data_dict = {
+            'community_name': community_instance.name,
+            'chatroom_name': chatroom_instance.title,
+            'chatroom_link': share_url.get('private_link'),
+            'receiver_name': receiver_instance.userinfo.name,
+            'sender_name': sender_instance.userinfo.name,
+            'owner_name': community_owner_instance.userinfo.name
+        }
+
+        template = None
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
+            template = get_template("mails/engagement_mails/tagged_chatroom_not_opened.html").render(data_dict)
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
+            template = get_template("mails/engagement_mails/dm_chatroom_not_opened.html").render(data_dict)
+
+        context = {
+            'from_email': SENDER_FOR_ENGAGEMENT_COMMUNICATION,
+            'to_mails_list': to_mails_list,
+            'bcc_mails_list': [],
+            'reply_to': reply_to,
+            'subject': SUBJECT_CHATROOM_NOT_OPENED_MAIL % sender_instance.userinfo.name,
+            'template': template
+        }
+
+        return context
+
+    @staticmethod
+    def update_user_email_send_status(member_id, chatroom_id, chatroom_not_opened_type):
+
+        status_type = None
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
+            status_type = user_email_send_status_types.TAGGED_CHATROOM_NOT_OPENED
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
+            status_type = user_email_send_status_types.DM_CHATROOM_NOT_OPENED
+
+        user_email_send_status_instance = ModelUtilities.get_model_filter(
+            UserEmailsSendStatus, {'user_id': member_id, 'chatroom_id': chatroom_id, 'is_completed': False,
+                                   'status_type': status_type})
+
+        if not user_email_send_status_instance:
+            return
+
+        user_email_send_status_instance.is_completed = True
+        user_email_send_status_instance.save()
