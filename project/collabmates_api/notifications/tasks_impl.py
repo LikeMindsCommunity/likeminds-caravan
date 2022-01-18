@@ -935,12 +935,14 @@ class TasksHelper:
         if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
             status_type = user_email_send_status_types.DM_CHATROOM_NOT_OPENED
 
-        user_email_send_status_instance = ModelUtilities.get_model_filter(
+        user_email_send_status_instances = ModelUtilities.get_model_filter(
             UserEmailsSendStatus, {'user_id': member_id, 'chatroom_id': chatroom_id, 'is_completed': False,
                                    'status_type': status_type})
 
-        if not user_email_send_status_instance:
+        if not user_email_send_status_instances:
             return
+
+        user_email_send_status_instance = user_email_send_status_instances[0]
 
         user_email_send_status_instance.is_completed = True
         user_email_send_status_instance.save()
