@@ -487,3 +487,11 @@ class UserEmailSendStatusTypes:
 
 
 user_email_send_status_types = UserEmailSendStatusTypes()
+
+
+class EventOnlineLinkTypes:
+    ZOOM = 0
+    MEET = 1
+    OTHER = 2
+
+event_online_link_types = EventOnlineLinkTypes()
