@@ -20,6 +20,8 @@ def create_missing_collabcard_state_for_user_within_a_community():
         'community_id': info.get('community_id'),
         'is_secret': False,
         'is_deleted': False,
+        'is_pending': False,
+        'is_private': False
     }
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, info.get('user_id'))
@@ -31,7 +33,16 @@ def create_missing_collabcard_state_for_user_within_a_community():
     # Excluding DM Chatroom(s)
     chatroom_list = chatroom_list.filter(~Q(type=card_types.CARD_DIRECT_MESSAGE))
 
+    print("Chatroom List:", chatroom_list)
+
     for card_instance in chatroom_list:
+
+        print("Card ID {} | Type {}".format(card_instance.id, card_instance.type))
+        state_exists = ModelUtilities.is_model_filter_exists(collabcardState,
+                                                             {'card': card_instance, 'user': user_instance})
+        if state_exists:
+            continue
+
         card_state_instance = collabcardState.create_chatroom_state_instance(card_instance, user_instance,
                                                                              follow_status=False)
 
