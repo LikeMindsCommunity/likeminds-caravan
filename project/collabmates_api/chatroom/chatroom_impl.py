@@ -2449,16 +2449,14 @@ class ChatroomImpl(ChatroomManager):
             send_email_notification_for_event_type.delay(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTACHMENTS)
             send_app_notification_on_event_attachment.delay(chatroom_instance.id, chatroom_instance.has_event_recording)
 
-            update_dict = ChatroomHelper.get_update_dict_for_creating_url_instance_for_event(
+            create_dict = ChatroomHelper.get_create_dict_for_creating_url_instance_for_event(
                 req_body,
                 recording_url_og_tags
             )
 
-            event_recording_url_instance, created = ModelUtilities.update_or_create_model(
-                EventRecordingsURL,
-                filter_dict = {'chatroom_id': chatroom_instance},
-                update_dict=update_dict
-            )
+            create_dict['chatroom_id'] = chatroom_instance
+
+            event_recording_url_instance = EventRecordingsURL.create_instance(create_dict)
 
             event_url_serializer = EventRecordingsURLSerializer(event_recording_url_instance)
 
@@ -2506,16 +2504,14 @@ class ChatroomImpl(ChatroomManager):
             if req_body.get('recording_url_title'):
                 recording_url_og_tags['title'] = req_body.get('recording_url_title')
 
-            update_dict = ChatroomHelper.get_update_dict_for_creating_url_instance_for_event(
+            create_dict = ChatroomHelper.get_create_dict_for_creating_url_instance_for_event(
                 req_body,
                 recording_url_og_tags
             )
 
-            event_recording_url_instance, created = ModelUtilities.update_or_create_model(
-                EventRecordingsURL,
-                filter_dict = {'conversation_id': conversation_instance},
-                update_dict=update_dict
-            )
+            create_dict['conversation_id'] = conversation_instance
+
+            event_recording_url_instance = EventRecordingsURL.create_instance(create_dict)
 
             event_url_serializer = EventRecordingsURLSerializer(event_recording_url_instance)
 
@@ -3884,7 +3880,7 @@ class ChatroomHelper:
         return chatroom_event_url_mapper
 
     @staticmethod
-    def get_update_dict_for_creating_url_instance_for_event(req_body, recording_url_og_tags):
+    def get_create_dict_for_creating_url_instance_for_event(req_body, recording_url_og_tags):
         update_dict = {
             'recording_url_og_tags' : json.dumps(recording_url_og_tags),
             'is_recording': req_body.get('is_recording', False),

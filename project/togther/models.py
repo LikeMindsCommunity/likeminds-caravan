@@ -2990,6 +2990,17 @@ class EventRecordingsURL(models.Model):
 
         super(EventRecordingsURL, self).save(*args, **kwargs)
 
+    @staticmethod
+    def create_instance(event_url_info):
+        instance = EventRecordingsURL()
+        instance.chatroom_id = event_url_info.get('chatroom_id')
+        instance.conversation_id = event_url_info.get('conversation_id')
+        instance.is_recording = event_url_info.get('is_recording', False)
+        instance.about_recording = event_url_info.get('about_recording')
+        instance.recording_url_og_tags = event_url_info.get('recording_url_og_tags')
+        instance.save()
+        return instance
+
      
 class ChatroomCohort(models.Model):
     cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
