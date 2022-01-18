@@ -754,11 +754,13 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             elif field.field_name == 'has_event_recording' and data['has_event_recording']:
                 event_dict = self.get_event_attachment_details(card, self.member_id)
 
-                if event_dict.get('about_recording'):
-                    data['about_recording'] = event_dict.get('about_recording')
+                data['about_recording'] = event_dict.get('about_recording') \
+                    if event_dict.get('about_recording') \
+                    else ""
 
-                if event_dict.get('recording_url_og_tags'):
-                    data['recording_url_og_tags'] = event_dict.get('recording_url_og_tags')
+                data['recording_url_og_tags'] = event_dict.get('recording_url_og_tags') \
+                    if event_dict.get('recording_url_og_tags') \
+                    else ""
 
                 data['recordings_attachments'] = event_dict.get('recordings_attachments')
                 data['recordings_url'] = event_dict.get('recordings_url')

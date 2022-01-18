@@ -379,11 +379,13 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
             card_instance=card
         )
 
-        if event_dict.get('about_recording'):
-            collabcard['about_recording'] = event_dict.get('about_recording')
+        collabcard['about_recording'] = event_dict.get('about_recording') \
+            if event_dict.get('about_recording') \
+            else ""
 
-        if event_dict.get('recording_url_og_tags'):
-            collabcard['recording_url_og_tags'] = event_dict.get('recording_url_og_tags')
+        collabcard['recording_url_og_tags'] = event_dict.get('recording_url_og_tags') \
+            if event_dict.get('recording_url_og_tags') \
+            else ""
 
         collabcard['recordings_attachments'] = event_dict.get('recordings_attachments')
         collabcard['recordings_url'] = event_dict.get('recordings_url')
