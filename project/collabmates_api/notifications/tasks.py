@@ -297,7 +297,6 @@ def trigger_email_communication_for_event(payload_for_email_comms):
 
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.LAST_CALL)
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.ATTENDANCE_9_AM)
-    send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTENDEES)
 
 @shared_task
 def send_email_notification_for_event_type(payload_for_email_comms, event_type):
