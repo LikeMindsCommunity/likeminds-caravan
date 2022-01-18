@@ -1200,13 +1200,6 @@ class CommunityImpl(CommunityManager):
         if 'error_message' in validate_req_body:
             return validate_req_body
 
-        community_field_type_filter = ModelUtilities.get_model_filter(communityFieldTypes,
-                                                                      {'type': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
-                                                                       'rank': DEFAULT_COMMUNITY_FIELD_TYPE_RANK})
-
-        community_field_sub_type_filter = ModelUtilities.get_model_filter(communityFieldSubTypes,
-                                                                          {'type': community_field_type_filter[0]})
-
         community_state = 0
 
         community_instance = Community.create_instance({'name': validate_req_body['name'],
@@ -1215,8 +1208,8 @@ class CommunityImpl(CommunityManager):
                                                         'brand_color': validate_req_body['brand_color'],
                                                         'image_link': validate_req_body['image_url'],
                                                         'thumbnail': community_default_thumbnail,
-                                                        'type': community_field_type_filter[0].id,
-                                                        'sub_type': community_field_sub_type_filter[0].id,
+                                                        'type': TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS,
+                                                        'sub_type': SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS,
                                                         'hide_community': community_state})
 
         if validate_req_body.get('has_logo_uploaded', False):
