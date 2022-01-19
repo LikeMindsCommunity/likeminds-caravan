@@ -445,9 +445,10 @@ class FetchUnseenCountInEvent(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        community_id = request.GET.get('community_id', None)
 
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.fetch_unseen_count_in_event()
+        response_context = chatroom_manager.fetch_unseen_count_in_event(community_id)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
