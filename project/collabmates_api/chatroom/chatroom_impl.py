@@ -1714,35 +1714,29 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def fetch_unseen_count_in_event(self, community_id: str) -> dict:
+    def fetch_unseen_count_in_event(self) -> dict:
 
-        user_instance: object = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
         if not user_instance:
-            return {
-                'success': False,
-                'error_message': f'user not found, id={self.get_member_id()}'
-            }
+            return {'error_message': "Invalid user-id"}
 
-        community_instance: object = ModelUtilities.get_model_instance_or_none(Community, community_id)
-        if community_id and not community_instance:
-            return {
-                'success': False,
-                'error_message': f'community not found, id={community_id}'
-            }
+        unseen_count = 0
 
-        unseen_count: int = 0
+        nudge_filter = ModelUtilities.get_model_filter(EventNudge, {'user': user_instance})
 
-        unseen_count += get_count_of_new_event_chatrooms_created_for_user(
-            user_instance.id,
-            community_id)
+        if nudge_filter:
+            card_instance = nudge_filter[0].seen_event_chatroom
 
-        unseen_count += get_count_for_new_non_member_access_event_chatroom_community_managers(
-            user_instance.id,
-            community_id)
+            unseen_count = get_count_of_new_event_chatrooms_created_for_user(card_id=card_instance.id,
+                                                                             user_id=user_instance.id)
+            unseen_count += get_count_for_new_non_member_access_event_chatroom_community_managers(
+                card_id=card_instance.id,
+                user_id=user_instance.id)
 
-        unseen_count += get_count_for_non_member_access_event_for_user_non_community_manager(
-            user_instance.id,
-            community_id)
+            unseen_count += get_count_for_non_member_access_event_for_user_non_community_manager(
+                card_id=card_instance.id,
+                user_id=user_instance.id)
 
         return {'count': unseen_count}
 

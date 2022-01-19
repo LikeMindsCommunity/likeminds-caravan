@@ -2274,37 +2274,20 @@ def get_last_seen_non_member_access_event_for_user(user_id):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_count_of_new_event_chatrooms_created_for_user(user_id: str, community_id: str) -> int:
+def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
     try:
-
-        community_filter: str = ''
-        if community_id:
-            community_filter = f'AND community_id = {community_id}'
-
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """
-                SELECT 
-                    count(id)
-                FROM 
-                    togther_collabcardState
-                WHERE
-                    user_id=%s
-                    AND external_seen = false
-                    %s
-                    AND card_id IN (
-                        SELECT 
-                            id
-                        FROM 
-                            togther_collabcard
-                        WHERE 
-                            type in (2,6) 
-                            AND access in (1,2))
-                """ % (
-            str(user_id),
-            community_filter)
-
+        sql = """SELECT count(*)
+                 FROM togther_collabcardState
+                 WHERE card_id IN 
+                    (SELECT id
+                    FROM togther_collabcard
+                    WHERE type in (2,6) AND access in (1,2))
+                        AND user_id=%s
+                 AND card_id > %s
+        """ % (str(user_id), str(card_id))
         curr.execute(sql)
         card_tupple = curr.fetchone()
         curr.close()
@@ -2318,45 +2301,26 @@ def get_count_of_new_event_chatrooms_created_for_user(user_id: str, community_id
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_count_for_new_non_member_access_event_chatroom_community_managers(user_id: str, community_id: str) -> int:
+def get_count_for_new_non_member_access_event_chatroom_community_managers(user_id, card_id):
     try:
-        community_filter: str = ''
-        if community_id:
-            community_filter = f'AND community_id = {community_id}'
-
         conn = get_connection()
         curr = conn.cursor()
         sql = """
-                SELECT 
-                    count(id)
-                FROM 
-                    togther_collabcardState
-                WHERE 
-                    user_id=%s
-                    AND external_seen = false
-                    %s
-                    AND card_id IN (
-                        SELECT 
-                            id
-                        FROM 
-                            togther_collabcard
-                        WHERE 
-                            type IN (2,6)
+                SELECT count(*)
+                FROM togther_collabcardState
+                WHERE card_id IN 
+                    (SELECT id
+                    FROM togther_collabcard
+                    WHERE type IN (2,6)
                             AND access = 0
-                            AND community_id IN (
-                                SELECT 
-                                    community_id_id
-                                FROM 
-                                    togther_members
-                                WHERE 
-                                    user_id=%s
-                                    AND state = 1
-                                )
-                    ) 
-                """ % (
-            str(user_id),
-            community_filter,
-            str(user_id))
+                            AND community_id IN 
+                        (SELECT community_id_id
+                        FROM togther_members
+                        WHERE user_id=%s
+                                AND state = 1))
+                            AND user_id=%s
+                 AND card_id > %s
+        """ % (str(user_id), str(user_id), str(card_id))
 
         curr.execute(sql)
         card_tuple = curr.fetchone()
@@ -2370,61 +2334,33 @@ def get_count_for_new_non_member_access_event_chatroom_community_managers(user_i
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_count_for_non_member_access_event_for_user_non_community_manager(user_id: str, community_id: str) -> int:
+def get_count_for_non_member_access_event_for_user_non_community_manager(user_id, card_id):
     try:
-        community_filter: str = ''
-        if community_id:
-            community_filter = f'AND community_id = {community_id}'
-
         conn = get_connection()
         curr = conn.cursor()
         sql = """
-                SELECT 
-                    count(id)
-                FROM 
-                    togther_collabcardState
-                WHERE 
-                    user_id = %s
-                    AND external_seen = false
-                    %s
-                    AND card_id IN (
-                        SELECT 
-                            id
-                        FROM 
-                            togther_Collabcard
-                        WHERE 
-                            type IN (2,6)
+                SELECT count(*)
+                FROM togther_collabcardState
+                WHERE card_id IN 
+                    (SELECT id
+                    FROM togther_Collabcard
+                    WHERE type IN (2,6)
                             AND access = 0
-                            AND id IN (
-                                SELECT 
-                                    chatroom_id
-                                FROM 
-                                    togther_ChatroomCohort
-                                WHERE 
-                                    cohort_id IN (
-                                        SELECT 
-                                            cohort_id
-                                        FROM 
-                                            togther_CohortMember
-                                        WHERE 
-                                            user_id = %s
-                                    )
-                            )
-                            AND community_id NOT IN (
-                                SELECT 
-                                    community_id_id
-                                FROM 
-                                    togther_members
-                                WHERE 
-                                    user_id=%s
-                                    AND state = 1
-                            )
-                    )
-                """ % (
-            str(user_id),
-            community_filter,
-            str(user_id),
-            str(user_id))
+                            AND id IN 
+                        (SELECT chatroom_id
+                        FROM togther_ChatroomCohort
+                        WHERE cohort_id IN 
+                            (SELECT cohort_id
+                            FROM togther_CohortMember
+                            WHERE user_id = %s))
+                                    AND community_id NOT IN 
+                                (SELECT community_id_id
+                                FROM togther_members
+                                WHERE user_id=%s
+                                        AND state = 1))
+                                    AND user_id = %s
+                 AND card_id > %s
+        """ % (str(user_id), str(user_id), str(user_id), str(card_id))
 
         curr.execute(sql)
         card_tuple = curr.fetchone()
