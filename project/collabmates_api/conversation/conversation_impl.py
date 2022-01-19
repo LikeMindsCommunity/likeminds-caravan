@@ -10,13 +10,14 @@ from external_services.caching.cache_impl import CacheImpl
 from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
-    MINUTES_30
+    MINUTES_30, MINUTES_60
 
 from .conversation_manager import ConversationManager
 from .reactions import fetch_chatroom_or_conversation_reactions
 from ..chatroom import chatroom_impl
 from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list, \
     send_notification_on_chatroom_topic_update
+from ..notifications.tasks import send_communication_when_chatroom_not_opened
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms, \
@@ -24,7 +25,7 @@ from ..raw_queries import activate_chatroom_on_conversation_creation, \
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
-from ..tasks import send_tagged_user_mail, send_chatroom_owner_mail
+from ..tasks import send_chatroom_owner_mail
 from ..utility import pagination
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
@@ -39,14 +40,14 @@ from .constants import *
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
-                            conversationEventMembers, conversationEventNudge)
+                            conversationEventMembers, conversationEventNudge, UserEmailsSendStatus)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
-    conversation_states, conversation_poll_types
+    conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types
 from utility.utils import decode_meta_from_url, check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
@@ -541,6 +542,19 @@ class ConversationImpl(ConversationManager):
                                                                     user_instance,
                                                                     chatroom_instance)
 
+    @staticmethod
+    def _handle_dm_chatroom_communication(chatroom_instance, user_instance, conversation_instance):
+
+        user_id = chatroom_instance.user_id
+        chatroom_with_user_id = chatroom_instance.chatroom_with_user_id
+
+        if chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE and chatroom_instance.is_private:
+            sender_id = user_id if user_instance.id == user_id else chatroom_with_user_id
+            receiver_id = user_id if user_instance.id != user_id else chatroom_with_user_id
+
+            ConversationHelper.send_engagement_communication(receiver_id, sender_id, chatroom_instance.id,
+                                                             chatroom_not_opened_types.DM_CHATROOM)
+
     def _update_home_page(self, community_instance, chatroom_instance, conversation_instance):
         ConversationHelper.update_the_activity_time_for_new_conversation_creation.delay(chatroom_instance.id,
                                                                                         self.get_member_id())
@@ -867,6 +881,8 @@ class ConversationImpl(ConversationManager):
                                                                                conversation_instance.id)
 
         self._auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance)
+
+        self._handle_dm_chatroom_communication(chatroom_instance, user_instance, conversation_instance)
 
         update_conversation_engage_for_chatrooms(card_id=chatroom_instance.id, user_id=user_instance.id,
                                                  last_conversation_id=conversation_instance.id,
@@ -1537,8 +1553,9 @@ class ConversationHelper:
     @staticmethod
     def run_async_tasks_for_conversation_tagging(tagged_member_list, user_instance, chatroom_instance):
 
-        if len(tagged_member_list) > 0:
-            send_tagged_user_mail.delay(user_instance.id, chatroom_instance.id, tagged_member_list, time_in_hrs=24)
+        for tagged_member in tagged_member_list:
+            ConversationHelper.send_engagement_communication(tagged_member, user_instance.id, chatroom_instance.id,
+                                                             chatroom_not_opened_types.TAGGED_CHATROOM)
 
         notification_list = [
             'mail_card_owner_inactivity'
@@ -1548,6 +1565,53 @@ class ConversationHelper:
         if check_notification_flag(chatroom_instance.user_id, notification_list, card_id=chatroom_instance.id,
                                    community_id=None) and str(user_instance.id) != str(chatroom_instance.user_id):
             send_chatroom_owner_mail.delay(chatroom_instance.user_id, chatroom_instance.id, time_in_hrs=12)
+
+    @staticmethod
+    def send_engagement_communication(receiver_id, sender_id, chatroom_id, chatroom_not_opened_type):
+
+        status_type = None
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
+            status_type = user_email_send_status_types.TAGGED_CHATROOM_NOT_OPENED
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
+            status_type = user_email_send_status_types.DM_CHATROOM_NOT_OPENED
+
+        user_email_send_status_instance = ModelUtilities.get_model_filter(
+            UserEmailsSendStatus, {'user_id': receiver_id, 'chatroom_id': chatroom_id, 'is_completed': False,
+                                   'status_type': status_type})
+
+        if not user_email_send_status_instance and status_type:
+
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+            collabcard_state_instances = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_id,
+                                                                                           'user_id': receiver_id})
+
+            if not chatroom_instance or not collabcard_state_instances:
+                return
+
+            collabcard_state_instance = collabcard_state_instances[0]
+
+            last_seen_conversation = None
+
+            if collabcard_state_instance.last_seen_conversation:
+                last_seen_conversation = collabcard_state_instance.last_seen_conversation.id
+
+            user_email_send_status_data = {
+                'user': ModelUtilities.get_model_instance_or_none(User, receiver_id),
+                'community': chatroom_instance.community,
+                'chatroom_id': chatroom_id,
+                'status_type': status_type
+            }
+
+            UserEmailsSendStatus.create_instance(user_email_send_status_data)
+
+            args = [receiver_id, sender_id, chatroom_id, chatroom_not_opened_type, last_seen_conversation]
+            countdown = ENGAGEMENT_COMMUNICATION_DURATION_IN_HOURS*MINUTES_60
+
+            # runs after 6 hours, expires after 6 hours and 30 minutes
+            send_communication_when_chatroom_not_opened.apply_async(args=args, kwargs={}, countdown=countdown,
+                                                                    expires=countdown+MINUTES_30)
 
     @staticmethod
     def update_homefeed_for_all_chatroom_followers(chatroom_id, conversation_id):

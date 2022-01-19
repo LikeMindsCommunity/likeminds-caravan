@@ -15,7 +15,8 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     post_purpose_collabcard_for_community, post_master_introductions_for_community, post_member_directory_link, \
     post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share, \
     fill_share_context_for_paid_community, fill_share_context_for_unpaid_community, \
-    check_join_community_hood_get_started, add_community_upload_image_analytics
+    check_join_community_hood_get_started, add_community_upload_image_analytics, \
+    create_introduction_question_in_community
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.number_utilities import NumberUtilities
 from external_services.email.email_wrapper import MailWrapper
@@ -1199,13 +1200,6 @@ class CommunityImpl(CommunityManager):
         if 'error_message' in validate_req_body:
             return validate_req_body
 
-        community_field_type_filter = ModelUtilities.get_model_filter(communityFieldTypes,
-                                                                      {'type': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
-                                                                       'rank': DEFAULT_COMMUNITY_FIELD_TYPE_RANK})
-
-        community_field_sub_type_filter = ModelUtilities.get_model_filter(communityFieldSubTypes,
-                                                                          {'type': community_field_type_filter[0]})
-
         community_state = 0
 
         community_instance = Community.create_instance({'name': validate_req_body['name'],
@@ -1214,8 +1208,8 @@ class CommunityImpl(CommunityManager):
                                                         'brand_color': validate_req_body['brand_color'],
                                                         'image_link': validate_req_body['image_url'],
                                                         'thumbnail': community_default_thumbnail,
-                                                        'type': community_field_type_filter[0].id,
-                                                        'sub_type': community_field_sub_type_filter[0].id,
+                                                        'type': TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS,
+                                                        'sub_type': SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS,
                                                         'hide_community': community_state})
 
         if validate_req_body.get('has_logo_uploaded', False):
@@ -2389,7 +2383,7 @@ class CommunityHelper:
 
         add_community_settings_for_community(community_instance, user_instance)
 
-        create_introduction_question_in_community_v2(community_instance)
+        create_introduction_question_in_community(community_instance)
         post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
         post_master_introductions_for_community(community_instance.id, user_instance.id)
         post_general_collabcard_for_community(community_instance, user_instance.id)

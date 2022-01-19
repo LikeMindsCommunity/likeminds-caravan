@@ -234,9 +234,9 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'is_edited': card.is_edited,
         'is_paid': card.is_paid,
         'access': card.access,
+        'online_link_type': card.online_link_type,
         'online_link_enable_before': card.online_link_enable_before,
         'is_private': card.is_private,
-        'about_recording': card.about_recording,
         'has_event_recording': card.has_event_recording,
     }
 
@@ -368,14 +368,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
     if card.chatroom_with_user:
         collabcard['chatroom_with_user'] = UserinfoSerializer(card.chatroom_with_user.userinfo)
 
-    if card.recording_url_og_tags:
-        try:
-            collabcard['recording_url_og_tags'] = json.loads(card.recording_url_og_tags)
-        except:
-            collabcard['recording_url_og_tags'] = {}
-
     if card.has_event_recording:
-        
+
         from .chatroom.chatroom_impl import ChatroomHelper
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user)
@@ -385,7 +379,16 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
             card_instance=card
         )
 
+        collabcard['about_recording'] = event_dict.get('about_recording') \
+            if event_dict.get('about_recording') \
+            else None
+
+        collabcard['recording_url_og_tags'] = event_dict.get('recording_url_og_tags') \
+            if event_dict.get('recording_url_og_tags') \
+            else None
+
         collabcard['recordings_attachments'] = event_dict.get('recordings_attachments')
+        collabcard['recordings_url'] = event_dict.get('recordings_url')
         collabcard['recordings_attachments_view'] = event_dict.get('recordings_attachments_view')
 
     return collabcard

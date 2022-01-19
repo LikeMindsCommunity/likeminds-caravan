@@ -18,3 +18,5 @@ TOPIC_TEXT_PDF = "set a document as current topic"
 TOPIC_TEXT_MULTIPLE_PDF = "set a message with documents as current topic"
 TOPIC_TEXT_AUDIO = "set an audio message as current topic"
 TOPIC_TEXT_NORMAL = "changed current topic to "
+
+ENGAGEMENT_COMMUNICATION_DURATION_IN_HOURS = 6

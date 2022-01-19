@@ -484,6 +484,25 @@ send_invite_types = SendInviteTypes()
 
 class UserEmailSendStatusTypes:
     CM_ONBOARDING = 1
+    TAGGED_CHATROOM_NOT_OPENED = 2
+    DM_CHATROOM_NOT_OPENED = 3
 
 
 user_email_send_status_types = UserEmailSendStatusTypes()
+
+
+class ChatroomNotOpenedTypes:
+    TAGGED_CHATROOM = 1
+    DM_CHATROOM = 2
+
+
+chatroom_not_opened_types = ChatroomNotOpenedTypes()
+
+
+class EventOnlineLinkTypes:
+    ZOOM = 0
+    MEET = 1
+    OTHER = 2
+
+
+event_online_link_types = EventOnlineLinkTypes()

@@ -528,6 +528,7 @@ class Collabcard(models.Model):
 
     # fields for event
     online_link = models.TextField(null=True)
+    online_link_type = models.IntegerField(null=True)
     online_link_enable_before = models.BigIntegerField(
         default=TimeUtilities.get_minutes_in_milliseconds(15))  # 15 minutes in milliseconds
     online_link_id = models.TextField(null=True)
@@ -2242,6 +2243,15 @@ class ModelUtilities:
         return model.objects.filter(**filter_dict).exists()
 
     @staticmethod
+    def update_or_create_model(model, filter_dict, update_dict):
+        model_instance, created = model.objects.update_or_create(
+            **filter_dict,
+            defaults=update_dict
+        )
+
+        return model_instance, created
+
+    @staticmethod
     def get_model_instance_or_none(model, pk):
 
         instance = None
@@ -2883,6 +2893,19 @@ class EventRecordingsAttachments(models.Model):
             'instance updated time'
         )
     )
+    is_recording = models.BooleanField(
+        default=False,
+        null=True,
+        help_text=(
+            'whether its a recording or not'
+        )
+    )
+    about = models.TextField(
+        null=True,
+        help_text=(
+            'description for the attachment'
+        )
+    )
 
     class Meta:
             verbose_name = 'event recording attachment'
@@ -2899,6 +2922,86 @@ class EventRecordingsAttachments(models.Model):
         super(EventRecordingsAttachments, self).save(*args, **kwargs)
 
 
+class EventRecordingsURL(models.Model):
+    """ table to store URL details of event """
+
+    chatroom_id = models.ForeignKey(
+        Collabcard,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text=_(
+            'id of chatroom'
+        )
+    )
+    conversation_id = models.ForeignKey(
+        card_answers,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text=_(
+            'id of conversation'
+        )
+    )
+    recording_url_og_tags = models.TextField(
+        null=True,
+        blank=True,
+        help_text=_(
+            'og tags'
+        )
+    )
+    is_recording = models.BooleanField(
+        default=False,
+        help_text=(
+            'whether its a recording or not'
+        )
+    )
+    about_recording = models.TextField(
+        null=True,
+        blank=True,
+        help_text=(
+            'description for the attachment'
+        )
+    )
+    created_at = models.BigIntegerField(
+        default=0,
+        help_text=_(
+            'instance created time'
+        )
+    )
+    updated_at = models.BigIntegerField(
+        default=0,
+        help_text=_(
+            'instance updated time'
+        )
+    )
+
+    class Meta:
+        verbose_name = 'event recording url'
+        verbose_name_plural = 'event recording urls'
+        db_table = 'togther_event_recording_url'
+
+    def save(self, *args, **kwargs):
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+        self.updated_at = current_time_in_ms
+
+        if self.created_at <= 0:
+            self.created_at = current_time_in_ms
+
+        super(EventRecordingsURL, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(event_url_info):
+        instance = EventRecordingsURL()
+        instance.chatroom_id = event_url_info.get('chatroom_id')
+        instance.conversation_id = event_url_info.get('conversation_id')
+        instance.is_recording = event_url_info.get('is_recording', False)
+        instance.about_recording = event_url_info.get('about_recording')
+        instance.recording_url_og_tags = event_url_info.get('recording_url_og_tags')
+        instance.save()
+        return instance
+
+     
 class ChatroomCohort(models.Model):
     cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
@@ -3045,6 +3148,7 @@ class CommunityGetStarted(models.Model):
 class UserEmailsSendStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.SET_NULL, null=True)
+    chatroom_id = models.IntegerField(default=None, null=True)
     status_type = models.IntegerField(default=0)
     frequency_in_minutes = models.IntegerField(null=True)
     count = models.IntegerField(null=True)
@@ -3071,12 +3175,13 @@ class UserEmailsSendStatus(models.Model):
         instance = UserEmailsSendStatus()
         instance.user = user_emails_info.get('user')
         instance.community = user_emails_info.get('community')
+        instance.chatroom_id = user_emails_info.get('chatroom_id')
         instance.status_type = user_emails_info.get('status_type')
         instance.frequency_in_minutes = user_emails_info.get('frequency_in_minutes')
         instance.count = user_emails_info.get('count')
         instance.max_count = user_emails_info.get('max_count')
         instance.mail_data = user_emails_info.get('mail_data')
-        instance.expires_at = user_emails_info.get('expires_at')
+        instance.expires_at = user_emails_info.get('expires_at', 0)
         instance.created_at = TimeUtilities.current_time_in_milliseconds()
         instance.updated_at = TimeUtilities.current_time_in_milliseconds()
         instance.save()

@@ -297,7 +297,6 @@ def trigger_email_communication_for_event(payload_for_email_comms):
 
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.LAST_CALL)
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.ATTENDANCE_9_AM)
-    send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTENDEES)
 
 @shared_task
 def send_email_notification_for_event_type(payload_for_email_comms, event_type):
@@ -509,3 +508,39 @@ def reschedule_event_comms_notifications_on_event_update(payload_for_whatsapp_co
 #     except Exception as e:
 #         error_logger.error('got error while deleting older celery tasks | exception ocurred = %s | task_ids received \
 #             = %s' % (str(e), task_ids))
+
+
+@shared_task
+def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom_id, chatroom_not_opened_type,
+                                                last_conversation_id):
+    try:
+
+        if not chatroom_not_opened_type:
+            return
+
+        collabcard_state_instance = TasksHelper.get_collabcard_state_instance(receiver_id, chatroom_id)
+
+        if not collabcard_state_instance:
+            error_logger.error("got error in send_communication_when_chatroom_not_opened | error -member %s does \
+            not have collabcard state in chatroom_id %s" % (receiver_id, chatroom_id))
+            return
+
+        if collabcard_state_instance.last_seen_conversation and \
+                collabcard_state_instance.last_seen_conversation.id != last_conversation_id:
+            return
+
+        context = TasksHelper.create_context_for_chatroom_not_opened(receiver_id, sender_id, chatroom_id,
+                                                                     collabcard_state_instance.community.id,
+                                                                     chatroom_not_opened_type)
+
+        if context:
+            send_email_with_custom_from_email(context['subject'], context['template'], context['from_email'],
+                                              context['to_mails_list'], context['bcc_mails_list'],
+                                              categories=context.get('categories'), reply_to=context['reply_to'])
+
+            TasksHelper.update_user_email_send_status(receiver_id, chatroom_id, chatroom_not_opened_type)
+
+    except Exception as e:
+        error_logger.error("got error in send_communication_when_chatroom_not_opened | error - %s | member_id \
+                            received = %s | chatroom_id received = %s | chatroom_not_opened_type \
+                            received = %s" % (str(e), receiver_id, chatroom_id, chatroom_not_opened_type))
