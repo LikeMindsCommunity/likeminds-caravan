@@ -1274,6 +1274,20 @@ class EventRecordingsURLSerializer(serializers.ModelSerializer):
         model = EventRecordingsURL
         fields = '__all__'
 
+    def to_representation(self, obj):
+        data = super(EventRecordingsURLSerializer, self).to_representation(obj)
+
+        field_list = self._readable_fields
+
+        for field in field_list:
+            if field.field_name == 'recording_url_og_tags':
+                data[field.field_name] = json.loads(data[field.field_name])
+
+            if data[field.field_name] is None:
+                del data[field.field_name]
+
+        return data
+
 
 class CommunitySettingsSerializer(serializers.ModelSerializer):
     class Meta:
