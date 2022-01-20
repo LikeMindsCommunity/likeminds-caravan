@@ -2867,7 +2867,7 @@ class ChatroomHelper:
 
     @staticmethod
     def fetch_serialized_community(card_instance: object, user_instance: object, current_user_id: str = None,
-                                   platform_code: str = None, version_code: str = 0):
+                                   platform_code: str = None, version_code: int = 0):
 
         context = CommunitySerializer(card_instance.community, current_user_id=current_user_id,
                                       current_user_instance=user_instance, platform_code=platform_code,
