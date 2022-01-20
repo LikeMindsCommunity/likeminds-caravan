@@ -2,7 +2,7 @@
 
 from django.core.paginator import Paginator
 
-from .static_text import SINGLE_COMMUNITY_VIEW_VERSION_CODE, LM_PLATFORM_CODES
+from .static_text import SINGLE_COMMUNITY_VIEW_VERSION_CODE, LM_PLATFORM_CODES, FREE_LINK_VERSION_CODE
 
 
 def get_member_id_from_headers(request):
@@ -118,6 +118,22 @@ def single_community_view_version_check(platform_code: str, version_code: int) -
         return True
 
     elif platform_code == "web" and version_code >= SINGLE_COMMUNITY_VIEW_VERSION_CODE[platform_code]:
+        return True
+
+    return False
+
+
+def free_link_and_freemium_community_version_check(platform_code: str, version_code: int) -> bool:
+    if not platform_code or platform_code.lower() not in LM_PLATFORM_CODES:
+        return False
+
+    elif platform_code == "an" and version_code >= FREE_LINK_VERSION_CODE[platform_code]:
+        return True
+
+    elif platform_code == "ios" and version_code >= FREE_LINK_VERSION_CODE[platform_code]:
+        return True
+
+    elif platform_code == "web" and version_code >= FREE_LINK_VERSION_CODE[platform_code]:
         return True
 
     return False
