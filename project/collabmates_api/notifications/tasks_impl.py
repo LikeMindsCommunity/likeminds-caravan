@@ -12,22 +12,7 @@ from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
 
-from .constants import (COMM_TYPE, EVENT_TYPE, EVENT_COMM_FREQUENCY, EVENT_COMM_SHOULD_HAPPEN_AFTER,
-                        EVENT_COMM_SHOULD_HAPPEN_BEFORE, TIME_10_AM, TITLE_EVENT_CREATION_APP_NOTIFICATION,
-                        SUB_TITLE_EVENT_CREATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION,
-                        ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION, TITLE_EVENT_LAST_CALL_APP_NOTIFICATION,
-                        SUB_TITLE_EVENT_LAST_CALL_APP_NOTIFICATION, ROUTE_PAID_EVENT_LAST_CALL_APP_NOTIFICATION,
-                        ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION, TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION,
-                        SUB_TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION, ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION,
-                        TITLE_EVENT_REGISTRATION_APP_NOTIFICATION, SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION,
-                        ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION, ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION,
-                        TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION, TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION,
-                        SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION, ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION,
-                        MAIL_EVENT_NOTIFICATION, CHATROOM_URL, POST_EVENT_ATTENDEES_LINK, TIME_9_AM,
-                        SUBJECT_EVENT_CREATION_MAIL, SUBJECT_EVENT_LAST_CALL_MAIL, SUBJECT_EVENT_ATTENDANCE_MAIL,
-                        SUBJECT_EVENT_REGISTRATION_MAIL, SUBJECT_POST_EVENT_ATTENDEES_MAIL,
-                        SUBJECT_POST_EVENT_ATTACHMENT_MAIL, SENDER_FOR_EMAIL_COMMS, PAID_EVENT_REGISTRATION_SOUND,
-                        TO_FOR_EMAIL_COMMS, SUBJECT_CHATROOM_NOT_OPENED_MAIL, SENDER_FOR_ENGAGEMENT_COMMUNICATION)
+from .constants import *
 from .tasks_manager import TaskManager
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -549,7 +534,6 @@ class TasksImpl(TaskManager):
             filter_dict['task_id'] = task_id
             EventCommsCeleryTasks.create_instance(filter_dict)
 
-
 class TasksHelper:
 
     @staticmethod
@@ -722,12 +706,12 @@ class TasksHelper:
         community_owner_email = TasksHelper.get_emails_list_for_user_instances([community_owner_instance])
 
         to_mails_list = TasksHelper.get_emails_list_for_user_instances(user_instances)
-        reply_to = community_owner_email
+        reply_to = community_owner_email[0] if community_owner_email else ''
 
         context = {
-            'from_email': SENDER_FOR_EMAIL_COMMS,
-            'to_mails_list': [TO_FOR_EMAIL_COMMS],
-            'bcc_mails_list': to_mails_list,
+            'from_name': SENDER_NAME_FOR_EMAIL_COMMS,
+            'from_email': SENDER_EMAIL_FOR_EMAIL_COMMS,
+            'to_mails_list': to_mails_list,
             'reply_to': reply_to
         }
 
@@ -771,7 +755,7 @@ class TasksHelper:
             data_dict['attended_member_count'] = attended_member_count
 
             context['subject'] = SUBJECT_POST_EVENT_ATTENDEES_MAIL % event_name
-            context['reply_to'] = [SENDER_FOR_EMAIL_COMMS]
+            context['reply_to'] = SENDER_EMAIL_FOR_EMAIL_COMMS
             context['template'] = get_template("mails/event_comms/post-event-attendees.html").render(data_dict)
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
@@ -894,7 +878,7 @@ class TasksHelper:
             return None
 
         to_mails_list = TasksHelper.get_emails_list_for_user_instances([receiver_instance])
-        reply_to = community_owner_email
+        reply_to = community_owner_email[0] if community_owner_email else ''
         share_url = generate_private_link_for_chatroom(chatroom_instance, community_owner_instance)
         data_dict = {
             'community_name': community_instance.name,
@@ -916,7 +900,6 @@ class TasksHelper:
         context = {
             'from_email': SENDER_FOR_ENGAGEMENT_COMMUNICATION,
             'to_mails_list': to_mails_list,
-            'bcc_mails_list': [],
             'reply_to': reply_to,
             'subject': SUBJECT_CHATROOM_NOT_OPENED_MAIL % sender_instance.userinfo.name,
             'template': template
