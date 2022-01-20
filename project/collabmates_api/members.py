@@ -1,4 +1,6 @@
 from django.db import connection
+
+from utility.request_utilities import RequestUtilities
 from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
@@ -365,6 +367,9 @@ def get_all_members(request, req_dict=None):
         collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
 
     current_user_id = get_member_id_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
     try:
         current_user_instance = User.objects.get(pk=current_user_id)
     except Exception as e:
@@ -406,7 +411,8 @@ def get_all_members(request, req_dict=None):
         member_instance = None
 
     community = CommunitySerializer(community_instance, promoter_id=promoter_instance, is_owner=is_owner,
-                                    current_user_id=current_user_id, current_user_instance=current_user_instance)
+                                    current_user_id=current_user_id, current_user_instance=current_user_instance,
+                                    platform_code=platform_code, version_code=version_code)
 
     if filter_list:
         member_list = get_member_query_set(current_user_id, community_id, send_all=True)
@@ -835,7 +841,6 @@ def get_filtered_users(filter_list, member_list):
 
 def get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=1, member_set=None,
                                     collabcard_state_list=[]):
-
     if not collabcard_state_list:
         collabcard_state_list = collabcardState.objects \
             .filter(card=chatroom_instance,
