@@ -779,6 +779,8 @@ class CommunityImpl(CommunityManager):
 
             update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
+            CommunityHelper.send_community_moderation_mail_to_cm.delay(community_instance.id)
+
         return {'success': True, 'access': user_has_access}
 
     def fetch_members_meta(self, community_id):
@@ -2159,7 +2161,7 @@ class CommunityHelper:
     @staticmethod
     def get_mail_body_for_community_creation_get_started(user_instance, community_instance, branch_link=''):
         mail_template = get_template('mails/cm_onboarding/getting_started_cm_onboarding.html').render({
-            "community_logo": community_instance.image_url,
+            "community_logo": community_instance.image_link,
             "community_name": community_instance.name,
             "cm_name": user_instance.userinfo.name,
             "dashboard_link": CM_ONBOARDING_CREATE_COMMUNITY_DASHBOARD_LINK,
@@ -2398,3 +2400,53 @@ class CommunityHelper:
 
         if len(member_filter):
             update_community_get_started(community_instance, get_started_types.JOIN_COMMUNITY_HOOD, is_enabled=True)
+
+    @staticmethod
+    @shared_task
+    def send_community_moderation_mail_to_cm(community_id):
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return
+
+        members_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance})
+
+        if members_filter.count() < CM_ONBOARDING_COMMUNITY_MODERATION_MIN_MEMBERS_COUNT:
+            return
+
+        community_owner_filter = members_filter.filter(is_owner=True)
+
+        if not community_owner_filter:
+            return
+
+        community_owner = community_owner_filter[0]
+
+        # Check if mail already sent
+        user_email_filter = ModelUtilities.get_model_filter(UserEmailsSendStatus,
+                                                            {'user': community_owner.member_id,
+                                                             'community': community_instance,
+                                                             'status_type': user_email_send_status_types.COMMUNITY_MODERATION_EMAIL,
+                                                             'is_completed': True})
+
+        if user_email_filter:
+            return
+
+        mail_subject = CM_ONBOARDING_COMMUNITY_MODERATION_MAIL_SUBJECT
+
+        mail_template = get_template('mails/cm_onboarding/community_moderation_mail_cm_onboarding.html').render({
+            "community_logo": community_instance.image_link,
+            "cm_name": community_owner.member_id.userinfo.name,
+            "community_brand_color": community_instance.brand_color if community_instance.brand_color
+            else DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+            "button_link": CM_ONBOARDING_COMMUNITY_MODERATION_BUTTON_LINK,
+            "button_text": CM_ONBOARDING_COMMUNITY_MODERATION_BUTTON_TEXT
+        })
+
+        send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
+                                                           [community_owner.member_id.userinfo.email],
+                                                           reply_to=[MEMBER_REPLY_EMAIL])
+
+        UserEmailsSendStatus.create_instance({'user': community_owner.member_id,
+                                              'community': community_instance,
+                                              'status_type': user_email_send_status_types.COMMUNITY_MODERATION_EMAIL,
+                                              'is_completed': True})

@@ -3181,6 +3181,7 @@ class UserEmailsSendStatus(models.Model):
         instance.count = user_emails_info.get('count')
         instance.max_count = user_emails_info.get('max_count')
         instance.mail_data = user_emails_info.get('mail_data')
+        instance.is_completed = user_emails_info.get('is_completed', False)
         instance.expires_at = user_emails_info.get('expires_at', 0)
         instance.created_at = TimeUtilities.current_time_in_milliseconds()
         instance.updated_at = TimeUtilities.current_time_in_milliseconds()

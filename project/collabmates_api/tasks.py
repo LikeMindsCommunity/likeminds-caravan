@@ -12,26 +12,28 @@ from cms.models import MessageTemplate
 from project.celery import app
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
-                           is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email,
-                           android_app_download_link,ios_app_download_link,check_notification_flag)
+                           is_LG_or_LP_community, is_IG_community, angellist_link, linkedIn_link, get_user_email,
+                           android_app_download_link, ios_app_download_link, check_notification_flag)
 from utility.states import (collabcard_states, member_states, community_states,
                             card_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states,
-                            user_email_send_status_types)
+                            user_email_send_status_types, get_started_types)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from togther.models import Collabcard, userMemberRightsHistory, Members, Community, UserEmailsSendStatus
 from utility.encryption import encrypt, decrypt
-from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
+from .static_files import GOOGLE_PLAYSTORE, APPLE_APPSTORE, APP_LOGO
 from .user_moderation_rights import (get_related_reports_for_user, check_admin_delete_right,
                                      check_admin_approve_right, check_admin_edit_community_right)
 import json
 import requests
 from .serializers import CollabcardPollsSerializer
-from .notification import get_title_from_collabcard,send_intro_room_evening_notifications
+from .notification import get_title_from_collabcard, send_intro_room_evening_notifications
 from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARDING_IOS_VERSION_CODE, \
-    CM_ONBOARDING_WEB_VERSION_CODE, CM_ONBOARDING_ANDROID_VERSION_CODE
+    CM_ONBOARDING_WEB_VERSION_CODE, CM_ONBOARDING_ANDROID_VERSION_CODE, CM_ONBOARDING_JOIN_FORM_NOT_SETUP_MAIL_SUBJECT, \
+    DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_LINK, \
+    CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_TEXT, MEMBER_REPLY_EMAIL,FIVE_DAYS_IN_HOURS
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper
@@ -42,17 +44,22 @@ url = settings.URL
 
 
 @shared_task
-def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,proposedAdminState):
+def send_email_to_nominated_admin(NominatedAdmin, email, ProposedAdmin, CommunityName, community_id,
+                                  proposedAdminState):
     time.sleep(5)
     url = settings.URL
-    url = url+"/community/"+str(community_id)+"?source=email&cta=accept_admin"
-    fail_silently=True
+    url = url + "/community/" + str(community_id) + "?source=email&cta=accept_admin"
+    fail_silently = True
     to = email
-    subject =str(ProposedAdmin)+ " has proposed you as a promoter of "+str(CommunityName)+" community"
+    subject = str(ProposedAdmin) + " has proposed you as a promoter of " + str(CommunityName) + " community"
     if proposedAdminState == 1:
-        template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
+        template = get_template("mails/accept_admin_request.html").render(
+            {"NominatedAdmin": NominatedAdmin, "email": email, "ProposedAdmin": ProposedAdmin,
+             "CommunityName": CommunityName, "community_id": community_id, 'url': url})
     elif proposedAdminState == 2:
-        template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
+        template = get_template("mails/accept_temp_admin_request.html").render(
+            {"NominatedAdmin": NominatedAdmin, "email": email, "ProposedAdmin": ProposedAdmin,
+             "CommunityName": CommunityName, "community_id": community_id, 'url': url})
     msg = EmailMultiAlternatives(subject,
                                  template,
                                  "LikeMinds<hello@likeminds.community>",
@@ -64,13 +71,15 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
     to = [to]
     send_email(subject, template, to)
 
+
 @shared_task
-def send_email_to_admin_of_community(CommmunityAdminName,CommunityName,email):
+def send_email_to_admin_of_community(CommmunityAdminName, CommunityName, email):
     time.sleep(5)
-    fail_silently=True
+    fail_silently = True
     to = email
-    subject = "Congrats! "+CommunityName+" community is now live"
-    template = get_template("mails/create_community_as_admin.html").render({"CommmunityAdminName":CommmunityAdminName,"CommunityName":CommunityName})
+    subject = "Congrats! " + CommunityName + " community is now live"
+    template = get_template("mails/create_community_as_admin.html").render(
+        {"CommmunityAdminName": CommmunityAdminName, "CommunityName": CommunityName})
     # msg = EmailMultiAlternatives(subject,
     #                              template,
     #                              "Collabmates<hello@collabmates.com>",
@@ -81,13 +90,15 @@ def send_email_to_admin_of_community(CommmunityAdminName,CommunityName,email):
     to = [to]
     send_email(subject, template, to)
 
+
 @shared_task
-def send_email_to_temp_admin_of_community(CommmunityAdminName,CommunityName,email):
+def send_email_to_temp_admin_of_community(CommmunityAdminName, CommunityName, email):
     time.sleep(5)
-    fail_silently=True
+    fail_silently = True
     to = email
-    subject = "Congrats! "+CommunityName+" community is now live"
-    template = get_template("mails/create_community_as_member.html").render({"CommmunityAdminName":CommmunityAdminName,"CommunityName":CommunityName})
+    subject = "Congrats! " + CommunityName + " community is now live"
+    template = get_template("mails/create_community_as_member.html").render(
+        {"CommmunityAdminName": CommmunityAdminName, "CommunityName": CommunityName})
     # msg = EmailMultiAlternatives(subject,
     #                              template,
     #                              "Collabmates<hello@collabmates.com>",
@@ -125,9 +136,9 @@ def send_email_to_proposed_admin(NominatedAdmin, email, ProposedAdmin, Community
     to = [to]
     send_email(subject, template, to)
 
+
 @shared_task
 def send_email_for_new_collabcard_posted(context):
-
     '''function to send the email when a new collabcard is posted'''
 
     to = context['to']
@@ -150,26 +161,25 @@ def send_email_for_new_collabcard_posted(context):
 @app.task
 def pending_members_mail():
     '''24 hour mail'''
-    members = Members.objects.select_related('community_id','member_id')
-    pending_members = members.filter(state=3)#.distinct('community_id')
-    count=1
+    members = Members.objects.select_related('community_id', 'member_id')
+    pending_members = members.filter(state=3)
+    count = 1
     for member in pending_members:
-        pending_members_in_community = pending_members.filter(community_id=member.community_id)#[:3]
-        admins_of_community = members.filter(community_id=member.community_id).filter(Q(state=1)|Q(state=2))
-        # print("==== ",member.community_id.id,)
+        pending_members_in_community = pending_members.filter(community_id=member.community_id)
+        admins_of_community = members.filter(community_id=member.community_id).filter(Q(state=1) | Q(state=2))
 
         if pending_members_in_community.exists() and admins_of_community.exists():
 
             for admin in admins_of_community:
-                print("==== ", admin.member_id.id ,'>>>>' ,count)
+                print("==== ", admin.member_id.id, '>>>>', count)
 
                 to = admin.member_id.email
                 fail_silently = True
                 pending_count = pending_members_in_community.count()
-                # pending_count = 1
+
                 if pending_count == 1:
                     if not admin.member_id.userinfo.image_link:
-                        promoter_image=admin.member_id.userinfo.image_file.url
+                        promoter_image = admin.member_id.userinfo.image_file.url
                     else:
                         promoter_image = admin.member_id.userinfo.image_link
                     template = get_template("mails/single_pending_member.html").render(
@@ -180,26 +190,28 @@ def pending_members_mail():
                          'community': admin.community_id,
                          'community_name': admin.community_id.name,
                          'community_id': admin.community_id.id,
-                         'url':url,
-                         'android_app_download_link':android_app_download_link,
-                         'ios_app_download_link':ios_app_download_link
+                         'url': url,
+                         'android_app_download_link': android_app_download_link,
+                         'ios_app_download_link': ios_app_download_link
                          })
-                    subject = str(pending_members_in_community[0].member_id.userinfo.name)+" has requested to join "+str(admin.community_id.name)
+                    subject = str(
+                        pending_members_in_community[0].member_id.userinfo.name) + " has requested to join " + str(
+                        admin.community_id.name)
                 elif pending_count > 1:
-                    subject = str(pending_count)+' new members have requested to join '+str(admin.community_id.name)
+                    subject = str(pending_count) + ' new members have requested to join ' + str(admin.community_id.name)
                     template = get_template("mails/multiple_pending_members_mail.html").render(
                         {'promoter': admin.member_id.userinfo.name,
                          'promoter_image': promoter_image,
                          'pending_members': pending_members_in_community[:4],
                          'pending_member_count': pending_count,
-                         'remaining_pending_requests': pending_count-4,
+                         'remaining_pending_requests': pending_count - 4,
                          'community_name': admin.community_id.name,
                          'community_id': admin.community_id.id,
-                         'url':url,
-                         'android_app_download_link':android_app_download_link,
-                         'ios_app_download_link':ios_app_download_link
+                         'url': url,
+                         'android_app_download_link': android_app_download_link,
+                         'ios_app_download_link': ios_app_download_link
                          })
-                print(subject)
+
                 to = admin.member_id.userinfo.email
                 # msg = EmailMultiAlternatives(subject,
                 #                              template,
@@ -231,39 +243,37 @@ def pending_members_mail_new(request=None):
 
                         is_member_verified = all_members.filter(member_id=member.member_id).filter(state=4)
                         if not is_member_verified.exists():
-                            print("member not verified ===  ",member.member_id.id)
+                            print("member not verified ===  ", member.member_id.id)
                             continue
-                        # print("member is verified ===  ", member.member_id.id)
+
                         pending_members_list = all_members.filter(ask_member_id=member.member_id.id).filter(state=3)
                         if pending_members_list.exists():
-                            # print("pending members list === ",pending_members_list)
+
                             if pending_members_list.count() == 1:
                                 send_pending_members_mail_for_one_pending_member(admin=member,
                                                                                  pending_members_list=pending_members)
                             elif pending_members_list.count() > 1:
                                 send_pending_members_mail_for_multiple_pending_members(
-                                                        admin=member,
-                                                        pending_members_list=pending_members_list,
-                                                        pending_count=pending_members.count())
+                                    admin=member,
+                                    pending_members_list=pending_members_list,
+                                    pending_count=pending_members.count())
 
                 else:
-                    # print("community ====  ", community.id)
                     admins_of_community = all_members.filter(Q(state=1) | Q(state=2))
+
                     if admins_of_community.exists():
                         for admin in admins_of_community:
-                            # print("admin ====  ", admin.member_id.id)
-                            # print("pending members === ",pending_members)
+
                             if pending_members.count() == 1:
                                 send_pending_members_mail_for_one_pending_member(admin=admin,
                                                                                  pending_members_list=pending_members)
                             elif pending_members.count() > 1:
                                 send_pending_members_mail_for_multiple_pending_members(
-                                                        admin=admin,
-                                                        pending_members_list=pending_members,
-                                                        pending_count=pending_members.count())
+                                    admin=admin,
+                                    pending_members_list=pending_members,
+                                    pending_count=pending_members.count())
         time.sleep(1)
-        # print("\n")
-    return  # JsonResponse({"success":True}) #for testing purpose
+    return
 
 
 def send_pending_members_mail_for_one_pending_member(admin, pending_members_list):
@@ -318,34 +328,29 @@ def send_pending_members_mail_for_multiple_pending_members(admin, pending_member
 
 @shared_task
 def send_welcome_mail(user_id):
-    user = User.objects.get(pk = user_id)
+    user = User.objects.get(pk=user_id)
     count = 0
-    member_communities_list = Members.objects.filter(member_id = user).distinct('community_id')
+    member_communities_list = Members.objects.filter(member_id=user).distinct('community_id')
     for community in member_communities_list:
-        if community.community_id.hide_community == '0' or community.community_id.hide_community == '1' or community.community_id.hide_community == '4' :
+        if community.community_id.hide_community == '0' or community.community_id.hide_community == '1' or community.community_id.hide_community == '4':
             if community.state == 1 or community.state == 2 or community.state == 4 or community.state == 7:
-                count +=1
-    fail_silently=True
+                count += 1
+    fail_silently = True
     if user.email:
         to = user.email
         subject = "Thanks for downloading LikeMinds App! Here's what to expect"
         if count == 0:
 
-            template = get_template("mails/welcome_mail_zero.html").render({"name":user.userinfo.name})
+            template = get_template("mails/welcome_mail_zero.html").render({"name": user.userinfo.name})
         else:
             if count == 1:
-                text = 'the '+member_communities_list[0].community_id.name+' community'
+                text = 'the ' + member_communities_list[0].community_id.name + ' community'
             if count > 1:
                 text = 'your existing communities'
 
-            template = get_template("mails/welcome_mail_non_zero.html").render({"name":user.userinfo.name,'url':url,'text':text})
-        # msg = EmailMultiAlternatives(subject,
-        #                              template,
-        #                              "Collabmates<hello@collabmates.com>",
-        #                              [to],
-        #                              )
-        # msg.attach_alternative(template, "text/html")
-        # return msg.send(fail_silently)
+            template = get_template("mails/welcome_mail_non_zero.html").render(
+                {"name": user.userinfo.name, 'url': url, 'text': text})
+
         to = [to]
         send_email(subject, template, to)
     else:
@@ -353,19 +358,18 @@ def send_welcome_mail(user_id):
 
 
 @shared_task
-def send_verification_mail_for_email_sync(user_name,verification_link,email):
-
+def send_verification_mail_for_email_sync(user_name, verification_link, email):
     '''function to send verification mail to user who wants email sync'''
 
     subject = user_name + ", verify your email"
     context = {
-                'user_name':user_name,
-                'verification_link':verification_link,
-                'android_app_download_link': android_app_download_link,
-                'ios_app_download_link': ios_app_download_link,
-                'linkedIn_link': linkedIn_link,
-                'angellist_link': angellist_link
-               }
+        'user_name': user_name,
+        'verification_link': verification_link,
+        'android_app_download_link': android_app_download_link,
+        'ios_app_download_link': ios_app_download_link,
+        'linkedIn_link': linkedIn_link,
+        'angellist_link': angellist_link
+    }
     template = get_template("mails/verify_email_template.html").render(context)
 
     setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
@@ -399,12 +403,12 @@ def send_chatroom_owner_mail(user_id, card_id, time_in_hrs):
     task_name = str(card_id) + '_send_chatroom_owner_mail'
     celerybeatask.terminate_task(task_name)
     task_path = 'collabmates_api.tasks.send_chatroom_owner_mail_scheduled'
-    args = [user_id, card_id, last_conversation_id,message_time]
+    args = [user_id, card_id, last_conversation_id, message_time]
 
-    date_time = time.time() + (time_in_hrs*60*60)
+    date_time = time.time() + (time_in_hrs * 60 * 60)
     # date_time = time.time() + 60
 
-    celerybeatask.create_dynamic_clery_task(args,kwargs,task_name,task_path,
+    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                             date_time=date_time, interval=False, crontab=True)
     # print('scheduled')
 
@@ -433,25 +437,28 @@ def send_chatroom_owner_mail_scheduled(user_id, card_id, last_conversation_id, m
                                                                                 'created_at__gte': message_time}).count()
 
             if number_of_messages == 1:
-                subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" message is waiting for you!"
+                subject = str(user_instance.userinfo.name) + ", " + str(
+                    number_of_messages) + " message is waiting for you!"
 
             else:
-                subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" messages are waiting for you!"
+                subject = str(user_instance.userinfo.name) + ", " + str(
+                    number_of_messages) + " messages are waiting for you!"
 
             email_context = {
-                    'subject': subject,
-                    'member_name': user_instance.userinfo.name,
-                    'community_name': card_instance.community.name,
-                    'card_name': get_title_from_collabcard(card_instance),
-                    'android_app_download_link': android_app_download_link,
-                    'ios_app_download_link': ios_app_download_link,
-                    'playstore_image': GOOGLE_PLAYSTORE,
-                    'applestore_image': APPLE_APPSTORE,
-                    'app_image': APP_LOGO,
-                    'cta_url': url + '/collabcard/' + str(card_id),
-                    'number_of_messages': number_of_messages,
-                    'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(user_id) + '&code=mail_send_chatroom_owner_mail' ,
-                }
+                'subject': subject,
+                'member_name': user_instance.userinfo.name,
+                'community_name': card_instance.community.name,
+                'card_name': get_title_from_collabcard(card_instance),
+                'android_app_download_link': android_app_download_link,
+                'ios_app_download_link': ios_app_download_link,
+                'playstore_image': GOOGLE_PLAYSTORE,
+                'applestore_image': APPLE_APPSTORE,
+                'app_image': APP_LOGO,
+                'cta_url': url + '/collabcard/' + str(card_id),
+                'number_of_messages': number_of_messages,
+                'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
+                    user_id) + '&code=mail_send_chatroom_owner_mail',
+            }
             template = get_template("mails/owner_inactive_email.html").render(email_context)
 
             to = [email]
@@ -466,14 +473,14 @@ def send_chatroom_owner_mail_scheduled(user_id, card_id, last_conversation_id, m
 
             send_email(subject, template, to, categories=categories)
 
-            flag = memberNotificationFlag.objects.get(member_id=user_id,code='mail_card_owner_inactivity',card=card_instance)
+            flag = memberNotificationFlag.objects.get(member_id=user_id, code='mail_card_owner_inactivity',
+                                                      card=card_instance)
             flag.flag = False
             flag.save()
 
 
 @shared_task
 def send_community_confirmation_email(user_id, community_id):
-
     user_instance = User.objects.get(pk=user_id)
     community_instance = Community.objects.get(id=community_id)
 
@@ -483,9 +490,9 @@ def send_community_confirmation_email(user_id, community_id):
         'mail_has_installed_app'
     ]
     if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
-        subject = user_instance.userinfo.name+', Congratulations, your request has been approved!'
+        subject = user_instance.userinfo.name + ', Congratulations, your request has been approved!'
         email_context = {
-            'subject': user_instance.userinfo.name+', Congratulations, your request has been approved!',
+            'subject': user_instance.userinfo.name + ', Congratulations, your request has been approved!',
             'member_name': user_instance.userinfo.name,
             'community_name': community_instance.name,
             'android_app_download_link': android_app_download_link,
@@ -505,17 +512,17 @@ def send_community_confirmation_email(user_id, community_id):
         send_email(subject, template, to)
         print(email_context)
         celerybeatask = CeleryBeatTask()
-        task_name = str(user_id)+"_"+str(community_id) + "_send_community_confirmation_email_2"
+        task_name = str(user_id) + "_" + str(community_id) + "_send_community_confirmation_email_2"
         celerybeatask.terminate_task(task_name)
-        args = [user_id, community_id,task_name]
+        args = [user_id, community_id, task_name]
         task_path = "collabmates_api.tasks.send_community_confirmation_email_2"
 
         # date_time = time.time() + 80
-        date_time = time.time() + (3*24*60*60)
+        date_time = time.time() + (3 * 24 * 60 * 60)
 
         kwargs = {}
-        celerybeatask.create_dynamic_clery_task(args,kwargs, task_name,task_path,
-                                                  date_time=date_time, interval=False, crontab=True)
+        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                date_time=date_time, interval=False, crontab=True)
 
 
 @app.task
@@ -533,7 +540,7 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
     if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
         subject = "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬'
         email_context = {
-            'subject': "Hey " + user_instance.userinfo.name+', you are missing the real action!😬',
+            'subject': "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬',
             'member_name': user_instance.userinfo.name,
             'community_name': community_instance.name,
             'android_app_download_link': android_app_download_link,
@@ -608,7 +615,6 @@ def send_poll_results_announcement_mail(card_id, task_name):
             multi_select_text = f"(Select atleast {multiple_select_no} options)"
         elif multiple_select_state == multi_select_poll_states.AT_MAX:
             multi_select_text = f"(Select at most {multiple_select_no} options)"
-
 
     polls_list = []
     for poll in card_polls:
@@ -693,16 +699,17 @@ def update_pending_chatroom_count_for_promoters(community_id):
         community = community_id
     user_list = get_users_with_right(community, manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
 
-    pending_chatrooms = Collabcard.objects\
-        .filter(community=community_id, is_pending=True, is_deleted=False)\
-        .filter(Q(attachment_count=0) | Q(attachments_uploaded=True))\
+    pending_chatrooms = Collabcard.objects \
+        .filter(community=community_id, is_pending=True, is_deleted=False) \
+        .filter(Q(attachment_count=0) | Q(attachments_uploaded=True)) \
         .count()
 
     Member_Engage.objects.filter(member_id__in=user_list,
                                  community_id=community).update(pending_chatrooms=pending_chatrooms,
                                                                 updated_at=time.time())
 
-    member_state_list = [member_states.MEMBER, member_states.KNOWN_NOMINATED_PROMOTER, member_states.PROFILE_UNAVAILABLE]
+    member_state_list = [member_states.MEMBER, member_states.KNOWN_NOMINATED_PROMOTER,
+                         member_states.PROFILE_UNAVAILABLE]
     Member_Engage.objects.filter(community_id=community,
                                  member_state__in=member_state_list).update(pending_chatrooms=0,
                                                                             open_reports=0,
@@ -741,7 +748,6 @@ def update_report_count_for_all_promoters(community_id=None, report_id=None):
 
 
 def update_report_count_in_member_engage(user, community, is_owner=False, parent_cm_list=None):
-
     if parent_cm_list is None:
         parent_cm_list = []
 
@@ -773,7 +779,6 @@ def task_to_send_intro_notifications():
 
 
 def send_cm_onboarding_getting_started_email():
-
     cm_onboarding_user_email_status_filter = ModelUtilities.get_model_filter(UserEmailsSendStatus,
                                                                              {'is_completed': False,
                                                                               'status_type':
@@ -808,9 +813,79 @@ def send_cm_onboarding_getting_started_email():
     return
 
 
+@shared_task
+def send_mail_for_join_form_not_setup_to_cm(community_id):
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+    if not community_instance:
+        return
+
+    community_owner = Members.get_community_owner_user_instance_or_none(community_instance)
+
+    if not community_owner:
+        return
+
+    mail_subject = CM_ONBOARDING_JOIN_FORM_NOT_SETUP_MAIL_SUBJECT.format(community_instance.name)
+
+    mail_template = get_template('mails/cm_onboarding/join_form_guide_mail_cm_onboarding.html').render({
+        "community_logo": community_instance.image_link,
+        "cm_name": community_owner.userinfo.name,
+        "community_brand_color": community_instance.brand_color if community_instance.brand_color
+        else DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+        "button_link": CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_LINK,
+        "button_text": CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_TEXT
+    })
+
+    send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
+                                                       [community_owner.userinfo.email],
+                                                       reply_to=[MEMBER_REPLY_EMAIL])
+
+    UserEmailsSendStatus.create_instance({'user': community_owner,
+                                          'community': community_instance,
+                                          'status_type': user_email_send_status_types.JOIN_FORM_EMAIL,
+                                          'is_completed': True})
+
+
+@shared_task
+def send_cm_onboarding_join_form_not_setup_mail():
+    # Get communities which are created 5 days or more ago
+    min_epoch_time = TimeUtilities.subtract_hours_from_epoch_time(TimeUtilities.current_time_in_sec(),
+                                                                  FIVE_DAYS_IN_HOURS)
+
+    communities_filter = list(ModelUtilities.get_model_filter(Community,
+                                                              {'created_at__lte': min_epoch_time}).
+                              values_list('id', flat=True))
+
+    if not communities_filter:
+        return
+
+    join_form_filter = list(ModelUtilities.get_model_filter(CommunityGetStarted,
+                                                            {'completed': False,
+                                                             'community__in': communities_filter,
+                                                             'get_started__type':
+                                                                 get_started_types.CUSTOMISE_JOIN_FORM}).
+                            values_list('community_id', flat=True))
+
+    if not len(join_form_filter):
+        return
+
+    user_email_send_status_filter = list(ModelUtilities.get_model_filter(UserEmailsSendStatus,
+                                                                         {'status_type':
+                                                                              user_email_send_status_types.JOIN_FORM_EMAIL,
+                                                                          'community__in': join_form_filter,
+                                                                          'is_completed': True}).
+                                         values_list('community_id', flat=True))
+
+    communities_left = set(join_form_filter) - set(user_email_send_status_filter)
+
+    for community_id in list(communities_left):
+        send_mail_for_join_form_not_setup_to_cm.delay(community_id)
+
+
 @app.task
 def send_daily_emails():
     send_cm_onboarding_getting_started_email()
+    send_cm_onboarding_join_form_not_setup_mail()
 
 
 def cm_onboarding_version_check(platform_code, version_code):
