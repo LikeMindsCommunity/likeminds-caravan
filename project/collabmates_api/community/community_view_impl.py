@@ -113,7 +113,7 @@ class FetchChatroomFeed(APIView):
 
         try:
             community_manager = CommunityImpl(member_id, community_id, version_code=version_code,
-                                            request_platform=platform_code)
+                                              request_platform=platform_code)
             response_context = community_manager.fetch_chatroom_feed(size)
 
         except Exception as e:
@@ -507,7 +507,6 @@ class JoinEmailFetchView(APIView):
 class CommunityViewsHelper:
 
     def request_validator(request, community_id, member_id) -> {}:
-
         request_status = {
             'status': True
         }
@@ -547,17 +546,17 @@ class FetchCommunityMeta(APIView):
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
-            
+
             else:
                 return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
-        
+
         except Exception as e:
-            res = { 
+            res = {
                 'success': False,
                 'Exception': str(e)
             }
             error_logger.error(e.args)
-            
+
             return JsonResponse(res, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -587,12 +586,15 @@ class SendInviteView(APIView):
     def post(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
+        platform_code = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not member_id:
             return JsonResponse({'success': False, 'error_message': 'Send member_id'},
                                 status=status_codes.HTTP_200_OK)
 
-        community_manager = CommunityImpl(member_id=member_id)
+        community_manager = CommunityImpl(member_id=member_id, request_platform=platform_code,
+                                          version_code=version_code)
 
         res = community_manager.send_invite(req_body)
 

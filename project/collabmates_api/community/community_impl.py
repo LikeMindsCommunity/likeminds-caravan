@@ -1302,7 +1302,8 @@ class CommunityImpl(CommunityManager):
 
         self.set_community_id(community_instance.id)
 
-        share_context = get_branch_links_for_community_share_v1(user_instance, community_instance)
+        share_context = get_branch_links_for_community_share_v1(user_instance, community_instance,
+                                                                self.get_request_platform(), self.get_version_code())
 
         community_share = {}
 
