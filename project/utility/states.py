@@ -486,6 +486,8 @@ class UserEmailSendStatusTypes:
     CM_ONBOARDING = 1
     TAGGED_CHATROOM_NOT_OPENED = 2
     DM_CHATROOM_NOT_OPENED = 3
+    COMMUNITY_MODERATION_EMAIL = 4
+    JOIN_FORM_EMAIL = 5
 
 
 user_email_send_status_types = UserEmailSendStatusTypes()

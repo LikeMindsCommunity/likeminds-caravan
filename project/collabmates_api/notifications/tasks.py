@@ -1,8 +1,14 @@
+from logging import error
+import os
 from celery.app import shared_task
 from celery.result import AsyncResult
 
+import sendgrid
+from sendgrid.helpers.mail import *
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from rest_framework import status as status_codes
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.time_utilities import TimeUtilities
@@ -10,7 +16,7 @@ from utility.time_utilities import TimeUtilities
 from project.celery import app
 from .constants import COMM_TYPE, EVENT_COMM_FREQUENCY, EVENT_TYPE, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN, \
         WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION, \
-        WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL
+        WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL, SENDER_NAME_FOR_EMAIL_COMMS
 from .tasks_impl import TasksImpl, TasksHelper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from collabmates_api.notification import notification_meta
@@ -397,8 +403,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
         if send_allowed and not is_task_deleted:
             send_email_with_custom_from_email(context['subject'], context['template'], context['from_email'],\
-                                            context['to_mails_list'], context['bcc_mails_list'], \
-                                            categories=context.get('categories'), reply_to=context['reply_to'])
+                                            context['to_mails_list'], reply_to=context['reply_to'], \
+                                            from_name=context['from_name'])
 
         else:
             info_logger.info("No email notification scheuduled for event_type = %s | chatroom_deleted = %s | \
@@ -411,23 +417,37 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
 
 @shared_task
-def send_email_with_custom_from_email(subject, template, from_email, to_mails_list, bcc_mails_list, \
-                                    categories=None, reply_to=None):
+def send_email_with_custom_from_email(subject, template, from_email, to_mails_list, reply_to=None, \
+                                    from_name=SENDER_NAME_FOR_EMAIL_COMMS):
 
-    fail_silently = False
-    msg = EmailMultiAlternatives(subject=subject,
-                                 body=template,
-                                 from_email=from_email,
-                                 to=to_mails_list,
-                                 bcc=bcc_mails_list,
-                                 reply_to=reply_to,
-                                )
-    msg.attach_alternative(template, "text/html")
+    mail = Mail()
 
-    if categories is not None:
-        msg.categories = categories
+    for to_email in to_mails_list:
+        personalization = Personalization()
+        personalization.add_to(Email(to_email))
+        mail.add_personalization(personalization)
 
-    msg.send(fail_silently)
+    mail.from_email = Email(name=from_name, email=from_email)
+
+    mail.subject = subject
+
+    if reply_to:
+        mail.reply_to = Email(email=reply_to)
+
+    mail.add_content(Content('text/html', template))
+
+    sg_instance = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
+
+    try:
+        response = sg_instance.client.mail.send.post(request_body=mail.get())
+
+        if response.status_code == status_codes.HTTP_202_ACCEPTED:
+            info_logger.info('mail successfully sent | subject = %s ' % subject)
+            info_logger.info('headers = %s' % response.headers)
+
+    except Exception as e:
+        error_logger.error(e.args)
+
     return
 
 
@@ -535,8 +555,7 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
 
         if context:
             send_email_with_custom_from_email(context['subject'], context['template'], context['from_email'],
-                                              context['to_mails_list'], context['bcc_mails_list'],
-                                              categories=context.get('categories'), reply_to=context['reply_to'])
+                                              context['to_mails_list'], reply_to=context['reply_to'])
 
             TasksHelper.update_user_email_send_status(receiver_id, chatroom_id, chatroom_not_opened_type)
 

@@ -3668,7 +3668,7 @@ class ChatroomHelper:
             branch_link = create_community_feed_url_for_cm_onboarding(card_instance.community)
 
             mail_template = get_template('mails/cm_onboarding/first_event_creation_cm_onboarding.html').render({
-                "community_logo": card_instance.community.image_url,
+                "community_logo": card_instance.community.image_link,
                 "community_name": card_instance.community.name,
                 "cm_name": card_instance.user.userinfo.name,
                 "community_brand_color": card_instance.community.brand_color if card_instance.community.brand_color

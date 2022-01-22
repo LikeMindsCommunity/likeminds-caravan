@@ -13,7 +13,7 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
     set_community_actions, add_community_settings_for_community, create_introduction_question_in_community_v2, \
     post_purpose_collabcard_for_community, post_master_introductions_for_community, post_member_directory_link, \
-    post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share, \
+    post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share_v1, \
     fill_share_context_for_paid_community, fill_share_context_for_unpaid_community, \
     check_join_community_hood_get_started, add_community_upload_image_analytics, \
     create_introduction_question_in_community
@@ -50,7 +50,7 @@ from collabmates_api.cohort.cohort_impl import CohortHelper, CohortImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
-    SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types
+    SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, email_states
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.states import (mobile_states)
@@ -61,7 +61,7 @@ from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..mails import send_8am_level_mails_to_admin_scheduler
 from ..search.sync import ElasticSearchSync
 
-from ..tasks import send_community_confirmation_email, cm_onboarding_version_check
+from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified
 from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check
 
@@ -780,6 +780,8 @@ class CommunityImpl(CommunityManager):
 
             update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
+            CommunityHelper.send_community_moderation_mail_to_cm.delay(community_instance.id)
+
         return {'success': True, 'access': user_has_access}
 
     def fetch_members_meta(self, community_id):
@@ -1300,8 +1302,7 @@ class CommunityImpl(CommunityManager):
 
         self.set_community_id(community_instance.id)
 
-        share_context = get_branch_links_for_community_share(user_instance, community_instance,
-                                                             self.get_request_platform(), self.get_version_code())
+        share_context = get_branch_links_for_community_share_v1(user_instance, community_instance)
 
         community_share = {}
 
@@ -2165,7 +2166,7 @@ class CommunityHelper:
     @staticmethod
     def get_mail_body_for_community_creation_get_started(user_instance, community_instance, branch_link=''):
         mail_template = get_template('mails/cm_onboarding/getting_started_cm_onboarding.html').render({
-            "community_logo": community_instance.image_url,
+            "community_logo": community_instance.image_link,
             "community_name": community_instance.name,
             "cm_name": user_instance.userinfo.name,
             "dashboard_link": CM_ONBOARDING_CREATE_COMMUNITY_DASHBOARD_LINK,
@@ -2404,3 +2405,60 @@ class CommunityHelper:
 
         if len(member_filter):
             update_community_get_started(community_instance, get_started_types.JOIN_COMMUNITY_HOOD, is_enabled=True)
+
+    @staticmethod
+    @shared_task
+    def send_community_moderation_mail_to_cm(community_id):
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return
+
+        members_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance})
+
+        if members_filter.count() < CM_ONBOARDING_COMMUNITY_MODERATION_MIN_MEMBERS_COUNT:
+            return
+
+        community_owner_filter = members_filter.filter(is_owner=True)
+
+        if not community_owner_filter:
+            return
+
+        community_owner = community_owner_filter[0]
+
+        # CommunityOwner email
+        community_owner_email = get_user_email_preferred_verified(community_owner.member_id)
+
+        if not community_owner_email:
+            return
+
+        # Check if mail already sent
+        user_email_filter = ModelUtilities.get_model_filter(UserEmailsSendStatus,
+                                                            {'user': community_owner.member_id,
+                                                             'community': community_instance,
+                                                             'status_type': user_email_send_status_types.COMMUNITY_MODERATION_EMAIL,
+                                                             'is_completed': True})
+
+        if user_email_filter:
+            return
+
+        mail_subject = CM_ONBOARDING_COMMUNITY_MODERATION_MAIL_SUBJECT
+
+        mail_template = get_template('mails/cm_onboarding/community_moderation_mail_cm_onboarding.html').render({
+            "community_logo": community_instance.image_link,
+            "cm_name": community_owner.member_id.userinfo.name,
+            "community_brand_color": community_instance.brand_color if community_instance.brand_color
+            else DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+            "button_link": CM_ONBOARDING_COMMUNITY_MODERATION_BUTTON_LINK,
+            "button_text": CM_ONBOARDING_COMMUNITY_MODERATION_BUTTON_TEXT
+        })
+
+        send_email_response = MailWrapper.send_email(mail_subject, mail_template,
+                                                     [community_owner_email],
+                                                     reply_to=[MEMBER_REPLY_EMAIL])
+
+        if send_email_response:
+            UserEmailsSendStatus.create_instance({'user': community_owner.member_id,
+                                                  'community': community_instance,
+                                                  'status_type': user_email_send_status_types.COMMUNITY_MODERATION_EMAIL,
+                                                  'is_completed': True})
