@@ -3934,7 +3934,7 @@ def get_branch_links_for_community_share(user_instance, community_instance):
     return share_context
 
 
-def get_branch_links_for_community_share_v2(user_instance, community_instance):
+def get_branch_links_for_community_share_v1(user_instance, community_instance):
     is_promoter = False
     is_owner = False
     is_member = False
@@ -4149,7 +4149,7 @@ def fetch_share_url(request):
         community_share = {}
 
         if is_cm_onboarding_enabled:
-            share_context = get_branch_links_for_community_share_v2(user_instance, community_instance)
+            share_context = get_branch_links_for_community_share_v1(user_instance, community_instance)
 
             if community_instance.is_paid:
                 fill_share_context_for_paid_community_v2(community_instance, share_context, community_share)
