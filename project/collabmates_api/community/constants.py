@@ -96,7 +96,7 @@ DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"
 GETTING_STARTED_CM_MAIL_SUBJECT = "Hi {}! Here is what to do next at LikeMinds"
 GETTING_STARTED_CM_BUTTON_TEXT = "GET STARTED"
 
-JOIN_LMCM_COMMUNITY_LINK = "https://collabmates.app.link/bQ7qwsrOzlb"
+JOIN_LMCM_COMMUNITY_LINK = "https://collabmates.app.link/DnKPs8Ld1mb"
 CM_ONBOARDING_CREATE_COMMUNITY_DASHBOARD_LINK = ""
 CREATE_EVENT_DASHBOARD_LINK = web_url + "/dashboard/{}/events"
 

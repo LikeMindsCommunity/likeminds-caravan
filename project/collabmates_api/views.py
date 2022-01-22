@@ -3934,6 +3934,50 @@ def get_branch_links_for_community_share(user_instance, community_instance):
     return share_context
 
 
+def get_branch_links_for_community_share_v1(user_instance, community_instance):
+    is_promoter = False
+    is_owner = False
+    is_member = False
+    member_filter = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+
+    user_has_approve_right = False
+    member_invite_private_right = False
+    community_id = community_instance.id
+    member_id = user_instance.id
+    aj = community_id
+
+    if member_filter:
+        member_instance = member_filter[0]
+
+        if member_instance.state == member_states.ADMIN:
+            is_promoter = True
+
+        if member_instance.state in [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
+            is_member = True
+
+        is_owner = member_instance.is_owner
+
+        if is_promoter or is_owner:
+            user_has_approve_right = check_admin_approve_right(user_instance, community_instance)
+
+        aj = generate_private_link(community_instance=community_instance,
+                                   promoter_instance=user_instance,
+                                   just_send_aj=True)
+        branch_links = create_community_branch_links(community_id, member_id, aj)
+
+    else:
+        branch_links = create_community_branch_links(community_id, member_id)
+
+    share_context = {
+        'branch_links': branch_links,
+        'is_owner': is_owner,
+        'is_promoter': is_promoter,
+        'user_has_approve_right': user_has_approve_right,
+        'aj': aj
+    }
+    return share_context
+
+
 def fill_share_context_for_paid_community_v2(community_instance, share_context, community_share):
     branch_links = share_context['branch_links']
     aj = share_context['aj']
@@ -4102,10 +4146,10 @@ def fetch_share_url(request):
             return JsonResponse({'success': False,
                                  'error_message': "Invalid community id"}, status=status_codes.HTTP_400_BAD_REQUEST)
 
-        share_context = get_branch_links_for_community_share(user_instance, community_instance)
         community_share = {}
 
         if is_cm_onboarding_enabled:
+            share_context = get_branch_links_for_community_share_v1(user_instance, community_instance)
 
             if community_instance.is_paid:
                 fill_share_context_for_paid_community_v2(community_instance, share_context, community_share)
@@ -4114,6 +4158,8 @@ def fetch_share_url(request):
                 fill_share_context_for_unpaid_community_v2(community_instance, share_context, community_share)
 
         else:
+            share_context = get_branch_links_for_community_share(user_instance, community_instance)
+
             if community_instance.is_paid:
                 fill_share_context_for_paid_community(community_instance, share_context, community_share)
 
