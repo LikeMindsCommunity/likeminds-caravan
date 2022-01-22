@@ -13,6 +13,7 @@ from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL, COMMUNITY_HOOD_ID,
                                COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE)
 from utility.api_client import ApiClient
+from .utility import free_link_and_freemium_community_version_check
 
 info_logger = LoggingWrapper.get_instance()
 
@@ -28,7 +29,7 @@ web_host_url = strip_scheme(settings.WEB_URL)
 api_endpoint = BRANCH_QUICKLINK_URI % settings.BRANCH_KEY
 
 
-def create_community_branch_links(community_id, member_id, aj=None):
+def create_community_branch_links(community_id, member_id, platform_code, version_code=None, aj=None):
     """
     This will return 2 links in case of member and 3 in case of a owner or promoter
     For public
@@ -50,11 +51,19 @@ def create_community_branch_links(community_id, member_id, aj=None):
 
     base_url = f'{host_url}/community/{community_instance.id}'
 
+    is_free_trial = False
+
+    if free_link_and_freemium_community_version_check(platform_code, version_code) and community_instance.is_paid:
+        is_free_trial = True
+
+    if is_free_trial:
+        base_url = f'{host_url}/renewal/{community_instance.id}'
+
     # create public url
     if member_id:
         public_url = base_url + f'?shared_by={member_id}'
 
-        if community_instance.is_paid and community_instance.website_url:
+        if (not is_free_trial) and community_instance.is_paid and community_instance.website_url:
             website_url = strip_scheme(community_instance.website_url)
             public_url = website_url + f'?shared_by={member_id}'
 
@@ -67,13 +76,17 @@ def create_community_branch_links(community_id, member_id, aj=None):
     if aj:
         # if the user is owner or promoter
         # create private link
-        if member_id:
+        if is_free_trial and member_id:
+            private_url = base_url + f'?shared_by={member_id}&free=true'
+
+        elif member_id:
             private_url = base_url + f'?shared_by={member_id}&aj={aj}'
 
         else:
             private_url = base_url + f'?aj={aj}'
 
-        long_url_item = create_link_item(private_url, community_instance, "AppBackend", "CommunityPrivate", private=True)
+        long_url_item = create_link_item(private_url, community_instance, "AppBackend", "CommunityPrivate",
+                                         private=True)
         data.append(long_url_item)
 
         directory_url = base_url + f'?aj={aj}&source=members_directory'
@@ -81,7 +94,8 @@ def create_community_branch_links(community_id, member_id, aj=None):
         if member_id:
             directory_url += f'&shared_by={member_id}'
 
-        long_url_item = create_link_item(directory_url, community_instance, "AppBackend", DIRECTORY_FEATURE, private=True)
+        long_url_item = create_link_item(directory_url, community_instance, "AppBackend", DIRECTORY_FEATURE,
+                                         private=True)
         data.append(long_url_item)
 
     else:
@@ -100,7 +114,8 @@ def create_community_branch_links(community_id, member_id, aj=None):
         if member_id:
             private_expired_link += f'&shared_by={member_id}'
 
-        long_url_item = create_link_item(private_expired_link, community_instance, "AppBackend", "Web download button", private=True)
+        long_url_item = create_link_item(private_expired_link, community_instance, "AppBackend", "Web download button",
+                                         private=True)
         data.append(long_url_item)
 
     # API request
@@ -123,13 +138,19 @@ def create_community_branch_links(community_id, member_id, aj=None):
     if 'url' not in data[1]:
         data[1]['url'] = base_url + f'?shared_by={member_id}'
 
-        if aj:
+        if is_free_trial:
+            data[1]['url'] += f'&free=true'
+
+        elif aj:
             data[1]['url'] += f'&aj={aj}'
 
     if 'url' not in data[2]:
         data[2]['url'] = base_url + f'?shared_by={member_id}&source=members_directory'
 
-        if aj:
+        if is_free_trial:
+            data[1]['url'] += f'&free=true'
+
+        elif aj:
             data[2]['url'] += f'&aj={aj}'
 
     return data
@@ -207,7 +228,6 @@ def create_link_item(base_url, community, channel, feature, private=False):
 
 
 def create_community_feed_url(community_instance):
-
     data = []
 
     feed_url = f'{host_url}/community_feed?community_id={community_instance.id}'
@@ -234,7 +254,6 @@ def create_community_feed_url(community_instance):
 
 
 def create_community_feed_url_for_cm_onboarding(community_instance):
-
     data = []
 
     feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(host_url, community_instance.id, community_instance.name)
@@ -263,7 +282,6 @@ def create_community_feed_url_for_cm_onboarding(community_instance):
 
 
 def create_community_otl_url(community_instance, payment_id, shared_by=None):
-
     data = []
 
     base_url = f'{host_url}/community/{community_instance.id}'
@@ -274,7 +292,8 @@ def create_community_otl_url(community_instance, payment_id, shared_by=None):
     else:
         private_url = base_url + f'?payment_id={payment_id}'
 
-    long_url_item = create_link_item(private_url, community_instance, "AppBackend", BRANCH_FEATURE_COMMUNITY_OTL_URL, private=True)
+    long_url_item = create_link_item(private_url, community_instance, "AppBackend", BRANCH_FEATURE_COMMUNITY_OTL_URL,
+                                     private=True)
     data.append(long_url_item)
 
     client = ApiClient()
@@ -296,7 +315,6 @@ def create_community_otl_url(community_instance, payment_id, shared_by=None):
 
 
 def create_payment_page_url(community_instance, payment_id):
-
     data = []
 
     base_url = f'{web_host_url}/payment_page'

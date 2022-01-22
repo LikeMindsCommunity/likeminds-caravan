@@ -4164,7 +4164,8 @@ def fetch_share_url(request):
                 fill_share_context_for_unpaid_community_v2(community_instance, share_context, community_share)
 
         else:
-            share_context = get_branch_links_for_community_share(user_instance, community_instance)
+            share_context = get_branch_links_for_community_share(user_instance, community_instance, platform_code,
+                                                                 version_code)
 
             if community_instance.is_paid:
                 fill_share_context_for_paid_community(community_instance, share_context, community_share)
