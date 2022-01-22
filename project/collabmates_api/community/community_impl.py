@@ -13,7 +13,7 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
     set_community_actions, add_community_settings_for_community, create_introduction_question_in_community_v2, \
     post_purpose_collabcard_for_community, post_master_introductions_for_community, post_member_directory_link, \
-    post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share_v2, \
+    post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share_v1, \
     fill_share_context_for_paid_community, fill_share_context_for_unpaid_community, \
     check_join_community_hood_get_started, add_community_upload_image_analytics, \
     create_introduction_question_in_community
@@ -1296,7 +1296,7 @@ class CommunityImpl(CommunityManager):
 
         self.set_community_id(community_instance.id)
 
-        share_context = get_branch_links_for_community_share_v2(user_instance, community_instance)
+        share_context = get_branch_links_for_community_share_v1(user_instance, community_instance)
         community_share = {}
 
         if community_instance.is_paid:
