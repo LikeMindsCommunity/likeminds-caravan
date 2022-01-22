@@ -17,7 +17,7 @@ from utility.utils import (android_app_download_link, ios_app_download_link,
 from utility.states import (collabcard_states, member_states, community_states,
                             card_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states,
-                            user_email_send_status_types, get_started_types)
+                            user_email_send_status_types, get_started_types, email_states)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
@@ -813,6 +813,25 @@ def send_cm_onboarding_getting_started_email():
     return
 
 
+def get_user_email_preferred_verified(user_id):
+    user_email_filter = ModelUtilities.get_model_filter(userEmails, {'user': user_id})
+
+    if not user_email_filter:
+        return
+
+    verified_email = user_email_filter.filter(email_state=email_states.PRIMARY)
+
+    if verified_email and verified_email[0].email:
+        return verified_email[0].email
+
+    for email in user_email_filter:
+
+        if email.email:
+            return email.email
+
+    return
+
+
 @shared_task
 def send_mail_for_join_form_not_setup_to_cm(community_id):
     community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
@@ -823,6 +842,11 @@ def send_mail_for_join_form_not_setup_to_cm(community_id):
     community_owner = Members.get_community_owner_user_instance_or_none(community_instance)
 
     if not community_owner:
+        return
+
+    community_owner_email = get_user_email_preferred_verified(community_owner.member_id)
+
+    if not community_owner_email:
         return
 
     mail_subject = CM_ONBOARDING_JOIN_FORM_NOT_SETUP_MAIL_SUBJECT.format(community_instance.name)
@@ -837,7 +861,7 @@ def send_mail_for_join_form_not_setup_to_cm(community_id):
     })
 
     send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
-                                                       [community_owner.userinfo.email],
+                                                       [community_owner_email],
                                                        reply_to=[MEMBER_REPLY_EMAIL])
 
     UserEmailsSendStatus.create_instance({'user': community_owner,

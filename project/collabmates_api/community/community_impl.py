@@ -50,7 +50,7 @@ from collabmates_api.cohort.cohort_impl import CohortHelper, CohortImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
-    SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types
+    SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, email_states
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.states import (mobile_states)
@@ -61,7 +61,7 @@ from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..mails import send_8am_level_mails_to_admin_scheduler
 from ..search.sync import ElasticSearchSync
 
-from ..tasks import send_community_confirmation_email, cm_onboarding_version_check
+from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified
 from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check
 
@@ -2421,6 +2421,12 @@ class CommunityHelper:
 
         community_owner = community_owner_filter[0]
 
+        # CommunityOwner email
+        community_owner_email = get_user_email_preferred_verified(community_owner.member_id)
+
+        if not community_owner_email:
+            return
+
         # Check if mail already sent
         user_email_filter = ModelUtilities.get_model_filter(UserEmailsSendStatus,
                                                             {'user': community_owner.member_id,
@@ -2442,11 +2448,12 @@ class CommunityHelper:
             "button_text": CM_ONBOARDING_COMMUNITY_MODERATION_BUTTON_TEXT
         })
 
-        send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
-                                                           [community_owner.member_id.userinfo.email],
-                                                           reply_to=[MEMBER_REPLY_EMAIL])
+        send_email_response = MailWrapper.send_email(mail_subject, mail_template,
+                                                     [community_owner_email],
+                                                     reply_to=[MEMBER_REPLY_EMAIL])
 
-        UserEmailsSendStatus.create_instance({'user': community_owner.member_id,
-                                              'community': community_instance,
-                                              'status_type': user_email_send_status_types.COMMUNITY_MODERATION_EMAIL,
-                                              'is_completed': True})
+        if send_email_response:
+            UserEmailsSendStatus.create_instance({'user': community_owner.member_id,
+                                                  'community': community_instance,
+                                                  'status_type': user_email_send_status_types.COMMUNITY_MODERATION_EMAIL,
+                                                  'is_completed': True})
