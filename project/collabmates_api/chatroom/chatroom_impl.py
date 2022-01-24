@@ -2900,6 +2900,7 @@ class ChatroomHelper:
     @staticmethod
     def fetch_serialized_chatroom_for_local_db_sycing(member_id, chatroom_instance):
         member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_instance.id)
         chatroom_obj = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
 
         return chatroom_obj.data
