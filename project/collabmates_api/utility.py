@@ -127,13 +127,7 @@ def free_link_and_freemium_community_version_check(platform_code: str, version_c
     if not platform_code or platform_code.lower() not in LM_PLATFORM_CODES:
         return False
 
-    elif platform_code == "an" and version_code >= FREE_LINK_VERSION_CODE[platform_code]:
-        return True
-
-    elif platform_code == "ios" and version_code >= FREE_LINK_VERSION_CODE[platform_code]:
-        return True
-
-    elif platform_code == "web" and version_code >= FREE_LINK_VERSION_CODE[platform_code]:
+    if platform_code in FREE_LINK_VERSION_CODE.keys() and version_code >= FREE_LINK_VERSION_CODE[platform_code]:
         return True
 
     return False
