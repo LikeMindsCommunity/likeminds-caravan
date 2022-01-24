@@ -147,7 +147,9 @@ class ChatroomImpl(ChatroomManager):
 
     def _make_user_chatroom_guest(self, card_instance):
         guest_context = adding_guest_in_chatroom({}, card_instance, self.get_aj(), self.get_source_id(),
-                                                 card_instance.community.id, current_user_id=self.get_member_id())
+                                                 card_instance.community.id, current_user_id=self.get_member_id(),
+                                                 version_code=self.get_version_code(),
+                                                 platform_code=self.get_request_platform())
         return guest_context
 
     def _fetch_chatroom_internal_link(self, card_instance):
@@ -647,7 +649,7 @@ class ChatroomImpl(ChatroomManager):
         update_context['online_link_password'] = req_body.get('online_link_password',
                                                               card_instance.online_link_password)
         update_context['online_link_type'] = req_body.get('online_link_type',
-                                                              card_instance.online_link_type)
+                                                          card_instance.online_link_type)
         update_context['location'] = req_body.get('location', card_instance.location)
         update_context['location_lat'] = req_body.get('location_lat', card_instance.location_lat)
         update_context['location_long'] = req_body.get('location_long', card_instance.location_long)
@@ -768,7 +770,8 @@ class ChatroomImpl(ChatroomManager):
         else:
             community_manager_filter = ModelUtilities.get_model_filter(Members, {'state': member_states.ADMIN,
                                                                                  'member_id_id': user_instance.id,
-                                                                                 'community_id_id': filter_dict.get('community')})
+                                                                                 'community_id_id': filter_dict.get(
+                                                                                     'community')})
             if not community_manager_filter:
                 return collabcardState.objects.none()
 
@@ -2863,10 +2866,12 @@ class ChatroomHelper:
         return User.get_user_or_none(member_id)
 
     @staticmethod
-    def fetch_serialized_community(card_instance: object, user_instance: object, current_user_id: str = None):
+    def fetch_serialized_community(card_instance: object, user_instance: object, current_user_id: str = None,
+                                   platform_code: str = None, version_code: int = 0):
 
         context = CommunitySerializer(card_instance.community, current_user_id=current_user_id,
-                                      current_user_instance=user_instance)
+                                      current_user_instance=user_instance, platform_code=platform_code,
+                                      version_code=version_code)
         return context
 
     @staticmethod
@@ -3882,7 +3887,7 @@ class ChatroomHelper:
     @staticmethod
     def get_create_dict_for_creating_url_instance_for_event(req_body, recording_url_og_tags):
         update_dict = {
-            'recording_url_og_tags' : json.dumps(recording_url_og_tags),
+            'recording_url_og_tags': json.dumps(recording_url_og_tags),
             'is_recording': req_body.get('is_recording', False),
             'about_recording': req_body.get('about_recording'),
         }

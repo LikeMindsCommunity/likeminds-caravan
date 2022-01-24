@@ -160,26 +160,26 @@ class CommunityImpl(CommunityManager):
 
             if not intro_room_settings_enabled:
                 return Collabcard.objects.filter(community=self.get_community_id(),
-                                                is_pending=False,
-                                                is_deleted=False,
-                                                is_private=False,
-                                                is_secret=False).filter(
+                                                 is_pending=False,
+                                                 is_deleted=False,
+                                                 is_private=False,
+                                                 is_secret=False).filter(
                     ~Q(type__in=[card_types.CARD_INTRO, card_types.CARD_MASTER_INTRO])).order_by('-id')
 
             else:
                 return Collabcard.objects.filter(community=self.get_community_id(),
-                                                is_pending=False,
-                                                is_deleted=False,
-                                                is_private=False,
-                                                is_secret=False).filter(
+                                                 is_pending=False,
+                                                 is_deleted=False,
+                                                 is_private=False,
+                                                 is_secret=False).filter(
                     ~Q(~Q(user_id=self.get_member_id()) & Q(type=card_types.CARD_INTRO))).order_by('-id')
 
         else:
             return Collabcard.objects.filter(community=self.get_community_id(),
-                                            is_pending=False,
-                                            is_deleted=False,
-                                            is_private=False,
-                                            is_secret=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
+                                             is_pending=False,
+                                             is_deleted=False,
+                                             is_private=False,
+                                             is_secret=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
 
     def _compute_chatroom_creator_list(self, queryset):
 
@@ -322,8 +322,8 @@ class CommunityImpl(CommunityManager):
             intro_room_setting_enabled = True
 
         community_chatroom_queryset = self._fetch_queryset_of_community_chatrooms(intro_room_setting_enabled,
-                                                                                self.get_version_code(),
-                                                                                self.get_request_platform())
+                                                                                  self.get_version_code(),
+                                                                                  self.get_request_platform())
 
         response_context = dict()
         response_context['total_chatrooms'] = community_chatroom_queryset.count()
@@ -660,7 +660,8 @@ class CommunityImpl(CommunityManager):
             )
 
             if member_cohort_response.get('error_message'):
-                info_logger.info(f'Unable to add member to respective subscription plan cohort: {member_cohort_response}')
+                info_logger.info(
+                    f'Unable to add member to respective subscription plan cohort: {member_cohort_response}')
 
             CohortHelper.add_member_to_respective_question_based_cohorts(member_id=user_instance.id,
                                                                          community_id=community_instance.id)
@@ -671,7 +672,7 @@ class CommunityImpl(CommunityManager):
             self.set_members_count_in_community(community_instance.id, members_count)
 
             CommunityHelper.run_async_task_for_community_declined(community_instance, user_instance,
-                                                               promoter_userinfo_instance)
+                                                                  promoter_userinfo_instance)
 
             ElasticSearchSync.delete_member_from_community.delay(self.get_member_id(), self.get_community_id())
 
@@ -855,7 +856,8 @@ class CommunityImpl(CommunityManager):
 
                 else:
                     community_instance = ModelUtilities.get_model_instance_or_none(Community,
-                                                                            content_download_setting["community_id"])
+                                                                                   content_download_setting[
+                                                                                       "community_id"])
 
                     if not community_instance:
                         return {'error_message': "Invalid community ID"}
@@ -876,15 +878,17 @@ class CommunityImpl(CommunityManager):
 
                 if member_state == member_states.ADMIN:
                     ModelUtilities.model_update(ContentDownloadSettings,
-                                    {
-                                        "community_id_id": content_download_setting["community_id"],
-                                        "download_setting_type": content_download_setting["download_setting_type"],
-                                        "download_setting_title": content_download_setting["download_setting_title"]
-                                    },
-                                    {
-                                        "enabled": content_download_setting["enabled"],
-                                        "updated_at": TimeUtilities.current_time_in_milliseconds()
-                                    })
+                                                {
+                                                    "community_id_id": content_download_setting["community_id"],
+                                                    "download_setting_type": content_download_setting[
+                                                        "download_setting_type"],
+                                                    "download_setting_title": content_download_setting[
+                                                        "download_setting_title"]
+                                                },
+                                                {
+                                                    "enabled": content_download_setting["enabled"],
+                                                    "updated_at": TimeUtilities.current_time_in_milliseconds()
+                                                })
                     content_setting_status["success"] = True
 
                 else:
@@ -1298,7 +1302,9 @@ class CommunityImpl(CommunityManager):
 
         self.set_community_id(community_instance.id)
 
-        share_context = get_branch_links_for_community_share_v1(user_instance, community_instance)
+        share_context = get_branch_links_for_community_share_v1(user_instance, community_instance,
+                                                                self.get_request_platform(), self.get_version_code())
+
         community_share = {}
 
         if community_instance.is_paid:
@@ -1582,7 +1588,7 @@ class CommunityHelper:
     @staticmethod
     @shared_task
     def set_moderation_rights_and_delete_user_previous_metadata_for_auto_join(user_id, community_id, shared_id,
-                                                                                  auto_join_code):
+                                                                              auto_join_code):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -1631,8 +1637,8 @@ class CommunityHelper:
     @staticmethod
     def update_followed_chatrooms_for_rejoined_member(user_instance, community_instance):
 
-        followed_filter = collabcardState.objects\
-            .filter(user=user_instance, community=community_instance, follow_status=True)\
+        followed_filter = collabcardState.objects \
+            .filter(user=user_instance, community=community_instance, follow_status=True) \
             .select_related('card')
 
         engage_list = []
@@ -1908,7 +1914,8 @@ class CommunityHelper:
                                                                      {'community': community_instance,
                                                                       'setting_type': community_setting_types.MEMBERS_AUTO_JOIN})
 
-        auto_approval = community_setting_instance[0].enabled if len(community_setting_instance) else community_instance.auto_approval
+        auto_approval = community_setting_instance[0].enabled if len(
+            community_setting_instance) else community_instance.auto_approval
 
         if community_instance.is_paid and (auto_join_code is None) and (shared_by_user is None):
             join_link_valid = auto_approval
@@ -2052,7 +2059,7 @@ class CommunityHelper:
         comma_seperated_string = comma_seperated_string.split(',')
         comma_seperated_string = [i.strip() if isinstance(i, str) else i for i in comma_seperated_string]
 
-        return  comma_seperated_string
+        return comma_seperated_string
 
     @staticmethod
     def is_valid_email(email_id):
@@ -2156,7 +2163,6 @@ class CommunityHelper:
                 "expires_at": TimeUtilities.add_hours_to_epoch_time(TimeUtilities.current_time_in_sec(),
                                                                     hours=MAX_NUMBER_OF_TIMES_GETTING_STARTED_EMAIL_SHOULD_FIRE * 24)
             })
-
 
     @staticmethod
     def get_mail_body_for_community_creation_get_started(user_instance, community_instance, branch_link=''):
