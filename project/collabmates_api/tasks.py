@@ -877,7 +877,7 @@ def send_cm_onboarding_join_form_not_setup_mail():
                                                                   FIVE_DAYS_IN_HOURS)
 
     communities_filter = list(ModelUtilities.get_model_filter(Community,
-                                                              {'created_at__lte': min_epoch_time}).
+                                                              {'created_at__gte': min_epoch_time}).
                               values_list('id', flat=True))
 
     if not communities_filter:
