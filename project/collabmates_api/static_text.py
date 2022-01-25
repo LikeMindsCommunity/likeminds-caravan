@@ -554,7 +554,7 @@ LM_PLATFORM_CODES = ["an", "ios", "web"]
 
 SINGLE_COMMUNITY_VIEW_VERSION_CODE = {
     "an": 170,
-    "ios": 1001,
+    "ios": 300,
     "web": 1001
 }
 
