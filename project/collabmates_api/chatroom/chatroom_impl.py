@@ -43,8 +43,7 @@ from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_
                      send_chatroom_creation_notification, get_community_creator, update_community_get_started)
 
 from ..tasks import update_pending_chatroom_count_for_promoters, cm_onboarding_version_check
-from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts,
-                            send_ice_breaker_notification, send_sync_notification,
+from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts, send_sync_notification,
                             send_pin_chatroom_notification, send_notification_for_new_secret_room_participant,
                             send_notification_for_removed_secret_room_participant,
                             send_notification_for_auto_follow_chatroom_for_all_members,
@@ -504,8 +503,6 @@ class ChatroomImpl(ChatroomManager):
             # creating default conversation for chatroom creation
             create_chatroom(card_instance=chatroom_instance, user_instance=user_instance,
                             state=conversation_states.CONVERSATION_HEADER, current_user_id=self.get_member_id())
-
-            send_ice_breaker_notification.delay(community_id, time.time(), day=0)
 
             # batch update for already existing users and saving their unseen count
             if not chatroom_instance.is_secret:
@@ -1283,7 +1280,6 @@ class ChatroomImpl(ChatroomManager):
                                                                                     user_instance.id,
                                                                                     community_instance.id,
                                                                                     is_intro_chatroom=True)
-        send_ice_breaker_notification.delay(community_instance.id, TimeUtilities.current_time_in_sec(), day=0)
 
         return chatroom_instance
 

@@ -3150,8 +3150,6 @@ def create_card_internal(user_id, community_id, res):
         create_chatroom(card_instance=card_instance, user_instance=user_instance,
                         state=conversation_states.CONVERSATION_HEADER, current_user_id=user_id)
 
-        send_ice_breaker_notification.delay(community_id, time.time(), day=0)
-
     # deleting the draft chatroom
     if 'draft_id' in res:
         conversationEngage.objects.filter(draft_id=res['draft_id']).delete()
@@ -11681,8 +11679,6 @@ class ActionPendingChatroom(APIView):
             # creating a chatroom for the collabcard posted
             create_chatroom(card_instance=chatroom, user_instance=chatroom.user,
                             state=conversation_states.CONVERSATION_HEADER, current_user_id=chatroom.user.id)
-
-            send_ice_breaker_notification.delay(chatroom.community.id, time.time(), day=0)
 
             # batch update for already existing users and saving their unseen count
             set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
