@@ -10333,7 +10333,7 @@ def test_notification_api(request):
         temp['title'] = "Conversation Creation"
         temp['sub_title'] = "payload data for conversation creation"
         temp['route'] = "route://collabcard?collabcard_id=" + str(card_id)
-        temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id)
+        temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id, None)
 
         return JsonResponse(temp)
 
@@ -10347,8 +10347,10 @@ def unread_conversation_notification(request):
         context = get_error_context(False, "send memeber id in headers")
         return JsonResponse(context)
 
-    temp = {}
-    temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id=member_id)
+    community_id: str = request.GET.get('community_id')
+
+    temp = dict()
+    temp['unread_conversation'] = get_custom_data_for_new_conversation_created(member_id, community_id)
 
     return JsonResponse(temp)
 

@@ -840,7 +840,7 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
     message['payload'] = {
         'title': card_instance.header,
         'sub_title': userinfo_instance.name + ": " + answer_text,
-        'route': "route://collabcard?collabcard_id=" + str(card_instance.id),
+        'route': f"route://collabcard?collabcard_id={str(card_instance.id)}&community_id={str(community_instance.id)}",
         'unread_follow_notification': custom_conversation_notification_payload
     }
 
@@ -942,7 +942,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
     message['payload'] = {
         'title': card_instance.header,
         'sub_title': userinfo_instance.name + ":" + icon_string + " " + answer_text,
-        'route': "route://collabcard?collabcard_id=" + str(card_id),
+        'route': f"route://collabcard?collabcard_id={str(card_id)}&community_id={str(community_instance.id)}",
         'unread_follow_notification': custom_conversation_notification_payload
     }
 
@@ -979,17 +979,25 @@ def compute_mute_status_for_users(current_user_id):
     return mute_list
 
 
-def get_custom_data_for_new_conversation_created(user_id):
+def get_custom_data_for_new_conversation_created(user_id: str, community_id: str) -> list:
     """function to send notification for new conversation posted to followed users"""
 
-    # time.sleep(2)
     mute_status_list = compute_mute_status_for_users(user_id)
 
-    followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,
-                                                           draft_id=None,
-                                                           unseen_count__gt=0).filter(
-        ~Q(card_id__in=mute_status_list)).select_related('card',
-                                                         'community').order_by('-updated_at', '-id')[:10]
+    filter_dict = _get_conversation_engage_filter_for_new_conversation(user_id, community_id)
+
+    followed_chatrooms = conversationEngage.objects.filter(
+        **filter_dict
+    ).filter(
+        ~Q(card_id__in=mute_status_list)
+    ).select_related(
+        'card',
+        'community'
+    ).order_by(
+        '-updated_at',
+        '-id'
+    )[:10]
+
     unread_conversation = []
 
     for conversation in followed_chatrooms:
@@ -1053,6 +1061,19 @@ def get_custom_data_for_new_conversation_created(user_id):
         unread_conversation.append(temp)
 
     return unread_conversation
+
+
+def _get_conversation_engage_filter_for_new_conversation(user_id: str, community_id: str) -> dict:
+    filter_dict = {
+        'user_id': user_id,
+        'draft_id': None,
+        'unseen_count__gt': 0
+    }
+
+    if community_id:
+        filter_dict['community_id'] = community_id
+
+    return filter_dict
 
 
 def get_custom_data_for_new_conversation_created_ios(user_id):
@@ -2656,7 +2677,7 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
         "title": "Time to vote",
         "sub_title": POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
                                                    community_instance.name),
-        'route': POLL_CONVERSATION_ROUTE % (card_instance.id, conversation_id)
+        'route': POLL_CONVERSATION_ROUTE % (community_instance.id, card_instance.id, conversation_id)
     }
     }
 
