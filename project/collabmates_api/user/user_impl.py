@@ -723,18 +723,21 @@ class UserImpl(UserManager):
 
         return {'success': True}
 
-    def fetch_dm_feed(self) -> dict:
+    def fetch_dm_feed(self, community_id: str) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
-
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user id"}
 
-        # Check whether the member is CM or not
-        member_filter = ModelUtilities.get_model_filter(Members, {"member_id": user_instance})
+        filter_dict: dict = self._get_member_filter_for_dm_feed(self.get_user_id(), community_id)
+        member_filter = ModelUtilities.get_model_filter(Members, filter_dict)
 
         if not member_filter.exists():
-            return {"success": False, "error_message": "User not a part of any community."}
+            error_message: str = 'User not a part of any community'
+            if community_id:
+                error_message: str = f'User not a part of community, id={str(community_id)}'
+
+            return {"success": False, "error_message": error_message}
 
         cm_instances = member_filter.filter(state=member_states.ADMIN)
         member_instances = member_filter.filter(state=member_states.MEMBER)
@@ -763,6 +766,17 @@ class UserImpl(UserManager):
         response_context["total_member_communities_count"] = len(member_instances)
 
         return response_context
+
+    @staticmethod
+    def _get_member_filter_for_dm_feed(member_id: str, community_id: str) -> dict:
+        filter_dict: dict = dict({
+            "member_id_id": member_id
+        })
+        if community_id:
+            filter_dict['community_id_id'] = community_id
+
+        return filter_dict
+
 
     @staticmethod
     def fetch_all_users(page, user_ids):
