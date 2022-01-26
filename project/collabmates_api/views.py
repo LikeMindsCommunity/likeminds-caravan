@@ -13,6 +13,7 @@ from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from external_services.mixpanel.events import MixpanelEvents
 from external_services.segment.segment_impl import SegmentImpl
+from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.otp.otp_api_client import OTPApiClient
 from togther.models import *
 from utility.string_utilities import StringUtilities
@@ -2986,7 +2987,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     if 'share_link' in res:
         card.share_link = res['share_link']
-        og_tags = decode_meta_from_url(res['share_link'])
+        og_tags = UriTagsImpl(res['share_link']).get_tags_from_uri()
         card.og_tags = json.dumps(og_tags)
 
     preview_utilities = PreviewUtilities()
@@ -3291,7 +3292,7 @@ def create_draft_collabcard(request, res=None):
 
     if 'share_link' in res:
         card.share_link = res['share_link']
-        og_tags = decode_meta_from_url(res['share_link'])
+        og_tags = UriTagsImpl(res['share_link']).get_tags_from_uri()
         card.og_tags = json.dumps(og_tags)
 
     preview_utilities = PreviewUtilities()
@@ -6572,20 +6573,23 @@ def update_event_answer_text(collabcard_instance):
 
 
 def decode_url(request):
-    '''function to send og tags of the link'''
-
-    url = request.GET.get('url')
+    """function to send og tags of the link"""
 
     try:
-        og_tags = decode_meta_from_url(url)
+        url = request.GET.get('url')
+        og_tags = UriTagsImpl(url).get_tags_from_uri()
 
     except Exception as e:
-        error_logger.error(e.args)
+        error_logger.error(e)
+        return JsonResponse({
+            'success': False,
+            'error_message': f'API failed api=decode_url, reason={e}'
+        }, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return JsonResponse({'error_message': "Incorrect url"},
-                            status=status_codes.HTTP_400_BAD_REQUEST)
-
-    return JsonResponse({'og_tags': og_tags})
+    return JsonResponse({
+        'success': True,
+        'og_tags': og_tags
+    })
 
 
 def get_chatrooms(chatroom_list, member_id, active=None, device_id=''):

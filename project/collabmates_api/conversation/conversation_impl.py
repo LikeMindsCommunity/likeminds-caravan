@@ -7,6 +7,7 @@ from django.db.models import F, Q, Count
 from rest_framework import status as status_codes
 
 from external_services.caching.cache_impl import CacheImpl
+from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
@@ -48,7 +49,7 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types
-from utility.utils import decode_meta_from_url, check_notification_flag, is_version_code_supported_for_intro_room, \
+from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
@@ -1517,7 +1518,7 @@ class ConversationHelper:
         if 'og_tags' in req_body:
             og_tags = json.dumps(req_body['og_tags'])
         elif 'share_link' in req_body:
-            og_tags = json.dumps(decode_meta_from_url(req_body['share_link']))
+            og_tags = json.dumps(UriTagsImpl(req_body['share_link']).get_tags_from_uri())
         else:
             return
         return og_tags

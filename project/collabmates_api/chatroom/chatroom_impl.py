@@ -11,6 +11,7 @@ from django.template.loader import get_template
 from django.conf import settings
 
 from external_services.calender.calendar_impl import CalendarImpl
+from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.api_client import ApiClient
 from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_PLACEHOLDER_USER_ROUTE, \
     SUBSCRIPTION_VALIDATE_EVENT_ONLINE_LINK, EVENT_CARD_MAIL_DESCRIPTION, CHATROOM_URL, MAIL_EVENT_NOTIFICATION, \
@@ -65,7 +66,7 @@ from utility.states import member_states, card_types, collabcard_states, SyncNot
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types
 
-from utility.utils import decode_meta_from_url, check_notification_flag
+from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation, get_chatroom_user_images_for_web, \
     schedule_chatroom_unpinning_after_event_completion, update_last_unseen_in_engage, \
@@ -383,7 +384,7 @@ class ChatroomImpl(ChatroomManager):
     def _add_og_tags(self, req_body, card_content):
         if 'share_link' in req_body:
             card_content['share_link'] = req_body['share_link']
-            og_tags = decode_meta_from_url(req_body['share_link'])
+            og_tags = UriTagsImpl(req_body['share_link']).get_tags_from_uri()
             card_content['og_tags'] = json.dumps(og_tags)
 
     def _check_and_set_chatroom_pending_status(self, card_content, is_intro_card, user_has_auto_approve_right):
@@ -2434,7 +2435,7 @@ class ChatroomImpl(ChatroomManager):
                 res = get_error_context(False, "Invalid chatroom_id")
                 return res
 
-            recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url')) \
+            recording_url_og_tags = UriTagsImpl(req_body.get('recording_url')).get_tags_from_uri() \
                 if req_body.get('recording_url') \
                 else {}
 
@@ -2496,7 +2497,7 @@ class ChatroomImpl(ChatroomManager):
                 res = get_error_context(False, "Invalid conversation_id")
                 return res
 
-            recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url')) \
+            recording_url_og_tags = UriTagsImpl(req_body.get('recording_url')).get_tags_from_uri() \
                 if req_body.get('recording_url') \
                 else {}
 
