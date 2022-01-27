@@ -82,7 +82,7 @@ FETCH_GET_STARTED_BOTTOM_TEXT = "Need help in setting community, reach out to us
 
 EMAIL_VALIDATION_REGEX = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
-WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME = "join_community_with_code"
+WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME = "join_community_with_code_v1"
 WHATSAPP_INVITE_TEMPLATE_WITHOUT_CODE_NAME = "join_community_without_code_v2"
 
 INVITE_MEMBERS_SUBJECT = "Hi there! You have been invited to join {}"
