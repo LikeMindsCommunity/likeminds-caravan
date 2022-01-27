@@ -82,7 +82,7 @@ FETCH_GET_STARTED_BOTTOM_TEXT = "Need help in setting community, reach out to us
 
 EMAIL_VALIDATION_REGEX = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
-WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME = "join_community_with_code"
+WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME = "join_community_with_code_v1"
 WHATSAPP_INVITE_TEMPLATE_WITHOUT_CODE_NAME = "join_community_without_code_v2"
 
 INVITE_MEMBERS_SUBJECT = "Hi there! You have been invited to join {}"
@@ -116,3 +116,9 @@ FREE_INVITE_CODE_ALREADY_USED_MESSAGE = 'Free invite code already used!'
 
 TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS = 1111
 SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS = 1111
+
+CM_ONBOARDING_COMMUNITY_MODERATION_MAIL_SUBJECT = "It's time to set some rules!"
+CM_ONBOARDING_COMMUNITY_MODERATION_BUTTON_TEXT = "Moderation Guide"
+CM_ONBOARDING_COMMUNITY_MODERATION_BUTTON_LINK = "https://flicker-map-472.notion.site/Community-Settings-a022b2fe2f5f41dfa98f45c44d1dfcdd"
+MEMBER_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
+CM_ONBOARDING_COMMUNITY_MODERATION_MIN_MEMBERS_COUNT = 5

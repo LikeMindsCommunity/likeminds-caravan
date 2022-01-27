@@ -7,6 +7,7 @@ from django.db.models import F, Q, Count
 from rest_framework import status as status_codes
 
 from external_services.caching.cache_impl import CacheImpl
+from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
@@ -48,7 +49,7 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types
-from utility.utils import decode_meta_from_url, check_notification_flag, is_version_code_supported_for_intro_room, \
+from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
@@ -470,7 +471,8 @@ class ConversationImpl(ConversationManager):
             context = {}
             context = adding_guest_in_chatroom(context, chatroom_instance, aj, source_id,
                                                community_id, self.get_member_id(), guest_header=True,
-                                               created_at=created_at)
+                                               created_at=created_at, platform_code=self.get_platform_code(),
+                                               version_code=self.get_version_code())
 
     def _auto_follow_chatroom(self, chatroom_id, member_state):
 
@@ -1516,7 +1518,7 @@ class ConversationHelper:
         if 'og_tags' in req_body:
             og_tags = json.dumps(req_body['og_tags'])
         elif 'share_link' in req_body:
-            og_tags = json.dumps(decode_meta_from_url(req_body['share_link']))
+            og_tags = json.dumps(UriTagsImpl(req_body['share_link']).get_tags_from_uri())
         else:
             return
         return og_tags
@@ -1607,11 +1609,11 @@ class ConversationHelper:
             UserEmailsSendStatus.create_instance(user_email_send_status_data)
 
             args = [receiver_id, sender_id, chatroom_id, chatroom_not_opened_type, last_seen_conversation]
-            countdown = ENGAGEMENT_COMMUNICATION_DURATION_IN_HOURS*MINUTES_60
+            countdown = ENGAGEMENT_COMMUNICATION_DURATION_IN_HOURS * MINUTES_60
 
             # runs after 6 hours, expires after 6 hours and 30 minutes
             send_communication_when_chatroom_not_opened.apply_async(args=args, kwargs={}, countdown=countdown,
-                                                                    expires=countdown+MINUTES_30)
+                                                                    expires=countdown + MINUTES_30)
 
     @staticmethod
     def update_homefeed_for_all_chatroom_followers(chatroom_id, conversation_id):

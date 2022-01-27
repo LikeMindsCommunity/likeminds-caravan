@@ -11,6 +11,7 @@ from django.template.loader import get_template
 from django.conf import settings
 
 from external_services.calender.calendar_impl import CalendarImpl
+from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.api_client import ApiClient
 from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_PLACEHOLDER_USER_ROUTE, \
     SUBSCRIPTION_VALIDATE_EVENT_ONLINE_LINK, EVENT_CARD_MAIL_DESCRIPTION, CHATROOM_URL, MAIL_EVENT_NOTIFICATION, \
@@ -43,8 +44,7 @@ from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_
                      send_chatroom_creation_notification, get_community_creator, update_community_get_started)
 
 from ..tasks import update_pending_chatroom_count_for_promoters, cm_onboarding_version_check
-from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts,
-                            send_ice_breaker_notification, send_sync_notification,
+from ..notification import (get_tagged_members_list, send_notification_to_event_co_hosts, send_sync_notification,
                             send_pin_chatroom_notification, send_notification_for_new_secret_room_participant,
                             send_notification_for_removed_secret_room_participant,
                             send_notification_for_auto_follow_chatroom_for_all_members,
@@ -66,7 +66,7 @@ from utility.states import member_states, card_types, collabcard_states, SyncNot
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types
 
-from utility.utils import decode_meta_from_url, check_notification_flag
+from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_creation, get_chatroom_user_images_for_web, \
     schedule_chatroom_unpinning_after_event_completion, update_last_unseen_in_engage, \
@@ -147,7 +147,9 @@ class ChatroomImpl(ChatroomManager):
 
     def _make_user_chatroom_guest(self, card_instance):
         guest_context = adding_guest_in_chatroom({}, card_instance, self.get_aj(), self.get_source_id(),
-                                                 card_instance.community.id, current_user_id=self.get_member_id())
+                                                 card_instance.community.id, current_user_id=self.get_member_id(),
+                                                 version_code=self.get_version_code(),
+                                                 platform_code=self.get_request_platform())
         return guest_context
 
     def _fetch_chatroom_internal_link(self, card_instance):
@@ -382,7 +384,7 @@ class ChatroomImpl(ChatroomManager):
     def _add_og_tags(self, req_body, card_content):
         if 'share_link' in req_body:
             card_content['share_link'] = req_body['share_link']
-            og_tags = decode_meta_from_url(req_body['share_link'])
+            og_tags = UriTagsImpl(req_body['share_link']).get_tags_from_uri()
             card_content['og_tags'] = json.dumps(og_tags)
 
     def _check_and_set_chatroom_pending_status(self, card_content, is_intro_card, user_has_auto_approve_right):
@@ -502,8 +504,6 @@ class ChatroomImpl(ChatroomManager):
             # creating default conversation for chatroom creation
             create_chatroom(card_instance=chatroom_instance, user_instance=user_instance,
                             state=conversation_states.CONVERSATION_HEADER, current_user_id=self.get_member_id())
-
-            send_ice_breaker_notification.delay(community_id, time.time(), day=0)
 
             # batch update for already existing users and saving their unseen count
             if not chatroom_instance.is_secret:
@@ -647,7 +647,7 @@ class ChatroomImpl(ChatroomManager):
         update_context['online_link_password'] = req_body.get('online_link_password',
                                                               card_instance.online_link_password)
         update_context['online_link_type'] = req_body.get('online_link_type',
-                                                              card_instance.online_link_type)
+                                                          card_instance.online_link_type)
         update_context['location'] = req_body.get('location', card_instance.location)
         update_context['location_lat'] = req_body.get('location_lat', card_instance.location_lat)
         update_context['location_long'] = req_body.get('location_long', card_instance.location_long)
@@ -768,7 +768,8 @@ class ChatroomImpl(ChatroomManager):
         else:
             community_manager_filter = ModelUtilities.get_model_filter(Members, {'state': member_states.ADMIN,
                                                                                  'member_id_id': user_instance.id,
-                                                                                 'community_id_id': filter_dict.get('community')})
+                                                                                 'community_id_id': filter_dict.get(
+                                                                                     'community')})
             if not community_manager_filter:
                 return collabcardState.objects.none()
 
@@ -1280,7 +1281,6 @@ class ChatroomImpl(ChatroomManager):
                                                                                     user_instance.id,
                                                                                     community_instance.id,
                                                                                     is_intro_chatroom=True)
-        send_ice_breaker_notification.delay(community_instance.id, TimeUtilities.current_time_in_sec(), day=0)
 
         return chatroom_instance
 
@@ -2435,7 +2435,7 @@ class ChatroomImpl(ChatroomManager):
                 res = get_error_context(False, "Invalid chatroom_id")
                 return res
 
-            recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url')) \
+            recording_url_og_tags = UriTagsImpl(req_body.get('recording_url')).get_tags_from_uri() \
                 if req_body.get('recording_url') \
                 else {}
 
@@ -2497,7 +2497,7 @@ class ChatroomImpl(ChatroomManager):
                 res = get_error_context(False, "Invalid conversation_id")
                 return res
 
-            recording_url_og_tags = decode_meta_from_url(req_body.get('recording_url')) \
+            recording_url_og_tags = UriTagsImpl(req_body.get('recording_url')).get_tags_from_uri() \
                 if req_body.get('recording_url') \
                 else {}
 
@@ -2863,10 +2863,12 @@ class ChatroomHelper:
         return User.get_user_or_none(member_id)
 
     @staticmethod
-    def fetch_serialized_community(card_instance: object, user_instance: object, current_user_id: str = None):
+    def fetch_serialized_community(card_instance: object, user_instance: object, current_user_id: str = None,
+                                   platform_code: str = None, version_code: int = 0):
 
         context = CommunitySerializer(card_instance.community, current_user_id=current_user_id,
-                                      current_user_instance=user_instance)
+                                      current_user_instance=user_instance, platform_code=platform_code,
+                                      version_code=version_code)
         return context
 
     @staticmethod
@@ -2895,6 +2897,7 @@ class ChatroomHelper:
     @staticmethod
     def fetch_serialized_chatroom_for_local_db_sycing(member_id, chatroom_instance):
         member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_instance.id)
         chatroom_obj = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
 
         return chatroom_obj.data
@@ -3663,7 +3666,7 @@ class ChatroomHelper:
             branch_link = create_community_feed_url_for_cm_onboarding(card_instance.community)
 
             mail_template = get_template('mails/cm_onboarding/first_event_creation_cm_onboarding.html').render({
-                "community_logo": card_instance.community.image_url,
+                "community_logo": card_instance.community.image_link,
                 "community_name": card_instance.community.name,
                 "cm_name": card_instance.user.userinfo.name,
                 "community_brand_color": card_instance.community.brand_color if card_instance.community.brand_color
@@ -3882,7 +3885,7 @@ class ChatroomHelper:
     @staticmethod
     def get_create_dict_for_creating_url_instance_for_event(req_body, recording_url_og_tags):
         update_dict = {
-            'recording_url_og_tags' : json.dumps(recording_url_og_tags),
+            'recording_url_og_tags': json.dumps(recording_url_og_tags),
             'is_recording': req_body.get('is_recording', False),
             'about_recording': req_body.get('about_recording'),
         }

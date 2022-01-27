@@ -13,6 +13,7 @@ from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from external_services.mixpanel.events import MixpanelEvents
 from external_services.segment.segment_impl import SegmentImpl
+from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.otp.otp_api_client import OTPApiClient
 from togther.models import *
 from utility.string_utilities import StringUtilities
@@ -59,7 +60,8 @@ from cms.models import NewAnswer, userAcquition, appUninstalls, InAppReview
 from cms.cms_auth_utilities import CMSAuthUtilities
 
 from .user_moderation_rights import *
-from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer, GetChatroomInstanceSerializer, CommunitySerializerV1,
+from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer, GetChatroomInstanceSerializer,
+                       CommunitySerializerV1,
                        YourCommunitySerializer, EventRecordingsAttachmentsSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
@@ -504,19 +506,19 @@ def my_chatrooms_version_1(request):
     if page == 1:
 
         if show_dm and is_dm_message:
-            total_unseen_count = conversationEngage.objects\
+            total_unseen_count = conversationEngage.objects \
                 .filter(user=user_instance,
                         community_id__in=dm_instance_community_ids_list,
-                        unseen_count__gt=0)\
+                        unseen_count__gt=0) \
                 .aggregate(total=Sum('unseen_count'))
 
         elif not show_dm:
-            total_unseen_count = conversationEngage.objects\
+            total_unseen_count = conversationEngage.objects \
                 .filter(user=user_instance,
                         unseen_count__gt=0,
                         community_id__in=user_community_ids,
                         card__is_private=False,
-                        card__chatroom_with_user=None)\
+                        card__chatroom_with_user=None) \
                 .aggregate(total=Sum('unseen_count'))
 
         else:
@@ -720,7 +722,16 @@ def get_home_screen_community_actions(community_instance):
 
 def bottom_menu(request):
     try:
-        menu = _build_bottom_menu()
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not member_instance:
+            return JsonResponse({
+                'success': False,
+                'error_message': 'Invalid member-id'
+            }, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        menu = _build_bottom_menu(member_instance)
         return JsonResponse({
             'success': True,
             'menu': menu
@@ -734,10 +745,13 @@ def bottom_menu(request):
         })
 
 
-def _build_bottom_menu() -> list:
+def _build_bottom_menu(user_instance) -> list:
     menu = list()
     _add_join_new_community_menu(menu)
-    _add_create_new_community_menu(menu)
+
+    if settings.IS_BETA or Members.is_community_member(community=COMMUNITY_HOOD_COMMUNITY_ID, member=user_instance):
+        _add_create_new_community_menu(menu)
+
     _add_send_feedback_menu(menu)
     _add_help_faq_menu(menu)
 
@@ -781,6 +795,8 @@ def community(request, community_id, req_dict=None):
 
     # handling web redirection to playstore and app store
     community = Community.get_community_or_None(community_id)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     if not community:
         error_msg = "cannot find community with id"
@@ -844,10 +860,12 @@ def community(request, community_id, req_dict=None):
     if is_promoter:
         serialized_object = CommunitySerializer(community, promoter_id=current_user_instance,
                                                 is_owner=is_owner, current_user_id=member_id,
-                                                current_user_instance=current_user_instance)
+                                                current_user_instance=current_user_instance,
+                                                platform_code=platform_code, version_code=version_code)
     else:
         serialized_object = CommunitySerializer(community, current_user_id=member_id,
-                                                current_user_instance=current_user_instance)
+                                                current_user_instance=current_user_instance,
+                                                platform_code=platform_code, version_code=version_code)
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
@@ -2981,7 +2999,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
 
     if 'share_link' in res:
         card.share_link = res['share_link']
-        og_tags = decode_meta_from_url(res['share_link'])
+        og_tags = UriTagsImpl(res['share_link']).get_tags_from_uri()
         card.og_tags = json.dumps(og_tags)
 
     preview_utilities = PreviewUtilities()
@@ -3145,8 +3163,6 @@ def create_card_internal(user_id, community_id, res):
         create_chatroom(card_instance=card_instance, user_instance=user_instance,
                         state=conversation_states.CONVERSATION_HEADER, current_user_id=user_id)
 
-        send_ice_breaker_notification.delay(community_id, time.time(), day=0)
-
     # deleting the draft chatroom
     if 'draft_id' in res:
         conversationEngage.objects.filter(draft_id=res['draft_id']).delete()
@@ -3288,7 +3304,7 @@ def create_draft_collabcard(request, res=None):
 
     if 'share_link' in res:
         card.share_link = res['share_link']
-        og_tags = decode_meta_from_url(res['share_link'])
+        og_tags = UriTagsImpl(res['share_link']).get_tags_from_uri()
         card.og_tags = json.dumps(og_tags)
 
     preview_utilities = PreviewUtilities()
@@ -3881,7 +3897,7 @@ def set_chatroom_active(request):
     return JsonResponse({"success": True})
 
 
-def get_branch_links_for_community_share(user_instance, community_instance):
+def get_branch_links_for_community_share(user_instance, community_instance, platform_code, version_code):
     is_promoter = False
     is_owner = False
     is_member = False
@@ -3915,13 +3931,13 @@ def get_branch_links_for_community_share(user_instance, community_instance):
             aj = generate_private_link(community_instance=community_instance,
                                        promoter_instance=user_instance,
                                        just_send_aj=True)
-            branch_links = create_community_branch_links(community_id, member_id, aj)
+            branch_links = create_community_branch_links(community_id, member_id, platform_code, version_code, aj)
 
         else:
-            branch_links = create_community_branch_links(community_id, member_id)
+            branch_links = create_community_branch_links(community_id, member_id, platform_code, version_code)
 
     else:
-        branch_links = create_community_branch_links(community_id, member_id)
+        branch_links = create_community_branch_links(community_id, member_id, platform_code, version_code)
 
     share_context = {
         'branch_links': branch_links,
@@ -3934,7 +3950,7 @@ def get_branch_links_for_community_share(user_instance, community_instance):
     return share_context
 
 
-def get_branch_links_for_community_share_v1(user_instance, community_instance):
+def get_branch_links_for_community_share_v1(user_instance, community_instance, platform_code=None, version_code=None):
     is_promoter = False
     is_owner = False
     is_member = False
@@ -3963,10 +3979,10 @@ def get_branch_links_for_community_share_v1(user_instance, community_instance):
         aj = generate_private_link(community_instance=community_instance,
                                    promoter_instance=user_instance,
                                    just_send_aj=True)
-        branch_links = create_community_branch_links(community_id, member_id, aj)
+        branch_links = create_community_branch_links(community_id, member_id, platform_code, version_code, aj)
 
     else:
-        branch_links = create_community_branch_links(community_id, member_id)
+        branch_links = create_community_branch_links(community_id, member_id, platform_code, version_code)
 
     share_context = {
         'branch_links': branch_links,
@@ -4149,7 +4165,8 @@ def fetch_share_url(request):
         community_share = {}
 
         if is_cm_onboarding_enabled:
-            share_context = get_branch_links_for_community_share_v1(user_instance, community_instance)
+            share_context = get_branch_links_for_community_share_v1(user_instance, community_instance, platform_code,
+                                                                    version_code)
 
             if community_instance.is_paid:
                 fill_share_context_for_paid_community_v2(community_instance, share_context, community_share)
@@ -4158,7 +4175,8 @@ def fetch_share_url(request):
                 fill_share_context_for_unpaid_community_v2(community_instance, share_context, community_share)
 
         else:
-            share_context = get_branch_links_for_community_share(user_instance, community_instance)
+            share_context = get_branch_links_for_community_share(user_instance, community_instance, platform_code,
+                                                                 version_code)
 
             if community_instance.is_paid:
                 fill_share_context_for_paid_community(community_instance, share_context, community_share)
@@ -5130,6 +5148,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     aj = request.GET.get('aj')
 
     device_id = RequestUtilities.get_device_id_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     is_guest = False
     context = {}
@@ -5162,7 +5182,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
         if is_guest:
             context = adding_guest_in_chatroom(context, card_instance, aj, source_id,
-                                               card_instance.community.id, current_user_id=user_id)
+                                               card_instance.community.id, current_user_id=user_id,
+                                               platform_code=platform_code, version_code=version_code)
 
         instance_filter = conversationMemberState.objects.filter(user_id=user_id, card=card_instance)
         if not instance_filter.exists():
@@ -5257,9 +5278,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
     if is_ios:
         request_type = "iOS"
 
-    platform_code = RequestUtilities.get_platform_code(request)
-    version_code = RequestUtilities.get_version_code_from_headers(request)
-
     chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
                                             promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
@@ -5323,7 +5341,8 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
 
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
-    context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance)
+    context['community'] = CommunitySerializer(card_instance.community, current_user_instance=user_instance,
+                                               platform_code=platform_code, version_code=version_code)
 
     if card_instance.type != card_types.CARD_MASTER_INTRO:
         context['participant_count'] = collabcardState.objects.filter(follow_status=True, card=card_instance,
@@ -5353,7 +5372,8 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     '''version 1 function for sending chatroom instance without conversations'''
     source_id = request.GET.get('source_id')
     aj = request.GET.get('aj')
-
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
     is_guest = False
     context = {}
 
@@ -5386,7 +5406,8 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 
         if is_guest:
             context = adding_guest_in_chatroom(context, card_instance, aj, source_id,
-                                               card_instance.community.id, current_user_id=user_id)
+                                               card_instance.community.id, current_user_id=user_id,
+                                               platform_code=platform_code, version_code=version_code)
 
     card = get_chatroom_instance(card_instance, user_id)
 
@@ -5480,7 +5501,8 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     context['total_response_count'] = total_response_count
 
     context['community'] = CommunitySerializer(card_instance.community, current_user_id=user_id,
-                                               current_user_instance=user_instance)
+                                               current_user_instance=user_instance, platform_code=platform_code,
+                                               version_code=version_code)
 
     # sendig the last seen conversation of user
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
@@ -5749,7 +5771,7 @@ def is_chatroom_join_expired(aj, source_id, chatroom_id=None):
 
 
 def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id, current_user_id,
-                             guest_header=False, created_at=None):
+                             guest_header=False, created_at=None, platform_code=None, version_code=None):
     if not created_at:
         created_at = TimeUtilities.current_time_in_milliseconds()
 
@@ -5782,11 +5804,14 @@ def adding_guest_in_chatroom(context, card_instance, aj, source_id, community_id
         if status:
             # for promoter
             community_serializer = CommunitySerializer(card_instance.community, status.member_id,
-                                                       current_user_id=current_user_id)
+                                                       current_user_id=current_user_id, platform_code=platform_code,
+                                                       version_code=version_code)
             community_serializer['created_by'] = get_community_creator(card_instance.community)
             aj_expired_disclaimer['community'] = community_serializer
         else:
-            community_serializer = CommunitySerializer(card_instance.community, current_user_id=current_user_id)
+            community_serializer = CommunitySerializer(card_instance.community, current_user_id=current_user_id,
+                                                       platform_code=platform_code,
+                                                       version_code=version_code)
             community_serializer['created_by'] = get_community_creator(card_instance.community)
             aj_expired_disclaimer['community'] = community_serializer
 
@@ -5961,11 +5986,16 @@ def community_collabcard_invite(request, community_id):
     community = Community.objects.get(id=community_id)
     member_id = request.GET.get('member_id')
     member_instance = User.objects.get(id=member_id)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
     if is_member_promoter(community_id=community_id, member_id=member_id):
         community_serializer_instance = CommunitySerializer(community, promoter_id=member_instance,
-                                                            current_user_id=member_id)
+                                                            current_user_id=member_id, platform_code=platform_code,
+                                                            version_code=version_code)
     else:
-        community_serializer_instance = CommunitySerializer(community, current_user_id=member_id)
+        community_serializer_instance = CommunitySerializer(community, current_user_id=member_id,
+                                                            platform_code=platform_code, version_code=version_code)
 
     # if the community is a user-created community
     if community_serializer_instance['state'] == community_states.PRIVATE or community_serializer_instance[
@@ -6136,7 +6166,8 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
     # print(update_status)
 
 
-def handle_guest_follow_case(community_instance, user_instance, card_instance, aj, source_id, member_state):
+def handle_guest_follow_case(community_instance, user_instance, card_instance, aj, source_id, member_state,
+                             platform_code=None, version_code=None):
     if (not aj and not source_id) \
             and (member_state == 0 or member_state == member_states.PENDING_MEMBER):
         return {'success': False, 'error_message': "Invalid link"}
@@ -6148,7 +6179,8 @@ def handle_guest_follow_case(community_instance, user_instance, card_instance, a
         context = adding_guest_in_chatroom(context, card_instance, aj, source_id, community_instance.id,
                                            user_instance.id,
                                            guest_header=True,
-                                           created_at=current_time)
+                                           created_at=current_time, platform_code=platform_code,
+                                           version_code=version_code)
 
         # updating the collabcard state external follow for guest member
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
@@ -6553,20 +6585,23 @@ def update_event_answer_text(collabcard_instance):
 
 
 def decode_url(request):
-    '''function to send og tags of the link'''
-
-    url = request.GET.get('url')
+    """function to send og tags of the link"""
 
     try:
-        og_tags = decode_meta_from_url(url)
+        url = request.GET.get('url')
+        og_tags = UriTagsImpl(url).get_tags_from_uri()
 
     except Exception as e:
-        error_logger.error(e.args)
+        error_logger.error(e)
+        return JsonResponse({
+            'success': False,
+            'error_message': f'API failed api=decode_url, reason={e}'
+        }, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return JsonResponse({'error_message': "Incorrect url"},
-                            status=status_codes.HTTP_400_BAD_REQUEST)
-
-    return JsonResponse({'og_tags': og_tags})
+    return JsonResponse({
+        'success': True,
+        'og_tags': og_tags
+    })
 
 
 def get_chatrooms(chatroom_list, member_id, active=None, device_id=''):
@@ -8453,6 +8488,9 @@ def limit_access(request):
     '''function to limit the access of app and sending details on web screen'''
 
     member_id = get_member_id_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
     try:
         user_instance = User.objects.get(id=member_id)
     except:
@@ -8472,7 +8510,8 @@ def limit_access(request):
     community_list = []
     for member in members_filter:
         community_instance = member.community_id
-        community = CommunitySerializer(community_instance, current_user_id=member_id)
+        community = CommunitySerializer(community_instance, current_user_id=member_id, platform_code=platform_code,
+                                        version_code=version_code)
 
         community_creator = get_community_creator(community_instance)
         if community_creator:
@@ -9110,6 +9149,8 @@ def edit_community(request):
     community_id = request.GET.get('community_id')
     member_id = get_member_id_from_headers(request)
     community = Community.objects.get(id=community_id)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     if not member_id:
         return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
@@ -9125,7 +9166,6 @@ def edit_community(request):
         Collabcard.objects.filter(community=community, type=card_types.CARD_PURPOSE).update(title=value)
         community.purpose = value
         community.save()
-
 
     elif key == 'questions':
         questions = json_body['questions']
@@ -9148,7 +9188,8 @@ def edit_community(request):
     instance.community = community
     instance.save()
 
-    serialized_object = CommunitySerializer(community, current_user_id=member_id)
+    serialized_object = CommunitySerializer(community, current_user_id=member_id, platform_code=platform_code,
+                                            version_code=version_code)
     new_dict = {}
     new_dict.update(serialized_object)
     send_sync_notification.delay({'community_id': community_id,
@@ -10304,7 +10345,7 @@ def test_notification_api(request):
         temp['title'] = "Conversation Creation"
         temp['sub_title'] = "payload data for conversation creation"
         temp['route'] = "route://collabcard?collabcard_id=" + str(card_id)
-        temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id)
+        temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id, None)
 
         return JsonResponse(temp)
 
@@ -10318,8 +10359,10 @@ def unread_conversation_notification(request):
         context = get_error_context(False, "send memeber id in headers")
         return JsonResponse(context)
 
-    temp = {}
-    temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id=member_id)
+    community_id: str = request.GET.get('community_id')
+
+    temp = dict()
+    temp['unread_conversation'] = get_custom_data_for_new_conversation_created(member_id, community_id)
 
     return JsonResponse(temp)
 
@@ -11655,8 +11698,6 @@ class ActionPendingChatroom(APIView):
             create_chatroom(card_instance=chatroom, user_instance=chatroom.user,
                             state=conversation_states.CONVERSATION_HEADER, current_user_id=chatroom.user.id)
 
-            send_ice_breaker_notification.delay(chatroom.community.id, time.time(), day=0)
-
             # batch update for already existing users and saving their unseen count
             set_chatroom_state_for_all_members_on_card_creation.delay(chatroom.community.id, card_id=chatroom.id,
                                                                       function_called="action_pending_chatroom")
@@ -12090,8 +12131,8 @@ class SyncChatrooms(APIView):
 
         # Pre-compute event recordings data
         chatroom_event_recordings_mapper = ChatroomHelper.fetch_event_recordings_and_event_urls_for_chatroom_list(
-                                                        user_instance,
-                                                        chatroom_ids_list)
+            user_instance,
+            chatroom_ids_list)
 
         max_last_updated = 0
         for data in chatroom_data:
@@ -12687,7 +12728,7 @@ class SyncChatrooms(APIView):
                     if cohort_object['cohort_id'] in cohort_member_map else []
 
             else:
-                cohort_chatroom_map[cohort_object['chatroom_id']] += cohort_member_map[cohort_object['cohort_id']] if\
+                cohort_chatroom_map[cohort_object['chatroom_id']] += cohort_member_map[cohort_object['cohort_id']] if \
                     cohort_object['cohort_id'] in cohort_member_map else []
 
         return cohort_chatroom_map

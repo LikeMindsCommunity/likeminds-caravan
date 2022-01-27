@@ -840,7 +840,7 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
     message['payload'] = {
         'title': card_instance.header,
         'sub_title': userinfo_instance.name + ": " + answer_text,
-        'route': "route://collabcard?collabcard_id=" + str(card_instance.id),
+        'route': f"route://collabcard?collabcard_id={str(card_instance.id)}&community_id={str(community_instance.id)}",
         'unread_follow_notification': custom_conversation_notification_payload
     }
 
@@ -942,7 +942,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
     message['payload'] = {
         'title': card_instance.header,
         'sub_title': userinfo_instance.name + ":" + icon_string + " " + answer_text,
-        'route': "route://collabcard?collabcard_id=" + str(card_id),
+        'route': f"route://collabcard?collabcard_id={str(card_id)}&community_id={str(community_instance.id)}",
         'unread_follow_notification': custom_conversation_notification_payload
     }
 
@@ -979,17 +979,25 @@ def compute_mute_status_for_users(current_user_id):
     return mute_list
 
 
-def get_custom_data_for_new_conversation_created(user_id):
+def get_custom_data_for_new_conversation_created(user_id: str, community_id: str) -> list:
     """function to send notification for new conversation posted to followed users"""
 
-    # time.sleep(2)
     mute_status_list = compute_mute_status_for_users(user_id)
 
-    followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,
-                                                           draft_id=None,
-                                                           unseen_count__gt=0).filter(
-        ~Q(card_id__in=mute_status_list)).select_related('card',
-                                                         'community').order_by('-updated_at', '-id')[:10]
+    filter_dict = _get_conversation_engage_filter_for_new_conversation(user_id, community_id)
+
+    followed_chatrooms = conversationEngage.objects.filter(
+        **filter_dict
+    ).filter(
+        ~Q(card_id__in=mute_status_list)
+    ).select_related(
+        'card',
+        'community'
+    ).order_by(
+        '-updated_at',
+        '-id'
+    )[:10]
+
     unread_conversation = []
 
     for conversation in followed_chatrooms:
@@ -1053,6 +1061,19 @@ def get_custom_data_for_new_conversation_created(user_id):
         unread_conversation.append(temp)
 
     return unread_conversation
+
+
+def _get_conversation_engage_filter_for_new_conversation(user_id: str, community_id: str) -> dict:
+    filter_dict = {
+        'user_id': user_id,
+        'draft_id': None,
+        'unseen_count__gt': 0
+    }
+
+    if community_id:
+        filter_dict['community_id'] = community_id
+
+    return filter_dict
 
 
 def get_custom_data_for_new_conversation_created_ios(user_id):
@@ -1827,124 +1848,6 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
             notification_list.append(temp)
             notification_meta(notification_list, message)
-        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
-                                                date_time=date_time, interval=False, crontab=True)
-        return
-
-
-@app.task
-@shared_task
-def send_ice_breaker_notification(community_id, start_time, day=0):
-    community_instance = Community.objects.get(id=community_id)
-
-    members = Members.objects.filter(community_id=community_id, state=1)
-    collabcards = Collabcard.objects.filter(community=community_instance)
-    message = {}
-    for member in members:
-
-        notification_list = []
-        notification_details = get_token_for_fcm(member.member_id.id, flag=True)
-        temp = {
-            'id': member.member_id.id,
-            'fcm_token': notification_details[0],
-            'mobile_os': notification_details[1],
-        }
-        notification_list.append(temp)
-        message['payload'] = {
-            "title": str(community_instance.name),
-            "sub_title": "",
-            'route': '//route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-                community_instance.name)
-        }
-        if day == 3:
-            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(
-                member.member_id.userinfo.name) + ", looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
-            notification_meta(notification_list, message)
-
-        elif day == 4:
-            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(
-                member.member_id.userinfo.name) + ", it has been 4 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
-            notification_meta(notification_list, message)
-
-        elif day == 7:
-            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(
-                member.member_id.userinfo.name) + ",looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
-            notification_meta(notification_list, message)
-
-        elif day == 9:
-            message['payload']['sub_title'] = "Hey " + get_first_name_from_name(
-                member.member_id.userinfo.name) + ", it has been 9 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
-            notification_meta(notification_list, message)
-
-    if day == 0 and members.exists():
-        # get tomorrow 11 am
-        # start_time = datetime.fromtimestamp(start_time+30)
-        start_time = datetime.fromtimestamp(start_time + (24 * 60 * 60))
-        start_time = start_time.replace(hour=11, minute=0) + timedelta(days=3)
-        # start_time = start_time + timedelta(minutes=2)
-        date_time = start_time.timestamp()
-
-        celerybeatask = CeleryBeatTask()
-        task_name = str(community_id) + "send_ice_breaker_notification"
-
-        # delete if task exists before
-        celerybeatask.terminate_task(task_name)
-        day = 3
-        args = [community_id, date_time, day]
-        task_path = "collabmates_api.notification.send_ice_breaker_notification"
-        kwargs = {}
-        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
-                                                date_time=date_time, interval=False, crontab=True)
-        return
-
-    elif day == 3 and members.exists():
-        start_time = datetime.fromtimestamp(start_time)
-        start_time = start_time.replace(hour=9, minute=0) + timedelta(days=1)
-        # start_time = start_time + timedelta(minutes=2)
-        date_time = start_time.timestamp()
-
-        task_name = str(community_id) + "send_ice_breaker_notification"
-        celerybeatask = CeleryBeatTask()
-        celerybeatask.terminate_task(task_name)
-        celerybeatask = CeleryBeatTask()
-        day = 4
-        args = [community_id, date_time, day]
-        task_path = "collabmates_api.notification.send_ice_breaker_notification"
-        kwargs = {}
-        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
-                                                date_time=date_time, interval=False, crontab=True)
-        return
-
-    elif day == 4 and members.exists():
-        start_time = datetime.fromtimestamp(start_time)
-        start_time = start_time.replace(hour=9, minute=0) + timedelta(days=2)
-        # start_time = start_time + timedelta(minutes=2)
-        date_time = start_time.timestamp()
-        task_name = str(community_id) + "send_ice_breaker_notification"
-        celerybeatask = CeleryBeatTask()
-        celerybeatask.terminate_task(task_name)
-        celerybeatask = CeleryBeatTask()
-        day = 7
-        args = [community_id, date_time, day]
-        task_path = "collabmates_api.notification.send_ice_breaker_notification"
-        kwargs = {}
-        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
-                                                date_time=date_time, interval=False, crontab=True)
-        return
-
-    elif day == 7 and members.exists():
-        start_time = datetime.fromtimestamp(start_time)
-        start_time = start_time.replace(hour=9, minute=0) + timedelta(days=8)
-        # start_time = start_time + timedelta(minutes=2)
-        date_time = start_time.timestamp()
-        task_name = str(community_id) + "send_ice_breaker_notification"
-        celerybeatask = CeleryBeatTask()
-        celerybeatask.terminate_task(task_name)
-        celerybeatask = CeleryBeatTask()
-        day = 9
-        args = [community_id, date_time, day]
-        task_path = "collabmates_api.notification.send_ice_breaker_notification"
-        kwargs = {}
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
         return
@@ -2774,7 +2677,7 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
         "title": "Time to vote",
         "sub_title": POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
                                                    community_instance.name),
-        'route': POLL_CONVERSATION_ROUTE % (card_instance.id, conversation_id)
+        'route': POLL_CONVERSATION_ROUTE % (community_instance.id, card_instance.id, conversation_id)
     }
     }
 

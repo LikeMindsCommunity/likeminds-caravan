@@ -450,7 +450,7 @@ SECRET_CHATROOM_REMOVED_ROUTE = "route://main"
 
 POLL_CONVERSATION_TITLE = "Time to vote!"
 POLL_CONVERSATION_SUBTITLE = "%s started a poll in %s in %s"
-POLL_CONVERSATION_ROUTE = "route://poll_chatroom?chatroom_id=%s&conversation_id=%s"
+POLL_CONVERSATION_ROUTE = "route://poll_chatroom?community_id=%s&chatroom_id=%s&conversation_id=%s"
 
 MESSAGE_REACTIONS_NOTIFICATION_SUB_TITLE = "%s reacted to your message with %s"
 MESSAGE_REACTIONS_CHATROOM_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id=%s"
@@ -554,6 +554,12 @@ LM_PLATFORM_CODES = ["an", "ios", "web"]
 
 SINGLE_COMMUNITY_VIEW_VERSION_CODE = {
     "an": 170,
+    "ios": 300,
+    "web": 1001
+}
+
+FREE_LINK_VERSION_CODE = {
+    "an": 1001,
     "ios": 1001,
     "web": 1001
 }
@@ -569,7 +575,7 @@ SEGMENT_COMMUNITY_LOGO_UPLOADED_EVENT_NAME = "Community logo uploaded (Core Serv
 CUSTOMISE_JOIN_FORM_MAIL_SUBJECT = "Hi {}! Your community join form is all set"
 
 CM_ONBOARDING_ANDROID_VERSION_CODE = 175
-CM_ONBOARDING_IOS_VERSION_CODE = 1000
+CM_ONBOARDING_IOS_VERSION_CODE = 297
 CM_ONBOARDING_WEB_VERSION_CODE = 1
 
 CM_ONBOARDING_COMMUNITY_FEED_URL = "{}/community_feed?community_id={}&community_name={}"
@@ -584,3 +590,11 @@ else:
     CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK = "https://collabmates.app.link/jufb9hPRGkb"
 
 COMMUNITY_MEMBER_PROFILE_MEMBER_SINCE_TEXT = "Member since {}"
+
+CM_ONBOARDING_JOIN_FORM_NOT_SETUP_MAIL_SUBJECT = "Setup join form for {}"
+DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"
+CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_LINK = "https://flicker-map-472.notion.site/Community-join-form-586af3b4e6a04d16970a374410d0bf6e"
+CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_TEXT = "Join form guide"
+MEMBER_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
+
+FIVE_DAYS_IN_HOURS = 24 * 5
