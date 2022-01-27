@@ -216,7 +216,7 @@ class Members(models.Model):
         return member_instance
 
     @staticmethod
-    def is_community_member(community: Community, member: Union[User, str, int]) -> bool:
+    def is_community_member(community: Union[Community, str, int], member: Union[User, str, int]) -> bool:
         return Members.objects.filter(community_id=community,
                                       member_id=member
                                       ).filter(Q(state=member_states.ADMIN) |

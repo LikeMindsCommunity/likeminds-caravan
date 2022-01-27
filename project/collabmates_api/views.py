@@ -722,7 +722,16 @@ def get_home_screen_community_actions(community_instance):
 
 def bottom_menu(request):
     try:
-        menu = _build_bottom_menu()
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not member_instance:
+            return JsonResponse({
+                'success': False,
+                'error_message': 'Invalid member-id'
+            }, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        menu = _build_bottom_menu(member_instance)
         return JsonResponse({
             'success': True,
             'menu': menu
@@ -736,10 +745,13 @@ def bottom_menu(request):
         })
 
 
-def _build_bottom_menu() -> list:
+def _build_bottom_menu(user_instance) -> list:
     menu = list()
     _add_join_new_community_menu(menu)
-    _add_create_new_community_menu(menu)
+
+    if settings.IS_BETA or Members.is_community_member(community=COMMUNITY_HOOD_COMMUNITY_ID, member=user_instance):
+        _add_create_new_community_menu(menu)
+
     _add_send_feedback_menu(menu)
     _add_help_faq_menu(menu)
 
