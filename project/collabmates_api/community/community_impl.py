@@ -2306,7 +2306,8 @@ class CommunityHelper:
         send_email_response = MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
                                                                                   template=mail_template,
                                                                                   to_mails_list=valid_email_ids_list,
-                                                                                  reply_to=INVITE_MEMBER_REPLY_EMAIL)
+                                                                                  reply_to=INVITE_MEMBER_REPLY_EMAIL,
+                                                                                  from_name=INVITE_MEMBER_FROM_MAIL_NAME)
         return send_email_response
 
     @staticmethod
