@@ -88,6 +88,6 @@ class MailWrapper(MailManager):
                 return True
 
         except Exception as e:
-            error_logger.error(e.args)
+            error_logger.error(e.__dict__)
 
         return False
