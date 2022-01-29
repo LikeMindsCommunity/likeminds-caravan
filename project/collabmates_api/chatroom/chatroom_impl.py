@@ -2857,6 +2857,7 @@ class ChatroomImpl(ChatroomManager):
     @transaction.atomic
     # transaction.atomic is used to wrap a method inside a transaction
     def rename_chatrooms_using_transactions(req_body):
+
         valid_chatroom_id = req_body.get('valid_chatroom_id')
         invalid_chatroom_id = req_body.get('invalid_chatroom_id')
 
@@ -2865,14 +2866,17 @@ class ChatroomImpl(ChatroomManager):
         valid_chatroom_instance.title = TimeUtilities.get_current_datetime_in_IST()
         valid_chatroom_instance.save()
         print("Valid chatroom name after update:", valid_chatroom_instance.title)
-        # Transaction will be failed here as "Collabcard matching query does not exist." exception will occur.
+
+        # Transaction will be failed here as following exception will occur.
+        # "Collabcard matching query does not exist."
         invalid_chatroom_instance = Collabcard.objects.get(id=invalid_chatroom_id)
-        # As this method is wrapped under transaction.atomic is used,
+
         # title update for valid chatroom will be rolled back.
         print("Invalid chatroom name before update:", invalid_chatroom_instance.title)
         invalid_chatroom_instance.title = TimeUtilities.get_current_datetime_in_IST()
         invalid_chatroom_instance.save()
         print("Invalid chatroom name after update:", invalid_chatroom_instance.title)
+
         return {'success': True}
 
 
