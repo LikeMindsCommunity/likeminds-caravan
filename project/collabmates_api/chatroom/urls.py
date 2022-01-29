@@ -13,9 +13,10 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  AddEventRecordingAttachmentMeta, UpdateAccessWithOutSubscriptionView,
                                  DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta,
                                  RemoveCohortFromChatroomView, AddCohortToChatroomView, FetchChatroomParticipantsView,
-                                 PublishEventWebflowView, FetchUserAllEventsMeta)
+                                 PublishEventWebflowView, FetchUserAllEventsMeta, RenameChatroomView)
 
 urlpatterns = [
+    path('test_transaction', RenameChatroomView.as_view(), name="test_transaction"),
     path('fetch', FetchChatroomView.as_view(), name="fetch_chatroom"),
     path('create', CreateChatroomView.as_view(), name="create_chatroom"),
     path('pin', PinUnpinChatroomView.as_view(), name="pin_unpin_chatroom"),

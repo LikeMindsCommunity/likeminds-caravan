@@ -2,6 +2,8 @@ import json
 
 import time
 from typing import Union
+
+from django.db import transaction
 from rest_framework import status as status_codes
 from django.contrib.auth.models import User
 from django.db.models import Q, Max
@@ -2850,6 +2852,28 @@ class ChatroomImpl(ChatroomManager):
                 chatrooms_link_objects.append(response_context)
 
         return {'success': True, 'chatroom_links': chatrooms_link_objects}
+
+    @staticmethod
+    @transaction.atomic
+    # transaction.atomic is used to wrap a method inside a transaction
+    def rename_chatrooms_using_transactions(req_body):
+        valid_chatroom_id = req_body.get('valid_chatroom_id')
+        invalid_chatroom_id = req_body.get('invalid_chatroom_id')
+
+        valid_chatroom_instance = Collabcard.objects.get(id=valid_chatroom_id)
+        print("Valid chatroom name before update:", valid_chatroom_instance.title)
+        valid_chatroom_instance.title = TimeUtilities.get_current_datetime_in_IST()
+        valid_chatroom_instance.save()
+        print("Valid chatroom name after update:", valid_chatroom_instance.title)
+        # Transaction will be failed here as "Collabcard matching query does not exist." exception will occur.
+        invalid_chatroom_instance = Collabcard.objects.get(id=invalid_chatroom_id)
+        # As this method is wrapped under transaction.atomic is used,
+        # title update for valid chatroom will be rolled back.
+        print("Invalid chatroom name before update:", invalid_chatroom_instance.title)
+        invalid_chatroom_instance.title = TimeUtilities.get_current_datetime_in_IST()
+        invalid_chatroom_instance.save()
+        print("Invalid chatroom name after update:", invalid_chatroom_instance.title)
+        return {'success': True}
 
 
 class ChatroomHelper:

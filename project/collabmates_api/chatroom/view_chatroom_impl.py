@@ -16,6 +16,26 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 error_logger = LoggingWrapper.get_instance()
 
 
+class RenameChatroomView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.fetch_request_body(request)
+        try:
+            chatroom_manager = ChatroomImpl(member_id)
+            context = chatroom_manager.rename_chatrooms_using_transactions(req_body)
+            return JsonResponse(context)
+
+        except Exception as e:
+            print(e)
+            return JsonResponse(e.__dict__)
+
+
+
 class FetchChatroomView(APIView):
     """ inheriting API view class for using class based views in django """
 
