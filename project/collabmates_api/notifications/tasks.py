@@ -1,15 +1,8 @@
-from logging import error
-import os
 from celery.app import shared_task
-from celery.result import AsyncResult
-
-import sendgrid
-from sendgrid.helpers.mail import *
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
-from rest_framework import status as status_codes
 
+from external_services.email.email_wrapper import MailWrapper
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.time_utilities import TimeUtilities
 
@@ -25,6 +18,7 @@ from external_services.calender.calendar_impl import CalendarImpl
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 url = settings.URL
+
 
 @shared_task
 def trigger_event_comms(payload_for_whatsapp_comms, payload_for_app_and_email_notifications):
@@ -402,9 +396,10 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
         if send_allowed and not is_task_deleted:
-            send_email_with_custom_from_email(context['subject'], context['template'], context['from_email'],\
-                                            context['to_mails_list'], reply_to=context['reply_to'], \
-                                            from_name=context['from_name'])
+            MailWrapper.send_email_with_custom_from_email(context['subject'], context['template'],
+                                                          context['from_email'], context['to_mails_list'],
+                                                          reply_to=context['reply_to'],
+                                                          from_name=context['from_name'])
 
         else:
             info_logger.info("No email notification scheuduled for event_type = %s | chatroom_deleted = %s | \
@@ -414,41 +409,6 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
     except Exception as e:
         error_logger.exception("got error in send_email_notification_for_event_type | error - %s | payload received = %s |\
                             event_type = %s" % (str(e), payload_for_email_comms, event_type))
-
-
-@shared_task
-def send_email_with_custom_from_email(subject, template, from_email, to_mails_list, reply_to=None, \
-                                    from_name=SENDER_NAME_FOR_EMAIL_COMMS):
-
-    mail = Mail()
-
-    for to_email in to_mails_list:
-        personalization = Personalization()
-        personalization.add_to(Email(to_email))
-        mail.add_personalization(personalization)
-
-    mail.from_email = Email(name=from_name, email=from_email)
-
-    mail.subject = subject
-
-    if reply_to:
-        mail.reply_to = Email(email=reply_to)
-
-    mail.add_content(Content('text/html', template))
-
-    sg_instance = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
-
-    try:
-        response = sg_instance.client.mail.send.post(request_body=mail.get())
-
-        if response.status_code == status_codes.HTTP_202_ACCEPTED:
-            info_logger.info('mail successfully sent | subject = %s ' % subject)
-            info_logger.info('headers = %s' % response.headers)
-
-    except Exception as e:
-        error_logger.error(e.args)
-
-    return
 
 
 @shared_task
@@ -554,8 +514,9 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
                                                                      chatroom_not_opened_type)
 
         if context:
-            send_email_with_custom_from_email(context['subject'], context['template'], context['from_email'],
-                                              context['to_mails_list'], reply_to=context['reply_to'])
+            MailWrapper.send_email_with_custom_from_email(context['subject'], context['template'],
+                                                          context['from_email'], context['to_mails_list'],
+                                                          reply_to=context['reply_to'])
 
             TasksHelper.update_user_email_send_status(receiver_id, chatroom_id, chatroom_not_opened_type)
 
