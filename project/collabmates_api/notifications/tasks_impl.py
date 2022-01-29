@@ -574,7 +574,7 @@ class TasksHelper:
             'state': member_states.MEMBER
         }).values_list('member_id', flat=True)
 
-        return members_list
+        return list(members_list)
 
     @staticmethod
     def get_list_of_members_who_attended_event(chatroom_id):
@@ -584,7 +584,7 @@ class TasksHelper:
             'attended': True
         }).values_list('user', flat=True)
 
-        return attending_members_list
+        return list(attending_members_list)
 
     @staticmethod
     def get_list_of_members_attending_or_not_attending_event(chatroom_id, user_ids, attending=False):
@@ -595,7 +595,7 @@ class TasksHelper:
             'user__in': user_ids
         }).values_list('user', flat=True)
 
-        return attending_members_list
+        return list(attending_members_list)
 
     @staticmethod
     def get_community_owner_and_event_creator(community_id, event_instance):
@@ -608,15 +608,18 @@ class TasksHelper:
             'id__in':[owner.id, event_creator.id]
         }).values_list('id', flat=True)
 
-        return users_list
+        return list(users_list)
 
     @staticmethod
-    def get_community_managers_of_community(community_id):
+    def get_community_managers_and_owners_of_community(community_id, event_instance, add_event_creator=True):
 
-        community_managers = Members.objects.filter(
+        community_managers = list(Members.objects.filter(
             community_id__id=community_id,
             state=member_states.ADMIN
-        ).values_list("member_id__id", flat=True)
+        ).values_list("member_id__id", flat=True))
+
+        if not add_event_creator:
+            community_managers.remove(event_instance.user.id)
 
         return community_managers
 

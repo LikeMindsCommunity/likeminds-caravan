@@ -86,7 +86,11 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
         user_ids = []
 
         if event_type == EVENT_TYPE.CREATION:
-            user_ids = active_user_ids
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_instance.id,
+                                                                                            event_instance,
+                                                                                            add_event_creator=False)
+
+            user_ids = active_user_ids + community_managers
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION
 
         elif event_type == EVENT_TYPE.LAST_CALL:
@@ -102,12 +106,17 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
                                                                                                     active_user_ids,
                                                                                                     attending=True)
 
-            user_ids = users_attending_event
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_instance.id,
+                                                                                            event_instance)
+
+            user_ids = users_attending_event + community_managers
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS
 
         elif event_type == EVENT_TYPE.ATTENDANCE_10_MIN:
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_instance.id,
+                                                                                            event_instance)
 
-            user_ids = active_user_ids
+            user_ids = active_user_ids + community_managers
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN
 
         is_non_member_access_event = TasksHelper.is_non_member_access_event(event_instance=event_instance)
@@ -191,13 +200,17 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_app_notification)
 
         event_instance = payload.get('chatroom')
-        community_id = event_instance.community
+        community_id = event_instance.community.id
 
         active_user_ids = TasksHelper.get_active_members_of_community(community_id)
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
-            user_instances = active_user_ids
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
+                                                                                            event_instance,
+                                                                                            add_event_creator=False)
+
+            user_instances = active_user_ids + community_managers
 
         elif event_type == EVENT_TYPE.LAST_CALL:
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
@@ -210,10 +223,15 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
                                                                                                     active_user_ids,
                                                                                                     attending=True)
 
-            user_instances = users_attending_event
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
+                                                                                            event_instance)
+
+            user_instances = users_attending_event + community_managers
 
         elif event_type == EVENT_TYPE.REGISTRATION:
-            user_instances = TasksHelper.get_community_owner_and_event_creator(community_id, event_instance)
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
+                                                                                            event_instance)
+            user_instances = community_managers
 
         is_non_member_access_event = TasksHelper.is_non_member_access_event(event_instance=event_instance)
 
@@ -351,7 +369,7 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_email_comms)
 
         event_instance = payload.get('chatroom')
-        community_id = event_instance.community
+        community_id = event_instance.community.id
 
         active_user_ids = TasksHelper.get_active_members_of_community(community_id)
         user_instances = []
@@ -375,7 +393,10 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                                                                     active_user_ids,
                                                                                                     attending=True)
 
-            user_instances = users_attending_event
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
+                                                                                            event_instance)
+
+            user_instances = users_attending_event + community_managers
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTENDEES:
             user_instances = TasksHelper.get_community_owner_and_event_creator(community_id, event_instance)
