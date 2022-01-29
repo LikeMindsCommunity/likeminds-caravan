@@ -396,8 +396,9 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
         if send_allowed and not is_task_deleted:
-            MailWrapper.send_email_with_custom_from_email(context['subject'], context['template'],
-                                                          context['from_email'], context['to_mails_list'],
+            MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
+                                                          from_email=context['from_email'],
+                                                          to_mails_list=context['to_mails_list'],
                                                           reply_to=context['reply_to'],
                                                           from_name=context['from_name'])
 
@@ -514,8 +515,9 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
                                                                      chatroom_not_opened_type)
 
         if context:
-            MailWrapper.send_email_with_custom_from_email(context['subject'], context['template'],
-                                                          context['from_email'], context['to_mails_list'],
+            MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
+                                                          from_email=context['from_email'],
+                                                          to_mails_list=context['to_mails_list'],
                                                           reply_to=context['reply_to'])
 
             TasksHelper.update_user_email_send_status(receiver_id, chatroom_id, chatroom_not_opened_type)
