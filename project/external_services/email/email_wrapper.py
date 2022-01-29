@@ -59,7 +59,7 @@ class MailWrapper(MailManager):
             from_email = MailWrapper.from_email
 
         if not reply_to:
-            reply_to = [from_email]
+            reply_to = from_email
 
         mail = Mail()
 
