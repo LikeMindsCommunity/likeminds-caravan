@@ -705,7 +705,8 @@ class TasksHelper:
         community_owner_instance = Members.get_community_owner_user_instance_or_none(event_instance.community)
         community_owner_email = TasksHelper.get_emails_list_for_user_instances([community_owner_instance])
 
-        to_mails_list = TasksHelper.get_emails_list_for_user_instances(user_instances)
+        # to_mails_list = TasksHelper.get_emails_list_for_user_instances(user_instances)
+        to_mails_list = ['naman.jain@likeminds.community', 'deepanshu.saxena@likeminds.community']
         reply_to = community_owner_email[0] if community_owner_email else ''
 
         context = {

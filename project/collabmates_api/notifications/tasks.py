@@ -22,8 +22,8 @@ url = settings.URL
 
 @shared_task
 def trigger_event_comms(payload_for_whatsapp_comms, payload_for_app_and_email_notifications):
-    trigger_whatsapp_communication_for_event.delay(payload_for_whatsapp_comms)
-    trigger_app_notification_for_event.delay(payload_for_app_and_email_notifications)
+    # trigger_whatsapp_communication_for_event.delay(payload_for_whatsapp_comms)
+    # trigger_app_notification_for_event.delay(payload_for_app_and_email_notifications)
     trigger_email_communication_for_event.delay(payload_for_app_and_email_notifications)
 
 
@@ -262,12 +262,12 @@ def send_calender_invite_for_event_type(payload_for_calendar_invite, event_type,
             info_logger.info("Scheduling calendar invite for event_type = %s | event_metadata = %s | \
                             payload received = %s" % (event_type, event_metadata, payload))
 
-            schedule_calendar_invite_for_event_comms.apply_async(
-                args,
-                kwargs={},
-                eta=task_begin_time,
-                expires=task_expiry_time
-            )
+            # schedule_calendar_invite_for_event_comms.apply_async(
+            #     args,
+            #     kwargs={},
+            #     eta=task_begin_time,
+            #     expires=task_expiry_time
+            # )
 
         else:
             info_logger.info("No calendar invite sent for event_type = %s | payload received = %s" % (event_type, \
