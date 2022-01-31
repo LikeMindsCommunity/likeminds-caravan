@@ -11,7 +11,7 @@ from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
-    MINUTES_30, MINUTES_60
+    MINUTES_30, MINUTES_60, MINUTES_2
 
 from .conversation_manager import ConversationManager
 from .reactions import fetch_chatroom_or_conversation_reactions
@@ -1613,7 +1613,7 @@ class ConversationHelper:
 
             # runs after 6 hours, expires after 6 hours and 30 minutes
             send_communication_when_chatroom_not_opened.apply_async(args=args, kwargs={}, countdown=countdown,
-                                                                    expires=countdown + MINUTES_30)
+                                                                    expires=countdown + MINUTES_2)
 
     @staticmethod
     def update_homefeed_for_all_chatroom_followers(chatroom_id, conversation_id):
