@@ -1612,8 +1612,11 @@ class ConversationHelper:
             countdown = ENGAGEMENT_COMMUNICATION_DURATION_IN_HOURS * MINUTES_60
 
             # runs after 6 hours, expires after 6 hours and 30 minutes
-            send_communication_when_chatroom_not_opened.apply_async(args=args, kwargs={}, countdown=countdown,
-                                                                    expires=countdown + MINUTES_2)
+            # send_communication_when_chatroom_not_opened.apply_async(args=args, kwargs={}, countdown=countdown,
+            #                                                         expires=countdown + MINUTES_2)
+
+            send_communication_when_chatroom_not_opened.delay(receiver_id, sender_id, chatroom_id,
+                                                              chatroom_not_opened_type, last_seen_conversation)
 
     @staticmethod
     def update_homefeed_for_all_chatroom_followers(chatroom_id, conversation_id):
