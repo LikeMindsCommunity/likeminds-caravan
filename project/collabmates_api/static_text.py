@@ -508,7 +508,7 @@ MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE = "{} is a community manager now"
 ATTENDEES_FILTER_NAME = "attendees"
 CO_HOSTS_FILTER_NAME = "co_hosts"
 
-ALL_MEMBER_COHORT_TEXT = "All member group"
+ALL_MEMBER_COHORT_TEXT = "All Member Cohort"
 SUBSCRIPTION_COHORT_NAME = "Subscription Plan - {}"
 SUBSCRIPTION_EXPIRED_COHORT_NAME = "Subscription Expired"
 

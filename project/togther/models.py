@@ -2587,11 +2587,10 @@ class Cohort(models.Model):
 
         current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
 
-        if self.updated_at == 0:
-            self.updated_at = current_time_in_ms
-
-        if self.created_at <= 0:
+        if self.created_at == 0:
             self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
 
         super(Cohort, self).save(*args, **kwargs)
 
@@ -2617,11 +2616,10 @@ class CohortMember(models.Model):
 
         current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
 
-        if self.updated_at == 0:
-            self.updated_at = current_time_in_ms
-
-        if self.created_at <= 0:
+        if self.created_at == 0:
             self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
 
         super(CohortMember, self).save(*args, **kwargs)
 
@@ -2659,11 +2657,10 @@ class CohortRights(models.Model):
 
         current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
 
-        if self.updated_at == 0:
-            self.updated_at = current_time_in_ms
-
-        if self.created_at <= 0:
+        if self.created_at == 0:
             self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
 
         super(CohortRights, self).save(*args, **kwargs)
 
@@ -3012,11 +3009,10 @@ class ChatroomCohort(models.Model):
 
         current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
 
-        if self.updated_at == 0:
-            self.updated_at = current_time_in_ms
-
         if self.created_at == 0:
             self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
 
         super(ChatroomCohort, self).save(*args, **kwargs)
 
