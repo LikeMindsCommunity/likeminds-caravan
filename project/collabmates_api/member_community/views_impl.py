@@ -276,4 +276,71 @@ class ShowDmMessageIcon(APIView):
 
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(community_context)
+        return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+
+class FetchMemberProfileView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, req_body):
+
+        if not member_id:
+            return {'error_message': 'Send member_id'}
+
+        if not req_body.get('community_id'):
+            return {'error_message': 'Send community_id'}
+
+        if not req_body.get('user_id'):
+            return {'error_message': 'Send user_id'}
+
+        return {'success': True, 'community_id': req_body.get('community_id'), 'user_id': req_body.get('user_id')}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+        validated_req_body = self._validate_request(member_id, req_body)
+
+        if not validated_req_body.get('success', False):
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'))
+        community_context = member_community_manager.fetch_member_profile(validated_req_body.get('user_id'))
+
+        if 'error_message' in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+
+class EditMemberProfileView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, req_body):
+
+        if not member_id:
+            return {'error_message': 'Send member_id'}
+
+        if not req_body.get('community_id'):
+            return {'error_message': 'Send community_id'}
+
+        return {'success': True}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+        validated_req_body = self._validate_request(member_id, req_body)
+
+        if not validated_req_body.get('success', False):
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        member_community_manager = MemberCommunityImpl(member_id, req_body.get('community_id'))
+        community_context = member_community_manager.edit_member_profile(req_body)
+
+        if 'error_message' in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(community_context, status=status_codes.HTTP_200_OK)

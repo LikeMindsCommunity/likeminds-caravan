@@ -8,8 +8,8 @@ from utility.time_utilities import TimeUtilities
 
 from project.celery import app
 from .constants import COMM_TYPE, EVENT_COMM_FREQUENCY, EVENT_TYPE, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN, \
-        WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION, \
-        WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL, SENDER_NAME_FOR_EMAIL_COMMS
+    WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION, \
+    WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL, SENDER_NAME_FOR_EMAIL_COMMS
 from .tasks_impl import TasksImpl, TasksHelper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from collabmates_api.notification import notification_meta
@@ -547,3 +547,13 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
         error_logger.error("got error in send_communication_when_chatroom_not_opened | error - %s | member_id \
                             received = %s | chatroom_id received = %s | chatroom_not_opened_type \
                             received = %s" % (str(e), receiver_id, chatroom_id, chatroom_not_opened_type))
+
+
+@shared_task
+def send_mail_for_first_time_edit_community_questions(user_id, community_id):
+    context = TasksHelper.create_context_for_sending_first_email_on_directory_questions_setup(user_id, community_id)
+
+    send_email_response = MailWrapper.send_email.delay(context.get('mail_subject'),
+                                                       context.get('mail_template'),
+                                                       context.get('from_email'),
+                                                       reply_to=context.get('reply_to_email'))

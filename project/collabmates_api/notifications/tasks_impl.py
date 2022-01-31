@@ -3,14 +3,15 @@ from django.conf import settings
 from django.template.loader import get_template
 
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
-    userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember
+    userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted
 from utility.time_utilities import TimeUtilities
 from utility.utils import generate_private_link_for_chatroom
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
-    user_email_send_status_types, event_access, card_types
+    user_email_send_status_types, event_access, card_types, get_started_types
 from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
+from collabmates_api.static_text import CUSTOMISE_JOIN_FORM_MAIL_SUBJECT
 
 from .constants import *
 from .tasks_manager import TaskManager
@@ -932,3 +933,46 @@ class TasksHelper:
 
         user_email_send_status_instance.is_completed = True
         user_email_send_status_instance.save()
+
+    @staticmethod
+    def create_context_for_sending_first_email_on_directory_questions_setup(user_id, community_id):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not (user_instance and community_instance):
+            return
+
+        community_get_started_filter = ModelUtilities.get_model_filter(CommunityGetStarted,
+                                                                       {'community': community_instance,
+                                                                        'get_started__type': get_started_types.CUSTOMISE_JOIN_FORM,
+                                                                        'completed': True})
+
+        if not len(community_get_started_filter):
+            from collabmates_api.views import update_community_get_started
+            from collabmates_api.branch import create_community_feed_url_for_cm_onboarding
+
+            update_community_get_started(community_instance, get_started_types.CUSTOMISE_JOIN_FORM, is_enabled=True)
+
+            # Send Join Form Mail
+            branch_link = create_community_feed_url_for_cm_onboarding(community_instance)
+
+            mail_template = get_template('mails/cm_onboarding/customise_join_form_cm_onboarding.html').render({
+                "community_name": community_instance.name,
+                "cm_name": user_instance.userinfo.name,
+                "community_logo": community_instance.image_link,
+                "community_brand_color": community_instance.brand_color if community_instance.brand_color else
+                DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+                "button_text": GETTING_STARTED_CM_BUTTON_TEXT,
+                "button_link": branch_link
+            })
+
+            mail_subject = CUSTOMISE_JOIN_FORM_MAIL_SUBJECT.format(user_instance.userinfo.name)
+
+            context = {
+                "mail_subject": mail_subject,
+                "mail_template": mail_template,
+                "from_email": [user_instance.userinfo.email],
+                "reply_to_email": [INVITE_MEMBER_REPLY_EMAIL]
+            }
+
+            return context

@@ -18,8 +18,10 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                     subclass.completed_onboarding_communites)) and
                 (hasattr(subclass, 'fetch_deleted_communities') and callable(
                     subclass.fetch_deleted_communities)) and
-                (hasattr(subclass, 'fetch_members_detail') and callable(subclass.fetch_members_detail)) or
-                (hasattr(subclass, 'show_dm') and callable(subclass.show_dm)) or
+                (hasattr(subclass, 'fetch_members_detail') and callable(subclass.fetch_members_detail)) and
+                (hasattr(subclass, 'show_dm') and callable(subclass.show_dm)) and
+                (hasattr(subclass, 'fetch_member_profile') and callable(subclass.fetch_member_profile)) and
+                (hasattr(subclass, 'edit_member_profile') and callable(subclass.edit_member_profile)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -95,5 +97,15 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
     def show_dm(self, req_body) -> {}:
         """returns whether to show the message icons on client side for CM or Member"""
+
+        raise NotImplementedError
+
+    def fetch_member_profile(self, member_id: str) -> {}:
+        """returns member profile"""
+
+        raise NotImplementedError
+
+    def edit_member_profile(self, req_body: dict) -> {}:
+        """Edits member profile"""
 
         raise NotImplementedError
