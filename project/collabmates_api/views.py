@@ -47,7 +47,8 @@ from .sync.model_update import update_models_for_syncing_apis
 from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
-                    cm_onboarding_version_check, directory_questions_v2_version_check)
+                    cm_onboarding_version_check, directory_questions_v2_version_check,
+                    get_user_email_preferred_verified)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -9416,6 +9417,7 @@ def edit_community_questions(request):
             mail_template = get_template('mails/cm_onboarding/customise_join_form_cm_onboarding.html').render({
                 "community_name": community_instance.name,
                 "cm_name": user_instance.userinfo.name,
+                "community_logo": community_instance.image_link,
                 "community_brand_color": community_instance.brand_color if community_instance.brand_color else
                 DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
                 "button_text": GETTING_STARTED_CM_BUTTON_TEXT,
@@ -9424,11 +9426,14 @@ def edit_community_questions(request):
 
             mail_subject = CUSTOMISE_JOIN_FORM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
-            send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
-                                                               [user_instance.userinfo.email],
-                                                               reply_to=[INVITE_MEMBER_REPLY_EMAIL])
+            user_email = get_user_email_preferred_verified(user_instance.id)
 
-    return JsonResponse({'success': True})
+            if user_email:
+                send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
+                                                                   [user_email],
+                                                                   reply_to=[INVITE_MEMBER_REPLY_EMAIL])
+
+    return JsonResponse({'success': True}, status=status_codes.HTTP_200_OK)
 
 
 def edit_questions(questions, community_id):
