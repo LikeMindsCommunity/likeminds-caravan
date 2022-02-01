@@ -553,7 +553,8 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
 def send_mail_for_first_time_edit_community_questions(user_id, community_id):
     context = TasksHelper.create_context_for_sending_first_email_on_directory_questions_setup(user_id, community_id)
 
-    send_email_response = MailWrapper.send_email.delay(context.get('mail_subject'),
-                                                       context.get('mail_template'),
-                                                       context.get('from_email'),
-                                                       reply_to=context.get('reply_to_email'))
+    if context:
+        send_email_response = MailWrapper.send_email.delay(context.get('mail_subject'),
+                                                           context.get('mail_template'),
+                                                           context.get('from_email'),
+                                                           reply_to=context.get('reply_to_email'))

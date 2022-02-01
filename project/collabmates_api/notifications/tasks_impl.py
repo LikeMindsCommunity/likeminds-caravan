@@ -950,6 +950,7 @@ class TasksHelper:
         if not len(community_get_started_filter):
             from collabmates_api.views import update_community_get_started
             from collabmates_api.branch import create_community_feed_url_for_cm_onboarding
+            from collabmates_api.tasks import get_user_email_preferred_verified
 
             update_community_get_started(community_instance, get_started_types.CUSTOMISE_JOIN_FORM, is_enabled=True)
 
@@ -968,10 +969,15 @@ class TasksHelper:
 
             mail_subject = CUSTOMISE_JOIN_FORM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
+            user_email = get_user_email_preferred_verified(user_instance.id)
+
+            if not user_email:
+                return {}
+
             context = {
                 "mail_subject": mail_subject,
                 "mail_template": mail_template,
-                "from_email": [user_instance.userinfo.email],
+                "from_email": [user_email],
                 "reply_to_email": [INVITE_MEMBER_REPLY_EMAIL]
             }
 

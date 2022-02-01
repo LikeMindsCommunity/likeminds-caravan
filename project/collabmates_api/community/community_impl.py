@@ -1272,6 +1272,9 @@ class CommunityImpl(CommunityManager):
                                                    'custom_title': 'Owner',
                                                    'became_member_at': TimeUtilities.current_time_in_sec()})
 
+        req_body['is_directory_questions_version'] = directory_questions_v2_version_check(self.get_request_platform(),
+                                                                                          self.get_version_code())
+
         CommunityHelper.create_community_async_tasks.delay(user_instance.id, community_instance.id, req_body)
 
         update_community_get_started(community_instance, get_started_types.CREATE_COMMUNITY_TYPE, is_enabled=True)
@@ -2648,7 +2651,12 @@ class CommunityHelper:
 
         add_community_settings_for_community(community_instance, user_instance)
 
-        CommunityHelper.create_introduction_question_in_community_v2(community_instance)
+        if req_body.get('is_directory_questions_version', False):
+            CommunityHelper.create_introduction_question_in_community_v2(community_instance)
+
+        else:
+            create_introduction_question_in_community(community_instance)
+
         post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
         post_master_introductions_for_community(community_instance.id, user_instance.id)
         post_general_collabcard_for_community(community_instance, user_instance.id)
