@@ -210,6 +210,7 @@ class CohortImpl(CohortManager):
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
                                                                   'member_id': user_instance})
         if not member_filter:
+            member_ids = [self.get_member_id()]
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
             return {'success': True}
@@ -218,6 +219,7 @@ class CohortImpl(CohortManager):
         is_cm = member_instance.state == member_states.ADMIN
 
         if not is_cm:
+            member_ids = [self.get_member_id()]
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
             CohortHelper.give_member_rights_when_added_to_cohort(cohort_instance, user_instance)
