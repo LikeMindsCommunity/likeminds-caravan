@@ -89,3 +89,21 @@ SENDER_FOR_ENGAGEMENT_COMMUNICATION = "hello@likeminds.community"
 DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"
 GETTING_STARTED_CM_BUTTON_TEXT = "GET STARTED"
 INVITE_MEMBER_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
+
+
+class NotificationCategories:
+    EVENT_ATTACHMENT_UPLOADED_CATEGORY = "Event attachment uploaded"
+    EVENT_REGISTER_CATEGORY = "Event register"
+    EVENT_ATTENDANCE = "Event Attendance"
+    EVENT_REGISTERED = "Event Registered"
+
+
+class NotificationSubCategories:
+    EVENT_ATTACHMENT_UPLOADED_SUBCATEGORY = "Attachment uploaded"
+    EVENT_ATTACHMENT_UPDATED_SUBCATEGORY = "Attachment uploaded"
+    FREE_EVENT_CREATED_SUBCATEGORY = "Free Event created"
+    PAID_EVENT_CREATED_SUBCATEGORY = "Paid Event created"
+    FREE_EVENT_REGISTRATION_LAST_CALL_SUBCATEGORY = "Free Event registration Last call"
+    PAID_EVENT_REGISTRATION_LAST_CALL_SUBCATEGORY = "Paid Event registration Last call"
+    EVENT_REMINDER_15_MINUTES_SUBCATEGORY = "Event reminder 15m"
+    EVENT_REGISTRATION_SUBCATEGORY = "Event registration"
