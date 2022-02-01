@@ -327,10 +327,10 @@ class EditMemberProfileView(APIView):
 
         return {'success': True}
 
-    def get(self, request):
+    def post(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        req_body = RequestUtilities.fetch_request_query_params(request)
+        req_body = RequestUtilities.load_request_body(request)
         validated_req_body = self._validate_request(member_id, req_body)
 
         if not validated_req_body.get('success', False):

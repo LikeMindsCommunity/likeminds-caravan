@@ -23,7 +23,7 @@ from utility.number_utilities import NumberUtilities
 from utility.utils import get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room
 from .constants import *
 from ..community.constants import ANSWER_PRIVACY_PUBLIC_VALUE, ANSWER_PRIVACY_KEY, ANSWER_PRIVACY_PRIVATE_VALUE, \
-    DIRECTORY_QUESTIONS_V2_ANSWER_KEY
+    DIRECTORY_QUESTIONS_V2_ANSWER_KEY, DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY
 from ..sync.model_update import update_models_for_syncing_apis
 from ..upload_attachments import save_chatroom_attachments
 from .member_community_manager import MemberCommunityManager
@@ -1380,7 +1380,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             for question in question_answers:
 
-                question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, question.get('id'))
+                question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, question.get(
+                    DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY))
 
                 if not question_instance:
                     continue
@@ -1403,7 +1404,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                                  user_member_instance,
                                                                                                  community_instance)
 
-        user_member_filter.update({'edit_required': False, 'updated_at': TimeUtilities.current_time_in_sec()})
+        user_member_filter.update(edit_required=False, updated_at=TimeUtilities.current_time_in_sec())
 
         if image_url:
             MemberCommunityHelper.update_users_image_url_in_community(user_member_filter, image_url,

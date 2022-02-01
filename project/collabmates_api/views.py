@@ -1817,6 +1817,7 @@ def edit_member_profile(request):
                                                                 'type': card_types.CARD_INTRO})
     if intro_filter:
         intro_card_instance = intro_filter[0]
+        collabcard_id = intro_card_instance.id
 
     ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
                                                             'community': community_instance})
