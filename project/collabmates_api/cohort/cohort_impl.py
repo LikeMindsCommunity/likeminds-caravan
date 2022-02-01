@@ -464,7 +464,8 @@ class CohortImpl(CohortManager):
                     request_body = {
                         'member_ids': [int(self.get_member_id())],
                         'type': cohort_types.SUBSCRIPTION_PLAN,
-                        'type_id': subscription['plan'].get('plan_id')
+                        'type_id': subscription['plan'].get('plan_id'),
+                        'community_id': community_id
                     }
 
                     self.update_cohort(request_body)
