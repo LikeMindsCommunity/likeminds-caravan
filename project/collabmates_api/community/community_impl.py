@@ -2043,10 +2043,13 @@ class CommunityHelper:
             if question_instance.is_hidden:
                 continue
 
+            question_title = question.get('question_title') if question.get('question_title') else \
+                question_instance.question_title
+
             community_answer_id = CommunityHelper.create_answer_instance(user_instance, community_instance,
                                                                          question_instance,
                                                                          question.get(answer_key),
-                                                                         question_title=question.get('question_title'),
+                                                                         question_title=question_title,
                                                                          is_directory_questions_v2=is_directory_questions_v2)
 
             CommunityHelper.save_user_selected_options_for_member_directory_filter(question_instance,
