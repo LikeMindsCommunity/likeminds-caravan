@@ -1953,8 +1953,7 @@ class CommunityHelper:
                 mobile_no = "+{}{}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
                 CommunityHelper.create_answer_instance(user_instance, community_instance,
                                                        question_instance, mobile_no,
-                                                       question_title=question_instance.question_title,
-                                                       is_directory_questions_v2=is_directory_questions_v2)
+                                                       question_title=question_instance.question_title)
 
         question_filter = ModelUtilities.get_model_filter(communityQuestions, {
             'community': community_instance,
@@ -1966,8 +1965,7 @@ class CommunityHelper:
             question_instance = question_filter[0]
             CommunityHelper.create_answer_instance(user_instance, community_instance,
                                                    question_instance, user_instance.userinfo.name,
-                                                   question_title=question_instance.question_title,
-                                                   is_directory_questions_v2=is_directory_questions_v2)
+                                                   question_title=question_instance.question_title)
 
     @staticmethod
     def send_questions_data_on_airtable(user_instance, community_instance, question_data):
@@ -1995,11 +1993,9 @@ class CommunityHelper:
             'community': community_instance.id,
             'question_answer': answer,
             'member': user_instance.id,
-            'question': question_instance.id
+            'question': question_instance.id,
+            'question_title': question_title
         }
-
-        if not is_directory_questions_v2:
-            data['question_title'] = question_title
 
         answer_serializer = CommunityAnswersSerializer(data=data)
 
@@ -2049,8 +2045,7 @@ class CommunityHelper:
             community_answer_id = CommunityHelper.create_answer_instance(user_instance, community_instance,
                                                                          question_instance,
                                                                          question.get(answer_key),
-                                                                         question_title=question_title,
-                                                                         is_directory_questions_v2=is_directory_questions_v2)
+                                                                         question_title=question_title)
 
             CommunityHelper.save_user_selected_options_for_member_directory_filter(question_instance,
                                                                                    question.get(answer_key),
