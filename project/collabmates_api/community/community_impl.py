@@ -2571,7 +2571,7 @@ class CommunityHelper:
                 'question_title': CREATE_COMMUNITY_QUESTION_EMAIL_TITLE,
                 'question_state': question_states.EMAIL_ID,
                 'value': json.dumps(CREATE_COMMUNITY_QUESTION_EMAIL_VALUE),
-                'optional': True,
+                'optional': False,
                 'help_text': CREATE_COMMUNITY_QUESTION_EMAIL_HELP_TEXT,
                 'is_hidden': False,
                 'is_compulsory': True,
@@ -3052,13 +3052,6 @@ class CommunityHelper:
         serialized_questions = CommunityQuestionsSerializerV2(data, many=True).data
 
         for serialized_question in serialized_questions:
-
-            if all([serialized_question['question_title'] == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
-                    serialized_question['question_state'] == question_states.PARAGRAPH,
-                    serialized_question['is_hidden'],
-                    serialized_question['field']]):
-                continue
-
             serialized_question['state'] = serialized_question['question_state']
             serialized_question['community_id'] = serialized_question['community']
             del serialized_question['question_state']

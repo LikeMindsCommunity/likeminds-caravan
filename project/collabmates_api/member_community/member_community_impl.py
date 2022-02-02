@@ -1398,6 +1398,14 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                 'preview_type': "chatroom"})
 
                     if card_answer_filter:
+                        ModelUtilities.model_update(card_answers,
+                                                    {'preview_chatroom': user_intro_card_instance,
+                                                     'preview_type': "chatroom",
+                                                     'card__type': card_types.CARD_MASTER_INTRO,
+                                                     'is_deleted': False,
+                                                     'card__community': community_instance},
+                                                    {'answer': question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY),
+                                                     'last_updated': TimeUtilities.current_time_in_milliseconds()})
                         update_preview = True
 
         question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
