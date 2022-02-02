@@ -8,7 +8,7 @@ import re
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
-    CommunityGetStartedSerializer
+    CommunityGetStartedSerializer, get_error_context
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
     set_community_actions, add_community_settings_for_community, create_introduction_question_in_community_v2, \
@@ -1302,26 +1302,6 @@ class CommunityImpl(CommunityManager):
 
         self.set_community_id(community_instance.id)
 
-        share_context = get_branch_links_for_community_share_v1(user_instance, community_instance,
-                                                                self.get_request_platform(), self.get_version_code())
-
-        community_share = {}
-
-        if community_instance.is_paid:
-            fill_share_context_for_paid_community(community_instance, share_context, community_share)
-
-        else:
-            fill_share_context_for_unpaid_community(community_instance, share_context, community_share)
-
-        if not community_share:
-            return {'error_message': "Error in generating link", 'success': False}
-
-        if validated_req_body.get('link_type') == 'free':
-            link = community_share.get('private_link')
-
-        else:
-            link = community_share.get('public_link')
-
         if validated_req_body.get('type') == send_invite_types.EMAIL_INVITE:
             email_ids_list = CommunityHelper.get_list_from_comma_string(validated_req_body.get('email_id'))
 
@@ -1339,18 +1319,12 @@ class CommunityImpl(CommunityManager):
 
             mail_text = validated_req_body.get('text')
 
-            send_email_response = CommunityHelper.send_invite_email_to_given_emails_list(user_instance,
-                                                                                         community_instance,
-                                                                                         valid_email_ids_list,
-                                                                                         validated_req_body,
-                                                                                         share_context, link,
-                                                                                         mail_text)
-
-            if not send_email_response:
-                return {'success': False, "error_message": "Error while sending email."}
+            CommunityHelper.send_invite_email_to_given_emails_list(user_instance, community_instance,
+                                                                   valid_email_ids_list, validated_req_body,
+                                                                   self.get_request_platform(),
+                                                                   self.get_version_code(), mail_text)
 
             update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
-
             return {'success': True}
 
         elif validated_req_body.get('type') == send_invite_types.WHATSAPP_INVITE:
@@ -1358,14 +1332,13 @@ class CommunityImpl(CommunityManager):
             mobile_nos_list = [NumberUtilities.get_integer_from_string(i) if str(i).isdigit() else i for i in
                                mobile_nos_list]
 
-            link_path = UrlUtilities.extract_part_from_url(link, 'path', init_slash_off=True)
-
             template_name = WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME if validated_req_body.get('link_type') == 'free' \
                 else WHATSAPP_INVITE_TEMPLATE_WITHOUT_CODE_NAME
 
             receivers_list = CommunityHelper.send_invite_whatsapp_context_dict(user_instance, community_instance,
                                                                                mobile_nos_list, validated_req_body,
-                                                                               share_context, link_path)
+                                                                               self.get_request_platform(),
+                                                                               self.get_version_code())
 
             NotificationImpl.send_bulk_wa_notification.delay(receivers_list, template_name, template_name)
 
@@ -2285,35 +2258,67 @@ class CommunityHelper:
 
     @staticmethod
     def send_invite_email_to_given_emails_list(user_instance, community_instance, valid_email_ids_list,
-                                               validated_req_body, share_context, link, mail_body):
+                                               validated_req_body, platform_code, version_code, mail_body):
 
-        mail_body = "<br>".join(mail_body.split("\n"))
+        community_share_link = CommunityHelper.generate_community_share_link(user_instance, community_instance,
+                                                                             platform_code, version_code,
+                                                                             validated_req_body.get('link_type'))
 
-        mail_template = get_template('mails/cm_onboarding/invite_members_cm_onboarding.html').render({
-            "community_logo": community_instance.image_link,
-            "community_name": community_instance.name,
-            "cm_name": user_instance.userinfo.name,
-            "mail_text": mail_body,
-            "community_brand_color": community_instance.brand_color if community_instance.brand_color else
-            DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
-            "join_code": share_context.get('aj') if validated_req_body.get('link_type') == 'free' else '',
-            "button_text": INVITE_MEMBERS_BUTTON_TEXT,
-            "button_link": link
-        })
+        for valid_email_id in valid_email_ids_list:
 
-        mail_subject = INVITE_MEMBERS_SUBJECT.format(community_instance.name)
+            if community_instance.is_paid:
+                community_share_link = CommunityHelper.generate_community_share_link(user_instance, community_instance,
+                                                                                     platform_code, version_code,
+                                                                                     validated_req_body.get(
+                                                                                         'link_type'))
 
-        send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
-                                                           valid_email_ids_list, reply_to=[INVITE_MEMBER_REPLY_EMAIL])
+            if not community_share_link.get('success'):
+                continue
 
-        return send_email_response
+            changed_mail_body = "<br>".join(mail_body.split("\n"))
+
+            mail_template = get_template('mails/cm_onboarding/invite_members_cm_onboarding.html').render({
+                "community_logo": community_instance.image_link,
+                "community_name": community_instance.name,
+                "cm_name": user_instance.userinfo.name,
+                "mail_text": changed_mail_body,
+                "community_brand_color": community_instance.brand_color if community_instance.brand_color else
+                DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+                "join_code": community_share_link.get('aj'),
+                "button_text": INVITE_MEMBERS_BUTTON_TEXT,
+                "button_link": community_share_link.get('link')
+            })
+
+            mail_subject = INVITE_MEMBERS_SUBJECT.format(community_instance.name)
+
+            send_email_response = MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
+                                                                                      template=mail_template,
+                                                                                      to_mails_list=[valid_email_id],
+                                                                                      reply_to=INVITE_MEMBER_REPLY_EMAIL)
 
     @staticmethod
     def send_invite_whatsapp_context_dict(user_instance, community_instance, mobile_nos_list, validated_req_body,
-                                          share_context, link_path):
+                                          platform_code, version_code):
         receivers_list = []
+        community_share_link_dict = CommunityHelper.generate_community_share_link(user_instance, community_instance,
+                                                                                  platform_code, version_code,
+                                                                                  validated_req_body.get('link_type'))
 
         for mobile_no in mobile_nos_list:
+
+            if community_instance.is_paid:
+                community_share_link_dict = CommunityHelper.generate_community_share_link(user_instance,
+                                                                                          community_instance,
+                                                                                          platform_code, version_code,
+                                                                                          validated_req_body.get(
+                                                                                              'link_type'))
+
+            if not community_share_link_dict.get('success'):
+                continue
+
+            link_path = UrlUtilities.extract_part_from_url(community_share_link_dict.get('link'), 'path',
+                                                           init_slash_off=True)
+
             receiver_info = {
                 "whatsappNumber": mobile_no,
                 "customParams": [
@@ -2335,7 +2340,7 @@ class CommunityHelper:
             if validated_req_body.get('link_type') == 'free':
                 receiver_info['customParams'].append({
                     "name": "join_code",
-                    "value": share_context.get("aj")
+                    "value": community_share_link_dict.get("aj")
                 })
 
             receivers_list.append(receiver_info)
@@ -2463,3 +2468,31 @@ class CommunityHelper:
                                                   'community': community_instance,
                                                   'status_type': user_email_send_status_types.COMMUNITY_MODERATION_EMAIL,
                                                   'is_completed': True})
+
+    @staticmethod
+    def generate_community_share_link(user_instance, community_instance, platform_code, version_code, link_type='free'):
+        share_context = get_branch_links_for_community_share_v1(user_instance, community_instance,
+                                                                platform_code, version_code)
+
+        community_share = {}
+
+        if community_instance.is_paid:
+            fill_share_context_for_paid_community(community_instance, share_context, community_share)
+
+        else:
+            fill_share_context_for_unpaid_community(community_instance, share_context, community_share)
+
+        if not community_share:
+            return get_error_context(False, "Error in generating link")
+
+        aj = ''
+
+        if link_type == 'free':
+            link = community_share.get('private_link')
+            aj = share_context.get('aj')
+
+        else:
+            link = community_share.get('public_link')
+
+        return {'success': True, 'community_share': community_share, 'share_context': share_context, 'link': link,
+                'aj': aj}
