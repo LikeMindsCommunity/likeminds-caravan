@@ -2291,10 +2291,9 @@ class CommunityHelper:
 
             mail_subject = INVITE_MEMBERS_SUBJECT.format(community_instance.name)
 
-            send_email_response = MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
-                                                                                      template=mail_template,
-                                                                                      to_mails_list=[valid_email_id],
-                                                                                      reply_to=INVITE_MEMBER_REPLY_EMAIL)
+            send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
+                                                               [valid_email_id],
+                                                               reply_to=[INVITE_MEMBER_REPLY_EMAIL])
 
     @staticmethod
     def send_invite_whatsapp_context_dict(user_instance, community_instance, mobile_nos_list, validated_req_body,
