@@ -2147,8 +2147,8 @@ class CommunityHelper:
                     res['error_message'] = 'Invalid member-id'
                     return res
 
-                if aj_instance.user != user_instance:
-                    res['error_message'] = 'Invalid aj'
+                if aj_instance.user:
+                    res['error_message'] = 'Invite code already used!'
                     return res
 
             res['success'] = True
