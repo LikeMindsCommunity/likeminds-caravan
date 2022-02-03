@@ -1480,7 +1480,7 @@ class ConversationImpl(ConversationManager):
         return total_unread_count
 
     @staticmethod
-    def create_conversation_for_internal_use(member_id, chatroom_id, message):
+    def create_conversation_internally(member_id, chatroom_id, message):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 

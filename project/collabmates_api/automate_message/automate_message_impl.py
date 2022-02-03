@@ -37,31 +37,9 @@ class AutomateMessageImpl(AutomateMessageManager):
 
     def add_template(self) -> dict:
 
-        message_template_instances = ModelUtilities.get_model_filter(
-            MessageTemplate, {'community_id': self.get_community_id(), 'chatroom_type': self.get_chatroom_type()})
-
-        if not message_template_instances:
-            try:
-                template = MessageTemplate.objects.create(community_id=self.get_community_id(),
-                                                          message=self.get_message(),
-                                                          chatroom_type=self.get_chatroom_type(),
-                                                          cm_id=self.get_member_id())
-
-                template.save()
-
-            except:
-                error_logger.error('error creating message template in api/automate_message/template')
-                return ResponseUtilities.get_impl_error_context('error while creating template',
-                                                                status_codes.HTTP_400_BAD_REQUEST)
-
-        else:
-
-            message_template_instance = message_template_instances[0]
-
-            message_template_instance.message = self.get_message()
-            message_template_instance.cm_id = self.get_member_id()
-
-            message_template_instance.save()
+        template, created = ModelUtilities.update_or_create_model(
+            MessageTemplate, {'community_id': self.get_community_id(), 'chatroom_type': self.get_chatroom_type()},
+            {'message': self.get_message(), 'cm_id': self.get_member_id()})
 
         return {'success': True}
 
@@ -73,15 +51,12 @@ class AutomateMessageImpl(AutomateMessageManager):
 
         if self.get_chatroom_type() == message_template_chatroom_types.DM_CHATROOM:
 
-            # create dm message for all the members
             dm_chat_rooms = ModelUtilities.get_model_filter(Collabcard, {'type': card_types.CARD_DIRECT_MESSAGE,
                                                                          'is_private': True,
                                                                          'user_id': self.get_member_id(),
                                                                          'chatroom_with_user_id__in': member_ids})
 
             for chatroom in dm_chat_rooms:
-                ConversationImpl.create_conversation_for_internal_use(self.get_member_id(),
-                                                                      chatroom.id,
-                                                                      self.get_message())
+                ConversationImpl.create_conversation_internally(self.get_member_id(), chatroom.id, self.get_message())
 
         return {'success': True}

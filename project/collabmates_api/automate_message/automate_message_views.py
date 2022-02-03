@@ -5,8 +5,8 @@ from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
 from utility.auth_utilities import AuthUtilities
+from utility.states import message_template_chatroom_types
 from .automate_message_impl import AutomateMessageImpl
-from .automate_message_view_helper import AutomateMessageViewHelper
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
@@ -59,16 +59,16 @@ class SendCustomMessageView(APIView):
         validated_request_body = AutomateMessageViewHelper.template_body_validator(request_body, member_id)
 
         if 'error_message' in validated_request_body:
-            context = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
-                                                                    status_codes.HTTP_400_BAD_REQUEST)
-            return JsonResponse(context['data'], status=context['status'])
+            response = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
+                                                                     status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(response['data'], status=response['status'])
 
         authentication_response = AuthUtilities.validate_user(validated_request_body.get('community_id'), member_id)
 
         if 'error_message' in authentication_response:
-            context = ResponseUtilities.get_view_impl_error_context(authentication_response['error_message'],
-                                                                    authentication_response['status'])
-            return JsonResponse(context['data'], status=context['status'])
+            response = ResponseUtilities.get_view_impl_error_context(authentication_response['error_message'],
+                                                                     authentication_response['status'])
+            return JsonResponse(response['data'], status=response['status'])
 
         automate_message_manager = AutomateMessageImpl(member_id=member_id,
                                                        community_id=validated_request_body.get('community_id'),
@@ -77,11 +77,37 @@ class SendCustomMessageView(APIView):
         response_data = automate_message_manager.send_custom_message()
 
         if 'error_message' in response_data:
-            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
-                                                                    response_data['status'])
-            return JsonResponse(context['data'], status=context['status'])
+            response = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                     response_data['status'])
+            return JsonResponse(response['data'], status=response['status'])
 
         return JsonResponse(
             {'success': True},
             status=status_codes.HTTP_200_OK
         )
+
+
+class AutomateMessageViewHelper:
+
+    @staticmethod
+    def template_body_validator(request_body, member_id):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('invalid request body')
+
+        if 'community_id' not in request_body:
+            return ResponseUtilities.get_inner_error_context('send community_id in body')
+
+        if 'chatroom_type' not in request_body:
+            return ResponseUtilities.get_inner_error_context('send chatroom_type in body')
+
+        if request_body['chatroom_type'] not in [message_template_chatroom_types.DM_CHATROOM]:
+            return ResponseUtilities.get_inner_error_context('send valid chatroom_type in body')
+
+        if 'message' not in request_body:
+            return ResponseUtilities.get_inner_error_context('send message in body')
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context('send member_id in headers')
+
+        return request_body
