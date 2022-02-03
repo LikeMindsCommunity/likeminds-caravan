@@ -508,3 +508,10 @@ class EventOnlineLinkTypes:
 
 
 event_online_link_types = EventOnlineLinkTypes()
+
+
+class MessageTemplateChatroomTypes:
+    DM_CHATROOM = 1
+
+
+message_template_chatroom_types = MessageTemplateChatroomTypes()
