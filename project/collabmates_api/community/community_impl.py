@@ -2040,7 +2040,7 @@ class CommunityHelper:
             question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
             question_instance = question_instance_dict.get(question_id)
 
-            if question_instance.is_hidden:
+            if (not question_instance) or question_instance.is_hidden:
                 continue
 
             question_title = question.get('question_title') if question.get('question_title') else \
@@ -2057,7 +2057,7 @@ class CommunityHelper:
                                                                                    community_instance)
             CommunityHelper.save_profile_links_for_social_handles(question_instance, community_answer_id)
 
-            airtable_data[question_instance.id] = question.get('value')
+            airtable_data[question_instance.id] = question.get(answer_key)
 
         CommunityHelper.update_hidden_fields_in_member_responses(user_instance, community_instance,
                                                                  is_directory_questions_v2=is_directory_questions_v2)
