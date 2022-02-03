@@ -654,6 +654,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         else:
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
             route = 'route://collabcard?collabcard_id=' + str(card_id)
+            category = NotificationCategories.HOME
+            subcategory = NotificationSubCategories.NEW_CHATROOM_CREATED
 
         message = {
             'payload': {
@@ -1507,21 +1509,25 @@ def send_login_dropoff_notification_scheduled(token, platform_code):
 
     if user.exists():
         return
+
     else:
         temp = {
             'id': None,
             'fcm_token': token,
             'mobile_os': platform_code,
         }
-        notification_list = []
 
-        notification_list.append(temp)
+        notification_list = [temp]
 
-        message = {}
-
-        message['payload'] = {
-            "title": "Finish signing up!",
-            "sub_title": "Click here to sign up and meet like-minded people and have relevant conversations.",
+        message = {
+            'payload': {
+                'title': "Finish signing up!",
+                'sub_title': "Click here to sign up and meet like-minded people and have relevant conversations."
+            },
+            'category': {
+                'category': NotificationCategories.HOME,
+                'subcategory': NotificationSubCategories.LOGIN_DROP_OFF
+            }
         }
         notification_meta(notification_list, message)
 
@@ -1625,13 +1631,20 @@ def send_notification_to_join_drop_off_scheduled(member_id, community_id, aj, ti
                 "sub_title": "Apply to join this community and meet like-minded people. ",
                 'route': 'route://community?community_id=' + str(community_id)
             }
+            # Need to confirm this
             notification_meta(notification_list, message)
 
         else:
-            message['payload'] = {
-                "title": str(community_name),
-                "sub_title": "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
-                'route': 'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
+            message = {
+                'payload': {
+                    'title': str(community_name),
+                    'sub_title': "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
+                    'route': 'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
+                },
+                'category': {
+                    'category': NotificationCategories.HOME,
+                    'subcategory': NotificationSubCategories.PUBLIC_LINK_DROP_OFF
+                }
             }
             notification_meta(notification_list, message)
 
@@ -1667,11 +1680,18 @@ def send_notification_to_join_drop_off_scheduled_2(member_id, community_id, aj, 
 
     if member.exists():
         return
-    message['payload'] = {
-        "title": 'Invitation link about to expire!',
-        "sub_title": "Don't miss relevant conversations in " + str(
-            community_name) + ". Click here to join and meet like-minded people.",
-        'route': 'route://community?community_id=' + str(community_id)
+
+    message = {
+        'payload': {
+            'title': 'Invitation link about to expire!',
+            'sub_title': "Don't miss relevant conversations in " + str(
+                community_name) + ". Click here to join and meet like-minded people.",
+            'route': 'route://community?community_id=' + str(community_id)
+        },
+        'category': {
+            'category': NotificationCategories.HOME,
+            'subcategory': NotificationSubCategories.PRIVATE_LINK_DROP_OFF
+        }
     }
 
     notification_meta(notification_list, message)
@@ -1717,15 +1737,18 @@ def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
 
     notification_list.append(temp)
 
-    message = {}
-
-    message['payload'] = {
-        "title": member_name + 'may need new invitation!',
-        "sub_title": "Your private invitation for joining " + str(
-            community_name) + "has expired. Please resend them invite link.",
-        'route': 'route://community?community_id=' + str(community_id)
+    message = {
+        'payload': {
+            'title': member_name + 'may need new invitation!',
+            'sub_title': "Your private invitation for joining " + str(
+                community_name) + "has expired. Please resend them invite link.",
+            'route': 'route://community?community_id=' + str(community_id)
+        },
+        'category': {
+            'category': NotificationCategories.HOME,
+            'subcategory': NotificationSubCategories.EXPIRED_PRIVATE_LINK_DROP_OFF
+        }
     }
-
     notification_meta(notification_list, message)
 
 
