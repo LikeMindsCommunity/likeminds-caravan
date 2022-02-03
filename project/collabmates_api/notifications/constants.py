@@ -129,6 +129,7 @@ class NotificationSubCategories:
     INACTIVE_COMMUNITY = "Inactive community"
     CREATE_PROFILE = "Create profile"
     CHATROOM_APPROVAL = "Chatroom approval"
+    CHATROOM_APPROVED = "Chatroom approved"
     CHATROOM_REJECTED = "Chatroom rejected"
     RESPONSE_REPORTED = "Response reported"
     MEMBER_REPORTED = "Member reported"
