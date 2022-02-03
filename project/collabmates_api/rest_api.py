@@ -1376,3 +1376,16 @@ class CohortMetaSerializer(serializers.ModelSerializer):
                 del data[field.field_name]
 
         return data
+
+
+class CommunityQuestionsSerializerV2(serializers.ModelSerializer):
+    class Meta:
+        model = communityQuestions
+        fields = ('id', 'community', 'question_title', 'question_state', 'value', 'optional', 'help_text',
+                  'is_hidden', 'is_compulsory', 'rank', 'can_add_options', 'field', 'remove_state')
+
+
+class CommunityAnswersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = communityAnswers
+        fields = ('id', 'community', 'question_title', 'question_answer', 'member', 'question')

@@ -36,6 +36,7 @@ APP_LOGO = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspo
 ICONS = {}
 
 ICONS['Phone No.'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fphone_no.png?alt=media&token=dada80b8-6a2c-4c47-b085-b8acf68a1c85"
+ICONS['Phone Number'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fphone_no.png?alt=media&token=dada80b8-6a2c-4c47-b085-b8acf68a1c85"
 
 ICONS['Email'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Femail.png?alt=media&token=580ac8d9-bd05-421b-895f-06dca3bfa268"
 

@@ -367,6 +367,15 @@ def check_admin_edit_community_right(user, community):
     return False
 
 
+def check_admin_add_community_managers_right(user, community):
+    user_rights = userAdminRights.objects.filter(user=user, community=community,
+                                                 right__state=manager_rights.MANAGER_RIGHT_ADD_MANAGERS)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
 def get_moderation_history_title(moderation_history):
     if moderation_history.moderation_by:
         user_id = moderation_history.moderation_by.id

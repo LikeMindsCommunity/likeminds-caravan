@@ -3,14 +3,15 @@ from django.conf import settings
 from django.template.loader import get_template
 
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
-    userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember
+    userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted
 from utility.time_utilities import TimeUtilities
 from utility.utils import generate_private_link_for_chatroom
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
-    user_email_send_status_types, event_access, card_types
+    user_email_send_status_types, event_access, card_types, get_started_types
 from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
+from collabmates_api.static_text import CUSTOMISE_JOIN_FORM_MAIL_SUBJECT
 
 from .constants import *
 from .tasks_manager import TaskManager
@@ -574,7 +575,7 @@ class TasksHelper:
             'state': member_states.MEMBER
         }).values_list('member_id', flat=True)
 
-        return members_list
+        return list(members_list)
 
     @staticmethod
     def get_list_of_members_who_attended_event(chatroom_id):
@@ -584,7 +585,7 @@ class TasksHelper:
             'attended': True
         }).values_list('user', flat=True)
 
-        return attending_members_list
+        return list(attending_members_list)
 
     @staticmethod
     def get_list_of_members_attending_or_not_attending_event(chatroom_id, user_ids, attending=False):
@@ -595,7 +596,7 @@ class TasksHelper:
             'user__in': user_ids
         }).values_list('user', flat=True)
 
-        return attending_members_list
+        return list(attending_members_list)
 
     @staticmethod
     def get_community_owner_and_event_creator(community_id, event_instance):
@@ -608,15 +609,18 @@ class TasksHelper:
             'id__in':[owner.id, event_creator.id]
         }).values_list('id', flat=True)
 
-        return users_list
+        return list(users_list)
 
     @staticmethod
-    def get_community_managers_of_community(community_id):
+    def get_community_managers_and_owners_of_community(community_id, event_instance, add_event_creator=True):
 
-        community_managers = Members.objects.filter(
+        community_managers = list(Members.objects.filter(
             community_id__id=community_id,
             state=member_states.ADMIN
-        ).values_list("member_id__id", flat=True)
+        ).values_list("member_id__id", flat=True))
+
+        if not add_event_creator:
+            community_managers.remove(event_instance.user.id)
 
         return community_managers
 
@@ -929,3 +933,52 @@ class TasksHelper:
 
         user_email_send_status_instance.is_completed = True
         user_email_send_status_instance.save()
+
+    @staticmethod
+    def create_context_for_sending_first_email_on_directory_questions_setup(user_id, community_id):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not (user_instance and community_instance):
+            return
+
+        community_get_started_filter = ModelUtilities.get_model_filter(CommunityGetStarted,
+                                                                       {'community': community_instance,
+                                                                        'get_started__type': get_started_types.CUSTOMISE_JOIN_FORM,
+                                                                        'completed': True})
+
+        if not len(community_get_started_filter):
+            from collabmates_api.views import update_community_get_started
+            from collabmates_api.branch import create_community_feed_url_for_cm_onboarding
+            from collabmates_api.tasks import get_user_email_preferred_verified
+
+            update_community_get_started(community_instance, get_started_types.CUSTOMISE_JOIN_FORM, is_enabled=True)
+
+            # Send Join Form Mail
+            branch_link = create_community_feed_url_for_cm_onboarding(community_instance)
+
+            mail_template = get_template('mails/cm_onboarding/customise_join_form_cm_onboarding.html').render({
+                "community_name": community_instance.name,
+                "cm_name": user_instance.userinfo.name,
+                "community_logo": community_instance.image_link,
+                "community_brand_color": community_instance.brand_color if community_instance.brand_color else
+                DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
+                "button_text": GETTING_STARTED_CM_BUTTON_TEXT,
+                "button_link": branch_link
+            })
+
+            mail_subject = CUSTOMISE_JOIN_FORM_MAIL_SUBJECT.format(user_instance.userinfo.name)
+
+            user_email = get_user_email_preferred_verified(user_instance.id)
+
+            if not user_email:
+                return {}
+
+            context = {
+                "mail_subject": mail_subject,
+                "mail_template": mail_template,
+                "from_email": [user_email],
+                "reply_to_email": [INVITE_MEMBER_REPLY_EMAIL]
+            }
+
+            return context

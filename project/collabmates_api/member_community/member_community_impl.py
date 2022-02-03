@@ -7,33 +7,43 @@ from rest_framework.utils import json
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
-                            Collabcard, card_answers, conversationEngage,
-                            communityQuestions, CommunityUserDelete, communityRightsSettings, CommunitySettings)
-from utility.celery_tasks import update_chatroom_conversation_creators_in_cache
-from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY
+                            Collabcard, card_answers, conversationEngage, communityQuestions, CommunityUserDelete,
+                            communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
+                            Card_Attachment)
+from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
+    update_multiple_previews_in_chatroom, set_level_click_state
+from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY, CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER,\
+    CUSTOM_CLICK_TEXT
 from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
-    conversation_states, member_rights, community_setting_types
+    conversation_states, member_rights, community_setting_types, SyncTypes
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
+from utility.number_utilities import NumberUtilities
 from utility.utils import get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room
 from .constants import *
+from ..community.constants import ANSWER_PRIVACY_PUBLIC_VALUE, ANSWER_PRIVACY_KEY, ANSWER_PRIVACY_PRIVATE_VALUE, \
+    DIRECTORY_QUESTIONS_V2_ANSWER_KEY, DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY
+from ..sync.model_update import update_models_for_syncing_apis
+from ..upload_attachments import save_chatroom_attachments
 from .member_community_manager import MemberCommunityManager
 from ..raw_queries import (get_members_based_on_user_list_query,
                            get_community_introductions_based_on_user_list_query,
                            get_chatroom_count_based_on_community_list, get_distinct_chatroom_creator_list,
                            get_count_of_community_members_based_on_community_list)
-from ..rest_api import CommunitySerializerV1
-from ..serializers import is_draft_conversation, get_chatroom_instance, \
-    get_draft_chatroom_instance, conversationSerializer
-from ..static_files import REMOVED_USER_URL
-from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS
+from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
+    get_error_context
+from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
+    conversationSerializer
+from ..static_files import REMOVED_USER_URL, ICONS
+from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
-    check_admin_edit_community_right, check_all_member_rights
+    check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
+    check_admin_add_community_managers_right
 from ..utility import pagination, single_community_view_version_check
-from ..views import get_home_screen_community_actions, \
-    generate_internal_link_preview_for_conversation, get_latest_conversation_members
+from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
+    get_latest_conversation_members, post_introduction_card_for_community
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -1166,22 +1176,22 @@ class MemberCommunityImpl(MemberCommunityManager):
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
-            return {"success": False, "error_message": "Invalid User ID."}
+            return get_error_context(False, "Invalid User ID.")
 
         community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
 
         if not community_instance:
-            return {"success": False, "error_message": "Invalid Community ID."}
+            return get_error_context(False, "Invalid Community ID.")
 
         req_from = req_body.get("from")
 
         if not req_from:
-            return {"success": False, "error_message": "Send the key 'from'."}
+            return get_error_context(False, "Send the key 'from'.")
 
         member_id = req_body.get("member_id")
 
         if user_instance.id == member_id:
-            return {"success": False, "error_message": "You cannot DM yourself."}
+            return get_error_context(False, "You cannot DM yourself.")
 
         user_admin = ModelUtilities.get_model_filter(Members,
                                                      {"member_id": user_instance,
@@ -1198,7 +1208,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
             if not member_instance:
-                return {"success": False, "error_message": "Invalid Member ID."}
+                return get_error_context(False, "Invalid Member ID.")
 
             member_admin = ModelUtilities.get_model_filter(Members,
                                                            {"member_id": member_instance,
@@ -1265,7 +1275,175 @@ class MemberCommunityImpl(MemberCommunityManager):
                 return {"success": True, "show_dm": False}
 
         else:
-            return {"success": False, "error_message": "Invalid value of key 'from'."}
+            return get_error_context(False, "Invalid value of key 'from'.")
+
+    def fetch_member_profile(self, user_id):
+        current_user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not current_user_instance:
+            return get_error_context(False, "Invalid x-member-id")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+
+        if not community_instance:
+            return get_error_context(False, "Invalid community_id")
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return get_error_context(False, "Invalid user_id")
+
+        filter_dict = {
+            'member': user_instance,
+            'community': community_instance,
+            'removed_state': deleted_members.MEMBERSHIP_EXPIRED
+        }
+
+        removed_user_state = self.compute_removed_user_context(user_instance, community_instance)
+
+        if removed_user_state.get('remove_state'):
+            removed_user_state['success'] = True
+            return removed_user_state
+
+        current_user_member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                               'member_id': current_user_instance})
+
+        if not current_user_member_filter:
+            return get_error_context(False, "You are not part of the community!")
+
+        current_user_member_instance = current_user_member_filter[0]
+
+        user_member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                       'member_id': user_instance})
+
+        if not user_member_filter:
+            return get_error_context(False, "Profile doesn't exists!")
+
+        user_member_instance = user_member_filter[0]
+
+        question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(
+            current_user_member_instance, user_member_instance, community_instance)
+
+        is_community_answer_data = len(question_answers_data) > 0
+
+        user_member_data = MemberCommunityHelper.add_member_metadata(user_member_instance, community_instance,
+                                                                     current_user_member_instance,
+                                                                     is_community_answer_data)
+
+        user_menu = MemberCommunityHelper.get_member_profile_menu(user_member_instance, community_instance,
+                                                                  current_user_member_instance)
+
+        return {'success': True, 'member': user_member_data, 'question_answers': question_answers_data,
+                'menu': user_menu, 'community_name': community_instance.name}
+
+    def edit_member_profile(self, req_body: dict) -> {}:
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return get_error_context(False, "Invalid x-member-id")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+
+        if not community_instance:
+            return get_error_context(False, "Invalid community_id")
+
+        user_member_filter = ModelUtilities.get_model_filter(Members,
+                                                             {'member_id': user_instance,
+                                                              'community_id': community_instance})
+
+        if not user_member_filter:
+            return get_error_context(False, "You are not part of community!")
+
+        user_member_instance = user_member_filter[0]
+        user_intro_card_instance = None
+        update_preview = False
+        intro_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
+                                                                    'user': user_instance,
+                                                                    'is_deleted': False,
+                                                                    'type': card_types.CARD_INTRO})
+        if intro_filter:
+            user_intro_card_instance = intro_filter[0]
+
+        question_answers = req_body.get('question_answers', [])
+        image_url = req_body.get('image_url')
+
+        if question_answers:
+            ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
+                                                                    'community': community_instance})
+            ModelUtilities.delete_record_in_model(communityAnswers, {'community': community_instance,
+                                                                     'member': user_instance})
+
+            from ..community.community_impl import CommunityHelper
+
+            CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
+                                                                  question_answers, True)
+
+            for question in question_answers:
+
+                question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, question.get(
+                    DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY))
+
+                if not question_instance:
+                    continue
+
+                if user_intro_card_instance and question_instance.question_state == question_states.INTRODUCTION:
+                    ModelUtilities.model_update(Collabcard, {'id': user_intro_card_instance.id},
+                                                {'title': question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY)})
+                    update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                                   {'card': user_intro_card_instance, 'user': user_instance},
+                                                   {})
+
+                    card_answer_filter = ModelUtilities.is_model_filter_exists(card_answers,
+                                                                               {'preview_chatroom': user_intro_card_instance,
+                                                                                'preview_type': "chatroom"})
+
+                    if card_answer_filter:
+                        ModelUtilities.model_update(card_answers,
+                                                    {'preview_chatroom': user_intro_card_instance,
+                                                     'preview_type': "chatroom",
+                                                     'card__type': card_types.CARD_MASTER_INTRO,
+                                                     'is_deleted': False,
+                                                     'card__community': community_instance},
+                                                    {'answer': question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY),
+                                                     'last_updated': TimeUtilities.current_time_in_milliseconds()})
+                        update_preview = True
+
+        question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
+                                                                                                 user_member_instance,
+                                                                                                 community_instance)
+
+        user_member_filter.update(edit_required=False, updated_at=TimeUtilities.current_time_in_sec())
+
+        if image_url:
+            MemberCommunityHelper.update_users_image_url_in_community(user_member_filter, image_url,
+                                                                      user_intro_card_instance)
+            update_preview = True
+
+        if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
+                                                                              member_states.MEMBER,
+                                                                              member_states.PROFILE_UNAVAILABLE]):
+            post_introduction_card_for_community(community_instance.id, user_instance.id)
+            update_preview = False
+
+        set_levels_on_ctc_celery.delay({"community_id": community_instance.id,
+                                        "level": COMMUNITY_LEVEL_3_TEXT,
+                                        "promoter": user_member_instance.state == member_states.ADMIN})
+
+        if update_preview and user_intro_card_instance:
+            update_multiple_previews_in_chatroom.delay({'chatroom_id': user_intro_card_instance.id})
+
+        set_level_click_state.delay({"community_id": community_instance.id,
+                                     "promoter": user_member_instance.state == member_states.ADMIN})
+
+        from collabmates_api.cohort.cohort_impl import CohortHelper
+        CohortHelper.remove_cohort_membership_when_updating_community_answers(user_instance.id,
+                                                                              community_instance.id)
+        CohortHelper.add_member_to_respective_question_based_cohorts(user_instance.id, community_instance.id)
+
+        if question_answers_data:
+            return {'success': True, 'question_answers': question_answers_data}
+
+        return {'success': True}
 
 
 class MemberCommunityHelper:
@@ -1400,3 +1578,255 @@ class MemberCommunityHelper:
                 user_dict[data.id] = data
 
         return user_dict
+
+    @staticmethod
+    def add_member_metadata(member_instance, community_instance, current_user_member_instance,
+                            is_community_answer_data=False):
+        user_instance = member_instance.member_id
+
+        user_data = MemberCommunityHelper.add_member_profile(user_instance, community_instance)
+
+        if not user_data.get('image_url'):
+            del user_data['image_url']
+
+        user_data['state'] = member_instance.state
+        user_data['is_owner'] = member_instance.is_owner
+
+        if member_instance.custom_title:
+            user_data['custom_title'] = member_instance.custom_title
+
+        if user_data['state'] in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
+            user_data['member_since'] = MEMBER_SINCE_TEXT % (TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(
+                member_instance.created_at))
+
+        elif user_data['state'] == member_states.PENDING_MEMBER:
+            user_data['member_since'] = PENDING_MEMBER_TEXT % community_instance.name
+
+        if not is_community_answer_data:
+
+            if member_instance.state == member_states.ADMIN:
+                user_data['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % \
+                                                 TimeUtilities.convert_epoch_time_in_date(member_instance.created_at)
+
+            else:
+                user_data['custom_intro_text'] = CREATE_INTRO_TEXT_MEMBER % TimeUtilities.convert_epoch_time_in_date(
+                    member_instance.created_at)
+                user_data['custom_click_text'] = CUSTOM_CLICK_TEXT % (
+                    member_instance.member_id.userinfo.name,
+                    TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
+
+        return user_data
+
+    @staticmethod
+    def is_user_answer_private(answer_data):
+        if answer_data.get('value'):
+            value_list = json.loads(answer_data.get('value'))
+            privacy = ANSWER_PRIVACY_PUBLIC_VALUE
+
+            for value in value_list:
+                if ANSWER_PRIVACY_KEY in value:
+                    privacy = value['answer_privacy']
+
+            if privacy == ANSWER_PRIVACY_PRIVATE_VALUE:
+                return True
+
+        return False
+
+    @staticmethod
+    def get_question_answer_data_in_member_profile(current_user_member_instance, user_member_instance,
+                                                   community_instance):
+        question_answers = []
+
+        user_instance = user_member_instance.member_id
+
+        community_answers_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                                   {'member': user_instance,
+                                                                    'community': community_instance})
+
+        is_same_user = current_user_member_instance == user_member_instance
+
+        if community_answers_filter:
+            user_answers = CommunityAnswersSerializer(community_answers_filter, many=True).data
+
+            for user_answer in user_answers:
+                user_answer = dict(user_answer)
+
+                community_question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions,
+                                                                                        user_answer.get('question'))
+
+                if not community_question_instance:
+                    continue
+
+                question_data = CommunityQuestionsSerializerV2(community_question_instance, many=False).data
+
+                discard_question = True
+
+                if any([not MemberCommunityHelper.is_user_answer_private(question_data), is_same_user,
+                        all([current_user_member_instance.state == member_states.ADMIN,
+                             check_admin_view_contact_right(current_user_member_instance.member_id_id,
+                                                            community_instance.id)])]):
+                    discard_question = False
+
+                if not discard_question:
+                    user_answer_dict = {
+                        'answer': user_answer.get('question_answer'),
+                        'member_id': user_answer.get('member'),
+                        'question_id': user_answer.get('question'),
+                        'community_id': user_answer.get('community')
+                    }
+
+                    question_data['state'] = question_data['question_state']
+                    del question_data['question_state']
+
+                    if question_data.get('question_title') and (question_data.get('question_title') in ICONS):
+                        user_answer_dict['image_url'] = ICONS[question_data.get('question_title')]
+                    elif question_data.get('field'):
+                        user_answer_dict['image_url'] = ICONS['Generic']
+
+                    question_answers.append({'question_answer': user_answer_dict,
+                                             'question': question_data})
+
+        return question_answers
+
+    @staticmethod
+    def add_menu_items_if_current_user_is_owner_and_user_is_admin(menu, all_menu_items):
+
+        menu.append(all_menu_items.get('EDIT_CM_RIGHTS'))
+        menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
+
+        return menu
+
+    @staticmethod
+    def add_menu_items_if_current_user_is_owner_and_user_is_non_admin(menu, all_menu_items):
+
+        menu.append(all_menu_items.get('EDIT_PERMISSIONS'))
+        menu.append(all_menu_items.get('GIVE_CM_RIGHTS'))
+        menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
+
+        return menu
+
+    @staticmethod
+    def add_menu_items_if_current_user_is_admin_and_user_is_admin(current_user_member_instance, community_instance,
+                                                                  menu, all_menu_items, is_parent_cm=False):
+
+        if all([check_admin_approve_right(current_user_member_instance.member_id, community_instance),
+                is_parent_cm]):
+            menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
+
+        if all([check_admin_add_community_managers_right(current_user_member_instance.member_id,
+                                                         community_instance),
+                is_parent_cm]):
+            menu.append(all_menu_items.get('EDIT_CM_RIGHTS'))
+
+        menu.append(all_menu_items.get('REPORT_MEMBER'))
+        menu.append(all_menu_items.get('BLOCK_MEMBER'))
+
+        return menu
+
+    @staticmethod
+    def add_menu_items_if_current_user_is_admin_and_user_is_non_admin(current_user_member_instance, community_instance,
+                                                                  menu, all_menu_items, is_parent_cm=False):
+
+        if check_admin_approve_right(current_user_member_instance.member_id, community_instance):
+            menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
+
+        if any([check_admin_approve_right(current_user_member_instance.member_id, community_instance),
+                check_admin_delete_right(current_user_member_instance.member_id_id, community_instance)]):
+            menu.append(all_menu_items.get('EDIT_PERMISSIONS'))
+
+        if all([check_admin_add_community_managers_right(current_user_member_instance.member_id,
+                                                         community_instance)]):
+            menu.append(all_menu_items.get('GIVE_CM_RIGHTS'))
+
+        if check_admin_approve_right(current_user_member_instance.member_id, community_instance):
+            menu.append(all_menu_items.get('REPORT_MEMBER'))
+
+        menu.append(all_menu_items.get('BLOCK_MEMBER'))
+
+        return menu
+
+    @staticmethod
+    def get_member_profile_menu(user_member_instance, community_instance, current_user_member_instance):
+        menu = []
+
+        is_same_user = user_member_instance.member_id_id == current_user_member_instance.member_id_id
+        all_menu_items = {key: {k1: v1 for k1, v1 in value.items()} for key, value in MEMBER_PROFILE_MENU_ITEMS.items()}
+        parents_list = json.loads(user_member_instance.parent_cm_list) if user_member_instance.parent_cm_list else []
+        parents_cm_list = []
+
+        for user_id in parents_list:
+            user_id = NumberUtilities.get_integer_from_string(user_id, 0)
+
+            if user_id:
+                parents_cm_list.append(user_id)
+
+        is_parent_cm = current_user_member_instance.member_id_id in parents_cm_list
+
+        for menu_item in all_menu_items:
+            all_menu_items[menu_item]['route'] = all_menu_items[menu_item]['route'].format(
+                community_instance.id, user_member_instance.member_id_id)
+
+        if (not is_same_user) and current_user_member_instance.is_owner:
+
+            if user_member_instance.state == member_states.ADMIN:
+                menu = MemberCommunityHelper.add_menu_items_if_current_user_is_owner_and_user_is_admin(menu,
+                                                                                                       all_menu_items)
+
+            elif user_member_instance.state in [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
+                menu = MemberCommunityHelper.add_menu_items_if_current_user_is_owner_and_user_is_non_admin(
+                    menu, all_menu_items)
+
+        elif (not is_same_user) and current_user_member_instance.state == member_states.ADMIN:
+
+            if user_member_instance.state == member_states.ADMIN:
+
+                menu = MemberCommunityHelper.add_menu_items_if_current_user_is_admin_and_user_is_admin(
+                    current_user_member_instance, community_instance, menu, all_menu_items, is_parent_cm)
+
+            elif user_member_instance.state in [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
+
+                menu = MemberCommunityHelper.add_menu_items_if_current_user_is_admin_and_user_is_non_admin(
+                    current_user_member_instance, community_instance, menu, all_menu_items, is_parent_cm)
+
+            else:
+                menu.append(all_menu_items.get('REPORT_MEMBER'))
+                menu.append(all_menu_items.get('BLOCK_MEMBER'))
+
+        elif (not is_same_user) and current_user_member_instance.state == member_states.MEMBER:
+
+            if user_member_instance.state == member_states.ADMIN:
+                menu.append(all_menu_items.get('REPORT_MEMBER'))
+
+            else:
+                menu.append(all_menu_items.get('REPORT_MEMBER'))
+                menu.append(all_menu_items.get('BLOCK_MEMBER'))
+
+        elif is_same_user and (current_user_member_instance.state == member_states.ADMIN):
+            menu.append(all_menu_items.get('EDIT_TITLE'))
+
+        return menu
+
+    @staticmethod
+    def update_users_image_url_in_community(user_member_filter, image_url, user_intro_card_instance):
+        user_member_filter.update(image_url=image_url, updated_at=TimeUtilities.current_time_in_sec())
+
+        if user_intro_card_instance:
+            file_filter = ModelUtilities.get_model_filter(Card_Attachment,
+                                                          {'collabcard_id': user_intro_card_instance})
+
+            if file_filter:
+                card_file_instance = file_filter[0]
+                card_file_instance.file_url = image_url
+                card_file_instance.save()
+
+            else:
+                save_chatroom_attachments(user_intro_card_instance, body={
+                    'url': image_url,
+                    'type': "image",
+                    'index': 1
+                })
+                ModelUtilities.model_update(Collabcard, {'id': user_intro_card_instance.id},
+                                            {'has_files': True, 'attachment_count': 1,
+                                             'attachments_uploaded': True})
+
+            update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': user_intro_card_instance}, {})

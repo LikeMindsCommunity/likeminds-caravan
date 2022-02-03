@@ -47,8 +47,10 @@ from .sync.model_update import update_models_for_syncing_apis
 from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
-                    cm_onboarding_version_check)
-from .static_text import ALL_MEMBER_COHORT_TEXT
+                    cm_onboarding_version_check, directory_questions_v2_version_check,
+                    get_user_email_preferred_verified)
+from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
+    tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
@@ -1769,6 +1771,8 @@ def edit_member_profile(request):
     '''api to udate member profile'''
 
     res = RequestUtilities.load_request_body(request)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     if not res:
         return JsonResponse({'error_message': "In-valid request body"},
@@ -1813,6 +1817,7 @@ def edit_member_profile(request):
                                                                 'type': card_types.CARD_INTRO})
     if intro_filter:
         intro_card_instance = intro_filter[0]
+        collabcard_id = intro_card_instance.id
 
     ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
                                                             'community': community_instance})
@@ -1821,7 +1826,8 @@ def edit_member_profile(request):
 
     from .community.community_impl import CommunityHelper
     CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
-                                                          res.get('questions', []))
+                                                          res.get('questions', []),
+                                                          False)
 
     for data in res.get('questions', []):
 
@@ -1835,6 +1841,7 @@ def edit_member_profile(request):
             if ModelUtilities.is_model_filter_exists(card_answers,
                                                      {'preview_chatroom': intro_card_instance,
                                                       'preview_type': "chatroom"}):
+
                 update_preview = True
 
     form_response = FormResponseSerilaizer(community_id, member_id, bl=True, current_user_id=member_id)
@@ -1900,9 +1907,9 @@ def edit_member_profile(request):
     CohortHelper.add_member_to_respective_question_based_cohorts(member_id, community_id)
 
     if question_answer:
-        return JsonResponse({'success': True, 'question_answers': question_answer})
+        return JsonResponse({'success': True, 'question_answers': question_answer}, status=status_codes.HTTP_200_OK)
 
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': True}, status=status_codes.HTTP_200_OK)
 
 
 @csrf_exempt
@@ -2712,65 +2719,6 @@ def create_or_update_question_instances(question_instance, question, community_i
     question_instance.help_text = question['help_text'] if 'help_text' in question else None
     question_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
     question_instance.field = question['field'] if 'field' in question else False
-    question_instance.save()
-
-
-def create_introduction_question_in_community_v2(community_instance):
-    '''function to create introduction question in community and mobile information'''
-
-    help_text = ''
-    field_filter = communityField.objects.filter(state=question_states.INTRODUCTION,
-                                                 type=community_instance.type, sub_type=community_instance.sub_type)
-
-    if field_filter.exists():
-        help_text = field_filter[0].help_text
-
-    if ModelUtilities.is_model_filter_exists(communityQuestions,
-                                             {'community': community_instance}):
-        return
-
-    value_list = [{"min_chars": "50", "max_chars": "No limit"}]
-    question_title = field_filter[0].question_title if field_filter.exists() else "Introduce yourself"
-
-    question_instance = communityQuestions.create_instance({'community_instance': community_instance,
-                                                            'question_title': question_title,
-                                                            'question_state': question_states.INTRODUCTION,
-                                                            'value': json.dumps(value_list),
-                                                            'optional': False,
-                                                            'help_text': help_text,
-                                                            'is_hidden': False})
-    question_instance.save()
-
-    value_list = [{"answer_privacy": "Private"}]
-    question_instance = communityQuestions.create_instance({'community_instance': community_instance,
-                                                            'question_title': 'Phone Number',
-                                                            'question_state': question_states.MOBILE_NO,
-                                                            'value': json.dumps(value_list),
-                                                            'optional': False,
-                                                            'help_text': 'Your mobile number',
-                                                            'is_hidden': True,
-                                                            'field': True})
-    question_instance.save()
-
-    value_list = [{"answer_privacy": "Private"}]
-    question_instance = communityQuestions.create_instance({'community_instance': community_instance,
-                                                            'question_title': 'Email',
-                                                            'question_state': question_states.EMAIL_ID,
-                                                            'value': json.dumps(value_list),
-                                                            'optional': True,
-                                                            'help_text': 'Your email id',
-                                                            'is_hidden': False,
-                                                            'field': True})
-    question_instance.save()
-
-    question_instance = communityQuestions.create_instance({'community_instance': community_instance,
-                                                            'question_title': 'Name',
-                                                            'question_state': question_states.PARAGRAPH,
-                                                            'value': None,
-                                                            'optional': False,
-                                                            'help_text': 'Your name',
-                                                            'is_hidden': False,
-                                                            'field': True})
     question_instance.save()
 
 
@@ -9464,6 +9412,7 @@ def edit_community_questions(request):
             mail_template = get_template('mails/cm_onboarding/customise_join_form_cm_onboarding.html').render({
                 "community_name": community_instance.name,
                 "cm_name": user_instance.userinfo.name,
+                "community_logo": community_instance.image_link,
                 "community_brand_color": community_instance.brand_color if community_instance.brand_color else
                 DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
                 "button_text": GETTING_STARTED_CM_BUTTON_TEXT,
@@ -9472,11 +9421,14 @@ def edit_community_questions(request):
 
             mail_subject = CUSTOMISE_JOIN_FORM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
-            send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
-                                                               [user_instance.userinfo.email],
-                                                               reply_to=[INVITE_MEMBER_REPLY_EMAIL])
+            user_email = get_user_email_preferred_verified(user_instance.id)
 
-    return JsonResponse({'success': True})
+            if user_email:
+                send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
+                                                                   [user_email],
+                                                                   reply_to=[INVITE_MEMBER_REPLY_EMAIL])
+
+    return JsonResponse({'success': True}, status=status_codes.HTTP_200_OK)
 
 
 def edit_questions(questions, community_id):
@@ -11762,6 +11714,7 @@ def fetch_management_tools(request):
 
     current_user_id = get_member_id_from_headers(request)
     # user_instance = User.objects.get(id=current_user_id)
+    platform_code = RequestUtilities.get_platform_code(request)
     is_platform_web = RequestUtilities.is_request_web(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
@@ -11800,28 +11753,26 @@ def fetch_management_tools(request):
 
     community_instance = Community.objects.get(pk=community_id)
     community_name = community_instance.name
-    header = f"Management tools for {community_name}"
+    header = MANAGEMENT_TOOLS_HEADER.format(community_name)
     management_tools = []
 
     tools = {"header": header,
              "management_tools": management_tools}
 
     if not has_right_0 and not has_right_1 and not has_right_2:
-        return JsonResponse(tools)
+        return JsonResponse(tools, status=status_codes.HTTP_200_OK)
 
     # cause to do this multiple duplicate checks is to send lkst in tool order as per design
     if has_right_1:
         member_request_tool = get_tool_member_requests(user_id=current_user_id, community_id=community_id)
 
-        member_request_tool[
-            "route"] = f"route://member_approve?community_id={community_id}&community_name={community_name}"
+        member_request_tool["route"] = MEMBER_REQUEST_TOOL_ROUTE.format(community_id, community_name)
 
         management_tools.append(member_request_tool)
 
     if has_right_0:
         pending_chatrooms_tool = get_tool_pending_chat_rooms(user_id=current_user_id, community_id=community_id)
-        pending_chatrooms_tool[
-            "route"] = f"route://pending_chatrooms?community_id={community_id}&community_name={community_name}"
+        pending_chatrooms_tool["route"] = PENDING_CHATROOM_TOOL_ROUTE.format(community_id, community_name)
         management_tools.append(pending_chatrooms_tool)
 
     if has_right_0 or has_right_1:
@@ -11829,24 +11780,23 @@ def fetch_management_tools(request):
                                                has_right_0=has_right_0, has_right_1=has_right_1,
                                                has_right_2=has_right_2, parent_cm_list=parent_cm_list,
                                                is_owner=is_owner)
-        reports_tool["route"] = f"route://review_reports?community_id={community_id}&community_name={community_name}"
+        reports_tool["route"] = REPORTS_TOOL_ROUTE.format(community_id, community_name)
         management_tools.append(reports_tool)
 
     if has_right_2:
-        global tool_edit_directory_questions
-        global tool_edit_community_details
+        tool_edit_directory_question = tool_edit_directory_questions.copy()
+        tool_edit_community_detail = tool_edit_community_details.copy()
 
-        tool_edit_directory_questions = tool_edit_directory_questions.copy()
-        tool_edit_community_details = tool_edit_community_details.copy()
+        if directory_questions_v2_version_check(platform_code, version_code):
+            tool_edit_directory_question['title'] = DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE
 
-        tool_edit_directory_questions[
-            "route"] = f"route://edit_community_directory?community_id={community_id}&community_name={community_name}"
-        tool_edit_community_details[
-            "route"] = f"route://edit_community?community_id={community_id}&community_name={community_name}"
+        tool_edit_directory_question["route"] = tool_edit_directory_question["route"].format(community_id,
+                                                                                             community_name)
+        tool_edit_community_detail["route"] = tool_edit_community_detail["route"].format(community_id, community_name)
 
         if has_right_1:
-            management_tools.append(tool_edit_directory_questions)
-        management_tools.append(tool_edit_community_details)
+            management_tools.append(tool_edit_directory_question)
+        management_tools.append(tool_edit_community_detail)
 
     if is_platform_web and (version_code >= CM_ONBOARDING_WEB_VERSION_CODE):
         tool_membership_plans = MEMBERSHIP_PLANS_MANAGEMENT_TOOLS.copy()
@@ -11855,13 +11805,11 @@ def fetch_management_tools(request):
         management_tools.append(tool_membership_plans)
 
     if has_right_0 or has_right_1:
-        global tool_community_settings
-        tool_community_settings = tool_community_settings.copy()
-        tool_community_settings[
-            "route"] = f"route://community_settings?community_id={community_id}&community_name={community_name}"
-        management_tools.append(tool_community_settings)
+        tool_community_setting = tool_community_settings.copy()
+        tool_community_setting["route"] = tool_community_setting["route"].format(community_id, community_name)
+        management_tools.append(tool_community_setting)
 
-    return JsonResponse(tools)
+    return JsonResponse(tools, status=status_codes.HTTP_200_OK)
 
 
 def fetch_community_setting_rights(request):

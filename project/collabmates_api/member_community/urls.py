@@ -1,7 +1,7 @@
 from django.urls import path
 from collabmates_api.member_community.views_impl import ViewsImpl, FetchCommunityFeed, FetchHomeCommunities, \
     FetchFeedMeta, FetchChatroomHome, FetchOnboardingCommunities, CompleteCommunityOnboarding, \
-    FetchUserDeletedCommunities, FetchMemberDetails, ShowDmMessageIcon
+    FetchUserDeletedCommunities, FetchMemberDetails, ShowDmMessageIcon, FetchMemberProfileView, EditMemberProfileView
 
 urlpatterns = [
     path('', ViewsImpl.get_member_communities, name="get_member_communities"),
@@ -14,4 +14,6 @@ urlpatterns = [
     path('fetch_deleted', FetchUserDeletedCommunities.as_view(), name="fetch_deleted_communities"),
     path('fetch_members_detail', FetchMemberDetails.as_view(), name="fetch_members_detail"),
     path('show_dm', ShowDmMessageIcon.as_view(), name="show_dm"),
+    path('fetch_profile', FetchMemberProfileView.as_view(), name="fetch_member_profile"),
+    path('edit_profile', EditMemberProfileView.as_view(), name="edit_member_profile")
 ]

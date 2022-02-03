@@ -130,12 +130,12 @@ class TimeUtilities:
     @staticmethod
     def convert_epoch_time_to_date_with_mon_day_year(epoch_time) -> str:
 
-        """format -- Mar 09 21"""
+        """format -- Mar 09 2021"""
 
         if TimeUtilities.is_epoch_in_milliseconds(epoch_time):
             epoch_time = TimeUtilities.convert_milliseconds_to_sec(epoch_time)
 
-        return time.strftime('%b %d %y', time.localtime(epoch_time))
+        return time.strftime('%b %d %Y', time.localtime(epoch_time))
 
     @staticmethod
     def convert_epoch_time_in_hh_mm_am_pm(epoch_time):

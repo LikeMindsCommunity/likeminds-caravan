@@ -21,3 +21,4 @@ class AutomateMessageManager(metaclass=abc.ABCMeta):
         """
         send custom message to all community members
         """
+        raise NotImplementedError
