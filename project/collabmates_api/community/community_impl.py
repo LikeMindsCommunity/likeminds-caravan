@@ -1410,6 +1410,9 @@ class CommunityImpl(CommunityManager):
 
         for question in questions_list:
 
+            if question.get('question_change_state', None) is None:
+                return get_error_context(False, 'Please send question_change_state')
+
             if question.get('question_change_state') == question_change_states.NEW_QUESTION:
                 new_questions_list.append(question)
 
