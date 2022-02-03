@@ -101,6 +101,8 @@ class NotificationCategories:
     EVENT_ATTENDANCE = "Event Attendance"
     EVENT_REGISTERED = "Event Registered"
     MODERATION = "Moderation"
+    CHATROOM = "Chat room"
+    HOME = "Home"
 
 
 class NotificationSubCategories:
@@ -136,3 +138,25 @@ class NotificationSubCategories:
     CHATROOM_REPORTED = "Chatroom reported"
     UPDATE_PROFILE = "Update profile"
     CM_PERMISSION_UPDATED = "CM permission updated"
+
+    USER_TAGGED = "User Tagged"
+    USER_RESPONDED = "User Responded"
+    CO_HOST_ADDED = "Cohost added"
+    POLL_ROOM_CREATED = "Poll room created"
+    EVENT_STARTING_IN_2M = "Event starting in 2m"
+    EVENT_STARTING_IN_24H = "Event starting in 24h"
+    EVENT_STARTING_IN_30M = "Event starting in 30m"
+    MEMBER_JOINED = "Member Joined"
+    CHATROOM_PINNED_BY_CM = "Chatroom pinned by CM"
+    TOPIC_UPDATED = "Topic updated"
+    AUTO_FOLLOW_ENABLED = "Auto follow enabled"
+    MEMBER_ADDED_TO_SECRET_CHATROOM = "Member added to secret chatroom"
+    MEMBER_REMOVED_FROM_CHATROOM = "Member Removed"
+    SECRET_CHATROOM_CREATED = "Secret Chatroom Created"
+
+    NEW_CHATROOM_CREATED = "New chatroom created"
+    CHATROOM_INACTIVE = "Chatroom inactive"
+    PUBLIC_LINK_DROP_OFF = "Public link dropoff"
+    PRIVATE_LINK_DROP_OFF = "Private link dropoff"
+    EXPIRED_PRIVATE_LINK_DROP_OFF = "Expired private link dropoff"
+    LOGIN_DROP_OFF = "Login dropoff"

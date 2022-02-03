@@ -640,11 +640,15 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         elif card.is_secret:
             sub_title = str(card_creater_name) + " created a secret chatroom: " + str(collabcard_title)
             route = 'route://chatroom_detail?chatroom_id=' + str(card_id)
+            category = NotificationCategories.CHATROOM
+            subcategory = NotificationSubCategories.SECRET_CHATROOM_CREATED
 
         elif typ == card_types.CARD_POLL:
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
             route = 'route://poll_chatroom?chatroom_id=' + str(card_id)
+            category = NotificationCategories.CHATROOM
+            subcategory = NotificationSubCategories.POLL_ROOM_CREATED
             schedule_poll_end_notification(card_id)
 
         else:
@@ -958,11 +962,17 @@ def send_follow_notification(card_id, user_id, conversation_id):
         get_notification_payload_metadata_for_conversation_creation(community_instance,
                                                                     card_instance, userinfo_instance,
                                                                     conversation_instance)
-    message['payload'] = {
-        'title': card_instance.header,
-        'sub_title': userinfo_instance.name + ":" + icon_string + " " + answer_text,
-        'route': f"route://collabcard?collabcard_id={str(card_id)}&community_id={str(community_instance.id)}",
-        'unread_follow_notification': custom_conversation_notification_payload
+    message = {
+        'payload': {
+            'title': card_instance.header,
+            'sub_title': userinfo_instance.name + ":" + icon_string + " " + answer_text,
+            'route': f"route://collabcard?collabcard_id={str(card_id)}&community_id={str(community_instance.id)}",
+            'unread_follow_notification': custom_conversation_notification_payload
+        },
+        'category': {
+            'category': NotificationCategories.CHATROOM,
+            'subcategory': NotificationSubCategories.USER_RESPONDED
+        }
     }
 
     for user_id in chatroom_follower_list:
@@ -1203,14 +1213,18 @@ def send_notification_to_tagged_users(card_id, answerer_name, answer, user_id, u
 
     try:
 
-        message = {}
-
         card = Collabcard.objects.get(id=card_id)
 
-        message['payload'] = {
-            "title": str(answerer_name) + " tagged you!",
-            "sub_title": str(get_title_from_collabcard(card)) + ": " + answer,
-            "route": "route://collabcard?collabcard_id=" + str(card_id),
+        message = {
+            'payload': {
+                'title': str(answerer_name) + " tagged you!",
+                'sub_title': str(get_title_from_collabcard(card)) + ": " + answer,
+                'route': "route://collabcard?collabcard_id=" + str(card_id)
+            },
+            'category': {
+                'category': NotificationCategories.CHATROOM,
+                'subcategory': NotificationSubCategories.USER_TAGGED
+            }
         }
 
         if chatroom_created:
@@ -1226,7 +1240,7 @@ def send_notification_to_tagged_users(card_id, answerer_name, answer, user_id, u
 
         device_filter = userDevices.objects.filter(user=temp['id'], mobile_os='iOS')
 
-        if device_filter.exists() and chatroom_created == False:
+        if device_filter.exists() and chatroom_created is False:
             # case for send conversation message
             unread_followed_chatroom = get_custom_data_for_new_conversation_created_ios(user_id)
             message['payload']['unread_followed_chatroom'] = unread_followed_chatroom
@@ -1234,7 +1248,6 @@ def send_notification_to_tagged_users(card_id, answerer_name, answer, user_id, u
         notification_list.append(temp)
 
         notification_meta(notification_list, message)
-
 
     except (Exception, psycopg2.Error) as error:
         traceback.print_exc()
@@ -1259,11 +1272,17 @@ def send_notification_to_event_co_hosts(co_hosts, card_id, event_title, event_cr
         temp['mobile_os'] = notification_details[1]
         notification_list.append(temp)
 
-    message = {'payload': {
-        "title": EVENT_CO_HOST_NOTIFICATION_TITLE,
-        "sub_title": EVENT_CO_HOST_NOTIFICATION_SUB_TITLE % (event_creater, event_title, community_name),
-        "route": EVENT_CO_HOST_NOTIFICATION_ROUTE % str(card_id)
-    }}
+    message = {
+        'payload': {
+            'title': EVENT_CO_HOST_NOTIFICATION_TITLE,
+            'sub_title': EVENT_CO_HOST_NOTIFICATION_SUB_TITLE % (event_creater, event_title, community_name),
+            'route': EVENT_CO_HOST_NOTIFICATION_ROUTE % str(card_id)
+        },
+        'category': {
+            'category': NotificationCategories.CHATROOM,
+            'subcategory': NotificationSubCategories.CO_HOST_ADDED
+        }
+    }
 
     notification_meta(notification_list, message)
 
@@ -2628,11 +2647,17 @@ def send_pin_chatroom_notification(community_id, member_id, chatroom_id):
         }
         notification_list.append(temp)
 
-    message = {'payload': {
-        "title": PIN_CHATROOM_TITLE,
-        "sub_title": PIN_SUBTITLE % (promoter_name, get_title_from_collabcard(card_instance)),
-        'route': PIN_ROUTE % str(card_instance.id)
-    }}
+    message = {
+        'payload': {
+            'title': PIN_CHATROOM_TITLE,
+            'sub_title': PIN_SUBTITLE % (promoter_name, get_title_from_collabcard(card_instance)),
+            'route': PIN_ROUTE % str(card_instance.id)
+        },
+        'category': {
+            'category': NotificationCategories.CHATROOM,
+            'subcategory': NotificationSubCategories.CHATROOM_PINNED_BY_CM
+        }
+    }
 
     notification_meta(notification_list, message)
 
@@ -2658,12 +2683,19 @@ def send_notification_for_removed_secret_room_participant(user_id, chatroom_id):
 
     sub_title = SECRET_CHATROOM_REMOVED_SUBTITLE % chatroom_instance.header
     route = SECRET_CHATROOM_REMOVED_ROUTE
+    category = NotificationCategories.CHATROOM
+    subcategory = NotificationSubCategories.MEMBER_REMOVED_FROM_CHATROOM
 
-    message = {'payload': {
-        "title": community_name,
-        "sub_title": sub_title,
-        'route': route
-    }
+    message = {
+        'payload': {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            'category': category,
+            'subcategory': subcategory,
+        }
     }
 
     notification_meta(notification_list, message)
@@ -2690,12 +2722,19 @@ def send_notification_for_new_secret_room_participant(user_id, chatroom_id):
 
     sub_title = SECRET_CHATROOM_ADD_SUBTITLE % chatroom_instance.header
     route = SECRET_CHATROOM_ADD_ROUTE % chatroom_id
+    category = NotificationCategories.CHATROOM
+    subcategory = NotificationSubCategories.MEMBER_ADDED_TO_SECRET_CHATROOM
 
-    message = {'payload': {
-        "title": community_name,
-        "sub_title": sub_title,
-        'route': route
-    }
+    message = {
+        'payload': {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            'category': category,
+            'subcategory': subcategory
+        }
     }
 
     notification_meta(notification_list, message)
@@ -2842,6 +2881,10 @@ def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_i
                 userinfo_instance.name, chatroom_instance.title),
             'sub_title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE,
             'route': "route://chatroom_detail?chatroom_id=%s" % str(chatroom_id)
+        },
+        'category': {
+            'category': NotificationCategories.CHATROOM,
+            'subcategory': NotificationSubCategories.AUTO_FOLLOW_ENABLED,
         }
     }
 
@@ -2874,6 +2917,10 @@ def send_notification_on_chatroom_topic_update(chatroom_id):
             'title': CHATROOM_TOPIC_NOTIFICATION_TITLE,
             'sub_title': CHATROOM_TOPIC_NOTIFICATION_SUB_TITLE % card_instance.header,
             'route': CHATROOM_TOPIC_NOTIFICATION_ROUTE % str(card_instance.id)
+        },
+        'category': {
+            'category': NotificationCategories.CHATROOM,
+            'subcategory': NotificationSubCategories.TOPIC_UPDATED,
         }
     }
 
