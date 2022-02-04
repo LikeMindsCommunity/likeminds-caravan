@@ -78,7 +78,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     create_event_in_webflow_service, update_event_in_webflow_service, reset_unread_message_count_in_cache, \
     fetch_conversations_unread, create_chatroom_cohort_instances
 from utility.firebase import update_last_answer_id
-from utility.exception_utilities import (CustomException)
+from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
@@ -291,6 +291,9 @@ class ChatroomImpl(ChatroomManager):
             card_content['is_secret'] = True
 
             secret_chatroom_participants = req_body.get("secret_chatroom_participants", None)
+            secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
+                secret_chatroom_participants
+            )
 
             if secret_chatroom_participants:
                 member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
@@ -1163,6 +1166,10 @@ class ChatroomImpl(ChatroomManager):
                 'error_message': 'send secret_chatroom_participants in body'
             }
             raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
+        secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
+            secret_chatroom_participants
+        )
 
         if len(secret_chatroom_participants) <= 0:
             return {'success': True}
@@ -3891,3 +3898,16 @@ class ChatroomHelper:
         }
 
         return update_dict
+
+    @staticmethod
+    def validate_secret_chatroom_participants_or_raise_exception(secret_chatroom_participants):
+        try:
+            secret_chatroom_participants = NumberUtilities.convert_list_to_integer_list_or_raise_exception(
+                list_to_convert=secret_chatroom_participants
+            )
+
+        except Exception as e:
+            raise InvalidSecretChatroomParticipantsException()
+
+        return secret_chatroom_participants
+
