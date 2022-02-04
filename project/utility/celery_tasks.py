@@ -33,7 +33,7 @@ from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
     level_click_states, event_access, event_webflow_update_types, deleted_members, collabcard_states, SyncTypes, \
-    community_setting_types, CollabcardTypes, poll_types
+    community_setting_types, CollabcardTypes, poll_types, message_template_chatroom_types
 
 from collabmates_api.search.sync import ElasticSearchSync
 
@@ -2000,6 +2000,14 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
                                                                  "community": community_instance,
                                                                  "is_private": True})
 
+        from collabmates_api.conversation.conversation_impl import ConversationImpl
+
+        message_template_instances = ModelUtilities.get_model_filter(
+            MessageTemplate, {'community_id': community_id,
+                              'chatroom_type': message_template_chatroom_types.DM_CHATROOM})
+
+        message_template_instance = None if not len(message_template_instances) else message_template_instances[0]
+
         for community_manager in list_cms:
             member_instance = community_manager.member_id
 
@@ -2038,6 +2046,11 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
                                                 user_instances_list, answer, user_member_state, member_state,
                                                 conversation_state=conv_state)
 
+                    if message_template_instance and message_template_instance.cm_id == member_instance.id:
+                        ConversationImpl.create_conversation_internally(message_template_instance.cm_id,
+                                                                        dm_chatroom[0].id,
+                                                                        message_template_instance.message)
+
             else:
                 card_content = {}
                 chatroom_name = "Direct Message"
@@ -2065,6 +2078,11 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
                 # Set initial chatroom message
                 initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_user, community_instance,
                                             user_instances_list)
+
+                if message_template_instance and message_template_instance.cm_id == member_instance.id:
+                    ConversationImpl.create_conversation_internally(message_template_instance.cm_id,
+                                                                    chatroom_instance.id,
+                                                                    message_template_instance.message)
 
                 if not is_script:
                     # Update All community chatrooms for user
