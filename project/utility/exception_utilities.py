@@ -68,3 +68,10 @@ class ResourceNotFoundException(BaseException):
         "success": False,
         "error_message": "resource not found on the server"
     }
+
+
+class InvalidSecretChatroomParticipantsException(BaseException):
+    detail = {
+        'success': False,
+        'error_message': "invalid parameter: secret_chatroom_participants"
+    }
