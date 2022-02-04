@@ -42,7 +42,7 @@ from .constants import *
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
-                            conversationEventMembers, conversationEventNudge, UserEmailsSendStatus)
+                            conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
@@ -1494,7 +1494,10 @@ class ConversationImpl(ConversationManager):
 
         is_ios = False
 
-        conversation_manager = ConversationImpl(member_id, platform_code=PLATFORM_CODE_WEB, device_id=None)
+        user_devices_list = ModelUtilities.get_model_filter(userDevices, {'user_id': member_id}).order_by('-updated_at')
+        device_id = None if not user_devices_list else user_devices_list[0].device_id
+
+        conversation_manager = ConversationImpl(member_id, platform_code=PLATFORM_CODE_WEB, device_id=device_id)
 
         conversation_response = conversation_manager.create_conversation(req_body, is_ios)
 
