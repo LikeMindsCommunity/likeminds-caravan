@@ -78,7 +78,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     create_event_in_webflow_service, update_event_in_webflow_service, reset_unread_message_count_in_cache, \
     fetch_conversations_unread, create_chatroom_cohort_instances
 from utility.firebase import update_last_answer_id
-from utility.exception_utilities import (CustomException)
+from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
@@ -283,22 +283,23 @@ class ChatroomImpl(ChatroomManager):
             card_content['pinning_time'] = TimeUtilities.current_time_in_milliseconds()
 
     def _fill_secret_room_details(self, card_content, req_body, community):
-
         card_content['is_secret'] = req_body.get("is_secret", False)
 
-        if card_content['is_secret'] and \
-                req_body.get("secret_chatroom_participants", None):
+        if card_content['is_secret']:
             card_content['is_secret'] = True
 
-            secret_chatroom_participants = req_body.get("secret_chatroom_participants", None)
+            secret_chatroom_participants = req_body.get("secret_chatroom_participants", [])
+            secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
+                secret_chatroom_participants
+            )
 
-            if secret_chatroom_participants:
+            if len(secret_chatroom_participants):
                 member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
 
                 if member_id not in secret_chatroom_participants:
                     secret_chatroom_participants.append(member_id)
 
-                card_content['secret_chatroom_participants'] = json.dumps(secret_chatroom_participants)
+            card_content['secret_chatroom_participants'] = json.dumps(secret_chatroom_participants)
 
     def _fill_chatroom_attachment_count(self, card_content, req_body):
         card_content['image_count'] = req_body.get('image_count', 0)
@@ -973,7 +974,11 @@ class ChatroomImpl(ChatroomManager):
             self._send_follow_notifications_to_tagged_members(tagged_members_list=tagged_members[0])
 
         if chatroom_instance.is_secret:
-            participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
+            participants_list = []
+
+            if chatroom_instance.secret_chatroom_participants:
+                participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
+
             room_creator_id = NumberUtilities.get_integer_from_string(self.get_member_id())
 
             ChatroomHelper.make_secret_chatroom_relation_for_community_members.delay(participants_list,
@@ -1163,6 +1168,10 @@ class ChatroomImpl(ChatroomManager):
                 'error_message': 'send secret_chatroom_participants in body'
             }
             raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+
+        secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
+            secret_chatroom_participants
+        )
 
         if len(secret_chatroom_participants) <= 0:
             return {'success': True}
@@ -3891,3 +3900,16 @@ class ChatroomHelper:
         }
 
         return update_dict
+
+    @staticmethod
+    def validate_secret_chatroom_participants_or_raise_exception(secret_chatroom_participants):
+        try:
+            secret_chatroom_participants = NumberUtilities.convert_list_to_integer_list_or_raise_exception(
+                list_to_convert=secret_chatroom_participants
+            )
+
+        except Exception as e:
+            raise InvalidSecretChatroomParticipantsException()
+
+        return secret_chatroom_participants
+

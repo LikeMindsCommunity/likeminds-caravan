@@ -3,7 +3,6 @@ from rest_framework import status as status_codes
 
 
 class BaseException(APIException):
-
     status_code = status_codes.HTTP_400_BAD_REQUEST
     default_code = 'bad  request'
     default_detail = 'Service temporarily unavailable, try again later.'
@@ -16,56 +15,63 @@ class BaseException(APIException):
 
 
 class CustomException(BaseException):
-
-    detail = {"success": False,
-              "error_message": "Something went wrong"
-              }
+    detail = {
+        "success": False,
+        "error_message": "Something went wrong"
+    }
 
 
 class InvalidHeaderException(BaseException):
-
-    detail = {"success": False,
-              "error_message": "send member id in headers"
-              }
+    detail = {
+        "success": False,
+        "error_message": "send member id in headers"
+    }
 
 
 class InvalidUserException(BaseException):
-
-    detail = {"success": False,
-              "error_message": "user does not exist"
-              }
+    detail = {
+        "success": False,
+        "error_message": "user does not exist"
+    }
 
 
 class InvalidCommunityException(BaseException):
-
-    detail = {"success": False,
-              "error_message": "Community does not exist"
-              }
+    detail = {
+        "success": False,
+        "error_message": "Community does not exist"
+    }
 
 
 class InvalidChatroomException(BaseException):
-
-    detail = {"success": False,
-              "error_message": "Chatroom does not exist"
-              }
+    detail = {
+        "success": False,
+        "error_message": "Chatroom does not exist"
+    }
 
 
 class InvalidConversationException(BaseException):
-
-    detail = {"success": False,
-              "error_message": "Conversation does not exist"
-              }
+    detail = {
+        "success": False,
+        "error_message": "Conversation does not exist"
+    }
 
 
 class JsonDecodeException(BaseException):
-
-    detail = {"success": False,
-              "error_message": "Json decode error"
-              }
+    detail = {
+        "success": False,
+        "error_message": "Json decode error"
+    }
 
 
 class ResourceNotFoundException(BaseException):
+    detail = {
+        "success": False,
+        "error_message": "resource not found on the server"
+    }
 
-    detail = {"success": False,
-              "error_message": "resource not found on the server"
-              }
+
+class InvalidSecretChatroomParticipantsException(BaseException):
+    detail = {
+        'success': False,
+        'error_message': "invalid parameter: secret_chatroom_participants"
+    }
