@@ -283,25 +283,23 @@ class ChatroomImpl(ChatroomManager):
             card_content['pinning_time'] = TimeUtilities.current_time_in_milliseconds()
 
     def _fill_secret_room_details(self, card_content, req_body, community):
-
         card_content['is_secret'] = req_body.get("is_secret", False)
 
-        if card_content['is_secret'] and \
-                req_body.get("secret_chatroom_participants", None):
+        if card_content['is_secret']:
             card_content['is_secret'] = True
 
-            secret_chatroom_participants = req_body.get("secret_chatroom_participants", None)
+            secret_chatroom_participants = req_body.get("secret_chatroom_participants", [])
             secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
                 secret_chatroom_participants
             )
 
-            if secret_chatroom_participants:
+            if len(secret_chatroom_participants):
                 member_id = NumberUtilities.get_integer_from_string(self.get_member_id())
 
                 if member_id not in secret_chatroom_participants:
                     secret_chatroom_participants.append(member_id)
 
-                card_content['secret_chatroom_participants'] = json.dumps(secret_chatroom_participants)
+            card_content['secret_chatroom_participants'] = json.dumps(secret_chatroom_participants)
 
     def _fill_chatroom_attachment_count(self, card_content, req_body):
         card_content['image_count'] = req_body.get('image_count', 0)
@@ -976,7 +974,11 @@ class ChatroomImpl(ChatroomManager):
             self._send_follow_notifications_to_tagged_members(tagged_members_list=tagged_members[0])
 
         if chatroom_instance.is_secret:
-            participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
+            participants_list = []
+
+            if chatroom_instance.secret_chatroom_participants:
+                participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
+
             room_creator_id = NumberUtilities.get_integer_from_string(self.get_member_id())
 
             ChatroomHelper.make_secret_chatroom_relation_for_community_members.delay(participants_list,
