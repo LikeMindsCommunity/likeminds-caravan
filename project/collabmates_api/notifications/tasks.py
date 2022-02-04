@@ -206,11 +206,14 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
-            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
-                                                                                            event_instance,
-                                                                                            add_event_creator=False)
+            user_instances = active_user_ids
 
-            user_instances = active_user_ids + community_managers
+            if not event_instance.is_paid:
+                community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
+                                                                                                event_instance,
+                                                                                                add_event_creator=False)
+
+                user_instances += community_managers
 
         elif event_type == EVENT_TYPE.LAST_CALL:
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
