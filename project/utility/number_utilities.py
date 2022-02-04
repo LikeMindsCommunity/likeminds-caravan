@@ -17,7 +17,6 @@ class NumberUtilities:
     def convert_list_to_integer_list_or_raise_exception(list_to_convert: list):
 
         if not isinstance(list_to_convert, list):
-            print(f"Expected list but got {type(list_to_convert)}")
             raise Exception(f"Expected list but got {type(list_to_convert)}")
 
         integer_list = []
