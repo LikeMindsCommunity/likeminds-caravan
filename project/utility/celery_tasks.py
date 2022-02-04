@@ -12,7 +12,6 @@ from collabmates_api.serializers import get_user_profile, get_preview_for_url, U
 from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY, MEMBER_LEFT_DM_CHATROOM_MESSAGE, \
     MEMBER_REMOVED_DM_CHATROOM_MESSAGE, CM_REMOVED_COMMUNITY_DM_CHATROOM_MESSAGE, \
     MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE, MEMBER_JOINING_COMMUNITY_DM_CHATROOM_MESSAGE
-from collabmates_api.conversation.conversation_impl import ConversationImpl
 from collabmates_api.community.constants import *
 from collabmates_api.chatroom.constants import *
 from collabmates_api.upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
@@ -2000,6 +1999,8 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
                                                                  "chatroom_with_user_id__in": dm_chatrooms_filter,
                                                                  "community": community_instance,
                                                                  "is_private": True})
+
+        from collabmates_api.conversation.conversation_impl import ConversationImpl
 
         message_template_instances = ModelUtilities.get_model_filter(
             MessageTemplate, {'community_id': community_id,

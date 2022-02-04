@@ -5,7 +5,7 @@ from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
 from utility.auth_utilities import AuthUtilities
-from utility.states import message_template_chatroom_types
+from .automate_message_view_helper import AutomateMessageViewHelper
 from .automate_message_impl import AutomateMessageImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -26,7 +26,7 @@ class AddMessageTemplateView(APIView):
                                                                     status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(context['data'], status=context['status'])
 
-        authentication_response = AuthUtilities.validate_user(validated_request_body.get('community_id'), member_id)
+        authentication_response = AuthUtilities.is_cm(validated_request_body.get('community_id'), member_id)
 
         if 'error_message' in authentication_response:
             context = ResponseUtilities.get_view_impl_error_context(authentication_response['error_message'],
@@ -63,7 +63,7 @@ class SendCustomMessageView(APIView):
                                                                      status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(response['data'], status=response['status'])
 
-        authentication_response = AuthUtilities.validate_user(validated_request_body.get('community_id'), member_id)
+        authentication_response = AuthUtilities.is_cm(validated_request_body.get('community_id'), member_id)
 
         if 'error_message' in authentication_response:
             response = ResponseUtilities.get_view_impl_error_context(authentication_response['error_message'],
@@ -85,29 +85,3 @@ class SendCustomMessageView(APIView):
             {'success': True},
             status=status_codes.HTTP_200_OK
         )
-
-
-class AutomateMessageViewHelper:
-
-    @staticmethod
-    def template_body_validator(request_body, member_id):
-
-        if not request_body:
-            return ResponseUtilities.get_inner_error_context('invalid request body')
-
-        if 'community_id' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send community_id in body')
-
-        if 'chatroom_type' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send chatroom_type in body')
-
-        if request_body['chatroom_type'] not in [message_template_chatroom_types.DM_CHATROOM]:
-            return ResponseUtilities.get_inner_error_context('send valid chatroom_type in body')
-
-        if 'message' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send message in body')
-
-        if not member_id:
-            return ResponseUtilities.get_inner_error_context('send member_id in headers')
-
-        return request_body

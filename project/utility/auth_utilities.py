@@ -7,7 +7,7 @@ from togther.models import ModelUtilities, User, Community, Members
 class AuthUtilities:
 
     @staticmethod
-    def validate_user(community_id, member_id):
+    def is_cm(community_id, member_id):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 

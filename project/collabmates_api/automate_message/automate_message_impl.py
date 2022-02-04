@@ -1,7 +1,5 @@
 from .automate_message_manager import AutomateMessageManager
-from rest_framework import status as status_codes
 from utility.states import message_template_chatroom_types, member_states, card_types
-from utility.response_utilities import ResponseUtilities
 from togther.models import ModelUtilities, MessageTemplate, Members, Collabcard
 from collabmates_api.conversation.conversation_impl import ConversationImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -56,7 +54,16 @@ class AutomateMessageImpl(AutomateMessageManager):
                                                                          'user_id': self.get_member_id(),
                                                                          'chatroom_with_user_id__in': member_ids})
 
+            errors = {}
+
             for chatroom in dm_chat_rooms:
-                ConversationImpl.create_conversation_internally(self.get_member_id(), chatroom.id, self.get_message())
+                response = ConversationImpl.create_conversation_internally(
+                    self.get_member_id(), chatroom.id, self.get_message())
+
+                if 'error_message' in response:
+                    errors[self.get_member_id()] = response.get('error_message')
+
+            if len(errors):
+                error_logger.error("got error in send_custom_message in automate_message | error - {}".format(errors))
 
         return {'success': True}
