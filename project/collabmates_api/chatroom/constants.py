@@ -24,3 +24,5 @@ FIRST_EVENT_CM_MAIL_SUBJECT = "Hi {}! You have successfully created your first e
 FIRST_EVENT_CM_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
 FIRST_EVENT_CM_MAIL_BUTTON_TEXT = "INVITE MEMBERS"
 DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"
+
+CHATROOM_URL_WITH_COMMUNITY_ID = "%s/collabcard/%s?community_id=%s"

@@ -18,7 +18,7 @@ from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_P
     IMAGE_LINK_FOR_NO_EVENTS_FOUND, TITLE_FOR_NO_UPCOMING_EVENTS_FOUND, TITLE_FOR_NO_PAST_EVENTS_FOUND, \
     SUB_TITLE_FOR_MEMBER_VIEW_NO_UPCOMING_EVENTS_FOUND, SUB_TITLE_FOR_CM_VIEW_NO_UPCOMING_EVENTS_FOUND, \
     SUB_TITLE_FOR_NO_PAST_EVENTS_FOUND, FIRST_EVENT_CM_MAIL_SUBJECT, FIRST_EVENT_CM_MAIL_BUTTON_TEXT, \
-    FIRST_EVENT_CM_REPLY_EMAIL, DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR
+    FIRST_EVENT_CM_REPLY_EMAIL, DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CHATROOM_URL_WITH_COMMUNITY_ID
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
@@ -94,7 +94,7 @@ from collabmates_api.notifications.constants import EVENT_TYPE
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
-
+url = settings.URL
 
 class ChatroomImpl(ChatroomManager):
     member_id = None
@@ -3913,3 +3913,8 @@ class ChatroomHelper:
 
         return secret_chatroom_participants
 
+    @staticmethod
+    def fetch_chatroom_link(chatroom_instance):
+        chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (url, str(chatroom_instance.id), str(chatroom_instance.community.id))
+
+        return chatroom_url
