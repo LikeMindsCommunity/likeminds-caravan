@@ -495,7 +495,6 @@ def reschedule_event_comms_notifications_on_event_update(payload_for_whatsapp_co
 
     send_email_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.LAST_CALL)
     send_email_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.ATTENDANCE_9_AM)
-    send_email_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.POST_EVENT_ATTENDEES)
 
 ##### keeping the following code in case we find a solution for deleting the tasks from rabbitmq #####
 

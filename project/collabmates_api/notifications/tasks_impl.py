@@ -5,7 +5,6 @@ from django.template.loader import get_template
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
     userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted
 from utility.time_utilities import TimeUtilities
-from utility.utils import generate_private_link_for_chatroom
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
     user_email_send_status_types, event_access, card_types, get_started_types
 from collabmates_api.notification import get_token_for_fcm
@@ -55,13 +54,12 @@ class TasksImpl(TaskManager):
         else:
             cm_name = ""
 
-        share_url = generate_private_link_for_chatroom(
-            payload.get('chatroom'),
-            payload.get('user')
-        )
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-        path = UrlUtilities.extract_part_from_url(share_url.get('private_link'),'path', init_slash_off=True)
-        query_params = UrlUtilities.extract_part_from_url(share_url.get('private_link'),'query', init_slash_off=False)
+        share_url = ChatroomHelper.fetch_chatroom_link(payload.get('chatroom'))
+
+        path = UrlUtilities.extract_part_from_url(share_url,'path', init_slash_off=True)
+        query_params = UrlUtilities.extract_part_from_url(share_url,'query', init_slash_off=False)
 
         link = "%s?%s" % (path, query_params)
 
@@ -249,7 +247,9 @@ class TasksImpl(TaskManager):
         if not user_email_list:
             return {}
 
-        chatroom_url = CHATROOM_URL % (settings.URL, str(card_instance.id))
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+
+        chatroom_url = ChatroomHelper.fetch_chatroom_link(card_instance)
 
         event_metadata = {
             'summary': card_instance.title,
@@ -282,12 +282,9 @@ class TasksImpl(TaskManager):
         event_date = TimeUtilities.convert_epoch_time_to_date_month_year(payload.get('chatroom').date_time)
         community_id = payload.get('chatroom').community.id
 
-        share_url = generate_private_link_for_chatroom(
-            payload.get('chatroom'),
-            payload.get('chatroom').user
-        )
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-        link = share_url.get('private_link')
+        link = ChatroomHelper.fetch_chatroom_link(payload.get('chatroom'))
 
         is_paid_event = payload.get('chatroom').is_paid
 
@@ -883,11 +880,14 @@ class TasksHelper:
 
         to_mails_list = TasksHelper.get_emails_list_for_user_instances([receiver_instance])
         reply_to = community_owner_email[0] if community_owner_email else ''
-        share_url = generate_private_link_for_chatroom(chatroom_instance, community_owner_instance)
+
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+
+        link = ChatroomHelper.fetch_chatroom_link(chatroom_instance)
         data_dict = {
             'community_name': community_instance.name,
             'chatroom_name': chatroom_instance.title,
-            'chatroom_link': share_url.get('private_link'),
+            'chatroom_link': link,
             'receiver_name': receiver_instance.userinfo.name,
             'sender_name': sender_instance.userinfo.name,
             'owner_name': community_owner_instance.userinfo.name
