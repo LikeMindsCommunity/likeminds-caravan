@@ -3216,3 +3216,23 @@ class EventCommsCeleryTasks(models.Model):
         instance.save()
 
         return instance
+
+
+class MessageTemplate(models.Model):
+
+    community_id = models.IntegerField(null=True, default=None)
+    message = models.TextField()
+    chatroom_type = models.IntegerField()
+    cm_id = models.IntegerField(null=True, default=None)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(MessageTemplate, self).save(*args, **kwargs)

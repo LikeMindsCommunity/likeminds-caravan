@@ -194,6 +194,7 @@ urlpatterns = [
     path('cohort/', include('collabmates_api.cohort.urls'), name='community_cohorts'),
     path('external_service_apis/', include('collabmates_api.external_service_apis.urls'), name='external_service_apis'),
     path('notifications/', include('collabmates_api.notifications.urls'), name='notifications'),
+    path('automate_message/', include('collabmates_api.automate_message.urls'), name='automate_message')
 ]
 
 app_name = 'collabmates_api'
