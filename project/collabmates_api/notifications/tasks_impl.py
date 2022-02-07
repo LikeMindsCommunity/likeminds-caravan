@@ -225,7 +225,7 @@ class TasksImpl(TaskManager):
             },
             'category': {
                 'category': category,
-                'subcategory': subcategory
+                NOTIFICATION_SUB_CATEGORY_KEY: subcategory
             }
         }
 
@@ -527,7 +527,7 @@ class TasksImpl(TaskManager):
             },
             'category': {
                 'category': category,
-                'subcategory': subcategory,
+                NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
             }
         }
 

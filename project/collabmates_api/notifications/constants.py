@@ -159,3 +159,6 @@ class NotificationSubCategories:
     PRIVATE_LINK_DROP_OFF = "Private link dropoff"
     EXPIRED_PRIVATE_LINK_DROP_OFF = "Expired private link dropoff"
     LOGIN_DROP_OFF = "Login dropoff"
+
+
+NOTIFICATION_SUB_CATEGORY_KEY = 'subcategory'
