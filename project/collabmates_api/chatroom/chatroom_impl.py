@@ -1545,18 +1545,18 @@ class ChatroomImpl(ChatroomManager):
             if not req_body.get('restrict_event_update_notification'):
                 send_notification_for_event_update.delay(card_instance.id)
 
-            payload_for_whatsapp_comms = {
-                'chatroom': card_instance.id,
-                'community': community_instance.id,
-                'user': user_instance.id
-            }
+                payload_for_whatsapp_comms = {
+                    'chatroom': card_instance.id,
+                    'community': community_instance.id,
+                    'user': user_instance.id
+                }
 
-            payload_for_app_and_email_notifications = {
-                'chatroom': card_instance.id
-            }
+                payload_for_app_and_email_notifications = {
+                    'chatroom': card_instance.id
+                }
 
-            reschedule_event_comms_notifications_on_event_update.delay(payload_for_whatsapp_comms,
-                                                                       payload_for_app_and_email_notifications)
+                reschedule_event_comms_notifications_on_event_update.delay(payload_for_whatsapp_comms,
+                                                                        payload_for_app_and_email_notifications)
 
             payload_for_app_and_email_notifications['calendar_meta_data'] = meta_data_for_calendar_updation
 
