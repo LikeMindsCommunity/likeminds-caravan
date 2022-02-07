@@ -1558,11 +1558,11 @@ class ChatroomImpl(ChatroomManager):
                 reschedule_event_comms_notifications_on_event_update.delay(payload_for_whatsapp_comms,
                                                                         payload_for_app_and_email_notifications)
 
-            payload_for_app_and_email_notifications['calendar_meta_data'] = meta_data_for_calendar_updation
+                payload_for_app_and_email_notifications['calendar_meta_data'] = meta_data_for_calendar_updation
 
-            send_calender_invite_for_event_type.delay(payload_for_app_and_email_notifications,
-                                                EVENT_TYPE.REGISTRATION,
-                                                calendar_invite_type=CALENDAR_INVITE_TYPE.UPDATE_CALENDAR)
+                send_calender_invite_for_event_type.delay(payload_for_app_and_email_notifications,
+                                                    EVENT_TYPE.REGISTRATION,
+                                                    calendar_invite_type=CALENDAR_INVITE_TYPE.UPDATE_CALENDAR)
 
             return chatroom_context
 
