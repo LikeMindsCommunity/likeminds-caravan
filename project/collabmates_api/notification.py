@@ -1,33 +1,15 @@
 from __future__ import absolute_import, unicode_literals
-from external_services.logging.logging_wrapper import LoggingWrapper
-from celery import shared_task
+
 import re
-import time
-from dateutil import tz
-import pytz
+
 from django.http.response import JsonResponse
 import psycopg2
-from celery import shared_task
-from django.conf import settings
-from django.contrib.auth.models import User
-from django.db.models import Q, F
-from pyfcm import FCMNotification
-from togther.models import (Community_Rank, collabcardState,
-                            MemberPollVotes, Collabcard, Members, Members, Referal, Community, communityAnswers,
-                            Userinfo, communityLevels, communityExpiryCodes, conversationEngage, card_answers,
-                            conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
-                            moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,
-                            userDevices, ModelUtilities, answerAttachment)
 
-from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,
-                            )
+from pyfcm import FCMNotification
 
 from utility.utils import *
-from utility.time_utilities import TimeUtilities
 from utility.celery_beat_tasks import CeleryBeatTask
-from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
-                               MINUTES_2, HOURS_24, MINUTES_5,
-                               MINUTES_10, MINUTES_30, VALID_URLS_REGEX)
+from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD, VALID_URLS_REGEX)
 from project.celery import app
 from utility.states import *
 
@@ -47,8 +29,6 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR,
                                INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL,
-                               SYNC_NOTIFICATION_TITLE,
-                               SYNC_NOTIFICATION_SUBTITLE,
                                SYNC_NOTIFICATION_ROUTE)
 
 from external_services.mixpanel.mixpanel_impl import MixpanelImpl
@@ -58,9 +38,6 @@ from utility.number_utilities import NumberUtilities
 from utility.celery_tasks import save_users_with_muted_chatrooms
 from utility.cache_keys import USER_MUTED_CHATROOM
 from external_services.caching.cache_impl import CacheImpl
-
-from external_services.wa_notification.wa_notification_impl import NotificationImpl
-from external_services.wa_notification.constants import WATI_NOTIFICATION_CONST
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
