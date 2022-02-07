@@ -1,9 +1,12 @@
+import json
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.template.loader import get_template
 
+from external_services.calender.calendar_impl import CalendarImpl
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
-    userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted
+    userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted, \
+     EventGoogleCalendarLogs
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
     user_email_send_status_types, event_access, card_types, get_started_types
@@ -236,7 +239,7 @@ class TasksImpl(TaskManager):
         return response_dict
 
     @staticmethod
-    def get_event_metadata_for_calendar_invite(card_id, send_to_members, user_list):
+    def get_event_metadata_for_calendar_invite(card_id, send_to_members, user_list, calendar_invite_type):
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
 
         if not card_instance:
@@ -254,40 +257,53 @@ class TasksImpl(TaskManager):
 
         user_email_list = [{'email': instance.email} for instance in user_email_filter if instance.email]
 
-        event_metadata = TasksImpl.process_calendar_invite_event_metadata(card_instance, user_email_list)
+        event_metadata = TasksImpl.process_calendar_invite_event_metadata(card_instance, user_email_list,
+                                                                        calendar_invite_type)
 
         return event_metadata
 
     @staticmethod
-    def process_calendar_invite_event_metadata(card_instance, user_email_list):
+    def process_calendar_invite_event_metadata(card_instance, user_email_list, calendar_invite_type):
 
         if not user_email_list:
             return {}
 
-        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+        if calendar_invite_type == CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION:
 
-        chatroom_url = ChatroomHelper.fetch_chatroom_link(card_instance)
+            from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-        event_metadata = {
-            'summary': card_instance.title,
-            'location': chatroom_url,
-            'description': card_instance.about,
-            'start': {
-                'dateTime': TimeUtilities.convert_epoch_time_to_RFC3339(card_instance.date_time),
-                'timeZone': settings.TIME_ZONE,
-            },
-            'end': {
-                'dateTime': TimeUtilities.convert_epoch_time_to_RFC3339(card_instance.end_date),
-                'timeZone': settings.TIME_ZONE,
-            },
-            'attendees': user_email_list,
-            'reminders': {
-                'useDefault': False,
-                'overrides': [
-                    {'method': 'email', 'minutes': MAIL_EVENT_NOTIFICATION},
-                ],
-            },
-        }
+            chatroom_url = ChatroomHelper.fetch_chatroom_link(card_instance)
+
+            event_metadata = {
+                'summary': card_instance.title,
+                'location': chatroom_url,
+                'description': card_instance.about,
+                'start': {
+                    'dateTime': TimeUtilities.convert_epoch_time_to_RFC3339(card_instance.date_time),
+                    'timeZone': settings.TIME_ZONE,
+                },
+                'end': {
+                    'dateTime': TimeUtilities.convert_epoch_time_to_RFC3339(card_instance.end_date),
+                    'timeZone': settings.TIME_ZONE,
+                },
+                'guestsCanSeeOtherGuests': False,
+                'attendees': user_email_list,
+                'reminders': {
+                    'useDefault': False,
+                    'overrides': [
+                        {'method': 'email', 'minutes': MAIL_EVENT_NOTIFICATION},
+                    ],
+                },
+            }
+
+        elif calendar_invite_type == CALENDAR_INVITE_TYPE.APPEND_ATTENDEES:
+
+            attendees_list = TasksHelper.get_final_attendees_list_for_calendar_event(card_instance, 
+                                                                                     user_email_list)
+
+            event_metadata = {
+                'attendees': attendees_list
+            }
 
         return event_metadata
 
@@ -1006,3 +1022,59 @@ class TasksHelper:
             }
 
             return context
+
+    @staticmethod
+    def get_final_attendees_list_for_calendar_event(card_instance, user_email_list):
+        attendees_list = TasksHelper.get_attendees_list_for_calendar_event(event=card_instance)
+
+        attendees_list.append(user_email_list[0])
+
+        return attendees_list
+
+    @staticmethod
+    def get_attendees_list_for_calendar_event(event):
+        filter_dict = {
+            'event': event,
+            'is_deleted': False
+        }
+
+        calendar_instance_filter = ModelUtilities.get_model_filter(EventGoogleCalendarLogs , filter_dict)
+
+        if calendar_instance_filter:
+            calender_id = calendar_instance_filter[0].calendar_id
+
+            calendar_obj = CalendarImpl().get_calendar_api(calender_id)
+
+            return calendar_obj.get('attendees')
+
+        return []
+
+    @staticmethod
+    def log_calendar_event_object_in_db(event, calendar_obj):
+
+        filter_dict = {
+            'event': event,
+            'calendar_id': calendar_obj.get('id'),
+            'is_deleted': False
+        }
+
+        EventGoogleCalendarLogs.create_instance(filter_dict)
+
+        return
+
+    @staticmethod
+    def get_calendar_id_for_calendar_event(event):
+
+        calendar_id = None
+
+        calendar_id_filter = ModelUtilities.get_model_filter(
+            EventGoogleCalendarLogs,
+            {
+                'event': event
+            }
+        )
+
+        if calendar_id_filter:
+            calendar_id = calendar_id_filter[0].calendar_id
+
+        return calendar_id

@@ -89,7 +89,7 @@ from collabmates_api.notifications.tasks import trigger_event_comms, send_app_no
     send_app_notification_for_event_type, send_calender_invite_for_event_type, \
     send_email_notification_for_event_type, \
     reschedule_event_comms_notifications_on_event_update
-from collabmates_api.notifications.constants import EVENT_TYPE
+from collabmates_api.notifications.constants import EVENT_TYPE, CALENDAR_INVITE_TYPE
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1529,6 +1529,8 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.type == card_types.CARD_EVENT \
                 or card_instance.type == card_types.CARD_PUBLIC_EVENT:
 
+            meta_data_for_calendar_updation = ChatroomHelper.get_meta_data_for_calendar_updation(req_body, card_instance)
+
             card_instance = self.update_event_meta(req_body, user_instance, community_instance, card_instance)
 
             chatroom_context = {
@@ -1543,18 +1545,24 @@ class ChatroomImpl(ChatroomManager):
             if not req_body.get('restrict_event_update_notification'):
                 send_notification_for_event_update.delay(card_instance.id)
 
-            payload_for_whatsapp_comms = {
-                'chatroom': card_instance.id,
-                'community': community_instance.id,
-                'user': user_instance.id
-            }
+                payload_for_whatsapp_comms = {
+                    'chatroom': card_instance.id,
+                    'community': community_instance.id,
+                    'user': user_instance.id
+                }
 
-            payload_for_app_and_email_notifications = {
-                'chatroom': card_instance.id
-            }
+                payload_for_app_and_email_notifications = {
+                    'chatroom': card_instance.id
+                }
 
-            reschedule_event_comms_notifications_on_event_update.delay(payload_for_whatsapp_comms,
-                                                                       payload_for_app_and_email_notifications)
+                reschedule_event_comms_notifications_on_event_update.delay(payload_for_whatsapp_comms,
+                                                                        payload_for_app_and_email_notifications)
+
+                payload_for_app_and_email_notifications['calendar_meta_data'] = meta_data_for_calendar_updation
+
+                send_calender_invite_for_event_type.delay(payload_for_app_and_email_notifications,
+                                                    EVENT_TYPE.REGISTRATION,
+                                                    calendar_invite_type=CALENDAR_INVITE_TYPE.UPDATE_CALENDAR)
 
             return chatroom_context
 
@@ -1991,8 +1999,9 @@ class ChatroomImpl(ChatroomManager):
             'chatroom': card_instance.id,
         }
 
-        send_calender_invite_for_event_type(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION, send_to_members=False, \
-                                            user_list=[user_instance.id])
+        send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION, send_to_members=False,
+                                            user_list=[user_instance.id],
+                                            calendar_invite_type=CALENDAR_INVITE_TYPE.APPEND_ATTENDEES)
 
         ChatroomHelper.run_async_task_related_to_event_chatroom_attend_analytics(card_instance,
                                                                                  user_instance, status)
@@ -3306,22 +3315,19 @@ class ChatroomHelper:
 
         event_attendees_list = []
 
+        from collabmates_api.notifications.tasks_impl import TasksHelper
+
+        event_creator_and_community_owner = TasksHelper.get_community_owner_and_event_creator(community_instance,
+                                                                                            card_instance)
+
         for data in member_filter:
             user_instance = data.member_id
-
-            if data.state == member_states.ADMIN:
-                payload_for_calendar_invite = {
-                    'chatroom': card_instance.id
-                }
-
-                send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION,
-                                                          send_to_members=False, user_list=[user_instance.id])
 
             is_card_creator = user_instance.id == card_instance.user_id
 
             if not member_dict.get(user_instance.id):
 
-                attending_status = is_event_chatroom and (data.state == member_states.ADMIN)
+                attending_status = is_event_chatroom and (user_instance.id in event_creator_and_community_owner)
                 follow_status = True if attending_status else card_instance.auto_follow_done
 
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
@@ -3337,8 +3343,16 @@ class ChatroomHelper:
                 if attending_status and (user_instance.id not in event_attendees_list):
                     event_attendees_list.append(user_instance.id)
 
-                if data.state == member_states.ADMIN:
+                if user_instance.id in event_creator_and_community_owner:
                     community_admins_list.append(user_instance.id)
+
+        payload_for_calendar_invite = {
+            'chatroom': card_instance.id
+        }
+
+        send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION,
+                                                send_to_members=False, user_list=event_creator_and_community_owner,
+                                                calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
 
@@ -3900,6 +3914,30 @@ class ChatroomHelper:
         }
 
         return update_dict
+
+    @staticmethod
+    def get_meta_data_for_calendar_updation(req_body, card_instance):
+        meta_data_for_calendar_updation = {}
+
+        if req_body.get('about') and req_body.get('about') != card_instance.about:
+            meta_data_for_calendar_updation['description'] = req_body.get('about')
+
+        if req_body.get('title') and req_body.get('title') != card_instance.title:
+            meta_data_for_calendar_updation['summary'] = req_body.get('title')
+
+        if req_body.get('date_time') and req_body.get('date_time') != card_instance.date_time:
+            meta_data_for_calendar_updation['start'] = {
+                'dateTime': TimeUtilities.convert_epoch_time_to_RFC3339(req_body.get('date_time')),
+                'timeZone': settings.TIME_ZONE,
+            }
+
+        if req_body.get('end_date') and req_body.get('end_date') != card_instance.end_date:
+            meta_data_for_calendar_updation['end'] = {
+                'dateTime': TimeUtilities.convert_epoch_time_to_RFC3339(req_body.get('end_date')),
+                'timeZone': settings.TIME_ZONE,
+            }
+
+        return meta_data_for_calendar_updation
 
     @staticmethod
     def validate_secret_chatroom_participants_or_raise_exception(secret_chatroom_participants):

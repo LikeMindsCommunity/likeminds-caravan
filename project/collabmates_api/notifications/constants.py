@@ -35,8 +35,13 @@ class EVENT_COMM_FREQUENCY:
     POST_EVENT_ATTENDEES_MAIL_EXPIRY_AFTER = timedelta(hours=2)
 
 
-EVENT_COMM_SHOULD_HAPPEN_BEFORE = datetime.strptime("22:0", "%H:%M")  # 1O:00 PM
-EVENT_COMM_SHOULD_HAPPEN_AFTER = datetime.strptime("08:0", "%H:%M")  # 8:00 AM
+class CALENDAR_INVITE_TYPE:
+    NEW_CALENDAR_CREATION = 'create new calendar event'
+    APPEND_ATTENDEES = 'append new attendees to calendar event'
+    UPDATE_CALENDAR = 'update details for calendar event'
+
+EVENT_COMM_SHOULD_HAPPEN_BEFORE = datetime.strptime("22:0", "%H:%M") # 1O:00 PM
+EVENT_COMM_SHOULD_HAPPEN_AFTER = datetime.strptime("08:0", "%H:%M") # 8:00 AM
 
 TIME_10_AM = datetime.strptime("10:0", "%H:%M")  # 10:00 AM
 TIME_9_AM = datetime.strptime("9:0", "%H:%M")  # 9:00 AM
