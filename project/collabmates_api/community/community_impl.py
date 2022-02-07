@@ -1249,14 +1249,16 @@ class CommunityImpl(CommunityManager):
 
         community_state = 0
 
+        type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
+
         community_instance = Community.create_instance({'name': validate_req_body['name'],
                                                         'members_count': 1,
                                                         'purpose': validate_req_body['headline'],
                                                         'brand_color': validate_req_body['brand_color'],
                                                         'image_link': validate_req_body['image_url'],
                                                         'thumbnail': community_default_thumbnail,
-                                                        'type': TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS,
-                                                        'sub_type': SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS,
+                                                        'type': type_id,
+                                                        'sub_type': sub_type_id,
                                                         'hide_community': community_state})
 
         if validate_req_body.get('has_logo_uploaded', False):
@@ -3106,3 +3108,34 @@ class CommunityHelper:
 
         return {'success': True, 'community_share': community_share, 'share_context': share_context, 'link': link,
                 'aj': aj}
+
+    @staticmethod
+    def get_default_community_type_subtype_id():
+        type_id = TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
+        sub_type_id = SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
+
+        community_field_type_filter_dict = {
+            'type': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
+            'sub_type_header': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
+            'sub_type_placeholder': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
+            'rank': DEFAULT_COMMUNITY_FIELD_TYPE_RANK
+        }
+
+        community_field_sub_type_filter_dict = {
+            'sub_type': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
+            'rank': DEFAULT_COMMUNITY_FIELD_TYPE_RANK
+        }
+
+        community_type_filter = ModelUtilities.get_model_filter(communityFieldTypes,
+                                                                community_field_type_filter_dict)
+
+        if community_type_filter:
+            type_id = community_type_filter[0].id
+
+        community_sub_type_filter = ModelUtilities.get_model_filter(communityFieldSubTypes,
+                                                                    community_field_sub_type_filter_dict)
+
+        if community_sub_type_filter:
+            sub_type_id = community_sub_type_filter[0].id
+
+        return type_id, sub_type_id
