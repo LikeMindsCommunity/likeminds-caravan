@@ -2480,6 +2480,10 @@ def get_message_for_evening_notification(community_intro_rooms, user_instance, c
             "title": title,
             "sub_title": sub_title,
             'route': route
+        },
+        'category': {
+            'category': NotificationCategories.CHATROOM,
+            'subcategory': NotificationSubCategories.MEMBER_JOINED
         }
     }
     return message
