@@ -3315,19 +3315,19 @@ class ChatroomHelper:
 
         event_attendees_list = []
 
-        user_list = []
+        from collabmates_api.notifications.tasks_impl import TasksHelper
+
+        event_creator_and_community_owner = TasksHelper.get_community_owner_and_event_creator(community_instance,
+                                                                                            card_instance)
 
         for data in member_filter:
             user_instance = data.member_id
-
-            if data.state == member_states.ADMIN:
-                user_list.append(user_instance.id)
 
             is_card_creator = user_instance.id == card_instance.user_id
 
             if not member_dict.get(user_instance.id):
 
-                attending_status = is_event_chatroom and (data.state == member_states.ADMIN)
+                attending_status = is_event_chatroom and (user_instance.id in event_creator_and_community_owner)
                 follow_status = True if attending_status else card_instance.auto_follow_done
 
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
@@ -3343,7 +3343,7 @@ class ChatroomHelper:
                 if attending_status and (user_instance.id not in event_attendees_list):
                     event_attendees_list.append(user_instance.id)
 
-                if data.state == member_states.ADMIN:
+                if user_instance.id in event_creator_and_community_owner:
                     community_admins_list.append(user_instance.id)
 
         payload_for_calendar_invite = {
@@ -3351,7 +3351,7 @@ class ChatroomHelper:
         }
 
         send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION,
-                                                send_to_members=False, user_list=user_list,
+                                                send_to_members=False, user_list=event_creator_and_community_owner,
                                                 calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
