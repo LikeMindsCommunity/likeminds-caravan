@@ -5891,13 +5891,13 @@ def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id):
         temp['show_follow_telescope'] = False
         show = True
 
-    if card_status['active'] and card_status['is_tagged']:
+    if card_status['is_tagged']:
         temp['show_follow_telescope'] = False
         temp['show_active'] = False
         temp['show_follow_auto_tag'] = True
         show = True
 
-    if card_status['active'] == False and card_status["follow_status"] == True:
+    if card_status["follow_status"]:
         temp['show_follow_telescope'] = False
         temp['show_active'] = True
         temp['show_follow_auto_tag'] = False
