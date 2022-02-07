@@ -224,7 +224,7 @@ class TasksImpl(TaskManager):
                 'route': route
             },
             'category': {
-                'category': category,
+                NOTIFICATION_CATEGORY_KEY: category,
                 NOTIFICATION_SUB_CATEGORY_KEY: subcategory
             }
         }
@@ -526,7 +526,7 @@ class TasksImpl(TaskManager):
                 'route': route
             },
             'category': {
-                'category': category,
+                NOTIFICATION_CATEGORY_KEY: category,
                 NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
             }
         }

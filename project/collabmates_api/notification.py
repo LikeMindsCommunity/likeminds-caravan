@@ -19,7 +19,8 @@ import traceback
 
 from datetime import datetime, timedelta
 
-from .notifications.constants import NotificationCategories, NotificationSubCategories, NOTIFICATION_SUB_CATEGORY_KEY
+from .notifications.constants import NotificationCategories, NotificationSubCategories, NOTIFICATION_SUB_CATEGORY_KEY, \
+    NOTIFICATION_CATEGORY_KEY
 from .serializers import get_answer_files, get_collabcard_files
 from .static_text import *
 from utility.time_utilities import TimeUtilities
@@ -421,7 +422,7 @@ def send_notification_to_admins(community_id, name):
                          str(community_name)
             },
             'category': {
-                'category': NotificationCategories.MODERATION,
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBERSHIP_REQUESTED
             }
         }
@@ -468,7 +469,7 @@ def send_notification_for_join_requests(community_id, flag, member_id, promoter_
             }
 
         message['category'] = {
-            'category': NotificationCategories.MODERATION,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBERSHIP_APPROVED
         }
         notification_meta(notification_list, message)
@@ -641,7 +642,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
                 'route': route
             },
             'category': {
-                'category': category,
+                NOTIFICATION_CATEGORY_KEY: category,
                 NOTIFICATION_SUB_CATEGORY_KEY: subcategory
             }
         }
@@ -949,7 +950,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
             'unread_follow_notification': custom_conversation_notification_payload
         },
         'category': {
-            'category': NotificationCategories.CHATROOM,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_RESPONDED
         }
     }
@@ -1201,7 +1202,7 @@ def send_notification_to_tagged_users(card_id, answerer_name, answer, user_id, u
                 'route': "route://collabcard?collabcard_id=" + str(card_id)
             },
             'category': {
-                'category': NotificationCategories.CHATROOM,
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_TAGGED
             }
         }
@@ -1258,7 +1259,7 @@ def send_notification_to_event_co_hosts(co_hosts, card_id, event_title, event_cr
             'route': EVENT_CO_HOST_NOTIFICATION_ROUTE % str(card_id)
         },
         'category': {
-            'category': NotificationCategories.CHATROOM,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CO_HOST_ADDED
         }
     }
@@ -1456,7 +1457,7 @@ def send_notification_to_incomplete_profile_scheduled(member_id, community_id, c
                 'route': 'route://community?community_id=' + str(community_id)
             },
             'category': {
-                'category': NotificationCategories.MODERATION,
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CREATE_PROFILE
             }
         }
@@ -1502,7 +1503,7 @@ def send_login_dropoff_notification_scheduled(token, platform_code):
                 'sub_title': "Click here to sign up and meet like-minded people and have relevant conversations."
             },
             'category': {
-                'category': NotificationCategories.HOME,
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.LOGIN_DROP_OFF
             }
         }
@@ -1549,7 +1550,7 @@ def send_morning_pending_request_notification():
                              "community_name=" + str(community.name)
                 },
                 'category': {
-                    'category': NotificationCategories.MODERATION,
+                    NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
                     NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.N_PENDING_REQUESTS
                 }
             }
@@ -1619,7 +1620,7 @@ def send_notification_to_join_drop_off_scheduled(member_id, community_id, aj, ti
                     'route': 'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
                 },
                 'category': {
-                    'category': NotificationCategories.HOME,
+                    NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
                     NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.PUBLIC_LINK_DROP_OFF
                 }
             }
@@ -1666,7 +1667,7 @@ def send_notification_to_join_drop_off_scheduled_2(member_id, community_id, aj, 
             'route': 'route://community?community_id=' + str(community_id)
         },
         'category': {
-            'category': NotificationCategories.HOME,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.PRIVATE_LINK_DROP_OFF
         }
     }
@@ -1722,7 +1723,7 @@ def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
             'route': 'route://community?community_id=' + str(community_id)
         },
         'category': {
-            'category': NotificationCategories.HOME,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.EXPIRED_PRIVATE_LINK_DROP_OFF
         }
     }
@@ -1795,7 +1796,7 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
             message['payload']['route'] = "route://member_profile?member_id=" + str(
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
             message['category'] = {
-                'category': NotificationCategories.MODERATION,
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
             }
             notification_list.append(temp)
@@ -1832,7 +1833,7 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
             message['payload']['route'] = "route://member_profile?member_id=" + str(
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
             message['category'] = {
-                'category': NotificationCategories.MODERATION,
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
             }
             notification_list.append(temp)
@@ -1869,7 +1870,7 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
             message['payload']['route'] = "route://member_profile?member_id=" + str(
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
             message['category'] = {
-                'category': NotificationCategories.MODERATION,
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
             }
             notification_list.append(temp)
@@ -1906,7 +1907,7 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
             message['payload']['route'] = "route://member_profile?member_id=" + str(
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
             message['category'] = {
-                'category': NotificationCategories.MODERATION,
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
             }
             notification_list.append(temp)
@@ -1943,7 +1944,7 @@ def send_notification_for_new_promoter(promoter_id, member_id, community_id, cus
             'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
         },
         'category': {
-            'category': NotificationCategories.MODERATION,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.BECAME_ADMIN
         }
     }
@@ -1982,7 +1983,7 @@ def send_notification_for_custom_title_changed(promoter_id, member_id, community
             'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
         },
         'category': {
-            'category': NotificationCategories.MODERATION,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CM_TITLE_ASSIGNED
         }
     }
@@ -2018,7 +2019,7 @@ def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, comm
             'route': f'route://member_profile/{new_owner_id}?community_id={community_id}&member_id={new_owner_id}'
         },
         'category': {
-            'category': NotificationCategories.MODERATION,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.BECAME_OWNER
         }
     }
@@ -2054,7 +2055,7 @@ def send_notification_for_removed_member(admin_id, removed_user_id, community_id
             'route': '//route://community_collabcard?community_id='
         },
         'category': {
-            'category': NotificationCategories.MODERATION,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBER_REMOVED
         }
     }
@@ -2119,7 +2120,7 @@ def send_notification_for_right_given_to_member(user_id, community_id, rights_ad
                 'route': route
             },
             'category': {
-                'category': category,
+                NOTIFICATION_CATEGORY_KEY: category,
                 NOTIFICATION_SUB_CATEGORY_KEY: subcategory
             }
         }
@@ -2166,7 +2167,7 @@ def send_notification_for_pending_chatroom_approved_or_rejected(card_id, is_appr
             'route': route
         },
         'category': {
-            'category': category,
+            NOTIFICATION_CATEGORY_KEY: category,
             NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
         }
     }
@@ -2223,7 +2224,7 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
 
     if subcategory:
         message['category'] = {
-            'category': NotificationCategories.MODERATION,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
             NOTIFICATION_SUB_CATEGORY_KEY: subcategory
         }
 
@@ -2299,7 +2300,7 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
             'route': route
         },
         'category': {
-            'category': category,
+            NOTIFICATION_CATEGORY_KEY: category,
             NOTIFICATION_SUB_CATEGORY_KEY: subcategory
         }
     }
@@ -2367,7 +2368,7 @@ def send_notification_for_right_given_to_manager(user_id, community_id, rights_a
                 'route': route
             },
             'category': {
-                'category': NotificationCategories.MODERATION,
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CM_PERMISSION_UPDATED
             }
         }
@@ -2408,7 +2409,7 @@ def send_notification_for_removed_cm(user_id, community_id):
             'route': route
         },
         'category': {
-            'category': category,
+            NOTIFICATION_CATEGORY_KEY: category,
             NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
         }
     }
@@ -2482,7 +2483,7 @@ def get_message_for_evening_notification(community_intro_rooms, user_instance, c
             'route': route
         },
         'category': {
-            'category': NotificationCategories.CHATROOM,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBER_JOINED
         }
     }
@@ -2658,7 +2659,7 @@ def send_pin_chatroom_notification(community_id, member_id, chatroom_id):
             'route': PIN_ROUTE % str(card_instance.id)
         },
         'category': {
-            'category': NotificationCategories.CHATROOM,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CHATROOM_PINNED_BY_CM
         }
     }
@@ -2697,7 +2698,7 @@ def send_notification_for_removed_secret_room_participant(user_id, chatroom_id):
             'route': route
         },
         'category': {
-            'category': category,
+            NOTIFICATION_CATEGORY_KEY: category,
             NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
         }
     }
@@ -2736,7 +2737,7 @@ def send_notification_for_new_secret_room_participant(user_id, chatroom_id):
             'route': route
         },
         'category': {
-            'category': category,
+            NOTIFICATION_CATEGORY_KEY: category,
             NOTIFICATION_SUB_CATEGORY_KEY: subcategory
         }
     }
@@ -2887,7 +2888,7 @@ def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_i
             'route': "route://chatroom_detail?chatroom_id=%s" % str(chatroom_id)
         },
         'category': {
-            'category': NotificationCategories.CHATROOM,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.AUTO_FOLLOW_ENABLED,
         }
     }
@@ -2923,7 +2924,7 @@ def send_notification_on_chatroom_topic_update(chatroom_id):
             'route': CHATROOM_TOPIC_NOTIFICATION_ROUTE % str(card_instance.id)
         },
         'category': {
-            'category': NotificationCategories.CHATROOM,
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.TOPIC_UPDATED,
         }
     }

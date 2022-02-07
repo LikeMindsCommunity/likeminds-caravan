@@ -161,4 +161,5 @@ class NotificationSubCategories:
     LOGIN_DROP_OFF = "Login dropoff"
 
 
+NOTIFICATION_CATEGORY_KEY = 'category'
 NOTIFICATION_SUB_CATEGORY_KEY = 'subcategory'
