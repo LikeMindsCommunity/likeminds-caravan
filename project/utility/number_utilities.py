@@ -12,3 +12,16 @@ class NumberUtilities:
         map_object = map(int, string.split(delimiter))
 
         return list(map_object)
+
+    @staticmethod
+    def convert_list_to_integer_list_or_raise_exception(list_to_convert: list):
+
+        if not isinstance(list_to_convert, list):
+            raise Exception(f"Expected list but got {type(list_to_convert)}")
+
+        integer_list = []
+
+        for value in list_to_convert:
+            integer_list.append(int(value))
+
+        return integer_list

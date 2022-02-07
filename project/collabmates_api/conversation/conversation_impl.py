@@ -11,7 +11,8 @@ from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
-    MINUTES_30, MINUTES_60
+    MINUTES_30, MINUTES_60, PLATFORM_CODE_WEB
+from utility.response_utilities import ResponseUtilities
 
 from .conversation_manager import ConversationManager
 from .reactions import fetch_chatroom_or_conversation_reactions
@@ -41,7 +42,7 @@ from .constants import *
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
-                            conversationEventMembers, conversationEventNudge, UserEmailsSendStatus)
+                            conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
@@ -1477,6 +1478,33 @@ class ConversationImpl(ConversationManager):
                     total_unread_count += 1
 
         return total_unread_count
+
+    @staticmethod
+    def create_conversation_internally(member_id, chatroom_id, message):
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_impl_error_context('invalid user_id', status_codes.HTTP_404_NOT_FOUND)
+
+        req_body = {
+            "chatroom_id": chatroom_id,
+            "text": message
+        }
+
+        is_ios = False
+
+        user_devices_list = ModelUtilities.get_model_filter(userDevices, {'user_id': member_id}).order_by('-updated_at')
+        device_id = None if not user_devices_list else user_devices_list[0].device_id
+
+        conversation_manager = ConversationImpl(member_id, platform_code=PLATFORM_CODE_WEB, device_id=device_id)
+
+        conversation_response = conversation_manager.create_conversation(req_body, is_ios)
+
+        if conversation_response.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(conversation_response, status_codes.HTTP_400_BAD_REQUEST)
+
+        return conversation_response
 
 
 class ConversationHelper:

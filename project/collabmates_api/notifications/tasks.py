@@ -206,11 +206,14 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
-            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
-                                                                                            event_instance,
-                                                                                            add_event_creator=False)
+            user_instances = active_user_ids
 
-            user_instances = active_user_ids + community_managers
+            if not event_instance.is_paid:
+                community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
+                                                                                                event_instance,
+                                                                                                add_event_creator=False)
+
+                user_instances += community_managers
 
         elif event_type == EVENT_TYPE.LAST_CALL:
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
@@ -492,7 +495,6 @@ def reschedule_event_comms_notifications_on_event_update(payload_for_whatsapp_co
 
     send_email_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.LAST_CALL)
     send_email_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.ATTENDANCE_9_AM)
-    send_email_notification_for_event_type(payload_for_app_and_email_notifications, EVENT_TYPE.POST_EVENT_ATTENDEES)
 
 ##### keeping the following code in case we find a solution for deleting the tasks from rabbitmq #####
 

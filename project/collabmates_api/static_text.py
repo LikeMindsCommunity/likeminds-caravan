@@ -644,3 +644,5 @@ MEMBER_PROFILE_MENU_ITEMS = {
 }
 
 COMMUNITY_LEVEL_3_TEXT = "Level 3"
+
+IMAGE_URLS_FOR_QUESTION_TITLES = ["Email", "Phone Number", "Phone No."]

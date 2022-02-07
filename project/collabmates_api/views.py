@@ -1825,16 +1825,9 @@ def edit_member_profile(request):
                                                              'member': user_instance})
 
     from .community.community_impl import CommunityHelper
-    questions_list_key = DEFAULT_QUESTIONS_LIST_KEY
-    is_directory_questions_v2 = False
-
-    if directory_questions_v2_version_check(platform_code, version_code):
-        questions_list_key = DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY
-        is_directory_questions_v2 = True
-
     CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
-                                                          res.get(questions_list_key, []),
-                                                          is_directory_questions_v2)
+                                                          res.get('questions', []),
+                                                          False)
 
     for data in res.get('questions', []):
 
@@ -1848,6 +1841,7 @@ def edit_member_profile(request):
             if ModelUtilities.is_model_filter_exists(card_answers,
                                                      {'preview_chatroom': intro_card_instance,
                                                       'preview_type': "chatroom"}):
+
                 update_preview = True
 
     form_response = FormResponseSerilaizer(community_id, member_id, bl=True, current_user_id=member_id)

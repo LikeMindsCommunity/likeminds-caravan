@@ -772,7 +772,10 @@ def get_share_url_text(card, user_id):
 
     share = {}
     share['link_created_at'] = get_date_time_from_timestamp(TimeUtilities.current_time_in_sec())
-    card_url = url + '/collabcard/' + str(card.id)
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+
+    card_url = ChatroomHelper.fetch_chatroom_link(card)
 
     share['share_url'] = card_url
     share['creator_share_url'] = card_url

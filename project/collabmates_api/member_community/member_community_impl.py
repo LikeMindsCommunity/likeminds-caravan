@@ -36,7 +36,8 @@ from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, Commun
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
     conversationSerializer
 from ..static_files import REMOVED_USER_URL, ICONS
-from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT
+from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT, \
+    IMAGE_URLS_FOR_QUESTION_TITLES
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
@@ -1333,8 +1334,15 @@ class MemberCommunityImpl(MemberCommunityManager):
         user_menu = MemberCommunityHelper.get_member_profile_menu(user_member_instance, community_instance,
                                                                   current_user_member_instance)
 
-        return {'success': True, 'member': user_member_data, 'question_answers': question_answers_data,
-                'menu': user_menu, 'community_name': community_instance.name}
+        member_profile_response = {
+            'success': True,
+            'member': user_member_data,
+            'community_name': community_instance.name,
+            'question_answers': question_answers_data,
+            'menu': user_menu
+        }
+
+        return member_profile_response
 
     def edit_member_profile(self, req_body: dict) -> {}:
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
@@ -1398,6 +1406,14 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                 'preview_type': "chatroom"})
 
                     if card_answer_filter:
+                        ModelUtilities.model_update(card_answers,
+                                                    {'preview_chatroom': user_intro_card_instance,
+                                                     'preview_type': "chatroom",
+                                                     'card__type': card_types.CARD_MASTER_INTRO,
+                                                     'is_deleted': False,
+                                                     'card__community': community_instance},
+                                                    {'answer': question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY),
+                                                     'last_updated': TimeUtilities.current_time_in_milliseconds()})
                         update_preview = True
 
         question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
@@ -1581,6 +1597,8 @@ class MemberCommunityHelper:
         if not user_data.get('image_url'):
             del user_data['image_url']
 
+        user_data['updated_at'] = member_instance.member_id.userinfo.updated_at
+        user_data['route'] = MEMBER_COMMUNITY_PROFILE_ROUTE % (community_instance.id, member_instance.member_id_id)
         user_data['state'] = member_instance.state
         user_data['is_owner'] = member_instance.is_owner
 
@@ -1670,10 +1688,10 @@ class MemberCommunityHelper:
                     question_data['state'] = question_data['question_state']
                     del question_data['question_state']
 
-                    if question_data.get('question_title') and (question_data.get('question_title') in ICONS):
+                    if all([question_data.get('question_title'),
+                            (question_data.get('question_title') in IMAGE_URLS_FOR_QUESTION_TITLES),
+                            (question_data.get('question_title') in ICONS)]):
                         user_answer_dict['image_url'] = ICONS[question_data.get('question_title')]
-                    elif question_data.get('field'):
-                        user_answer_dict['image_url'] = ICONS['Generic']
 
                     question_answers.append({'question_answer': user_answer_dict,
                                              'question': question_data})
@@ -1730,7 +1748,7 @@ class MemberCommunityHelper:
                                                          community_instance)]):
             menu.append(all_menu_items.get('GIVE_CM_RIGHTS'))
 
-        if check_admin_approve_right(current_user_member_instance.member_id, community_instance):
+        if not check_admin_approve_right(current_user_member_instance.member_id, community_instance):
             menu.append(all_menu_items.get('REPORT_MEMBER'))
 
         menu.append(all_menu_items.get('BLOCK_MEMBER'))
@@ -1768,6 +1786,10 @@ class MemberCommunityHelper:
                 menu = MemberCommunityHelper.add_menu_items_if_current_user_is_owner_and_user_is_non_admin(
                     menu, all_menu_items)
 
+            else:
+                menu.append(all_menu_items.get('REPORT_MEMBER'))
+                menu.append(all_menu_items.get('BLOCK_MEMBER'))
+
         elif (not is_same_user) and current_user_member_instance.state == member_states.ADMIN:
 
             if user_member_instance.state == member_states.ADMIN:
@@ -1786,7 +1808,7 @@ class MemberCommunityHelper:
 
         elif (not is_same_user) and current_user_member_instance.state == member_states.MEMBER:
 
-            if user_member_instance.state == member_states.ADMIN:
+            if (user_member_instance.state == member_states.ADMIN) and user_member_instance.is_owner:
                 menu.append(all_menu_items.get('REPORT_MEMBER'))
 
             else:
