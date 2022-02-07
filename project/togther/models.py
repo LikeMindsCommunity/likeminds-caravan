@@ -3218,6 +3218,42 @@ class EventCommsCeleryTasks(models.Model):
         return instance
 
 
+class EventGoogleCalendarLogs(models.Model):
+    calendar_id = models.CharField(max_length=100)
+    event = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    is_deleted = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'event google calendar log'
+        verbose_name_plural = 'event google calendar logs'
+        db_table = 'togther_event_google_calendar_logs'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(EventGoogleCalendarLogs, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(task_info):
+        instance = EventGoogleCalendarLogs()
+        instance.calendar_id = task_info.get('calendar_id')
+        instance.event = task_info.get('event')
+        instance.is_deleted = task_info.get('is_deleted')
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+        instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+        instance.save()
+
+        return instance
+
+
 class MessageTemplate(models.Model):
 
     community_id = models.IntegerField(null=True, default=None)

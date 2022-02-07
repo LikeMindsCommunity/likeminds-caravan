@@ -8,8 +8,8 @@ from utility.time_utilities import TimeUtilities
 
 from project.celery import app
 from .constants import COMM_TYPE, EVENT_COMM_FREQUENCY, EVENT_TYPE, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN, \
-    WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION, \
-    WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL, SENDER_NAME_FOR_EMAIL_COMMS
+        WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION, \
+        WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL, SENDER_NAME_FOR_EMAIL_COMMS, CALENDAR_INVITE_TYPE
 from .tasks_impl import TasksImpl, TasksHelper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from collabmates_api.notification import notification_meta
@@ -264,21 +264,29 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
 
 
 @shared_task
-def send_calender_invite_for_event_type(payload_for_calendar_invite, event_type, send_to_members=True, user_list=None):
+def send_calender_invite_for_event_type(payload_for_calendar_invite, event_type, send_to_members=True, user_list=None,
+                                        calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION):
     try:
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_calendar_invite)
 
         event_instance = payload.get('chatroom')
 
         tasks_instance = TasksImpl(event_type=event_type, comm_type=COMM_TYPE.CALENDAR)
-        event_metadata = tasks_instance.get_event_metadata_for_calendar_invite(payload_for_calendar_invite.get('chatroom'),
-                                                                            send_to_members, user_list)
+
+        if payload_for_calendar_invite.get('calendar_meta_data'):
+            event_metadata = payload_for_calendar_invite.get('calendar_meta_data')
+
+        else:
+            event_metadata = tasks_instance.get_event_metadata_for_calendar_invite(payload_for_calendar_invite.get('chatroom'),
+                                                                                send_to_members, user_list,
+                                                                                calendar_invite_type)
+
         task_begin_time = tasks_instance.calculate_time_for_sending_notification(event_instance=event_instance)
 
         task_expiry_time = TasksHelper.get_end_time_for_event(event_instance)
 
         if task_begin_time != 0:
-            args = [payload_for_calendar_invite, event_metadata, event_type]
+            args = [payload_for_calendar_invite, event_metadata, event_type, calendar_invite_type]
 
             info_logger.info("Scheduling calendar invite for event_type = %s | event_metadata = %s | \
                             payload received = %s" % (event_type, event_metadata, payload))
@@ -300,10 +308,24 @@ def send_calender_invite_for_event_type(payload_for_calendar_invite, event_type,
 
 @app.task
 @shared_task
-def schedule_calendar_invite_for_event_comms(payload_for_calendar_invite, event_metadata, event_type):
+def schedule_calendar_invite_for_event_comms(payload_for_calendar_invite, event_metadata, event_type,
+                                            calendar_invite_type):
     try:
+        payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_calendar_invite)
+
         if event_metadata:
-            CalendarImpl().call_calender_api(event_metadata)
+            if calendar_invite_type == CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION:
+
+                calendar_obj = CalendarImpl().call_calender_api(event_metadata)
+
+                TasksHelper.log_calendar_event_object_in_db(payload.get('chatroom'), calendar_obj)
+
+            elif calendar_invite_type in (CALENDAR_INVITE_TYPE.APPEND_ATTENDEES, CALENDAR_INVITE_TYPE.UPDATE_CALENDAR):
+
+                calendar_id = TasksHelper.get_calendar_id_for_calendar_event(payload.get('chatroom'))
+
+                if calendar_id:
+                    calendar_obj = CalendarImpl().patch_calendar_api(calendar_id, event_metadata)
 
     except Exception as e:
         error_logger.exception("got error in schedule_calendar_invite | error - %s | payload received = %s | \
