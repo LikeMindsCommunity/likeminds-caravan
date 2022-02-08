@@ -26,4 +26,5 @@ class EmailSubCategories:
     FREE_EVENT_REGISTRATION_SUCCESSFUL = "Event Registration successful"
     PAID_EVENT_REGISTRATION_SUCCESSFUL = "Event Registration successful"
     DAY_OF_EVENT = "Day of event"
+    EVENT_ATTENDANCE = "Event attendance"
     EVENT_ATTACHMENTS = "Event attachments"

@@ -446,7 +446,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                           from_email=context['from_email'],
                                                           to_mails_list=context['to_mails_list'],
                                                           reply_to=context['reply_to'],
-                                                          from_name=context['from_name'])
+                                                          from_name=context['from_name'],
+                                                          categories=context['categories'])
 
         else:
             info_logger.info("No email notification scheuduled for event_type = %s | chatroom_deleted = %s | \
