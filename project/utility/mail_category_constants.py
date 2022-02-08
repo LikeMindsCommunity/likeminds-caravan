@@ -24,6 +24,8 @@ class EmailCategories:
     CREATE_COMMUNITY = "Create community"
     INVITE_MEMBER = "Invite member"
 
+    DOWNLOAD_APP = "Download app"
+
 
 class EmailSubCategories:
     FREE_EVENT_CREATED = "Free Event created"
@@ -48,3 +50,5 @@ class EmailSubCategories:
     FIRST_PLAN_CREATED = "First Plan Created"
     WITH_JOIN_CODE = "With join code"
 
+    REQUEST_ACCEPTED = "Request accepted"
+    DOWNLOAD_DRIP = "Download drip"

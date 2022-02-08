@@ -493,7 +493,7 @@ def send_community_confirmation_email(user_id, community_id):
     if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
         subject = user_instance.userinfo.name + ', Congratulations, your request has been approved!'
         email_context = {
-            'subject': user_instance.userinfo.name + ', Congratulations, your request has been approved!',
+            'subject': subject,
             'member_name': user_instance.userinfo.name,
             'community_name': community_instance.name,
             'android_app_download_link': android_app_download_link,
@@ -507,28 +507,28 @@ def send_community_confirmation_email(user_id, community_id):
         }
         template = get_template("mails/community_confirmation_email.html").render(email_context)
 
-        to = [email]
-        # to = ['himanshu@likeminds.community']
+        categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.DOWNLOAD_APP,
+                                                                                   EmailSubCategories.REQUEST_ACCEPTED)
 
-        send_email(subject, template, to)
+        to = [email]
+
+        send_email(subject, template, to, categories=categories)
         print(email_context)
-        celerybeatask = CeleryBeatTask()
+        celery_beat_task = CeleryBeatTask()
         task_name = str(user_id) + "_" + str(community_id) + "_send_community_confirmation_email_2"
-        celerybeatask.terminate_task(task_name)
+        celery_beat_task.terminate_task(task_name)
         args = [user_id, community_id, task_name]
         task_path = "collabmates_api.tasks.send_community_confirmation_email_2"
 
-        # date_time = time.time() + 80
         date_time = time.time() + (3 * 24 * 60 * 60)
 
         kwargs = {}
-        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
-                                                date_time=date_time, interval=False, crontab=True)
+        celery_beat_task.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                   date_time=date_time, interval=False, crontab=True)
 
 
 @app.task
 def send_community_confirmation_email_2(user_id, community_id, task_name, *args, **kwargs):
-    print("here")
     user_instance = User.objects.get(pk=user_id)
     community_instance = Community.objects.get(id=community_id)
 
@@ -541,7 +541,7 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
     if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
         subject = "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬'
         email_context = {
-            'subject': "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬',
+            'subject': subject,
             'member_name': user_instance.userinfo.name,
             'community_name': community_instance.name,
             'android_app_download_link': android_app_download_link,
@@ -556,12 +556,14 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
         template = get_template("mails/community_confirmation_email_2.html").render(email_context)
 
         to = [email]
-        # to = ['himanshu@likeminds.community']
+        categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.DOWNLOAD_APP,
+                                                                                   EmailSubCategories.DOWNLOAD_DRIP)
 
-        send_email(subject, template, to)
+        send_email(subject, template, to, categories=categories)
         print(email_context)
-    celerybeatask = CeleryBeatTask()
-    celerybeatask.terminate_task(task_name)
+
+    celery_beat_task = CeleryBeatTask()
+    celery_beat_task.terminate_task(task_name)
 
 
 @app.task
