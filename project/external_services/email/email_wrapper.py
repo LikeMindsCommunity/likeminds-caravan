@@ -55,7 +55,7 @@ class MailWrapper(MailManager):
     @staticmethod
     @shared_task
     def send_email_with_custom_from_email(subject, template, to_mails_list, from_email=None, reply_to=None,
-                                          from_name=SENDER_NAME_FOR_EMAIL_COMMS):
+                                          category=None, from_name=SENDER_NAME_FOR_EMAIL_COMMS):
 
         if not from_email:
             from_email = MailWrapper.from_email
@@ -76,6 +76,9 @@ class MailWrapper(MailManager):
 
         if reply_to:
             mail.reply_to = Email(email=reply_to)
+
+        if category:
+            mail.add_category(category=category)
 
         mail.add_content(Content('text/html', template))
 
