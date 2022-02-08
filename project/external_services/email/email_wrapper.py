@@ -101,7 +101,10 @@ class MailWrapper(MailManager):
 class MailHelper:
 
     @staticmethod
-    def get_email_category_text_using_category_subcategory(category, subcategory):
+    def get_email_category_list_using_category_subcategory(category, subcategory):
+        categories = []
         environment = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
-        category_string = f'{environment} - {category} - {subcategory}'
-        return category_string
+        categories.append(environment)
+        categories.append(f'{environment} - {category}')
+        categories.append(f'{environment} - {category} - {subcategory}')
+        return categories
