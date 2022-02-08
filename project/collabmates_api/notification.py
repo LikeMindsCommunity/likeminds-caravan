@@ -1604,12 +1604,19 @@ def send_notification_to_join_drop_off_scheduled(member_id, community_id, aj, ti
 
         message = {}
         if aj == "":
-            message['payload'] = {
-                "title": str(community_name),
-                "sub_title": "Apply to join this community and meet like-minded people. ",
-                'route': 'route://community?community_id=' + str(community_id)
+            message = {
+                'payload': {
+                    'title': str(community_name),
+                    'sub_title': "Apply to join this community and meet like-minded people. ",
+                    'route': 'route://community?community_id=' + str(community_id)
+                },
+                'category': {
+                    NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
+                    NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.PRIVATE_LINK_DROP_OFF_30
+                }
+
             }
-            # Need to confirm this
+
             notification_meta(notification_list, message)
 
         else:

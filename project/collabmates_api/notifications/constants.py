@@ -137,6 +137,7 @@ class NotificationSubCategories:
     CHATROOM_REPORTED = "Chatroom reported"
     UPDATE_PROFILE = "Update profile"
     CM_PERMISSION_UPDATED = "CM permission updated"
+    MEMBER_LEFT = "Member left"
 
     USER_TAGGED = "User Tagged"
     USER_RESPONDED = "User Responded"
@@ -157,6 +158,7 @@ class NotificationSubCategories:
     CHATROOM_INACTIVE = "Chatroom inactive"
     PUBLIC_LINK_DROP_OFF = "Public link dropoff"
     PRIVATE_LINK_DROP_OFF = "Private link dropoff"
+    PRIVATE_LINK_DROP_OFF_30 = "Private link drop off 30"
     EXPIRED_PRIVATE_LINK_DROP_OFF = "Expired private link dropoff"
     LOGIN_DROP_OFF = "Login dropoff"
 
