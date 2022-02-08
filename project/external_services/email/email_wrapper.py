@@ -1,12 +1,14 @@
 import os
 
 import sendgrid
+from django.conf import settings
 from sendgrid import Email
 from sendgrid.helpers.mail import Mail, Personalization, Content
 
 from rest_framework import status as status_codes
 
 from collabmates_api.notifications.constants import SENDER_NAME_FOR_EMAIL_COMMS
+from utility.mail_category_constants import MAIL_CATEGORY_BETA, MAIL_CATEGORY_PROD
 from ..email.email_manager import MailManager
 from django.core.mail import EmailMultiAlternatives
 from celery import shared_task
@@ -91,3 +93,12 @@ class MailWrapper(MailManager):
             error_logger.error(e.__dict__)
 
         return False
+
+
+class MailHelper:
+
+    @staticmethod
+    def get_email_category_text_using_category_subcategory(category, subcategory):
+        environment = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
+        category_string = f'{environment} - {category} - {subcategory}'
+        return category_string
