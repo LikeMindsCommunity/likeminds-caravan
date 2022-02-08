@@ -10,3 +10,20 @@ MAIL_CATEGORY_CREATE_DIRECTORY = "Create Directory"
 MAIL_CATEGORY_GET_10_MEMBERS = "Get 10 members"
 MAIL_CATEGORY_INVITE_MEMBERS = "Invite members"
 MAIL_CATEGORY_VERIFY_EMAIL = "Verify email"
+
+
+class EmailCategories:
+    EVENT_REGISTER = "Event Register"
+    EVENT_ATTENDANCE = "Event Attendance"
+    POST_EVENT = "Post Event"
+
+
+class EmailSubCategories:
+    FREE_EVENT_CREATED = "Event created"
+    PAID_EVENT_CREATED = "Event created"
+    FREE_EVENT_REGISTRATION_LAST_CALL = "Event registration - Last call"
+    PAID_EVENT_REGISTRATION_LAST_CALL = "Event registration - Last call"
+    FREE_EVENT_REGISTRATION_SUCCESSFUL = "Event Registration successful"
+    PAID_EVENT_REGISTRATION_SUCCESSFUL = "Event Registration successful"
+    DAY_OF_EVENT = "Day of event"
+    EVENT_ATTACHMENTS = "Event attachments"
