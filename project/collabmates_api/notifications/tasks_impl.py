@@ -933,19 +933,25 @@ class TasksHelper:
         }
 
         template = None
+        categories = []
 
         if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
             template = get_template("mails/engagement_mails/tagged_chatroom_not_opened.html").render(data_dict)
+            categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.ENGAGEMENT,
+                                                                                       EmailSubCategories.CHATROOM_TAG)
 
         if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
             template = get_template("mails/engagement_mails/dm_chatroom_not_opened.html").render(data_dict)
+            categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.ENGAGEMENT,
+                                                                                       EmailSubCategories.DM)
 
         context = {
             'from_email': SENDER_FOR_ENGAGEMENT_COMMUNICATION,
             'to_mails_list': to_mails_list,
             'reply_to': reply_to,
             'subject': SUBJECT_CHATROOM_NOT_OPENED_MAIL % sender_instance.userinfo.name,
-            'template': template
+            'template': template,
+            'categories': categories
         }
 
         return context

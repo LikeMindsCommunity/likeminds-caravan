@@ -17,6 +17,8 @@ class EmailCategories:
     EVENT_ATTENDANCE = "Event Attendance"
     POST_EVENT = "Post Event"
 
+    ENGAGEMENT = "Engagement"
+
 
 class EmailSubCategories:
     FREE_EVENT_CREATED = "Event created"
@@ -28,3 +30,6 @@ class EmailSubCategories:
     DAY_OF_EVENT = "Day of event"
     EVENT_ATTENDANCE = "Event attendance"
     EVENT_ATTACHMENTS = "Event attachments"
+
+    CHATROOM_TAG = "Chatroom Tag"
+    DM = "DM"
