@@ -21,14 +21,17 @@ class EmailCategories:
 
     CHATROOM = "Chatroom"
 
+    CREATE_COMMUNITY = "Create community"
+    INVITE_MEMBER = "Invite member"
+
 
 class EmailSubCategories:
-    FREE_EVENT_CREATED = "Event created"
-    PAID_EVENT_CREATED = "Event created"
-    FREE_EVENT_REGISTRATION_LAST_CALL = "Event registration - Last call"
-    PAID_EVENT_REGISTRATION_LAST_CALL = "Event registration - Last call"
-    FREE_EVENT_REGISTRATION_SUCCESSFUL = "Event Registration successful"
-    PAID_EVENT_REGISTRATION_SUCCESSFUL = "Event Registration successful"
+    FREE_EVENT_CREATED = "Free Event created"
+    PAID_EVENT_CREATED = "Paid Event created"
+    FREE_EVENT_REGISTRATION_LAST_CALL = "Free Event registration - Last call"
+    PAID_EVENT_REGISTRATION_LAST_CALL = "Paid Event registration - Last call"
+    FREE_EVENT_REGISTRATION_SUCCESSFUL = "Free Event Registration successful"
+    PAID_EVENT_REGISTRATION_SUCCESSFUL = "Paid Event Registration successful"
     DAY_OF_EVENT = "Day of event"
     EVENT_ATTENDANCE = "Event attendance"
     EVENT_ATTACHMENTS = "Event attachments"
@@ -38,6 +41,10 @@ class EmailSubCategories:
 
     POLL_RESULTS = "Poll Result"
 
-
-
+    DROPOFF = "Dropoff"
+    GETTING_STARTED = "Getting started"
+    FIRST_EVENT_CREATED = "First Event Created"
+    JOIN_FORM_CREATED = "Join Form Created"
+    FIRST_PLAN_CREATED = "First Plan Created"
+    WITH_JOIN_CODE = "With join code"
 
