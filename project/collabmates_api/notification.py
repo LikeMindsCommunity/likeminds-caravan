@@ -2536,9 +2536,13 @@ def send_notification_to_managers_when_member_leaves_community(user_id, communit
             'title': community_name,
             'sub_title': sub_title,
             'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBER_LEFT
         }
     }
-    # Add category after confirming
+
     notification_meta(notification_list, message)
 
 
