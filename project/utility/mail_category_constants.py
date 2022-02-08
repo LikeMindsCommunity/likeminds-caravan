@@ -19,6 +19,8 @@ class EmailCategories:
 
     ENGAGEMENT = "Engagement"
 
+    CHATROOM = "Chatroom"
+
 
 class EmailSubCategories:
     FREE_EVENT_CREATED = "Event created"
@@ -33,3 +35,9 @@ class EmailSubCategories:
 
     CHATROOM_TAG = "Chatroom Tag"
     DM = "DM"
+
+    POLL_RESULTS = "Poll Result"
+
+
+
+

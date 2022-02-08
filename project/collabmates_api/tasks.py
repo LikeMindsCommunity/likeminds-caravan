@@ -37,7 +37,7 @@ from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARD
     DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE, DIRECTORY_QUESTIONS_IOS_VERSION_CODE, DIRECTORY_QUESTIONS_WEB_VERSION_CODE
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
-from external_services.email.email_wrapper import MailWrapper
+from external_services.email.email_wrapper import MailWrapper, MailHelper
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -662,13 +662,8 @@ def send_poll_results_announcement_mail(card_id, task_name):
                                          to)
             msg.attach_alternative(template, "text/html")
 
-            setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
-
-            categories = [
-                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT} - {MAIL_CATEGORY_POLL_RESULTS}",
-                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT}",
-                setting_category,
-            ]
+            categories = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.CHATROOM, EmailSubCategories.POLL_RESULTS)
 
             msg.categories = categories
 
