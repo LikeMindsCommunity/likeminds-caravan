@@ -1049,6 +1049,14 @@ def questions(request):
 
     for question in data:
         serialized_question = CommunityQuestionsSerializer(question)
+
+        if all([platform_code == PLATFORM_CODE_WEB,
+                serialized_question['question_title'] == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                serialized_question['is_hidden'],
+                serialized_question['field'],
+                serialized_question['state'] == question_states.PARAGRAPH]):
+            continue
+
         if serialized_question['state'] == question_states.INTRODUCTION:
             serialized_question['rank'] = 0
             answers_filter = communityAnswers.objects.filter(question=serialized_question['id'], member=member_id)

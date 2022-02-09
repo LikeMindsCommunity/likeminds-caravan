@@ -16,7 +16,7 @@ import time
 
 import ast
 from .static_files import *
-from .static_text import months_semi
+from .static_text import months_semi, CREATE_COMMUNITY_QUESTION_NAME_TITLE
 from .user_moderation_rights import check_admin_view_contact_right
 from .branch import create_community_branch_links
 from utility.constants import *
@@ -1280,7 +1280,14 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
     for response in responses:
         # getting the answers of the users who requested to join
         # for the questions that have been asked while requestiong to join in a community
-        response_object = {}
+
+        if all([response.question.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                response.question.is_hidden,
+                response.question.field,
+                response.question.question_state == question_states.PARAGRAPH]):
+            continue
+
+        response_object = dict()
         response_object['key'] = response.question_title
         response_object['value'] = response.question_answer
 

@@ -37,7 +37,7 @@ from ..serializers import is_draft_conversation, get_chatroom_instance, get_draf
     conversationSerializer
 from ..static_files import REMOVED_USER_URL, ICONS
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT, \
-    IMAGE_URLS_FOR_QUESTION_TITLES
+    IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
@@ -1665,6 +1665,12 @@ class MemberCommunityHelper:
                                                                                         user_answer.get('question'))
 
                 if not community_question_instance:
+                    continue
+
+                if all([community_question_instance.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                        community_question_instance.is_hidden,
+                        community_question_instance.field,
+                        community_question_instance.question_state == question_states.PARAGRAPH]):
                     continue
 
                 question_data = CommunityQuestionsSerializerV2(community_question_instance, many=False).data
