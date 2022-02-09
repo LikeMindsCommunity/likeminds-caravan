@@ -564,6 +564,7 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
             MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
                                                           from_email=context['from_email'],
                                                           to_mails_list=context['to_mails_list'],
+                                                          categories=context['categories'],
                                                           reply_to=context['reply_to'])
 
             TasksHelper.update_user_email_send_status(receiver_id, chatroom_id, chatroom_not_opened_type)
