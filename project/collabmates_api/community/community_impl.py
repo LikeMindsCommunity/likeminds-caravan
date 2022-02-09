@@ -1818,6 +1818,9 @@ class CommunityHelper:
                 question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions,
                                                                               question.get(question_id_key))
 
+                if not question_instance:
+                    continue
+
                 if question_instance.question_state == question_states.INTRODUCTION:
                     introduction_answer = question.get(answer_key)
 
