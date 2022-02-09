@@ -1176,7 +1176,12 @@ class CommunityImpl(CommunityManager):
 
         mail_data = CommunityImpl._fetch_join_email_data(community_id, community_instance)
 
-        MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, reply_to=mail_data["reply_to"])
+
+        mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
+                                                                                        EmailSubCategories.WELCOME)
+
+        MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, categories=mail_categories,
+                                     reply_to=mail_data["reply_to"])
 
     @staticmethod
     def _fetch_join_email_data(community_id, community_instance) -> {}:

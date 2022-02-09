@@ -26,6 +26,8 @@ class EmailCategories:
 
     DOWNLOAD_APP = "Download app"
 
+    WELCOME = "Welcome"
+
 
 class EmailSubCategories:
     FREE_EVENT_CREATED = "Free Event created"
@@ -52,3 +54,5 @@ class EmailSubCategories:
 
     REQUEST_ACCEPTED = "Request accepted"
     DOWNLOAD_DRIP = "Download drip"
+
+    WELCOME = "Welcome"
