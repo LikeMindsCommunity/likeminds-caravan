@@ -582,4 +582,5 @@ def send_mail_for_first_time_edit_community_questions(user_id, community_id):
         send_email_response = MailWrapper.send_email.delay(context.get('mail_subject'),
                                                            context.get('mail_template'),
                                                            context.get('from_email'),
+                                                           categories=context.get('mail_categories'),
                                                            reply_to=context.get('reply_to_email'))

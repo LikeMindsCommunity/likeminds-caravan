@@ -1016,6 +1016,9 @@ class TasksHelper:
 
             user_email = get_user_email_preferred_verified(user_instance.id)
 
+            categories = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.CREATE_COMMUNITY, EmailSubCategories.JOIN_FORM_CREATED)
+
             if not user_email:
                 return {}
 
@@ -1023,7 +1026,8 @@ class TasksHelper:
                 "mail_subject": mail_subject,
                 "mail_template": mail_template,
                 "from_email": [user_email],
-                "reply_to_email": [INVITE_MEMBER_REPLY_EMAIL]
+                "reply_to_email": [INVITE_MEMBER_REPLY_EMAIL],
+                "mail_categories": categories
             }
 
             return context
