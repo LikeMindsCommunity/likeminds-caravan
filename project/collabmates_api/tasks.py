@@ -804,6 +804,7 @@ def send_cm_onboarding_getting_started_email():
             MailWrapper.send_email.delay(subject=mail_body.get('subject'),
                                          template=mail_body.get('mail_body'),
                                          to_mails_list=mail_body.get('mail_recipient_list'),
+                                         categories=mail_body.get('mail_categories'),
                                          reply_to=mail_body.get('reply_to'))
 
             user_email_status_instance.updated_at = TimeUtilities.current_time_in_milliseconds()

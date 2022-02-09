@@ -19,8 +19,9 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     add_community_upload_image_analytics, create_introduction_question_in_community, edit_community_data, get_community_creator
 
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
+from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.number_utilities import NumberUtilities
-from external_services.email.email_wrapper import MailWrapper
+from external_services.email.email_wrapper import MailWrapper, MailHelper
 from external_services.airtable.airtable_wrapper import AirtableWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
@@ -2344,11 +2345,15 @@ class CommunityHelper:
 
         mail_subject = GETTING_STARTED_CM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
+        mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
+            EmailCategories.CREATE_COMMUNITY, EmailSubCategories.GETTING_STARTED)
+
         mail_body = {
             'subject': mail_subject,
             'mail_body': mail_template,
             'mail_recipient_list': [user_instance.userinfo.email],
-            'reply_to': [INVITE_MEMBER_REPLY_EMAIL]
+            'reply_to': [INVITE_MEMBER_REPLY_EMAIL],
+            'mail_categories': mail_categories
         }
 
         return mail_body
@@ -2481,10 +2486,13 @@ class CommunityHelper:
             })
 
             mail_subject = INVITE_MEMBERS_SUBJECT.format(community_instance.name)
+            mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.INVITE_MEMBER, EmailSubCategories.WITH_JOIN_CODE)
 
             send_email_response = MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
                                                                                       template=mail_template,
                                                                                       to_mails_list=[valid_email_id],
+                                                                                      categories=mail_categories,
                                                                                       reply_to=INVITE_MEMBER_REPLY_EMAIL)
 
     @staticmethod
