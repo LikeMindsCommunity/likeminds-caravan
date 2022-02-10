@@ -1966,7 +1966,7 @@ class CommunityHelper:
             mobile_filter = get_user_phone(user_instance.id)
 
             if mobile_filter:
-                mobile_no = "+{}{}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
+                mobile_no = "+{} {}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
                 CommunityHelper.create_answer_instance(user_instance, community_instance,
                                                        question_instance, mobile_no,
                                                        question_title=question_instance.question_title)
