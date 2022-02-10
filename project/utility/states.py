@@ -492,7 +492,6 @@ class UserEmailSendStatusTypes:
 
 user_email_send_status_types = UserEmailSendStatusTypes()
 
-
 class ChatroomNotOpenedTypes:
     TAGGED_CHATROOM = 1
     DM_CHATROOM = 2
@@ -508,3 +507,29 @@ class EventOnlineLinkTypes:
 
 
 event_online_link_types = EventOnlineLinkTypes()
+
+
+class MessageTemplateChatroomTypes:
+    DM_CHATROOM = 1
+
+
+message_template_chatroom_types = MessageTemplateChatroomTypes()
+
+
+class EditQuestionChangeStates:
+    NEW_QUESTION = 0
+    EDIT_QUESTION = 1
+    DELETE_QUESTION = 2
+
+
+question_change_states = EditQuestionChangeStates()
+
+
+class EditFieldCommunityDataTypes:
+    EDIT_NAME = "name"
+    EDIT_PURPOSE = "purpose"
+    EDIT_IMAGE_URL = "image_url"
+    EDIT_DIRECTORY = "directory"
+
+
+edit_field_community_data_types = EditFieldCommunityDataTypes()

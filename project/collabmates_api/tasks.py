@@ -17,7 +17,7 @@ from utility.utils import (android_app_download_link, ios_app_download_link,
 from utility.states import (collabcard_states, member_states, community_states,
                             card_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states,
-                            user_email_send_status_types, get_started_types, email_states)
+                            user_email_send_status_types, get_started_types, email_states, mobile_states)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
@@ -33,7 +33,8 @@ from .notification import get_title_from_collabcard, send_intro_room_evening_not
 from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARDING_IOS_VERSION_CODE, \
     CM_ONBOARDING_WEB_VERSION_CODE, CM_ONBOARDING_ANDROID_VERSION_CODE, CM_ONBOARDING_JOIN_FORM_NOT_SETUP_MAIL_SUBJECT, \
     DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_LINK, \
-    CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_TEXT, MEMBER_REPLY_EMAIL,FIVE_DAYS_IN_HOURS
+    CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_TEXT, MEMBER_REPLY_EMAIL,FIVE_DAYS_IN_HOURS, \
+    DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE, DIRECTORY_QUESTIONS_IOS_VERSION_CODE, DIRECTORY_QUESTIONS_WEB_VERSION_CODE
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper
@@ -828,7 +829,26 @@ def get_user_email_preferred_verified(user_id):
 
         if email.email:
             return email.email
+    return
 
+
+def get_user_phone(user_id):
+    user_mobiles_filter = ModelUtilities.get_model_filter(userMobiles, {'user': user_id})
+
+    if not user_mobiles_filter:
+        return
+
+    verified_mobile_no = user_mobiles_filter.filter(state=mobile_states.PRIMARY)
+
+    if verified_mobile_no and verified_mobile_no[0].mobile_no and verified_mobile_no[0].country_code:
+        return {"country_code": verified_mobile_no[0].country_code,
+                'mobile_no': verified_mobile_no[0].mobile_no}
+
+    for mobile_instance in user_mobiles_filter:
+
+        if mobile_instance.mobile_no and mobile_instance.country_code:
+            return {"country_code": mobile_instance.country_code,
+                    'mobile_no': mobile_instance.mobile_no}
     return
 
 
@@ -918,6 +938,17 @@ def cm_onboarding_version_check(platform_code, version_code):
     if any([((platform_code == 'ios') and (version_code >= CM_ONBOARDING_IOS_VERSION_CODE)),
             ((platform_code == 'web') and (version_code >= CM_ONBOARDING_WEB_VERSION_CODE)),
             ((platform_code == 'an') and (version_code >= CM_ONBOARDING_ANDROID_VERSION_CODE))]):
+        is_enabled = True
+
+    return is_enabled
+
+
+def directory_questions_v2_version_check(platform_code, version_code):
+    is_enabled = False
+
+    if any([((platform_code == 'ios') and (version_code >= DIRECTORY_QUESTIONS_IOS_VERSION_CODE)),
+            ((platform_code == 'web') and (version_code >= DIRECTORY_QUESTIONS_WEB_VERSION_CODE)),
+            ((platform_code == 'an') and (version_code >= DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE))]):
         is_enabled = True
 
     return is_enabled

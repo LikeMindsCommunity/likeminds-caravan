@@ -8,15 +8,16 @@ import re
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
-    CommunityGetStartedSerializer, get_error_context
+    CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context
+
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
-    set_community_actions, add_community_settings_for_community, create_introduction_question_in_community_v2, \
-    post_purpose_collabcard_for_community, post_master_introductions_for_community, post_member_directory_link, \
-    post_general_collabcard_for_community, update_community_get_started, get_branch_links_for_community_share_v1, \
-    fill_share_context_for_paid_community, fill_share_context_for_unpaid_community, \
-    check_join_community_hood_get_started, add_community_upload_image_analytics, \
-    create_introduction_question_in_community
+    set_community_actions, add_community_settings_for_community, post_purpose_collabcard_for_community, \
+    post_master_introductions_for_community, post_member_directory_link, post_general_collabcard_for_community, \
+    update_community_get_started, get_branch_links_for_community_share_v1, fill_share_context_for_paid_community, \
+    fill_share_context_for_unpaid_community, check_join_community_hood_get_started, \
+    add_community_upload_image_analytics, create_introduction_question_in_community, edit_community_data, get_community_creator
+
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.number_utilities import NumberUtilities
 from external_services.email.email_wrapper import MailWrapper
@@ -27,7 +28,8 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
     userEmails, ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes
-from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT
+from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
+    PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
 from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url, \
     create_community_feed_url_for_cm_onboarding
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right, give_all_manager_rights, \
@@ -50,18 +52,24 @@ from collabmates_api.cohort.cohort_impl import CohortHelper, CohortImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
-    SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, email_states
+    SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
+    email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types
+
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
-from utility.states import (mobile_states)
+from utility.constants import PLATFORM_CODE_WEB
+
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
 from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..mails import send_8am_level_mails_to_admin_scheduler
 from ..search.sync import ElasticSearchSync
+from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
 
-from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified
+from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
+    directory_questions_v2_version_check, get_user_phone
+
 from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check
 
@@ -107,14 +115,21 @@ class CommunityImpl(CommunityManager):
     def _community_menu_options(self, state, community_instance, platform_code: str, version_code: int) -> []:
 
         menu = []
+        delete_menu_option = EDIT_COMMUNITY_RIGHT_MENU_OPTION_NUMBER
+
         if state == member_states.ADMIN:
             user_instance = CommunityHelper.fetch_user_instance(self.get_member_id())
 
             menu = MENU['promoter'].copy()
+
+            if directory_questions_v2_version_check(platform_code, version_code):
+                menu = MENU['promoter2'].copy()
+                delete_menu_option = EDIT_COMMUNITY_RIGHT_MENU_OPTION_NUMBER_FOR_DIRECTORY_QUESTIONS
+
             has_right = check_admin_edit_community_right(user_instance, community_instance)
 
             if not has_right:
-                del menu[3]
+                del menu[delete_menu_option]
 
         elif state == member_states.PENDING_MEMBER:
             menu = MENU['pending_member_in_paid_community'] if community_instance.is_paid else MENU['pending_member']
@@ -461,10 +476,15 @@ class CommunityImpl(CommunityManager):
         ModelUtilities.model_update(Community, {'id': community_id}, {'members_count': members_count})
 
     def make_requesting_user_as_pending_member(self, community_instance, user_instance, shared_by_user, req_body):
+        questions_list_key = DEFAULT_QUESTIONS_LIST_KEY
+
+        if req_body.get('is_directory_questions_v2'):
+            questions_list_key = DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY
 
         CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
                                                                     community_instance.id,
-                                                                    req_body.get('questions'))
+                                                                    req_body.get(questions_list_key),
+                                                                    req_body.get('is_directory_questions_v2'))
 
         ModelUtilities.delete_record_in_model(removedMembers, {'community': community_instance,
                                                                'member': user_instance})
@@ -496,12 +516,19 @@ class CommunityImpl(CommunityManager):
 
     @staticmethod
     def make_promoter_profile_in_community(user_instance, community_instance, req_body):
+        questions_list_key = DEFAULT_QUESTIONS_LIST_KEY
+
+        if req_body.get('is_directory_questions_v2'):
+            questions_list_key = DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY
+
         CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
                                                                     community_instance.id,
-                                                                    req_body.get('questions'))
+                                                                    req_body.get(questions_list_key),
+                                                                    req_body.get('is_directory_questions_v2'))
         introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(community_instance,
                                                                                           user_instance,
-                                                                                          req_body.get('questions'))
+                                                                                          req_body.get(questions_list_key),
+                                                                                          req_body.get('is_directory_questions_v2'))
         CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
                                                                member_states.ADMIN,
                                                                introduction_answer=introduction_answer)
@@ -514,10 +541,15 @@ class CommunityImpl(CommunityManager):
 
     @staticmethod
     def make_skipped_member_profile_in_community(user_instance, community_instance, req_body):
+        questions_list_key = DEFAULT_QUESTIONS_LIST_KEY
+
+        if req_body.get('is_directory_questions_v2'):
+            questions_list_key = DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY
 
         CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
                                                                     community_instance.id,
-                                                                    req_body.get('questions'))
+                                                                    req_body.get(questions_list_key),
+                                                                    req_body.get('is_directory_questions_v2'))
         ModelUtilities.model_update(Members, {'member_id': user_instance, 'community_id': community_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec(),
                                      'state': member_states.MEMBER})
@@ -529,7 +561,8 @@ class CommunityImpl(CommunityManager):
                                                                                   user_instance)
         introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(community_instance,
                                                                                           user_instance,
-                                                                                          req_body.get('questions'))
+                                                                                          req_body.get(questions_list_key),
+                                                                                          req_body.get('is_directory_questions_v2'))
         CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
                                                                member_states.MEMBER,
                                                                introduction_answer=introduction_answer)
@@ -548,10 +581,15 @@ class CommunityImpl(CommunityManager):
 
     def make_requesting_user_as_member_of_community_automatically(self, user_instance, community_instance,
                                                                   auto_join_code, shared_by_user, req_body):
+        questions_list_key = DEFAULT_QUESTIONS_LIST_KEY
+
+        if req_body.get('is_directory_questions_v2'):
+            questions_list_key = DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY
 
         CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
                                                                     community_instance.id,
-                                                                    req_body.get('questions'))
+                                                                    req_body.get(questions_list_key),
+                                                                    req_body.get('is_directory_questions_v2'))
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
@@ -569,7 +607,8 @@ class CommunityImpl(CommunityManager):
                                                                                   user_instance)
         introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(community_instance,
                                                                                           user_instance,
-                                                                                          req_body.get('questions'))
+                                                                                          req_body.get(questions_list_key),
+                                                                                          req_body.get('is_directory_questions_v2'))
         CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
                                                                member_states.MEMBER,
                                                                introduction_answer=introduction_answer)
@@ -737,6 +776,9 @@ class CommunityImpl(CommunityManager):
 
         join_link_invalid_message = ''
         is_cm_onboarding_enabled = cm_onboarding_version_check(self.get_request_platform(), self.get_version_code())
+        is_directory_questions_enabled = directory_questions_v2_version_check(self.get_request_platform(),
+                                                                              self.get_version_code())
+        req_body['is_directory_questions_v2'] = is_directory_questions_enabled
 
         if member_state == member_states.GUEST:
 
@@ -1208,22 +1250,27 @@ class CommunityImpl(CommunityManager):
 
         community_state = 0
 
+        if directory_questions_v2_version_check(self.get_request_platform(), self.get_version_code()):
+            type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
+
+        else:
+            type_id = TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
+            sub_type_id = SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
+
         community_instance = Community.create_instance({'name': validate_req_body['name'],
                                                         'members_count': 1,
                                                         'purpose': validate_req_body['headline'],
                                                         'brand_color': validate_req_body['brand_color'],
                                                         'image_link': validate_req_body['image_url'],
                                                         'thumbnail': community_default_thumbnail,
-                                                        'type': TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS,
-                                                        'sub_type': SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS,
+                                                        'type': type_id,
+                                                        'sub_type': sub_type_id,
                                                         'hide_community': community_state})
 
         if validate_req_body.get('has_logo_uploaded', False):
             add_community_upload_image_analytics.delay(user_instance.id, community_instance.id, community_instance.name)
 
         self.set_community_id(community_instance.id)
-
-        set_community_actions(community_instance)
 
         # making the member instance for created community
         member_instance = Members.create_instance({'user_instance': user_instance,
@@ -1233,6 +1280,9 @@ class CommunityImpl(CommunityManager):
                                                    'is_owner': True,
                                                    'custom_title': 'Owner',
                                                    'became_member_at': TimeUtilities.current_time_in_sec()})
+
+        req_body['is_directory_questions_version'] = directory_questions_v2_version_check(self.get_request_platform(),
+                                                                                          self.get_version_code())
 
         CommunityHelper.create_community_async_tasks.delay(user_instance.id, community_instance.id, req_body)
 
@@ -1348,6 +1398,99 @@ class CommunityImpl(CommunityManager):
 
         else:
             return {'success': False, 'error_message': 'Invalid type!'}
+
+    def edit_questions(self, req_body) -> {}:
+        validated_req_body = CommunityHelper.validate_edit_question_request(self.get_member_id(),
+                                                                            self.get_community_id(),
+                                                                            req_body)
+
+        if not validated_req_body.get('success'):
+            return validated_req_body
+
+        user_instance = validated_req_body.get('user_instance')
+        community_instance = validated_req_body.get('community_instance')
+        questions_list = validated_req_body.get('questions_list')
+
+        new_questions_list = []
+        edited_questions_list = []
+        deleted_questions_list = []
+        is_edit_required = False
+
+        for question in questions_list:
+
+            if question.get('question_change_state', None) is None:
+                return get_error_context(False, 'Please send question_change_state')
+
+            if question.get('question_change_state') == question_change_states.NEW_QUESTION:
+                new_questions_list.append(question)
+
+            elif question.get('question_change_state') == question_change_states.EDIT_QUESTION:
+                edited_questions_list.append(question)
+
+            elif question.get('question_change_state') == question_change_states.DELETE_QUESTION:
+                deleted_questions_list.append(question)
+
+        if new_questions_list:
+            CommunityHelper.create_new_community_questions(community_instance, new_questions_list,
+                                                           user_id=self.get_member_id())
+            is_edit_required = True
+
+        if edited_questions_list:
+            CommunityHelper.update_community_questions(community_instance, edited_questions_list,
+                                                       user_id=self.get_member_id())
+            is_edit_required = True
+
+        if deleted_questions_list:
+            CommunityHelper.delete_community_questions(community_instance, deleted_questions_list,
+                                                       user_id=self.get_member_id())
+
+        # Updating members state table for editing
+        from collabmates_api.notification import send_notification_for_directory_creation, send_sync_notification
+
+        if is_edit_required:
+            update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                           {'community_id': community_instance},
+                                           {'edit_required': True})
+
+            send_notification_for_directory_creation.delay(community_instance.id, TimeUtilities.current_time_in_sec(),
+                                                           day=0)
+
+        edit_community_data(community_instance, user_instance,
+                            edit_field=edit_field_community_data_types.EDIT_DIRECTORY)
+
+        send_sync_notification.delay({'community_id': community_instance.id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+        send_mail_for_first_time_edit_community_questions.delay(user_instance.id, community_instance.id)
+
+        return {'success': True}
+
+    def fetch_community_questions(self, req_body) -> {}:
+        validated_req_body = CommunityHelper.validate_fetch_questions_request(self.get_member_id(),
+                                                                              self.get_community_id(),
+                                                                              req_body)
+
+        if not validated_req_body.get('success'):
+            return validated_req_body
+
+        user_instance = validated_req_body.get('user_instance')
+        community_instance = validated_req_body.get('community_instance')
+        aj = validated_req_body.get('aj')
+        shared_by = validated_req_body.get('shared_by')
+
+        community_meta_data = CommunityHelper.compute_community_meta_data_according_to_aj_shared_by(user_instance,
+                                                                                                    community_instance,
+                                                                                                    aj, shared_by)
+
+        CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
+
+        community_meta_data['questions'] = CommunityHelper.get_community_questions_data(user_instance,
+                                                                                        community_instance,
+                                                                                        self.get_request_platform())
+
+        community_meta_data['success'] = True
+
+        return community_meta_data
 
 
 class CommunityHelper:
@@ -1653,19 +1796,33 @@ class CommunityHelper:
                                                 member_state=member_states.MEMBER)
 
     @staticmethod
-    def create_introduction_text_for_intro_chatroom(community_instance, user_instance, question_list=None):
+    def create_introduction_text_for_intro_chatroom(community_instance, user_instance, question_list=None,
+                                                    is_directory_questions_v2=False):
 
         introduction_answer = ""
+
+        question_id_key = DEFAULT_QUESTION_ID_KEY
+        answer_key = DEFAULT_ANSWER_KEY
+
+        if is_directory_questions_v2:
+            question_id_key = DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY
+            answer_key = DIRECTORY_QUESTIONS_V2_ANSWER_KEY
 
         if question_list is not None:
 
             for question in question_list:
 
-                if not question.get('value'):
+                if not question.get(answer_key):
                     continue
 
-                if question.get('state') == question_states.INTRODUCTION:
-                    introduction_answer = question.get('value')
+                question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions,
+                                                                              question.get(question_id_key))
+
+                if not question_instance:
+                    continue
+
+                if question_instance.question_state == question_states.INTRODUCTION:
+                    introduction_answer = question.get(answer_key)
 
         else:
 
@@ -1720,9 +1877,9 @@ class CommunityHelper:
         return card_instance
 
     @staticmethod
-    def pre_compute_question_instances_for_saving_responses(question_list):
+    def pre_compute_question_instances_for_saving_responses(question_list, question_id_key):
 
-        question_id_list = [question['id'] for question in question_list if question.get('id')]
+        question_id_list = [question[question_id_key] for question in question_list if question.get(question_id_key)]
         question_instances = ModelUtilities.get_model_filter(communityQuestions, {'id__in': question_id_list})
         question_instance_dict = {}
 
@@ -1772,7 +1929,11 @@ class CommunityHelper:
             question_instance.save()
 
     @staticmethod
-    def save_profile_links_for_social_handles(question_instance, answer_instance):
+    def save_profile_links_for_social_handles(question_instance, community_answer_id):
+        answer_instance = ModelUtilities.get_model_instance_or_none(communityAnswers, community_answer_id)
+
+        if not answer_instance:
+            return
 
         if question_instance.question_state == question_states.PROFILE_LINK:
 
@@ -1781,7 +1942,6 @@ class CommunityHelper:
 
             except Exception as e:
                 error_logger.error(e)
-
                 return
 
             if value_list and value_list[0]['profile_platform'] == INSTAGRAM:
@@ -1793,7 +1953,7 @@ class CommunityHelper:
                 answer_instance.save()
 
     @staticmethod
-    def update_hidden_fields_in_member_responses(user_instance, community_instance):
+    def update_hidden_fields_in_member_responses(user_instance, community_instance, is_directory_questions_v2=False):
 
         question_filter = ModelUtilities.get_model_filter(communityQuestions, {
             'community': community_instance,
@@ -1803,76 +1963,118 @@ class CommunityHelper:
 
         if question_filter:
             question_instance = question_filter[0]
-            mobile_filter = ModelUtilities.get_model_filter(userMobiles, {'user': user_instance,
-                                                                          'state': mobile_states.PRIMARY})
+            mobile_filter = get_user_phone(user_instance.id)
+
             if mobile_filter:
-                mobile_no = "+" + str(mobile_filter[0].country_code) + " " + str(mobile_filter[0].mobile_no)
-                communityAnswers.create_instance({
-                    'question_instance': question_instance,
-                    'user_instance': user_instance,
-                    'community_instance': community_instance,
-                    'question_answer': mobile_no,
-                    'question_title': question_instance.question_title
-                })
+                mobile_no = "+{} {}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
+                CommunityHelper.create_answer_instance(user_instance, community_instance,
+                                                       question_instance, mobile_no,
+                                                       question_title=question_instance.question_title)
+
+        question_filter = ModelUtilities.get_model_filter(communityQuestions, {
+            'community': community_instance,
+            'is_hidden': True,
+            'question_state': question_states.PARAGRAPH
+        })
+
+        if question_filter:
+            question_instance = question_filter[0]
+            CommunityHelper.create_answer_instance(user_instance, community_instance,
+                                                   question_instance, user_instance.userinfo.name,
+                                                   question_title=question_instance.question_title)
+
+    @staticmethod
+    def send_questions_data_on_airtable(user_instance, community_instance, question_data):
+        email = get_user_email_preferred_verified(user_instance.id)
+        phone_dict = get_user_phone(user_instance.id)
+        phone = '+{}{}'.format(phone_dict.get('country_code'), phone_dict.get('mobile_no')) if phone_dict else ''
+
+        airtable_data = {
+            'user_id': user_instance.id,
+            'community_id': community_instance.id,
+            'user_name': user_instance.userinfo.name,
+            'user_email': email,
+            'phone_number': phone,
+            'question_list': question_data
+        }
+
+        airtable_manager = AirtableWrapper()
+        airtable_manager.send_data(airtable_data)
+
+    @staticmethod
+    def create_answer_instance(user_instance, community_instance, question_instance, answer, question_title=None,
+                               is_directory_questions_v2=False):
+        community_answer_id = 0
+        data = {
+            'community': community_instance.id,
+            'question_answer': answer,
+            'member': user_instance.id,
+            'question': question_instance.id,
+            'question_title': question_title
+        }
+
+        answer_serializer = CommunityAnswersSerializer(data=data)
+
+        if answer_serializer.is_valid():
+            answer_serializer.save()
+            community_answer_id = answer_serializer.data.get('id')
+
+        return community_answer_id
 
     @staticmethod
     @shared_task
-    def save_responses_of_member_in_community(user_id, community_id, question_list):
+    def save_responses_of_member_in_community(user_id, community_id, question_list, is_directory_questions_v2=False):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-        userinfo_instance = user_instance.userinfo
-        user_mobiles = ModelUtilities.get_model_filter(userMobiles, {'user_id': user_id,
-                                                                     'state': mobile_states.PRIMARY})
-        user_emails = ModelUtilities.get_model_filter(userEmails, {'user_id': user_id})
+
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
-        if not question_list or \
-                not user_instance or \
-                not community_instance:
+        if not (question_list and user_instance and community_instance):
             return
 
-        question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(question_list)
+        question_id_key = DEFAULT_QUESTION_ID_KEY
+        answer_key = DEFAULT_ANSWER_KEY
 
-        phone = '+{}{}'.format(user_mobiles[0].country_code, user_mobiles[0].mobile_no) if len(user_mobiles) else ''
-        email = user_emails[0].email if len(user_emails) else ''
+        if is_directory_questions_v2:
+            question_id_key = DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY
+            answer_key = DIRECTORY_QUESTIONS_V2_ANSWER_KEY
 
-        airtable_data = {
-            'user_id': user_id,
-            'community_id': community_id,
-            'user_name': userinfo_instance.name,
-            'user_email': email,
-            'phone_number': phone,
-            'question_list': {}
-        }
+        question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(question_list,
+                                                                                                     question_id_key)
+
+        airtable_data = {}
 
         for question in question_list:
 
-            if not question.get('value'):
+            if not question.get(answer_key):
                 continue
 
-            question_id = NumberUtilities.get_integer_from_string(question['id'])
+            question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
             question_instance = question_instance_dict.get(question_id)
 
-            if question_instance.is_hidden:
+            if (not question_instance) or question_instance.is_hidden:
                 continue
 
-            answer_instance = communityAnswers.create_instance({'question_instance': question_instance,
-                                                                'user_instance': user_instance,
-                                                                'community_instance': community_instance,
-                                                                'question_answer': question['value'],
-                                                                'question_title': question['question_title']})
+            question_title = question.get('question_title') if question.get('question_title') else \
+                question_instance.question_title
+
+            community_answer_id = CommunityHelper.create_answer_instance(user_instance, community_instance,
+                                                                         question_instance,
+                                                                         question.get(answer_key),
+                                                                         question_title=question_title)
 
             CommunityHelper.save_user_selected_options_for_member_directory_filter(question_instance,
-                                                                                   question.get('value'),
+                                                                                   question.get(answer_key),
                                                                                    user_instance,
                                                                                    community_instance)
-            CommunityHelper.save_profile_links_for_social_handles(question_instance, answer_instance)
+            CommunityHelper.save_profile_links_for_social_handles(question_instance, community_answer_id)
 
-            airtable_data['question_list'][question_instance.id] = question.get('value')
+            airtable_data[question_instance.id] = question.get(answer_key)
 
-        CommunityHelper.update_hidden_fields_in_member_responses(user_instance, community_instance)
-        airtable_manager = AirtableWrapper()
-        airtable_manager.send_data(airtable_data)
+        CommunityHelper.update_hidden_fields_in_member_responses(user_instance, community_instance,
+                                                                 is_directory_questions_v2=is_directory_questions_v2)
+
+        CommunityHelper.send_questions_data_on_airtable(user_instance, community_instance, airtable_data)
 
     @staticmethod
     def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None):
@@ -2269,8 +2471,7 @@ class CommunityHelper:
             if community_instance.is_paid:
                 community_share_link = CommunityHelper.generate_community_share_link(user_instance, community_instance,
                                                                                      platform_code, version_code,
-                                                                                     validated_req_body.get(
-                                                                                         'link_type'))
+                                                                                     validated_req_body.get('link_type'))
 
             if not community_share_link.get('success'):
                 continue
@@ -2291,9 +2492,10 @@ class CommunityHelper:
 
             mail_subject = INVITE_MEMBERS_SUBJECT.format(community_instance.name)
 
-            send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
-                                                               [valid_email_id],
-                                                               reply_to=[INVITE_MEMBER_REPLY_EMAIL])
+            send_email_response = MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
+                                                                                      template=mail_template,
+                                                                                      to_mails_list=[valid_email_id],
+                                                                                      reply_to=INVITE_MEMBER_REPLY_EMAIL)
 
     @staticmethod
     def send_invite_whatsapp_context_dict(user_instance, community_instance, mobile_nos_list, validated_req_body,
@@ -2309,8 +2511,7 @@ class CommunityHelper:
                 community_share_link_dict = CommunityHelper.generate_community_share_link(user_instance,
                                                                                           community_instance,
                                                                                           platform_code, version_code,
-                                                                                          validated_req_body.get(
-                                                                                              'link_type'))
+                                                                                          validated_req_body.get('link_type'))
 
             if not community_share_link_dict.get('success'):
                 continue
@@ -2347,6 +2548,74 @@ class CommunityHelper:
         return receivers_list
 
     @staticmethod
+    def create_introduction_question_in_community_v2(community_instance):
+        '''function to create introduction question in community and mobile information'''
+
+        if ModelUtilities.is_model_filter_exists(communityQuestions,
+                                                 {'community': community_instance}):
+            return
+
+        question_data_list = [
+            {
+                'community': community_instance.id,
+                'question_title': CREATE_COMMUNITY_QUESTION_INTRODUCTION_TITLE,
+                'question_state': question_states.INTRODUCTION,
+                'value': json.dumps(CREATE_COMMUNITY_QUESTION_INTRODUCTION_VALUE),
+                'optional': False,
+                'help_text': None,
+                'is_hidden': False,
+                'is_compulsory': False,
+                'field': False,
+                'can_add_options': False
+            },
+            {
+                'community': community_instance.id,
+                'question_title': CREATE_COMMUNITY_QUESTION_PHONE_NUMBER_TITLE,
+                'question_state': question_states.MOBILE_NO,
+                'value': json.dumps(CREATE_COMMUNITY_QUESTION_PHONE_NUMBER_VALUE),
+                'optional': False,
+                'help_text': CREATE_COMMUNITY_QUESTION_PHONE_NUMBER_HELP_TEXT,
+                'is_hidden': True,
+                'is_compulsory': True,
+                'field': True,
+                'can_add_options': False,
+            },
+            {
+                'community': community_instance.id,
+                'question_title': CREATE_COMMUNITY_QUESTION_EMAIL_TITLE,
+                'question_state': question_states.EMAIL_ID,
+                'value': json.dumps(CREATE_COMMUNITY_QUESTION_EMAIL_VALUE),
+                'optional': False,
+                'help_text': CREATE_COMMUNITY_QUESTION_EMAIL_HELP_TEXT,
+                'is_hidden': False,
+                'is_compulsory': True,
+                'field': True,
+                'can_add_options': False
+            },
+            {
+                'community': community_instance.id,
+                'question_title': CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                'question_state': question_states.PARAGRAPH,
+                'value': None,
+                'optional': False,
+                'help_text': CREATE_COMMUNITY_QUESTION_NAME_HELP_TEXT,
+                'is_hidden': True,
+                'is_compulsory': True,
+                'field': True,
+                'can_add_options': False
+            },
+        ]
+
+        community_question_serializer = CommunityQuestionsSerializerV2(data=question_data_list, many=True)
+
+        if community_question_serializer.is_valid():
+            community_question_serializer.save()
+
+        else:
+            error_logger.error(
+                'CREATE INTRODUCTION QUESTION, Not valid: ' + str(community_question_serializer.errors))
+
+    @staticmethod
     @shared_task
     def create_community_async_tasks(user_id, community_id, req_body):
 
@@ -2359,6 +2628,9 @@ class CommunityHelper:
 
         if not community_instance:
             return
+
+        # Set community levels
+        set_community_actions(community_instance)
 
         member_filter = ModelUtilities.get_model_filter(Members,
                                                         {'community_id': community_instance,
@@ -2395,7 +2667,12 @@ class CommunityHelper:
 
         add_community_settings_for_community(community_instance, user_instance)
 
-        create_introduction_question_in_community(community_instance)
+        if req_body.get('is_directory_questions_version', False):
+            CommunityHelper.create_introduction_question_in_community_v2(community_instance)
+
+        else:
+            create_introduction_question_in_community(community_instance)
+
         post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
         post_master_introductions_for_community(community_instance.id, user_instance.id)
         post_general_collabcard_for_community(community_instance, user_instance.id)
@@ -2467,6 +2744,366 @@ class CommunityHelper:
                                                   'community': community_instance,
                                                   'status_type': user_email_send_status_types.COMMUNITY_MODERATION_EMAIL,
                                                   'is_completed': True})
+    
+    @staticmethod
+    def validate_edit_question_request(member_id, community_id, req_body):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not user_instance:
+            return get_error_context(False, 'Invalid member_id')
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return get_error_context(False, 'Invalid community_id')
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
+                                                                  'community_id': community_instance})
+
+        if not member_filter:
+            return get_error_context(False, 'Member not part of community')
+
+        member_instance = member_filter[0]
+
+        if not member_instance.state == member_states.ADMIN:
+            return get_error_context(False, 'You are not CM of community!')
+
+        questions_list = req_body.get('questions')
+
+        if not (questions_list and isinstance(questions_list, list)):
+            return get_error_context(False, 'Send questions structure in list')
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'questions_list': questions_list, 'member_instance': member_instance}
+
+    @staticmethod
+    def create_community_questions_question_dict(question_data, community_instance):
+
+        if question_data.get('state'):
+            question_data['question_state'] = question_data.get('state')
+
+        if not question_data.get('community'):
+            question_data['community'] = community_instance.id
+
+        return question_data
+
+    @staticmethod
+    @shared_task
+    def add_create_edit_question_analytics(question_id, user_id, question_state, questions_metadata={}):
+
+        if not question_state == question_change_states.DELETE_QUESTION:
+            question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, question_id)
+
+            if not question_instance:
+                return
+
+            questions_metadata = {
+                "community_id": question_instance.community.id,
+                "community_name": question_instance.community.name,
+                "questions_type": question_instance.question_state
+            }
+
+        event_name = DIRECTORY_QUESTIONS_CREATE_EVENT_NAME
+
+        if question_state == question_change_states.EDIT_QUESTION:
+            event_name = DIRECTORY_QUESTIONS_EDIT_EVENT_NAME
+
+        elif question_state == question_change_states.DELETE_QUESTION:
+            event_name = DIRECTORY_QUESTIONS_DELETE_EVENT_NAME
+
+        if question_state in [question_change_states.NEW_QUESTION, question_change_states.EDIT_QUESTION]:
+            question_value = json.loads(question_instance.value) if question_instance.value else None
+            other_options_list = []
+            private = False
+            mandatory = False
+            added_helptext = False
+
+            if question_value:
+
+                for value_dict in question_value:
+
+                    if isinstance(value_dict, dict) and value_dict.get(ANSWER_PRIVACY_KEY) and \
+                            (value_dict.get(ANSWER_PRIVACY_KEY) == ANSWER_PRIVACY_PRIVATE_VALUE):
+                        private = True
+                        break
+
+            if not question_instance.optional:
+                mandatory = True
+
+            if question_instance.help_text:
+                added_helptext = True
+
+            other_options_list.append({"private": private,
+                                       "public": not private,
+                                       "mandatory": mandatory,
+                                       "added_helptext": added_helptext})
+
+            questions_metadata["other_options"] = other_options_list
+
+        SegmentImpl.track_event(user_id, event_name, questions_metadata)
+
+    @staticmethod
+    def create_new_community_questions(community_instance, questions_list, user_id):
+
+        for question_data in questions_list:
+            question_data = CommunityHelper.create_community_questions_question_dict(question_data, community_instance)
+            community_question_instance = CommunityQuestionsSerializerV2(data=question_data)
+
+            if community_question_instance.is_valid():
+                community_question_instance.save()
+
+                CommunityHelper.add_create_edit_question_analytics.delay(community_question_instance.data.get('id'),
+                                                                         user_id,
+                                                                         question_state=question_change_states.NEW_QUESTION)
+
+            else:
+                error_logger.error("CREATE NEW QUESTION, Not valid: " + str(community_question_instance.errors))
+
+    @staticmethod
+    def update_user_answers_and_filter_in_multi_choice_questions(question_instance, question_data):
+        current_choices = json.loads(question_data.get('value')) if question_data.get('value') else []
+        value_list = []
+
+        for i in current_choices:
+            value_list.append(i['value'])
+
+        filter_list = list(questionFilters.objects.filter(question=question_instance).
+                           values_list('filter', flat=True).distinct())
+
+        user_ids_with_data = []
+
+        for data in filter_list:
+
+            if data not in value_list:
+                user_ids_with_data += list(ModelUtilities.get_model_filter(
+                    questionFilters, {'question': question_instance, 'filter': data})
+                                           .values_list('member_id', flat=True).distinct())
+
+                ModelUtilities.get_model_filter(
+                    questionFilters, {'question': question_instance, 'filter': data}).delete()
+
+        if user_ids_with_data:
+
+            for user_id in user_ids_with_data:
+                dropdown_option = list(ModelUtilities.get_model_filter(
+                    questionFilters, {'question': question_instance, 'member_id': user_id})
+                                       .values_list('filter', flat=True).distinct())
+
+                answer_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                                {'question': question_instance,
+                                                                 'member_id': user_id})
+
+                if dropdown_option:
+                    value = "$#".join(dropdown_option)
+                    answer_filter.update(question_answer=value)
+
+                else:
+                    info_logger.info("delete case")
+                    answer_filter.delete()
+
+    @staticmethod
+    def update_community_questions(community_instance, questions_list, user_id):
+        new_question_list = []
+
+        for question_data in questions_list:
+            question_data = CommunityHelper.create_community_questions_question_dict(question_data, community_instance)
+            question_id = question_data.get('id') if question_data.get('id') else 0
+            question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, question_id)
+
+            if not question_instance:
+                new_question_list.append(question_data)
+                continue
+
+            if question_instance.question_state == question_states.CHOICE_MULTIPLE or \
+                    question_instance.question_state == question_states.CHOICE_SINGLE:
+                CommunityHelper.update_user_answers_and_filter_in_multi_choice_questions(question_instance,
+                                                                                         question_data)
+
+            community_question_serializer = CommunityQuestionsSerializerV2(question_instance, data=question_data,
+                                                                           partial=True)
+
+            if community_question_serializer.is_valid():
+                community_question_serializer.save()
+
+                CommunityHelper.add_create_edit_question_analytics.delay(question_instance.id, user_id,
+                                                                         question_state=question_change_states.EDIT_QUESTION)
+
+            else:
+                error_logger.error("UPDATE COMMUNITY QUESTIONS, Not valid: " + str(
+                    community_question_serializer.errors))
+
+        if new_question_list:
+            CommunityHelper.create_new_community_questions(community_instance, new_question_list, user_id=user_id)
+
+    @staticmethod
+    def delete_community_questions(community_instance, questions_list, user_id):
+        delete_question_ids = []
+
+        for question_data in questions_list:
+            question_id = question_data.get('id') if question_data.get('id') else 0
+            question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, question_id)
+
+            if not question_instance:
+                continue
+
+            delete_question_ids.append(question_id)
+
+            CommunityHelper.add_create_edit_question_analytics.delay(question_id, user_id,
+                                                                     question_state=question_change_states.DELETE_QUESTION,
+                                                                     questions_metadata={
+                                                                         'community_id': community_instance.id,
+                                                                         'community_name': community_instance.name,
+                                                                         'questions_type':
+                                                                             question_instance.question_state
+                                                                     })
+
+        ModelUtilities.get_model_filter(communityQuestions, {'id__in': delete_question_ids,
+                                                             'community': community_instance}).delete()
+
+    @staticmethod
+    def validate_fetch_questions_request(user_id, community_id, req_body):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member-id'}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': 'Invalid community_id'}
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'aj': req_body.get('aj', None), 'shared_by': req_body.get('shared_by', None)}
+
+    @staticmethod
+    def get_toast_according_to_aj_expiry(community_instance, unique_code, shared_by_user=None, user_instance=None):
+        '''function to send private link for app invite on playstore'''
+
+        expiry_filter = communityExpiryCodes.objects.filter(community=community_instance, unique_code=unique_code)
+        shared_by_user_name = shared_by_user.userinfo.name
+
+        auto_join = {
+            'toast': PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST.format(shared_by_user_name),
+            'aj_expired': True
+        }
+
+        if (not community_instance.is_paid) and (not expiry_filter) or \
+                (community_instance.is_paid and expiry_filter.filter(user=user_instance)):
+            return auto_join
+
+        if expiry_filter.exists():
+            auto_join['aj_expired'] = False
+            auto_join['toast'] = ""
+
+        return auto_join
+
+    @staticmethod
+    def get_community_managers(community_instance):
+        '''function to get count of community managers'''
+
+        manager_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                   'state': member_states.ADMIN}).order_by('created_at')
+        temp = {}
+        manager_name = ""
+        for manager in manager_filter:
+            manager_name = manager.member_id.userinfo.name
+            break
+        temp['manager_name'] = manager_name
+        temp['count'] = manager_filter.count()
+
+        return temp
+
+    @staticmethod
+    def send_drop_off_notification_in_join(user_instance, community_instance, aj):
+        is_verified = Members.objects.filter(community_id=community_instance, member_id=user_instance).filter(
+            Q(state=member_states.ADMIN) | Q(state=member_states.PROFILE_UNAVAILABLE) |
+            Q(state=member_states.MEMBER) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+
+        if not is_verified:
+            from collabmates_api.notification import send_notification_to_join_drop_off
+            send_notification_to_join_drop_off.delay(user_instance.id, community_instance.id, aj,
+                                                     TIME_IN_HRS_TO_SEND_JOIN_DROP_OFF_NOTIFICATION)
+
+        return is_verified
+
+    @staticmethod
+    def compute_community_meta_data_according_to_aj_shared_by(user_instance, community_instance, aj, shared_by):
+        community_serialized_object = CommunitySerializerV1(community_instance, many=False).data
+        community_serialized_object['created_by'] = get_community_creator(community_instance)
+        managers = CommunityHelper.get_community_managers(community_instance)
+
+        if managers['count'] > 1:
+            managed_by = COMMUNITY_QUESTIONS_MORE_MANAGER_NAME_VALUE.format(managers['manager_name'],
+                                                                            str(managers['count'] - 1))
+        else:
+            managed_by = managers['manager_name']
+
+        community_serialized_object['managed_by'] = managed_by
+
+        is_valid_private_link = False
+        auto_join = {}
+        title = COMMUNITY_QUESTIONS_DEFAULT_TITLE.format(community_serialized_object['name'])
+
+        if shared_by:
+            shared_by = ModelUtilities.get_model_instance_or_none(User, shared_by)
+            shared_by_user_name = shared_by.userinfo.name
+            title = FETCH_QUESTIONS_SHARED_BY_USER_TITLE.format(shared_by_user_name,
+                                                                community_serialized_object['name'])
+
+        if aj and shared_by:
+            auto_join = CommunityHelper.get_toast_according_to_aj_expiry(community_instance, aj, shared_by, user_instance)
+            is_valid_private_link = True
+
+        context = {'header': FETCH_COMMUNITY_QUESTIONS_JOIN_TITLE,
+                   'title': title, 'community': community_serialized_object}
+
+        if is_valid_private_link:
+            context.update(auto_join)
+
+        return context
+
+    @staticmethod
+    def get_community_questions_data(user_instance, community_instance, platform_code='web'):
+        data = ModelUtilities.get_model_filter(communityQuestions,
+                                               {"community": community_instance}).order_by('-rank', 'id')
+
+        questions = []
+
+        serialized_questions = CommunityQuestionsSerializerV2(data, many=True).data
+
+        for serialized_question in serialized_questions:
+
+            if all([platform_code == PLATFORM_CODE_WEB,
+                    serialized_question['question_title'] == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                    serialized_question['is_hidden'],
+                    serialized_question['field'],
+                    serialized_question['question_state'] == question_states.PARAGRAPH]):
+                continue
+
+            serialized_question['state'] = serialized_question['question_state']
+            serialized_question['community_id'] = serialized_question['community']
+            del serialized_question['question_state']
+            del serialized_question['community']
+
+            if serialized_question['state'] == question_states.INTRODUCTION:
+                serialized_question['rank'] = 0
+                answers_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                                 {'question': serialized_question['id'],
+                                                                  'member': user_instance.id})
+                if answers_filter.exists():
+                    answer_instance = answers_filter[0]
+                    introduction_answer = answer_instance.question_answer
+                    serialized_question['previous_answer'] = introduction_answer
+
+            else:
+                serialized_question['rank'] = 1
+
+            # Don't append question if remove_state is True
+            if not serialized_question['remove_state']:
+                del serialized_question['remove_state']
+                questions.append(serialized_question)
+
+        return questions
 
     @staticmethod
     def generate_community_share_link(user_instance, community_instance, platform_code, version_code, link_type='free'):
@@ -2495,3 +3132,34 @@ class CommunityHelper:
 
         return {'success': True, 'community_share': community_share, 'share_context': share_context, 'link': link,
                 'aj': aj}
+
+    @staticmethod
+    def get_default_community_type_subtype_id():
+        type_id = TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
+        sub_type_id = SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
+
+        community_field_type_filter_dict = {
+            'type': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
+            'sub_type_header': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
+            'sub_type_placeholder': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
+            'rank': DEFAULT_COMMUNITY_FIELD_TYPE_RANK
+        }
+
+        community_field_sub_type_filter_dict = {
+            'sub_type': DEFAULT_COMMUNITY_FIELD_TYPE_NAME,
+            'rank': DEFAULT_COMMUNITY_FIELD_TYPE_RANK
+        }
+
+        community_type_filter = ModelUtilities.get_model_filter(communityFieldTypes,
+                                                                community_field_type_filter_dict)
+
+        if community_type_filter:
+            type_id = community_type_filter[0].id
+
+        community_sub_type_filter = ModelUtilities.get_model_filter(communityFieldSubTypes,
+                                                                    community_field_sub_type_filter_dict)
+
+        if community_sub_type_filter:
+            sub_type_id = community_sub_type_filter[0].id
+
+        return type_id, sub_type_id

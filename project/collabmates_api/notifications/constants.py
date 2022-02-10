@@ -31,6 +31,11 @@ class EVENT_COMM_FREQUENCY:
     POST_EVENT_ATTENDEES_MAIL = timedelta(hours=1)
     POST_EVENT_ATTENDEES_MAIL_EXPIRY_AFTER = timedelta(hours=2)
 
+class CALENDAR_INVITE_TYPE:
+    NEW_CALENDAR_CREATION = 'create new calendar event'
+    APPEND_ATTENDEES = 'append new attendees to calendar event'
+    UPDATE_CALENDAR = 'update details for calendar event'
+
 EVENT_COMM_SHOULD_HAPPEN_BEFORE = datetime.strptime("22:0", "%H:%M") # 1O:00 PM
 EVENT_COMM_SHOULD_HAPPEN_AFTER = datetime.strptime("08:0", "%H:%M") # 8:00 AM
 
@@ -84,3 +89,7 @@ PAID_EVENT_REGISTRATION_SOUND = "ka-ching.mp3"
 
 SUBJECT_CHATROOM_NOT_OPENED_MAIL = "%s is waiting for your response!"
 SENDER_FOR_ENGAGEMENT_COMMUNICATION = "hello@likeminds.community"
+
+DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"
+GETTING_STARTED_CM_BUTTON_TEXT = "GET STARTED"
+INVITE_MEMBER_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"

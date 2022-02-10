@@ -361,13 +361,16 @@ tool_review_reports = {"title": "Review Reports",
                        "count": 0}
 
 tool_edit_directory_questions = {"title": "Edit directory questions",
-                                 "image_url": "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fedit_directory_questions.png?alt=media&token=6132427f-3b08-4da8-8a25-02ee55cec480"}
+                                 "image_url": "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fedit_directory_questions.png?alt=media&token=6132427f-3b08-4da8-8a25-02ee55cec480",
+                                 "route": "route://edit_community_directory?community_id={}&community_name={}"}
 
 tool_edit_community_details = {"title": "Edit community details",
-                               "image_url": "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fedit_community_details.png?alt=media&token=0dbb625b-da94-4cbe-b550-5688a6ad5944"}
+                               "image_url": "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fedit_community_details.png?alt=media&token=0dbb625b-da94-4cbe-b550-5688a6ad5944",
+                               "route": "route://edit_community?community_id={}&community_name={}"}
 
 tool_community_settings = {"title": "Community Settings",
-                           "image_url": "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fcommunity_settings.png?alt=media&token=0e105674-9bde-4336-850b-118671fcdec8"}
+                           "image_url": "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fcommunity_settings.png?alt=media&token=0e105674-9bde-4336-850b-118671fcdec8",
+                           "route": "route://community_settings?community_id={}&community_name={}"}
 
 months_semi = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
                9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
@@ -598,3 +601,50 @@ CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_TEXT = "Join form guide"
 MEMBER_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
 
 FIVE_DAYS_IN_HOURS = 24 * 5
+
+DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE = 190
+DIRECTORY_QUESTIONS_IOS_VERSION_CODE = 1101
+DIRECTORY_QUESTIONS_WEB_VERSION_CODE = 1101
+
+DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE = "Edit join form"
+MEMBER_REQUEST_TOOL_ROUTE = "route://member_approve?community_id={}&community_name={}"
+PENDING_CHATROOM_TOOL_ROUTE = "route://pending_chatrooms?community_id={}&community_name={}"
+REPORTS_TOOL_ROUTE = "route://review_reports?community_id={}&community_name={}"
+MANAGEMENT_TOOLS_HEADER = "Management tools for {}"
+
+MEMBER_PROFILE_MENU_ITEMS = {
+    "EDIT_TITLE": {
+        "title": "Edit title",
+        "route": "route://edit_custom_title?community_id={}&member_id={}"
+    },
+    "EDIT_PERMISSIONS": {
+        "title": "Edit permissions",
+        "route": "route://edit_member_rights?community_id={}&member_id={}"
+    },
+    "GIVE_CM_RIGHTS": {
+        "title": "Give community management rights",
+        "route": "route://give_manager_rights?community_id={}&member_id={}"
+    },
+    "EDIT_CM_RIGHTS": {
+        "title": "Edit management rights",
+        "route": "route://edit_manager_rights?community_id={}&member_id={}"
+    },
+    "REPORT_MEMBER": {
+        "title": "Report member",
+        "route": "route://report_member?community_id={}&member_id={}"
+    },
+    "REMOVE_FROM_COMMUNITY": {
+        "title": "Remove from community",
+        "route": "route://remove_from_community?community_id={}&member_id={}"
+    },
+    "BLOCK_MEMBER": {
+        "title": "Block member",
+        "route": "route://block_member?community_id={}&member_id={}"
+    }
+}
+
+COMMUNITY_LEVEL_3_TEXT = "Level 3"
+
+IMAGE_URLS_FOR_QUESTION_TITLES = ["Email", "Phone Number", "Phone No."]
+
+CREATE_COMMUNITY_QUESTION_NAME_TITLE = "Name"

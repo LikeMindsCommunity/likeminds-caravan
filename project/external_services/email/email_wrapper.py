@@ -1,10 +1,23 @@
+import os
+
+import sendgrid
+from sendgrid import Email
+from sendgrid.helpers.mail import Mail, Personalization, Content
+
+from rest_framework import status as status_codes
+
+from collabmates_api.notifications.constants import SENDER_NAME_FOR_EMAIL_COMMS
 from ..email.email_manager import MailManager
 from django.core.mail import EmailMultiAlternatives
 from celery import shared_task
 
+from ..logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
+
 
 class MailWrapper(MailManager):
-
     from_email = 'LikeMinds<hello@likeminds.community>'
 
     @staticmethod
@@ -34,5 +47,47 @@ class MailWrapper(MailManager):
 
         if status == 1:
             return True
+
+        return False
+
+    @staticmethod
+    @shared_task
+    def send_email_with_custom_from_email(subject, template, to_mails_list, from_email=None, reply_to=None,
+                                          from_name=SENDER_NAME_FOR_EMAIL_COMMS):
+
+        if not from_email:
+            from_email = MailWrapper.from_email
+
+        if not reply_to:
+            reply_to = from_email
+
+        mail = Mail()
+
+        for to_email in to_mails_list:
+            personalization = Personalization()
+            personalization.add_to(Email(to_email))
+            mail.add_personalization(personalization)
+
+        mail.from_email = Email(name=from_name, email=from_email)
+
+        mail.subject = subject
+
+        if reply_to:
+            mail.reply_to = Email(email=reply_to)
+
+        mail.add_content(Content('text/html', template))
+
+        sendgrid_api_client = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
+
+        try:
+            response = sendgrid_api_client.client.mail.send.post(request_body=mail.get())
+
+            if response.status_code == status_codes.HTTP_202_ACCEPTED:
+                info_logger.info(f'Mail Successfully Sent | Subject = {subject}')
+                info_logger.info(f'headers = {response.headers}')
+                return True
+
+        except Exception as e:
+            error_logger.error(e.__dict__)
 
         return False

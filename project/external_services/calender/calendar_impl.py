@@ -27,5 +27,21 @@ class CalendarImpl(CalendarManager):
 
     def call_calender_api(self, event_payload):
 
-        event_link = self.get_calendar_instance().events(). \
+        calendar_obj = self.get_calendar_instance().events(). \
             insert(calendarId='primary', body=event_payload, sendUpdates='all').execute()
+
+        return calendar_obj
+
+    def patch_calendar_api(self, event_id, event_payload):
+
+        calendar_obj = CalendarImpl().get_calendar_instance().events(). \
+            patch(calendarId='primary', eventId=event_id, body=event_payload, sendUpdates='all').execute()
+
+        return calendar_obj
+
+    def get_calendar_api(self, event_id):
+
+        calendar_obj = CalendarImpl().get_calendar_instance().events(). \
+            get(calendarId='primary', eventId=event_id).execute()
+
+        return calendar_obj

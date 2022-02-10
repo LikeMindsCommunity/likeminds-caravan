@@ -31,7 +31,9 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_join_email') and callable(subclass.fetch_join_email)) and
                 (hasattr(subclass, 'fetch_payment_page_url') and callable(subclass.fetch_payment_page_url)) and
                 (hasattr(subclass, 'fetch_get_started') and callable(subclass.fetch_get_started)) and
-                (hasattr(subclass, 'send_invite') and callable(subclass.send_invite)) or
+                (hasattr(subclass, 'send_invite') and callable(subclass.send_invite)) and
+                (hasattr(subclass, 'edit_questions') and callable(subclass.edit_questions)) and
+                (hasattr(subclass, 'fetch_community_questions') and callable(subclass.fetch_community_questions)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -42,7 +44,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_community(self, client_type):
+    def fetch_community(self, client_type, platform_code: str, version_code: int):
         """
         fetches the community from the database
         """
@@ -159,5 +161,17 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def send_invite(self, req_body) -> {}:
         """ Send email or whatsapp invite """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def edit_questions(self, req_body) -> {}:
+        """ Create, update or delete community questions """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_community_questions(self, req_body) -> {}:
+        """ Fetches community questions """
 
         raise NotImplementedError

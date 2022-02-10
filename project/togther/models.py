@@ -1615,33 +1615,30 @@ class communityQuestions(models.Model):
     value = models.TextField(null=True)
     dropdown_selection_limit = models.IntegerField(null=True)
     optional = models.BooleanField(default=False)
-    help_text = models.TextField(null=True)
+    help_text = models.TextField(null=True, blank=True)
 
     # when the promoter deletes a question from v1/edit_questions api
     remove_state = models.BooleanField(default=False)
 
     is_hidden = models.BooleanField(default=False)
+    is_compulsory = models.BooleanField(default=False)
 
     field = models.BooleanField(default=False)
 
     rank = models.IntegerField(default=0)
+    can_add_options = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = TimeUtilities.current_time_in_sec()
+
+        self.updated_at = TimeUtilities.current_time_in_sec()
+        super(communityQuestions, self).save(*args, **kwargs)
 
     def __str__(self):
         return str(self.question_title)
-
-    @staticmethod
-    def create_instance(community_questions_data):
-        questions_instance = communityQuestions()
-        questions_instance.community = community_questions_data.get('community_instance')
-        questions_instance.question_title = community_questions_data.get('question_title', None)
-        questions_instance.question_state = community_questions_data.get('question_state', 0)
-        questions_instance.value = community_questions_data.get('value', None)
-        questions_instance.optional = community_questions_data.get('optional', False)
-        questions_instance.help_text = community_questions_data.get('help_text', None)
-        questions_instance.is_hidden = community_questions_data.get('is_hidden', False)
-        questions_instance.field = community_questions_data.get('field', False)
-
-        return questions_instance
 
 
 class communityAnswers(models.Model):
@@ -3219,3 +3216,59 @@ class EventCommsCeleryTasks(models.Model):
         instance.save()
 
         return instance
+
+
+class EventGoogleCalendarLogs(models.Model):
+    calendar_id = models.CharField(max_length=100)
+    event = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    is_deleted = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'event google calendar log'
+        verbose_name_plural = 'event google calendar logs'
+        db_table = 'togther_event_google_calendar_logs'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(EventGoogleCalendarLogs, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(task_info):
+        instance = EventGoogleCalendarLogs()
+        instance.calendar_id = task_info.get('calendar_id')
+        instance.event = task_info.get('event')
+        instance.is_deleted = task_info.get('is_deleted')
+        instance.created_at = TimeUtilities.current_time_in_milliseconds()
+        instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+        instance.save()
+
+        return instance
+
+
+class MessageTemplate(models.Model):
+
+    community_id = models.IntegerField(null=True, default=None)
+    message = models.TextField()
+    chatroom_type = models.IntegerField()
+    cm_id = models.IntegerField(null=True, default=None)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(MessageTemplate, self).save(*args, **kwargs)
