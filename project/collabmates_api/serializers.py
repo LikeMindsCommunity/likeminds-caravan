@@ -1614,8 +1614,6 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         block_member = {"title": "Block member",
                         "route": f"route://block_member?community_id={community_id}&member_id={member_id}"}
         community_profile["menu"] = [report_member, block_member]
-        if user_is_owner:
-            community_profile["menu"] = [report_member]
 
     return community_profile
 
@@ -1676,8 +1674,6 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
 
         if profile_detail_api:
             menu.append(report_member)
-            # if not item_member_is_owner:
-            menu.append(block_member)
 
     elif current_user_is_promoter and (item_member_state == member_states.MEMBER or
                                        item_member_state == member_states.PROFILE_UNAVAILABLE):
@@ -1694,14 +1690,11 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
             if not current_user_admin_rights["approve"] and profile_detail_api:
                 menu.append(report_member)
 
-            if profile_detail_api:
-                menu.append(block_member)
-
     else:
         if profile_detail_api:
             menu.append(report_member)
-            # if not item_member_is_owner:
-            menu.append(block_member)
+
+    menu.append(block_member)
 
     return menu
 
