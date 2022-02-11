@@ -57,6 +57,7 @@ from utility.states import member_states, card_types, click_states, member_right
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
+from utility.constants import PLATFORM_CODE_WEB
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -1265,7 +1266,12 @@ class CommunityImpl(CommunityManager):
 
         community_state = 0
 
-        type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
+        if directory_questions_v2_version_check(self.get_request_platform(), self.get_version_code()):
+            type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
+
+        else:
+            type_id = TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
+            sub_type_id = SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
 
         community_instance = Community.create_instance({'name': validate_req_body['name'],
                                                         'members_count': 1,
@@ -1495,7 +1501,8 @@ class CommunityImpl(CommunityManager):
         CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
 
         community_meta_data['questions'] = CommunityHelper.get_community_questions_data(user_instance,
-                                                                                        community_instance)
+                                                                                        community_instance,
+                                                                                        self.get_request_platform())
 
         community_meta_data['success'] = True
 
@@ -1827,6 +1834,9 @@ class CommunityHelper:
                 question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions,
                                                                               question.get(question_id_key))
 
+                if not question_instance:
+                    continue
+
                 if question_instance.question_state == question_states.INTRODUCTION:
                     introduction_answer = question.get(answer_key)
 
@@ -1972,7 +1982,7 @@ class CommunityHelper:
             mobile_filter = get_user_phone(user_instance.id)
 
             if mobile_filter:
-                mobile_no = "+{}{}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
+                mobile_no = "+{} {}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
                 CommunityHelper.create_answer_instance(user_instance, community_instance,
                                                        question_instance, mobile_no,
                                                        question_title=question_instance.question_title)
@@ -2947,6 +2957,11 @@ class CommunityHelper:
 
         for question_data in questions_list:
             question_id = question_data.get('id') if question_data.get('id') else 0
+            question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, question_id)
+
+            if not question_instance:
+                continue
+
             delete_question_ids.append(question_id)
 
             CommunityHelper.add_create_edit_question_analytics.delay(question_id, user_id,
@@ -2954,7 +2969,8 @@ class CommunityHelper:
                                                                      questions_metadata={
                                                                          'community_id': community_instance.id,
                                                                          'community_name': community_instance.name,
-                                                                         'questions_type': question_change_states.DELETE_QUESTION
+                                                                         'questions_type':
+                                                                             question_instance.question_state
                                                                      })
 
         ModelUtilities.get_model_filter(communityQuestions, {'id__in': delete_question_ids,
@@ -3063,7 +3079,7 @@ class CommunityHelper:
         return context
 
     @staticmethod
-    def get_community_questions_data(user_instance, community_instance):
+    def get_community_questions_data(user_instance, community_instance, platform_code='web'):
         data = ModelUtilities.get_model_filter(communityQuestions,
                                                {"community": community_instance}).order_by('-rank', 'id')
 
@@ -3072,6 +3088,14 @@ class CommunityHelper:
         serialized_questions = CommunityQuestionsSerializerV2(data, many=True).data
 
         for serialized_question in serialized_questions:
+
+            if all([platform_code == PLATFORM_CODE_WEB,
+                    serialized_question['question_title'] == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                    serialized_question['is_hidden'],
+                    serialized_question['field'],
+                    serialized_question['question_state'] == question_states.PARAGRAPH]):
+                continue
+
             serialized_question['state'] = serialized_question['question_state']
             serialized_question['community_id'] = serialized_question['community']
             del serialized_question['question_state']

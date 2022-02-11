@@ -37,7 +37,7 @@ from ..serializers import is_draft_conversation, get_chatroom_instance, get_draf
     conversationSerializer
 from ..static_files import REMOVED_USER_URL, ICONS
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT, \
-    IMAGE_URLS_FOR_QUESTION_TITLES
+    IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
@@ -1667,6 +1667,12 @@ class MemberCommunityHelper:
                 if not community_question_instance:
                     continue
 
+                if all([community_question_instance.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                        community_question_instance.is_hidden,
+                        community_question_instance.field,
+                        community_question_instance.question_state == question_states.PARAGRAPH]):
+                    continue
+
                 question_data = CommunityQuestionsSerializerV2(community_question_instance, many=False).data
 
                 discard_question = True
@@ -1729,7 +1735,6 @@ class MemberCommunityHelper:
             menu.append(all_menu_items.get('EDIT_CM_RIGHTS'))
 
         menu.append(all_menu_items.get('REPORT_MEMBER'))
-        menu.append(all_menu_items.get('BLOCK_MEMBER'))
 
         return menu
 
@@ -1750,8 +1755,6 @@ class MemberCommunityHelper:
 
         if not check_admin_approve_right(current_user_member_instance.member_id, community_instance):
             menu.append(all_menu_items.get('REPORT_MEMBER'))
-
-        menu.append(all_menu_items.get('BLOCK_MEMBER'))
 
         return menu
 
@@ -1788,7 +1791,8 @@ class MemberCommunityHelper:
 
             else:
                 menu.append(all_menu_items.get('REPORT_MEMBER'))
-                menu.append(all_menu_items.get('BLOCK_MEMBER'))
+
+            menu.append(all_menu_items.get('BLOCK_MEMBER'))
 
         elif (not is_same_user) and current_user_member_instance.state == member_states.ADMIN:
 
@@ -1804,7 +1808,8 @@ class MemberCommunityHelper:
 
             else:
                 menu.append(all_menu_items.get('REPORT_MEMBER'))
-                menu.append(all_menu_items.get('BLOCK_MEMBER'))
+
+            menu.append(all_menu_items.get('BLOCK_MEMBER'))
 
         elif (not is_same_user) and current_user_member_instance.state == member_states.MEMBER:
 
@@ -1813,7 +1818,8 @@ class MemberCommunityHelper:
 
             else:
                 menu.append(all_menu_items.get('REPORT_MEMBER'))
-                menu.append(all_menu_items.get('BLOCK_MEMBER'))
+
+            menu.append(all_menu_items.get('BLOCK_MEMBER'))
 
         elif is_same_user and (current_user_member_instance.state == member_states.ADMIN):
             menu.append(all_menu_items.get('EDIT_TITLE'))
