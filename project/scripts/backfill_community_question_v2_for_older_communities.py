@@ -2,7 +2,7 @@ import time
 
 from django.conf import settings
 from togther.models import ModelUtilities, Community, communityQuestions, communityAnswers, Members
-from collabmates_api.rest_api import CommunityQuestionsSerializerV2, CommunityAnswersSerializer
+from collabmates_api.rest_api import CommunityQuestionsSerializerV2
 from collabmates_api.community.community_impl import CommunityHelper
 from utility.states import question_states
 from collabmates_api.community.constants import CREATE_COMMUNITY_QUESTION_PHONE_NUMBER_TITLE, \
@@ -12,12 +12,12 @@ from collabmates_api.community.constants import CREATE_COMMUNITY_QUESTION_PHONE_
     CREATE_COMMUNITY_QUESTION_NAME_HELP_TEXT
 import json
 
-prod_community_ids = [49768]
+community_ids = [49768]
 
 if not settings.IS_BETA:
-    prod_community_ids = [50143, 50015, 50020, 49991, 50030, 50031, 49996, 50023, 50033, 50054, 49899, 49978, 50206,
-                          50173, 49813, 49844, 49907, 50073, 49833, 50198, 50211, 50256, 50271, 50275, 50290, 50299,
-                          50311, 50329, 50359, 50404, 50400, 50376, 50409]
+    community_ids = [50143, 50015, 50020, 49991, 50030, 50031, 49996, 50023, 50033, 50054, 49899, 49978, 50206,
+                     50173, 49813, 49844, 49907, 50073, 49833, 50198, 50211, 50256, 50271, 50275, 50290, 50299,
+                     50311, 50329, 50359, 50404, 50400, 50376, 50409]
 
 question_data_list = {
     CREATE_COMMUNITY_QUESTION_PHONE_NUMBER_TITLE: {
@@ -56,7 +56,7 @@ question_data_list = {
 }
 
 
-def create_or_update_community_answers_for_community_members(community_instance, question_ids_list=[]):
+def create_or_update_community_answers_for_community_members(community_instance, question_ids_list):
     members_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance})
 
     for member_instance in members_filter:
@@ -67,7 +67,7 @@ def create_or_update_community_answers_for_community_members(community_instance,
 
 
 def backfill_community_question_v2_for_older_communities():
-    communities_filter = ModelUtilities.get_model_filter(Community, {'id__in': prod_community_ids})
+    communities_filter = ModelUtilities.get_model_filter(Community, {'id__in': community_ids})
     type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
 
     for community in communities_filter:
