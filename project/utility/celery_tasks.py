@@ -65,7 +65,6 @@ def set_chatroom_state_for_all_members_on_card_creation(community_id, card_id, *
                 collabcard_state_instance.created_at = time.time()
                 collabcard_state_instance.updated_at = time.time()
                 collabcard_state_instance.external_seen = False
-                collabcard_state_instance.expiry_time = None
                 collabcard_state_instance.save()
 
             except Exception as e:
@@ -1596,8 +1595,7 @@ def member_left_removed_dm_chatroom(user_id, community_id, removed_members_id, r
         conversation_engage_instance.update(last_conversation=card_answer_instance,
                                             updated_at=card_created_at)
 
-        ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances}).update(
-            expiry_time=TimeUtilities.add_hours_to_epoch_time(card_created_at, ONE_DAY_HOURS))
+        ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances})
 
         conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count') + 1)
 
@@ -1662,8 +1660,7 @@ def cm_removed_dm_chatroom(user_id, community_id):
         conversation_engage_instance.update(last_conversation=card_answer_instance,
                                             updated_at=card_created_at)
 
-        ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances}).update(
-            expiry_time=TimeUtilities.add_hours_to_epoch_time(card_created_at, ONE_DAY_HOURS))
+        ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances})
 
         conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count') + 1)
 
@@ -1745,8 +1742,7 @@ def member_becomes_cm_dm_chatroom(user_id, community_id):
             conversation_engage_instance.update(last_conversation=card_answer_instance,
                                                 updated_at=card_created_at)
 
-            ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances}).update(
-                expiry_time=TimeUtilities.add_hours_to_epoch_time(card_created_at, ONE_DAY_HOURS))
+            ModelUtilities.get_model_filter(collabcardState, {"card__in": dm_chatroom_instances})
 
             conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count') + 1)
 
@@ -1861,9 +1857,7 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
                                                                                  )
         else:
             card_state_instance = collabcard_state_filter[0]
-            expiry_time = TimeUtilities.current_time_in_sec() + CHATROOM_EXPIRE_DURATION
             card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
-            card_state_instance.expiry_time = expiry_time
             card_state_instance.follow_status = status
             card_state_instance.mute_status = mute_status
             card_state_instance.is_guest = is_guest
@@ -1943,7 +1937,6 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
             )
 
         if unseen_count > 0:
-            card_state_instance.expiry_time = None
             card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             card_state_instance.save()
 
