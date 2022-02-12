@@ -27,7 +27,7 @@ from ..raw_queries import activate_chatroom_on_conversation_creation, \
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
-from ..tasks import send_chatroom_owner_mail
+# from ..tasks import send_chatroom_owner_mail
 from ..utility import pagination
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
@@ -1589,10 +1589,10 @@ class ConversationHelper:
             'mail_card_owner_inactivity'
         ]
 
-        # check if sender is not the owner and  notification flag is true
-        if check_notification_flag(chatroom_instance.user_id, notification_list, card_id=chatroom_instance.id,
-                                   community_id=None) and str(user_instance.id) != str(chatroom_instance.user_id):
-            send_chatroom_owner_mail.delay(chatroom_instance.user_id, chatroom_instance.id, time_in_hrs=12)
+        # # check if sender is not the owner and  notification flag is true
+        # if check_notification_flag(chatroom_instance.user_id, notification_list, card_id=chatroom_instance.id,
+        #                            community_id=None) and str(user_instance.id) != str(chatroom_instance.user_id):
+        #     send_chatroom_owner_mail.delay(chatroom_instance.user_id, chatroom_instance.id, time_in_hrs=12)
 
     @staticmethod
     def send_engagement_communication(receiver_id, sender_id, chatroom_id, chatroom_not_opened_type):
