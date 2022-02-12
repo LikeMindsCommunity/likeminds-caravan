@@ -750,7 +750,7 @@ class TasksHelper:
         reply_to = community_owner_email[0] if community_owner_email else ''
 
         context = {
-            'from_name': SENDER_NAME_FOR_EMAIL_COMMS,
+            'from_name': community_name,
             'from_email': SENDER_EMAIL_FOR_EMAIL_COMMS,
             'to_mails_list': to_mails_list,
             'reply_to': reply_to
@@ -791,7 +791,7 @@ class TasksHelper:
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTENDEES:
             attended_members_list = TasksHelper.get_list_of_members_who_attended_event(event_instance)
-            attended_member_count = attended_members_list.count()
+            attended_member_count = len(attended_members_list)
 
             data_dict['attended_member_count'] = attended_member_count
 
