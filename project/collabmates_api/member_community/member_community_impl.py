@@ -208,12 +208,6 @@ class MemberCommunityImpl(MemberCommunityManager):
             active_chatroom = MemberCommunityHelper.get_active_chatroom_member_images(
                 community_instance=community.community_id, member_id=member_id)
 
-            active_chatroom_count = active_chatroom['count']
-            member_community['active_chatroom_count'] = active_chatroom_count
-            active_chatroom_users = active_chatroom['member_list']
-            if active_chatroom_users:
-                member_community['active_chatroom_users'] = active_chatroom_users
-
     def _add_member_rights_info(self, member_community: dict, community: {}) -> None:
 
         is_ios = self.get_platform_code() == "ios"
@@ -1461,9 +1455,7 @@ class MemberCommunityHelper:
         current_time = TimeUtilities.current_time_in_sec()
         state_filter = collabcardState.objects.filter(
             community=community_instance, user=member_id, card__is_deleted=False, secret_chatroom_left=False,
-        ).exclude(card__type=card_types.CARD_INTRO).select_related('card').filter(Q(expiry_time=None) |
-                                                                                  Q(expiry_time__gt=current_time)
-                                                                                  ).order_by('-expiry_time', '-card')
+        ).exclude(card__type=card_types.CARD_INTRO).select_related('card').order_by('-card')
         temp = {}
         member_list = []
         user_set = set()

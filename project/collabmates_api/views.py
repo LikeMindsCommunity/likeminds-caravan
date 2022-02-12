@@ -186,8 +186,7 @@ def get_active_chatroom_member_images(community_instance, member_id):
     current_time = time.time()
     state_filter = collabcardState.objects.filter(community=community_instance,
                                                   user=member_id,
-                                                  card__is_deleted=False).filter(
-        Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-expiry_time', '-card')
+                                                  card__is_deleted=False).order_by('-card')
     temp = {}
     member_list = []
     user_set = set()
@@ -214,8 +213,7 @@ def get_active_chatroom_member_images(community_instance, member_id):
     current_time = time.time()
     state_filter = collabcardState.objects.filter(community=community_instance,
                                                   user=member_id,
-                                                  card__is_deleted=False).filter(
-        Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-expiry_time', '-card')
+                                                  card__is_deleted=False).order_by('-card')
     temp = {}
     member_list = []
     user_set = set()
@@ -308,8 +306,6 @@ def my_chatrooms_version_1(request):
     consider_dm_chatrooms = False
     user_community_ids = []
     dm_instance_community_ids_list = []
-    current_time = time.time()
-    send_active = True
     dm_instance_list = []
     non_dm_instance_list = []
     my_chatrooms = []
@@ -343,69 +339,37 @@ def my_chatrooms_version_1(request):
             is_dm_message = True
             dm_instance_community_ids_list = list(dm_right_instance.values_list("community_id", flat=True))
 
-    in_active_chatroom_count = get_inactive_followed_chatrooms_count(member_id,
-                                                                     current_time,
-                                                                     version_code,
-                                                                     platform_code,
-                                                                     consider_dm_chatrooms,
-                                                                     dm_instance_community_ids_list,
-                                                                     community_id,
-                                                                     intro_room_community_list)
+    joined_chatroom_count = get_my_chatrooms_count(member_id, 
+                                                version_code, 
+                                                platform_code,
+                                                consider_dm_chatrooms=consider_dm_chatrooms,
+                                                dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                                community_id=community_id,
+                                                intro_room_community_list=intro_room_community_list)
 
-    active_chatroom_count = get_active_my_chatrooms_count(member_id,
-                                                          current_time,
-                                                          version_code,
-                                                          platform_code,
-                                                          consider_dm_chatrooms,
-                                                          dm_instance_community_ids_list,
-                                                          community_id,
-                                                          intro_room_community_list)
+    page_count = get_total_pages(joined_chatroom_count, limit=10)
 
-    page_count = get_total_pages(active_chatroom_count, 10)
-    page_count_inactive = get_total_pages(in_active_chatroom_count, 10)
-    total_pages = page_count + page_count_inactive
+    total_pages = page_count 
 
-    if page > page_count:
-        send_active = False
+    engage_list = get_followed_chatrooms(member_id,
+                                        page, 
+                                        version_code, 
+                                        platform_code, 
+                                        limit=10,
+                                        consider_dm_chatrooms=consider_dm_chatrooms,
+                                        dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                        community_id=community_id,
+                                        intro_room_community_list=intro_room_community_list)
 
-    if send_active:
-        engage_list = get_active_followed_chatrooms(member_id,
-                                                    current_time,
-                                                    page,
-                                                    version_code,
-                                                    platform_code,
-                                                    10,
-                                                    consider_dm_chatrooms,
-                                                    dm_instance_community_ids_list,
-                                                    community_id,
-                                                    intro_room_community_list)
+    for id in engage_list:
+        instance = conversationEngage.objects.get(pk=id)
+        instance_list.append(instance)
 
-        for id in engage_list:
-            instance = conversationEngage.objects.get(pk=id)
-            instance_list.append(instance)
+    draft_list = get_draft_chatrooms_on_home_screen(member_id, page, community_id)
 
-        draft_list = get_draft_chatrooms_on_home_screen(member_id, page, community_id)
-
-        for id in draft_list:
-            instance = conversationEngage.objects.get(pk=id)
-            instance_list.append(instance)
-
-    else:
-        page = page - page_count
-        engage_list = get_inactive_followed_chatrooms(member_id,
-                                                      current_time,
-                                                      page,
-                                                      version_code,
-                                                      platform_code,
-                                                      10,
-                                                      consider_dm_chatrooms,
-                                                      dm_instance_community_ids_list,
-                                                      community_id,
-                                                      intro_room_community_list)
-
-        for id in engage_list:
-            instance = conversationEngage.objects.get(pk=id)
-            instance_list.append(instance)
+    for id in draft_list:
+        instance = conversationEngage.objects.get(pk=id)
+        instance_list.append(instance)
 
     # Segregate DM and Non-DM chatrooms
     for instance in instance_list:
@@ -501,7 +465,6 @@ def my_chatrooms_version_1(request):
         my_chatrooms.append(chatroom)
 
     context = {'my_chatrooms': my_chatrooms,
-               'inactive_chatroom_count': in_active_chatroom_count,
                'total_pages': total_pages
                }
 
@@ -525,7 +488,6 @@ def my_chatrooms_version_1(request):
 
         else:
             total_unseen_count = {'total': 0}
-            context['inactive_chatroom_count'] = 0
 
         if total_unseen_count['total'] is None:
             total_unseen_count['total'] = 0
@@ -583,77 +545,9 @@ def get_latest_conversation_members(last_conversation_member, second_last_conver
 def fetch_chatroom_inactive(request):
     '''api to return the in-active chatrooms snack-bar'''
 
-    member_id = get_member_id_from_headers(request)
     context = {}
 
-    if not member_id:
-        context = get_error_context(False, "send x-member-id in headers")
-        return JsonResponse(context)
-
-    user_instance = User.get_user_or_none(member_id)
-
-    if user_instance is None:
-        context = get_error_context(False, "Invalid member id")
-
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    current_time = time.time()
-
-    in_active_filter = inActiveChatroomsCount.objects.filter(user=member_id)
-
-    if in_active_filter.exists():
-        last_session = in_active_filter[0].updated_at
-
-        inactive_chatrooms = collabcardState.objects.filter(user=member_id, follow_status=True,
-                                                            remove=None).filter(~Q(expiry_time=None) & Q(
-            expiry_time__lt=current_time) & Q(expiry_time__gt=last_session)).order_by('-expiry_time')
-
-        inactive_chatroom_count = inactive_chatrooms.count()
-        if inactive_chatroom_count:
-            context['title'] = """%s chatrooms moved to inactive""" % (str(inactive_chatroom_count))
-            in_active_filter.update(updated_at=current_time)
-
-    else:
-        inactive_chatrooms = collabcardState.objects.filter(user=member_id, follow_status=True,
-                                                            remove=None).filter(
-            ~Q(expiry_time=None) & Q(expiry_time__lt=current_time)).order_by('-expiry_time')
-
-        inactive_count = inactive_chatrooms.count()
-        create_or_update_inActiveChatroomsCount_instance(user_instance, inactive_count)
-        if inactive_count:
-            context['title'] = """%s chatrooms moved to inactive""" % (str(inactive_count))
-
     return JsonResponse(context)
-
-
-def create_or_update_inActiveChatroomsCount_instance(user_instance, inactive_count):
-    '''function to create inActiveChatroomcount instance'''
-
-    in_active_filter = inActiveChatroomsCount.objects.filter(user=user_instance)
-    temp = {"status": False}
-    if not in_active_filter.exists():
-        instance = inActiveChatroomsCount()
-        instance.user = user_instance
-        # instance.last_inactive_card = card_instance
-        instance.inactive_count = inactive_count
-        instance.created_at = time.time()
-        instance.updated_at = time.time()
-        instance.save()
-        temp['status'] = True
-        temp['inactive_count'] = inactive_count
-    # else:
-    #     instance = in_active_filter[0]
-    #     if True:
-    #         previous_count = instance.inactive_count
-    #         instance.last_inactive_card = card_instance
-    #         instance.inactive_count = inactive_count
-    #         instance.updated_at = time.time()
-    #         #instance.save()
-    #         temp['status'] = True
-    #         diff =  (inactive_count-previous_count)
-    #         temp['inactive_count'] = diff if diff > 0 else (-1)*(diff)
-
-    return temp
 
 
 ######################function for api utility#################################
@@ -3405,8 +3299,6 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
                                    mute_status=False, is_tagged=False, external_follow=False,
                                    attending_status=False, **kwargs):
     '''function to create chatroom state instance'''
-    # if not expire_at:
-    #     expire_at = get_expiry_time_of_chatroom()
 
     try:
         collabcard_state_instance = collabcardState()
@@ -3417,7 +3309,6 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.external_seen = external_seen
-        collabcard_state_instance.expiry_time = expire_at
         collabcard_state_instance.attending_status = attending_status
         collabcard_state_instance.follow_status = follow_status
         collabcard_state_instance.mute_status = mute_status
@@ -3775,7 +3666,6 @@ def update_activity_in_chatroom(card_instance, user_instance):
 
     in collabcardState table and conversationEngage table'''
     engage_filter = conversationEngage.objects.filter(card=card_instance, user=user_instance)
-    # expiry_time = get_expiry_time_of_chatroom()
     if engage_filter.exists():
         engage_instance = engage_filter[0]
         unread_count = engage_instance.unseen_count
@@ -3786,16 +3676,12 @@ def update_activity_in_chatroom(card_instance, user_instance):
             if state_filter.exists():
                 update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                                {'card': card_instance, 'user': user_instance},
-                                               {'expiry_time': None})
+                                               {})
 
 
 def get_expiry_time_of_chatroom(card_state_instance=None):
     '''function to get expiry time of chatroom'''
-    expiry_time = time.time() + HOURS_24
-
-    if card_state_instance:
-        if card_state_instance.expiry_time and card_state_instance.expiry_time > expiry_time:
-            expiry_time = card_state_instance.expiry_time
+    expiry_time = None
 
     return expiry_time
 
@@ -3803,52 +3689,6 @@ def get_expiry_time_of_chatroom(card_state_instance=None):
 @csrf_exempt
 def set_chatroom_active(request):
     '''api to make chatroom active'''
-    try:
-        res = json.loads(request.body)
-    except:
-        context = get_error_context(False, "Json decode error")
-        return JsonResponse(context)
-
-    member_id = get_member_id_from_headers(request)
-
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    chatroom_id = res['chatroom_id']
-    duration = res['duration'] if 'duration' in res else HOURS_24
-    status = res['value']
-
-    # card_instance = Collabcard.objects.get(id=chatroom_id)
-    info_logger.info(res)
-
-    current_time = time.time()
-
-    if status:
-        updated_time = current_time + int(duration)
-
-    else:
-        updated_time = current_time - HOURS_24
-
-    state_filter = collabcardState.objects.filter(card=chatroom_id, user=member_id)
-
-    if state_filter.exists():
-        info_logger.info("state of data exists")
-
-        update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                       {'card': chatroom_id, 'user': member_id},
-                                       {'expiry_time': updated_time, 'manual_set_active': updated_time})
-    else:
-        info_logger.info("data does not exists")
-        error = "Error is comming when you making it active" + str(chatroom_id) + str(member_id)
-
-        context = get_error_context(False, error)
-
-        return JsonResponse(context)
-
-    send_sync_notification.delay({'chatroom_id': chatroom_id,
-                                  'member_id': member_id,
-                                  'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
     return JsonResponse({"success": True})
 
@@ -5209,7 +5049,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         'is_guest': card['is_guest'],
         'type': card['type'],
         'is_tagged': card['is_tagged'],
-        'active': card['active']
     }
 
     is_promoter = False
@@ -5254,10 +5093,9 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         instance = chatroom_state[0]
 
         if not instance.external_seen:
-            expiry_time = get_expiry_time_of_chatroom()
             update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
-                                           {'external_seen': True, 'expiry_time': expiry_time})
+                                           {'external_seen': True})
 
     # sending the follow telescope
     latest_conversation = conversations_filter.last()
@@ -5267,7 +5105,6 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
                                                conversations)
     card['show_follow_telescope'] = icon_states['show_follow_telescope']
     card['show_follow_auto_tag'] = icon_states['show_follow_auto_tag']
-    card['show_active'] = icon_states['show_active']
 
     card['total_response_count'] = total_response_count
 
@@ -5318,7 +5155,7 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
             'card__type': card_types.CARD_INTRO,
             'state': 0}, {'state': 1,
                           'external_seen': True,
-                          'expiry_time': get_expiry_time_of_chatroom()})
+                          })
 
     return context
 
@@ -5387,7 +5224,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         'is_guest': card['is_guest'],
         'type': card['type'],
         'is_tagged': card['is_tagged'],
-        'active': card['active']
     }
 
     is_promoter = False
@@ -5434,10 +5270,9 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
         instance = chatroom_state[0]
 
         if not instance.external_seen:
-            expiry_time = get_expiry_time_of_chatroom()
             update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
-                                           {'external_seen': True, 'expiry_time': expiry_time})
+                                           {'external_seen': True})
 
     # sending the follow telescope
     latest_conversation = conversations_filter.last()
@@ -5447,7 +5282,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
                                                          )
     card['show_follow_telescope'] = icon_states['show_follow_telescope']
     card['show_follow_auto_tag'] = icon_states['show_follow_auto_tag']
-    card['show_active'] = icon_states['show_active']
 
     card['total_response_count'] = total_response_count
 
@@ -5517,10 +5351,9 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
         instance = chatroom_state[0]
 
         if not instance.external_seen:
-            expiry_time = get_expiry_time_of_chatroom()
             update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
-                                           {'external_seen': True, 'expiry_time': expiry_time})
+                                           {'external_seen': True})
 
     if chatroom_state:
         state_instance = chatroom_state[0]
@@ -5534,14 +5367,8 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     card_status['follow_status'] = status['follow_status']
     card_status['attending_status'] = status['attending_status']
     card_status['is_guest'] = status['is_guest']
-    card_status['active'] = False
     card_status['is_tagged'] = status['is_tagged']
     card_status['type'] = card_instance.type
-
-    expiry_time = status['expiry_time']
-
-    if not expiry_time or expiry_time >= int(time.time()):
-        card_status['active'] = True
 
     is_promoter = False
     is_child = False
@@ -5600,7 +5427,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
             'card__type': card_types.CARD_INTRO,
             'state': 0}, {'state': 1,
                           'external_seen': True,
-                          'expiry_time': get_expiry_time_of_chatroom()})
+                          })
 
     can_access_secret_chatroom = False
 
@@ -5676,11 +5503,6 @@ def save_the_latest_conversation(card_instance, user_id):
         if state_filter:
 
             collabcard_state_instance = state_filter[0]
-            expiry_time = get_expiry_time_of_chatroom(collabcard_state_instance)
-
-            if collabcard_state_instance.manual_set_active and \
-                    collabcard_state_instance.manual_set_active > expiry_time:
-                expiry_time = collabcard_state_instance.manual_set_active
 
             last_seen_conversation = collabcard_state_instance.last_seen_conversation
 
@@ -5688,13 +5510,11 @@ def save_the_latest_conversation(card_instance, user_id):
 
                 if last_seen_conversation.id != last_conversation.id:
                     collabcard_state_instance.last_seen_conversation = last_conversation
-                    collabcard_state_instance.expiry_time = expiry_time
                     collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
                     collabcard_state_instance.save()
 
             else:
                 collabcard_state_instance.last_seen_conversation = last_conversation
-                collabcard_state_instance.expiry_time = expiry_time
                 collabcard_state_instance.updated_at = TimeUtilities.current_time_in_sec()
                 collabcard_state_instance.save()
 
@@ -5837,8 +5657,7 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
 
     temp = {
         'show_follow_telescope': False,
-        'show_follow_auto_tag': False,
-        'show_active': False
+        'show_follow_auto_tag': False
     }
 
     if not card_status['follow_status']:
@@ -5849,15 +5668,13 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
         temp['show_follow_telescope'] = False
         show = True
 
-    if card_status['active'] and card_status['is_tagged']:
+    if card_status['is_tagged']:
         temp['show_follow_telescope'] = False
-        temp['show_active'] = False
         temp['show_follow_auto_tag'] = True
         show = True
 
-    if card_status['active'] == False and card_status["follow_status"] == True:
+    if card_status["follow_status"] == True:
         temp['show_follow_telescope'] = False
-        temp['show_active'] = True
         temp['show_follow_auto_tag'] = False
         show = True
 
@@ -5877,7 +5694,7 @@ def get_icons_states_of_chatroom(card_status, card_instance, user_id, latest_con
 
     if show:
         return temp
-    return {'show_follow_telescope': False, 'show_follow_auto_tag': False, 'show_active': False}
+    return {'show_follow_telescope': False, 'show_follow_auto_tag': False}
 
 
 def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id):
@@ -5888,7 +5705,6 @@ def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id):
     temp = {
         'show_follow_telescope': False,
         'show_follow_auto_tag': False,
-        'show_active': False
     }
 
     if not card_status['follow_status']:
@@ -5899,21 +5715,19 @@ def get_icons_states_of_chatroom_version_1(card_status, card_instance, user_id):
         temp['show_follow_telescope'] = False
         show = True
 
-    if card_status['active'] and card_status['is_tagged']:
+    if card_status['is_tagged']:
         temp['show_follow_telescope'] = False
-        temp['show_active'] = False
         temp['show_follow_auto_tag'] = True
         show = True
 
-    if card_status['active'] == False and card_status["follow_status"] == True:
+    if card_status["follow_status"] == True:
         temp['show_follow_telescope'] = False
-        temp['show_active'] = True
         temp['show_follow_auto_tag'] = False
         show = True
 
     if show:
         return temp
-    return {'show_follow_telescope': False, 'show_follow_auto_tag': False, 'show_active': False}
+    return {'show_follow_telescope': False, 'show_follow_auto_tag': False}
 
 
 def create_introduction_card_placeholder(card_instance, user_id):
@@ -6092,17 +5906,15 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
     card_instance = Collabcard.objects.get(id=card_instance_id)
 
     update_status = collabcardState.objects.filter(card=card_instance, follow_status=True, remove=None).filter(
-        ~Q(user=user_id)).update(
-        expiry_time=None, updated_at=time.time())
+        ~Q(user=user_id)).update(updated_at=time.time())
 
     # the person who is making the conversation marking his chatroom active for expiry time
     state_filter = collabcardState.objects.filter(card=card_instance, user=user_id)
 
     if state_filter.exists():
-        expiry_time = get_expiry_time_of_chatroom(state_filter[0])
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': card_instance, 'user': user_id},
-                                       {'expiry_time': expiry_time})
+                                       {})
 
     # #updating the expire time to null for all the users  who are following the chatroom in conversationEngage
     # conversationEngage.objects.filter(card=card_instance).update(expiry_time=expiry_time)
@@ -6115,7 +5927,6 @@ def update_activity_in_chatroom_for_conversation_creation(card_instance_id, user
     if seen_filter.exists():
         for data in seen_filter:
             expiry_time = get_expiry_time_of_chatroom(data)
-            data.expiry_time = expiry_time
             data.updated_at = time.time()
             data.save()
 
@@ -6217,10 +6028,8 @@ def collabcard_follow(request, function_dict=None):
             return JsonResponse({'success': True})
 
         if status:
-            expiry_time = get_expiry_time_of_chatroom(card_state_instance)
 
             collabcard_state_filter.update(follow_status=status, updated_at=TimeUtilities.current_time_in_sec(),
-                                           expiry_time=expiry_time,
                                            external_seen=True, external_follow=status)
 
             ConversationHelper.create_conversation_state(card_instance=card_instance, user_instance=user_instance,
@@ -6305,8 +6114,6 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                {'is_tagged': False, 'mute_status': False})
             return
 
-        expiry_time = get_expiry_time_of_chatroom(collabcard_state_filter[0]) if not set_expiry_time_none else None
-
         if is_guest:
 
             update_models_for_syncing_apis(SyncTypes.CHATROOM,
@@ -6316,7 +6123,6 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                                'state': state,
                                                'is_guest': is_guest,
                                                'source': ref_instance,
-                                               'expiry_time': expiry_time,
                                                'is_tagged': is_tagged,
                                                'external_seen': external_seen,
                                                'mute_status': mute_status,
@@ -6328,7 +6134,6 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
                                            {'card': card_instance, 'user': user_instance},
                                            {
                                                'follow_status': status,
-                                               'expiry_time': expiry_time,
                                                'is_tagged': is_tagged,
                                                'external_seen': external_seen,
                                                'mute_status': mute_status,
@@ -6404,11 +6209,10 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
     card_instance = Collabcard.objects.get(id=card_id)
 
     # saving the state in collabcard state table if it is not present
-    expiry_time = get_expiry_time_of_chatroom()
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if not is_present.exists():
-        create_chatroom_state_instance(card_instance, user_instance, expire_at=time.time(),
+        create_chatroom_state_instance(card_instance, user_instance,
                                        function_called="collabcards_seen_internal")
         update_last_unseen_in_engage(user=user_instance, community=community)
 
@@ -6426,7 +6230,6 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
             should_update_time = True
 
         if should_update_time:
-            state_instance.expiry_time = expiry_time
             state_instance.updated_at = TimeUtilities.current_time_in_sec()
 
         state_instance.save()
@@ -6606,14 +6409,7 @@ def get_chatrooms(chatroom_list, member_id, active=None, device_id=''):
         chatroom_instance['members_images'] = last_response_members['members_images']
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
-        if active is True and chatroom_instance['active']:
-            chatrooms.append(chatroom_instance)
-
-        if active is False and not chatroom_instance['active']:
-            chatrooms.append(chatroom_instance)
-
-        if active is None:
-            chatrooms.append(chatroom_instance)
+        chatrooms.append(chatroom_instance)
 
     return chatrooms
 
@@ -6663,18 +6459,6 @@ def get_chatrooms_version_1(chatroom_list, member_id, active=None, device_id='')
         chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
         chatrooms.append(chatroom_instance)
-
-        # chatroom_instance = {
-        #     'id' : chatroom_instance['id'],
-        #     'active': chatroom_instance['active']
-        # }
-        # if active is True and chatroom_instance['active']:
-        #     chatrooms.append(chatroom_instance)
-        # if active is False and not chatroom_instance['active']:
-        #     chatrooms.append(chatroom_instance)
-        #
-        # if active == None:
-        # #chatroom_instance = {'id':card_instance.id}
 
     return chatrooms
 
@@ -6733,16 +6517,7 @@ def fetch_chatroom_feed(request):
         context = get_error_context(False, "send chatroom id with scroll direction")
         return JsonResponse(context)
 
-    active = request.GET.get('active', None)
-
-    if active == "true":
-        active = True
-
-    elif active == "false":
-        active = False
-
-    else:
-        active = None
+    active = None
 
     member_id = get_member_id_from_headers(request)
     if member_id is None:
@@ -6794,10 +6569,6 @@ def fetch_chatroom_feed(request):
 
     context['chatrooms'] = chatrooms
 
-    current_time = time.time()
-    context['active_chatroom_count'] = get_active_chatrooms_count_in_community(community_id, member_id, current_time)
-    context['inactive_chatroom_count'] = get_inactive_chatrooms_count_in_community(community_id, member_id,
-                                                                                   current_time)
     return JsonResponse(context)
 
 
@@ -6819,15 +6590,9 @@ def fetch_chatroom_feed_version_1(request):
         context = get_error_context(False, "send chatroom id with scroll direction")
         return JsonResponse(context)
 
-    active = request.GET.get('active', None)
+    active = None
 
     current_time = time.time()
-    if active == "true":
-        active = True
-    elif active == "false":
-        active = False
-    else:
-        active = None
 
     member_id = get_member_id_from_headers(request)
     if member_id is None:
@@ -6850,31 +6615,15 @@ def fetch_chatroom_feed_version_1(request):
 
         if not last_seen.exists():
 
-            if active:
-                chatroom_list = state_filter.filter(Q(expiry_time=None)
-                                                    | Q(expiry_time__gt=current_time)).order_by('card_id')[:5]
-            else:
-                chatroom_list = state_filter.filter(~Q(expiry_time=None)
-                                                    & Q(expiry_time__lte=current_time)).order_by('card_id')[:5]
+            chatroom_list = state_filter.order_by('card_id')[:5]
 
             chatrooms = get_chatrooms_version_1(chatroom_list, member_id, device_id=device_id)
         else:
 
             last_seen = last_seen[0]
 
-            if active:
-                upward = state_filter.filter(card__lte=last_seen.card.id).filter(
-                    Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-card')[:3]
-                downward = state_filter.filter(card__gt=last_seen.card.id).filter(
-                    Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('card')[:3]
-
-            else:
-
-                upward = state_filter.filter(card__lte=last_seen.card.id).filter(
-                    ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:3]
-
-                downward = state_filter.filter(card__gt=last_seen.card.id).filter(
-                    (~Q(expiry_time=None)) & Q(expiry_time__lte=current_time)).order_by('card')[:3]
+            upward = state_filter.filter(card__lte=last_seen.card.id).order_by('-card')[:3]
+            downward = state_filter.filter(card__gt=last_seen.card.id).order_by('card')[:3]
 
             chatroom_filter = upward | downward
             chatroom_list = chatroom_filter.order_by('card_id')
@@ -6885,34 +6634,19 @@ def fetch_chatroom_feed_version_1(request):
         scroll_direction = int(scroll_direction)
         if scroll_direction == 0:  # upward scroll
 
-            if active:
-                upward = state_filter.filter(card__lt=chatroom_id).filter(
-                    Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('-card')[:5]
-
-            else:
-                upward = state_filter.filter(card__lt=chatroom_id).filter(
-                    ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('-card')[:5]
+            upward = state_filter.filter(card__lt=chatroom_id).order_by('-card')[:5]
 
             upward = reverse_conversations_for_upward_pagination(upward)
             chatrooms = get_chatrooms_version_1(upward, member_id, active, device_id=device_id)
 
         elif scroll_direction == 1:  # downward scroll
 
-            if active:
-                downward = state_filter.filter(card__gt=chatroom_id, user=member_id).filter(
-                    Q(expiry_time=None) | Q(expiry_time__gt=current_time)).order_by('card')[:5]
-            else:
-                downward = state_filter.filter(card__gt=chatroom_id, user=member_id).filter(
-                    ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)).order_by('card')[:5]
+            downward = state_filter.filter(card__gt=chatroom_id, user=member_id).order_by('card')[:5]
 
             chatrooms = get_chatrooms_version_1(downward, member_id, active, device_id=device_id)
 
     context['chatrooms'] = chatrooms
 
-    current_time = time.time()
-    context['active_chatroom_count'] = get_active_chatrooms_count_in_community(community_id, member_id, current_time)
-    context['inactive_chatroom_count'] = get_inactive_chatrooms_count_in_community(community_id, member_id,
-                                                                                   current_time)
     return JsonResponse(context)
 
 
@@ -7064,11 +6798,9 @@ def upload_files(request):
             card_instance.save()
             user_instance = User.objects.get(id=member_id)
 
-            expiry_time = time.time() + HOURS_24
-
             update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                            {'user': member_id, 'card': card_instance},
-                                           {'expiry_time': expiry_time})
+                                           )
 
             if not card_instance.is_secret:
                 set_chatroom_state_for_all_members_on_card_creation.delay(card_instance.community.id,
@@ -7323,11 +7055,9 @@ def upload_chatroom_attachments(body, member_id, version_code=0, is_android=Fals
 
         user_instance = User.objects.get(id=member_id)
 
-        expiry_time = time.time() + HOURS_24
-
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': chatroom_instance, 'user': user_instance},
-                                       {'expiry_time': expiry_time})
+                                       {})
 
         community_id = chatroom_instance.community_id
 
@@ -12009,7 +11739,6 @@ class SyncChatrooms(APIView):
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
         chatroom_status = query_params.get('chatroom_status', '')
-        chatroom_expire_status = query_params.get('chatroom_expire_status', '')
         chatroom_type = query_params.get('type')
         draft = query_params.get('draft', '')
 
@@ -12063,8 +11792,8 @@ class SyncChatrooms(APIView):
                                                                              type_list=type_list)
         else:
             chatroom_data, chatroom_id_list = get_user_related_chatrooms(member_id, paginate_by, page, last_updated,
-                                                                         chatroom_status, chatroom_expire_status,
-                                                                         type_list)
+                                                                         chatroom_status, type_list)
+        
         poll_data = {}
         poll_votes = {}
 
@@ -12137,7 +11866,6 @@ class SyncChatrooms(APIView):
             if data[22]:
                 chatroom['last_seen_conversation'] = data[22]
 
-            chatroom['chatroom_expiry_time'] = data[23]
             chatroom['attending_status'] = data[24]
 
             has_files = data[25] or chatroom['pdf_count'] > 0 or chatroom['attachment_count'] > 0
@@ -12169,7 +11897,6 @@ class SyncChatrooms(APIView):
                     chatroom['to_show_results'] = ChatroomMemberHelper.get_to_show_results(chatroom['id'], member_id,
                                                                                            poll_votes)
                     chatroom['polls'] = polls
-                chatroom["expiry_time"] = data[32]
 
             if chatroom['type'] == card_types.CARD_EVENT or chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
 
@@ -12808,7 +12535,6 @@ class SyncChatroomsDiff(APIView):
             if data[22]:
                 chatroom['last_seen_conversation'] = data[22]
 
-            chatroom['chatroom_expiry_time'] = data[23]
             chatroom['attending_status'] = data[24]
 
             self._add_attachements(chatroom, data)
@@ -12895,7 +12621,6 @@ class SyncChatroomsDiff(APIView):
                 chatroom['to_show_results'] = ChatroomMemberHelper.get_to_show_results(chatroom['id'], member_id,
                                                                                        poll_votes)
                 chatroom['polls'] = polls
-            chatroom['expiry_time'] = data[32]
 
     def _add_event_data(self, chatroom, data):
         if chatroom['type'] == card_types.CARD_EVENT or chatroom['type'] == card_types.CARD_PUBLIC_EVENT:
@@ -13123,7 +12848,6 @@ class SyncConversation(APIView):
         last_updated = query_params.get('last_updated', 0)
         paginate_by = int(paginate_by)
         chatroom_status = query_params.get('chatroom_status', '')
-        chatroom_expire_status = query_params.get('chatroom_expire_status', '')
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
         state = query_params.get('state')
@@ -13165,8 +12889,7 @@ class SyncConversation(APIView):
 
         elif community_id:
 
-            chatroom_list = self.get_user_community_related_chatroom_list(chatroom_status, chatroom_expire_status,
-                                                                          member_id, community_id)
+            chatroom_list = self.get_user_community_related_chatroom_list(chatroom_status, member_id, community_id)
             conversation_data, files_answer_id = get_community_conversation_data_based_on_chatroom_list(chatroom_list,
                                                                                                         page,
                                                                                                         paginate_by,
@@ -13180,7 +12903,7 @@ class SyncConversation(APIView):
 
         else:
 
-            chatroom_list = self.get_user_related_chatroom_list(chatroom_status, chatroom_expire_status, member_id)
+            chatroom_list = self.get_user_related_chatroom_list(chatroom_status, member_id)
             conversation_data, files_answer_id = get_conversation_data_based_on_chatroom_list(chatroom_list, page,
                                                                                               paginate_by, last_updated,
                                                                                               state)
@@ -13553,32 +13276,13 @@ class SyncConversation(APIView):
 
         return conversation_files_response
 
-    def get_user_related_chatroom_list(self, chatroom_status, chatroom_expire_status, member_id):
+    def get_user_related_chatroom_list(self, chatroom_status, member_id):
         """
             This function returns conversation filter based on different conditions of chatroom
             chatroom_status = followed/unfollowed
-            chatroom_expire_status = active/ inactive
         """
         chatroom_list = []
-        if chatroom_status and chatroom_expire_status:
-
-            if chatroom_status == "followed" and chatroom_expire_status == "active":
-                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
-
-            elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
-                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
-
-            elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
-                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
-
-            elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
-                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
-
-        elif chatroom_status:
+        if chatroom_status:
 
             if chatroom_status == "followed":
                 condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
@@ -13587,16 +13291,6 @@ class SyncConversation(APIView):
             elif chatroom_status == "unfollowed":
                 condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
                 chatroom_list = get_id_list_of_chatrooms(condition_dict)
-
-        elif chatroom_expire_status:
-
-            if chatroom_expire_status == "active":
-                condition_dict = {'user': member_id, 'remove': None}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
-
-            elif chatroom_expire_status == "inactive":
-                condition_dict = {'user': member_id, 'remove': None}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
 
         else:
             condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
@@ -13604,33 +13298,13 @@ class SyncConversation(APIView):
 
         return chatroom_list
 
-    def get_user_community_related_chatroom_list(self, chatroom_status, chatroom_expire_status, member_id,
-                                                 community_id):
+    def get_user_community_related_chatroom_list(self, chatroom_status, member_id, community_id):
         """
             This function returns conversation filter based on different conditions of community chatroom
             chatroom_status = followed/unfollowed
-            chatroom_expire_status = active/ inactive
         """
         chatroom_list = []
-        if chatroom_status and chatroom_expire_status:
-
-            if chatroom_status == "followed" and chatroom_expire_status == "active":
-                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None, 'community': community_id}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
-
-            elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
-                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None, 'community': community_id}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
-
-            elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
-                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None, 'community': community_id}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
-
-            elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
-                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None, 'community': community_id}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
-
-        elif chatroom_status:
+        if chatroom_status:
 
             if chatroom_status == "followed":
                 condition_dict = {'user': member_id, 'follow_status': True, 'remove': None, 'community': community_id}
@@ -13639,16 +13313,6 @@ class SyncConversation(APIView):
             elif chatroom_status == "unfollowed":
                 condition_dict = {'user': member_id, 'follow_status': False, 'remove': None, 'community': community_id}
                 chatroom_list = get_id_list_of_chatrooms(condition_dict)
-
-        elif chatroom_expire_status:
-
-            if chatroom_expire_status == "active":
-                condition_dict = {'user': member_id, 'remove': None, 'community': community_id}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
-
-            elif chatroom_expire_status == "inactive":
-                condition_dict = {'user': member_id, 'remove': None, 'community': community_id}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
 
         else:
             condition_dict = {'user': member_id, 'follow_status': False, 'remove': None, 'community': community_id}
@@ -13854,32 +13518,14 @@ def get_attachments_filtered_conversations(conversation_list, conversation_data,
     return max_last_updated
 
 
-def get_user_related_conversations(chatroom_status, chatroom_expire_status, member_id, last_updated):
+def get_user_related_conversations(chatroom_status, member_id, last_updated):
+
     """
         This function returns conversation filter based on different conditions of chatroom
         chatroom_status = followed/unfollowed
-        chatroom_expire_status = active/ inactive
     """
     chatroom_list = []
-    if chatroom_status and chatroom_expire_status:
-
-        if chatroom_status == "followed" and chatroom_expire_status == "active":
-            condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
-            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
-
-        elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
-            condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
-            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
-
-        elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
-            condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
-            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
-
-        elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
-            condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
-            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
-
-    elif chatroom_status:
+    if chatroom_status:
 
         if chatroom_status == "followed":
             condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
@@ -13888,16 +13534,6 @@ def get_user_related_conversations(chatroom_status, chatroom_expire_status, memb
         elif chatroom_status == "unfollowed":
             condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
             chatroom_list = get_id_list_of_chatrooms(condition_dict)
-
-    elif chatroom_expire_status:
-
-        if chatroom_expire_status == "active":
-            condition_dict = {'user': member_id, 'remove': None}
-            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=True)
-
-        elif chatroom_expire_status == "inactive":
-            condition_dict = {'user': member_id, 'remove': None}
-            chatroom_list = get_id_list_of_chatrooms(condition_dict, active_status=False)
 
     else:
         condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
@@ -13910,19 +13546,13 @@ def get_user_related_conversations(chatroom_status, chatroom_expire_status, memb
     return conversation_filter
 
 
-def get_id_list_of_chatrooms(condition_dict, active_status=None):
+def get_id_list_of_chatrooms(condition_dict):
+
     """ return chatroom id list based on conditional dict"""
-    q_cond = Q()
     current_time = time.time()
 
-    if active_status is True:
-        q_cond = Q(expiry_time=None) | Q(expiry_time__gt=current_time)
-
-    elif active_status is False:
-        q_cond = ~Q(expiry_time=None) & Q(expiry_time__lte=current_time)
-
     chatroom_list = list(collabcardState.objects.filter(
-        **condition_dict).filter(q_cond).values_list(
+        **condition_dict).values_list(
         "card_id", flat=True))
 
     return chatroom_list
@@ -14667,48 +14297,15 @@ def get_chatroom_data_in_case_of_guest(chatroom_id, member_id):
     return chatroom_list
 
 
-def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, chatroom_expire_status,
-                               type_list):
+def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatroom_status, type_list):
     """
     This function returns chatrooms based on different conditions
     chatroom_status = followed/unfollowed
-    chatroom_expire_status = active/ inactive
     """
     chatroom_data = []
     chatroom_id_list = []
 
-    if chatroom_status and chatroom_expire_status:
-
-        if chatroom_status == "followed" and chatroom_expire_status == "active":
-            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
-                                                                                               page, last_updated,
-                                                                                               follow_status=True,
-                                                                                               active_status=True,
-                                                                                               type_list=type_list)
-
-        elif chatroom_status == "followed" and chatroom_expire_status == "inactive":
-            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
-                                                                                               page, last_updated,
-                                                                                               follow_status=True,
-                                                                                               active_status=False,
-                                                                                               type_list=type_list)
-
-        elif chatroom_status == "unfollowed" and chatroom_expire_status == "active":
-            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
-                                                                                               page,
-                                                                                               last_updated,
-                                                                                               follow_status=False,
-                                                                                               active_status=True,
-                                                                                               type_list=type_list)
-
-        elif chatroom_status == "unfollowed" and chatroom_expire_status == "inactive":
-            chatroom_data, chatroom_id_list = fetch_chatroom_query_follow_status_active_status(member_id, paginate_by,
-                                                                                               page, last_updated,
-                                                                                               follow_status=False,
-                                                                                               active_status=False,
-                                                                                               type_list=type_list)
-
-    elif chatroom_status:
+    if chatroom_status:
 
         if chatroom_status == "followed":
             chatroom_data, chatroom_id_list = fetch_chatroom_query_with_follow_status(member_id, paginate_by, page,
@@ -14720,20 +14317,6 @@ def get_user_related_chatrooms(member_id, paginate_by, page, last_updated, chatr
             chatroom_data, chatroom_id_list = fetch_chatroom_query_with_follow_status(member_id, paginate_by, page,
                                                                                       last_updated,
                                                                                       follow_status=False,
-                                                                                      type_list=type_list)
-
-    elif chatroom_expire_status:
-
-        if chatroom_expire_status == "active":
-            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_active_status(member_id, paginate_by, page,
-                                                                                      last_updated,
-                                                                                      active_status=True,
-                                                                                      type_list=type_list)
-
-        elif chatroom_expire_status == "inactive":
-            chatroom_data, chatroom_id_list = fetch_chatroom_query_with_active_status(member_id, paginate_by, page,
-                                                                                      last_updated,
-                                                                                      active_status=False,
                                                                                       type_list=type_list)
 
     else:

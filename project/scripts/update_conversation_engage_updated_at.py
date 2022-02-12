@@ -21,9 +21,6 @@ def update_last_conversation_time_for_dm_chatroom():
 
             collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {"card": card})
 
-            if collabcard_state_filter:
-                collabcard_state_filter.update(expiry_time=TimeUtilities.add_hours_to_epoch_time(card_created_at, 24))
-
         card_count -= 1
         print("Card count left", str(card_count))
 

@@ -184,7 +184,6 @@ class ChatroomImpl(ChatroomManager):
             'attending_status': chatroom_data['attending_status'],
             'type': chatroom_data['type'],
             'is_tagged': chatroom_data['is_tagged'],
-            'active': chatroom_data['active']
         }
 
         return card_status
@@ -232,7 +231,6 @@ class ChatroomImpl(ChatroomManager):
             instance = chatroom_state[0]
             if not instance.external_seen:
                 instance.external_seen = True
-                instance.expiry_time = get_expiry_time_of_chatroom()
                 instance.save()
 
     def _fetch_icon_states_for_chatroom(self, card_instance, chatroom_data):
@@ -242,7 +240,6 @@ class ChatroomImpl(ChatroomManager):
         icon_states = get_icons_states_of_chatroom_version_1(card_status, card_instance, self.get_member_id())
         icons['show_follow_telescope'] = icon_states['show_follow_telescope']
         icons['show_follow_auto_tag'] = icon_states['show_follow_auto_tag']
-        icons['show_active'] = icon_states['show_active']
 
         return icons
 
@@ -1014,40 +1011,6 @@ class ChatroomImpl(ChatroomManager):
         }
 
         return context
-
-    def set_chatroom_active_or_inactive(self, req_body: dict) -> dict:
-        """api to make chatroom active or in-active"""
-
-        chatroom_id = req_body['chatroom_id']
-        duration = req_body.get('duration', CHATROOM_EXPIRE_DURATION)
-        status = req_body['value']
-
-        current_time = TimeUtilities.current_time_in_sec()
-
-        updated_time = (current_time + int(duration)) if status else (current_time - CHATROOM_EXPIRE_DURATION)
-
-        state_filter = collabcardState.objects.filter(card=chatroom_id, user=self.get_member_id())
-
-        if state_filter.exists():
-            update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                           {'card': chatroom_id, 'user': self.get_member_id()},
-                                           {'expiry_time': updated_time, 'manual_set_active': updated_time})
-        else:
-            error = f"Chatroom state does not exist for this user {self.get_member_id()} in chatroom {chatroom_id}"
-            error_logger.error(f"set_chatroom_active_or_inactive - {error}")
-
-            response = {
-                "success": False,
-                'error_message': error
-            }
-
-            return response
-
-        send_sync_notification.delay({'chatroom_id': chatroom_id,
-                                      'member_id': self.get_member_id(),
-                                      'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
-
-        return {"success": True}
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
 
@@ -3070,16 +3033,7 @@ class ChatroomHelper:
     @staticmethod
     def get_chatroom_expiry_time(chatroom_state_instance):
 
-        expiry_time = TimeUtilities.current_time_in_sec() + CHATROOM_EXPIRE_DURATION
-
-        if chatroom_state_instance:
-
-            if chatroom_state_instance.expiry_time and chatroom_state_instance.expiry_time > expiry_time:
-                expiry_time = chatroom_state_instance.expiry_time
-
-            if chatroom_state_instance.manual_set_active and \
-                    chatroom_state_instance.manual_set_active > expiry_time:
-                expiry_time = chatroom_state_instance.manual_set_active
+        expiry_time = None
 
         return expiry_time
 
@@ -3190,7 +3144,6 @@ class ChatroomHelper:
             card_state_instance = collabcard_state_filter[0]
             expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
             card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
-            card_state_instance.expiry_time = expiry_time
             card_state_instance.follow_status = status
             card_state_instance.mute_status = mute_status
             card_state_instance.is_guest = is_guest

@@ -878,14 +878,8 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['follow_status'] = status['follow_status']
         collabcard_serializer['attending_status'] = status['attending_status']
         collabcard_serializer['is_guest'] = status['is_guest']
-        collabcard_serializer['active'] = False
         collabcard_serializer['is_tagged'] = status['is_tagged']
         collabcard_serializer['secret_chatroom_left'] = status['secret_chatroom_left']
-
-        expiry_time = status['expiry_time']
-
-        if not expiry_time or expiry_time >= TimeUtilities.current_time_in_sec():
-            collabcard_serializer['active'] = True
 
     collabcard_member = get_members_profile([card_instance.user_id], card_instance.community_id,
                                             send_profile=send_profile)
@@ -1007,7 +1001,6 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         'is_guest': False,
         'remove': False,
         'state_instance': None,
-        'expiry_time': None,
         'is_tagged': False,
         'attending_status': False,
         'secret_chatroom_left': False
@@ -1027,7 +1020,6 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
             collabcard_status['is_guest'] = collabcard_state[0].is_guest
             collabcard_status['remove'] = collabcard_state[0].remove
             collabcard_status['state_instance'] = collabcard_state[0]
-            collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
             collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
             collabcard_status['attending_status'] = collabcard_state[0].attending_status
             collabcard_status['secret_chatroom_left'] = collabcard_state[0].secret_chatroom_left
@@ -1039,7 +1031,6 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         collabcard_status['is_guest'] = state_instance.is_guest
         collabcard_status['remove'] = state_instance.remove
         collabcard_status['state_instance'] = state_instance
-        collabcard_status['expiry_time'] = state_instance.expiry_time
         collabcard_status['is_tagged'] = state_instance.is_tagged
         collabcard_status['attending_status'] = state_instance.attending_status
         collabcard_status['secret_chatroom_left'] = state_instance.secret_chatroom_left
