@@ -53,7 +53,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
-    email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types
+    email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, airtable_webhook_types
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -644,6 +644,20 @@ class CommunityImpl(CommunityManager):
 
         CohortHelper.add_member_to_respective_question_based_cohorts(self.get_member_id(), self.get_community_id())
 
+    @staticmethod
+    def send_approve_reject_data_on_airtable(user_instance, community_instance, approved):
+        email = get_user_email_preferred_verified(user_instance.id)
+
+        airtable_data = {
+            'user_id': user_instance.id,
+            'community_id': community_instance.id,
+            'user_email': email,
+            'approved': approved
+        }
+
+        airtable_manager = AirtableWrapper(endpoint_type=airtable_webhook_types.APPROVE_REQUEST)
+        airtable_manager.send_data(airtable_data)
+
     def approve_or_decline_community(self, req_body) -> {}:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
@@ -714,6 +728,8 @@ class CommunityImpl(CommunityManager):
                                                                   promoter_userinfo_instance)
 
             ElasticSearchSync.delete_member_from_community.delay(self.get_member_id(), self.get_community_id())
+
+        self.send_approve_reject_data_on_airtable(user_instance, community_instance, req_body.get('accepted'))
 
         return {'success': True}
 
@@ -1998,7 +2014,7 @@ class CommunityHelper:
             'question_list': question_data
         }
 
-        airtable_manager = AirtableWrapper()
+        airtable_manager = AirtableWrapper(endpoint_type=airtable_webhook_types.JOIN_COMMUNITY)
         airtable_manager.send_data(airtable_data)
 
     @staticmethod
