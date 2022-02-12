@@ -1893,10 +1893,11 @@ class CommunityHelper:
         return card_instance
 
     @staticmethod
-    def pre_compute_question_instances_for_saving_responses(question_list, question_id_key):
+    def pre_compute_question_instances_for_saving_responses(community_instance, question_list, question_id_key):
 
         question_id_list = [question[question_id_key] for question in question_list if question.get(question_id_key)]
-        question_instances = ModelUtilities.get_model_filter(communityQuestions, {'id__in': question_id_list})
+        question_instances = ModelUtilities.get_model_filter(communityQuestions, {'id__in': question_id_list,
+                                                                                  'community': community_instance})
         question_instance_dict = {}
 
         for data in question_instances:
@@ -2055,7 +2056,8 @@ class CommunityHelper:
             question_id_key = DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY
             answer_key = DIRECTORY_QUESTIONS_V2_ANSWER_KEY
 
-        question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(question_list,
+        question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(community_instance,
+                                                                                                     question_list,
                                                                                                      question_id_key)
 
         airtable_data = {}
@@ -2068,7 +2070,10 @@ class CommunityHelper:
             question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
             question_instance = question_instance_dict.get(question_id)
 
-            if (not question_instance) or question_instance.is_hidden:
+            if not question_instance:
+                continue
+
+            if question_instance.is_hidden:
                 continue
 
             question_title = question.get('question_title') if question.get('question_title') else \
