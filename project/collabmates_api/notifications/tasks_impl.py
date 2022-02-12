@@ -6,7 +6,7 @@ from django.template.loader import get_template
 from external_services.calender.calendar_impl import CalendarImpl
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
     userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted, \
-     EventGoogleCalendarLogs
+    EventGoogleCalendarLogs, removedMembers
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
     user_email_send_status_types, event_access, card_types, get_started_types
@@ -656,8 +656,10 @@ class TasksHelper:
             state=member_states.ADMIN
         ).values_list("member_id__id", flat=True))
 
-        if not add_event_creator:
-            community_managers.remove(event_instance.user.id)
+        event_creator_id = event_instance.user.id
+
+        if (not add_event_creator) and (event_creator_id in community_managers):
+            community_managers.remove(event_creator_id)
 
         return community_managers
 
@@ -891,6 +893,31 @@ class TasksHelper:
                 members_to_be_notified.remove(member_id)
 
         return members_to_be_notified
+
+    @staticmethod
+    def get_removed_member_ids_in_community(community_instance: Community) -> list:
+        removed_member_ids = list(ModelUtilities.get_model_filter(removedMembers,
+                                                                  {'community': community_instance}).
+                                  values_list('member_id', flat=True))
+
+        return removed_member_ids
+
+    @staticmethod
+    def get_active_members_excluding_non_members_in_community(community_instance: Community, active_members: list) -> \
+            list:
+        """
+        This function filters member_ids excluded removed members.
+        @param community_instance: Community instance
+        @param active_members: IDs of members in a community
+        @return: List of filtered member_ids
+        """
+
+        if not active_members:
+            active_members = TasksHelper.get_active_members_of_community(community_id=community_instance.id)
+
+        removed_members = TasksHelper.get_removed_member_ids_in_community(community_instance)
+
+        return list(set(active_members) - set(removed_members))
 
     @staticmethod
     def get_collabcard_state_instance(member_id, chatroom_id):
