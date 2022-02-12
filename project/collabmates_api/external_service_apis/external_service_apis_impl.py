@@ -109,13 +109,14 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
     def send_notifications(self, req_body) -> dict:
 
-        validated_notifcation_req_body = self._validate_notifications_body_params(req_body)
+        validated_notification_req_body = self._validate_notifications_body_params(req_body)
 
-        if validated_notifcation_req_body.get('error_message'):
-            return {'success': False, 'error_message': validated_notifcation_req_body.get('error_message')}
+        if validated_notification_req_body.get('error_message'):
+            return {'success': False, 'error_message': validated_notification_req_body.get('error_message')}
 
         member_ids_list = req_body.get('member_ids')
         message_payload = req_body.get('message_payload')
+        notification_category = req_body.get('category', {})
 
         notification_details_list = []
 
@@ -128,6 +129,13 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
                 'mobile_os': notification_details[1]
             })
 
-        notification_meta(notification_details_list, {"payload": message_payload})
+        message = {
+            'payload': message_payload,
+        }
+
+        if notification_category:
+            message['category'] = notification_category
+
+        notification_meta(notification_details_list, message)
 
         return {'success': True}

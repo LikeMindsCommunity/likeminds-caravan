@@ -1,33 +1,15 @@
 from __future__ import absolute_import, unicode_literals
-from external_services.logging.logging_wrapper import LoggingWrapper
-from celery import shared_task
+
 import re
-import time
-from dateutil import tz
-import pytz
+
 from django.http.response import JsonResponse
 import psycopg2
-from celery import shared_task
-from django.conf import settings
-from django.contrib.auth.models import User
-from django.db.models import Q, F
-from pyfcm import FCMNotification
-from togther.models import (Community_Rank, collabcardState,
-                            MemberPollVotes, Collabcard, Members, Members, Referal, Community, communityAnswers,
-                            Userinfo, communityLevels, communityExpiryCodes, conversationEngage, card_answers,
-                            conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
-                            moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,
-                            userDevices, ModelUtilities, answerAttachment)
 
-from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,
-                            )
+from pyfcm import FCMNotification
 
 from utility.utils import *
-from utility.time_utilities import TimeUtilities
 from utility.celery_beat_tasks import CeleryBeatTask
-from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
-                               MINUTES_2, HOURS_24, MINUTES_5,
-                               MINUTES_10, MINUTES_30, VALID_URLS_REGEX)
+from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD, VALID_URLS_REGEX)
 from project.celery import app
 from utility.states import *
 
@@ -37,6 +19,8 @@ import traceback
 
 from datetime import datetime, timedelta
 
+from .notifications.constants import NotificationCategories, NotificationSubCategories, NOTIFICATION_SUB_CATEGORY_KEY, \
+    NOTIFICATION_CATEGORY_KEY
 from .serializers import get_answer_files, get_collabcard_files
 from .static_text import *
 from utility.time_utilities import TimeUtilities
@@ -46,8 +30,6 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL,
                                INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR,
                                INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL,
-                               SYNC_NOTIFICATION_TITLE,
-                               SYNC_NOTIFICATION_SUBTITLE,
                                SYNC_NOTIFICATION_ROUTE)
 
 from external_services.mixpanel.mixpanel_impl import MixpanelImpl
@@ -57,9 +39,6 @@ from utility.number_utilities import NumberUtilities
 from utility.celery_tasks import save_users_with_muted_chatrooms
 from utility.cache_keys import USER_MUTED_CHATROOM
 from external_services.caching.cache_impl import CacheImpl
-
-from external_services.wa_notification.wa_notification_impl import NotificationImpl
-from external_services.wa_notification.constants import WATI_NOTIFICATION_CONST
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -435,12 +414,17 @@ def send_notification_to_admins(community_id, name):
                 notification_list.append(temp)
 
         community_name = get_community_name(community_id)
-        message = {}
-        message['payload'] = {
-            'title': community_name,
-            'sub_title': str(name) + ' has requested to join your community',
-            'route': 'route://member_approve?' + 'community_id=' + str(community_id) + "&" + "community_name=" + str(
-                community_name)
+        message = {
+            'payload': {
+                'title': community_name,
+                'sub_title': str(name) + ' has requested to join your community',
+                'route': 'route://member_approve?' + 'community_id=' + str(community_id) + "&" + "community_name=" +
+                         str(community_name)
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+                NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBERSHIP_REQUESTED
+            }
         }
 
         notification_meta(notification_list, message)
@@ -483,6 +467,11 @@ def send_notification_for_join_requests(community_id, flag, member_id, promoter_
                     community_name)
 
             }
+
+        message['category'] = {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBERSHIP_APPROVED
+        }
         notification_meta(notification_list, message)
     # else:
     #     message['payload'] = {
@@ -619,6 +608,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         typ = kwargs['type'] if 'type' in kwargs else 0
 
         title = community_name
+        category = NotificationCategories.MODERATION,
+        subcategory = NotificationSubCategories.CHATROOM_APPROVAL
 
         if card.is_pending:
             sub_title = str(card_creater_name) + " has created a new chat room " + str(collabcard_title)
@@ -627,21 +618,33 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         elif card.is_secret:
             sub_title = str(card_creater_name) + " created a secret chatroom: " + str(collabcard_title)
             route = 'route://chatroom_detail?chatroom_id=' + str(card_id)
+            category = NotificationCategories.CHATROOM
+            subcategory = NotificationSubCategories.SECRET_CHATROOM_CREATED
 
         elif typ == card_types.CARD_POLL:
             title = "Time to vote!"
             sub_title = str(card_creater_name) + " started a poll on " + str(collabcard_title) + " in " + community_name
             route = 'route://poll_chatroom?chatroom_id=' + str(card_id)
+            category = NotificationCategories.CHATROOM
+            subcategory = NotificationSubCategories.POLL_ROOM_CREATED
             schedule_poll_end_notification(card_id)
 
         else:
             sub_title = str(card_creater_name) + " started a new chatroom: " + str(collabcard_title) + ". Join now!"
             route = 'route://collabcard?collabcard_id=' + str(card_id)
+            category = NotificationCategories.HOME
+            subcategory = NotificationSubCategories.NEW_CHATROOM_CREATED
 
-        message['payload'] = {
-            'title': title,
-            'sub_title': sub_title,
-            'route': route
+        message = {
+            'payload': {
+                'title': title,
+                'sub_title': sub_title,
+                'route': route
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: category,
+                NOTIFICATION_SUB_CATEGORY_KEY: subcategory
+            }
         }
 
         if not card.is_pending \
@@ -939,11 +942,17 @@ def send_follow_notification(card_id, user_id, conversation_id):
         get_notification_payload_metadata_for_conversation_creation(community_instance,
                                                                     card_instance, userinfo_instance,
                                                                     conversation_instance)
-    message['payload'] = {
-        'title': card_instance.header,
-        'sub_title': userinfo_instance.name + ":" + icon_string + " " + answer_text,
-        'route': f"route://collabcard?collabcard_id={str(card_id)}&community_id={str(community_instance.id)}",
-        'unread_follow_notification': custom_conversation_notification_payload
+    message = {
+        'payload': {
+            'title': card_instance.header,
+            'sub_title': userinfo_instance.name + ":" + icon_string + " " + answer_text,
+            'route': f"route://collabcard?collabcard_id={str(card_id)}&community_id={str(community_instance.id)}",
+            'unread_follow_notification': custom_conversation_notification_payload
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_RESPONDED
+        }
     }
 
     for user_id in chatroom_follower_list:
@@ -1184,14 +1193,18 @@ def send_notification_to_tagged_users(card_id, answerer_name, answer, user_id, u
 
     try:
 
-        message = {}
-
         card = Collabcard.objects.get(id=card_id)
 
-        message['payload'] = {
-            "title": str(answerer_name) + " tagged you!",
-            "sub_title": str(get_title_from_collabcard(card)) + ": " + answer,
-            "route": "route://collabcard?collabcard_id=" + str(card_id),
+        message = {
+            'payload': {
+                'title': str(answerer_name) + " tagged you!",
+                'sub_title': str(get_title_from_collabcard(card)) + ": " + answer,
+                'route': "route://collabcard?collabcard_id=" + str(card_id)
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+                NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_TAGGED
+            }
         }
 
         if chatroom_created:
@@ -1207,7 +1220,7 @@ def send_notification_to_tagged_users(card_id, answerer_name, answer, user_id, u
 
         device_filter = userDevices.objects.filter(user=temp['id'], mobile_os='iOS')
 
-        if device_filter.exists() and chatroom_created == False:
+        if device_filter.exists() and chatroom_created is False:
             # case for send conversation message
             unread_followed_chatroom = get_custom_data_for_new_conversation_created_ios(user_id)
             message['payload']['unread_followed_chatroom'] = unread_followed_chatroom
@@ -1215,7 +1228,6 @@ def send_notification_to_tagged_users(card_id, answerer_name, answer, user_id, u
         notification_list.append(temp)
 
         notification_meta(notification_list, message)
-
 
     except (Exception, psycopg2.Error) as error:
         traceback.print_exc()
@@ -1240,11 +1252,17 @@ def send_notification_to_event_co_hosts(co_hosts, card_id, event_title, event_cr
         temp['mobile_os'] = notification_details[1]
         notification_list.append(temp)
 
-    message = {'payload': {
-        "title": EVENT_CO_HOST_NOTIFICATION_TITLE,
-        "sub_title": EVENT_CO_HOST_NOTIFICATION_SUB_TITLE % (event_creater, event_title, community_name),
-        "route": EVENT_CO_HOST_NOTIFICATION_ROUTE % str(card_id)
-    }}
+    message = {
+        'payload': {
+            'title': EVENT_CO_HOST_NOTIFICATION_TITLE,
+            'sub_title': EVENT_CO_HOST_NOTIFICATION_SUB_TITLE % (event_creater, event_title, community_name),
+            'route': EVENT_CO_HOST_NOTIFICATION_ROUTE % str(card_id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CO_HOST_ADDED
+        }
+    }
 
     notification_meta(notification_list, message)
 
@@ -1432,13 +1450,18 @@ def send_notification_to_incomplete_profile_scheduled(member_id, community_id, c
 
         notification_list.append(temp)
 
-        message = {}
-
-        message['payload'] = {
-            "title": "Complete your profile!",
-            "sub_title": "Get full access to " + community_name,
-            'route': 'route://community?community_id=' + str(community_id)
+        message = {
+            'payload': {
+                'title': "Complete your profile!",
+                'sub_title': "Get full access to " + community_name,
+                'route': 'route://community?community_id=' + str(community_id)
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+                NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CREATE_PROFILE
+            }
         }
+
         notification_meta(notification_list, message)
 
 
@@ -1464,21 +1487,25 @@ def send_login_dropoff_notification_scheduled(token, platform_code):
 
     if user.exists():
         return
+
     else:
         temp = {
             'id': None,
             'fcm_token': token,
             'mobile_os': platform_code,
         }
-        notification_list = []
 
-        notification_list.append(temp)
+        notification_list = [temp]
 
-        message = {}
-
-        message['payload'] = {
-            "title": "Finish signing up!",
-            "sub_title": "Click here to sign up and meet like-minded people and have relevant conversations.",
+        message = {
+            'payload': {
+                'title': "Finish signing up!",
+                'sub_title': "Click here to sign up and meet like-minded people and have relevant conversations."
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
+                NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.LOGIN_DROP_OFF
+            }
         }
         notification_meta(notification_list, message)
 
@@ -1514,14 +1541,18 @@ def send_morning_pending_request_notification():
 
                 notification_list.append(temp)
 
-            message = {}
-
-            message['payload'] = {
-                "title": str(community.name),
-                "sub_title": str(pending_members_count) + " members are awaiting your approval to join the community.",
-                'route': 'route://member_approve?' + 'community_id=' + str(
-                    community.id) + "&" + "community_name=" + str(community.name)
-
+            message = {
+                'payload': {
+                    "title": str(community.name),
+                    "sub_title": str(pending_members_count) +
+                                 " members are awaiting your approval to join the community.",
+                    "route": 'route://member_approve?' + 'community_id=' + str(community.id) + "&" +
+                             "community_name=" + str(community.name)
+                },
+                'category': {
+                    NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+                    NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.N_PENDING_REQUESTS
+                }
             }
 
             if pending_members_count == 1:
@@ -1573,18 +1604,32 @@ def send_notification_to_join_drop_off_scheduled(member_id, community_id, aj, ti
 
         message = {}
         if aj == "":
-            message['payload'] = {
-                "title": str(community_name),
-                "sub_title": "Apply to join this community and meet like-minded people. ",
-                'route': 'route://community?community_id=' + str(community_id)
+            message = {
+                'payload': {
+                    'title': str(community_name),
+                    'sub_title': "Apply to join this community and meet like-minded people. ",
+                    'route': 'route://community?community_id=' + str(community_id)
+                },
+                'category': {
+                    NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
+                    NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.PRIVATE_LINK_DROP_OFF_30
+                }
+
             }
+
             notification_meta(notification_list, message)
 
         else:
-            message['payload'] = {
-                "title": str(community_name),
-                "sub_title": "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
-                'route': 'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
+            message = {
+                'payload': {
+                    'title': str(community_name),
+                    'sub_title': "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
+                    'route': 'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
+                },
+                'category': {
+                    NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
+                    NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.PUBLIC_LINK_DROP_OFF
+                }
             }
             notification_meta(notification_list, message)
 
@@ -1620,11 +1665,18 @@ def send_notification_to_join_drop_off_scheduled_2(member_id, community_id, aj, 
 
     if member.exists():
         return
-    message['payload'] = {
-        "title": 'Invitation link about to expire!',
-        "sub_title": "Don't miss relevant conversations in " + str(
-            community_name) + ". Click here to join and meet like-minded people.",
-        'route': 'route://community?community_id=' + str(community_id)
+
+    message = {
+        'payload': {
+            'title': 'Invitation link about to expire!',
+            'sub_title': "Don't miss relevant conversations in " + str(
+                community_name) + ". Click here to join and meet like-minded people.",
+            'route': 'route://community?community_id=' + str(community_id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.PRIVATE_LINK_DROP_OFF
+        }
     }
 
     notification_meta(notification_list, message)
@@ -1670,15 +1722,18 @@ def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
 
     notification_list.append(temp)
 
-    message = {}
-
-    message['payload'] = {
-        "title": member_name + 'may need new invitation!',
-        "sub_title": "Your private invitation for joining " + str(
-            community_name) + "has expired. Please resend them invite link.",
-        'route': 'route://community?community_id=' + str(community_id)
+    message = {
+        'payload': {
+            'title': member_name + 'may need new invitation!',
+            'sub_title': "Your private invitation for joining " + str(
+                community_name) + "has expired. Please resend them invite link.",
+            'route': 'route://community?community_id=' + str(community_id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.HOME,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.EXPIRED_PRIVATE_LINK_DROP_OFF
+        }
     }
-
     notification_meta(notification_list, message)
 
 
@@ -1747,6 +1802,10 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 member_name) + ", we are reminding you to complete your directory profile. Without an updated profile, you won’t have seamless access to the community. "
             message['payload']['route'] = "route://member_profile?member_id=" + str(
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
+            message['category'] = {
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+                NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
+            }
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1780,6 +1839,10 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 member_name) + ", please update your profile now to take full advantage of our networking features. This is mandatory for all the members. "
             message['payload']['route'] = "route://member_profile?member_id=" + str(
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
+            message['category'] = {
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+                NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
+            }
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1813,6 +1876,10 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of LikeMinds and connect with others."
             message['payload']['route'] = "route://member_profile?member_id=" + str(
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
+            message['category'] = {
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+                NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
+            }
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1846,6 +1913,10 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 member_name) + ", it has been over 30 days you joined us. Please update your profile and improve your chances of connecting with like-minded folks."
             message['payload']['route'] = "route://member_profile?member_id=" + str(
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
+            message['category'] = {
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+                NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
+            }
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
@@ -1864,7 +1935,6 @@ def send_notification_for_new_promoter(promoter_id, member_id, community_id, cus
     member_fcm_token = member_instance.userinfo.fcm_token
     member_mobile_os = member_instance.userinfo.mobile_os
 
-    message = {}
     notification_list = []
 
     user_details = {
@@ -1874,10 +1944,16 @@ def send_notification_for_new_promoter(promoter_id, member_id, community_id, cus
     }
     notification_list.append(user_details)
 
-    message['payload'] = {
-        "title": community_name,
-        "sub_title": f"{promoter_name} has added you in the management team of the community and assigned you the title of {custom_title}",
-        'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
+    message = {
+        'payload': {
+            'title': community_name,
+            'sub_title': f"{promoter_name} has added you in the management team of the community and assigned you the title of {custom_title}",
+            'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.BECAME_ADMIN
+        }
     }
 
     notification_meta(notification_list, message)
@@ -1907,10 +1983,16 @@ def send_notification_for_custom_title_changed(promoter_id, member_id, community
     if custom_title is None:
         custom_title = "Community Manager"
 
-    message['payload'] = {
-        "title": community_name,
-        "sub_title": f"{promoter_name} has assigned you the title of {custom_title}",
-        'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
+    message = {
+        'payload': {
+            'title': community_name,
+            'sub_title': f"{promoter_name} has assigned you the title of {custom_title}",
+            'route': f'route://member_profile/{member_id}?community_id={community_id}&member_id={member_id}'
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CM_TITLE_ASSIGNED
+        }
     }
 
     notification_meta(notification_list, message)
@@ -1937,10 +2019,16 @@ def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, comm
     }
     notification_list.append(user_details)
 
-    message['payload'] = {
-        "title": community_name,
-        "sub_title": f"{prev_owner_name} has transferred the ownership of the community to you.",
-        'route': f'route://member_profile/{new_owner_id}?community_id={community_id}&member_id={new_owner_id}'
+    message = {
+        'payload': {
+            "title": community_name,
+            "sub_title": f"{prev_owner_name} has transferred the ownership of the community to you.",
+            'route': f'route://member_profile/{new_owner_id}?community_id={community_id}&member_id={new_owner_id}'
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.BECAME_OWNER
+        }
     }
 
     notification_meta(notification_list, message)
@@ -1967,10 +2055,16 @@ def send_notification_for_removed_member(admin_id, removed_user_id, community_id
     }
     notification_list.append(user_details)
 
-    message['payload'] = {
-        "title": "LikeMinds",
-        "sub_title": f"{admin_name} has removed you from the {community_name}. Click here to know the reasons.",
-        'route': '//route://community_collabcard?community_id='
+    message = {
+        'payload': {
+            'title': "LikeMinds",
+            'sub_title': f"{admin_name} has removed you from the {community_name}. Click here to know the reasons.",
+            'route': '//route://community_collabcard?community_id='
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBER_REMOVED
+        }
     }
 
     # notification_meta(notification_list, message)
@@ -2005,26 +2099,37 @@ def send_notification_for_right_given_to_member(user_id, community_id, rights_ad
             card_type = 3
         elif right.state == member_rights.MEMBER_RIGHT_CREATE_EVENT:
             card_type = 2
+        category = NotificationCategories.MODERATION
 
         route = f"route://create_chatroom?community_id={community_id}&community_name={community_name}&type={card_type}"
         sub_title = f"The Community Manager has reactivated your privilege to {right_title}"
+        subcategory = NotificationSubCategories.PERMISSION_FOR_CHATROOM_CREATION
 
         if right.state == member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM:
             sub_title = "The Community Manager has reactivated your privilege to respond inside chat rooms."
             route = f"route://community_collabcard?community_id={community_id}&community_name={community_name}"
+            subcategory = NotificationSubCategories.PERMISSION_FOR_RESPONDING
 
         elif right.state == member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK:
             sub_title = "You have earned the privilege to invite new members to the community via private links!"
             route = f"route://community?community_id={community_id}&share=true"
+            subcategory = NotificationSubCategories.PERMISSION_FOR_INVITING_MEMBERS
 
         elif right.state == member_rights.MEMBER_RIGHT_AUTO_APPROVE:
             sub_title = "You have earned the privilege to have your chat rooms auto-approved. Your chat rooms will be instantenously posted."
             route = f"route://community?community_id={community_id}&share=true"
+            subcategory = NotificationSubCategories.PERMISSION_FOR_CHATROOMS_AUTO_APPROVAL
 
-        message['payload'] = {
-            "title": community_name,
-            "sub_title": sub_title,
-            'route': route
+        message = {
+            'payload': {
+                'title': community_name,
+                'sub_title': sub_title,
+                'route': route
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: category,
+                NOTIFICATION_SUB_CATEGORY_KEY: subcategory
+            }
         }
 
         notification_meta(notification_list, message)
@@ -2053,14 +2158,25 @@ def send_notification_for_pending_chatroom_approved_or_rejected(card_id, is_appr
     if is_approved:
         sub_title = f"Hurray! {card_creator_first_name}, your chat room ‘{chatroom_title}’ has been approved."
         route = f"route://chatroom_detail?chatroom_id={card_id}"
+        category = NotificationCategories.MODERATION
+        subcategory = NotificationSubCategories.CHATROOM_APPROVED
+
     else:
         sub_title = f"{card_creator_first_name}, we are sorry to inform you that your chat room ‘{chatroom_title}’ was not approved."
         route = "route://main"
+        category = NotificationCategories.MODERATION
+        subcategory = NotificationSubCategories.CHATROOM_REJECTED
 
-    message['payload'] = {
-        "title": community_name,
-        "sub_title": sub_title,
-        'route': route
+    message = {
+        'payload': {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: category,
+            NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
+        }
     }
 
     notification_meta(notification_list, message)
@@ -2075,23 +2191,28 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
     community_instance = Community.objects.get(pk=community_id)
     community_name = community_instance.name
 
+    subcategory = ""
     sub_title_prefix = ""
     reported_on_user = None
     print("report_type >>>>>   ", report_type)
+
     if report_type == 0:
         reported_on_user = User.objects.get(pk=reported_on_user_id)
         sub_title_prefix = reported_on_user.userinfo.name
+        subcategory = NotificationSubCategories.MEMBER_REPORTED
 
     elif report_type == 1:
         card_instance = Collabcard.objects.get(pk=card_id)
         reported_on_user = card_instance.user
         sub_title_prefix = card_instance.header
+        subcategory = NotificationSubCategories.CHATROOM_REPORTED
 
     elif report_type == 2:
         conversation_instance = card_answers.objects.get(pk=conversation_id)
         reported_on_user = conversation_instance.user
         chatroom_name = conversation_instance.card.header
         sub_title_prefix = f"A message in ‘{chatroom_name}'"
+        subcategory = NotificationSubCategories.RESPONSE_REPORTED
 
     if tag_id:
         report = Report_Tags.objects.get(tag_id=tag_id)
@@ -2107,6 +2228,12 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
         "sub_title": sub_title,
         'route': route
     }
+
+    if subcategory:
+        message['category'] = {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+            NOTIFICATION_SUB_CATEGORY_KEY: subcategory
+        }
 
     is_promoter = False
     parent_cm_list = []
@@ -2168,12 +2295,21 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
     sub_title = f"The Community Manager has deleted {card_name}. Click here to know the reasons."
     route = ""
 
-    message = {}
+    category = NotificationCategories.MODERATION
+    subcategory = NotificationSubCategories.CHATROOM_DELETED
+
     notification_list = []
-    message['payload'] = {
-        "title": community_name,
-        "sub_title": sub_title,
-        'route': route
+
+    message = {
+        'payload': {
+            "title": community_name,
+            "sub_title": sub_title,
+            'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: category,
+            NOTIFICATION_SUB_CATEGORY_KEY: subcategory
+        }
     }
 
     following_member_ids = list(
@@ -2232,11 +2368,16 @@ def send_notification_for_right_given_to_manager(user_id, community_id, rights_a
         elif right.state == manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO:
             sub_title = ENABLE_MANAGER_RIGHT_VIEW_CONTACT_INFO
 
-        message = {'payload': {
-            "title": community_name,
-            "sub_title": sub_title,
-            'route': route
-        }
+        message = {
+            'payload': {
+                'title': community_name,
+                'sub_title': sub_title,
+                'route': route
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+                NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CM_PERMISSION_UPDATED
+            }
         }
 
         notification_meta(notification_list, message)
@@ -2265,12 +2406,19 @@ def send_notification_for_removed_cm(user_id, community_id):
 
     sub_title = NOTIFICATION_SUB_TITLE_FOR_CM_REMOVED
     route = f"route://community?community_id={community_id}&community_name={community_name}"
+    category = NotificationCategories.MODERATION
+    subcategory = NotificationSubCategories.CM_PERMISSION_UPDATED
 
-    message = {'payload': {
-        "title": community_name,
-        "sub_title": sub_title,
-        'route': route
-    }
+    message = {
+        'payload': {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: category,
+            NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
+        }
     }
 
     notification_meta(notification_list, message)
@@ -2340,6 +2488,10 @@ def get_message_for_evening_notification(community_intro_rooms, user_instance, c
             "title": title,
             "sub_title": sub_title,
             'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBER_JOINED
         }
     }
     return message
@@ -2386,11 +2538,17 @@ def send_notification_to_managers_when_member_leaves_community(user_id, communit
     sub_title = MEMBER_LEFT_COMMUNITY_NOTIFICATION_SUB_TITLE % user_instance.userinfo.name
     route = COMMUNITY_DETAIL_ROUTE % (community_id, community_name)
 
-    message = {'payload': {
-        "title": community_name,
-        "sub_title": sub_title,
-        'route': route
-    }}
+    message = {
+        'payload': {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBER_LEFT
+        }
+    }
 
     notification_meta(notification_list, message)
 
@@ -2505,11 +2663,17 @@ def send_pin_chatroom_notification(community_id, member_id, chatroom_id):
         }
         notification_list.append(temp)
 
-    message = {'payload': {
-        "title": PIN_CHATROOM_TITLE,
-        "sub_title": PIN_SUBTITLE % (promoter_name, get_title_from_collabcard(card_instance)),
-        'route': PIN_ROUTE % str(card_instance.id)
-    }}
+    message = {
+        'payload': {
+            'title': PIN_CHATROOM_TITLE,
+            'sub_title': PIN_SUBTITLE % (promoter_name, get_title_from_collabcard(card_instance)),
+            'route': PIN_ROUTE % str(card_instance.id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.CHATROOM_PINNED_BY_CM
+        }
+    }
 
     notification_meta(notification_list, message)
 
@@ -2535,12 +2699,19 @@ def send_notification_for_removed_secret_room_participant(user_id, chatroom_id):
 
     sub_title = SECRET_CHATROOM_REMOVED_SUBTITLE % chatroom_instance.header
     route = SECRET_CHATROOM_REMOVED_ROUTE
+    category = NotificationCategories.CHATROOM
+    subcategory = NotificationSubCategories.MEMBER_REMOVED_FROM_CHATROOM
 
-    message = {'payload': {
-        "title": community_name,
-        "sub_title": sub_title,
-        'route': route
-    }
+    message = {
+        'payload': {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: category,
+            NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
+        }
     }
 
     notification_meta(notification_list, message)
@@ -2567,12 +2738,19 @@ def send_notification_for_new_secret_room_participant(user_id, chatroom_id):
 
     sub_title = SECRET_CHATROOM_ADD_SUBTITLE % chatroom_instance.header
     route = SECRET_CHATROOM_ADD_ROUTE % chatroom_id
+    category = NotificationCategories.CHATROOM
+    subcategory = NotificationSubCategories.MEMBER_ADDED_TO_SECRET_CHATROOM
 
-    message = {'payload': {
-        "title": community_name,
-        "sub_title": sub_title,
-        'route': route
-    }
+    message = {
+        'payload': {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: category,
+            NOTIFICATION_SUB_CATEGORY_KEY: subcategory
+        }
     }
 
     notification_meta(notification_list, message)
@@ -2719,6 +2897,10 @@ def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_i
                 userinfo_instance.name, chatroom_instance.title),
             'sub_title': CHATROOM_NOTIFICATION_OWNER_ADD_ALL_MEMBER_SUBTITLE,
             'route': "route://chatroom_detail?chatroom_id=%s" % str(chatroom_id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.AUTO_FOLLOW_ENABLED,
         }
     }
 
@@ -2751,6 +2933,10 @@ def send_notification_on_chatroom_topic_update(chatroom_id):
             'title': CHATROOM_TOPIC_NOTIFICATION_TITLE,
             'sub_title': CHATROOM_TOPIC_NOTIFICATION_SUB_TITLE % card_instance.header,
             'route': CHATROOM_TOPIC_NOTIFICATION_ROUTE % str(card_instance.id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.TOPIC_UPDATED,
         }
     }
 

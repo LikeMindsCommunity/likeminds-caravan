@@ -168,33 +168,44 @@ class TasksImpl(TaskManager):
             title = TITLE_EVENT_CREATION_APP_NOTIFICATION % event_name
             subtitle = SUB_TITLE_EVENT_CREATION_APP_NOTIFICATION
 
+            category = NotificationCategories.EVENT_REGISTER_CATEGORY
+
             if is_paid_event:
                 route = ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION % event_id
+                subcategory = NotificationSubCategories.PAID_EVENT_CREATED_SUBCATEGORY
 
             else:
                 route = ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION % event_id
+                subcategory = NotificationSubCategories.FREE_EVENT_CREATED_SUBCATEGORY
 
         elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
 
             title = TITLE_EVENT_LAST_CALL_APP_NOTIFICATION
             subtitle = SUB_TITLE_EVENT_LAST_CALL_APP_NOTIFICATION % event_name
+            category = NotificationCategories.EVENT_REGISTER_CATEGORY
 
             if is_paid_event:
                 route = ROUTE_PAID_EVENT_LAST_CALL_APP_NOTIFICATION % event_id
+                subcategory = NotificationSubCategories.PAID_EVENT_REGISTRATION_LAST_CALL_SUBCATEGORY
 
             else:
                 route = ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION % event_id
+                subcategory = NotificationSubCategories.FREE_EVENT_REGISTRATION_LAST_CALL_SUBCATEGORY
 
         elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_15_MIN:
 
             title = TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION % online_link_enable_before_in_mins
             subtitle = SUB_TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION % event_name
             route = ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION % event_id
+            category = NotificationCategories.EVENT_ATTENDANCE
+            subcategory = NotificationSubCategories.EVENT_REMINDER_15_MINUTES_SUBCATEGORY
 
         elif self.get_event_type() == EVENT_TYPE.REGISTRATION:
 
             title = TITLE_EVENT_REGISTRATION_APP_NOTIFICATION
             subtitle = SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION % (member_name, event_name)
+            category = NotificationCategories.EVENT_REGISTERED
+            subcategory = NotificationSubCategories.EVENT_REGISTRATION_SUBCATEGORY
 
             if is_paid_event:
                 route = ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION % (event_id, community_id)
@@ -206,12 +217,18 @@ class TasksImpl(TaskManager):
             title = ""
             subtitle = ""
             route = ""
+            category = ""
+            subcategory = ""
 
         response_dict = {
             'payload': {
                 'title': title,
                 'sub_title': subtitle,
                 'route': route
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: category,
+                NOTIFICATION_SUB_CATEGORY_KEY: subcategory
             }
         }
 
@@ -508,10 +525,13 @@ class TasksImpl(TaskManager):
 
         if has_event_attachment:
             title = TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
+            subcategory = NotificationSubCategories.EVENT_ATTACHMENT_UPDATED_SUBCATEGORY
 
         else:
             title = TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
+            subcategory = NotificationSubCategories.EVENT_ATTACHMENT_UPLOADED_SUBCATEGORY
 
+        category = NotificationCategories.EVENT_REGISTER_CATEGORY
         subtitle = SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION
         route = ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION % event_id
 
@@ -520,6 +540,10 @@ class TasksImpl(TaskManager):
                 'title': title,
                 'sub_title': subtitle,
                 'route': route
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: category,
+                NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
             }
         }
 
