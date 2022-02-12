@@ -266,6 +266,9 @@ def notification_meta(notification_list, message, calling_notification=""):
             notification_payload_dict['user_id'] = device['user_id']
             notification_payload_dict['payload'] = payload
 
+            if message.get('category'):
+                message['payload']['category'] = message.get('category')
+
             notification_payload_list.append(notification_payload_dict)
 
     send_notification_for_android(tokens['Android'], message)
