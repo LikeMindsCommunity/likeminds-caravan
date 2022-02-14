@@ -472,7 +472,7 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
 
 @app.task
 def send_poll_results_announcement_mail(card_id, task_name):
-    """ function to send poll reuslts annoucement mail for users who missed or didn't see the poll results yet """
+    """ function to send poll results announcement mail for users who missed or didn't see the poll results yet """
 
     card_instance = Collabcard.objects.get(pk=card_id)
 

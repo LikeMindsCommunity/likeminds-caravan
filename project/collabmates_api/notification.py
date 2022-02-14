@@ -722,6 +722,18 @@ def schedule_poll_end_notification(card_id):
                                               expires=task_expiry_time
                                               )
 
+    celery_beat_task = CeleryBeatTask()
+
+    if card_instance.type == card_types.CARD_POLL:
+        task_name = f'{card_id}_poll_results_announcement_after_6_hours'
+        task_path = "collabmates_api.tasks.send_poll_results_announcement_mail"
+        celery_beat_task.terminate_task(task_name)
+
+        args = [card_id, task_name]
+        date_time = poll_end_time + SIX_HOURS_IN_SECONDS
+        celery_beat_task.create_dynamic_clery_task(args=args, kwargs={}, task_name=task_name, task_path=task_path,
+                                                   date_time=date_time, interval=False, crontab=True)
+
 
 def fetch_all_valid_urls(string):
     regex = VALID_URLS_REGEX
