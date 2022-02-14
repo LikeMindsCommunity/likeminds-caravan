@@ -1587,15 +1587,6 @@ class ConversationHelper:
             ConversationHelper.send_engagement_communication(tagged_member, user_instance.id, chatroom_instance.id,
                                                              chatroom_not_opened_types.TAGGED_CHATROOM)
 
-        notification_list = [
-            'mail_card_owner_inactivity'
-        ]
-
-        # # check if sender is not the owner and  notification flag is true
-        # if check_notification_flag(chatroom_instance.user_id, notification_list, card_id=chatroom_instance.id,
-        #                            community_id=None) and str(user_instance.id) != str(chatroom_instance.user_id):
-        #     send_chatroom_owner_mail.delay(chatroom_instance.user_id, chatroom_instance.id, time_in_hrs=12)
-
     @staticmethod
     def send_engagement_communication(receiver_id, sender_id, chatroom_id, chatroom_not_opened_type):
 
