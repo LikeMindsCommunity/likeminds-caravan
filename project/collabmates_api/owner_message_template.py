@@ -71,18 +71,6 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
     print(
         f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, response = {conversation_response}")
 
-    # making the intro room of new member inactive for the owner
-    chatroom_req_body = {
-        "chatroom_id": chatroom.id,
-        "value": False
-    }
-
-    chatroom_manager = ChatroomImpl(member_id=owner_user_instance.id)
-    chatroom_response = chatroom_manager.set_chatroom_active_or_inactive(chatroom_req_body)
-
-    print(
-        f"post_owner_message_template_in_intro_room inactivate chatroom for owner - user_id = {user_id}, community_id = {community_id}, chatroom_id = {chatroom.id}, response = {chatroom_response}")
-
     
 @shared_task(bind=True, autoretry_for=(Exception,), default_retry_delay=60, max_retries=3)
 def check_owner_template_posted(self, community_id, user_id):

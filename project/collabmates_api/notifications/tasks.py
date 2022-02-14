@@ -86,6 +86,8 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
         user_ids = []
 
         if event_type == EVENT_TYPE.CREATION:
+            active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_instance.id,
+                                                                                                active_user_ids)
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_instance.id,
                                                                                             event_instance,
                                                                                             add_event_creator=False)
@@ -94,6 +96,8 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION
 
         elif event_type == EVENT_TYPE.LAST_CALL:
+            active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_instance.id,
+                                                                                                active_user_ids)
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
                                                                                                             active_user_ids,
                                                                                                             attending=False)

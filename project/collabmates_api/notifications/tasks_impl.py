@@ -7,7 +7,7 @@ from external_services.calender.calendar_impl import CalendarImpl
 from external_services.email.email_wrapper import MailHelper
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
     userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted, \
-     EventGoogleCalendarLogs
+     EventGoogleCalendarLogs, removedMembers
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
@@ -170,33 +170,44 @@ class TasksImpl(TaskManager):
             title = TITLE_EVENT_CREATION_APP_NOTIFICATION % event_name
             subtitle = SUB_TITLE_EVENT_CREATION_APP_NOTIFICATION
 
+            category = NotificationCategories.EVENT_REGISTER_CATEGORY
+
             if is_paid_event:
                 route = ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION % event_id
+                subcategory = NotificationSubCategories.PAID_EVENT_CREATED_SUBCATEGORY
 
             else:
                 route = ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION % event_id
+                subcategory = NotificationSubCategories.FREE_EVENT_CREATED_SUBCATEGORY
 
         elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
 
             title = TITLE_EVENT_LAST_CALL_APP_NOTIFICATION
             subtitle = SUB_TITLE_EVENT_LAST_CALL_APP_NOTIFICATION % event_name
+            category = NotificationCategories.EVENT_REGISTER_CATEGORY
 
             if is_paid_event:
                 route = ROUTE_PAID_EVENT_LAST_CALL_APP_NOTIFICATION % event_id
+                subcategory = NotificationSubCategories.PAID_EVENT_REGISTRATION_LAST_CALL_SUBCATEGORY
 
             else:
                 route = ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION % event_id
+                subcategory = NotificationSubCategories.FREE_EVENT_REGISTRATION_LAST_CALL_SUBCATEGORY
 
         elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_15_MIN:
 
             title = TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION % online_link_enable_before_in_mins
             subtitle = SUB_TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION % event_name
             route = ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION % event_id
+            category = NotificationCategories.EVENT_ATTENDANCE
+            subcategory = NotificationSubCategories.EVENT_REMINDER_15_MINUTES_SUBCATEGORY
 
         elif self.get_event_type() == EVENT_TYPE.REGISTRATION:
 
             title = TITLE_EVENT_REGISTRATION_APP_NOTIFICATION
             subtitle = SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION % (member_name, event_name)
+            category = NotificationCategories.EVENT_REGISTERED
+            subcategory = NotificationSubCategories.EVENT_REGISTRATION_SUBCATEGORY
 
             if is_paid_event:
                 route = ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION % (event_id, community_id)
@@ -208,12 +219,18 @@ class TasksImpl(TaskManager):
             title = ""
             subtitle = ""
             route = ""
+            category = ""
+            subcategory = ""
 
         response_dict = {
             'payload': {
                 'title': title,
                 'sub_title': subtitle,
                 'route': route
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: category,
+                NOTIFICATION_SUB_CATEGORY_KEY: subcategory
             }
         }
 
@@ -510,10 +527,13 @@ class TasksImpl(TaskManager):
 
         if has_event_attachment:
             title = TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
+            subcategory = NotificationSubCategories.EVENT_ATTACHMENT_UPDATED_SUBCATEGORY
 
         else:
             title = TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
+            subcategory = NotificationSubCategories.EVENT_ATTACHMENT_UPLOADED_SUBCATEGORY
 
+        category = NotificationCategories.EVENT_REGISTER_CATEGORY
         subtitle = SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION
         route = ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION % event_id
 
@@ -522,6 +542,10 @@ class TasksImpl(TaskManager):
                 'title': title,
                 'sub_title': subtitle,
                 'route': route
+            },
+            'category': {
+                NOTIFICATION_CATEGORY_KEY: category,
+                NOTIFICATION_SUB_CATEGORY_KEY: subcategory,
             }
         }
 
@@ -634,8 +658,10 @@ class TasksHelper:
             state=member_states.ADMIN
         ).values_list("member_id__id", flat=True))
 
-        if not add_event_creator:
-            community_managers.remove(event_instance.user.id)
+        event_creator_id = event_instance.user.id
+
+        if (not add_event_creator) and (event_creator_id in community_managers):
+            community_managers.remove(event_creator_id)
 
         return community_managers
 
@@ -728,7 +754,7 @@ class TasksHelper:
         reply_to = community_owner_email[0] if community_owner_email else ''
 
         context = {
-            'from_name': SENDER_NAME_FOR_EMAIL_COMMS,
+            'from_name': community_name,
             'from_email': SENDER_EMAIL_FOR_EMAIL_COMMS,
             'to_mails_list': to_mails_list,
             'reply_to': reply_to
@@ -786,7 +812,7 @@ class TasksHelper:
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTENDEES:
             attended_members_list = TasksHelper.get_list_of_members_who_attended_event(event_instance)
-            attended_member_count = attended_members_list.count()
+            attended_member_count = len(attended_members_list)
 
             data_dict['attended_member_count'] = attended_member_count
 
@@ -890,6 +916,31 @@ class TasksHelper:
                 members_to_be_notified.remove(member_id)
 
         return members_to_be_notified
+
+    @staticmethod
+    def get_removed_member_ids_in_community(community_instance: Community) -> list:
+        removed_member_ids = list(ModelUtilities.get_model_filter(removedMembers,
+                                                                  {'community': community_instance}).
+                                  values_list('member_id', flat=True))
+
+        return removed_member_ids
+
+    @staticmethod
+    def get_active_members_excluding_non_members_in_community(community_instance: Community, active_members: list) -> \
+            list:
+        """
+        This function filters member_ids excluded removed members.
+        @param community_instance: Community instance
+        @param active_members: IDs of members in a community
+        @return: List of filtered member_ids
+        """
+
+        if not active_members:
+            active_members = TasksHelper.get_active_members_of_community(community_id=community_instance.id)
+
+        removed_members = TasksHelper.get_removed_member_ids_in_community(community_instance)
+
+        return list(set(active_members) - set(removed_members))
 
     @staticmethod
     def get_collabcard_state_instance(member_id, chatroom_id):

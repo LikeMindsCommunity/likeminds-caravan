@@ -105,7 +105,6 @@ def chatroom_follow(card_instance, user_instance):
         expiry_time = get_expiry_time_of_chatroom(card_state_instance)
 
         chatroom_state_filter.update(follow_status=status, updated_at=TimeUtilities.current_time_in_sec(),
-                                     expiry_time=expiry_time,
                                      external_seen=True, external_follow=status)
 
         ConversationHelper.create_conversation_state(card_instance=card_instance,

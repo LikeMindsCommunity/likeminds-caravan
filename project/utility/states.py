@@ -533,3 +533,11 @@ class EditFieldCommunityDataTypes:
 
 
 edit_field_community_data_types = EditFieldCommunityDataTypes()
+
+
+class AirtableWebhookTypes:
+    JOIN_COMMUNITY = "join_community"
+    APPROVE_REQUEST = "approve_request"
+
+
+airtable_webhook_types = AirtableWebhookTypes()
