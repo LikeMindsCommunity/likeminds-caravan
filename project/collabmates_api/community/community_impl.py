@@ -54,10 +54,11 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
-    email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types
+    email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, airtable_webhook_types
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
+from utility.constants import PLATFORM_CODE_WEB
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -644,6 +645,20 @@ class CommunityImpl(CommunityManager):
 
         CohortHelper.add_member_to_respective_question_based_cohorts(self.get_member_id(), self.get_community_id())
 
+    @staticmethod
+    def send_approve_reject_data_on_airtable(user_instance, community_instance, approved):
+        email = get_user_email_preferred_verified(user_instance.id)
+
+        airtable_data = {
+            'user_id': user_instance.id,
+            'community_id': community_instance.id,
+            'user_email': email,
+            'approved': approved
+        }
+
+        airtable_manager = AirtableWrapper(endpoint_type=airtable_webhook_types.APPROVE_REQUEST)
+        airtable_manager.send_data(airtable_data)
+
     def approve_or_decline_community(self, req_body) -> {}:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
@@ -714,6 +729,8 @@ class CommunityImpl(CommunityManager):
                                                                   promoter_userinfo_instance)
 
             ElasticSearchSync.delete_member_from_community.delay(self.get_member_id(), self.get_community_id())
+
+        self.send_approve_reject_data_on_airtable(user_instance, community_instance, req_body.get('accepted'))
 
         return {'success': True}
 
@@ -1255,7 +1272,12 @@ class CommunityImpl(CommunityManager):
 
         community_state = 0
 
-        type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
+        if directory_questions_v2_version_check(self.get_request_platform(), self.get_version_code()):
+            type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
+
+        else:
+            type_id = TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
+            sub_type_id = SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
 
         community_instance = Community.create_instance({'name': validate_req_body['name'],
                                                         'members_count': 1,
@@ -1485,7 +1507,8 @@ class CommunityImpl(CommunityManager):
         CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
 
         community_meta_data['questions'] = CommunityHelper.get_community_questions_data(user_instance,
-                                                                                        community_instance)
+                                                                                        community_instance,
+                                                                                        self.get_request_platform())
 
         community_meta_data['success'] = True
 
@@ -1817,6 +1840,9 @@ class CommunityHelper:
                 question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions,
                                                                               question.get(question_id_key))
 
+                if not question_instance:
+                    continue
+
                 if question_instance.question_state == question_states.INTRODUCTION:
                     introduction_answer = question.get(answer_key)
 
@@ -1873,10 +1899,11 @@ class CommunityHelper:
         return card_instance
 
     @staticmethod
-    def pre_compute_question_instances_for_saving_responses(question_list, question_id_key):
+    def pre_compute_question_instances_for_saving_responses(community_instance, question_list, question_id_key):
 
         question_id_list = [question[question_id_key] for question in question_list if question.get(question_id_key)]
-        question_instances = ModelUtilities.get_model_filter(communityQuestions, {'id__in': question_id_list})
+        question_instances = ModelUtilities.get_model_filter(communityQuestions, {'id__in': question_id_list,
+                                                                                  'community': community_instance})
         question_instance_dict = {}
 
         for data in question_instances:
@@ -1962,7 +1989,7 @@ class CommunityHelper:
             mobile_filter = get_user_phone(user_instance.id)
 
             if mobile_filter:
-                mobile_no = "+{}{}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
+                mobile_no = "+{} {}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
                 CommunityHelper.create_answer_instance(user_instance, community_instance,
                                                        question_instance, mobile_no,
                                                        question_title=question_instance.question_title)
@@ -1994,7 +2021,7 @@ class CommunityHelper:
             'question_list': question_data
         }
 
-        airtable_manager = AirtableWrapper()
+        airtable_manager = AirtableWrapper(endpoint_type=airtable_webhook_types.JOIN_COMMUNITY)
         airtable_manager.send_data(airtable_data)
 
     @staticmethod
@@ -2035,7 +2062,8 @@ class CommunityHelper:
             question_id_key = DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY
             answer_key = DIRECTORY_QUESTIONS_V2_ANSWER_KEY
 
-        question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(question_list,
+        question_instance_dict = CommunityHelper.pre_compute_question_instances_for_saving_responses(community_instance,
+                                                                                                     question_list,
                                                                                                      question_id_key)
 
         airtable_data = {}
@@ -2048,7 +2076,10 @@ class CommunityHelper:
             question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
             question_instance = question_instance_dict.get(question_id)
 
-            if (not question_instance) or question_instance.is_hidden:
+            if not question_instance:
+                continue
+
+            if question_instance.is_hidden:
                 continue
 
             question_title = question.get('question_title') if question.get('question_title') else \
@@ -2944,6 +2975,11 @@ class CommunityHelper:
 
         for question_data in questions_list:
             question_id = question_data.get('id') if question_data.get('id') else 0
+            question_instance = ModelUtilities.get_model_instance_or_none(communityQuestions, question_id)
+
+            if not question_instance:
+                continue
+
             delete_question_ids.append(question_id)
 
             CommunityHelper.add_create_edit_question_analytics.delay(question_id, user_id,
@@ -2951,7 +2987,8 @@ class CommunityHelper:
                                                                      questions_metadata={
                                                                          'community_id': community_instance.id,
                                                                          'community_name': community_instance.name,
-                                                                         'questions_type': question_change_states.DELETE_QUESTION
+                                                                         'questions_type':
+                                                                             question_instance.question_state
                                                                      })
 
         ModelUtilities.get_model_filter(communityQuestions, {'id__in': delete_question_ids,
@@ -3060,7 +3097,7 @@ class CommunityHelper:
         return context
 
     @staticmethod
-    def get_community_questions_data(user_instance, community_instance):
+    def get_community_questions_data(user_instance, community_instance, platform_code='web'):
         data = ModelUtilities.get_model_filter(communityQuestions,
                                                {"community": community_instance}).order_by('-rank', 'id')
 
@@ -3069,6 +3106,14 @@ class CommunityHelper:
         serialized_questions = CommunityQuestionsSerializerV2(data, many=True).data
 
         for serialized_question in serialized_questions:
+
+            if all([platform_code == PLATFORM_CODE_WEB,
+                    serialized_question['question_title'] == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                    serialized_question['is_hidden'],
+                    serialized_question['field'],
+                    serialized_question['question_state'] == question_states.PARAGRAPH]):
+                continue
+
             serialized_question['state'] = serialized_question['question_state']
             serialized_question['community_id'] = serialized_question['community']
             del serialized_question['question_state']

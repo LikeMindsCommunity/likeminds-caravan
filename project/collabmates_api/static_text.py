@@ -418,15 +418,8 @@ DM_CHATROOMS_VERSION_CODE_ANDROID = 156
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
 EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%s added you as a host for %s in %s"
 EVENT_CO_HOST_NOTIFICATION_ROUTE = 'route://chatroom_detail?chatroom_id=%s'
-EVENT_NOTIFICATIONS_TITLE = "Event Reminder!"
 CREATE_CONVERSATION_API_END_POINT = f"{settings.URL}/api/conversation/create"
 UPLOAD_FILES_V1_API_END_POINT = f"{settings.URL}/api/v1/upload_files"
-ONLINE_EVENT_NOTIFICATION_SUB_TITLE = ' is going to start soon. Please join it online now.'
-ONLINE_EVENT_NOTIFICATION_ROUTE = 'route://browser?link=%s'
-OFFLINE_EVENT_NOTIFICATION_24_H_SUB_TITLE = 'is taking place tomorrow. Please make arrangements to reach there on time.'
-OFFLINE_EVENT_NOTIFICATION_24_H_ROUTE = 'route://chatroom_detail?chatroom_id=%s'
-OFFLINE_EVENT_NOTIFICATION_30_M_SUB_TITLE = 'Your event is starting in 30 minutes'
-OFFLINE_EVENT_NOTIFICATION_30_M_ROUTE = 'route://chatroom_detail?chatroom_id=%s'
 POLL_EXPIRY_NOTIFICATION_SUB_TITLE = 'Your poll ended. Tap to see results'
 POLL_EXPIRY_NOTIFICATION_ROUTE = 'route://poll_chatroom?chatroom_id=%s&poll_end=true'
 
@@ -602,7 +595,7 @@ MEMBER_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
 
 FIVE_DAYS_IN_HOURS = 24 * 5
 
-DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE = 183
+DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE = 190
 DIRECTORY_QUESTIONS_IOS_VERSION_CODE = 1101
 DIRECTORY_QUESTIONS_WEB_VERSION_CODE = 1101
 
@@ -646,3 +639,5 @@ MEMBER_PROFILE_MENU_ITEMS = {
 COMMUNITY_LEVEL_3_TEXT = "Level 3"
 
 IMAGE_URLS_FOR_QUESTION_TITLES = ["Email", "Phone Number", "Phone No."]
+
+CREATE_COMMUNITY_QUESTION_NAME_TITLE = "Name"

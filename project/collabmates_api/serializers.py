@@ -16,7 +16,7 @@ import time
 
 import ast
 from .static_files import *
-from .static_text import months_semi
+from .static_text import months_semi, CREATE_COMMUNITY_QUESTION_NAME_TITLE
 from .user_moderation_rights import check_admin_view_contact_right
 from .branch import create_community_branch_links
 from utility.constants import *
@@ -878,14 +878,8 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['follow_status'] = status['follow_status']
         collabcard_serializer['attending_status'] = status['attending_status']
         collabcard_serializer['is_guest'] = status['is_guest']
-        collabcard_serializer['active'] = False
         collabcard_serializer['is_tagged'] = status['is_tagged']
         collabcard_serializer['secret_chatroom_left'] = status['secret_chatroom_left']
-
-        expiry_time = status['expiry_time']
-
-        if not expiry_time or expiry_time >= TimeUtilities.current_time_in_sec():
-            collabcard_serializer['active'] = True
 
     collabcard_member = get_members_profile([card_instance.user_id], card_instance.community_id,
                                             send_profile=send_profile)
@@ -1007,7 +1001,6 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         'is_guest': False,
         'remove': False,
         'state_instance': None,
-        'expiry_time': None,
         'is_tagged': False,
         'attending_status': False,
         'secret_chatroom_left': False
@@ -1027,7 +1020,6 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
             collabcard_status['is_guest'] = collabcard_state[0].is_guest
             collabcard_status['remove'] = collabcard_state[0].remove
             collabcard_status['state_instance'] = collabcard_state[0]
-            collabcard_status['expiry_time'] = collabcard_state[0].expiry_time
             collabcard_status['is_tagged'] = collabcard_state[0].is_tagged
             collabcard_status['attending_status'] = collabcard_state[0].attending_status
             collabcard_status['secret_chatroom_left'] = collabcard_state[0].secret_chatroom_left
@@ -1039,7 +1031,6 @@ def get_status_of_collabcard(member_id, card, state_instance=None):
         collabcard_status['is_guest'] = state_instance.is_guest
         collabcard_status['remove'] = state_instance.remove
         collabcard_status['state_instance'] = state_instance
-        collabcard_status['expiry_time'] = state_instance.expiry_time
         collabcard_status['is_tagged'] = state_instance.is_tagged
         collabcard_status['attending_status'] = state_instance.attending_status
         collabcard_status['secret_chatroom_left'] = state_instance.secret_chatroom_left
@@ -1280,7 +1271,14 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
     for response in responses:
         # getting the answers of the users who requested to join
         # for the questions that have been asked while requestiong to join in a community
-        response_object = {}
+
+        if all([response.question.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                response.question.is_hidden,
+                response.question.field,
+                response.question.question_state == question_states.PARAGRAPH]):
+            continue
+
+        response_object = dict()
         response_object['key'] = response.question_title
         response_object['value'] = response.question_answer
 
@@ -1607,8 +1605,6 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         block_member = {"title": "Block member",
                         "route": f"route://block_member?community_id={community_id}&member_id={member_id}"}
         community_profile["menu"] = [report_member, block_member]
-        if user_is_owner:
-            community_profile["menu"] = [report_member]
 
     return community_profile
 
@@ -1669,8 +1665,6 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
 
         if profile_detail_api:
             menu.append(report_member)
-            # if not item_member_is_owner:
-            menu.append(block_member)
 
     elif current_user_is_promoter and (item_member_state == member_states.MEMBER or
                                        item_member_state == member_states.PROFILE_UNAVAILABLE):
@@ -1687,14 +1681,11 @@ def get_menu_for_members(current_user_id, item_member_id, community_id, current_
             if not current_user_admin_rights["approve"] and profile_detail_api:
                 menu.append(report_member)
 
-            if profile_detail_api:
-                menu.append(block_member)
-
     else:
         if profile_detail_api:
             menu.append(report_member)
-            # if not item_member_is_owner:
-            menu.append(block_member)
+
+    menu.append(block_member)
 
     return menu
 

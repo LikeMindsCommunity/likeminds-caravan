@@ -498,8 +498,6 @@ class ConversationImpl(ConversationManager):
 
             chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
-            chatroom_state_instance.expiry_time = chatroom_impl.ChatroomHelper.get_chatroom_expiry_time(
-                chatroom_state_instance)
             chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             chatroom_state_instance.save()
 
@@ -1811,7 +1809,6 @@ class ConversationHelper:
             )
 
         if unseen_count > 0:
-            card_state_instance.expiry_time = None
             card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             card_state_instance.save()
 
