@@ -64,7 +64,6 @@ from utility.utils import check_notification_flag, get_first_name_from_name, is_
     decode_option, community_default_image, community_default_thumbnail
 from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
-from ..mails import send_8am_level_mails_to_admin_scheduler
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
 
@@ -1313,11 +1312,6 @@ class CommunityImpl(CommunityManager):
         # Create All member cohort
         CommunityHelper.create_all_member_cohort_for_new_community.delay(self.get_member_id(), community_instance.id)
 
-        # send mails to ask cm to upgrade level
-        send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
-                                                      TimeUtilities.current_time_in_sec(),
-                                                      level=1, day=0, counter=0)
-
         CommunityHelper.send_create_community_welcome_whatsapp_message.delay(user_instance.id,
                                                                              community_instance.id)
         CommunityHelper.send_communtiy_creation_segment_events.delay(user_instance.id,
@@ -1563,10 +1557,6 @@ class CommunityHelper:
                         'sub_title': LEVEL_3_SUB_TITLE,
                         'state': community_level_states.PENDING,
                     })
-                # community managers emails
-                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
-                                                              TimeUtilities.current_time_in_sec(), level=2, day=0,
-                                                              counter=0)
 
     @staticmethod
     def save_level_3_details_in_community(level_instance, community_instance):
@@ -1590,10 +1580,6 @@ class CommunityHelper:
                         'state': community_level_states.PENDING,
                     })
 
-                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
-                                                              TimeUtilities.current_time_in_sec(), level=3, day=0,
-                                                              counter=0)
-
     @staticmethod
     def save_level_4_details_in_community(level_instance, community_instance):
 
@@ -1611,11 +1597,6 @@ class CommunityHelper:
                                                       'state': member_states.ADMIN},
                                             {'actions_required': False,
                                              'updated_at': TimeUtilities.current_time_in_sec()})
-
-                # community managers emails
-                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
-                                                              TimeUtilities.current_time_in_sec(), level=4, day=0,
-                                                              counter=0)
 
     @staticmethod
     def update_community_level_actions(community_instance, action_required_by_promoter, member_count):
