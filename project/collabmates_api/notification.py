@@ -241,6 +241,12 @@ def notification_meta(notification_list, message, calling_notification=""):
         'web': []
     }
 
+    category_dict = message.get('category')
+
+    if category_dict:
+        message['category'] = category_dict.get('category')
+        message['subcategory'] = category_dict.get('subcategory')
+
     notification_payload_list = []
 
     for data in notification_list:
@@ -268,6 +274,9 @@ def notification_meta(notification_list, message, calling_notification=""):
 
             if message.get('category'):
                 message['payload']['category'] = message.get('category')
+
+            if message.get('subcategory'):
+                message['payload']['subcategory'] = message.get('subcategory')
 
             notification_payload_list.append(notification_payload_dict)
 
