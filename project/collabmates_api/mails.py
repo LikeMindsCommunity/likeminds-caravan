@@ -5,6 +5,7 @@ from django.shortcuts import render
 # from django.core.mail import EmailMultiAlternatives
 import time
 # from django.template import Context
+from external_services.email.email_wrapper import MailHelper
 from togther.models import *
 
 from project.celery import app
@@ -74,7 +75,10 @@ def send_feedback_mail_to_webmaster(feedback_id):
     else:
         to = settings.TEAM
 
-    send_email(subject=subject, template=template, to_mails_list=to, reply_to=reply_to)
+    categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.APP_LEVEL,
+                                                                               EmailSubCategories.FEEDBACK)
+
+    send_email(subject=subject, template=template, to_mails_list=to, reply_to=reply_to, categories=categories)
 
 
 @shared_task

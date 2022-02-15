@@ -28,6 +28,8 @@ class EmailCategories:
 
     WELCOME = "Welcome"
 
+    APP_LEVEL = "AppLevel"
+
 
 class EmailSubCategories:
     FREE_EVENT_CREATED = "Free Event created"
@@ -56,3 +58,5 @@ class EmailSubCategories:
     DOWNLOAD_DRIP = "Download drip"
 
     WELCOME = "Welcome"
+
+    FEEDBACK = "Feedback"
