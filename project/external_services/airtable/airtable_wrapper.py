@@ -1,5 +1,5 @@
 from ..airtable.airtable_manager import AirtableManager
-from .constants import JOIN_DATA_WEBHOOK
+from .constants import JOIN_DATA_WEBHOOK, WEBHOOK_TYPES
 import requests
 from ..logging.logging_wrapper import LoggingWrapper
 
@@ -9,7 +9,10 @@ info_logger = LoggingWrapper.get_instance()
 
 class AirtableWrapper(AirtableManager):
 
-    endpoint = JOIN_DATA_WEBHOOK
+    endpoint = None
+
+    def __init__(self, endpoint_type):
+        self.endpoint = WEBHOOK_TYPES[endpoint_type]
 
     def send_data(self, data: dict):
 

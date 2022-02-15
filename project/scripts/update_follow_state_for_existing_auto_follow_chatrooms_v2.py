@@ -1,7 +1,7 @@
 import json
 import time
 from collabmates_api.search.sync import ElasticSearchSync
-from collabmates_api.views import get_expiry_time_of_chatroom, create_chatroom_engagement
+from collabmates_api.views import create_chatroom_engagement
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import ModelUtilities, Collabcard, Members, collabcardState
 from utility.states import member_states, SyncNotificationTypes
@@ -44,11 +44,8 @@ def chatroom_follow(card_state_instance):
 
     from collabmates_api.conversation.conversation_impl import ConversationHelper
 
-    expiry_time = get_expiry_time_of_chatroom(card_state_instance)
-
     card_state_instance.follow_status = status
     card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
-    card_state_instance.expiry_time = expiry_time
     card_state_instance.external_seen = True
     card_state_instance.external_follow = status
     card_state_instance.save()
