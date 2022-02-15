@@ -953,7 +953,7 @@ class TasksHelper:
         link = ChatroomHelper.fetch_chatroom_link(chatroom_instance)
         data_dict = {
             'community_name': community_instance.name,
-            'chatroom_name': chatroom_instance.title,
+            'chatroom_name': chatroom_instance.header,
             'chatroom_link': link,
             'receiver_name': receiver_instance.userinfo.name,
             'sender_name': sender_instance.userinfo.name,
