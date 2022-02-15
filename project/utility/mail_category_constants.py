@@ -60,3 +60,4 @@ class EmailSubCategories:
     WELCOME = "Welcome"
 
     FEEDBACK = "Feedback"
+    VERIFY_MAIL = "Verify email"

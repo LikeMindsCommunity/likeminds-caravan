@@ -373,12 +373,8 @@ def send_verification_mail_for_email_sync(user_name, verification_link, email):
     }
     template = get_template("mails/verify_email_template.html").render(context)
 
-    setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
-
-    categories = [
-        setting_category,
-        f"{setting_category} - {MAIL_CATEGORY_VERIFY_EMAIL}"
-    ]
+    categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.APP_LEVEL,
+                                                                               EmailSubCategories.VERIFY_MAIL)
 
     to = [email]
     send_email(subject, template, to, categories=categories)
