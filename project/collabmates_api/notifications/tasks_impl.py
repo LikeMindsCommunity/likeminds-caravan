@@ -531,7 +531,7 @@ class TasksImpl(TaskManager):
             title = TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
             subcategory = NotificationSubCategories.EVENT_ATTACHMENT_UPLOADED_SUBCATEGORY
 
-        category = NotificationCategories.EVENT_REGISTER_CATEGORY
+        category = NotificationCategories.EVENT_ATTACHMENT_UPLOADED_CATEGORY
         subtitle = SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION
         route = ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION % event_id
 
