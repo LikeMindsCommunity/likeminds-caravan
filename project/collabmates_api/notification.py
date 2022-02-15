@@ -2009,7 +2009,7 @@ def send_notification_for_custom_title_changed(promoter_id, member_id, community
     notification_list = []
 
     user_details = {
-        "id": member_id,
+        "id": int(member_id),
         'fcm_token': member_fcm_token,
         'mobile_os': member_mobile_os,
     }
