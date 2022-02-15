@@ -61,3 +61,4 @@ class EmailSubCategories:
 
     FEEDBACK = "Feedback"
     VERIFY_MAIL = "Verify email"
+    NEW_COMMUNITY = "New Community"

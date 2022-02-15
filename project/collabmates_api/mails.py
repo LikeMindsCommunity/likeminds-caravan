@@ -92,7 +92,10 @@ def send_created_community_email_to_team(context):
     else:
         to = settings.TEAM
 
-    send_email(subject, template, to)
+    categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.APP_LEVEL,
+                                                                               EmailSubCategories.NEW_COMMUNITY)
+
+    send_email(subject, template, to, categories=categories)
 
 
 @shared_task
