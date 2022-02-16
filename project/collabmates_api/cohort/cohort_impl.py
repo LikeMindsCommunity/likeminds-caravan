@@ -5,6 +5,8 @@ from celery import shared_task
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
+from utility.exception_utilities import InvalidMemberIdsException
+from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from ..chatroom.chatroom_impl import ChatroomImpl
 from ..search.sync import ElasticSearchSync
@@ -169,6 +171,7 @@ class CohortImpl(CohortManager):
         filter_list = request_body.get('filter', [])
         community_id = request_body.get('community_id')
 
+        member_ids = CohortHelper.validate_member_ids_or_raise_exception(member_ids)
         cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
 
         if type not in cohort_type_list:
@@ -210,7 +213,7 @@ class CohortImpl(CohortManager):
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
                                                                   'member_id': user_instance})
         if not member_filter:
-            member_ids = [self.get_member_id()]
+            member_ids = [int(self.get_member_id())]
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
             return {'success': True}
@@ -219,7 +222,7 @@ class CohortImpl(CohortManager):
         is_cm = member_instance.state == member_states.ADMIN
 
         if not is_cm:
-            member_ids = [self.get_member_id()]
+            member_ids = [int(self.get_member_id())]
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
             CohortHelper.give_member_rights_when_added_to_cohort(cohort_instance, user_instance)
@@ -945,6 +948,16 @@ class CohortHelper:
             return True
 
         return False
+
+    @staticmethod
+    def validate_member_ids_or_raise_exception(member_ids):
+        try:
+            member_ids = NumberUtilities.convert_list_to_integer_list_or_raise_exception(member_ids)
+
+        except Exception as e:
+            raise InvalidMemberIdsException()
+
+        return member_ids
 
     @staticmethod
     def fetch_user_cohorts_having_filters_with_community_id(community_id, user_instance):
