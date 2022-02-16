@@ -945,3 +945,49 @@ class CohortHelper:
             return True
 
         return False
+
+    @staticmethod
+    def fetch_user_cohorts_having_filters_with_community_id(community_id, user_instance):
+
+        cohort_ids_having_filters = list(ModelUtilities.get_model_filter(CohortFilter, {
+            'cohort__community_id': community_id
+        }).values_list('cohort_id', flat=True).distinct())
+
+        user_cohort_ids = list(ModelUtilities.get_model_filter(CohortMember, {
+            'cohort_id__in': cohort_ids_having_filters,
+            'user': user_instance
+        }).select_related('cohort').values_list('cohort_id', flat=True).distinct())
+
+        CohortHelper.remove_cohort_data_for_user(member_id=user_instance.id, cohort_id_list=user_cohort_ids)
+
+    @staticmethod
+    def remove_cohort_data_for_user(member_id, cohort_id_list):
+        for cohort_id in cohort_id_list:
+            filter_dict = {
+                'cohort_id': cohort_id,
+                'user_id': member_id
+            }
+
+            # check if it can be optimized
+            cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, filter_dict)
+
+            if not cohort_member_filter:
+                continue
+
+            # get cohorts related to chatroom
+            chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {
+                'cohort_id': cohort_id
+            }).prefetch_related('chatroom')
+
+            for chatroom_cohort_instance in chatroom_cohort_filter:
+                chatroom_instance = chatroom_cohort_instance.chatroom
+                chatroom_id = chatroom_instance.id
+
+                try:
+                    chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
+                    chatroom_manager.leave_secret_chatroom(member_id=member_id)
+
+                except Exception as e:
+                    error_logger.error(e.args)
+
+            cohort_member_filter.delete()
