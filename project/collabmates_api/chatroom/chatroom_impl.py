@@ -857,12 +857,22 @@ class ChatroomImpl(ChatroomManager):
                 try:
                     can_access_secret_chatroom = member_id in json.loads(card_instance.secret_chatroom_participants)
 
-                    if not can_access_secret_chatroom:
+                    member_filter = ModelUtilities.get_model_filter(Members, {
+                        'community_id_id': card_instance.community_id,
+                        'member_id_id': member_id
+                    })
+
+                    secret_chatroom_access_for_owner_or_cm = False
+
+                    if member_filter and (member_filter[0].is_owner or member_filter[0].state == member_states.ADMIN):
+                        secret_chatroom_access_for_owner_or_cm = True
+
+                    state_filter_dict = {'card': card_instance, 'user': self.get_member_id(), 'remove': None,
+                                         'secret_chatroom_left': False}
+
+                    if (not can_access_secret_chatroom) and secret_chatroom_access_for_owner_or_cm:
                         can_access_secret_chatroom = ModelUtilities.is_model_filter_exists(collabcardState,
-                                                                                           {'card': card_instance,
-                                                                                            'user': self.get_member_id(),
-                                                                                            'remove': None,
-                                                                                            'secret_chatroom_left': False})
+                                                                                           state_filter_dict)
 
                 except Exception as e:
                     error_logger.error(f"fetch_chatroom - {e.args}")
