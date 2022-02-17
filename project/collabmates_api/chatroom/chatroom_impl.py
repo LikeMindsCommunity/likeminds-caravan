@@ -1546,6 +1546,7 @@ class ChatroomImpl(ChatroomManager):
 
         for data in instructors:
             instance = EventInstructor.create_instance({
+                'name': data.get('name'),
                 'card_instance': card_instance,
                 'about': data.get('about'),
                 'url': data.get('url')
