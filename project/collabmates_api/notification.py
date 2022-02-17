@@ -2802,7 +2802,8 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
             return
 
         creator_dict = {
-            'id': chatroom_instance.user_id
+            'id': chatroom_instance.user_id,
+            'chatroom_id': chatroom_id
         }
 
     elif conversation_id is not None:
@@ -2817,7 +2818,8 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
         chatroom_id = chatroom_instance.id
 
         creator_dict = {
-            'id': conversation_instance.user_id
+            'id': conversation_instance.user_id,
+            'chatroom_id': conversation_instance.card_id
         }
 
     else:
@@ -2829,7 +2831,10 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
         return
 
     # if user reacts on his own message, don't send notification
-    if creator_dict['id'] == reacted_userinfo_instance.user_id_id:
+    if any([creator_dict['id'] == reacted_userinfo_instance.user_id_id,
+            ModelUtilities.get_model_filter(collabcardState, {'user_id': creator_dict['id'],
+                                                              'card_id': creator_dict['chatroom_id'],
+                                                              'mute_status': True})]):
         return
 
     reacted_user_name = reacted_userinfo_instance.name
