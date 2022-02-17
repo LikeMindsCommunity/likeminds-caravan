@@ -16,13 +16,12 @@ class NewCommunities(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     def save(self, *args, **kwargs):
-        if self.created_at == 0:
-            self.created_at = time.time()
-        else:
-            self.updated_at = time.time()
+        current_time = TimeUtilities.current_time_in_sec()
 
-        if self.updated_at == 0:
-            self.updated_at = self.created_at
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
 
         super(NewCommunities, self).save(*args, **kwargs)
 
