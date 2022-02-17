@@ -863,17 +863,9 @@ class ChatroomImpl(ChatroomManager):
                         'member_id_id': member_id
                     })
 
-                    secret_chatroom_access_for_owner_or_cm = False
-
-                    if member_filter and (member_filter[0].is_owner or member_filter[0].state == member_states.ADMIN):
-                        secret_chatroom_access_for_owner_or_cm = True
-
-                    state_filter_dict = {'card': card_instance, 'user': self.get_member_id(), 'remove': None,
-                                         'secret_chatroom_left': False}
-
-                    if (not can_access_secret_chatroom) and secret_chatroom_access_for_owner_or_cm:
-                        can_access_secret_chatroom = ModelUtilities.is_model_filter_exists(collabcardState,
-                                                                                           state_filter_dict)
+                    # Only CM/Owner can access chatroom apart from participants
+                    if member_filter and member_filter[0].state == member_states.ADMIN:
+                        can_access_secret_chatroom = True
 
                 except Exception as e:
                     error_logger.error(f"fetch_chatroom - {e.args}")
