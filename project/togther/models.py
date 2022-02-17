@@ -1075,8 +1075,7 @@ class conversationMemberState(models.Model):
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
-        if self.updated_at == 0:
-            self.updated_at = self.created_at
+        self.updated_at = TimeUtilities.current_time_in_sec()
 
         super(conversationMemberState, self).save(*args, **kwargs)
 
@@ -3028,9 +3027,7 @@ class CommunityJoinDefaultEmail(models.Model):
     def save(self, *args, **kwargs):
 
         current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
-
-        if self.updated_at == 0:
-            self.updated_at = current_time_in_ms
+        self.updated_at = current_time_in_ms
 
         if self.created_at == 0:
             self.created_at = current_time_in_ms
@@ -3057,8 +3054,7 @@ class CommunityJoinEmail(models.Model):
 
         current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
 
-        if self.updated_at == 0:
-            self.updated_at = current_time_in_ms
+        self.updated_at = current_time_in_ms
 
         if self.created_at == 0:
             self.created_at = current_time_in_ms
