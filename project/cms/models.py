@@ -16,7 +16,7 @@ class NewCommunities(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     def save(self, *args, **kwargs):
-        current_time = time.time()
+        current_time = TimeUtilities.current_time_in_sec()
 
         if self.created_at == 0:
             self.created_at = current_time
