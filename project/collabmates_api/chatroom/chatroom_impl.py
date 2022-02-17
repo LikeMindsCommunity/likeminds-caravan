@@ -864,7 +864,7 @@ class ChatroomImpl(ChatroomManager):
                     })
 
                     # Only CM/Owner can access chatroom apart from participants
-                    if member_filter and (member_filter[0].is_owner or member_filter[0].state == member_states.ADMIN):
+                    if member_filter and member_filter[0].state == member_states.ADMIN:
                         can_access_secret_chatroom = True
 
                 except Exception as e:
