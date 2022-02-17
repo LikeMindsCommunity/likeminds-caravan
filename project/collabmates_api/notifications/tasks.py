@@ -450,7 +450,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                           from_email=context['from_email'],
                                                           to_mails_list=context['to_mails_list'],
                                                           reply_to=context['reply_to'],
-                                                          from_name=context['from_name'])
+                                                          from_name=context['from_name'],
+                                                          categories=context['categories'])
 
         else:
             info_logger.info("No email notification scheuduled for event_type = %s | chatroom_deleted = %s | \
@@ -567,6 +568,7 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
             MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
                                                           from_email=context['from_email'],
                                                           to_mails_list=context['to_mails_list'],
+                                                          categories=context['categories'],
                                                           reply_to=context['reply_to'])
 
             TasksHelper.update_user_email_send_status(receiver_id, chatroom_id, chatroom_not_opened_type)
@@ -585,4 +587,5 @@ def send_mail_for_first_time_edit_community_questions(user_id, community_id):
         send_email_response = MailWrapper.send_email.delay(context.get('mail_subject'),
                                                            context.get('mail_template'),
                                                            context.get('from_email'),
+                                                           categories=context.get('mail_categories'),
                                                            reply_to=context.get('reply_to_email'))

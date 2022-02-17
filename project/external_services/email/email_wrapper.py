@@ -1,12 +1,14 @@
 import os
 
 import sendgrid
+from django.conf import settings
 from sendgrid import Email
-from sendgrid.helpers.mail import Mail, Personalization, Content
+from sendgrid.helpers.mail import Mail, Personalization, Content, Category
 
 from rest_framework import status as status_codes
 
 from collabmates_api.notifications.constants import SENDER_NAME_FOR_EMAIL_COMMS
+from utility.mail_category_constants import MAIL_CATEGORY_BETA, MAIL_CATEGORY_PROD
 from ..email.email_manager import MailManager
 from django.core.mail import EmailMultiAlternatives
 from celery import shared_task
@@ -53,7 +55,7 @@ class MailWrapper(MailManager):
     @staticmethod
     @shared_task
     def send_email_with_custom_from_email(subject, template, to_mails_list, from_email=None, reply_to=None,
-                                          from_name=SENDER_NAME_FOR_EMAIL_COMMS):
+                                          categories=None, from_name=SENDER_NAME_FOR_EMAIL_COMMS):
 
         if not from_email:
             from_email = MailWrapper.from_email
@@ -75,6 +77,10 @@ class MailWrapper(MailManager):
         if reply_to:
             mail.reply_to = Email(email=reply_to)
 
+        if categories:
+            for category in categories:
+                mail.add_category(Category(category))
+
         mail.add_content(Content('text/html', template))
 
         sendgrid_api_client = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
@@ -91,3 +97,15 @@ class MailWrapper(MailManager):
             error_logger.error(e.__dict__)
 
         return False
+
+
+class MailHelper:
+
+    @staticmethod
+    def get_email_category_list_using_category_subcategory(category, subcategory):
+        categories = []
+        environment = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
+        categories.append(environment)
+        categories.append(f'{environment} - {category}')
+        categories.append(f'{environment} - {category} - {subcategory}')
+        return categories

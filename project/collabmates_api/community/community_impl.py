@@ -19,8 +19,9 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     add_community_upload_image_analytics, create_introduction_question_in_community, edit_community_data, get_community_creator
 
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
+from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.number_utilities import NumberUtilities
-from external_services.email.email_wrapper import MailWrapper
+from external_services.email.email_wrapper import MailWrapper, MailHelper
 from external_services.airtable.airtable_wrapper import AirtableWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
@@ -63,7 +64,6 @@ from utility.utils import check_notification_flag, get_first_name_from_name, is_
     decode_option, community_default_image, community_default_thumbnail
 from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
-from ..mails import send_8am_level_mails_to_admin_scheduler
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
 
@@ -1192,7 +1192,12 @@ class CommunityImpl(CommunityManager):
 
         mail_data = CommunityImpl._fetch_join_email_data(community_id, community_instance)
 
-        MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, reply_to=mail_data["reply_to"])
+
+        mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
+                                                                                        EmailSubCategories.WELCOME)
+
+        MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, categories=mail_categories,
+                                     reply_to=mail_data["reply_to"])
 
     @staticmethod
     def _fetch_join_email_data(community_id, community_instance) -> {}:
@@ -1306,11 +1311,6 @@ class CommunityImpl(CommunityManager):
 
         # Create All member cohort
         CommunityHelper.create_all_member_cohort_for_new_community.delay(self.get_member_id(), community_instance.id)
-
-        # send mails to ask cm to upgrade level
-        send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
-                                                      TimeUtilities.current_time_in_sec(),
-                                                      level=1, day=0, counter=0)
 
         CommunityHelper.send_create_community_welcome_whatsapp_message.delay(user_instance.id,
                                                                              community_instance.id)
@@ -1557,10 +1557,6 @@ class CommunityHelper:
                         'sub_title': LEVEL_3_SUB_TITLE,
                         'state': community_level_states.PENDING,
                     })
-                # community managers emails
-                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
-                                                              TimeUtilities.current_time_in_sec(), level=2, day=0,
-                                                              counter=0)
 
     @staticmethod
     def save_level_3_details_in_community(level_instance, community_instance):
@@ -1584,10 +1580,6 @@ class CommunityHelper:
                         'state': community_level_states.PENDING,
                     })
 
-                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
-                                                              TimeUtilities.current_time_in_sec(), level=3, day=0,
-                                                              counter=0)
-
     @staticmethod
     def save_level_4_details_in_community(level_instance, community_instance):
 
@@ -1605,11 +1597,6 @@ class CommunityHelper:
                                                       'state': member_states.ADMIN},
                                             {'actions_required': False,
                                              'updated_at': TimeUtilities.current_time_in_sec()})
-
-                # community managers emails
-                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id,
-                                                              TimeUtilities.current_time_in_sec(), level=4, day=0,
-                                                              counter=0)
 
     @staticmethod
     def update_community_level_actions(community_instance, action_required_by_promoter, member_count):
@@ -2375,11 +2362,15 @@ class CommunityHelper:
 
         mail_subject = GETTING_STARTED_CM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
+        mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
+            EmailCategories.CREATE_COMMUNITY, EmailSubCategories.GETTING_STARTED)
+
         mail_body = {
             'subject': mail_subject,
             'mail_body': mail_template,
             'mail_recipient_list': [user_instance.userinfo.email],
-            'reply_to': [INVITE_MEMBER_REPLY_EMAIL]
+            'reply_to': [INVITE_MEMBER_REPLY_EMAIL],
+            'mail_categories': mail_categories
         }
 
         return mail_body
@@ -2512,10 +2503,13 @@ class CommunityHelper:
             })
 
             mail_subject = INVITE_MEMBERS_SUBJECT.format(community_instance.name)
+            mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.INVITE_MEMBER, EmailSubCategories.WITH_JOIN_CODE)
 
             send_email_response = MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
                                                                                       template=mail_template,
                                                                                       to_mails_list=[valid_email_id],
+                                                                                      categories=mail_categories,
                                                                                       reply_to=INVITE_MEMBER_REPLY_EMAIL)
 
     @staticmethod

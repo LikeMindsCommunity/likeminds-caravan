@@ -10,3 +10,55 @@ MAIL_CATEGORY_CREATE_DIRECTORY = "Create Directory"
 MAIL_CATEGORY_GET_10_MEMBERS = "Get 10 members"
 MAIL_CATEGORY_INVITE_MEMBERS = "Invite members"
 MAIL_CATEGORY_VERIFY_EMAIL = "Verify email"
+
+
+class EmailCategories:
+    EVENT_REGISTER = "Event Register"
+    EVENT_ATTENDANCE = "Event Attendance"
+    POST_EVENT = "Post Event"
+
+    ENGAGEMENT = "Engagement"
+
+    CHATROOM = "Chatroom"
+
+    CREATE_COMMUNITY = "Create community"
+    INVITE_MEMBER = "Invite member"
+
+    DOWNLOAD_APP = "Download app"
+
+    WELCOME = "Welcome"
+
+    APP_LEVEL = "AppLevel"
+
+
+class EmailSubCategories:
+    FREE_EVENT_CREATED = "Free Event created"
+    PAID_EVENT_CREATED = "Paid Event created"
+    FREE_EVENT_REGISTRATION_LAST_CALL = "Free Event registration - Last call"
+    PAID_EVENT_REGISTRATION_LAST_CALL = "Paid Event registration - Last call"
+    FREE_EVENT_REGISTRATION_SUCCESSFUL = "Free Event Registration successful"
+    PAID_EVENT_REGISTRATION_SUCCESSFUL = "Paid Event Registration successful"
+    DAY_OF_EVENT = "Day of event"
+    EVENT_ATTENDANCE = "Event attendance"
+    EVENT_ATTACHMENTS = "Event attachments"
+
+    CHATROOM_TAG = "Chatroom Tag"
+    DM = "DM"
+
+    POLL_RESULTS = "Poll Result"
+
+    DROPOFF = "Dropoff"
+    GETTING_STARTED = "Getting started"
+    FIRST_EVENT_CREATED = "First Event Created"
+    JOIN_FORM_CREATED = "Join Form Created"
+    FIRST_PLAN_CREATED = "First Plan Created"
+    WITH_JOIN_CODE = "With join code"
+
+    REQUEST_ACCEPTED = "Request accepted"
+    DOWNLOAD_DRIP = "Download drip"
+
+    WELCOME = "Welcome"
+
+    FEEDBACK = "Feedback"
+    VERIFY_MAIL = "Verify email"
+    NEW_COMMUNITY = "New Community"

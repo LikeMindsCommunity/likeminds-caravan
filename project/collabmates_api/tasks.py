@@ -37,7 +37,7 @@ from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARD
     DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE, DIRECTORY_QUESTIONS_IOS_VERSION_CODE, DIRECTORY_QUESTIONS_WEB_VERSION_CODE
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
-from external_services.email.email_wrapper import MailWrapper
+from external_services.email.email_wrapper import MailWrapper, MailHelper
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -373,111 +373,11 @@ def send_verification_mail_for_email_sync(user_name, verification_link, email):
     }
     template = get_template("mails/verify_email_template.html").render(context)
 
-    setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
-
-    categories = [
-        setting_category,
-        f"{setting_category} - {MAIL_CATEGORY_VERIFY_EMAIL}"
-    ]
+    categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.APP_LEVEL,
+                                                                               EmailSubCategories.VERIFY_MAIL)
 
     to = [email]
     send_email(subject, template, to, categories=categories)
-
-
-@shared_task
-def send_chatroom_owner_mail(user_id, card_id, time_in_hrs):
-    state_filter = ModelUtilities.get_model_filter(collabcardState, {'card_id': card_id, 'user_id': user_id})
-
-    last_conversation_id = -1
-    message_time = 0
-
-    if state_filter:
-        state_instance = state_filter[0]
-        last_conversation = state_instance.last_seen_conversation
-
-        if last_conversation:
-            last_conversation_id = last_conversation.id
-            message_time = last_conversation.created_at
-
-    celerybeatask = CeleryBeatTask()
-    kwargs = {}
-    task_name = str(card_id) + '_send_chatroom_owner_mail'
-    celerybeatask.terminate_task(task_name)
-    task_path = 'collabmates_api.tasks.send_chatroom_owner_mail_scheduled'
-    args = [user_id, card_id, last_conversation_id, message_time]
-
-    date_time = time.time() + (time_in_hrs * 60 * 60)
-    # date_time = time.time() + 60
-
-    celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
-                                            date_time=date_time, interval=False, crontab=True)
-    # print('scheduled')
-
-
-@app.task
-def send_chatroom_owner_mail_scheduled(user_id, card_id, last_conversation_id, message_time):
-    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
-    email = get_user_email(user_id)
-
-    state_filter = ModelUtilities.get_model_filter(collabcardState, {'card_id': card_id, 'user_id': user_id})
-
-    new_conversation_id = -1
-
-    if state_filter:
-        state_instance = state_filter[0]
-        new_conversation_id = state_instance.last_seen_conversation_id
-
-    if new_conversation_id == last_conversation_id:
-        notification_list = [
-            'mail_send_chatroom_owner_mail'
-        ]
-
-        if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
-            number_of_messages = ModelUtilities.get_model_filter(card_answers, {'card__id': card_id,
-                                                                                'created_at__gte': message_time}).count()
-
-            if number_of_messages == 1:
-                subject = str(user_instance.userinfo.name) + ", " + str(
-                    number_of_messages) + " message is waiting for you!"
-
-            else:
-                subject = str(user_instance.userinfo.name) + ", " + str(
-                    number_of_messages) + " messages are waiting for you!"
-
-            email_context = {
-                'subject': subject,
-                'member_name': user_instance.userinfo.name,
-                'community_name': card_instance.community.name,
-                'card_name': get_title_from_collabcard(card_instance),
-                'android_app_download_link': android_app_download_link,
-                'ios_app_download_link': ios_app_download_link,
-                'playstore_image': GOOGLE_PLAYSTORE,
-                'applestore_image': APPLE_APPSTORE,
-                'app_image': APP_LOGO,
-                'cta_url': url + '/collabcard/' + str(card_id),
-                'number_of_messages': number_of_messages,
-                'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
-                    user_id) + '&code=mail_send_chatroom_owner_mail',
-            }
-            template = get_template("mails/owner_inactive_email.html").render(email_context)
-
-            to = [email]
-
-            setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
-
-            categories = [
-                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT} - {MAIL_CATEGORY_MESSAGE_WAITING}",
-                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT}",
-                setting_category,
-            ]
-
-            send_email(subject, template, to, categories=categories)
-
-            flag = memberNotificationFlag.objects.get(member_id=user_id, code='mail_card_owner_inactivity',
-                                                      card=card_instance)
-            flag.flag = False
-            flag.save()
 
 
 @shared_task
@@ -493,7 +393,7 @@ def send_community_confirmation_email(user_id, community_id):
     if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
         subject = user_instance.userinfo.name + ', Congratulations, your request has been approved!'
         email_context = {
-            'subject': user_instance.userinfo.name + ', Congratulations, your request has been approved!',
+            'subject': subject,
             'member_name': user_instance.userinfo.name,
             'community_name': community_instance.name,
             'android_app_download_link': android_app_download_link,
@@ -507,28 +407,28 @@ def send_community_confirmation_email(user_id, community_id):
         }
         template = get_template("mails/community_confirmation_email.html").render(email_context)
 
-        to = [email]
-        # to = ['himanshu@likeminds.community']
+        categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.DOWNLOAD_APP,
+                                                                                   EmailSubCategories.REQUEST_ACCEPTED)
 
-        send_email(subject, template, to)
+        to = [email]
+
+        send_email(subject, template, to, categories=categories)
         print(email_context)
-        celerybeatask = CeleryBeatTask()
+        celery_beat_task = CeleryBeatTask()
         task_name = str(user_id) + "_" + str(community_id) + "_send_community_confirmation_email_2"
-        celerybeatask.terminate_task(task_name)
+        celery_beat_task.terminate_task(task_name)
         args = [user_id, community_id, task_name]
         task_path = "collabmates_api.tasks.send_community_confirmation_email_2"
 
-        # date_time = time.time() + 80
         date_time = time.time() + (3 * 24 * 60 * 60)
 
         kwargs = {}
-        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
-                                                date_time=date_time, interval=False, crontab=True)
+        celery_beat_task.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                   date_time=date_time, interval=False, crontab=True)
 
 
 @app.task
 def send_community_confirmation_email_2(user_id, community_id, task_name, *args, **kwargs):
-    print("here")
     user_instance = User.objects.get(pk=user_id)
     community_instance = Community.objects.get(id=community_id)
 
@@ -541,7 +441,7 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
     if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
         subject = "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬'
         email_context = {
-            'subject': "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬',
+            'subject': subject,
             'member_name': user_instance.userinfo.name,
             'community_name': community_instance.name,
             'android_app_download_link': android_app_download_link,
@@ -556,17 +456,19 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
         template = get_template("mails/community_confirmation_email_2.html").render(email_context)
 
         to = [email]
-        # to = ['himanshu@likeminds.community']
+        categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.DOWNLOAD_APP,
+                                                                                   EmailSubCategories.DOWNLOAD_DRIP)
 
-        send_email(subject, template, to)
+        send_email(subject, template, to, categories=categories)
         print(email_context)
-    celerybeatask = CeleryBeatTask()
-    celerybeatask.terminate_task(task_name)
+
+    celery_beat_task = CeleryBeatTask()
+    celery_beat_task.terminate_task(task_name)
 
 
 @app.task
 def send_poll_results_announcement_mail(card_id, task_name):
-    """ function to send poll reuslts annoucement mail for users who missed or didn't see the poll results yet """
+    """ function to send poll results announcement mail for users who missed or didn't see the poll results yet """
 
     card_instance = Collabcard.objects.get(pk=card_id)
 
@@ -662,13 +564,8 @@ def send_poll_results_announcement_mail(card_id, task_name):
                                          to)
             msg.attach_alternative(template, "text/html")
 
-            setting_category = MAIL_CATEGORY_BETA if settings.IS_BETA else MAIL_CATEGORY_PROD
-
-            categories = [
-                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT} - {MAIL_CATEGORY_POLL_RESULTS}",
-                f"{setting_category} - {MAIL_CATEGORY_USER_ENGAGEMENT}",
-                setting_category,
-            ]
+            categories = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.CHATROOM, EmailSubCategories.POLL_RESULTS)
 
             msg.categories = categories
 
@@ -807,6 +704,7 @@ def send_cm_onboarding_getting_started_email():
             MailWrapper.send_email.delay(subject=mail_body.get('subject'),
                                          template=mail_body.get('mail_body'),
                                          to_mails_list=mail_body.get('mail_recipient_list'),
+                                         categories=mail_body.get('mail_categories'),
                                          reply_to=mail_body.get('reply_to'))
 
             user_email_status_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
