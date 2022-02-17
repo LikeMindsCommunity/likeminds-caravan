@@ -1885,6 +1885,9 @@ def remove_from_member(request):
                         send_notification_for_removed_member.delay(admin_id=member_id,
                                                                    removed_user_id=member, community_id=community_id)
 
+                        from collabmates_api.cohort.cohort_impl import CohortHelper
+                        CohortHelper.fetch_user_cohorts_having_filters_with_community_id(community_id, user_instance)
+
                         info_logger.info(
                             f"REMOVE_MEMBER_API (REMOVED CASE) -current user id = {member_id}, user id = {member}"
                             f", community id = {community_id}")
@@ -1959,6 +1962,9 @@ def remove_from_member(request):
 
             remove_all_member_rights(community_instance, current_user_instance)
             remove_all_manager_rights(community_instance, current_user_instance)
+
+            from collabmates_api.cohort.cohort_impl import CohortHelper
+            CohortHelper.fetch_user_cohorts_having_filters_with_community_id(community_id, current_user_instance)
 
             send_sync_notification.delay({'community_id': community_id,
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
