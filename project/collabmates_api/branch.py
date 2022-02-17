@@ -86,7 +86,7 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
             private_url = base_url + f'?aj={aj}'
 
         long_url_item = create_link_item(private_url, community_instance, "AppBackend", "CommunityPrivate",
-                                         private=True)
+                                         private=True, is_free_trial=True)
         data.append(long_url_item)
 
         directory_url = base_url + f'?aj={aj}&source=members_directory'
@@ -165,7 +165,7 @@ def get_community_image(community):
         return APP_LOGO
 
 
-def create_link_item(base_url, community, channel, feature, private=False):
+def create_link_item(base_url, community, channel, feature, private=False, is_free_trial=False):
     link_item = {
         "channel": channel,
         "feature": feature,
@@ -190,11 +190,19 @@ def create_link_item(base_url, community, channel, feature, private=False):
 
     fallback_url = desktop_url = 'https://%s' % base_url
 
-    if community.is_paid and feature == BRANCH_FEATURE_PUBLIC_LINK:
-        link_item["data"]['$web_only'] = True
-        link_item["data"]['$ios_url'] = fallback_url
-        link_item["data"]['$android_url'] = fallback_url
-        link_item["data"]['$android_deeplink_path'] = fallback_url
+    if community.is_paid:
+
+        if feature == BRANCH_FEATURE_PUBLIC_LINK:
+            link_item["data"]['$web_only'] = True
+            link_item["data"]['$ios_url'] = fallback_url
+            link_item["data"]['$android_url'] = fallback_url
+            link_item["data"]['$android_deeplink_path'] = fallback_url
+
+        elif feature == BRANCH_FEATURE_PRIVATE_LINK and is_free_trial:
+            link_item["data"]['$web_only'] = True
+            link_item["data"]['$ios_url'] = fallback_url
+            link_item["data"]['$android_url'] = fallback_url
+            link_item["data"]['$android_deeplink_path'] = fallback_url
 
     """
     redirect to web in case of member directory 
