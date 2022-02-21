@@ -75,3 +75,10 @@ class InvalidSecretChatroomParticipantsException(BaseException):
         'success': False,
         'error_message': "invalid parameter: secret_chatroom_participants"
     }
+
+
+class InvalidMemberIdsException(BaseException):
+    detail = {
+        'success': False,
+        'error_message': "invalid parameter: member_ids"
+    }

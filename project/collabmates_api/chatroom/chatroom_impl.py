@@ -13,6 +13,7 @@ from django.conf import settings
 from external_services.calender.calendar_impl import CalendarImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.api_client import ApiClient
+from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_PLACEHOLDER_USER_ROUTE, \
     SUBSCRIPTION_VALIDATE_EVENT_ONLINE_LINK, EVENT_CARD_MAIL_DESCRIPTION, CHATROOM_URL, MAIL_EVENT_NOTIFICATION, \
     IMAGE_LINK_FOR_NO_EVENTS_FOUND, TITLE_FOR_NO_UPCOMING_EVENTS_FOUND, TITLE_FOR_NO_PAST_EVENTS_FOUND, \
@@ -61,7 +62,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
-from external_services.email.email_wrapper import MailWrapper
+from external_services.email.email_wrapper import MailWrapper, MailHelper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types
@@ -857,12 +858,14 @@ class ChatroomImpl(ChatroomManager):
                 try:
                     can_access_secret_chatroom = member_id in json.loads(card_instance.secret_chatroom_participants)
 
-                    if not can_access_secret_chatroom:
-                        can_access_secret_chatroom = ModelUtilities.is_model_filter_exists(collabcardState,
-                                                                                           {'card': card_instance,
-                                                                                            'user': self.get_member_id(),
-                                                                                            'remove': None,
-                                                                                            'secret_chatroom_left': False})
+                    member_filter = ModelUtilities.get_model_filter(Members, {
+                        'community_id_id': card_instance.community_id,
+                        'member_id_id': member_id
+                    })
+
+                    # Only CM/Owner can access chatroom apart from participants
+                    if member_filter and member_filter[0].state == member_states.ADMIN:
+                        can_access_secret_chatroom = True
 
                 except Exception as e:
                     error_logger.error(f"fetch_chatroom - {e.args}")
@@ -3638,6 +3641,8 @@ class ChatroomHelper:
 
         if not community_get_started_instances:
             mail_subject = FIRST_EVENT_CM_MAIL_SUBJECT.format(card_instance.user.userinfo.name)
+            mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.CREATE_COMMUNITY, EmailSubCategories.FIRST_EVENT_CREATED)
 
             branch_link = create_community_feed_url_for_cm_onboarding(card_instance.community)
 
@@ -3653,6 +3658,7 @@ class ChatroomHelper:
 
             send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
                                                                [card_instance.user.userinfo.email],
+                                                               categories=mail_categories,
                                                                reply_to=[FIRST_EVENT_CM_REPLY_EMAIL])
 
     @staticmethod
