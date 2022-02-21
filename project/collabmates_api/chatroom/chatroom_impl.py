@@ -608,7 +608,7 @@ class ChatroomImpl(ChatroomManager):
         create_context['date_time'] = req_body.get('date_time')
         create_context['end_date'] = req_body.get('end_date', 0)
         create_context['is_paid'] = req_body.get('is_paid', False)
-        create_context['access'] = req_body.get('access', event_access.COMMUNITY_MEMBERS)
+        create_context['access'] = req_body.get('access')
         create_context['type'] = req_body.get('type')
         create_context['attachment_count'] = req_body.get('attachment_count', 0)
         create_context['co_hosts'] = json.dumps(req_body['co_hosts']) if req_body.get('co_hosts') else None
