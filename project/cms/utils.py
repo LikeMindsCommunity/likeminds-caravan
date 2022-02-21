@@ -70,6 +70,7 @@ def find_uninstall_devices():
         non_web_devices = user_devices.filter(Q(user=user) & (~Q(mobile_os=PLATFORM_CODE_WEB)))
         user_total_devices = user_devices.filter(user=user).count()
         user_web_devices = user_devices.filter(user=user, mobile_os=PLATFORM_CODE_WEB).count()
+
         flag_installed = False
         token_list = get_user_tokens(non_web_devices)
 

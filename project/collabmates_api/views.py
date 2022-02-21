@@ -1307,9 +1307,6 @@ def update_community_actions(community_instance):
                 community_level_filter.filter(level="Level 3").update(title=LEVEL_3_TITLE,
                                                                       sub_title=LEVEL_3_SUB_TITLE,
                                                                       state=community_level_states.PENDING)
-                # community managers emails
-                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=2, day=0,
-                                                              counter=0)
 
         elif instance.level == "Level 3" and instance.state == community_level_states.PENDING:
 
@@ -1324,9 +1321,6 @@ def update_community_actions(community_instance):
                 community_level_filter.filter(level="Level 4").update(title=LEVEL_4_TITLE,
                                                                       sub_title=LEVEL_4_SUB_TITLE,
                                                                       state=community_level_states.PENDING)
-                # community managers emails
-                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=3, day=0,
-                                                              counter=0)
 
         elif instance.level == "Level 4" and instance.state == community_level_states.PENDING:
 
@@ -1338,10 +1332,6 @@ def update_community_actions(community_instance):
                 instance.state = community_level_states.COMPLETE
                 promoter_filter.update(actions_required=False)
                 instance.save()
-                # community managers emails
-                send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=4, day=0,
-                                                              counter=0)
-
 
 def set_levels_on_ctc(community_instance, level, promoter=False):
     '''updating levels based on different call to actions'''
@@ -1895,6 +1885,9 @@ def remove_from_member(request):
                         send_notification_for_removed_member.delay(admin_id=member_id,
                                                                    removed_user_id=member, community_id=community_id)
 
+                        from collabmates_api.cohort.cohort_impl import CohortHelper
+                        CohortHelper.fetch_user_cohorts_having_filters_with_community_id(community_id, user_instance)
+
                         info_logger.info(
                             f"REMOVE_MEMBER_API (REMOVED CASE) -current user id = {member_id}, user id = {member}"
                             f", community id = {community_id}")
@@ -1969,6 +1962,9 @@ def remove_from_member(request):
 
             remove_all_member_rights(community_instance, current_user_instance)
             remove_all_manager_rights(community_instance, current_user_instance)
+
+            from collabmates_api.cohort.cohort_impl import CohortHelper
+            CohortHelper.fetch_user_cohorts_having_filters_with_community_id(community_id, current_user_instance)
 
             send_sync_notification.delay({'community_id': community_id,
                                           'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -2527,9 +2523,6 @@ def create_community_version_1(request):
 
         if cohort_response.get('error_message'):
             error_logger.error(cohort_response)
-
-        # send mails to ask cm to upgrade level
-        send_8am_level_mails_to_admin_scheduler.delay(community_instance.id, time.time(), level=1, day=0, counter=0)
 
         community_serializer = CommunitySerializerV1(community_instance, context={"current_user_id": member_id},
                                                      many=False).data

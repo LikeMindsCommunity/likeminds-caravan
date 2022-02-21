@@ -5,6 +5,8 @@ from celery import shared_task
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
+from utility.exception_utilities import InvalidMemberIdsException
+from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from ..chatroom.chatroom_impl import ChatroomImpl
 from ..search.sync import ElasticSearchSync
@@ -169,6 +171,7 @@ class CohortImpl(CohortManager):
         filter_list = request_body.get('filter', [])
         community_id = request_body.get('community_id')
 
+        member_ids = CohortHelper.validate_member_ids_or_raise_exception(member_ids)
         cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
 
         if type not in cohort_type_list:
@@ -210,7 +213,7 @@ class CohortImpl(CohortManager):
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
                                                                   'member_id': user_instance})
         if not member_filter:
-            member_ids = [self.get_member_id()]
+            member_ids = [int(self.get_member_id())]
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
             return {'success': True}
@@ -219,7 +222,7 @@ class CohortImpl(CohortManager):
         is_cm = member_instance.state == member_states.ADMIN
 
         if not is_cm:
-            member_ids = [self.get_member_id()]
+            member_ids = [int(self.get_member_id())]
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
             CohortHelper.give_member_rights_when_added_to_cohort(cohort_instance, user_instance)
@@ -945,3 +948,59 @@ class CohortHelper:
             return True
 
         return False
+
+    @staticmethod
+    def validate_member_ids_or_raise_exception(member_ids):
+        try:
+            member_ids = NumberUtilities.convert_list_to_integer_list_or_raise_exception(member_ids)
+
+        except Exception as e:
+            raise InvalidMemberIdsException()
+
+        return member_ids
+
+    @staticmethod
+    def fetch_user_cohorts_having_filters_with_community_id(community_id, user_instance):
+
+        cohort_ids_having_filters = list(ModelUtilities.get_model_filter(CohortFilter, {
+            'cohort__community_id': community_id
+        }).values_list('cohort_id', flat=True).distinct())
+
+        user_cohort_ids = list(ModelUtilities.get_model_filter(CohortMember, {
+            'cohort_id__in': cohort_ids_having_filters,
+            'user': user_instance
+        }).select_related('cohort').values_list('cohort_id', flat=True).distinct())
+
+        CohortHelper.remove_cohort_data_for_user(member_id=user_instance.id, cohort_id_list=user_cohort_ids)
+
+    @staticmethod
+    def remove_cohort_data_for_user(member_id, cohort_id_list):
+        for cohort_id in cohort_id_list:
+            filter_dict = {
+                'cohort_id': cohort_id,
+                'user_id': member_id
+            }
+
+            # check if it can be optimized
+            cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, filter_dict)
+
+            if not cohort_member_filter:
+                continue
+
+            # get cohorts related to chatroom
+            chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {
+                'cohort_id': cohort_id
+            }).prefetch_related('chatroom')
+
+            for chatroom_cohort_instance in chatroom_cohort_filter:
+                chatroom_instance = chatroom_cohort_instance.chatroom
+                chatroom_id = chatroom_instance.id
+
+                try:
+                    chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
+                    chatroom_manager.leave_secret_chatroom(member_id=member_id)
+
+                except Exception as e:
+                    error_logger.error(e.args)
+
+            cohort_member_filter.delete()

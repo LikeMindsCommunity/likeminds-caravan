@@ -4,9 +4,11 @@ from django.conf import settings
 from django.template.loader import get_template
 
 from external_services.calender.calendar_impl import CalendarImpl
+from external_services.email.email_wrapper import MailHelper
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
     userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted, \
-    EventGoogleCalendarLogs, removedMembers
+     EventGoogleCalendarLogs, removedMembers
+from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
     user_email_send_status_types, event_access, card_types, get_started_types
@@ -531,7 +533,7 @@ class TasksImpl(TaskManager):
             title = TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION % event_name
             subcategory = NotificationSubCategories.EVENT_ATTACHMENT_UPLOADED_SUBCATEGORY
 
-        category = NotificationCategories.EVENT_REGISTER_CATEGORY
+        category = NotificationCategories.EVENT_ATTACHMENT_UPLOADED_CATEGORY
         subtitle = SUB_TITLE_EVENT_ATTACHMENT_APP_NOTIICATION
         route = ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION % event_id
 
@@ -763,8 +765,13 @@ class TasksHelper:
 
             if is_paid_event:
                 context['template'] = get_template("mails/event_comms/paid-event-created.html").render(data_dict)
+                context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
+                    EmailCategories.EVENT_REGISTER, EmailSubCategories.PAID_EVENT_CREATED)
+
             else:
                 context['template'] = get_template("mails/event_comms/free-event-created.html").render(data_dict)
+                context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
+                    EmailCategories.EVENT_REGISTER, EmailSubCategories.FREE_EVENT_CREATED)
 
         elif event_type == EVENT_TYPE.LAST_CALL:
             context['subject'] = SUBJECT_EVENT_LAST_CALL_MAIL
@@ -776,20 +783,32 @@ class TasksHelper:
                 data_dict['event_cost'] = event_cost
 
                 context['template'] = get_template("mails/event_comms/paid-event-last-call.html").render(data_dict)
+                context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
+                    EmailCategories.EVENT_REGISTER, EmailSubCategories.PAID_EVENT_REGISTRATION_LAST_CALL)
+
             else:
                 context['template'] = get_template("mails/event_comms/free-event-last-call.html").render(data_dict)
+                context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
+                    EmailCategories.EVENT_REGISTER, EmailSubCategories.FREE_EVENT_REGISTRATION_LAST_CALL)
 
         elif event_type == EVENT_TYPE.REGISTRATION:
             context['subject'] = SUBJECT_EVENT_REGISTRATION_MAIL
 
             if is_paid_event:
                 context['template'] = get_template("mails/event_comms/paid-event-reg-success.html").render(data_dict)
+                context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
+                    EmailCategories.EVENT_REGISTER, EmailSubCategories.PAID_EVENT_REGISTRATION_SUCCESSFUL)
+
             else:
                 context['template'] = get_template("mails/event_comms/free-event-reg-success.html").render(data_dict)
+                context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
+                    EmailCategories.EVENT_REGISTER, EmailSubCategories.FREE_EVENT_REGISTRATION_SUCCESSFUL)
 
         elif event_type == EVENT_TYPE.ATTENDANCE_9_AM:
             context['subject'] = SUBJECT_EVENT_ATTENDANCE_MAIL
             context['template'] = get_template("mails/event_comms/event-attendance.html").render(data_dict)
+            context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.EVENT_ATTENDANCE, EmailSubCategories.DAY_OF_EVENT)
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTENDEES:
             attended_members_list = TasksHelper.get_list_of_members_who_attended_event(event_instance)
@@ -800,10 +819,14 @@ class TasksHelper:
             context['subject'] = SUBJECT_POST_EVENT_ATTENDEES_MAIL % event_name
             context['reply_to'] = SENDER_EMAIL_FOR_EMAIL_COMMS
             context['template'] = get_template("mails/event_comms/post-event-attendees.html").render(data_dict)
+            context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.POST_EVENT, EmailSubCategories.EVENT_ATTENDANCE)
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
             context['subject'] = SUBJECT_POST_EVENT_ATTACHMENT_MAIL
             context['template'] = get_template("mails/event_comms/post-event-attachments.html").render(data_dict)
+            context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.POST_EVENT, EmailSubCategories.EVENT_ATTACHMENTS)
 
         return context
 
@@ -953,7 +976,7 @@ class TasksHelper:
         link = ChatroomHelper.fetch_chatroom_link(chatroom_instance)
         data_dict = {
             'community_name': community_instance.name,
-            'chatroom_name': chatroom_instance.title,
+            'chatroom_name': chatroom_instance.header,
             'chatroom_link': link,
             'receiver_name': receiver_instance.userinfo.name,
             'sender_name': sender_instance.userinfo.name,
@@ -961,19 +984,25 @@ class TasksHelper:
         }
 
         template = None
+        categories = []
 
         if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
             template = get_template("mails/engagement_mails/tagged_chatroom_not_opened.html").render(data_dict)
+            categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.ENGAGEMENT,
+                                                                                       EmailSubCategories.CHATROOM_TAG)
 
         if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
             template = get_template("mails/engagement_mails/dm_chatroom_not_opened.html").render(data_dict)
+            categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.ENGAGEMENT,
+                                                                                       EmailSubCategories.DM)
 
         context = {
             'from_email': SENDER_FOR_ENGAGEMENT_COMMUNICATION,
             'to_mails_list': to_mails_list,
             'reply_to': reply_to,
             'subject': SUBJECT_CHATROOM_NOT_OPENED_MAIL % sender_instance.userinfo.name,
-            'template': template
+            'template': template,
+            'categories': categories
         }
 
         return context
@@ -1038,6 +1067,9 @@ class TasksHelper:
 
             user_email = get_user_email_preferred_verified(user_instance.id)
 
+            categories = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.CREATE_COMMUNITY, EmailSubCategories.JOIN_FORM_CREATED)
+
             if not user_email:
                 return {}
 
@@ -1045,7 +1077,8 @@ class TasksHelper:
                 "mail_subject": mail_subject,
                 "mail_template": mail_template,
                 "from_email": [user_email],
-                "reply_to_email": [INVITE_MEMBER_REPLY_EMAIL]
+                "reply_to_email": [INVITE_MEMBER_REPLY_EMAIL],
+                "mail_categories": categories
             }
 
             return context
