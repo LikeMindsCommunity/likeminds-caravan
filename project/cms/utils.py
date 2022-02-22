@@ -68,9 +68,6 @@ def find_uninstall_devices():
             continue
 
         non_web_devices = user_devices.filter(Q(user=user) & (~Q(mobile_os=PLATFORM_CODE_WEB)))
-        user_total_devices = user_devices.filter(user=user).count()
-        user_web_devices = user_devices.filter(user=user, mobile_os=PLATFORM_CODE_WEB).count()
-
         flag_installed = False
         token_list = get_user_tokens(non_web_devices)
 
@@ -80,8 +77,7 @@ def find_uninstall_devices():
             if result['success'] > 0:
                 flag_installed = True
 
-        # If all the user related devices are web devices or app is installed
-        if (user_total_devices == user_web_devices) or flag_installed:
+        if flag_installed:
             app_uninstall.uninstall_days = 0
 
         else:
