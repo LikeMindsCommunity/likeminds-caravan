@@ -1556,8 +1556,8 @@ class ChatroomImpl(ChatroomManager):
             instructor_serializer = EventInstructorSerializer(data=instructor_context)
 
             if instructor_serializer.is_valid():
-                instructor_instance = instructor_serializer.save()
-                instructors_list.append(instructor_instance)
+                instructor_serializer.save()
+                instructors_list.append(instructor_serializer.data)
 
             else:
                 error_logger.error(f' Instructor Serializer:{instructor_serializer.errors},'
@@ -1594,8 +1594,8 @@ class ChatroomImpl(ChatroomManager):
             highlight_serializer = EventHighlightsSerializer(data=highlight_context)
 
             if highlight_serializer.is_valid():
-                highlight_instance = highlight_serializer.save()
-                highlights_list.append(highlight_instance)
+                highlight_serializer.save()
+                highlights_list.append(highlight_serializer.data)
 
             else:
                 error_logger.error(f' Highlight Serializer:{highlight_serializer.errors},'
@@ -1632,8 +1632,8 @@ class ChatroomImpl(ChatroomManager):
             testimonial_serializer = EventMemberTestimonialsSerializer(data=testimonial_context)
 
             if testimonial_serializer.is_valid():
-                testimonial_instance = testimonial_serializer.save()
-                testimonials_list.append(testimonial_instance)
+                testimonial_serializer.save()
+                testimonials_list.append(testimonial_serializer.data)
 
             else:
                 error_logger.error(f' Testimonial Serializer:{testimonial_serializer.errors},'
@@ -1669,8 +1669,8 @@ class ChatroomImpl(ChatroomManager):
             faq_serializer = EventFAQSerializer(data=faq_context)
 
             if faq_serializer.is_valid():
-                faq_instance = faq_serializer.save()
-                faqs_list.append(faq_instance)
+                faq_serializer.save()
+                faqs_list.append(faq_serializer.data)
 
             else:
                 error_logger.error(f' FAQ Serializer:{faq_serializer.errors},'
