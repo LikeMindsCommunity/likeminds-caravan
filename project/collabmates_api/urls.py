@@ -6,7 +6,6 @@ from cms.marketing_banner.banner_views_impl import FetchBannerView
 from django.views.generic import TemplateView
 from .notification import send_test_notification
 from .community.community_view_impl import ApproveOrDeclineCommunity, CommunityJoinView
-from .webhook.webhook_views import WebhookView
 
 urlpatterns = [
 
@@ -196,7 +195,7 @@ urlpatterns = [
     path('external_service_apis/', include('collabmates_api.external_service_apis.urls'), name='external_service_apis'),
     path('notifications/', include('collabmates_api.notifications.urls'), name='notifications'),
     path('automate_message/', include('collabmates_api.automate_message.urls'), name='automate_message'),
-    path('webhooks', WebhookView.as_view(), name="webhooks")
+    path('webhooks', include('collabmates_api.webhook.urls'), name="webhooks")
 ]
 
 app_name = 'collabmates_api'
