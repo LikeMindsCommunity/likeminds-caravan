@@ -709,7 +709,8 @@ class ChatroomImpl(ChatroomManager):
         return filter_dict
 
     @staticmethod
-    def fetch_events_queryset(past_events=None, filter_dict=None):
+    def fetch_events_queryset(past_events=None, event_filter_dict=None):
+        filter_dict = event_filter_dict.copy()
 
         if filter_dict is None:
             filter_dict = {}
@@ -727,7 +728,8 @@ class ChatroomImpl(ChatroomManager):
         return chatroom_queryset
 
     @staticmethod
-    def fetch_events_member_cohort_access(user_instance, past_events=None, filter_dict=None):
+    def fetch_events_member_cohort_access(user_instance, past_events=None, event_filter_dict=None):
+        filter_dict = event_filter_dict.copy()
 
         if filter_dict is None:
             filter_dict = {}
@@ -740,21 +742,23 @@ class ChatroomImpl(ChatroomManager):
             'chatroom_id', flat=True)
 
         filter_dict['card_id__in'] = chatroom_ids
-        filter_dict['card__access__in'] = [event_access.NON_COMMUNITY_USERS, None]
 
         if not past_events:
-            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
-                select_related('card', 'card__user', 'community').order_by('card__date_time')
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict)\
+                .filter(Q(card__access=0) | Q(card__access=None)).select_related('card', 'card__user', 'community')\
+                .order_by('card__date_time')
 
         else:
-            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
-                select_related('card', 'card__user', 'community').order_by('-card__date_time')
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict)\
+                .filter(Q(card__access=0) | Q(card__access=None)).select_related('card', 'card__user', 'community')\
+                .order_by('-card__date_time')
 
         return chatroom_queryset
 
     @staticmethod
-    def fetch_non_member_access_events_for_community_manager_queryset(past_events=None, filter_dict=None,
+    def fetch_non_member_access_events_for_community_manager_queryset(past_events=None, event_filter_dict=None,
                                                                       user_instance=None):
+        filter_dict = event_filter_dict.copy()
 
         if filter_dict is None:
             filter_dict = {}
@@ -772,15 +776,15 @@ class ChatroomImpl(ChatroomManager):
             if not community_manager_filter:
                 return collabcardState.objects.none()
 
-        filter_dict['card__access__in'] = [event_access.NON_COMMUNITY_USERS, None]
-
         if not past_events:
-            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
-                select_related('card', 'card__user', 'community').order_by('card__date_time')
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict).\
+                filter(Q(card__access=0) | Q(card__access=None)).select_related('card', 'card__user', 'community').\
+                order_by('card__date_time')
 
         else:
-            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
-                select_related('card', 'card__user', 'community').order_by('-card__date_time')
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict).\
+                filter(Q(card__access=0) | Q(card__access=None)).select_related('card', 'card__user', 'community').\
+                order_by('-card__date_time')
 
         return chatroom_queryset
 
@@ -1780,24 +1784,24 @@ class ChatroomImpl(ChatroomManager):
             if not community_instance:
                 return {'error_message': "Invalid Community ID"}
 
-        filter_dict = self.get_filter_dict_for_fetch_all_events(user_instance=user_instance,
-                                                                attending_status=attending_status,
-                                                                has_content=has_content,
-                                                                past_events=past_events,
-                                                                community_id=community_id)
+        event_filter_dict = self.get_filter_dict_for_fetch_all_events(user_instance=user_instance,
+                                                                      attending_status=attending_status,
+                                                                      has_content=has_content,
+                                                                      past_events=past_events,
+                                                                      community_id=community_id)
 
         member_accessible_chatroom_queryset = self.fetch_events_queryset(past_events=past_events,
-                                                                         filter_dict=filter_dict)
+                                                                         event_filter_dict=event_filter_dict)
 
         cm_chatroom_queryset = self.fetch_non_member_access_events_for_community_manager_queryset(
             user_instance=user_instance,
             past_events=past_events,
-            filter_dict=filter_dict
+            event_filter_dict=event_filter_dict
         )
 
         cohort_access_chatroom_queryset = self.fetch_events_member_cohort_access(user_instance=user_instance,
                                                                                  past_events=past_events,
-                                                                                 filter_dict=filter_dict)
+                                                                                 event_filter_dict=event_filter_dict)
 
         chatroom_queryset = member_accessible_chatroom_queryset | cm_chatroom_queryset | cohort_access_chatroom_queryset
 
@@ -1834,25 +1838,24 @@ class ChatroomImpl(ChatroomManager):
 
         is_user_cm = Members.is_member_community_promoter(community_instance, user_instance)
 
-        filter_dict = self.get_filter_dict_for_fetch_all_events(user_instance=user_instance,
-                                                                past_events=past_events,
-                                                                community_id=community_id)
+        event_filter_dict = self.get_filter_dict_for_fetch_all_events(user_instance=user_instance,
+                                                                      past_events=past_events,
+                                                                      community_id=community_id)
 
         member_accessible_chatroom_queryset = self.fetch_events_queryset(past_events=past_events,
-                                                                         filter_dict=filter_dict)
+                                                                         event_filter_dict=event_filter_dict)
 
         # If user is CM of community show all events having access 0 else filter using member group
         if is_user_cm:
             non_member_access_chatroom_queryset = self.fetch_non_member_access_events_for_community_manager_queryset(
                 past_events=past_events,
-                filter_dict=filter_dict,
+                event_filter_dict=event_filter_dict,
                 user_instance=user_instance
             )
 
         else:
-            non_member_access_chatroom_queryset = self.fetch_events_member_cohort_access(user_instance=user_instance,
-                                                                                         past_events=past_events,
-                                                                                         filter_dict=filter_dict)
+            non_member_access_chatroom_queryset = self.fetch_events_member_cohort_access(
+                user_instance=user_instance, past_events=past_events, event_filter_dict=event_filter_dict)
 
         chatroom_queryset = member_accessible_chatroom_queryset | non_member_access_chatroom_queryset
 
