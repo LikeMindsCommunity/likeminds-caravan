@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from togther.models import CommunityWebhook
+from .models import CommunityWebhook
 
 
 class WebhookSerializer(serializers.ModelSerializer):

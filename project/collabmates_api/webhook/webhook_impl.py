@@ -4,7 +4,8 @@ from .webhook_manager import WebhookManager
 from .constants import WEBHOOK_LIMIT
 from .serializers import WebhookSerializer
 from utility.response_utilities import ResponseUtilities
-from togther.models import ModelUtilities, CommunityWebhook
+from togther.models import ModelUtilities
+from .models import CommunityWebhook
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 import json
