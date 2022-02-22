@@ -1374,22 +1374,22 @@ class CommunityAnswersSerializer(serializers.ModelSerializer):
 class EventInstructorSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventInstructor
-        fields = ('card', 'about', 'url')
+        fields = '__all__'
 
 
 class EventMemberTestimonialsSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventMemberTestimonials
-        fields = ('card', 'member_name', 'testimonial', 'url')
+        fields = '__all__'
 
 
 class EventHighlightsSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventHighlights
-        fields = ('card', 'highlight', 'url')
+        fields = '__all__'
 
 
 class EventFAQSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventFAQ
-        fields = ('card', 'question', 'answer')
+        fields = '__all__'
