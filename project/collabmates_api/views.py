@@ -64,7 +64,8 @@ from cms.cms_auth_utilities import CMSAuthUtilities
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer, GetChatroomInstanceSerializer,
                        CommunitySerializerV1,
-                       YourCommunitySerializer, EventRecordingsAttachmentsSerializer)
+                       YourCommunitySerializer, EventRecordingsAttachmentsSerializer, EventMemberTestimonialsSerializer,
+                       EventHighlightsSerializer, EventInstructorSerializer, EventFAQSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
@@ -12311,10 +12312,8 @@ class SyncChatrooms(APIView):
 
             instructor_filter = ModelUtilities.get_model_filter(EventInstructor,
                                                                 {'card': card_id}).order_by('id')
-            instructors_list = []
 
-            for data in instructor_filter:
-                instructors_list.append(ModelUtilities.serialize_instance(data))
+            instructors_list = EventInstructorSerializer(instructor_filter, many=True).data
 
             update_event_instructors_in_cache.delay({'chatroom_id': card_id,
                                                      'instructors_list': instructors_list})
@@ -12332,10 +12331,8 @@ class SyncChatrooms(APIView):
 
             highlights_filter = ModelUtilities.get_model_filter(EventHighlights,
                                                                 {'card': card_id}).order_by('id')
-            highlights_list = []
 
-            for data in highlights_filter:
-                highlights_list.append(ModelUtilities.serialize_instance(data))
+            highlights_list = EventHighlightsSerializer(highlights_filter, many=True).data
 
             update_event_highlights_in_cache.delay({'chatroom_id': card_id,
                                                     'highlights_list': highlights_list})
@@ -12353,10 +12350,8 @@ class SyncChatrooms(APIView):
 
             faq_filter = ModelUtilities.get_model_filter(EventFAQ,
                                                          {'card': card_id}).order_by('id')
-            faqs_list = []
 
-            for data in faq_filter:
-                faqs_list.append(ModelUtilities.serialize_instance(data))
+            faqs_list = EventFAQSerializer(faq_filter, many=True).data
 
             update_event_faq_in_cache.delay({'chatroom_id': card_id, 'faqs_list': faqs_list})
 
@@ -12372,10 +12367,8 @@ class SyncChatrooms(APIView):
         else:
             testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
                                                                  {'card': card_id}).order_by('id')
-            testimonials_list = []
 
-            for data in testimonial_filter:
-                testimonials_list.append(ModelUtilities.serialize_instance(data))
+            testimonials_list = EventMemberTestimonialsSerializer(testimonial_filter, many=True).data
 
             update_event_member_testimonials_in_cache.delay({'chatroom_id': card_id,
                                                              'testimonials_list': testimonials_list})

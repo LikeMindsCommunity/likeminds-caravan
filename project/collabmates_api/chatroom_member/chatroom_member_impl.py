@@ -4,6 +4,8 @@ from django.db.models import Q, Count, F
 from django.contrib.auth.models import User
 
 from collabmates_api.chatroom_member.chatroom_member_manager import ChatroomMemberManager
+from collabmates_api.rest_api import EventFAQSerializer, EventMemberTestimonialsSerializer, EventHighlightsSerializer, \
+    EventInstructorSerializer
 from utility.cache_keys import EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CHATROOM
 from utility.celery_tasks import update_chatroom_conversation_count_in_cache, \
@@ -741,10 +743,7 @@ class ChatroomMemberHelper:
 
             instructor_filter = ModelUtilities.get_model_filter(EventInstructor,
                                                                 {'card': card_instance}).order_by('id')
-            instructors_list = []
-
-            for data in instructor_filter:
-                instructors_list.append(ModelUtilities.serialize_instance(data))
+            instructors_list = EventInstructorSerializer(instructor_filter, many=True).data
 
             update_event_instructors_in_cache.delay({'chatroom_id': card_instance.id,
                                                      'instructors_list': instructors_list})
@@ -763,13 +762,11 @@ class ChatroomMemberHelper:
 
             highlights_filter = ModelUtilities.get_model_filter(EventHighlights,
                                                                 {'card': card_instance}).order_by('id')
-            highlights_list = []
 
-            for data in highlights_filter:
-                highlights_list.append(ModelUtilities.serialize_instance(data))
+            highlights_list = EventHighlightsSerializer(highlights_filter, many=True).data
 
             update_event_highlights_in_cache.delay({'chatroom_id': card_instance.id,
-                                              'highlights_list': highlights_list})
+                                                    'highlights_list': highlights_list})
 
         return highlights_list
 
@@ -785,10 +782,8 @@ class ChatroomMemberHelper:
 
             faq_filter = ModelUtilities.get_model_filter(EventFAQ,
                                                          {'card': card_instance}).order_by('id')
-            faqs_list = []
 
-            for data in faq_filter:
-                faqs_list.append(ModelUtilities.serialize_instance(data))
+            faqs_list = EventFAQSerializer(faq_filter, many=True).data
 
             update_event_faq_in_cache.delay({'chatroom_id': card_instance.id, 'faqs_list': faqs_list})
 
@@ -805,10 +800,8 @@ class ChatroomMemberHelper:
         else:
             testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
                                                                  {'card': card_instance}).order_by('id')
-            testimonials_list = []
 
-            for data in testimonial_filter:
-                testimonials_list.append(ModelUtilities.serialize_instance(data))
+            testimonials_list = EventMemberTestimonialsSerializer(testimonial_filter, many=True).data
 
             update_event_member_testimonials_in_cache.delay({'chatroom_id': card_instance.id,
                                                              'testimonials_list': testimonials_list})
