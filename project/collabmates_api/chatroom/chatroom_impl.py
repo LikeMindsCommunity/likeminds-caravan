@@ -1547,9 +1547,10 @@ class ChatroomImpl(ChatroomManager):
 
         for data in instructors:
             instructor_context = {
-                'card_instance': card_instance,
+                'card': card_instance.id,
                 'about': data.get('about'),
-                'url': data.get('url')
+                'url': data.get('url'),
+                'name': data.get('name')
 
             }
 
@@ -1585,7 +1586,7 @@ class ChatroomImpl(ChatroomManager):
 
         for data in highlights:
             highlight_context = {
-                'card_instance': card_instance,
+                'card': card_instance.id,
                 'highlight': data.get('highlight'),
                 'url': data.get('url')
 
@@ -1622,7 +1623,7 @@ class ChatroomImpl(ChatroomManager):
 
         for data in testimonials:
             testimonial_context = {
-                'card_instance': card_instance,
+                'card': card_instance.id,
                 'member_name': data.get('member_name'),
                 'testimonial': data.get('testimonial'),
                 'url': data.get('url')
@@ -1660,7 +1661,7 @@ class ChatroomImpl(ChatroomManager):
 
         for data in faq:
             faq_context = {
-                'card_instance': card_instance,
+                'card': card_instance.id,
                 'question': data.get('question'),
                 'answer': data.get('answer')
 
