@@ -28,7 +28,8 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
-    CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer
+    CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
+    EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
@@ -1545,13 +1546,22 @@ class ChatroomImpl(ChatroomManager):
         instructors_list = []
 
         for data in instructors:
-            instance = EventInstructor.create_instance({
+            instructor_context = {
                 'card_instance': card_instance,
                 'about': data.get('about'),
                 'url': data.get('url')
 
-            })
-            instructors_list.append(ModelUtilities.serialize_instance(instance))
+            }
+
+            instructor_serializer = EventInstructorSerializer(data=instructor_context)
+
+            if instructor_serializer.is_valid():
+                instructor_instance = instructor_serializer.save()
+                instructors_list.append(instructor_instance)
+
+            else:
+                error_logger.error(f' Instructor Serializer:{instructor_serializer.errors},'
+                                   f' Instructor data:{instructor_context} | Instance not created')
 
         update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
                                                'instructors_list': instructors_list,
@@ -1574,14 +1584,22 @@ class ChatroomImpl(ChatroomManager):
         highlights_list = []
 
         for data in highlights:
-            instance = EventHighlights.create_instance({
+            highlight_context = {
                 'card_instance': card_instance,
                 'highlight': data.get('highlight'),
                 'url': data.get('url')
 
-            })
+            }
 
-            highlights_list.append(ModelUtilities.serialize_instance(instance))
+            highlight_serializer = EventHighlightsSerializer(data=highlight_context)
+
+            if highlight_serializer.is_valid():
+                highlight_instance = highlight_serializer.save()
+                highlights_list.append(highlight_instance)
+
+            else:
+                error_logger.error(f' Highlight Serializer:{highlight_serializer.errors},'
+                                   f' Highlight data:{highlight_context} | Instance not created')
 
         update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
                                                'highlights_list': highlights_list,
@@ -1603,14 +1621,23 @@ class ChatroomImpl(ChatroomManager):
         ModelUtilities.delete_record_in_model(EventMemberTestimonials, {'card': card_instance})
 
         for data in testimonials:
-            instance = EventMemberTestimonials.create_instance({
+            testimonial_context = {
                 'card_instance': card_instance,
                 'member_name': data.get('member_name'),
                 'testimonial': data.get('testimonial'),
                 'url': data.get('url')
 
-            })
-            testimonials_list.append(ModelUtilities.serialize_instance(instance))
+            }
+
+            testimonial_serializer = EventMemberTestimonialsSerializer(data=testimonial_context)
+
+            if testimonial_serializer.is_valid():
+                testimonial_instance = testimonial_serializer.save()
+                testimonials_list.append(testimonial_instance)
+
+            else:
+                error_logger.error(f' Testimonial Serializer:{testimonial_serializer.errors},'
+                                   f' Testimonial data:{testimonial_serializer} | Instance not created')
 
         update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
                                                'testimonials_list': testimonials_list,
@@ -1632,13 +1659,22 @@ class ChatroomImpl(ChatroomManager):
         ModelUtilities.delete_record_in_model(EventFAQ, {'card': card_instance})
 
         for data in faq:
-            instance = EventFAQ.create_instance({
+            faq_context = {
                 'card_instance': card_instance,
                 'question': data.get('question'),
                 'answer': data.get('answer')
 
-            })
-            faqs_list.append(ModelUtilities.serialize_instance(instance))
+            }
+
+            faq_serializer = EventFAQSerializer(data=faq_context)
+
+            if faq_serializer.is_valid():
+                faq_instance = faq_serializer.save()
+                faqs_list.append(faq_instance)
+
+            else:
+                error_logger.error(f' FAQ Serializer:{faq_serializer.errors},'
+                                   f' FAQ data:{faq_serializer} | Instance not created')
 
         update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
                                                'faqs_list': faqs_list,
