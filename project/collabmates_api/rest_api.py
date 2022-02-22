@@ -1376,11 +1376,33 @@ class EventInstructorSerializer(serializers.ModelSerializer):
         model = EventInstructor
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data = super(EventInstructorSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'card':
+                data['chatroom_id'] = data['card']
+
+        return data
+
 
 class EventMemberTestimonialsSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventMemberTestimonials
         fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super(EventMemberTestimonialsSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'card':
+                data['chatroom_id'] = data['card']
+
+        return data
 
 
 class EventHighlightsSerializer(serializers.ModelSerializer):
@@ -1388,8 +1410,30 @@ class EventHighlightsSerializer(serializers.ModelSerializer):
         model = EventHighlights
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data = super(EventHighlightsSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'card':
+                data['chatroom_id'] = data['card']
+
+        return data
+
 
 class EventFAQSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventFAQ
         fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super(EventFAQSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'card':
+                data['chatroom_id'] = data['card']
+
+        return data
