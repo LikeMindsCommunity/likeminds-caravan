@@ -2404,6 +2404,7 @@ class SubscriptionExpiredMembers(models.Model):
 class EventInstructor(models.Model):
 
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    name = models.CharField(max_length=128, null=True)
     about = models.TextField(null=True)
     url = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
@@ -2413,6 +2414,7 @@ class EventInstructor(models.Model):
     def create_instance(create_info):
 
         instance = EventInstructor()
+        instance.name = create_info.get('name')
         instance.card = create_info.get('card_instance')
         instance.about = create_info.get('about')
         instance.url = create_info.get('url')
