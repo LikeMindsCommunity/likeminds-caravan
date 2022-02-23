@@ -55,7 +55,7 @@ from utility.states import member_states, card_types, click_states, member_right
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
-    airtable_webhook_types, webhook_types
+    airtable_webhook_types, WebhookTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -452,7 +452,7 @@ class CommunityImpl(CommunityManager):
     def send_join_data_on_webhook(member_id, community_id):
 
         webhook_instance = ModelUtilities.get_model_filter(
-            CommunityWebhook, {'community_id': community_id, 'webhook_type': webhook_types.COMMUNITY_JOIN})
+            CommunityWebhook, {'community_id': community_id, 'webhook_type': WebhookTypes.COMMUNITY_JOIN.value})
 
         if not webhook_instance:
             return

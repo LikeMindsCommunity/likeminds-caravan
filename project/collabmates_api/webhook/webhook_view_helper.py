@@ -1,4 +1,4 @@
-from utility.states import webhook_types
+from utility.states import WebhookTypes
 from utility.response_utilities import ResponseUtilities
 
 
@@ -30,7 +30,7 @@ class WebhookViewHelper:
         if 'webhook_type' not in request_body:
             return ResponseUtilities.get_inner_error_context('send webhook_type in body')
 
-        if request_body['webhook_type'] not in [webhook_types.COMMUNITY_JOIN]:
+        if request_body['webhook_type'] not in [webhook_type.value for webhook_type in WebhookTypes]:
             return ResponseUtilities.get_inner_error_context('send valid webhook_type in body')
 
         if 'url' not in request_body:
@@ -47,9 +47,6 @@ class WebhookViewHelper:
         if not request_body:
             return ResponseUtilities.get_inner_error_context('invalid request body')
 
-        if 'webhook_id' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send webhook_id in body')
-
         if 'url' not in request_body:
             return ResponseUtilities.get_inner_error_context('send url in body')
 
@@ -63,9 +60,6 @@ class WebhookViewHelper:
 
         if not request_body:
             return ResponseUtilities.get_inner_error_context('invalid request body')
-
-        if 'webhook_id' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send webhook_id in body')
 
         if not member_id:
             return ResponseUtilities.get_inner_error_context('send member_id in headers')

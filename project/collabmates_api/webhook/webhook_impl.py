@@ -7,12 +7,8 @@ from utility.response_utilities import ResponseUtilities
 from utility.auth_utilities import AuthUtilities
 from togther.models import ModelUtilities
 from .models import CommunityWebhook
-from external_services.logging.logging_wrapper import LoggingWrapper
 
 import json
-
-error_logger = LoggingWrapper.get_instance()
-info_logger = LoggingWrapper.get_instance()
 
 
 class WebhookImpl(WebhookManager):

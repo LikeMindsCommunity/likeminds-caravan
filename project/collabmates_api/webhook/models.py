@@ -1,12 +1,14 @@
 from django.db import models
 from utility.time_utilities import TimeUtilities
+from utility.states import WebhookTypes
+from togther.models import Community
 
 
 class CommunityWebhook(models.Model):
 
-    community_id = models.IntegerField()
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
     url = models.TextField()
-    webhook_type = models.IntegerField()
+    webhook_type = models.IntegerField(choices=[(webhook_type, webhook_type.value) for webhook_type in WebhookTypes])
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 

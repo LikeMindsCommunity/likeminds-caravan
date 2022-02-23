@@ -543,8 +543,5 @@ class AirtableWebhookTypes:
 airtable_webhook_types = AirtableWebhookTypes()
 
 
-class WebhookTypes:
+class WebhookTypes(enum.Enum):
     COMMUNITY_JOIN = 1
-
-
-webhook_types = WebhookTypes()
