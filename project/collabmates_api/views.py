@@ -15,6 +15,7 @@ from external_services.mixpanel.events import MixpanelEvents
 from external_services.segment.segment_impl import SegmentImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.otp.otp_api_client import OTPApiClient
+from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.string_utilities import StringUtilities
 from random import randint
@@ -8975,6 +8976,8 @@ def edit_community_version_1(request):
     community_instance.referral_enabled = res.get('referral_enabled', community_instance.referral_enabled)
     community_instance.dashboard_link = res.get('dashboard_link', community_instance.dashboard_link)
 
+    community_instance.branding = res.get('branding', community_instance.branding)
+
     community_instance.fee_membership = res.get('fee_membership', community_instance.fee_membership)
     community_instance.fee_event = res.get('fee_event', community_instance.fee_event)
     community_instance.fee_payment_pages = res.get('fee_payment_pages', community_instance.fee_payment_pages)
@@ -8985,6 +8988,9 @@ def edit_community_version_1(request):
         edit_community_data(community_instance, user_instance, edit_field=edit_field)
 
     community_instance.save()
+
+    CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_instance.id), community_instance.branding)
+
     change_community_level_context_for_paid_community(community_instance)
 
     send_sync_notification.delay({'community_id': community_id,
