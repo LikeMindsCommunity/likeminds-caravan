@@ -12,7 +12,7 @@ import time
 
 from utility.celery_tasks import get_conversation_poll, update_event_instructors_in_cache, \
     update_event_highlights_in_cache, update_event_member_testimonials_in_cache, update_event_faq_in_cache, \
-    update_event_attendees, update_event_attendees_for_micro_event, fetch_conversations_unread,\
+    update_event_attendees, update_event_attendees_for_micro_event, fetch_conversations_unread, \
     get_to_show_results_for_conversation_poll
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
@@ -518,10 +518,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
                 instructor_filter = ModelUtilities.get_model_filter(EventInstructor,
                                                                     {'card': card}).order_by('id')
-                instructors_list = []
 
-                for data in instructor_filter:
-                    instructors_list.append(ModelUtilities.serialize_instance(data))
+                instructors_list = EventInstructorSerializer(instructor_filter, many=True).data
 
                 update_event_instructors_in_cache.delay({'chatroom_id': card.id,
                                                          'instructors_list': instructors_list})
@@ -541,10 +539,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
                 highlights_filter = ModelUtilities.get_model_filter(EventHighlights,
                                                                     {'card': card}).order_by('id')
-                highlights_list = []
 
-                for data in highlights_filter:
-                    highlights_list.append(ModelUtilities.serialize_instance(data))
+                highlights_list = EventHighlightsSerializer(highlights_filter, many=True).data
 
                 update_event_highlights_in_cache.delay({'chatroom_id': card.id,
                                                         'highlights_list': highlights_list})
@@ -562,10 +558,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             else:
                 testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
                                                                      {'card': card}).order_by('id')
-                testimonials_list = []
 
-                for data in testimonial_filter:
-                    testimonials_list.append(ModelUtilities.serialize_instance(data))
+                testimonials_list = EventMemberTestimonialsSerializer(testimonial_filter, many=True).data
 
                 update_event_member_testimonials_in_cache.delay({'chatroom_id': card.id,
                                                                  'testimonials_list': testimonials_list})
@@ -584,10 +578,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
                 faq_filter = ModelUtilities.get_model_filter(EventFAQ,
                                                              {'card': card}).order_by('id')
-                faqs_list = []
 
-                for data in faq_filter:
-                    faqs_list.append(ModelUtilities.serialize_instance(data))
+                faqs_list = EventFAQSerializer(faq_filter, many=True).data
 
                 update_event_faq_in_cache.delay({'chatroom_id': card.id, 'faqs_list': faqs_list})
 
@@ -795,7 +787,6 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
 
 class CardStateSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = collabcardState
         fields = ('state', 'mute_status', 'follow_status', 'is_guest', 'attending_status',
@@ -1174,12 +1165,12 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
             elif field.field_name == 'polls' and data['polls'] is not None:
                 data['to_show_results'] = get_to_show_results_for_conversation_poll({'conversation_instance': obj,
-                                                               'member_id': self.current_user_id,
-                                                               'conversation_id': obj.id,
-                                                               'poll_type': obj.poll_type,
-                                                               'multiple_select_no': obj.multiple_select_no,
-                                                               'expiry_time': obj.expiry_time,
-                                                               })
+                                                                                     'member_id': self.current_user_id,
+                                                                                     'conversation_id': obj.id,
+                                                                                     'poll_type': obj.poll_type,
+                                                                                     'multiple_select_no': obj.multiple_select_no,
+                                                                                     'expiry_time': obj.expiry_time,
+                                                                                     })
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
@@ -1258,6 +1249,7 @@ class EventRecordingsAttachmentsSerializer(serializers.ModelSerializer):
         model = EventRecordingsAttachments
         fields = '__all__'
 
+
 class EventRecordingsURLSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventRecordingsURL
@@ -1296,7 +1288,6 @@ class CommunitySettingsSerializer(serializers.ModelSerializer):
 
 
 class CommunityGetStartedSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = CommunityGetStarted
         fields = ('id', 'completed', 'community_id')
@@ -1378,3 +1369,71 @@ class CommunityAnswersSerializer(serializers.ModelSerializer):
     class Meta:
         model = communityAnswers
         fields = ('id', 'community', 'question_title', 'question_answer', 'member', 'question')
+
+
+class EventInstructorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventInstructor
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super(EventInstructorSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'card':
+                data['chatroom_id'] = data['card']
+
+        return data
+
+
+class EventMemberTestimonialsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventMemberTestimonials
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super(EventMemberTestimonialsSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'card':
+                data['chatroom_id'] = data['card']
+
+        return data
+
+
+class EventHighlightsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventHighlights
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super(EventHighlightsSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'card':
+                data['chatroom_id'] = data['card']
+
+        return data
+
+
+class EventFAQSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventFAQ
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super(EventFAQSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'card':
+                data['chatroom_id'] = data['card']
+
+        return data

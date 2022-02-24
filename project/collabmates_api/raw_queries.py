@@ -1863,7 +1863,7 @@ def get_last_seen_non_member_access_event_chatroom_id_for_community_managers(use
                     (SELECT id
                     FROM togther_collabcard
                     WHERE type IN (2,6)
-                            AND access = 0
+                            AND (access = 0 OR access in NULL)
                             AND community_id IN 
                         (SELECT community_id_id
                         FROM togther_members
@@ -1895,7 +1895,7 @@ def get_last_seen_non_member_access_event_for_user(user_id):
                     (SELECT id
                     FROM togther_Collabcard
                     WHERE type IN (2,6)
-                            AND access = 0
+                            AND (access = 0 or access is NULL)
                             AND id IN 
                         (SELECT chatroom_id
                         FROM togther_ChatroomCohort
@@ -1956,7 +1956,7 @@ def get_count_for_new_non_member_access_event_chatroom_community_managers(user_i
                     (SELECT id
                     FROM togther_collabcard
                     WHERE type IN (2,6)
-                            AND access = 0
+                            AND (access = 0 OR access is NULL)
                             AND community_id IN 
                         (SELECT community_id_id
                         FROM togther_members
@@ -1989,7 +1989,7 @@ def get_count_for_non_member_access_event_for_user_non_community_manager(user_id
                     (SELECT id
                     FROM togther_Collabcard
                     WHERE type IN (2,6)
-                            AND access = 0
+                            AND (access = 0 or access is NULL)
                             AND id IN 
                         (SELECT chatroom_id
                         FROM togther_ChatroomCohort
