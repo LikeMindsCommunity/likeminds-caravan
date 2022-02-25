@@ -408,6 +408,8 @@ class CommunityImpl(CommunityManager):
         self._set_deleted_by_for_community_chatrooms_and_conversations(community_instance)
         self._delete_community_relationships(community_instance)
 
+        CacheImpl.delete_key('COMMUNITY_BRANDING_{}'.format(self.get_community_id()))
+
         return {'success': True}
 
     @staticmethod
