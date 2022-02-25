@@ -1,6 +1,7 @@
 from togther.models import Community
 from datetime import timedelta
 from togther.models import Collabcard, card_answers, Userinfo, Members, collabcardState, userDevices
+from utility.constants import PLATFORM_CODE_WEB
 from .models import *
 from project.celery import app
 from celery import shared_task
@@ -56,19 +57,22 @@ def find_uninstall_devices():
     """
     task to be run at 3 am to check if user has app installed
     """
-    user_devices = userDevices.objects.all()
-    all_users = User.objects.all()
+    user_devices = ModelUtilities.get_model_filter(userDevices, {})
+    all_users = ModelUtilities.get_model_filter(User, {})
 
     for user in all_users:
         app_uninstall, created = appUninstalls.objects.get_or_create(user=user)
 
-        # skip the user  if the uninstall days == 10
+        # skip the user if the uninstall days == 10
         if app_uninstall.uninstall_days == 10:
             continue
 
-        devices = user_devices.filter(user=user)
+        non_web_devices = user_devices.filter(Q(user=user) & (~Q(mobile_os=PLATFORM_CODE_WEB)))
+        user_total_devices = user_devices.filter(user=user).count()
+        user_web_devices = user_devices.filter(user=user, mobile_os=PLATFORM_CODE_WEB).count()
+
         flag_installed = False
-        token_list = get_user_tokens(devices)
+        token_list = get_user_tokens(non_web_devices)
 
         if len(token_list):
             result = send_silent_notification(token_list)
@@ -76,8 +80,10 @@ def find_uninstall_devices():
             if result['success'] > 0:
                 flag_installed = True
 
-        if flag_installed:
+        # If all the user related devices are web devices or app is installed
+        if (user_total_devices == user_web_devices) or flag_installed:
             app_uninstall.uninstall_days = 0
+
         else:
             app_uninstall.uninstall_days = app_uninstall.uninstall_days + 1
 
