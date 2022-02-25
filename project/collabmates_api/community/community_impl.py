@@ -71,7 +71,7 @@ from ..tasks import send_community_confirmation_email, cm_onboarding_version_che
     directory_questions_v2_version_check, get_user_phone
 
 from ..sms import send_community_confirmation_sms
-from ..utility import single_community_view_version_check
+from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -794,18 +794,27 @@ class CommunityImpl(CommunityManager):
         is_cm_onboarding_enabled = cm_onboarding_version_check(self.get_request_platform(), self.get_version_code())
         is_directory_questions_enabled = directory_questions_v2_version_check(self.get_request_platform(),
                                                                               self.get_version_code())
+
         req_body['is_directory_questions_v2'] = is_directory_questions_enabled
 
         if member_state == member_states.GUEST:
+
+            is_free_trial = False
+
+            if community_instance.is_paid and free_link_and_freemium_community_version_check(
+                    self.get_request_platform(), int(self.get_version_code())):
+                is_free_trial = True
 
             if is_cm_onboarding_enabled:
                 join_link_valid, join_link_invalid_message = CommunityHelper.is_join_link_valid_v2(auto_join_code,
                                                                                                    shared_by_user,
                                                                                                    community_instance,
-                                                                                                   user_instance)
+                                                                                                   user_instance,
+                                                                                                   is_free_trial)
 
             else:
-                join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance)
+                join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance,
+                                                                     is_free_trial)
 
             if join_link_valid:
                 self.make_requesting_user_as_member_of_community_automatically(user_instance, community_instance,
@@ -2085,7 +2094,9 @@ class CommunityHelper:
         CommunityHelper.send_questions_data_on_airtable(user_instance, community_instance, airtable_data)
 
     @staticmethod
-    def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None):
+    def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None,
+                              is_free_trial=False):
+
         join_link_valid = False
         join_link_invalid_message = ''
 
@@ -2100,7 +2111,7 @@ class CommunityHelper:
         auto_approval = community_setting_instance[0].enabled if len(
             community_setting_instance) else community_instance.auto_approval
 
-        if community_instance.is_paid and (auto_join_code is None) and (shared_by_user is None):
+        if community_instance.is_paid and (is_free_trial or ((auto_join_code is None) and (shared_by_user is None))):
             join_link_valid = auto_approval
 
         else:
@@ -2129,8 +2140,11 @@ class CommunityHelper:
         return join_link_valid, join_link_invalid_message
 
     @staticmethod
-    def is_join_link_valid(auto_join_code, shared_by_user, community_instance):
+    def is_join_link_valid(auto_join_code, shared_by_user, community_instance, is_free_trial=False):
         join_link_valid = False
+
+        if is_free_trial:
+            return community_instance.auto_approval
 
         if auto_join_code is None \
                 and shared_by_user is None:
