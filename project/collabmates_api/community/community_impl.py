@@ -1503,9 +1503,16 @@ class CommunityImpl(CommunityManager):
         aj = validated_req_body.get('aj')
         shared_by = validated_req_body.get('shared_by')
 
+        is_free_trial = False
+
+        if free_link_and_freemium_community_version_check(self.get_request_platform(), int(self.get_version_code()))\
+                and community_instance.is_paid:
+            is_free_trial = True
+
         community_meta_data = CommunityHelper.compute_community_meta_data_according_to_aj_shared_by(user_instance,
                                                                                                     community_instance,
-                                                                                                    aj, shared_by)
+                                                                                                    aj, shared_by,
+                                                                                                    is_free_trial)
 
         CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
 
@@ -3056,7 +3063,8 @@ class CommunityHelper:
         return is_verified
 
     @staticmethod
-    def compute_community_meta_data_according_to_aj_shared_by(user_instance, community_instance, aj, shared_by):
+    def compute_community_meta_data_according_to_aj_shared_by(user_instance, community_instance, aj, shared_by,
+                                                              is_free_trial=False):
         community_serialized_object = CommunitySerializerV1(community_instance, many=False).data
         community_serialized_object['created_by'] = get_community_creator(community_instance)
         managers = CommunityHelper.get_community_managers(community_instance)
@@ -3079,7 +3087,7 @@ class CommunityHelper:
             title = FETCH_QUESTIONS_SHARED_BY_USER_TITLE.format(shared_by_user_name,
                                                                 community_serialized_object['name'])
 
-        if aj and shared_by:
+        if aj and shared_by and (not is_free_trial):
             auto_join = CommunityHelper.get_toast_according_to_aj_expiry(community_instance, aj, shared_by, user_instance)
             is_valid_private_link = True
 
