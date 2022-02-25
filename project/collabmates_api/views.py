@@ -923,7 +923,12 @@ def questions(request):
     except:
         error_logger.error(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
 
-    if aj and shared_by_user:
+    is_free_trial = False
+
+    if free_link_and_freemium_community_version_check(platform_code, version_code) and community_instance.is_paid:
+        is_free_trial = True
+
+    if aj and shared_by_user and (not is_free_trial):
         try:
             if is_cm_onboarding_enabled:
                 auto_join = private_link_app_invite_v2(community_instance, aj, created_by, shared_by_user,
