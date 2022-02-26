@@ -61,33 +61,35 @@ def find_uninstall_devices():
     all_users = ModelUtilities.get_model_filter(User, {})
 
     for user in all_users:
-        app_uninstall, created = appUninstalls.objects.get_or_create(user=user)
-
-        # skip the user if the uninstall days == 10
-        if app_uninstall.uninstall_days == 10:
-            continue
 
         non_web_devices = user_devices.filter(Q(user=user) & (~Q(mobile_os=PLATFORM_CODE_WEB)))
         user_total_devices = user_devices.filter(user=user).count()
         user_web_devices = user_devices.filter(user=user, mobile_os=PLATFORM_CODE_WEB).count()
 
-        flag_installed = False
-        token_list = get_user_tokens(non_web_devices)
+        if user_total_devices != user_web_devices:
+            app_uninstall, created = appUninstalls.objects.get_or_create(user=user)
 
-        if len(token_list):
-            result = send_silent_notification(token_list)
+            # skip the user if the uninstall days == 10
+            if app_uninstall.uninstall_days == 10:
+                continue
 
-            if result['success'] > 0:
-                flag_installed = True
+            flag_installed = False
+            token_list = get_user_tokens(non_web_devices)
 
-        # If all the user related devices are web devices or app is installed
-        if (user_total_devices == user_web_devices) or flag_installed:
-            app_uninstall.uninstall_days = 0
+            if len(token_list):
+                result = send_silent_notification(token_list)
 
-        else:
-            app_uninstall.uninstall_days = app_uninstall.uninstall_days + 1
+                if result['success'] > 0:
+                    flag_installed = True
 
-        app_uninstall.save()
+            # If all the user related devices are web devices or app is installed
+            if flag_installed:
+                app_uninstall.uninstall_days = 0
+
+            else:
+                app_uninstall.uninstall_days = app_uninstall.uninstall_days + 1
+
+            app_uninstall.save()
 
 
 def get_user_tokens(devices):
