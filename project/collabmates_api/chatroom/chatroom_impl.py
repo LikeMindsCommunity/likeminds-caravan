@@ -670,6 +670,9 @@ class ChatroomImpl(ChatroomManager):
                                                         card_instance.event_web_page)
         update_context['updated_at'] = TimeUtilities.current_time_in_milliseconds()
 
+        if req_body.get('cohort_ids'):
+            create_chatroom_cohort_instances(chatroom_id=card_instance.id, cohort_ids=req_body.get('cohort_ids'))
+
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_context)
         ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})

@@ -599,7 +599,7 @@ DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE = 185
 DIRECTORY_QUESTIONS_IOS_VERSION_CODE = 1101
 DIRECTORY_QUESTIONS_WEB_VERSION_CODE = 1101
 
-DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE = "Edit join form"
+DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE = "Customise join form"
 MEMBER_REQUEST_TOOL_ROUTE = "route://member_approve?community_id={}&community_name={}"
 PENDING_CHATROOM_TOOL_ROUTE = "route://pending_chatrooms?community_id={}&community_name={}"
 REPORTS_TOOL_ROUTE = "route://review_reports?community_id={}&community_name={}"

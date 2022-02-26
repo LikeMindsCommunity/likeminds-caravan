@@ -20,7 +20,7 @@ MENU = {
         'Invite members',
         'View all chat rooms',
         'Member directory',
-        'Edit join form',
+        'Customise join form',
         'Edit community',
         'Report'
     ],
