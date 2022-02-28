@@ -1552,8 +1552,10 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
         instructors = req_body.get('instructors', [])
-        ModelUtilities.delete_record_in_model(EventInstructor, {'card': card_instance})
-        instructors_list = []
+
+        from collabmates_api.views import SyncChatrooms
+
+        instructors_list = SyncChatrooms().fetch_event_instructors(card_instance.id)
 
         for data in instructors:
             instructor_context = {
@@ -1591,8 +1593,9 @@ class ChatroomImpl(ChatroomManager):
 
         highlights = req_body.get('highlights', [])
 
-        ModelUtilities.delete_record_in_model(EventHighlights, {'card': card_instance})
-        highlights_list = []
+        from collabmates_api.views import SyncChatrooms
+
+        highlights_list = SyncChatrooms().fetch_event_highlights(card_instance.id)
 
         for data in highlights:
             highlight_context = {
@@ -1627,9 +1630,10 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
         testimonials = req_body.get('testimonials', [])
-        testimonials_list = []
+        
+        from collabmates_api.views import SyncChatrooms
 
-        ModelUtilities.delete_record_in_model(EventMemberTestimonials, {'card': card_instance})
+        testimonials_list = SyncChatrooms().fetch_member_testimonials(card_instance.id)
 
         for data in testimonials:
             testimonial_context = {
@@ -1666,8 +1670,10 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
         faq = req_body.get('faq', [])
-        faqs_list = []
-        ModelUtilities.delete_record_in_model(EventFAQ, {'card': card_instance})
+
+        from collabmates_api.views import SyncChatrooms
+
+        faqs_list = SyncChatrooms().fetch_event_FAQ(card_instance.id)
 
         for data in faq:
             faq_context = {
@@ -1767,7 +1773,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {'count': unseen_count}
 
-    def fetch_link_for_event(self) -> dict:
+    def fetch_link_for_event(self, is_edit_mode) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
@@ -1790,16 +1796,21 @@ class ChatroomImpl(ChatroomManager):
             }
         )
 
+        chatroom_context = {}
+
+        if (is_edit_mode and (user_instance == card_instance.user or member_state == member_states.ADMIN)):
+
+            self._fill_online_link_for_event(chatroom_context, card_instance)
+            return chatroom_context
+
         if TimeUtilities.current_time_in_milliseconds() >= card_instance.date_time:
 
             if not card_instance.is_paid and not is_user_registered:
-                chatroom_context = {}
                 self._fill_online_link_for_event(chatroom_context, card_instance)
                 return chatroom_context
 
         if TimeUtilities.current_time_in_milliseconds() >= \
                 (card_instance.date_time - card_instance.online_link_enable_before):
-            chatroom_context = {}
 
             if (not card_instance.is_paid and is_user_registered) or \
                     (card_instance.is_paid and ChatroomHelper.is_online_event_link_verified_for_user(card_instance,
@@ -2849,7 +2860,7 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True, 'data': webflow_response}
 
     @staticmethod
-    def fetch_link_for_events_list(member_id, chatroom_ids):
+    def fetch_link_for_events_list(is_edit_mode, member_id, chatroom_ids):
 
         final_response = {}
 
@@ -2865,7 +2876,7 @@ class ChatroomImpl(ChatroomManager):
 
         for chatroom_id in chatroom_ids:
             chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
-            response_context = chatroom_manager.fetch_link_for_event()
+            response_context = chatroom_manager.fetch_link_for_event(is_edit_mode)
 
             if response_context.get('error_message'):
                 chatrooms_link_objects.append({
