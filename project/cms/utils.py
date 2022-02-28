@@ -61,29 +61,35 @@ def find_uninstall_devices():
     all_users = ModelUtilities.get_model_filter(User, {})
 
     for user in all_users:
-        app_uninstall, created = appUninstalls.objects.get_or_create(user=user)
-
-        # skip the user if the uninstall days == 10
-        if app_uninstall.uninstall_days == 10:
-            continue
 
         non_web_devices = user_devices.filter(Q(user=user) & (~Q(mobile_os=PLATFORM_CODE_WEB)))
-        flag_installed = False
-        token_list = get_user_tokens(non_web_devices)
+        user_total_devices = user_devices.filter(user=user).count()
+        user_web_devices = user_devices.filter(user=user, mobile_os=PLATFORM_CODE_WEB).count()
 
-        if len(token_list):
-            result = send_silent_notification(token_list)
+        if user_total_devices != user_web_devices:
+            app_uninstall, created = appUninstalls.objects.get_or_create(user=user)
 
-            if result['success'] > 0:
-                flag_installed = True
+            # skip the user if the uninstall days == 10
+            if app_uninstall.uninstall_days == 10:
+                continue
 
-        if flag_installed:
-            app_uninstall.uninstall_days = 0
+            flag_installed = False
+            token_list = get_user_tokens(non_web_devices)
 
-        else:
-            app_uninstall.uninstall_days = app_uninstall.uninstall_days + 1
+            if len(token_list):
+                result = send_silent_notification(token_list)
 
-        app_uninstall.save()
+                if result['success'] > 0:
+                    flag_installed = True
+
+            # If all the user related devices are web devices or app is installed
+            if flag_installed:
+                app_uninstall.uninstall_days = 0
+
+            else:
+                app_uninstall.uninstall_days = app_uninstall.uninstall_days + 1
+
+            app_uninstall.save()
 
 
 def get_user_tokens(devices):

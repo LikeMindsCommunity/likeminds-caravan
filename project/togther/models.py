@@ -545,7 +545,7 @@ class Collabcard(models.Model):
     date_time = models.BigIntegerField(default=0)  # for saving event and poll creation epoch
     end_date = models.BigIntegerField(default=0, null=True)  # for saving end epoch for event and poll
     is_paid = models.BooleanField(default=False)
-    access = models.IntegerField(default=1)
+    access = models.IntegerField(null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
     webflow_item_id = models.TextField(null=True)
@@ -1075,8 +1075,7 @@ class conversationMemberState(models.Model):
         if self.created_at == 0:
             self.created_at = TimeUtilities.current_time_in_sec()
 
-        if self.updated_at == 0:
-            self.updated_at = self.created_at
+        self.updated_at = TimeUtilities.current_time_in_sec()
 
         super(conversationMemberState, self).save(*args, **kwargs)
 
@@ -2405,6 +2404,7 @@ class SubscriptionExpiredMembers(models.Model):
 class EventInstructor(models.Model):
 
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    name = models.CharField(max_length=128, null=True)
     about = models.TextField(null=True)
     url = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
@@ -2414,6 +2414,7 @@ class EventInstructor(models.Model):
     def create_instance(create_info):
 
         instance = EventInstructor()
+        instance.name = create_info.get('name')
         instance.card = create_info.get('card_instance')
         instance.about = create_info.get('about')
         instance.url = create_info.get('url')
@@ -3028,9 +3029,7 @@ class CommunityJoinDefaultEmail(models.Model):
     def save(self, *args, **kwargs):
 
         current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
-
-        if self.updated_at == 0:
-            self.updated_at = current_time_in_ms
+        self.updated_at = current_time_in_ms
 
         if self.created_at == 0:
             self.created_at = current_time_in_ms
@@ -3057,8 +3056,7 @@ class CommunityJoinEmail(models.Model):
 
         current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
 
-        if self.updated_at == 0:
-            self.updated_at = current_time_in_ms
+        self.updated_at = current_time_in_ms
 
         if self.created_at == 0:
             self.created_at = current_time_in_ms

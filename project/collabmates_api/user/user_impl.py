@@ -19,6 +19,7 @@ from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices
 from collabmates_api.user.user_manager import UserManager
 
 from utility.exception_utilities import InvalidUserException
+from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
     conversation_states, member_rights
@@ -38,7 +39,7 @@ from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSIO
     CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
 
 from external_services.logging.logging_wrapper import LoggingWrapper
-from external_services.email.email_wrapper import MailWrapper
+from external_services.email.email_wrapper import MailWrapper, MailHelper
 
 host_url = settings.URL
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
@@ -1295,8 +1296,11 @@ class UserHelper:
                 "button_text": FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_TEXT,
                 "button_link": CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
             })
+            mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
+                EmailCategories.CREATE_COMMUNITY, EmailSubCategories.DROPOFF)
 
             send_email_response = MailWrapper.send_email(mail_subject, mail_template, [user_instance.userinfo.email],
+                                                         categories=mail_categories,
                                                          reply_to=[FIRST_LOGIN_NON_FORM_CM_REPLY_EMAIL])
 
             return

@@ -595,11 +595,11 @@ MEMBER_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
 
 FIVE_DAYS_IN_HOURS = 24 * 5
 
-DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE = 190
+DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE = 185
 DIRECTORY_QUESTIONS_IOS_VERSION_CODE = 1101
 DIRECTORY_QUESTIONS_WEB_VERSION_CODE = 1101
 
-DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE = "Edit join form"
+DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE = "Customise join form"
 MEMBER_REQUEST_TOOL_ROUTE = "route://member_approve?community_id={}&community_name={}"
 PENDING_CHATROOM_TOOL_ROUTE = "route://pending_chatrooms?community_id={}&community_name={}"
 REPORTS_TOOL_ROUTE = "route://review_reports?community_id={}&community_name={}"
@@ -641,3 +641,5 @@ COMMUNITY_LEVEL_3_TEXT = "Level 3"
 IMAGE_URLS_FOR_QUESTION_TITLES = ["Email", "Phone Number", "Phone No."]
 
 CREATE_COMMUNITY_QUESTION_NAME_TITLE = "Name"
+
+SIX_HOURS_IN_SECONDS = 6 * 60 * 60
