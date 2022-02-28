@@ -63,7 +63,7 @@ class WebhookImpl(WebhookManager):
     def _create_webhook_instance(community_id, url, webhook_type) -> dict:
 
         webhook_data = {
-            'community_id': community_id,
+            'community': community_id,
             'url': url,
             'webhook_type': webhook_type,
         }
