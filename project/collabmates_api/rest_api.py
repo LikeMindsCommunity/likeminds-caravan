@@ -226,7 +226,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                     data['image_url'] = url + data['image_url']
 
             if field.field_name == "branding":
-                data['branding'] = json.loads(community.branding)
+                data['branding'] = json.loads(community.branding) if community.branding else None
 
             elif data[field.field_name] is None:
                 del data[field.field_name]

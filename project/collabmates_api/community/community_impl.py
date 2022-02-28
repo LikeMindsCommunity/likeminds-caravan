@@ -1278,9 +1278,9 @@ class CommunityImpl(CommunityManager):
         if validate_req_body.get('branding'):
             try:
                 branding = json.dumps(validate_req_body['branding'])
-            except:
-                branding = None
 
+            except:
+                error_logger.error('error in branding key while community creation')
 
         if directory_questions_v2_version_check(self.get_request_platform(), self.get_version_code()):
             type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()

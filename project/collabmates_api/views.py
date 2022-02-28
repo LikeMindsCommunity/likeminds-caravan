@@ -8976,7 +8976,7 @@ def edit_community_version_1(request):
     community_instance.referral_enabled = res.get('referral_enabled', community_instance.referral_enabled)
     community_instance.dashboard_link = res.get('dashboard_link', community_instance.dashboard_link)
 
-    community_instance.branding = res.get('branding', community_instance.branding)
+    community_instance.branding = json.dumps(res.get('branding')) if res.get('branding') else community_instance.branding
 
     community_instance.fee_membership = res.get('fee_membership', community_instance.fee_membership)
     community_instance.fee_event = res.get('fee_event', community_instance.fee_event)

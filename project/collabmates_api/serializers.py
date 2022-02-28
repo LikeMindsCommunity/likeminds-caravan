@@ -51,7 +51,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         'grace_period': community.grace_period,
         'is_discoverable': community.is_discoverable,
         'referral_enabled': community.referral_enabled,
-        'branding': json.loads(community.branding),
+        'branding': json.loads(community.branding) if community.branding else None,
     }
 
     aj = community.id
