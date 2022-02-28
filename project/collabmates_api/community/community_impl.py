@@ -451,11 +451,13 @@ class CommunityImpl(CommunityManager):
     @staticmethod
     def send_join_data_on_webhook(member_id, community_id):
 
-        webhook_instance = ModelUtilities.get_model_filter(
+        webhook_instances = ModelUtilities.get_model_filter(
             CommunityWebhook, {'community_id': community_id, 'webhook_type': WebhookTypes.COMMUNITY_JOIN.value})
 
-        if not webhook_instance:
+        if not webhook_instances:
             return
+
+        webhook_instance = webhook_instances[0]
 
         webhook_data = CommunityImpl.generate_join_data_for_webhook(member_id, community_id)
 
