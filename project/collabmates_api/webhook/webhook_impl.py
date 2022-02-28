@@ -42,7 +42,7 @@ class WebhookImpl(WebhookManager):
     def get_webhook_id(self) -> str:
         return self.webhook_id
 
-    def fetch_webhook(self) -> dict:
+    def fetch_webhooks(self) -> dict:
 
         authentication_response = AuthUtilities.is_cm(self.get_community_id(), self.get_member_id())
 
@@ -51,9 +51,6 @@ class WebhookImpl(WebhookManager):
                                                             authentication_response['status'])
 
         webhook_instances = ModelUtilities.get_model_filter(CommunityWebhook, {'community_id': self.get_community_id()})
-
-        if self.get_webhook_id():
-            webhook_instances = webhook_instances.filter(id=self.get_webhook_id())
 
         webhook_data = WebhookSerializer(webhook_instances, many=True)
 
@@ -111,15 +108,30 @@ class WebhookImpl(WebhookManager):
 
         return {'success': True, 'webhook': webhook_instance_data}
 
+    def fetch_webhook(self) -> dict:
+
+        webhook_instance = ModelUtilities.get_model_instance_or_none(CommunityWebhook, self.get_webhook_id())
+
+        if not webhook_instance:
+            return ResponseUtilities.get_impl_error_context('Invalid webhook_id', status_codes.HTTP_404_NOT_FOUND)
+
+        authentication_response = AuthUtilities.is_cm(webhook_instance.community_id, self.get_member_id())
+
+        if 'error_message' in authentication_response:
+            return ResponseUtilities.get_impl_error_context(authentication_response['error_message'],
+                                                            authentication_response['status'])
+
+        webhook_data = WebhookSerializer(webhook_instance)
+
+        return {'success': True, 'webhooks': webhook_data.data}
+
     def update_webhook(self) -> dict:
 
-        webhook_instances = ModelUtilities.get_model_filter(CommunityWebhook, {'id': self.get_webhook_id()})
+        webhook_instance = ModelUtilities.get_model_instance_or_none(CommunityWebhook, self.get_webhook_id())
 
-        if not webhook_instances:
+        if not webhook_instance:
             return ResponseUtilities.get_impl_error_context("Invalid webhook details",
                                                             status_codes.HTTP_403_FORBIDDEN)
-
-        webhook_instance = webhook_instances[0]
 
         authentication_response = AuthUtilities.is_cm(webhook_instance.community_id, self.get_member_id())
 
@@ -136,12 +148,10 @@ class WebhookImpl(WebhookManager):
 
     def delete_webhook(self) -> dict:
 
-        webhook_instances = ModelUtilities.get_model_filter(CommunityWebhook, {'id': self.get_webhook_id()})
+        webhook_instance = ModelUtilities.get_model_instance_or_none(CommunityWebhook, self.get_webhook_id())
 
-        if not webhook_instances:
+        if not webhook_instance:
             return ResponseUtilities.get_impl_error_context('Invalid webhook details', status_codes.HTTP_403_FORBIDDEN)
-
-        webhook_instance = webhook_instances[0]
 
         authentication_response = AuthUtilities.is_cm(webhook_instance.community_id, self.get_member_id())
 
