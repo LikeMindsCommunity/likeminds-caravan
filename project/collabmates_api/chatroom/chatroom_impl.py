@@ -2598,6 +2598,7 @@ class ChatroomImpl(ChatroomManager):
 
                 payload_for_email_comms = {
                     'chatroom': event_obj.id,
+                    'user': member_id
                 }
 
                 send_email_notification_for_event_type.delay(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTACHMENTS)

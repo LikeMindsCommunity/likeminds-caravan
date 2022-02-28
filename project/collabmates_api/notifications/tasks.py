@@ -417,9 +417,6 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
             user_instances = active_user_ids + community_managers
 
-            if payload_for_email_comms.get('user') in user_instances:
-                user_instances.remove(payload_for_email_comms.get('user'))
-
         elif event_type == EVENT_TYPE.LAST_CALL:
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
                                                                                                             active_user_ids,
@@ -451,6 +448,9 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                                                              list(user_instances))
         else:
             final_user_instances = user_instances
+        
+        if event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS and payload_for_email_comms.get('user') in final_user_instances:
+                final_user_instances.remove(payload_for_email_comms.get('user'))
 
         context = TasksHelper.create_context_for_sending_emails(final_user_instances, event_type, event_instance,\
                                                                 data_dict=response_dict)
