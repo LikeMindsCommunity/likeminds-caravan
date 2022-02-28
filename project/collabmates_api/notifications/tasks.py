@@ -235,9 +235,6 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         elif event_type == EVENT_TYPE.REGISTRATION:
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
                                                                                             event_instance)
-            
-            if payload_for_app_notification.get('user') in community_managers:
-                community_managers.remove(payload_for_app_notification.get('user'))
 
             user_instances = community_managers
 
@@ -248,6 +245,9 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
                                                                                              list(user_instances))
         else:
             final_user_instances = user_instances
+
+        if event_type == EVENT_TYPE.REGISTRATION and payload_for_app_notification.get('user') in final_user_instances:
+            final_user_instances.remove(payload_for_app_notification.get('user'))
 
         user_details_list = TasksHelper.create_user_details_list_for_sending_app_notification(final_user_instances)
 
