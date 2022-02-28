@@ -29,6 +29,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
     userEmails, ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes
+from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
 from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url, \
@@ -54,11 +55,13 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
-    email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, airtable_webhook_types
+    email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
+    airtable_webhook_types, WebhookTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import PLATFORM_CODE_WEB
+from utility.api_client import ApiClient
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -66,6 +69,7 @@ from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_di
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
+from ..user.user_impl import UserHelper
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
     directory_questions_v2_version_check, get_user_phone
@@ -410,6 +414,60 @@ class CommunityImpl(CommunityManager):
         return {'success': True}
 
     @staticmethod
+    def generate_join_data_for_webhook(member_id, community_id):
+
+        webhook_data = {
+            'question_answers': [],
+            'plan_type': None,
+            'plan_name': None
+        }
+
+        community_questions_list = list(ModelUtilities.get_model_filter(
+            communityQuestions, {'community_id': community_id}).values_list('id', flat=True))
+
+        community_answers = ModelUtilities.get_model_filter(
+            communityAnswers, {'community_id': community_id, 'member_id': member_id,
+                               'question_id__in': community_questions_list}
+        )
+
+        for answer in community_answers:
+            answer_object = {
+                'question': answer.question_title,
+                'answer': answer.question_answer
+            }
+
+            webhook_data['question_answers'].append(answer_object)
+
+        subscriptions = UserHelper.fetch_user_subscriptions(member_id, community_id=community_id)
+
+        for subscription in subscriptions:
+
+            if subscription.get('plan'):
+                webhook_data['plan_type'] = PAID_PLAN if subscription['plan'].get('is_paid') else FREE_PLAN
+                webhook_data['plan_name'] = subscription['plan'].get('name')
+
+        return webhook_data
+
+    @staticmethod
+    def send_join_data_on_webhook(member_id, community_id):
+
+        webhook_instances = ModelUtilities.get_model_filter(
+            CommunityWebhook, {'community_id': community_id, 'webhook_type': WebhookTypes.COMMUNITY_JOIN.value})
+
+        if not webhook_instances:
+            return
+
+        webhook_instance = webhook_instances[0]
+
+        webhook_data = CommunityImpl.generate_join_data_for_webhook(member_id, community_id)
+
+        client = ApiClient()
+        client.update_request_url(webhook_instance.url)
+        client.update_body(webhook_data)
+        client.post()
+        client.fetch_response()
+
+    @staticmethod
     def update_pending_members_after_request_accept_or_reject(community_instance):
 
         pending_members = Members.get_pending_members(community_instance)
@@ -470,6 +528,7 @@ class CommunityImpl(CommunityManager):
                                     {'is_guest': False, 'remove': None,
                                      'last_updated': TimeUtilities.current_time_in_milliseconds()})
         self.update_pending_members_after_request_accept_or_reject(community_instance)
+        self.send_join_data_on_webhook(user_instance.id, community_instance.id)
 
     def set_members_count_in_community(self, community_id, members_count):
 
@@ -643,6 +702,8 @@ class CommunityImpl(CommunityManager):
         self._send_join_email_to_member(user_instance.id, community_instance.id)
 
         CohortHelper.add_member_to_respective_question_based_cohorts(self.get_member_id(), self.get_community_id())
+
+        self.send_join_data_on_webhook(user_instance.id, community_instance.id)
 
     @staticmethod
     def send_approve_reject_data_on_airtable(user_instance, community_instance, approved):
