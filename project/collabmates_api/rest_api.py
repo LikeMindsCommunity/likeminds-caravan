@@ -184,7 +184,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                   'type', 'sub_type', 'is_paid', 'auto_approval', 'grace_period',
                   'is_discoverable', 'website_url', 'community_category', 'referral_enabled',
                   'dashboard_link', 'updated_at', 'fee_membership', 'fee_event', 'fee_payment_pages',
-                  'likeminds_plan')
+                  'likeminds_plan', 'branding')
 
     def __init__(self, *args, **kwargs):
         super(CommunitySerializerV1, self).__init__(*args, **kwargs)
@@ -224,6 +224,9 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                         'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
                 elif not community.image_link:
                     data['image_url'] = url + data['image_url']
+
+            if field.field_name == "branding":
+                data['branding'] = json.loads(community.branding) if community.branding else None
 
             elif data[field.field_name] is None:
                 del data[field.field_name]

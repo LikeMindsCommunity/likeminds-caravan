@@ -43,6 +43,7 @@ from external_services.mixpanel.events import MixpanelEvents
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
 from external_services.segment.segment_impl import SegmentImpl
+from external_services.caching.cache_impl import CacheImpl
 
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -410,6 +411,8 @@ class CommunityImpl(CommunityManager):
         self._set_community_delete_relation_for_users(community_instance)
         self._set_deleted_by_for_community_chatrooms_and_conversations(community_instance)
         self._delete_community_relationships(community_instance)
+
+        CacheImpl.delete_key('COMMUNITY_BRANDING_{}'.format(self.get_community_id()))
 
         return {'success': True}
 
@@ -1340,6 +1343,14 @@ class CommunityImpl(CommunityManager):
             return validate_req_body
 
         community_state = 0
+        branding = None
+
+        if validate_req_body.get('branding'):
+            try:
+                branding = json.dumps(validate_req_body['branding'])
+
+            except:
+                error_logger.error('error in branding key while community creation')
 
         if directory_questions_v2_version_check(self.get_request_platform(), self.get_version_code()):
             type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
@@ -1356,7 +1367,8 @@ class CommunityImpl(CommunityManager):
                                                         'thumbnail': community_default_thumbnail,
                                                         'type': type_id,
                                                         'sub_type': sub_type_id,
-                                                        'hide_community': community_state})
+                                                        'hide_community': community_state,
+                                                        'branding': branding})
 
         if validate_req_body.get('has_logo_uploaded', False):
             add_community_upload_image_analytics.delay(user_instance.id, community_instance.id, community_instance.name)
@@ -1584,6 +1596,35 @@ class CommunityImpl(CommunityManager):
         community_meta_data['success'] = True
 
         return community_meta_data
+
+    def fetch_community_branding_info(self, req_body) -> {}:
+
+        output = {}
+        branding_cache_key = 'COMMUNITY_BRANDING_{}'.format(self.get_community_id())
+
+        branding = CacheImpl.get_cache(branding_cache_key)
+
+        if branding:
+            output['branding'] = json.loads(branding)
+
+        else:
+
+            validated_req_body = CommunityHelper.validate_fetch_branding_info_request(self.get_member_id(),
+                                                                                      self.get_community_id(),
+                                                                                      req_body)
+
+            if not validated_req_body.get('success'):
+                return validated_req_body
+
+            community_instance = validated_req_body.get('community_instance')
+
+            output['branding'] = json.loads(community_instance.branding)
+
+            CacheImpl.set_cache(branding_cache_key, community_instance.branding)
+
+        output['success'] = True
+
+        return output
 
 
 class CommunityHelper:
@@ -2726,6 +2767,9 @@ class CommunityHelper:
         if not community_instance:
             return
 
+        # Add branding key to cache
+        CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_id), community_instance.branding)
+
         # Set community levels
         set_community_actions(community_instance)
 
@@ -3261,3 +3305,18 @@ class CommunityHelper:
             sub_type_id = community_sub_type_filter[0].id
 
         return type_id, sub_type_id
+
+    @staticmethod
+    def validate_fetch_branding_info_request(user_id, community_id, req_body):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member-id'}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': 'Invalid community_id'}
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'aj': req_body.get('aj', None), 'shared_by': req_body.get('shared_by', None)}

@@ -441,7 +441,10 @@ class FetchLinkForEvent(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_ids = self.get_chatroom_ids_from_query_params(request)
         chatroom_id = request.GET.get('chatroom_id')
-        is_edit_mode = request.GET.get('is_edit_mode')
+        if request.GET.get('is_edit_mode'):
+            is_edit_mode = StringUtilities.get_boolean_from_string(request.GET.get('is_edit_mode'))
+        else:
+            is_edit_mode = None
 
         if chatroom_id:
             chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
