@@ -1487,6 +1487,9 @@ def update_event_in_webflow_service(update_info):
     request_meta = create_event_request_meta_for_webflow_update(update_info)
     event_meta = WebflowImpl.update_event_in_webflow(request_meta, card_instance.webflow_item_id)
 
+    if not event_meta:
+        return
+
     ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, {
         'updated_at': TimeUtilities.current_time_in_milliseconds(),
         'event_web_page': settings.WEBFLOW_KEYS.get('web_url') + event_meta.get('slug', ""),
@@ -2214,6 +2217,12 @@ def create_chatroom_cohort_instances(chatroom_id, cohort_ids):
 
         if not cohort_instance:
             return
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort,
+                                                                 {'cohort_id': cohort_id, 'chatroom_id': chatroom_id})
+
+        if chatroom_cohort_filter:
+            continue
 
         chatroom_cohort_context = {
             'cohort_instance': cohort_instance,

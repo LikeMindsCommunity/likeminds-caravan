@@ -441,13 +441,18 @@ class FetchLinkForEvent(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_ids = self.get_chatroom_ids_from_query_params(request)
         chatroom_id = request.GET.get('chatroom_id')
+        if request.GET.get('is_edit_mode'):
+            is_edit_mode = StringUtilities.get_boolean_from_string(request.GET.get('is_edit_mode'))
+        else:
+            is_edit_mode = None
 
         if chatroom_id:
             chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
-            response_context = chatroom_manager.fetch_link_for_event()
+            response_context = chatroom_manager.fetch_link_for_event(is_edit_mode)
 
         else:
-            response_context = ChatroomImpl.fetch_link_for_events_list(member_id=member_id, chatroom_ids=chatroom_ids)
+            response_context = ChatroomImpl.fetch_link_for_events_list(is_edit_mode, member_id=member_id,
+                                                                    chatroom_ids=chatroom_ids)
 
         if response_context.get('error_message'):
             response_context['success'] = False

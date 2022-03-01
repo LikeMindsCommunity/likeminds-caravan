@@ -210,14 +210,11 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
-            user_instances = active_user_ids
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
+                                                                                            event_instance,
+                                                                                            add_event_creator=False)
 
-            if not event_instance.is_paid:
-                community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
-                                                                                                event_instance,
-                                                                                                add_event_creator=False)
-
-                user_instances += community_managers
+            user_instances = active_user_ids + community_managers
 
         elif event_type == EVENT_TYPE.LAST_CALL:
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
@@ -238,6 +235,7 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         elif event_type == EVENT_TYPE.REGISTRATION:
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
                                                                                             event_instance)
+
             user_instances = community_managers
 
         is_non_member_access_event = TasksHelper.is_non_member_access_event(event_instance=event_instance)
@@ -247,6 +245,9 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
                                                                                              list(user_instances))
         else:
             final_user_instances = user_instances
+
+        if event_type == EVENT_TYPE.REGISTRATION and payload_for_app_notification.get('user') in final_user_instances:
+            final_user_instances.remove(payload_for_app_notification.get('user'))
 
         user_details_list = TasksHelper.create_user_details_list_for_sending_app_notification(final_user_instances)
 
@@ -403,8 +404,18 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         active_user_ids = TasksHelper.get_active_members_of_community(community_id)
         user_instances = []
 
-        if event_type == EVENT_TYPE.CREATION or event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
-            user_instances = active_user_ids
+        if event_type == EVENT_TYPE.CREATION:
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
+                                                                                            event_instance,
+                                                                                            add_event_creator=False)
+            user_instances = active_user_ids + community_managers
+
+        elif event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
+            community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
+                                                                                            event_instance,
+                                                                                            add_event_creator=True)
+
+            user_instances = active_user_ids + community_managers
 
         elif event_type == EVENT_TYPE.LAST_CALL:
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
@@ -437,6 +448,9 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                                                              list(user_instances))
         else:
             final_user_instances = user_instances
+        
+        if event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS and payload_for_email_comms.get('user') in final_user_instances:
+                final_user_instances.remove(payload_for_email_comms.get('user'))
 
         context = TasksHelper.create_context_for_sending_emails(final_user_instances, event_type, event_instance,\
                                                                 data_dict=response_dict)
