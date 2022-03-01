@@ -20,7 +20,7 @@ MENU = {
         'Invite members',
         'View all chat rooms',
         'Member directory',
-        'Edit join form',
+        'Customise join form',
         'Edit community',
         'Report'
     ],
@@ -167,3 +167,6 @@ DEFAULT_QUESTIONS_LIST_KEY = "questions"
 DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY = "question_id"
 DIRECTORY_QUESTIONS_V2_ANSWER_KEY = "answer"
 DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY = "question_answers"
+
+PAID_PLAN = "paid"
+FREE_PLAN = "free"

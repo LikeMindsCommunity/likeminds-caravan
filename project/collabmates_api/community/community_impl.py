@@ -29,6 +29,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
     userEmails, ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes
+from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
 from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url, \
@@ -42,6 +43,7 @@ from external_services.mixpanel.events import MixpanelEvents
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
 from external_services.segment.segment_impl import SegmentImpl
+from external_services.caching.cache_impl import CacheImpl
 
 from collabmates_api.community.community_manager import CommunityManager
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -54,11 +56,13 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
-    email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, airtable_webhook_types
+    email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
+    airtable_webhook_types, WebhookTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import PLATFORM_CODE_WEB
+from utility.api_client import ApiClient
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -66,12 +70,13 @@ from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_di
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
+from ..user.user_impl import UserHelper
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
     directory_questions_v2_version_check, get_user_phone
 
 from ..sms import send_community_confirmation_sms
-from ..utility import single_community_view_version_check
+from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -407,7 +412,64 @@ class CommunityImpl(CommunityManager):
         self._set_deleted_by_for_community_chatrooms_and_conversations(community_instance)
         self._delete_community_relationships(community_instance)
 
+        CacheImpl.delete_key('COMMUNITY_BRANDING_{}'.format(self.get_community_id()))
+
         return {'success': True}
+
+    @staticmethod
+    def generate_join_data_for_webhook(member_id, community_id):
+
+        webhook_data = {
+            'question_answers': [],
+            'plan_type': FREE_PLAN,
+            'plan_name': None
+        }
+
+        community_questions_list = list(ModelUtilities.get_model_filter(
+            communityQuestions, {'community_id': community_id}).values_list('id', flat=True))
+
+        community_answers = ModelUtilities.get_model_filter(
+            communityAnswers, {'community_id': community_id, 'member_id': member_id,
+                               'question_id__in': community_questions_list}
+        )
+
+        for answer in community_answers:
+            answer_object = {
+                'question': answer.question_title,
+                'answer': answer.question_answer
+            }
+
+            webhook_data['question_answers'].append(answer_object)
+
+        subscriptions = UserHelper.fetch_user_subscriptions(member_id, community_id=community_id)
+
+        for subscription in subscriptions:
+
+            if subscription.get('plan'):
+                webhook_data['plan_type'] = PAID_PLAN if subscription['plan'].get('is_paid') else FREE_PLAN
+                webhook_data['plan_name'] = subscription['plan'].get('name')
+
+        return webhook_data
+
+    @staticmethod
+    @shared_task
+    def send_join_data_on_webhook(member_id, community_id):
+
+        webhook_instances = ModelUtilities.get_model_filter(
+            CommunityWebhook, {'community_id': community_id, 'webhook_type': WebhookTypes.COMMUNITY_JOIN.value})
+
+        if not webhook_instances:
+            return
+
+        webhook_instance = webhook_instances[0]
+
+        webhook_data = CommunityImpl.generate_join_data_for_webhook(member_id, community_id)
+
+        client = ApiClient()
+        client.update_request_url(webhook_instance.url)
+        client.update_body(webhook_data)
+        client.post()
+        client.fetch_response()
 
     @staticmethod
     def update_pending_members_after_request_accept_or_reject(community_instance):
@@ -470,6 +532,7 @@ class CommunityImpl(CommunityManager):
                                     {'is_guest': False, 'remove': None,
                                      'last_updated': TimeUtilities.current_time_in_milliseconds()})
         self.update_pending_members_after_request_accept_or_reject(community_instance)
+        self.send_join_data_on_webhook.delay(user_instance.id, community_instance.id)
 
     def set_members_count_in_community(self, community_id, members_count):
 
@@ -644,6 +707,8 @@ class CommunityImpl(CommunityManager):
 
         CohortHelper.add_member_to_respective_question_based_cohorts(self.get_member_id(), self.get_community_id())
 
+        self.send_join_data_on_webhook.delay(user_instance.id, community_instance.id)
+
     @staticmethod
     def send_approve_reject_data_on_airtable(user_instance, community_instance, approved):
         email = get_user_email_preferred_verified(user_instance.id)
@@ -794,18 +859,27 @@ class CommunityImpl(CommunityManager):
         is_cm_onboarding_enabled = cm_onboarding_version_check(self.get_request_platform(), self.get_version_code())
         is_directory_questions_enabled = directory_questions_v2_version_check(self.get_request_platform(),
                                                                               self.get_version_code())
+
         req_body['is_directory_questions_v2'] = is_directory_questions_enabled
 
         if member_state == member_states.GUEST:
+
+            is_free_trial = False
+
+            if community_instance.is_paid and free_link_and_freemium_community_version_check(
+                    self.get_request_platform(), int(self.get_version_code())):
+                is_free_trial = True
 
             if is_cm_onboarding_enabled:
                 join_link_valid, join_link_invalid_message = CommunityHelper.is_join_link_valid_v2(auto_join_code,
                                                                                                    shared_by_user,
                                                                                                    community_instance,
-                                                                                                   user_instance)
+                                                                                                   user_instance,
+                                                                                                   is_free_trial)
 
             else:
-                join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance)
+                join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance,
+                                                                     is_free_trial)
 
             if join_link_valid:
                 self.make_requesting_user_as_member_of_community_automatically(user_instance, community_instance,
@@ -1270,6 +1344,14 @@ class CommunityImpl(CommunityManager):
             return validate_req_body
 
         community_state = 0
+        branding = None
+
+        if validate_req_body.get('branding'):
+            try:
+                branding = json.dumps(validate_req_body['branding'])
+
+            except:
+                error_logger.error('error in branding key while community creation')
 
         if directory_questions_v2_version_check(self.get_request_platform(), self.get_version_code()):
             type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
@@ -1286,7 +1368,8 @@ class CommunityImpl(CommunityManager):
                                                         'thumbnail': community_default_thumbnail,
                                                         'type': type_id,
                                                         'sub_type': sub_type_id,
-                                                        'hide_community': community_state})
+                                                        'hide_community': community_state,
+                                                        'branding': branding})
 
         if validate_req_body.get('has_logo_uploaded', False):
             add_community_upload_image_analytics.delay(user_instance.id, community_instance.id, community_instance.name)
@@ -1494,9 +1577,16 @@ class CommunityImpl(CommunityManager):
         aj = validated_req_body.get('aj')
         shared_by = validated_req_body.get('shared_by')
 
+        is_free_trial = False
+
+        if free_link_and_freemium_community_version_check(self.get_request_platform(), int(self.get_version_code()))\
+                and community_instance.is_paid:
+            is_free_trial = True
+
         community_meta_data = CommunityHelper.compute_community_meta_data_according_to_aj_shared_by(user_instance,
                                                                                                     community_instance,
-                                                                                                    aj, shared_by)
+                                                                                                    aj, shared_by,
+                                                                                                    is_free_trial)
 
         CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
 
@@ -1507,6 +1597,35 @@ class CommunityImpl(CommunityManager):
         community_meta_data['success'] = True
 
         return community_meta_data
+
+    def fetch_community_branding_info(self, req_body) -> {}:
+
+        output = {}
+        branding_cache_key = 'COMMUNITY_BRANDING_{}'.format(self.get_community_id())
+
+        branding = CacheImpl.get_cache(branding_cache_key)
+
+        if branding:
+            output['branding'] = json.loads(branding)
+
+        else:
+
+            validated_req_body = CommunityHelper.validate_fetch_branding_info_request(self.get_member_id(),
+                                                                                      self.get_community_id(),
+                                                                                      req_body)
+
+            if not validated_req_body.get('success'):
+                return validated_req_body
+
+            community_instance = validated_req_body.get('community_instance')
+
+            output['branding'] = json.loads(community_instance.branding)
+
+            CacheImpl.set_cache(branding_cache_key, community_instance.branding)
+
+        output['success'] = True
+
+        return output
 
 
 class CommunityHelper:
@@ -2085,7 +2204,9 @@ class CommunityHelper:
         CommunityHelper.send_questions_data_on_airtable(user_instance, community_instance, airtable_data)
 
     @staticmethod
-    def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None):
+    def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None,
+                              is_free_trial=False):
+
         join_link_valid = False
         join_link_invalid_message = ''
 
@@ -2100,7 +2221,7 @@ class CommunityHelper:
         auto_approval = community_setting_instance[0].enabled if len(
             community_setting_instance) else community_instance.auto_approval
 
-        if community_instance.is_paid and (auto_join_code is None) and (shared_by_user is None):
+        if community_instance.is_paid and (is_free_trial or ((auto_join_code is None) and (shared_by_user is None))):
             join_link_valid = auto_approval
 
         else:
@@ -2129,8 +2250,11 @@ class CommunityHelper:
         return join_link_valid, join_link_invalid_message
 
     @staticmethod
-    def is_join_link_valid(auto_join_code, shared_by_user, community_instance):
+    def is_join_link_valid(auto_join_code, shared_by_user, community_instance, is_free_trial=False):
         join_link_valid = False
+
+        if is_free_trial:
+            return community_instance.auto_approval
 
         if auto_join_code is None \
                 and shared_by_user is None:
@@ -2644,6 +2768,9 @@ class CommunityHelper:
         if not community_instance:
             return
 
+        # Add branding key to cache
+        CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_id), community_instance.branding)
+
         # Set community levels
         set_community_actions(community_instance)
 
@@ -3042,7 +3169,8 @@ class CommunityHelper:
         return is_verified
 
     @staticmethod
-    def compute_community_meta_data_according_to_aj_shared_by(user_instance, community_instance, aj, shared_by):
+    def compute_community_meta_data_according_to_aj_shared_by(user_instance, community_instance, aj, shared_by,
+                                                              is_free_trial=False):
         community_serialized_object = CommunitySerializerV1(community_instance, many=False).data
         community_serialized_object['created_by'] = get_community_creator(community_instance)
         managers = CommunityHelper.get_community_managers(community_instance)
@@ -3065,7 +3193,7 @@ class CommunityHelper:
             title = FETCH_QUESTIONS_SHARED_BY_USER_TITLE.format(shared_by_user_name,
                                                                 community_serialized_object['name'])
 
-        if aj and shared_by:
+        if aj and shared_by and (not is_free_trial):
             auto_join = CommunityHelper.get_toast_according_to_aj_expiry(community_instance, aj, shared_by, user_instance)
             is_valid_private_link = True
 
@@ -3178,3 +3306,18 @@ class CommunityHelper:
             sub_type_id = community_sub_type_filter[0].id
 
         return type_id, sub_type_id
+
+    @staticmethod
+    def validate_fetch_branding_info_request(user_id, community_id, req_body):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member-id'}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': 'Invalid community_id'}
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'aj': req_body.get('aj', None), 'shared_by': req_body.get('shared_by', None)}

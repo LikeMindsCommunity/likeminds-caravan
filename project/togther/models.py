@@ -89,6 +89,8 @@ class Community(models.Model):
     brand_color = models.TextField(null=True)
     likeminds_plan = models.TextField(null=True)
 
+    branding = models.TextField(null=True)
+
     fee_membership = models.IntegerField(default=5)
     fee_event = models.IntegerField(default=5)
     fee_payment_pages = models.IntegerField(default=5)
@@ -120,6 +122,7 @@ class Community(models.Model):
         community_instance.type = community_object['type']
         community_instance.sub_type = community_object['sub_type']
         community_instance.hide_community = community_object['hide_community']
+        community_instance.branding = community_object['branding']
         community_instance.save()
 
         return community_instance
@@ -2404,6 +2407,7 @@ class SubscriptionExpiredMembers(models.Model):
 class EventInstructor(models.Model):
 
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
+    name = models.CharField(max_length=128, null=True)
     about = models.TextField(null=True)
     url = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
@@ -2413,6 +2417,7 @@ class EventInstructor(models.Model):
     def create_instance(create_info):
 
         instance = EventInstructor()
+        instance.name = create_info.get('name')
         instance.card = create_info.get('card_instance')
         instance.about = create_info.get('about')
         instance.url = create_info.get('url')

@@ -15,6 +15,7 @@ from external_services.mixpanel.events import MixpanelEvents
 from external_services.segment.segment_impl import SegmentImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.otp.otp_api_client import OTPApiClient
+from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.string_utilities import StringUtilities
 from random import randint
@@ -64,7 +65,8 @@ from cms.cms_auth_utilities import CMSAuthUtilities
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer, GetChatroomInstanceSerializer,
                        CommunitySerializerV1,
-                       YourCommunitySerializer, EventRecordingsAttachmentsSerializer)
+                       YourCommunitySerializer, EventRecordingsAttachmentsSerializer, EventMemberTestimonialsSerializer,
+                       EventHighlightsSerializer, EventInstructorSerializer, EventFAQSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
@@ -922,7 +924,12 @@ def questions(request):
     except:
         error_logger.error(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
 
-    if aj and shared_by_user:
+    is_free_trial = False
+
+    if free_link_and_freemium_community_version_check(platform_code, version_code) and community_instance.is_paid:
+        is_free_trial = True
+
+    if aj and shared_by_user and (not is_free_trial):
         try:
             if is_cm_onboarding_enabled:
                 auto_join = private_link_app_invite_v2(community_instance, aj, created_by, shared_by_user,
@@ -8975,6 +8982,8 @@ def edit_community_version_1(request):
     community_instance.referral_enabled = res.get('referral_enabled', community_instance.referral_enabled)
     community_instance.dashboard_link = res.get('dashboard_link', community_instance.dashboard_link)
 
+    community_instance.branding = json.dumps(res.get('branding')) if res.get('branding') else community_instance.branding
+
     community_instance.fee_membership = res.get('fee_membership', community_instance.fee_membership)
     community_instance.fee_event = res.get('fee_event', community_instance.fee_event)
     community_instance.fee_payment_pages = res.get('fee_payment_pages', community_instance.fee_payment_pages)
@@ -8985,6 +8994,9 @@ def edit_community_version_1(request):
         edit_community_data(community_instance, user_instance, edit_field=edit_field)
 
     community_instance.save()
+
+    CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_instance.id), community_instance.branding)
+
     change_community_level_context_for_paid_community(community_instance)
 
     send_sync_notification.delay({'community_id': community_id,
@@ -12304,10 +12316,8 @@ class SyncChatrooms(APIView):
 
             instructor_filter = ModelUtilities.get_model_filter(EventInstructor,
                                                                 {'card': card_id}).order_by('id')
-            instructors_list = []
 
-            for data in instructor_filter:
-                instructors_list.append(ModelUtilities.serialize_instance(data))
+            instructors_list = EventInstructorSerializer(instructor_filter, many=True).data
 
             update_event_instructors_in_cache.delay({'chatroom_id': card_id,
                                                      'instructors_list': instructors_list})
@@ -12325,10 +12335,8 @@ class SyncChatrooms(APIView):
 
             highlights_filter = ModelUtilities.get_model_filter(EventHighlights,
                                                                 {'card': card_id}).order_by('id')
-            highlights_list = []
 
-            for data in highlights_filter:
-                highlights_list.append(ModelUtilities.serialize_instance(data))
+            highlights_list = EventHighlightsSerializer(highlights_filter, many=True).data
 
             update_event_highlights_in_cache.delay({'chatroom_id': card_id,
                                                     'highlights_list': highlights_list})
@@ -12346,10 +12354,8 @@ class SyncChatrooms(APIView):
 
             faq_filter = ModelUtilities.get_model_filter(EventFAQ,
                                                          {'card': card_id}).order_by('id')
-            faqs_list = []
 
-            for data in faq_filter:
-                faqs_list.append(ModelUtilities.serialize_instance(data))
+            faqs_list = EventFAQSerializer(faq_filter, many=True).data
 
             update_event_faq_in_cache.delay({'chatroom_id': card_id, 'faqs_list': faqs_list})
 
@@ -12365,10 +12371,8 @@ class SyncChatrooms(APIView):
         else:
             testimonial_filter = ModelUtilities.get_model_filter(EventMemberTestimonials,
                                                                  {'card': card_id}).order_by('id')
-            testimonials_list = []
 
-            for data in testimonial_filter:
-                testimonials_list.append(ModelUtilities.serialize_instance(data))
+            testimonials_list = EventMemberTestimonialsSerializer(testimonial_filter, many=True).data
 
             update_event_member_testimonials_in_cache.delay({'chatroom_id': card_id,
                                                              'testimonials_list': testimonials_list})

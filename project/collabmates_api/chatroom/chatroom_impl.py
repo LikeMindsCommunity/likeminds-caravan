@@ -29,7 +29,8 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
-    CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer
+    CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
+    EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
@@ -668,6 +669,9 @@ class ChatroomImpl(ChatroomManager):
         update_context['event_web_page'] = req_body.get('event_web_page',
                                                         card_instance.event_web_page)
         update_context['updated_at'] = TimeUtilities.current_time_in_milliseconds()
+
+        if req_body.get('cohort_ids'):
+            create_chatroom_cohort_instances(chatroom_id=card_instance.id, cohort_ids=req_body.get('cohort_ids'))
 
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_context)
         ModelUtilities.model_update(collabcardState, {'card': card_instance},
@@ -1548,17 +1552,29 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
         instructors = req_body.get('instructors', [])
-        ModelUtilities.delete_record_in_model(EventInstructor, {'card': card_instance})
-        instructors_list = []
+
+        from collabmates_api.views import SyncChatrooms
+
+        instructors_list = SyncChatrooms().fetch_event_instructors(card_instance.id)
 
         for data in instructors:
-            instance = EventInstructor.create_instance({
-                'card_instance': card_instance,
+            instructor_context = {
+                'card': card_instance.id,
                 'about': data.get('about'),
-                'url': data.get('url')
+                'url': data.get('url'),
+                'name': data.get('name')
 
-            })
-            instructors_list.append(ModelUtilities.serialize_instance(instance))
+            }
+
+            instructor_serializer = EventInstructorSerializer(data=instructor_context)
+
+            if instructor_serializer.is_valid():
+                instructor_serializer.save()
+                instructors_list.append(instructor_serializer.data)
+
+            else:
+                error_logger.error(f' Instructor Serializer:{instructor_serializer.errors},'
+                                   f' Instructor data:{instructor_context} | Instance not created')
 
         update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
                                                'instructors_list': instructors_list,
@@ -1577,18 +1593,27 @@ class ChatroomImpl(ChatroomManager):
 
         highlights = req_body.get('highlights', [])
 
-        ModelUtilities.delete_record_in_model(EventHighlights, {'card': card_instance})
-        highlights_list = []
+        from collabmates_api.views import SyncChatrooms
+
+        highlights_list = SyncChatrooms().fetch_event_highlights(card_instance.id)
 
         for data in highlights:
-            instance = EventHighlights.create_instance({
-                'card_instance': card_instance,
+            highlight_context = {
+                'card': card_instance.id,
                 'highlight': data.get('highlight'),
                 'url': data.get('url')
 
-            })
+            }
 
-            highlights_list.append(ModelUtilities.serialize_instance(instance))
+            highlight_serializer = EventHighlightsSerializer(data=highlight_context)
+
+            if highlight_serializer.is_valid():
+                highlight_serializer.save()
+                highlights_list.append(highlight_serializer.data)
+
+            else:
+                error_logger.error(f' Highlight Serializer:{highlight_serializer.errors},'
+                                   f' Highlight data:{highlight_context} | Instance not created')
 
         update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
                                                'highlights_list': highlights_list,
@@ -1605,19 +1630,29 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
         testimonials = req_body.get('testimonials', [])
-        testimonials_list = []
+        
+        from collabmates_api.views import SyncChatrooms
 
-        ModelUtilities.delete_record_in_model(EventMemberTestimonials, {'card': card_instance})
+        testimonials_list = SyncChatrooms().fetch_member_testimonials(card_instance.id)
 
         for data in testimonials:
-            instance = EventMemberTestimonials.create_instance({
-                'card_instance': card_instance,
+            testimonial_context = {
+                'card': card_instance.id,
                 'member_name': data.get('member_name'),
                 'testimonial': data.get('testimonial'),
                 'url': data.get('url')
 
-            })
-            testimonials_list.append(ModelUtilities.serialize_instance(instance))
+            }
+
+            testimonial_serializer = EventMemberTestimonialsSerializer(data=testimonial_context)
+
+            if testimonial_serializer.is_valid():
+                testimonial_serializer.save()
+                testimonials_list.append(testimonial_serializer.data)
+
+            else:
+                error_logger.error(f' Testimonial Serializer:{testimonial_serializer.errors},'
+                                   f' Testimonial data:{testimonial_serializer} | Instance not created')
 
         update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
                                                'testimonials_list': testimonials_list,
@@ -1635,17 +1670,28 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
         faq = req_body.get('faq', [])
-        faqs_list = []
-        ModelUtilities.delete_record_in_model(EventFAQ, {'card': card_instance})
+
+        from collabmates_api.views import SyncChatrooms
+
+        faqs_list = SyncChatrooms().fetch_event_FAQ(card_instance.id)
 
         for data in faq:
-            instance = EventFAQ.create_instance({
-                'card_instance': card_instance,
+            faq_context = {
+                'card': card_instance.id,
                 'question': data.get('question'),
                 'answer': data.get('answer')
 
-            })
-            faqs_list.append(ModelUtilities.serialize_instance(instance))
+            }
+
+            faq_serializer = EventFAQSerializer(data=faq_context)
+
+            if faq_serializer.is_valid():
+                faq_serializer.save()
+                faqs_list.append(faq_serializer.data)
+
+            else:
+                error_logger.error(f' FAQ Serializer:{faq_serializer.errors},'
+                                   f' FAQ data:{faq_serializer} | Instance not created')
 
         update_event_in_webflow_service.delay({'chatroom_id': card_instance.id,
                                                'faqs_list': faqs_list,
@@ -1727,7 +1773,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {'count': unseen_count}
 
-    def fetch_link_for_event(self) -> dict:
+    def fetch_link_for_event(self, is_edit_mode) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
@@ -1750,16 +1796,21 @@ class ChatroomImpl(ChatroomManager):
             }
         )
 
+        chatroom_context = {}
+
+        if (is_edit_mode and (user_instance == card_instance.user or member_state == member_states.ADMIN)):
+
+            self._fill_online_link_for_event(chatroom_context, card_instance)
+            return chatroom_context
+
         if TimeUtilities.current_time_in_milliseconds() >= card_instance.date_time:
 
             if not card_instance.is_paid and not is_user_registered:
-                chatroom_context = {}
                 self._fill_online_link_for_event(chatroom_context, card_instance)
                 return chatroom_context
 
         if TimeUtilities.current_time_in_milliseconds() >= \
                 (card_instance.date_time - card_instance.online_link_enable_before):
-            chatroom_context = {}
 
             if (not card_instance.is_paid and is_user_registered) or \
                     (card_instance.is_paid and ChatroomHelper.is_online_event_link_verified_for_user(card_instance,
@@ -2431,6 +2482,7 @@ class ChatroomImpl(ChatroomManager):
 
             payload_for_email_comms = {
                 'chatroom': chatroom_instance.id,
+                'user': int(member_id)
             }
 
             send_email_notification_for_event_type.delay(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTACHMENTS)
@@ -2546,6 +2598,7 @@ class ChatroomImpl(ChatroomManager):
 
                 payload_for_email_comms = {
                     'chatroom': event_obj.id,
+                    'user': int(member_id)
                 }
 
                 send_email_notification_for_event_type.delay(payload_for_email_comms, EVENT_TYPE.POST_EVENT_ATTACHMENTS)
@@ -2808,7 +2861,7 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True, 'data': webflow_response}
 
     @staticmethod
-    def fetch_link_for_events_list(member_id, chatroom_ids):
+    def fetch_link_for_events_list(is_edit_mode, member_id, chatroom_ids):
 
         final_response = {}
 
@@ -2824,7 +2877,7 @@ class ChatroomImpl(ChatroomManager):
 
         for chatroom_id in chatroom_ids:
             chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
-            response_context = chatroom_manager.fetch_link_for_event()
+            response_context = chatroom_manager.fetch_link_for_event(is_edit_mode)
 
             if response_context.get('error_message'):
                 chatrooms_link_objects.append({

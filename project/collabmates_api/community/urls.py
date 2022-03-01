@@ -10,7 +10,8 @@ from collabmates_api.community.community_view_impl import (FetchCommunity, Fetch
                                                            JoinEmailFetchView, FetchPaymentPageUrl,
                                                            CreateCommunityView, FetchGetStartedView,
                                                            SendInviteView, FetchCommunityFeedCM_OnboardingUrlView,
-                                                           EditCommunityQuestionsView, FetchCommunityQuestionsView)
+                                                           EditCommunityQuestionsView, FetchCommunityQuestionsView,
+                                                           FetchCommunityBrandingView)
 
 urlpatterns = [
     path('create', CreateCommunityView.as_view(), name="create_community"),
@@ -39,5 +40,6 @@ urlpatterns = [
     path('fetch_get_started', FetchGetStartedView.as_view(), name="fetch_get_started"),
     path('invite', SendInviteView.as_view(), name="send_invite"),
     path('edit_questions', EditCommunityQuestionsView.as_view(), name="edit_questions"),
-    path('questions', FetchCommunityQuestionsView.as_view(), name="fetch_community_questions")
+    path('questions', FetchCommunityQuestionsView.as_view(), name="fetch_community_questions"),
+    path('<int:community_id>/branding', FetchCommunityBrandingView.as_view(), name="fetch_community_branding_info")
 ]
