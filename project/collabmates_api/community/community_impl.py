@@ -421,7 +421,7 @@ class CommunityImpl(CommunityManager):
 
         webhook_data = {
             'question_answers': [],
-            'plan_type': None,
+            'plan_type': FREE_PLAN,
             'plan_name': None
         }
 
@@ -452,6 +452,7 @@ class CommunityImpl(CommunityManager):
         return webhook_data
 
     @staticmethod
+    @shared_task
     def send_join_data_on_webhook(member_id, community_id):
 
         webhook_instances = ModelUtilities.get_model_filter(
@@ -531,7 +532,7 @@ class CommunityImpl(CommunityManager):
                                     {'is_guest': False, 'remove': None,
                                      'last_updated': TimeUtilities.current_time_in_milliseconds()})
         self.update_pending_members_after_request_accept_or_reject(community_instance)
-        self.send_join_data_on_webhook(user_instance.id, community_instance.id)
+        self.send_join_data_on_webhook.delay(user_instance.id, community_instance.id)
 
     def set_members_count_in_community(self, community_id, members_count):
 
@@ -706,7 +707,7 @@ class CommunityImpl(CommunityManager):
 
         CohortHelper.add_member_to_respective_question_based_cohorts(self.get_member_id(), self.get_community_id())
 
-        self.send_join_data_on_webhook(user_instance.id, community_instance.id)
+        self.send_join_data_on_webhook.delay(user_instance.id, community_instance.id)
 
     @staticmethod
     def send_approve_reject_data_on_airtable(user_instance, community_instance, approved):
