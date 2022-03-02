@@ -1366,17 +1366,28 @@ class ChatroomImpl(ChatroomManager):
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
-        text = req_body.get('text')
+        is_cm = Members.is_member_community_promoter(card_instance.community, user_instance)
 
-        if not text:
-            return {'success': False, 'error_message': "Empty text for edit"}
+        if card_instance.user_id != user_instance.id and not is_cm:
+            return {'success': False, 'error_message': "User doesn’t have ability to update chatroom meta data"}
 
-        if card_instance.user_id != user_instance.id:
-            return {'success': False, 'error_message': "Only chat room creator can edit"}
+        title = req_body.get('title')
+        header = req_body.get('header')
 
-        ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, {'title': text, 'is_edited': True})
+        if not title and not header:
+            return {'success': False, 'error_message': "Send title or header to update"}
 
-        ChatroomHelper.run_async_tasks_related_to_chatroom_edit.delay(card_instance.id, text)
+        update_dict = {'is_edited': True, 'updated_at': TimeUtilities.current_time_in_milliseconds()}
+
+        if title:
+            update_dict['title'] = title
+
+        if header:
+            update_dict['header'] = header
+
+        ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_dict)
+
+        ChatroomHelper.run_async_tasks_related_to_chatroom_edit.delay(card_instance.id, title)
 
         return {'success': True}
 
