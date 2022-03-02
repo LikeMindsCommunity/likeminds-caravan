@@ -1618,7 +1618,7 @@ class CommunityImpl(CommunityManager):
 
             community_instance = validated_req_body.get('community_instance')
 
-            output['branding'] = json.loads(community_instance.branding)
+            output['branding'] = json.loads(community_instance.branding) if community_instance.branding else None
 
             CacheImpl.set_cache(branding_cache_key, community_instance.branding)
 
