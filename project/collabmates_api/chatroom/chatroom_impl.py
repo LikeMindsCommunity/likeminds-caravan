@@ -1372,15 +1372,16 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "User doesn’t have ability to update chatroom meta data"}
 
         title = req_body.get('title')
+        text = req_body.get('text')
         header = req_body.get('header')
 
-        if not title and not header:
+        if not title and not header and not text:
             return {'success': False, 'error_message': "Send title or header to update"}
 
         update_dict = {'is_edited': True, 'updated_at': TimeUtilities.current_time_in_milliseconds()}
 
-        if title:
-            update_dict['title'] = title
+        if title or text:
+            update_dict['title'] = title if title else text
 
         if header:
             update_dict['header'] = header
