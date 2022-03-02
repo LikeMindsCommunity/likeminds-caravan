@@ -1,8 +1,9 @@
-#file to use utility functions
+# file to use utility functions
 
 from django.core.paginator import Paginator
 
-from .static_text import SINGLE_COMMUNITY_VIEW_VERSION_CODE, LM_PLATFORM_CODES, FREE_LINK_VERSION_CODE
+from .static_text import SINGLE_COMMUNITY_VIEW_VERSION_CODE, LM_PLATFORM_CODES, FREE_LINK_VERSION_CODE, \
+    CREATE_CHATROOM_REVAMP_VERSION_CODE
 
 
 def get_member_id_from_headers(request):
@@ -19,7 +20,6 @@ def get_member_id_from_headers(request):
 
 
 def get_platform_code_from_headers(request):
-
     headers = request.META
 
     platform_code = 0
@@ -30,7 +30,6 @@ def get_platform_code_from_headers(request):
 
 
 def is_platform_ios(request):
-
     platform = get_platform_code_from_headers(request)
 
     if isinstance(platform, str):
@@ -39,7 +38,6 @@ def is_platform_ios(request):
 
 
 def is_request_web(request):
-
     '''function to tell if the request is web or not'''
 
     platform_code = get_platform_code_from_headers(request)
@@ -51,7 +49,6 @@ def is_request_web(request):
 
 
 def get_version_code_from_headers(request):
-
     headers = request.META
 
     version_code = None
@@ -61,12 +58,14 @@ def get_version_code_from_headers(request):
 
     return version_code
 
+
 def pagination(queryset, page_number, paginate_by=10):
     '''function to create pagination and return a query set for page number'''
     paginator = Paginator(queryset, paginate_by)
     max_page = len(paginator.page_range)
 
     return [] if (max_page < int(page_number) or not queryset.exists()) else paginator.get_page(page_number)
+
 
 def list_pagination(list, page_number, paginate_by=10):
     '''function to create pagination and return a query set for page number'''
@@ -76,8 +75,7 @@ def list_pagination(list, page_number, paginate_by=10):
     return [] if max_page < int(page_number) else paginator.get_page(page_number)
 
 
-def get_paginated_queryset_with_maxpages(queryset,page_number,paginate_by=10):
-
+def get_paginated_queryset_with_maxpages(queryset, page_number, paginate_by=10):
     paginator = Paginator(queryset, paginate_by)
     max_page = len(paginator.page_range)
     page_list = [] if (max_page < int(page_number) or not queryset.exists()) else paginator.get_page(page_number)
@@ -89,7 +87,6 @@ def get_paginated_queryset_with_maxpages(queryset,page_number,paginate_by=10):
 
 
 def get_total_pages(count, limit=10):
-
     last_digit = count % limit
     if last_digit == 0:
         page_count = int(count / limit)
@@ -128,6 +125,17 @@ def free_link_and_freemium_community_version_check(platform_code: str, version_c
         return False
 
     if platform_code in FREE_LINK_VERSION_CODE.keys() and version_code >= FREE_LINK_VERSION_CODE[platform_code]:
+        return True
+
+    return False
+
+
+def create_chatroom_revamp_version_check(platform_code: str, version_code: int) -> bool:
+    if not platform_code or platform_code.lower() not in LM_PLATFORM_CODES:
+        return False
+
+    if platform_code in CREATE_CHATROOM_REVAMP_VERSION_CODE.keys() and version_code >= \
+            CREATE_CHATROOM_REVAMP_VERSION_CODE[platform_code]:
         return True
 
     return False

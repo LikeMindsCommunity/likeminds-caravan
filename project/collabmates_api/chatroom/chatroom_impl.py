@@ -34,10 +34,12 @@ from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstance
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
-    delete_chatroom, accessible_without_subscription
+    delete_chatroom, accessible_without_subscription, settings_for_chatroom_with_revamp, make_it_secret, \
+    auto_joined_by_all_members, manage_permissions
 from ..sync.model_update import update_models_for_syncing_apis
 from ..upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
 from ..user_moderation_rights import check_admin_delete_right
+from ..utility import create_chatroom_revamp_version_check
 from ..views import (adding_guest_in_chatroom, get_chatroom_actions, get_expiry_time_of_chatroom,
                      create_chatroom_state_instance, get_icons_states_of_chatroom_version_1,
                      save_the_latest_conversation, collabcard_follow_internal,
@@ -2104,6 +2106,23 @@ class ChatroomImpl(ChatroomManager):
         if not is_cm:
             return {'success': False, 'error_message': "User can’t view settings of this chatroom"}
 
+        if create_chatroom_revamp_version_check(self.get_request_platform(), self.get_version_code()):
+            chatroom_settings = settings_for_chatroom_with_revamp.copy()
+            admin_has_delete_right = check_admin_delete_right(user=user_instance,
+                                                              community=community_instance)
+
+            if admin_has_delete_right:
+                chatroom_settings.append(delete_chatroom)
+
+            if not card_instance.is_secret:
+                chatroom_settings.append(auto_joined_by_all_members)
+                chatroom_settings.append(manage_permissions)
+                chatroom_settings.append(pin_chatroom)
+
+            settings_list = ChatroomHelper.get_settings_for_chatroom(chatroom_settings, card_instance)
+
+            return {'success': True, 'settings': settings_list}
+
         if card_instance.type == card_types.CARD_PURPOSE:
             chatroom_settings = settings_for_purpose_chatroom.copy()
 
@@ -3733,6 +3752,12 @@ class ChatroomHelper:
 
             elif settings['id'] == accessible_without_subscription['id']:
                 settings_dict['is_selected'] = card_instance.access_without_subscription
+
+            elif settings['id'] == make_it_secret['id']:
+                settings_dict['is_selected'] = card_instance.is_secret
+
+            elif settings['id'] == auto_joined_by_all_members['id']:
+                settings_dict['is_selected'] = card_instance.include_members_later
 
             chatroom_settings.append(settings_dict)
 
