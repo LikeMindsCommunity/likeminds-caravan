@@ -977,7 +977,7 @@ class TasksHelper:
         data_dict = {
             'community_name': community_instance.name,
             'chatroom_name': chatroom_instance.header,
-            'chatroom_link': link,
+            'chatroom_link': "route://collabcard?collabcard_id=" + str(chatroom_instance.id),
             'receiver_name': receiver_instance.userinfo.name,
             'sender_name': sender_instance.userinfo.name,
             'owner_name': community_owner_instance.userinfo.name
