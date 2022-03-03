@@ -1363,7 +1363,7 @@ class CommunityImpl(CommunityManager):
         community_instance = Community.create_instance({'name': validate_req_body['name'],
                                                         'members_count': 1,
                                                         'purpose': validate_req_body['headline'],
-                                                        'brand_color': validate_req_body['brand_color'],
+                                                        'brand_color': validate_req_body.get('brand_color', None),
                                                         'image_link': validate_req_body['image_url'],
                                                         'thumbnail': community_default_thumbnail,
                                                         'type': type_id,
@@ -1619,7 +1619,7 @@ class CommunityImpl(CommunityManager):
 
             community_instance = validated_req_body.get('community_instance')
 
-            output['branding'] = json.loads(community_instance.branding)
+            output['branding'] = json.loads(community_instance.branding) if community_instance.branding else None
 
             CacheImpl.set_cache(branding_cache_key, community_instance.branding)
 
@@ -2326,7 +2326,7 @@ class CommunityHelper:
         if 'headline' not in req_body:
             return {'success': False, 'error_message': 'Empty headline!'}
 
-        if 'brand_color' not in req_body:
+        if 'branding' not in req_body and 'brand_color' not in req_body:
             return {'success': False, 'error_message': 'Empty brand color!'}
 
         if 'image_url' not in req_body:
