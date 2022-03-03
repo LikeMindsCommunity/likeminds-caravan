@@ -1283,10 +1283,9 @@ class ChatroomImpl(ChatroomManager):
                                         {'has_files': True, 'attachment_count': 1,
                                          'attachments_uploaded': True})
 
-    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, chatroom_id,
-                                                                   include_members_later) -> dict:
+    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, request_body) -> dict:
 
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
         if not chatroom_instance:
             return {'success': False, 'error_message': "invalid chatroom id"}
@@ -1302,7 +1301,6 @@ class ChatroomImpl(ChatroomManager):
                                                                   'member_id': user_instance})
 
         user_list = []
-        bulk_update_list = []
 
         if not member_filter:
             response = {
@@ -1321,15 +1319,18 @@ class ChatroomImpl(ChatroomManager):
             }
             raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
-        if not chatroom_instance.auto_follow_done:
+        auto_follow_done = request_body.get('auto_follow_done', True)
+        include_members_later = request_body.get('include_members_later', True)
+
+        chatroom_instance.auto_follow_done = auto_follow_done
+        chatroom_instance.include_members_later = include_members_later
+        chatroom_instance.save()
+
+        if chatroom_instance.auto_follow_done:
             community_members = list(Members.get_members_of_community(community_id).values_list('member_id',
                                                                                                 flat=True))
 
             ChatroomHelper.bulk_follow_chatroom_users(chatroom_instance, community_members)
-
-            chatroom_instance.auto_follow_done = True
-            chatroom_instance.include_members_later = include_members_later
-            chatroom_instance.save()
 
             # removing tag status for tagged users
             ModelUtilities.model_update(collabcardState,
@@ -1338,12 +1339,11 @@ class ChatroomImpl(ChatroomManager):
                                         {'is_tagged': False,
                                          'updated_at': TimeUtilities.current_time_in_sec()})
 
-            conversation_impl.ConversationHelper.create_conversation_state(chatroom_instance, user_instance,
-                                                                           conversation_states.CONVERSATION_ADD_ALL_MEMBERS)
+            ChatroomHelper.post_added_all_members_conversation(chatroom_instance, user_instance)
 
             if len(user_list) > 0:
-                send_notification_for_auto_follow_chatroom_for_all_members.delay(chatroom_id, user_instance.id,
-                                                                                 user_list)
+                send_notification_for_auto_follow_chatroom_for_all_members.delay(self.get_chatroom_id(),
+                                                                                 user_instance.id, user_list)
 
             return {'success': True}
 
@@ -1644,7 +1644,7 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "Invalid chatroom id"}
 
         testimonials = req_body.get('testimonials', [])
-        
+
         from collabmates_api.views import SyncChatrooms
 
         testimonials_list = SyncChatrooms().fetch_member_testimonials(card_instance.id)
@@ -4008,3 +4008,16 @@ class ChatroomHelper:
         chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (url, str(chatroom_instance.id), str(chatroom_instance.community.id))
 
         return chatroom_url
+
+    @staticmethod
+    def post_added_all_members_conversation(chatroom_instance, user_instance):
+
+        conversation_filter = ModelUtilities.get_model_filter(card_answers, {
+            'card': chatroom_instance,
+            'state': conversation_states.CONVERSATION_ADD_ALL_MEMBERS,
+            'answer__endswith': ' added all members'
+        })
+
+        if not conversation_filter:
+            conversation_impl.ConversationHelper.create_conversation_state(
+                chatroom_instance, user_instance, conversation_states.CONVERSATION_ADD_ALL_MEMBERS)

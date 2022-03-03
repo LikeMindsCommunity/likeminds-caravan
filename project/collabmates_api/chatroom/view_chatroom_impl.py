@@ -207,17 +207,10 @@ class AutoFollowChatroomForAllMembersView(APIView):
         if not header_member_id:
             raise InvalidHeaderException()
 
-        request_body = RequestUtilities.fetch_request_body(request)
-
-        chatroom_id = request_body.get('chatroom_id', None)
-
-        include_members_later = request_body.get('include_members_later', True)
-
-        chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=chatroom_id)
-
+        request_body = RequestUtilities.load_request_body(request)
+        chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=request_body.get('chatroom_id', None))
         response = chatroom_manager.follow_chatroom_automatically_for_all_members_of_community(header_member_id,
-                                                                                               chatroom_id,
-                                                                                               include_members_later)
+                                                                                               request_body)
 
         if response.get('error_message'):
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)

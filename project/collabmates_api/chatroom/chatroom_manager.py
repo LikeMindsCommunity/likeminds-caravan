@@ -111,8 +111,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, chatroom_id,
-                                                                   include_members_later) -> dict:
+    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, request_body) -> dict:
         """
         to auto follow a chatroom
         """
