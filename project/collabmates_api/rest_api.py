@@ -1440,3 +1440,9 @@ class EventFAQSerializer(serializers.ModelSerializer):
                 data['chatroom_id'] = data['card']
 
         return data
+
+
+class ChatroomCohortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatroomCohort
+        fields = ('cohort_id', 'chatroom_id', 'cohort_access')

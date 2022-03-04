@@ -169,3 +169,18 @@ class FetchMemberCohortsView(APIView):
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(response, status=status_codes.HTTP_200_OK)
+
+
+class FetchCohortAccessForChatroomView(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        chatroom_id = request.GET.get('chatroom_id', None)
+
+        cohort_manager = CohortImpl(member_id=member_id)
+        response = cohort_manager.fetch_all_cohort_access_for_chatroom(chatroom_id=chatroom_id)
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response, status=status_codes.HTTP_200_OK)

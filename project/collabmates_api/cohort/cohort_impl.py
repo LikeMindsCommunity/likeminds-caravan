@@ -12,9 +12,10 @@ from ..chatroom.chatroom_impl import ChatroomImpl
 from ..search.sync import ElasticSearchSync
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
-    CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers
+    CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
+    Collabcard
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
-from ..rest_api import CohortSerializer, CohortMetaSerializer
+from ..rest_api import CohortSerializer, CohortMetaSerializer, ChatroomCohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
@@ -505,6 +506,36 @@ class CohortImpl(CohortManager):
         else:
             ElasticSearchSync.update_members.delay(member_ids=list(existing_cohort_members),
                                                    community_id=cohort_instance.community_id)
+
+    def fetch_all_cohort_access_for_chatroom(self, chatroom_id):
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return get_error_context(success=False, error_message="Invalid chatroom_id")
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return get_error_context(success=False, error_message="Invalid member_id passed in headers")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return get_error_context(success=False, error_message="You are not a member of community")
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return get_error_context(success=False,
+                                     error_message="You don’t have the ability to fetch access of cohorts")
+
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
+        chatroom_cohorts_data = ChatroomCohortSerializer(chatroom_cohorts, many=True).data
+
+        return {'success': True, 'cohort_data': chatroom_cohorts_data}
 
 
 class CohortHelper:

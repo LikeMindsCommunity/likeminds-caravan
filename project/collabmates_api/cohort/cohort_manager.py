@@ -15,7 +15,9 @@ class CohortManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_cohorts_with_community_and_cohort_id') and
                  callable(subclass.fetch_cohorts_with_community_and_cohort_id)) and
                 (hasattr(subclass, 'fetch_member_cohorts') and
-                 callable(subclass.fetch_member_cohorts)) or
+                 callable(subclass.fetch_member_cohorts)) and
+                (hasattr(subclass, 'fetch_all_cohort_access_for_chatroom') and
+                 callable(subclass.fetch_all_cohort_access_for_chatroom)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -66,3 +68,12 @@ class CohortManager(metaclass=abc.ABCMeta):
         Fetches cohorts of members in a community
         """
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_all_cohort_access_for_chatroom(self, chatroom_id):
+        """
+        Fetches access for each cohort added in chatroom
+        """
+        raise NotImplementedError
+
+
