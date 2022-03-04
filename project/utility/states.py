@@ -545,3 +545,9 @@ airtable_webhook_types = AirtableWebhookTypes()
 
 class WebhookTypes(enum.Enum):
     COMMUNITY_JOIN = 1
+
+
+class CohortAccess(enum.Enum):
+    NO_ACCESS = 0
+    RESTRICTED_ACCESS = 1
+    FULL_ACCESS = 2
