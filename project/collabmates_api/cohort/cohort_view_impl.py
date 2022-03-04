@@ -184,3 +184,23 @@ class FetchCohortAccessForChatroomView(APIView):
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(response, status=status_codes.HTTP_200_OK)
+
+
+class UpdateCohortAccessForChatroomView(APIView):
+
+    def post(self, request):
+        request_body = RequestUtilities.load_request_body(request)
+        header_member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not request_body:
+            response = {'success': False, 'error_message': "Invalid request body"}
+
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        cohort_manager = CohortImpl(member_id=header_member_id)
+        response = cohort_manager.update_cohort_access_for_chatroom(request_body=request_body)
+
+        if response.get('error_message'):
+            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(response, status=status_codes.HTTP_200_OK)

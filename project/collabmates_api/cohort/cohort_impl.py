@@ -537,6 +537,50 @@ class CohortImpl(CohortManager):
 
         return {'success': True, 'cohort_data': chatroom_cohorts_data}
 
+    def update_cohort_access_for_chatroom(self, request_body) -> dict:
+        chatroom_id = request_body.get('chatroom_id', None)
+        cohort_id = request_body.get('cohort_id', None)
+        cohort_access = request_body.get('cohort_access', None)
+
+        if not cohort_id:
+            return {'success': False, 'error_message': "invalid parameter: cohort_id"}
+
+        if cohort_access is None:
+            return {'success': False, 'error_message': "invalid parameter: cohort_access"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "invalid parameter: user_id"}
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return {'success': False, 'error_message': "invalid parameter: chatroom_id"}
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id,
+                                                                                  'cohort_id': cohort_id})
+
+        if not chatroom_cohort_filter:
+            return {'success': False, 'error_message': "Cohort is not added to this chatroom"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "You are not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if chatroom_instance.user_id != int(self.get_member_id()) and not is_cm:
+            return {'success': False, 'error_message': "You don’t have permission to update access of this chatroom!"}
+
+        chatroom_cohort_filter.update(cohort_access=cohort_access,
+                                      updated_at=TimeUtilities.current_time_in_milliseconds())
+
+        return {'success': True}
+
 
 class CohortHelper:
 
