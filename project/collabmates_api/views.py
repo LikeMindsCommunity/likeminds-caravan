@@ -8701,8 +8701,7 @@ def config(request):
     context['survey_seen'] = False
 
     # set installed flags in case of mobile devices
-    if RequestUtilities.is_request_android(request) \
-            or RequestUtilities.is_request_ios(request):
+    if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
         set_installed_flag(user_instance)
 
     # mixpanel changes
@@ -8749,7 +8748,7 @@ def set_installed_flag(user_instance):
 
         app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
 
-        if created:
+        if not created:
             app_uninstall.uninstall_days = 0
             app_uninstall.save()
 
