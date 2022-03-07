@@ -86,7 +86,7 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
             private_url = base_url + f'?aj={aj}'
 
         long_url_item = create_link_item(private_url, community_instance, "AppBackend", "CommunityPrivate",
-                                         private=True, is_free_trial=True)
+                                         private=True, is_free_trial=is_free_trial)
         data.append(long_url_item)
 
         directory_url = base_url + f'?aj={aj}&source=members_directory'
