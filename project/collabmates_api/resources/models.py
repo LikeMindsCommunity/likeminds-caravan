@@ -20,6 +20,7 @@ class ResourceSettings(models.Model):
     )
     community_id = models.ForeignKey(
         Community,
+        editable=False,
         on_delete=models.PROTECT
     )
     day_of_weekly_email = models.IntegerField(
@@ -68,6 +69,7 @@ class ResourceCategory(models.Model):
     )
     community_id = models.ForeignKey(
         Community,
+        editable=False,
         on_delete=models.PROTECT
     )
     title = models.CharField(

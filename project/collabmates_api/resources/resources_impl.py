@@ -230,6 +230,9 @@ class ResourcesImpl(ResourceManager):
         if not resource_category_instance:
             return get_error_context(False, 'incorrect id')
 
+        if resource_category_instance.is_deleted:
+            return get_error_context(False, 'The Resource Category has been deleted')
+
         validation_check = ResourceHelper.is_user_cm_or_not(
             resource_category_instance.community_id.id,
             self.get_member_id()
@@ -283,6 +286,9 @@ class ResourcesImpl(ResourceManager):
 
         if not validation_check.get('success'):
             return validation_check
+
+        if resource_category_instance.is_deleted:
+            return get_error_context(False, 'The Resource Category has already been deleted')
 
         resource_category_instance.is_deleted = True
         resource_category_instance.save()

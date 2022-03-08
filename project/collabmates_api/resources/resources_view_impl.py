@@ -110,6 +110,21 @@ class ResourceSettings(APIView):
 class ResourceCategory(APIView):
     """ View Class for CRUD operations on Resource Category and Resource Category Permissions """
 
+    def _validate_fetch_request(self, req_body):
+        """to validate GET request"""
+        res = {}
+
+        if not req_body:
+            res = get_error_context(False, "Invalid request body")
+
+        elif not req_body.get('community_id'):
+            res = get_error_context(False, "community_id cannot be empty")
+
+        elif not req_body.get('page'):
+            res = get_error_context(False, "page cannot be empty")
+
+        return res
+
     def post(self, request):
         """to create new Resource Category object"""
         try:
@@ -149,6 +164,14 @@ class ResourceCategory(APIView):
         try:
             member_id = RequestUtilities.get_member_id_from_headers(request)
             req_body = RequestUtilities.load_request_body(request)
+
+            request_validation_errors = self._validate_fetch_request(req_body)
+
+            if request_validation_errors:
+                return JsonResponse(
+                    request_validation_errors,
+                    status=status_codes.HTTP_400_BAD_REQUEST
+                )
 
             res_instance = ResourcesImpl(
                 member_id=member_id,
