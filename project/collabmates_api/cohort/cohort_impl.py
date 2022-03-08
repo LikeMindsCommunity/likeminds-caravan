@@ -1079,3 +1079,27 @@ class CohortHelper:
                     error_logger.error(e.args)
 
             cohort_member_filter.delete()
+
+    @staticmethod
+    def fetch_cohort_access_for_chatroom(chatroom_id, user_id):
+        cohort_access = None
+
+        # to check if we can optimize query count.
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
+
+        if not chatroom_cohorts:
+            return cohort_access
+
+        for chatroom_cohort in chatroom_cohorts:
+            is_cohort_member = ModelUtilities.is_model_filter_exists(CohortMember, {
+                'cohort_id': chatroom_cohort.cohort_id,
+                'user_id': user_id
+            })
+
+            if cohort_access is None and is_cohort_member:
+                cohort_access = chatroom_cohort.cohort_access
+
+            elif is_cohort_member:
+                cohort_access = max(cohort_access, chatroom_cohort.cohort_access)
+
+        return cohort_access

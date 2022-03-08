@@ -898,6 +898,12 @@ class ChatroomImpl(ChatroomManager):
         if placeholder:
             chatroom_obj['placeholder'] = placeholder
 
+        from collabmates_api.cohort.cohort_impl import CohortHelper
+        cohort_access = CohortHelper.fetch_cohort_access_for_chatroom(self.get_chatroom_id(), self.get_member_id())
+
+        if cohort_access is not None:
+            chatroom_obj['cohort_access'] = cohort_access
+
         # For Event Recordings and Attachments data
         event_recordings_data = ChatroomHelper.display_event_recordings_and_attachments(
             user_instance=user_instance,
