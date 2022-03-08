@@ -5453,6 +5453,12 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
 
     context['access_without_subscription'] = card_instance.access_without_subscription
 
+    from collabmates_api.cohort.cohort_impl import CohortHelper
+    cohort_access = CohortHelper.fetch_cohort_access_for_chatroom(card_instance.id, user_instance.id)
+
+    if cohort_access is not None:
+        context['cohort_access'] = cohort_access
+
     return context
 
 
