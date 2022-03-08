@@ -92,18 +92,6 @@ error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
 
-############# functions for your communities  api ##########################
-
-def is_member_engage(community, member):
-    '''function to check if data is presnt in member engage table or not'''
-
-    is_present = False
-    member_data = Member_Engage.objects.filter(community_id=community, member_id=member)
-    if member_data.exists():
-        is_present = True
-    return is_present
-
-
 def update_pending_member_count_in_engage(community):
     '''function to update the member count in engage'''
     pending_members_count = Members.objects.filter(community_id=community, state=member_states.PENDING_MEMBER).count()
@@ -2446,16 +2434,16 @@ def create_community_version_1(request):
         member_instance.became_member_at = time.time()
         member_instance.save()
 
-        # making the member enage instance for created community
-        engage = Member_Engage()
-        engage.member_id = user_instance
-        engage.community_id = community_instance
-        engage.updated_at = time.time()
-        engage.member_state = member_states.ADMIN
-        engage.member_referral = "Finish setting up your community"
-        engage.click_state = click_states.SET_PURPOSE
-        engage.rights_list = json.dumps(member_rights.ALL_MEMBER_RIGHTS)
-        engage.save()
+        ModelUtilities.update_or_create_model(Member_Engage, {
+            'member_id': user_instance,
+            'community_id': community_instance
+        }, {
+            'member_state': member_states.ADMIN,
+            'click_state': click_states.SET_PURPOSE,
+            'member_referral': 'Finish setting up your community',
+            'rights_list': json.dumps(member_rights.ALL_MEMBER_RIGHTS),
+            'order_time': TimeUtilities.current_time_in_milliseconds()
+        })
 
         # give all the CM and member rights to the community creator i.e owner
         give_all_manager_rights(user=user_instance, community=community_instance)
@@ -8271,15 +8259,14 @@ def skip_community(request):
         member_instance.became_member_at = time.time()
         member_instance.save()
 
-    if not is_member_engage(community_id, member_id):
-        engage = Member_Engage()
-        engage.member_id = user_instance
-        engage.community_id = community_instance
-        engage.updated_at = time.time()
-        engage.member_state = member_states.PROFILE_UNAVAILABLE
-        engage.click_state = click_states.SKIP_COMMUNITY
-        # engage.rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
-        engage.save()
+    ModelUtilities.update_or_create_model(Member_Engage, {
+        'member_id': user_instance,
+        'community_id': community_instance
+    }, {
+        'member_state': member_states.PROFILE_UNAVAILABLE,
+        'click_state': click_states.SKIP_COMMUNITY,
+        'order_time': TimeUtilities.current_time_in_milliseconds()
+    })
 
     set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
     update_community_toast(user_instance, community_instance, message="Please complete your profile for full access")
@@ -8701,8 +8688,7 @@ def config(request):
     context['survey_seen'] = False
 
     # set installed flags in case of mobile devices
-    if RequestUtilities.is_request_android(request) \
-            or RequestUtilities.is_request_ios(request):
+    if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
         set_installed_flag(user_instance)
 
     # mixpanel changes
@@ -8749,7 +8735,7 @@ def set_installed_flag(user_instance):
 
         app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
 
-        if created:
+        if not created:
             app_uninstall.uninstall_days = 0
             app_uninstall.save()
 
