@@ -803,7 +803,7 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.online_link_password:
             chatroom_context['online_link_password'] = card_instance.online_link_password
 
-    def fetch_chatroom(self) -> dict:
+    def fetch_chatroom(self, is_internal=False) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
@@ -819,6 +819,9 @@ class ChatroomImpl(ChatroomManager):
             return {'error_message': "invalid user id"}
 
         community_instance = card_instance.community
+
+        if is_internal:
+            return {'chatroom': CollabcardSerializer(card_instance, user_instance.id)}
 
         if card_instance.access not in [event_access.COMMUNITY_MEMBERS, event_access.NON_COMMUNITY_USERS_AND_MEMBERS] \
                 and card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:

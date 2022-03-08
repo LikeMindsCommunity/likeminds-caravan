@@ -25,12 +25,13 @@ class FetchChatroomView(APIView):
 
         request_platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        is_internal = StringUtilities.get_boolean_from_string(request.GET.get('is_internal'))
 
         chatroom_id = request.GET.get('chatroom_id')
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, device_id=device_id,
                                         request_platform=request_platform, version_code=version_code)
-        chatroom_data = chatroom_manager.fetch_chatroom()
+        chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal)
 
         return JsonResponse(chatroom_data)
 
