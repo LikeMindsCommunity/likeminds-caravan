@@ -556,11 +556,16 @@ class CommunityImpl(CommunityManager):
                                  'state': member_states.PENDING_MEMBER,
                                  'joined_by': shared_by_user
                                  })
-        Member_Engage.create_instance({'user_instance': user_instance,
-                                       'community_instance': community_instance,
-                                       'state': member_states.PENDING_MEMBER,
-                                       'click_state': click_states.PENDING_APPROVAL
-                                       })
+
+        ModelUtilities.update_or_create_model(Member_Engage, {
+            'member_id': user_instance,
+            'community_id': community_instance
+        }, {
+            'member_state': member_states.PENDING_MEMBER,
+            'click_state': click_states.PENDING_APPROVAL,
+            'order_time': TimeUtilities.current_time_in_milliseconds()
+        })
+
         self.update_pending_members_after_request_accept_or_reject(community_instance)
 
         history_type = moderation_history_types.APPLIED_PUBLIC_LINK if shared_by_user \
@@ -660,10 +665,15 @@ class CommunityImpl(CommunityManager):
                                  'custom_title': "Member",
                                  'became_member_at': TimeUtilities.current_time_in_sec()
                                  })
-        Member_Engage.create_instance({'user_instance': user_instance,
-                                       'community_instance': community_instance,
-                                       'state': member_states.MEMBER,
-                                       })
+
+        ModelUtilities.update_or_create_model(Member_Engage, {
+            'member_id': user_instance,
+            'community_id': community_instance
+        }, {
+            'member_state': member_states.MEMBER,
+            'order_time': TimeUtilities.current_time_in_milliseconds()
+        })
+
         update_member_rights_in_member_engage.delay(community_instance.id, user_instance.id)
 
         CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
@@ -2784,12 +2794,16 @@ class CommunityHelper:
         member_instance = member_filter[0]
 
         # making the member engage instance for created community
-        engage = Member_Engage.create_instance({'user_instance': user_instance,
-                                                'community_instance': community_instance,
-                                                'state': member_states.ADMIN,
-                                                'click_state': click_states.SET_PURPOSE,
-                                                'member_referral': 'Finish setting up your community',
-                                                'rights_list': json.dumps(member_rights.ALL_MEMBER_RIGHTS)})
+        ModelUtilities.update_or_create_model(Member_Engage, {
+            'member_id': user_instance,
+            'community_id': community_instance
+        }, {
+            'member_state': member_states.ADMIN,
+            'click_state': click_states.SET_PURPOSE,
+            'member_referral': 'Finish setting up your community',
+            'rights_list': json.dumps(member_rights.ALL_MEMBER_RIGHTS),
+            'order_time': TimeUtilities.current_time_in_milliseconds()
+        })
 
         # give all the CM and member rights to the community creator i.e owner
         CommunityHelper.give_owner_all_member_manager_rights(user_instance, community_instance)
