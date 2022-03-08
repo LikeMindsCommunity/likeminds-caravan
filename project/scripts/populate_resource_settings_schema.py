@@ -12,7 +12,6 @@ def populate_resource_settings():
     community_ids = Community.objects.all().distinct()
 
     objs = [ResourceSettings(
-        id=uuid.uuid4(),
         community_id=community_id,
         day_of_weekly_email=day_of_weekly_email,
         time_of_weekly_email=time_of_weekly_email
