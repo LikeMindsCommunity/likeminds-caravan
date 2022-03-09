@@ -11996,6 +11996,13 @@ class SyncChatrooms(APIView):
 
             chatroom['cohorts'] = cohort_member_map.get(data[0], [])
 
+            from collabmates_api.cohort.cohort_impl import CohortHelper
+
+            cohort_access = CohortHelper.fetch_cohort_access_for_chatroom(data[0], member_id)
+
+            if cohort_access is not None:
+                chatroom['cohort_access'] = cohort_access
+
             event_recordings_data = chatroom_event_recordings_mapper.get(data[0], {})
 
             chatroom.update(event_recordings_data)
