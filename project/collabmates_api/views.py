@@ -8943,16 +8943,16 @@ def edit_community_version_1(request):
     name = res.get('community_name', community_instance.name)
     image_link = res.get('image_url', community_instance.image_link)
 
-    edit_field = None
+    edit_fields = []
 
     if community_instance.name != name:
-        edit_field = "name"
+        edit_fields.append("name")
 
     if community_instance.purpose != purpose:
-        edit_field = "purpose"
+        edit_fields.append("purpose")
 
     if community_instance.image_link != image_link:
-        edit_field = "image_url"
+        edit_fields.append("image_url")
 
     community_instance.purpose = purpose
     community_instance.name = name
@@ -8976,10 +8976,10 @@ def edit_community_version_1(request):
     community_instance.brand_color = res.get('brand_color', community_instance.brand_color)
     community_instance.likeminds_plan = res.get('likeminds_plan', community_instance.likeminds_plan)
 
-    if edit_field:
-        edit_community_data(community_instance, user_instance, edit_field=edit_field)
-
     community_instance.save()
+
+    for edit_field in edit_fields:
+        edit_community_data(community_instance, user_instance, edit_field=edit_field)
 
     CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_instance.id), community_instance.branding)
 
