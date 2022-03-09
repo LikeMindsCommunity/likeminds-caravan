@@ -1326,6 +1326,9 @@ class Member_Engage(models.Model):
         self.order_time = current_time
         super(Member_Engage, self).save(*args, **kwargs)
 
+    class Meta:
+        unique_together = [['member_id', 'community_id']]
+
 
 class Community_Legacy(models.Model):
     '''Model to store the communities of legacy'''
