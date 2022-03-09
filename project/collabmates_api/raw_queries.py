@@ -124,7 +124,13 @@ def get_my_chatrooms_count(user_id,
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id):
+def get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=None):
+    community_based_filter = """"""
+
+    if community_id:
+        community_based_filter = """AND chatroom_id IN (SELECT id
+                                           FROM   togther_collabcard
+                                           WHERE  community_id = %s)""" % (str(community_id))
     try:
 
         conn = get_connection()
@@ -135,13 +141,10 @@ def get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id):
                 FROM   togther_ChatroomCohort
                 WHERE  cohort_id IN (SELECT cohort_id
                                      FROM   togther_CohortMember
-                                     WHERE  user_id = %s)
-                       AND chatroom_id IN (SELECT id
-                                           FROM   togther_collabcard
-                                           WHERE  community_id = %s)
+                                     WHERE  user_id = %s) %s
                 GROUP  BY chatroom_id
                 HAVING MAX(cohort_access) = 0;
-            """ % (str(user_id), str(community_id))
+            """ % (str(user_id), community_based_filter)
 
         curr.execute(sql)
         res = curr.fetchall()
