@@ -46,11 +46,11 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_my_chatrooms_count(user_id, 
-                           version_code, 
-                           platform_code, 
+def get_my_chatrooms_count(user_id,
+                           version_code,
+                           platform_code,
                            consider_dm_chatrooms=False,
-                           dm_instance_community_ids_list=[], 
+                           dm_instance_community_ids_list=[],
                            community_id=None,
                            intro_room_community_list=[]):
     '''function to give the count of active my chatrooms'''
@@ -124,15 +124,49 @@ def get_my_chatrooms_count(user_id,
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id):
+    try:
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                SELECT chatroom_id
+                FROM   togther_ChatroomCohort
+                WHERE  cohort_id IN (SELECT cohort_id
+                                     FROM   togther_CohortMember
+                                     WHERE  user_id = %s)
+                       AND chatroom_id IN (SELECT id
+                                           FROM   togther_collabcard
+                                           WHERE  community_id = %s)
+                GROUP  BY chatroom_id
+                HAVING MAX(cohort_access) = 0;
+            """ % (str(user_id), str(community_id))
+
+        curr.execute(sql)
+        res = curr.fetchall()
+
+        card_ids = []
+        for card_id in res:
+            card_ids.append(card_id[0])
+
+        curr.close()
+
+        return card_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_followed_chatrooms(user_id,
-                        page,
-                        version_code,
-                        platform_code,
-                        limit=10,
-                        consider_dm_chatrooms=False,
-                        dm_instance_community_ids_list=[],
-                        community_id=None,
-                        intro_room_community_list=[]):
+                           page,
+                           version_code,
+                           platform_code,
+                           limit=10,
+                           consider_dm_chatrooms=False,
+                           dm_instance_community_ids_list=[],
+                           community_id=None,
+                           intro_room_community_list=[]):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
