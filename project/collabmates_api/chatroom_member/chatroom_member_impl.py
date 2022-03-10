@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from collabmates_api.chatroom_member.chatroom_member_manager import ChatroomMemberManager
 from collabmates_api.rest_api import EventFAQSerializer, EventMemberTestimonialsSerializer, EventHighlightsSerializer, \
-    EventInstructorSerializer
+    EventInstructorSerializer, CohortWithCountSerializer
 from utility.cache_keys import EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CHATROOM
 from utility.celery_tasks import update_chatroom_conversation_count_in_cache, \
@@ -358,21 +358,12 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['attendees'] = event_attendees
 
     def fill_cohort_meta_for_response(self, card_instance, chatroom_context):
-        filter_dict = {
+        cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, {
             'chatroom_id': card_instance.id
-        }
+        }).values_list('cohort_id', flat=True)
 
-        related_cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
-                                                                                                      flat=True)
-
-        filter_dict = {
-            'cohort__id__in': related_cohort_ids
-        }
-
-        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, filter_dict)
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
-                                                      community_id=F('cohort__community_id'))
-                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
+        cohorts = ModelUtilities.get_model_filter(Cohort, {'id__in': cohort_ids})
+        cohort_list = CohortWithCountSerializer(cohorts, many=True).data
 
         chatroom_context['cohorts'] = cohort_list
 
