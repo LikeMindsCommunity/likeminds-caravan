@@ -1,3 +1,5 @@
+import json
+
 from rest_framework import serializers
 
 from .models import *
@@ -33,3 +35,27 @@ class ResourceCategoryPermissionSerializer(serializers.ModelSerializer):
         data['access_type'] = self.get_access_type()
 
         return data
+
+class ResourceURLSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ResourceURL
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super(ResourceURLSerializer, self).to_representation(instance)
+
+        data['og_tags'] = json.loads(instance.og_tags)
+        return data
+
+class ResourceURLPermissionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ResourceURLPermission
+        fields = '__all__'
+
+class ResourceURLStateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ResourceURLState
+        fields = '__all__'
